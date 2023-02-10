@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -77,6 +78,7 @@ type RuntimeImpl interface {
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
+	CreateNamespaces(context.Context, string, *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error)
 }
 
 // New creates a new Runtime with options provided
@@ -435,4 +437,22 @@ func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, cgroupPare
 	}
 
 	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
+}
+
+// CreateNamespaces creates namespaces directly within the runtime.
+func (r *Runtime) CreateNamespaces(ctx context.Context, c *Container, nsCfg *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	impl, err := r.newRuntimeImpl(c)
+	if err != nil {
+		return nil, err
+	}
+
+	// Assign this runtime implementation to the current container
+	r.runtimeImplMapMutex.Lock()
+	r.runtimeImplMap[c.ID()] = impl
+	r.runtimeImplMapMutex.Unlock()
+
+	return impl.CreateNamespaces(ctx, c.ID(), nsCfg)
 }

@@ -384,6 +384,10 @@ type ContainerSecurityConfig struct {
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
+	// ReadWriteTmpfs indicates that when running with a ReadOnlyFilesystem
+	// mount temporary file systems
+	ReadWriteTmpfs bool `json:"read_write_tmpfs,omitempty"`
+
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
@@ -421,7 +425,7 @@ type ContainerNetworkConfig struct {
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
 	// PortBindings is a set of ports to map into the container.
-	// Only available if NetNS is set to bridge or slirp.
+	// Only available if NetNS is set to bridge, slirp, or pasta.
 	// Optional.
 	PortMappings []nettypes.PortMapping `json:"portmappings,omitempty"`
 	// PublishExposedPorts will publish ports specified in the image to
@@ -536,6 +540,10 @@ type ContainerResourceConfig struct {
 type ContainerHealthCheckConfig struct {
 	HealthConfig               *manifest.Schema2HealthConfig     `json:"healthconfig,omitempty"`
 	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
+	// Startup healthcheck for a container.
+	// Requires that HealthConfig be set.
+	// Optional.
+	StartupHealthConfig *define.StartupHealthCheck `json:"startupHealthConfig,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create

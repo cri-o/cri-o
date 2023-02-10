@@ -698,8 +698,7 @@ func (r *Repo) ResetTargetsDelegationsWithExpires(delegator string, expires time
 		return fmt.Errorf("error getting delegator (%q) metadata: %w", delegator, err)
 	}
 
-	t.Delegations = &data.Delegations{}
-	t.Delegations.Keys = make(map[string]*data.PublicKey)
+	t.Delegations = nil
 
 	t.Expires = expires.Round(time.Second)
 
@@ -844,7 +843,13 @@ func (r *Repo) AddOrUpdateSignature(roleFilename string, signature data.Signatur
 		return ErrInvalidRole{role, "no trusted keys for role"}
 	}
 
+	s, err := r.SignedMeta(roleFilename)
+	if err != nil {
+		return err
+	}
+
 	keyInDB := false
+	validSig := false
 	for _, db := range dbs {
 		roleData := db.GetRole(role)
 		if roleData == nil {
@@ -852,15 +857,27 @@ func (r *Repo) AddOrUpdateSignature(roleFilename string, signature data.Signatur
 		}
 		if roleData.ValidKey(signature.KeyID) {
 			keyInDB = true
+
+			verifier, err := db.GetVerifier(signature.KeyID)
+			if err != nil {
+				continue
+			}
+
+			// Now check if this validly signed the metadata.
+			if err := verify.VerifySignature(s.Signed, signature.Signature,
+				verifier); err == nil {
+				validSig = true
+				break
+			}
 		}
 	}
 	if !keyInDB {
+		// This key was not delegated for the role in any delegatee.
 		return verify.ErrInvalidKey
 	}
-
-	s, err := r.SignedMeta(roleFilename)
-	if err != nil {
-		return err
+	if !validSig {
+		// The signature was invalid.
+		return verify.ErrInvalid
 	}
 
 	// Add or update signature.
@@ -872,16 +889,6 @@ func (r *Repo) AddOrUpdateSignature(roleFilename string, signature data.Signatur
 	}
 	signatures = append(signatures, signature)
 	s.Signatures = signatures
-
-	// Check signature on signed meta. Ignore threshold errors as this may not be fully
-	// signed.
-	for _, db := range dbs {
-		if err := db.VerifySignatures(s, role); err != nil {
-			if _, ok := err.(verify.ErrRoleThreshold); !ok {
-				return err
-			}
-		}
-	}
 
 	b, err := r.jsonMarshal(s)
 	if err != nil {

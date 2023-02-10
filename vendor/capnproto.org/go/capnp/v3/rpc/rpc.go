@@ -952,23 +952,14 @@ func (c *Conn) handleReturn(ctx context.Context, ret rpccp.Return, release capnp
 	// going on.
 	go func() {
 		switch {
-		case q.bootstrapPromise != nil && pr.err == nil:
+		case q.bootstrapPromise != nil:
 			syncutil.Without(&c.mu, func() {
-				q.p.Fulfill(pr.result)
+				q.p.Resolve(pr.result, pr.err)
 				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
 				q.p.ReleaseClients()
 				release()
 			})
-		case q.bootstrapPromise != nil && pr.err != nil:
-			// TODO(someday): send unimplemented message back to remote if
-			// pr.unimplemented == true.
-			syncutil.Without(&c.mu, func() {
-				q.p.Reject(pr.err)
-				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
-				q.p.ReleaseClients()
-				release()
-			})
-		case q.bootstrapPromise == nil && pr.err != nil:
+		case pr.err != nil:
 			// TODO(someday): send unimplemented message back to remote if
 			// pr.unimplemented == true.
 			syncutil.Without(&c.mu, func() {

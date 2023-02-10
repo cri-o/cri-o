@@ -75,7 +75,7 @@ type LinkStatistics64 struct {
 
 type RootlessNetNS struct {
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // getPath will join the given path to the rootless netns dir
@@ -85,7 +85,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 
 // Do - run the given function in the rootless netns.
 // It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for cni operations.
+// should only lock when needed, e.g. for network operations.
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	return errors.New("not supported on freebsd")
 }
@@ -116,7 +116,7 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) configureNetNS(ctr *Container, ctrNS *jailNetNS) (status map[string]types.StatusBlock, rerr error) {
+func (r *Runtime) configureNetNS(ctr *Container, ctrNS string) (status map[string]types.StatusBlock, rerr error) {
 	if err := r.exposeMachinePorts(ctr.config.PortMappings); err != nil {
 		return nil, err
 	}
@@ -139,7 +139,7 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS *jailNetNS) (status map[s
 	}
 
 	netOpts := ctr.getNetworkOptions(networks)
-	netStatus, err := r.setUpNetwork(ctrNS.Name, netOpts)
+	netStatus, err := r.setUpNetwork(ctrNS, netOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -148,16 +148,16 @@ func (r *Runtime) configureNetNS(ctr *Container, ctrNS *jailNetNS) (status map[s
 }
 
 // Create and configure a new network namespace for a container
-func (r *Runtime) createNetNS(ctr *Container) (n *jailNetNS, q map[string]types.StatusBlock, retErr error) {
+func (r *Runtime) createNetNS(ctr *Container) (n string, q map[string]types.StatusBlock, retErr error) {
 	b := make([]byte, 16)
 	_, err := rand.Reader.Read(b)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to generate random vnet name: %v", err)
+		return "", nil, fmt.Errorf("failed to generate random vnet name: %v", err)
 	}
-	ctrNS := &jailNetNS{Name: fmt.Sprintf("vnet-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])}
+	netns := fmt.Sprintf("vnet-%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 
 	jconf := jail.NewConfig()
-	jconf.Set("name", ctrNS.Name)
+	jconf.Set("name", netns)
 	jconf.Set("vnet", jail.NEW)
 	jconf.Set("children.max", 1)
 	jconf.Set("persist", true)
@@ -166,15 +166,24 @@ func (r *Runtime) createNetNS(ctr *Container) (n *jailNetNS, q map[string]types.
 	jconf.Set("allow.raw_sockets", true)
 	jconf.Set("allow.chflags", true)
 	jconf.Set("securelevel", -1)
-	if _, err := jail.Create(jconf); err != nil {
-		logrus.Debugf("Failed to create vnet jail %s for container %s", ctrNS.Name, ctr.ID())
+	j, err := jail.Create(jconf)
+	if err != nil {
+		return "", nil, fmt.Errorf("Failed to create vnet jail %s for container %s: %w", netns, ctr.ID(), err)
 	}
 
-	logrus.Debugf("Created vnet jail %s for container %s", ctrNS.Name, ctr.ID())
+	logrus.Debugf("Created vnet jail %s for container %s", netns, ctr.ID())
 
 	var networkStatus map[string]types.StatusBlock
-	networkStatus, err = r.configureNetNS(ctr, ctrNS)
-	return ctrNS, networkStatus, err
+	networkStatus, err = r.configureNetNS(ctr, netns)
+	if err != nil {
+		jconf := jail.NewConfig()
+		jconf.Set("persist", false)
+		if err := j.Set(jconf); err != nil {
+			// Log this error and return the error from configureNetNS
+			logrus.Errorf("failed to destroy vnet jail %s: %w", netns, err)
+		}
+	}
+	return netns, networkStatus, err
 }
 
 // Tear down a network namespace, undoing all state associated with it.
@@ -183,32 +192,32 @@ func (r *Runtime) teardownNetNS(ctr *Container) error {
 		// do not return an error otherwise we would prevent network cleanup
 		logrus.Errorf("failed to free gvproxy machine ports: %v", err)
 	}
-	if err := r.teardownCNI(ctr); err != nil {
+	if err := r.teardownNetwork(ctr); err != nil {
 		return err
 	}
 
-	if ctr.state.NetNS != nil {
+	if ctr.state.NetNS != "" {
 		// Rather than destroying the jail immediately, reset the
 		// persist flag so that it will live until the container is
 		// done.
-		netjail, err := jail.FindByName(ctr.state.NetNS.Name)
+		netjail, err := jail.FindByName(ctr.state.NetNS)
 		if err != nil {
-			return fmt.Errorf("finding network jail %s: %w", ctr.state.NetNS.Name, err)
+			return fmt.Errorf("finding network jail %s: %w", ctr.state.NetNS, err)
 		}
 		jconf := jail.NewConfig()
 		jconf.Set("persist", false)
 		if err := netjail.Set(jconf); err != nil {
-			return fmt.Errorf("releasing network jail %s: %w", ctr.state.NetNS.Name, err)
+			return fmt.Errorf("releasing network jail %s: %w", ctr.state.NetNS, err)
 		}
 
-		ctr.state.NetNS = nil
+		ctr.state.NetNS = ""
 	}
 
 	return nil
 }
 
 func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
-	if ctr.state.NetNS == nil {
+	if ctr.state.NetNS == "" {
 		// If NetNS is nil, it was set as none, and no netNS
 		// was set up this is a valid state and thus return no
 		// error, nor any statistics
@@ -216,7 +225,7 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 	}
 
 	// FIXME get the interface from the container netstatus
-	cmd := exec.Command("jexec", ctr.state.NetNS.Name, "netstat", "-bI", "eth0", "--libxo", "json")
+	cmd := exec.Command("jexec", ctr.state.NetNS, "netstat", "-bI", "eth0", "--libxo", "json")
 	out, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -246,11 +255,7 @@ func getContainerNetIO(ctr *Container) (*LinkStatistics64, error) {
 }
 
 func (c *Container) joinedNetworkNSPath() string {
-	if c.state.NetNS != nil {
-		return c.state.NetNS.Name
-	} else {
-		return ""
-	}
+	return c.state.NetNS
 }
 
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {

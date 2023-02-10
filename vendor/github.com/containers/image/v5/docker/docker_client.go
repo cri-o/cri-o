@@ -19,12 +19,12 @@ import (
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/internal/iolimits"
+	"github.com/containers/image/v5/internal/useragent"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/docker/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/pkg/tlsclientconfig"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/image/v5/version"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/docker/distribution/registry/api/errcode"
 	v2 "github.com/docker/distribution/registry/api/v2"
@@ -68,8 +68,6 @@ var (
 		{path: etcDir + "/containers/certs.d", absolute: true},
 		{path: etcDir + "/docker/certs.d", absolute: true},
 	}
-
-	defaultUserAgent = "containers/" + version.Version + " (github.com/containers/image)"
 )
 
 // extensionSignature and extensionSignatureList come from github.com/openshift/origin/pkg/dockerregistry/server/signaturedispatcher.go:
@@ -284,7 +282,7 @@ func newDockerClient(sys *types.SystemContext, registry, reference string) (*doc
 	}
 	tlsClientConfig.InsecureSkipVerify = skipVerify
 
-	userAgent := defaultUserAgent
+	userAgent := useragent.DefaultUserAgent
 	if sys != nil && sys.DockerRegistryUserAgent != "" {
 		userAgent = sys.DockerRegistryUserAgent
 	}
@@ -522,9 +520,8 @@ func parseRetryAfter(res *http.Response, fallbackDelay time.Duration) time.Durat
 		return time.Duration(num) * time.Second
 	}
 	// Second, check if we have an HTTP date.
-	// If the delta between the date and now is positive, use it.
-	// Otherwise, fall back to using the default exponential back off.
 	if t, err := http.ParseTime(after); err == nil {
+		// If the delta between the date and now is positive, use it.
 		delta := time.Until(t)
 		if delta > 0 {
 			return delta
@@ -532,7 +529,6 @@ func parseRetryAfter(res *http.Response, fallbackDelay time.Duration) time.Durat
 		logrus.Debugf("Retry-After date in the past, ignoring it")
 		return fallbackDelay
 	}
-	// If the header contents are bogus, fall back to using the default exponential back off.
 	logrus.Debugf("Invalid Retry-After format, ignoring it")
 	return fallbackDelay
 }
@@ -590,7 +586,7 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		case <-time.After(delay):
 			// Nothing
 		}
-		delay = delay * 2 // exponential back off
+		delay = delay * 2 // If the registry does not specify a delay, back off exponentially.
 	}
 }
 

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"google.golang.org/api/option"
 	"google.golang.org/api/option/internaloption"
 	htransport "google.golang.org/api/transport/http"
 )
@@ -36,7 +37,10 @@ var (
 )
 
 func defaultValidatorOpts() []ClientOption {
-	return []ClientOption{internaloption.WithDefaultScopes("https://www.googleapis.com/auth/cloud-platform")}
+	return []ClientOption{
+		internaloption.WithDefaultScopes("https://www.googleapis.com/auth/cloud-platform"),
+		option.WithoutAuthentication(),
+	}
 }
 
 // Payload represents a decoded payload of an ID Token.

@@ -400,12 +400,11 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		return nil
 	}
 
-	stopSignal := ctr.config.StopSignal
-	if stopSignal == 0 {
-		stopSignal = uint(syscall.SIGTERM)
-	}
-
 	if timeout > 0 {
+		stopSignal := ctr.config.StopSignal
+		if stopSignal == 0 {
+			stopSignal = uint(syscall.SIGTERM)
+		}
 		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
 			// Is the container gone?
 			// If so, it probably died between the first check and
@@ -428,7 +427,21 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 	}
 
+	// If the timeout was set to 0 or if stopping the container with the
+	// specified signal did not work, use the big hammer with SIGKILL.
 	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
+		// There's an inherent race with the cleanup process (see
+		// #16142, #17142). If the container has already been marked as
+		// stopped or exited by the cleanup process, we can return
+		// immediately.
+		if errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+			return nil
+		}
+
+		// If the PID is 0, then the container is already stopped.
+		if ctr.state.PID == 0 {
+			return nil
+		}
 		// Again, check if the container is gone. If it is, exit cleanly.
 		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
 			return nil
@@ -594,6 +607,10 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 					device := logLine.Device
 					var header []byte
 					headerLen := uint32(len(logLine.Msg))
+					if !logLine.Partial() {
+						// we append an extra newline in this case so we need to increment the len as well
+						headerLen++
+					}
 					logSize += len(logLine.Msg)
 					switch strings.ToLower(device) {
 					case "stdin":
@@ -936,31 +953,20 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
-	done := make(chan struct{})
-	chControl := make(chan struct{})
-	go func() {
-		for {
-			select {
-			case <-chControl:
-				return
-			default:
-				if err := unix.Kill(pid, 0); err != nil {
-					if err == unix.ESRCH {
-						close(done)
-						return
-					}
-					logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
+	timer := time.NewTimer(timeout)
+	for {
+		select {
+		case <-timer.C:
+			return fmt.Errorf("given PID did not die within timeout")
+		default:
+			if err := unix.Kill(pid, 0); err != nil {
+				if err == unix.ESRCH {
+					return nil
 				}
-				time.Sleep(100 * time.Millisecond)
+				logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
 			}
+			time.Sleep(10 * time.Millisecond)
 		}
-	}()
-	select {
-	case <-done:
-		return nil
-	case <-time.After(timeout):
-		close(chControl)
-		return fmt.Errorf("given PIDs did not die within timeout")
 	}
 }
 
@@ -1438,7 +1444,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		ch <- syncStruct{si: si}
 	}()
 
-	data := -1 //nolint: wastedassign
+	data := -1
 	select {
 	case ss := <-ch:
 		if ss.err != nil {

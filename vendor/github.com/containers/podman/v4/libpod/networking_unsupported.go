@@ -15,7 +15,7 @@ import (
 
 type RootlessNetNS struct {
 	dir  string
-	Lock lockfile.Locker
+	Lock *lockfile.LockFile
 }
 
 // ocicniPortsToNetTypesPorts convert the old port format to the new one
@@ -37,17 +37,17 @@ func (r *Runtime) setupNetNS(ctr *Container) error {
 }
 
 // normalizeNetworkName takes a network name, a partial or a full network ID and returns the network name.
-// If the network is not found a errors is returned.
+// If the network is not found an error is returned.
 func (r *Runtime) normalizeNetworkName(nameOrID string) (string, error) {
 	return "", errors.New("not implemented (*Runtime) normalizeNetworkName")
 }
 
-// DisconnectContainerFromNetwork removes a container from its CNI network
+// DisconnectContainerFromNetwork removes a container from its network
 func (r *Runtime) DisconnectContainerFromNetwork(nameOrID, netName string, force bool) error {
 	return errors.New("not implemented (*Runtime) DisconnectContainerFromNetwork")
 }
 
-// ConnectContainerToNetwork connects a container to a CNI network
+// ConnectContainerToNetwork connects a container to a network
 func (r *Runtime) ConnectContainerToNetwork(nameOrID, netName string, netOpts types.PerNetworkOptions) error {
 	return errors.New("not implemented (*Runtime) ConnectContainerToNetwork")
 }
@@ -59,7 +59,7 @@ func (r *RootlessNetNS) getPath(path string) string {
 
 // Do - run the given function in the rootless netns.
 // It does not lock the rootlessCNI lock, the caller
-// should only lock when needed, e.g. for cni operations.
+// should only lock when needed, e.g. for network operations.
 func (r *RootlessNetNS) Do(toRun func() error) error {
 	return errors.New("not implemented (*RootlessNetNS) Do")
 }

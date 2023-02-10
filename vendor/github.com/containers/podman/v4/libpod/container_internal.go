@@ -128,6 +128,9 @@ func (c *Container) rwSize() (int64, error) {
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
 // placed, amongst other things
 func (c *Container) bundlePath() string {
+	if c.runtime.storageConfig.TransientStore {
+		return c.state.RunDir
+	}
 	return c.config.StaticDir
 }
 
@@ -622,6 +625,12 @@ func resetState(state *ContainerState) {
 	state.CheckpointPath = ""
 	state.CheckpointLog = ""
 	state.RestoreLog = ""
+	state.StartupHCPassed = false
+	state.StartupHCSuccessCount = 0
+	state.StartupHCFailureCount = 0
+	state.NetNS = ""
+	state.NetworkStatus = nil
+	state.NetworkStatusOld = nil
 }
 
 // Refresh refreshes the container's state after a restart.
@@ -739,7 +748,7 @@ func (c *Container) removeConmonFiles() error {
 	return nil
 }
 
-func (c *Container) export(path string) error {
+func (c *Container) export(out io.Writer) error {
 	mountPoint := c.state.Mountpoint
 	if !c.state.Mounted {
 		containerMount, err := c.runtime.store.Mount(c.ID(), c.config.MountLabel)
@@ -759,13 +768,7 @@ func (c *Container) export(path string) error {
 		return fmt.Errorf("reading container directory %q: %w", c.ID(), err)
 	}
 
-	outFile, err := os.Create(path)
-	if err != nil {
-		return fmt.Errorf("creating file %q: %w", path, err)
-	}
-	defer outFile.Close()
-
-	_, err = io.Copy(outFile, input)
+	_, err = io.Copy(out, input)
 	return err
 }
 
@@ -981,7 +984,7 @@ func (c *Container) completeNetworkSetup() error {
 		return err
 	}
 	state := c.state
-	// collect any dns servers that cni tells us to use (dnsname)
+	// collect any dns servers that the network backend tells us to use
 	for _, status := range c.getNetworkStatus() {
 		for _, server := range status.DNSServerIPs {
 			nameservers = append(nameservers, server.String())
@@ -1072,9 +1075,21 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	c.state.State = define.ContainerStateCreated
 	c.state.StoppedByUser = false
 	c.state.RestartPolicyMatch = false
+	c.state.StartupHCFailureCount = 0
+	c.state.StartupHCSuccessCount = 0
+	c.state.StartupHCPassed = false
 
 	if !retainRetries {
 		c.state.RestartCount = 0
+	}
+
+	// bugzilla.redhat.com/show_bug.cgi?id=2144754:
+	// In case of a restart, make sure to remove the healthcheck log to
+	// have a clean state.
+	if path := c.healthCheckLogPath(); path != "" {
+		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+			logrus.Error(err)
+		}
 	}
 
 	if err := c.save(); err != nil {
@@ -1082,7 +1097,11 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		if err := c.createTimer(); err != nil {
+		timer := c.config.HealthCheckConfig.Interval.String()
+		if c.config.StartupHealthCheckConfig != nil {
+			timer = c.config.StartupHealthCheckConfig.Interval.String()
+		}
+		if err := c.createTimer(timer, c.config.StartupHealthCheckConfig != nil); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -1235,7 +1254,7 @@ func (c *Container) start() error {
 		if err := c.updateHealthStatus(define.HealthCheckStarting); err != nil {
 			logrus.Error(err)
 		}
-		if err := c.startTimer(); err != nil {
+		if err := c.startTimer(c.config.StartupHealthCheckConfig != nil); err != nil {
 			logrus.Error(err)
 		}
 	}
@@ -1277,6 +1296,7 @@ func (c *Container) stop(timeout uint) error {
 	// demonstrates nicely that a high stop timeout will block even simple
 	// commands such as `podman ps` from progressing if the container lock
 	// is held when busy-waiting for the container to be stopped.
+	c.state.StoppedByUser = true
 	c.state.State = define.ContainerStateStopping
 	if err := c.save(); err != nil {
 		return fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
@@ -1324,7 +1344,6 @@ func (c *Container) stop(timeout uint) error {
 	}
 
 	c.newContainerEvent(events.Stop)
-	c.state.StoppedByUser = true
 	return c.waitForConmonToExitAndSave()
 }
 
@@ -1413,7 +1432,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 			return err
 		}
 		if c.config.HealthCheckConfig != nil {
-			if err := c.removeTransientFiles(context.Background()); err != nil {
+			if err := c.removeTransientFiles(context.Background(), c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
 				logrus.Error(err.Error())
 			}
 		}
@@ -1850,7 +1869,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 
 	// Remove healthcheck unit/timer file if it execs
 	if c.config.HealthCheckConfig != nil {
-		if err := c.removeTransientFiles(ctx); err != nil {
+		if err := c.removeTransientFiles(ctx, c.config.StartupHealthCheckConfig != nil && !c.state.StartupHCPassed); err != nil {
 			logrus.Errorf("Removing timer for container %s healthcheck: %v", c.ID(), err)
 		}
 	}
@@ -1865,7 +1884,7 @@ func (c *Container) cleanup(ctx context.Context) error {
 		if hoststFile, ok := c.state.BindMounts[config.DefaultHostsFile]; ok {
 			if _, err := os.Stat(hoststFile); err == nil {
 				// we cannot use the dependency container lock due ABBA deadlocks
-				if lock, err := lockfile.GetLockfile(hoststFile); err == nil {
+				if lock, err := lockfile.GetLockFile(hoststFile); err == nil {
 					lock.Lock()
 					// make sure to ignore ENOENT error in case the netns container was cleaned up before this one
 					if err := etchosts.Remove(hoststFile, getLocalhostHostEntry(c)); err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -2191,7 +2210,7 @@ func (c *Container) checkReadyForRemoval() error {
 		return fmt.Errorf("container %s is in invalid state: %w", c.ID(), define.ErrCtrStateInvalid)
 	}
 
-	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused) && !c.IsInfra() {
+	if c.ensureState(define.ContainerStateRunning, define.ContainerStatePaused, define.ContainerStateStopping) && !c.IsInfra() {
 		return fmt.Errorf("cannot remove container %s as it is %s - running or paused containers cannot be removed without force: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 

@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/exec"
@@ -265,6 +264,20 @@ func (b *Builder) configureUIDGID(g *generate.Generator, mountPoint string, opti
 	g.AddProcessAdditionalGid(user.GID)
 	for _, gid := range user.AdditionalGids {
 		g.AddProcessAdditionalGid(gid)
+	}
+	for _, group := range b.GroupAdd {
+		if group == "keep-groups" {
+			if len(b.GroupAdd) > 1 {
+				return "", errors.New("the '--group-add keep-groups' option is not allowed with any other --group-add options")
+			}
+			g.AddAnnotation("run.oci.keep_original_groups", "1")
+			continue
+		}
+		gid, err := strconv.ParseUint(group, 10, 32)
+		if err != nil {
+			return "", err
+		}
+		g.AddProcessAdditionalGid(uint32(gid))
 	}
 
 	// Remove capabilities if not running as root except Bounding set
@@ -556,7 +569,7 @@ func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs [
 	}()
 
 	// Make sure we read the container's exit status when it exits.
-	pidValue, err := ioutil.ReadFile(pidFile)
+	pidValue, err := os.ReadFile(pidFile)
 	if err != nil {
 		return 1, err
 	}
@@ -1185,7 +1198,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 			logrus.Errorf("did not get container create message from subprocess: %v", err)
 		} else {
 			pidFile := filepath.Join(bundlePath, "pid")
-			pidValue, err := ioutil.ReadFile(pidFile)
+			pidValue, err := os.ReadFile(pidFile)
 			if err != nil {
 				return err
 			}
@@ -1199,7 +1212,7 @@ func (b *Builder) runUsingRuntimeSubproc(isolation define.Isolation, options Run
 				defer teardown()
 			}
 			if err != nil {
-				return err
+				return fmt.Errorf("setup network: %w", err)
 			}
 
 			// only add hosts if we manage the hosts file
@@ -1455,8 +1468,8 @@ func cleanableDestinationListFromMounts(mounts []spec.Mount) []string {
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
 func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMaps IDMaps) ([]spec.Mount, *runMountArtifacts, error) {
-	// If `type` is not set default to "bind"
-	mountType := internalParse.TypeBind
+	// If `type` is not set default to TypeBind
+	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1464,7 +1477,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 	agents := make([]*sshagent.AgentServer, 0, len(mounts))
 	sshCount := 0
 	defaultSSHSock := ""
-	targetLocks := []lockfile.Locker{}
+	targetLocks := []*lockfile.LockFile{}
 	succeeded := false
 	defer func() {
 		if !succeeded {
@@ -1484,7 +1497,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 		}
 		switch mountType {
 		case "secret":
-			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps)
+			mount, envFile, err := b.getSecretMount(tokens, sources.Secrets, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1510,8 +1523,8 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 				// Count is needed as the default destination of the ssh sock inside the container is  /run/buildkit/ssh_agent.{i}
 				sshCount++
 			}
-		case "bind":
-			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps)
+		case define.TypeBind:
+			mount, image, err := b.getBindMount(tokens, sources.SystemContext, sources.ContextDir, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1529,7 +1542,7 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 			finalMounts = append(finalMounts, *mount)
 			mountTargets = append(mountTargets, mount.Destination)
 		case "cache":
-			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps)
+			mount, tl, err := b.getCacheMount(tokens, sources.StageMountPoints, idMaps, sources.WorkDir)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -1554,12 +1567,12 @@ func (b *Builder) runSetupRunMounts(mounts []string, sources runMountInfo, idMap
 	return finalMounts, artifacts, nil
 }
 
-func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, string, error) {
+func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContext, contextDir string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, string, error) {
 	if contextDir == "" {
 		return nil, "", errors.New("Context Directory for current run invocation is not configured")
 	}
 	var optionMounts []specs.Mount
-	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints)
+	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, image, err
 	}
@@ -1585,7 +1598,7 @@ func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*spec.Mount, er
 	return &volumes[0], nil
 }
 
-func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps) (*spec.Mount, string, error) {
+func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secret, idMaps IDMaps, workdir string) (*spec.Mount, string, error) {
 	errInvalidSyntax := errors.New("secret should have syntax id=id[,target=path,required=bool,mode=uint,uid=uint,gid=uint")
 	if len(tokens) == 0 {
 		return nil, "", errInvalidSyntax
@@ -1605,6 +1618,9 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 			id = kv[1]
 		case "target", "dst", "destination":
 			target = kv[1]
+			if !filepath.IsAbs(target) {
+				target = filepath.Join(workdir, target)
+			}
 		case "required":
 			required, err = strconv.ParseBool(kv[1])
 			if err != nil {
@@ -1655,7 +1671,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	switch secr.SourceType {
 	case "env":
 		data = []byte(os.Getenv(secr.Source))
-		tmpFile, err := ioutil.TempFile(define.TempDir, "buildah*")
+		tmpFile, err := os.CreateTemp(define.TempDir, "buildah*")
 		if err != nil {
 			return nil, "", err
 		}
@@ -1666,7 +1682,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 		if err != nil {
 			return nil, "", err
 		}
-		data, err = ioutil.ReadFile(secr.Source)
+		data, err = os.ReadFile(secr.Source)
 		if err != nil {
 			return nil, "", err
 		}
@@ -1680,7 +1696,7 @@ func (b *Builder) getSecretMount(tokens []string, secrets map[string]define.Secr
 	if err := os.MkdirAll(filepath.Dir(ctrFileOnHost), 0755); err != nil {
 		return nil, "", err
 	}
-	if err := ioutil.WriteFile(ctrFileOnHost, data, 0644); err != nil {
+	if err := os.WriteFile(ctrFileOnHost, data, 0644); err != nil {
 		return nil, "", err
 	}
 

@@ -8,12 +8,29 @@ import (
 	"github.com/secure-systems-lab/go-securesystemslib/cjson"
 	"github.com/theupdateframework/go-tuf/data"
 	"github.com/theupdateframework/go-tuf/internal/roles"
+	"github.com/theupdateframework/go-tuf/pkg/keys"
 )
 
 type signedMeta struct {
 	Type    string    `json:"_type"`
 	Expires time.Time `json:"expires"`
 	Version int64     `json:"version"`
+}
+
+// VerifySignature takes a signed JSON message, a signature, and a
+// verifier and verifies the given signature on the JSON message
+// using the verifier. It returns an error if verification fails.
+func VerifySignature(signed json.RawMessage, sig data.HexBytes,
+	verifier keys.Verifier) error {
+	var decoded map[string]interface{}
+	if err := json.Unmarshal(signed, &decoded); err != nil {
+		return err
+	}
+	msg, err := cjson.EncodeCanonical(decoded)
+	if err != nil {
+		return err
+	}
+	return verifier.Verify(msg, sig)
 }
 
 func (db *DB) VerifyIgnoreExpiredCheck(s *data.Signed, role string, minVersion int64) error {
@@ -80,15 +97,6 @@ func (db *DB) VerifySignatures(s *data.Signed, role string) error {
 		return ErrUnknownRole{role}
 	}
 
-	var decoded map[string]interface{}
-	if err := json.Unmarshal(s.Signed, &decoded); err != nil {
-		return err
-	}
-	msg, err := cjson.EncodeCanonical(decoded)
-	if err != nil {
-		return err
-	}
-
 	// Verify that a threshold of keys signed the data. Since keys can have
 	// multiple key ids, we need to protect against multiple attached
 	// signatures that just differ on the key id.
@@ -103,9 +111,13 @@ func (db *DB) VerifySignatures(s *data.Signed, role string) error {
 			continue
 		}
 
-		if err := verifier.Verify(msg, sig.Signature); err != nil {
-			// FIXME: don't err out on the 1st bad signature.
-			return ErrInvalid
+		if err := VerifySignature(s.Signed, sig.Signature, verifier); err != nil {
+			// If a signature fails verification, don't count it towards the
+			// threshold but also return early and error out immediately.
+			// Note: Because of this, it is impossible to distinguish between
+			// an error of an invalid signature and a threshold not achieved.
+			// Invalid signatures lead to not achieving the threshold.
+			continue
 		}
 
 		// Only consider this key valid if we haven't seen any of it's

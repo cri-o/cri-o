@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -296,4 +297,65 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 	return r.client.ReopenLogContainer(ctx, &conmonClient.ReopenLogContainerConfig{
 		ID: c.ID(),
 	})
+}
+
+// CreateNamespaces is supported since conmon-rs v0.5.0.
+func (r *runtimePod) CreateNamespaces(ctx context.Context, podID string, nsCfg *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	namespaces := []conmonClient.Namespace{}
+	for _, ns := range nsCfg.Namespaces {
+		if ns.Host {
+			continue
+		}
+		switch ns.Type {
+		case nsmgr.IPCNS:
+			namespaces = append(namespaces, conmonClient.NamespaceIPC)
+
+		case nsmgr.NETNS:
+			namespaces = append(namespaces, conmonClient.NamespaceNet)
+
+		case nsmgr.PIDNS:
+			namespaces = append(namespaces, conmonClient.NamespacePID)
+
+		case nsmgr.USERNS:
+			namespaces = append(namespaces, conmonClient.NamespaceUser)
+
+		case nsmgr.UTSNS:
+			namespaces = append(namespaces, conmonClient.NamespaceUTS)
+		}
+	}
+
+	resp, err := r.client.CreateNamespaces(ctx, &conmonClient.CreateaNamespacesConfig{
+		PodID:      podID,
+		Namespaces: namespaces,
+		IDMappings: nsCfg.IDMappings,
+	})
+	if err != nil {
+		if errors.Is(err, conmonClient.ErrUnsupported) {
+			log.Infof(ctx, "Skipping namespace creation: %v", err)
+			return nil, nil
+		}
+		return nil, fmt.Errorf("create namespaces in conmon-rs: %w", err)
+	}
+
+	result := make(map[nsmgr.NSType]string, 0)
+	for _, ns := range resp.Namespaces {
+		switch ns.Type {
+		case conmonClient.NamespaceIPC:
+			result[nsmgr.IPCNS] = ns.Path
+
+		case conmonClient.NamespaceNet:
+			result[nsmgr.NETNS] = ns.Path
+
+		case conmonClient.NamespacePID:
+			result[nsmgr.PIDNS] = ns.Path
+
+		case conmonClient.NamespaceUser:
+			result[nsmgr.USERNS] = ns.Path
+
+		case conmonClient.NamespaceUTS:
+			result[nsmgr.UTSNS] = ns.Path
+		}
+	}
+
+	return result, nil
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -1602,4 +1603,9 @@ func (r *runtimeOCI) checkpointRestoreSupported() error {
 		return fmt.Errorf("configured runtime does not support checkpoint/restore")
 	}
 	return nil
+}
+
+// CreateNamespaces is not supported by the OCI runtime.
+func (r *runtimeOCI) CreateNamespaces(context.Context, string, *nsmgr.PodNamespacesConfig) (map[nsmgr.NSType]string, error) {
+	return nil, nil
 }

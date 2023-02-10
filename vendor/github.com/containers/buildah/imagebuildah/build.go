@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 	"os/exec"
@@ -153,7 +152,7 @@ func BuildDockerfiles(ctx context.Context, store storage.Store, options define.B
 			if err != nil {
 				return "", nil, err
 			}
-			data = ioutil.NopCloser(pData)
+			data = io.NopCloser(pData)
 		}
 
 		dockerfiles = append(dockerfiles, data)
@@ -420,31 +419,32 @@ func buildDockerfilesOnce(ctx context.Context, store storage.Store, logger *logr
 		mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 	}
 
-	// Check if any modifications done to labels
-	// add them to node-layer so it becomes regular
-	// layer.
-	// Reason: Docker adds label modification as
-	// last step which can be processed as regular
-	// steps and if no modification is done to layers
-	// its easier to re-use cached layers.
+	// Check if any labels were passed in via the API, and add a final line
+	// to the Dockerfile that would provide the same result.
+	// Reason: Docker adds label modification as a last step which can be
+	// processed like regular steps, and if no modification is done to
+	// layers, its easier to re-use cached layers.
 	if len(options.Labels) > 0 {
-		for _, labelSpec := range options.Labels {
+		var labelLine string
+		labels := append([]string{}, options.Labels...)
+		for _, labelSpec := range labels {
 			label := strings.SplitN(labelSpec, "=", 2)
-			labelLine := ""
 			key := label[0]
 			value := ""
 			if len(label) > 1 {
 				value = label[1]
 			}
-			// check from only empty key since docker supports empty value
+			// check only for an empty key since docker allows empty values
 			if key != "" {
-				labelLine = fmt.Sprintf("LABEL %q=%q\n", key, value)
-				additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader(labelLine))
-				if err != nil {
-					return "", nil, fmt.Errorf("while adding additional LABEL steps: %w", err)
-				}
-				mainNode.Children = append(mainNode.Children, additionalNode.Children...)
+				labelLine += fmt.Sprintf(" %q=%q", key, value)
 			}
+		}
+		if len(labelLine) > 0 {
+			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("LABEL" + labelLine + "\n"))
+			if err != nil {
+				return "", nil, fmt.Errorf("while adding additional LABEL step: %w", err)
+			}
+			mainNode.Children = append(mainNode.Children, additionalNode.Children...)
 		}
 	}
 
@@ -696,11 +696,17 @@ func baseImages(dockerfilenames []string, dockerfilecontents [][]byte, from stri
 						}
 						base := child.Next.Value
 						if base != "scratch" && !nicknames[base] {
-							// TODO: this didn't undergo variable and arg
-							// expansion, so if the AS clause in another
-							// FROM instruction uses argument values,
-							// we might not record the right value here.
-							baseImages = append(baseImages, base)
+							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
+							userArgs := argsMapToSlice(stage.Builder.Args)
+							// append heading args so if --build-arg key=value is not
+							// specified but default value is set in Containerfile
+							// via `ARG key=value` so default value can be used.
+							userArgs = append(headingArgs, userArgs...)
+							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
+							if err != nil {
+								return nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
+							}
+							baseImages = append(baseImages, baseWithArg)
 						}
 					}
 				}

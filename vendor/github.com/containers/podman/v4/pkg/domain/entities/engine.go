@@ -42,7 +42,6 @@ type PodmanConfig struct {
 	Identity                 string         // ssh identity for connecting to server
 	MaxWorks                 int            // maximum number of parallel threads
 	MemoryProfile            string         // Hidden: Should memory profile be taken
-	NoOut                    bool           // Don't output to stdout
 	RegistriesConf           string         // allows for specifying a custom registries.conf
 	Remote                   bool           // Connection to Podman API Service will use RESTful API
 	RuntimePath              string         // --runtime flag will set Engine.RuntimePath
@@ -51,9 +50,10 @@ type PodmanConfig struct {
 	Trace                    bool           // Hidden: Trace execution
 	URI                      string         // URI to RESTful API Service
 
-	Runroot       string
-	StorageDriver string
-	StorageOpts   []string
-	SSHMode       string
-	MachineMode   bool
+	Runroot        string
+	StorageDriver  string
+	StorageOpts    []string
+	SSHMode        string
+	MachineMode    bool
+	TransientStore bool
 }

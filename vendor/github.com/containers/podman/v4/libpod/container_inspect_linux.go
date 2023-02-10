@@ -139,15 +139,15 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 	if ctrSpec.Process != nil {
 		// Max an O(1) lookup table for default bounding caps.
 		boundingCaps := make(map[string]bool)
-		g, err := generate.New("linux")
-		if err != nil {
-			return err
-		}
 		if !hostConfig.Privileged {
-			for _, cap := range g.Config.Process.Capabilities.Bounding {
+			for _, cap := range c.runtime.config.Containers.DefaultCapabilities {
 				boundingCaps[cap] = true
 			}
 		} else {
+			g, err := generate.New("linux")
+			if err != nil {
+				return err
+			}
 			// If we are privileged, use all caps.
 			for _, cap := range capability.List() {
 				if g.HostSpecific && cap > validate.LastCap() {
@@ -156,7 +156,7 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 				boundingCaps[fmt.Sprintf("CAP_%s", strings.ToUpper(cap.String()))] = true
 			}
 		}
-		// Iterate through spec caps.
+		// Iterate through default caps.
 		// If it's not in default bounding caps, it was added.
 		// If it is, delete from the default set. Whatever remains after
 		// we finish are the dropped caps.
@@ -183,22 +183,28 @@ func (c *Container) platformInspectContainerHostConfig(ctrSpec *spec.Spec, hostC
 		// If there is none, it's ipc=host.
 		// If there is one and it has a path, it's "ns:".
 		// If no path, it's default - the empty string.
+		hostConfig.IpcMode = "host"
 		for _, ns := range ctrSpec.Linux.Namespaces {
 			if ns.Type == spec.IPCNamespace {
 				if ns.Path != "" {
 					hostConfig.IpcMode = fmt.Sprintf("ns:%s", ns.Path)
 				} else {
-					break
+					switch {
+					case c.config.NoShm:
+						hostConfig.IpcMode = "none"
+					case c.config.NoShmShare:
+						hostConfig.IpcMode = "private"
+					default:
+						hostConfig.IpcMode = "shareable"
+					}
 				}
+				break
 			}
 		}
 	case c.config.NoShm:
 		hostConfig.IpcMode = "none"
 	case c.config.NoShmShare:
 		hostConfig.IpcMode = "private"
-	}
-	if hostConfig.IpcMode == "" {
-		hostConfig.IpcMode = "shareable"
 	}
 
 	// Cgroup namespace mode

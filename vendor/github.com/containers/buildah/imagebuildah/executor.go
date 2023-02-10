@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"sort"
 	"strconv"
@@ -58,8 +57,8 @@ var builtinAllowedBuildArgs = map[string]bool{
 // interface.  It coordinates the entire build by using one or more
 // StageExecutors to handle each stage of the build.
 type Executor struct {
-	cacheFrom                      reference.Named
-	cacheTo                        reference.Named
+	cacheFrom                      []reference.Named
+	cacheTo                        []reference.Named
 	cacheTTL                       time.Duration
 	containerSuffix                string
 	logger                         *logrus.Logger
@@ -110,6 +109,7 @@ type Executor struct {
 	rootfsMap               map[string]bool             // Holds the names of every stage whose rootfs is referenced in a COPY or ADD instruction.
 	blobDirectory           string
 	excludes                []string
+	groupAdd                []string
 	ignoreFile              string
 	args                    map[string]string
 	unusedArgs              map[string]struct{}
@@ -200,7 +200,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 
 	writer := options.ReportWriter
 	if options.Quiet {
-		writer = ioutil.Discard
+		writer = io.Discard
 	}
 
 	var rusageLogFile io.Writer
@@ -227,6 +227,7 @@ func newExecutor(logger *logrus.Logger, logPrefix string, store storage.Store, o
 		store:                          store,
 		contextDir:                     options.ContextDirectory,
 		excludes:                       excludes,
+		groupAdd:                       options.GroupAdd,
 		ignoreFile:                     options.IgnoreFile,
 		pullPolicy:                     options.PullPolicy,
 		registry:                       options.Registry,
@@ -455,6 +456,10 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 	ib := stage.Builder
 	node := stage.Node
 	base, err := ib.From(node)
+	if err != nil {
+		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
+		return "", nil, err
+	}
 
 	// If this is the last stage, then the image that we produce at
 	// its end should be given the desired output name.
@@ -463,9 +468,30 @@ func (b *Executor) buildStage(ctx context.Context, cleanupStages map[int]*StageE
 		output = b.output
 	}
 
-	if err != nil {
-		logrus.Debugf("buildStage(node.Children=%#v)", node.Children)
-		return "", nil, err
+	// If this stage is starting out with environment variables that were
+	// passed in via our API, we should include them in the history, since
+	// they affect RUN instructions in this stage.
+	if len(b.envs) > 0 {
+		var envLine string
+		for _, envSpec := range b.envs {
+			env := strings.SplitN(envSpec, "=", 2)
+			key := env[0]
+			if len(env) > 1 {
+				value := env[1]
+				envLine += fmt.Sprintf(" %q=%q", key, value)
+			} else {
+				value := os.Getenv(key)
+				envLine += fmt.Sprintf(" %q=%q", key, value)
+			}
+		}
+		if len(envLine) > 0 {
+			additionalNode, err := imagebuilder.ParseDockerfile(strings.NewReader("ENV" + envLine + "\n"))
+			if err != nil {
+				return "", nil, fmt.Errorf("while adding additional ENV step: %w", err)
+			}
+			// make this the first instruction in the stage after its FROM instruction
+			stage.Node.Children = append(additionalNode.Children, stage.Node.Children...)
+		}
 	}
 
 	b.stagesLock.Lock()
@@ -589,7 +615,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 
 	stdout := b.out
 	if b.quiet {
-		b.out = ioutil.Discard
+		b.out = io.Discard
 	}
 
 	cleanup := func() error {
@@ -690,7 +716,12 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 									base = child.Next.Value
 								}
 							}
+							headingArgs := argsMapToSlice(stage.Builder.HeadingArgs)
 							userArgs := argsMapToSlice(stage.Builder.Args)
+							// append heading args so if --build-arg key=value is not
+							// specified but default value is set in Containerfile
+							// via `ARG key=value` so default value can be used.
+							userArgs = append(headingArgs, userArgs...)
 							baseWithArg, err := imagebuilder.ProcessWord(base, userArgs)
 							if err != nil {
 								return "", nil, fmt.Errorf("while replacing arg variables with values for format %q: %w", base, err)
@@ -949,7 +980,7 @@ func (b *Executor) Build(ctx context.Context, stages imagebuilder.Stages) (image
 	}
 	logrus.Debugf("printing final image id %q", imageID)
 	if b.iidfile != "" {
-		if err = ioutil.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
+		if err = os.WriteFile(b.iidfile, []byte("sha256:"+imageID), 0644); err != nil {
 			return imageID, ref, fmt.Errorf("failed to write image ID to file %q: %w", b.iidfile, err)
 		}
 	} else {

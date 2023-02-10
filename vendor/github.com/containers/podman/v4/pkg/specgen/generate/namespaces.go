@@ -89,7 +89,7 @@ func GetDefaultNamespaceMode(nsType string, cfg *config.Config, pod *libpod.Pod)
 	case "cgroup":
 		return specgen.ParseCgroupNamespace(cfg.Containers.CgroupNS)
 	case "net":
-		ns, _, _, err := specgen.ParseNetworkFlag(nil)
+		ns, _, _, err := specgen.ParseNetworkFlag(nil, false)
 		return ns, err
 	}
 
@@ -233,7 +233,7 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	}
 
 	// This wipes the UserNS settings that get set from the infra container
-	// when we are inheritting from the pod. So only apply this if the container
+	// when we are inheriting from the pod. So only apply this if the container
 	// is not being created in a pod.
 	if s.IDMappings != nil {
 		if pod == nil {
@@ -299,6 +299,13 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 		if s.NetNS.Value != "" {
 			val = fmt.Sprintf("slirp4netns:%s", s.NetNS.Value)
 		}
+		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
+	case specgen.Pasta:
+		portMappings, expose, err := createPortMappings(s, imageData)
+		if err != nil {
+			return nil, err
+		}
+		val := "pasta"
 		toReturn = append(toReturn, libpod.WithNetNS(portMappings, expose, postConfigureNetNS, val, nil))
 	case specgen.Bridge, specgen.Private, specgen.Default:
 		portMappings, expose, err := createPortMappings(s, imageData)

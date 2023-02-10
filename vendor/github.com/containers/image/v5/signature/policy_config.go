@@ -19,13 +19,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
+	"github.com/containers/storage/pkg/regexp"
 )
 
 // systemDefaultPolicyPath is the policy path used for DefaultPolicy().
@@ -518,107 +518,6 @@ func (pr *prSignedBaseLayer) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// newPRSigstoreSigned returns a new prSigstoreSigned if parameters are valid.
-func newPRSigstoreSigned(keyPath string, keyData []byte, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
-	if len(keyPath) > 0 && len(keyData) > 0 {
-		return nil, InvalidPolicyFormatError("keyType and keyData cannot be used simultaneously")
-	}
-	if signedIdentity == nil {
-		return nil, InvalidPolicyFormatError("signedIdentity not specified")
-	}
-	return &prSigstoreSigned{
-		prCommon:       prCommon{Type: prTypeSigstoreSigned},
-		KeyPath:        keyPath,
-		KeyData:        keyData,
-		SignedIdentity: signedIdentity,
-	}, nil
-}
-
-// newPRSigstoreSignedKeyPath is NewPRSigstoreSignedKeyPath, except it returns the private type.
-func newPRSigstoreSignedKeyPath(keyPath string, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
-	return newPRSigstoreSigned(keyPath, nil, signedIdentity)
-}
-
-// NewPRSigstoreSignedKeyPath returns a new "sigstoreSigned" PolicyRequirement using a KeyPath
-func NewPRSigstoreSignedKeyPath(keyPath string, signedIdentity PolicyReferenceMatch) (PolicyRequirement, error) {
-	return newPRSigstoreSignedKeyPath(keyPath, signedIdentity)
-}
-
-// newPRSigstoreSignedKeyData is NewPRSigstoreSignedKeyData, except it returns the private type.
-func newPRSigstoreSignedKeyData(keyData []byte, signedIdentity PolicyReferenceMatch) (*prSigstoreSigned, error) {
-	return newPRSigstoreSigned("", keyData, signedIdentity)
-}
-
-// NewPRSigstoreSignedKeyData returns a new "sigstoreSigned" PolicyRequirement using a KeyData
-func NewPRSigstoreSignedKeyData(keyData []byte, signedIdentity PolicyReferenceMatch) (PolicyRequirement, error) {
-	return newPRSigstoreSignedKeyData(keyData, signedIdentity)
-}
-
-// Compile-time check that prSigstoreSigned implements json.Unmarshaler.
-var _ json.Unmarshaler = (*prSigstoreSigned)(nil)
-
-// UnmarshalJSON implements the json.Unmarshaler interface.
-func (pr *prSigstoreSigned) UnmarshalJSON(data []byte) error {
-	*pr = prSigstoreSigned{}
-	var tmp prSigstoreSigned
-	var gotKeyPath, gotKeyData = false, false
-	var signedIdentity json.RawMessage
-	if err := internal.ParanoidUnmarshalJSONObject(data, func(key string) interface{} {
-		switch key {
-		case "type":
-			return &tmp.Type
-		case "keyPath":
-			gotKeyPath = true
-			return &tmp.KeyPath
-		case "keyData":
-			gotKeyData = true
-			return &tmp.KeyData
-		case "signedIdentity":
-			return &signedIdentity
-		default:
-			return nil
-		}
-	}); err != nil {
-		return err
-	}
-
-	if tmp.Type != prTypeSigstoreSigned {
-		return InvalidPolicyFormatError(fmt.Sprintf("Unexpected policy requirement type \"%s\"", tmp.Type))
-	}
-	if signedIdentity == nil {
-		tmp.SignedIdentity = NewPRMMatchRepoDigestOrExact()
-	} else {
-		si, err := newPolicyReferenceMatchFromJSON(signedIdentity)
-		if err != nil {
-			return err
-		}
-		tmp.SignedIdentity = si
-	}
-
-	var res *prSigstoreSigned
-	var err error
-	switch {
-	case gotKeyPath && gotKeyData:
-		return InvalidPolicyFormatError("keyPath and keyData cannot be used simultaneously")
-	case gotKeyPath && !gotKeyData:
-		res, err = newPRSigstoreSignedKeyPath(tmp.KeyPath, tmp.SignedIdentity)
-	case !gotKeyPath && gotKeyData:
-		res, err = newPRSigstoreSignedKeyData(tmp.KeyData, tmp.SignedIdentity)
-	case !gotKeyPath && !gotKeyData:
-		return InvalidPolicyFormatError("At least one of keyPath and keyData must be specified")
-	default: // Coverage: This should never happen
-		return fmt.Errorf("Impossible keyPath/keyData presence combination!?")
-	}
-	if err != nil {
-		// Coverage: This cannot currently happen, creating a prSigstoreSigned only fails
-		// if signedIdentity is nil, which we replace with a default above.
-		return err
-	}
-	*pr = *res
-
-	return nil
-}
-
 // newPolicyReferenceMatchFromJSON parses JSON data into a PolicyReferenceMatch implementation.
 func newPolicyReferenceMatchFromJSON(data []byte) (PolicyReferenceMatch, error) {
 	var typeField prmCommon
@@ -829,12 +728,12 @@ func (prm *prmExactRepository) UnmarshalJSON(data []byte) error {
 // Private objects for validateIdentityRemappingPrefix
 var (
 	// remapIdentityDomainRegexp matches exactly a reference domain (name[:port])
-	remapIdentityDomainRegexp = regexp.MustCompile("^" + reference.DomainRegexp.String() + "$")
+	remapIdentityDomainRegexp = regexp.Delayed("^" + reference.DomainRegexp.String() + "$")
 	// remapIdentityDomainPrefixRegexp matches a reference that starts with a domain;
 	// we need this because reference.NameRegexp accepts short names with docker.io implied.
-	remapIdentityDomainPrefixRegexp = regexp.MustCompile("^" + reference.DomainRegexp.String() + "/")
+	remapIdentityDomainPrefixRegexp = regexp.Delayed("^" + reference.DomainRegexp.String() + "/")
 	// remapIdentityNameRegexp matches exactly a reference.Named name (possibly unnormalized)
-	remapIdentityNameRegexp = regexp.MustCompile("^" + reference.NameRegexp.String() + "$")
+	remapIdentityNameRegexp = regexp.Delayed("^" + reference.NameRegexp.String() + "$")
 )
 
 // validateIdentityRemappingPrefix returns an InvalidPolicyFormatError if s is detected to be invalid
