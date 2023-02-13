@@ -62,7 +62,8 @@ func NewGetPublicKeyOK() *GetPublicKeyOK {
 	return &GetPublicKeyOK{}
 }
 
-/* GetPublicKeyOK describes a response with status code 200, with default header values.
+/*
+GetPublicKeyOK describes a response with status code 200, with default header values.
 
 The public key
 */
@@ -70,9 +71,39 @@ type GetPublicKeyOK struct {
 	Payload string
 }
 
+// IsSuccess returns true when this get public key o k response has a 2xx status code
+func (o *GetPublicKeyOK) IsSuccess() bool {
+	return true
+}
+
+// IsRedirect returns true when this get public key o k response has a 3xx status code
+func (o *GetPublicKeyOK) IsRedirect() bool {
+	return false
+}
+
+// IsClientError returns true when this get public key o k response has a 4xx status code
+func (o *GetPublicKeyOK) IsClientError() bool {
+	return false
+}
+
+// IsServerError returns true when this get public key o k response has a 5xx status code
+func (o *GetPublicKeyOK) IsServerError() bool {
+	return false
+}
+
+// IsCode returns true when this get public key o k response a status code equal to that given
+func (o *GetPublicKeyOK) IsCode(code int) bool {
+	return code == 200
+}
+
 func (o *GetPublicKeyOK) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK  %+v", 200, o.Payload)
 }
+
+func (o *GetPublicKeyOK) String() string {
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKeyOK  %+v", 200, o.Payload)
+}
+
 func (o *GetPublicKeyOK) GetPayload() string {
 	return o.Payload
 }
@@ -94,7 +125,8 @@ func NewGetPublicKeyDefault(code int) *GetPublicKeyDefault {
 	}
 }
 
-/* GetPublicKeyDefault describes a response with status code -1, with default header values.
+/*
+GetPublicKeyDefault describes a response with status code -1, with default header values.
 
 There was an internal error in the server while processing the request
 */
@@ -109,9 +141,39 @@ func (o *GetPublicKeyDefault) Code() int {
 	return o._statusCode
 }
 
+// IsSuccess returns true when this get public key default response has a 2xx status code
+func (o *GetPublicKeyDefault) IsSuccess() bool {
+	return o._statusCode/100 == 2
+}
+
+// IsRedirect returns true when this get public key default response has a 3xx status code
+func (o *GetPublicKeyDefault) IsRedirect() bool {
+	return o._statusCode/100 == 3
+}
+
+// IsClientError returns true when this get public key default response has a 4xx status code
+func (o *GetPublicKeyDefault) IsClientError() bool {
+	return o._statusCode/100 == 4
+}
+
+// IsServerError returns true when this get public key default response has a 5xx status code
+func (o *GetPublicKeyDefault) IsServerError() bool {
+	return o._statusCode/100 == 5
+}
+
+// IsCode returns true when this get public key default response a status code equal to that given
+func (o *GetPublicKeyDefault) IsCode(code int) bool {
+	return o._statusCode == code
+}
+
 func (o *GetPublicKeyDefault) Error() string {
 	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default  %+v", o._statusCode, o.Payload)
 }
+
+func (o *GetPublicKeyDefault) String() string {
+	return fmt.Sprintf("[GET /api/v1/log/publicKey][%d] getPublicKey default  %+v", o._statusCode, o.Payload)
+}
+
 func (o *GetPublicKeyDefault) GetPayload() *models.Error {
 	return o.Payload
 }
