@@ -162,8 +162,8 @@ github.com/Azure/go-autorest/tracing
 ## explicit; go 1.16
 github.com/BurntSushi/toml
 github.com/BurntSushi/toml/internal
-# github.com/Masterminds/semver/v3 v3.1.1
-## explicit; go 1.12
+# github.com/Masterminds/semver/v3 v3.2.0
+## explicit; go 1.18
 github.com/Masterminds/semver/v3
 # github.com/Microsoft/go-winio v0.6.0
 ## explicit; go 1.17
@@ -921,7 +921,7 @@ github.com/dimchansky/utfbom
 # github.com/disiqueira/gotree/v3 v3.0.2
 ## explicit; go 1.13
 github.com/disiqueira/gotree/v3
-# github.com/docker/cli v20.10.20+incompatible
+# github.com/docker/cli v20.10.21+incompatible
 ## explicit
 github.com/docker/cli/cli/config
 github.com/docker/cli/cli/config/configfile
@@ -1617,8 +1617,8 @@ github.com/moby/sys/mountinfo
 # github.com/moby/sys/sequential v0.0.0-20220829095930-b22ba8a69b30
 ## explicit; go 1.17
 github.com/moby/sys/sequential
-# github.com/moby/term v0.0.0-20220808134915-39b0c02b01ae
-## explicit; go 1.13
+# github.com/moby/term v0.0.0-20221205130635-1aeaba878587
+## explicit; go 1.18
 github.com/moby/term
 github.com/moby/term/windows
 # github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd
@@ -2845,8 +2845,8 @@ gopkg.in/yaml.v2
 # gopkg.in/yaml.v3 v3.0.1
 ## explicit
 gopkg.in/yaml.v3
-# helm.sh/helm/v3 v3.10.3
-## explicit; go 1.18
+# helm.sh/helm/v3 v3.11.1
+## explicit; go 1.17
 helm.sh/helm/v3/internal/fileutil
 helm.sh/helm/v3/internal/ignore
 helm.sh/helm/v3/internal/sympath
@@ -3342,8 +3342,8 @@ mvdan.cc/sh/v3/cmd/shfmt
 mvdan.cc/sh/v3/fileutil
 mvdan.cc/sh/v3/syntax
 mvdan.cc/sh/v3/syntax/typedjson
-# oras.land/oras-go v1.2.0
-## explicit; go 1.17
+# oras.land/oras-go v1.2.2
+## explicit; go 1.18
 oras.land/oras-go/pkg/artifact
 oras.land/oras-go/pkg/auth
 oras.land/oras-go/pkg/auth/docker
