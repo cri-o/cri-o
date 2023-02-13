@@ -17,7 +17,9 @@ import (
 
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/rpc"
+	"github.com/blang/semver/v4"
 	"github.com/containers/conmon-rs/internal/proto"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
@@ -48,6 +50,7 @@ type ConmonClient struct {
 	attachReaders  *sync.Map // K: UUID string, V: *attachReaderValue
 	tracingEnabled bool
 	tracer         trace.Tracer
+	serverVersion  semver.Version
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -536,6 +539,12 @@ func (c *ConmonClient) Version(
 		return nil, fmt.Errorf("set version: %w", err)
 	}
 
+	semverVersion, err := semver.Parse(version)
+	if err != nil {
+		return nil, fmt.Errorf("parse server version to semver: %w", err)
+	}
+	c.serverVersion = semverVersion
+
 	tag, err := response.Tag()
 	if err != nil {
 		return nil, fmt.Errorf("set tag: %w", err)
@@ -646,6 +655,9 @@ const (
 type CreateContainerResponse struct {
 	// PID is the container process identifier.
 	PID uint32
+
+	// NamespacesPath is the base path where the namespaces are mounted.
+	NamespacesPath string
 }
 
 // CreateContainer can be used to create a new running container instance.
@@ -1003,4 +1015,181 @@ func (c *ConmonClient) metadataBytes(ctx context.Context) ([]byte, error) {
 	}
 
 	return metadata, nil
+}
+
+// CreateaNamespacesConfig is the configuration for calling the
+// CreateNamespaces method.
+type CreateaNamespacesConfig struct {
+	// Namespaces are the list of namespaces to unshare.
+	Namespaces []Namespace
+
+	// IDMappings are the user and group ID mappings when unsharing the user
+	// namespace.
+	IDMappings *idtools.IDMappings
+}
+
+// CreateaNamespacesResponse is the response of the CreateNamespaces method.
+type CreateaNamespacesResponse struct {
+	Namespaces []*NamespacesResponse
+}
+
+// NamespacesResponse is the response data for the CreateaNamespacesResponse.
+type NamespacesResponse struct {
+	// Namespace is the type of namespace.
+	Type Namespace
+
+	// Path is the base path to the namespaces directory.
+	Path string
+}
+
+// CreateNamespaces can be used to create a new set of namespaces.
+func (c *ConmonClient) CreateNamespaces(
+	ctx context.Context, cfg *CreateaNamespacesConfig,
+) (*CreateaNamespacesResponse, error) {
+	ctx, span := c.startSpan(ctx, "CreateNamespaces")
+	if span != nil {
+		defer span.End()
+	}
+
+	// Feature not supported pre v0.5.0
+	const minMinor = 5
+	minVersion := semver.Version{Minor: minMinor}
+	if c.serverVersion.LT(minVersion) {
+		return nil, fmt.Errorf("requires at least %v: %w", minVersion, ErrUnsupported)
+	}
+
+	conn, err := c.newRPCConn()
+	if err != nil {
+		return nil, fmt.Errorf("create RPC connection: %w", err)
+	}
+	defer conn.Close()
+	client := proto.Conmon(conn.Bootstrap(ctx))
+
+	future, free := client.CreateNamespaces(ctx, func(p proto.Conmon_createNamespaces_Params) error {
+		req, err := p.NewRequest()
+		if err != nil {
+			return fmt.Errorf("create request: %w", err)
+		}
+
+		metadata, err := c.metadataBytes(ctx)
+		if err != nil {
+			return fmt.Errorf("get metadata: %w", err)
+		}
+		if err := req.SetMetadata(metadata); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+
+		namespaces, err := req.NewNamespaces(int32(len(cfg.Namespaces)))
+		if err != nil {
+			return fmt.Errorf("init namespaces: %w", err)
+		}
+
+		for i, namespace := range cfg.Namespaces {
+			switch namespace {
+			case NamespaceIPC:
+				namespaces.Set(i, proto.Conmon_Namespace_ipc)
+
+			case NamespaceNet:
+				namespaces.Set(i, proto.Conmon_Namespace_net)
+
+			case NamespacePID:
+				namespaces.Set(i, proto.Conmon_Namespace_pid)
+
+			case NamespaceUser:
+				if cfg.IDMappings == nil ||
+					len(cfg.IDMappings.UIDs()) == 0 ||
+					len(cfg.IDMappings.GIDs()) == 0 {
+					return ErrMissingIDMappings
+				}
+
+				namespaces.Set(i, proto.Conmon_Namespace_user)
+
+				if err := stringSliceToTextList(
+					mappingsToSlice(cfg.IDMappings.UIDs()),
+					req.NewUidMappings,
+				); err != nil {
+					return fmt.Errorf("convert user ID mappings to text list: %w", err)
+				}
+
+				if err := stringSliceToTextList(
+					mappingsToSlice(cfg.IDMappings.GIDs()),
+					req.NewGidMappings,
+				); err != nil {
+					return fmt.Errorf("convert group ID mappings to text list: %w", err)
+				}
+
+			case NamespaceUTS:
+				namespaces.Set(i, proto.Conmon_Namespace_uts)
+			}
+		}
+
+		if err := req.SetNamespaces(namespaces); err != nil {
+			return fmt.Errorf("set namespaces: %w", err)
+		}
+
+		return nil
+	})
+	defer free()
+
+	result, err := future.Struct()
+	if err != nil {
+		return nil, fmt.Errorf("create result: %w", err)
+	}
+
+	response, err := result.Response()
+	if err != nil {
+		return nil, fmt.Errorf("set response: %w", err)
+	}
+
+	namespaces, err := response.Namespaces()
+	if err != nil {
+		return nil, fmt.Errorf("set path: %w", err)
+	}
+
+	namespacesResponse := []*NamespacesResponse{}
+	for i := 0; i < namespaces.Len(); i++ {
+		namespace := namespaces.At(i)
+
+		var typ Namespace
+		switch namespace.Type() {
+		case proto.Conmon_Namespace_ipc:
+			typ = NamespaceIPC
+
+		case proto.Conmon_Namespace_net:
+			typ = NamespaceNet
+
+		case proto.Conmon_Namespace_pid:
+			typ = NamespacePID
+
+		case proto.Conmon_Namespace_user:
+			typ = NamespaceUser
+
+		case proto.Conmon_Namespace_uts:
+			typ = NamespaceUTS
+		}
+
+		path, err := namespace.Path()
+		if err != nil {
+			return nil, fmt.Errorf("namespace has no path: %w", err)
+		}
+
+		namespacesResponse = append(namespacesResponse,
+			&NamespacesResponse{
+				Type: typ,
+				Path: path,
+			},
+		)
+	}
+
+	return &CreateaNamespacesResponse{
+		Namespaces: namespacesResponse,
+	}, nil
+}
+
+func mappingsToSlice(mappings []idtools.IDMap) (res []string) {
+	for _, m := range mappings {
+		res = append(res, fmt.Sprintf("%d %d %d", m.ContainerID, m.HostID, m.Size))
+	}
+
+	return res
 }

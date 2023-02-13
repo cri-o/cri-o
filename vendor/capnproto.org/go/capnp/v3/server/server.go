@@ -267,7 +267,7 @@ func sendArgsToStruct(s capnp.Send) (capnp.Struct, error) {
 	if err := s.PlaceArgs(st); err != nil {
 		st.Message().Reset(nil)
 		// Using fmt.Errorf to ensure sendArgsToStruct returns a generic error.
-		return capnp.Struct{}, fmt.Errorf("place args: %v", err)
+		return capnp.Struct{}, fmt.Errorf("place args: %w", err)
 	}
 	return st, nil
 }
