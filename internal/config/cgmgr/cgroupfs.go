@@ -155,6 +155,17 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) (err er
 	return mgr.Set(cg.Resources)
 }
 
+// createSandboxCgroup takes the sandbox parent, and sandbox ID.
+// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
+func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error {
+	cgroupAbsolutePath, err := mgr.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return err
+	}
+	_, err = cgroups.New(cgroupAbsolutePath, &cgcfgs.Resources{})
+	return err
+}
+
 // CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
 func (m *CgroupfsManager) CreateSandboxCgroup(sbParent, containerID string) error {
 	return createSandboxCgroup(sbParent, containerID, m)
