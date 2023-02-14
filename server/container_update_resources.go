@@ -31,6 +31,9 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 		if err != nil {
 			return nil, err
 		}
+		if updated == nil {
+			updated = req.Linux
+		}
 		resources := toOCIResources(updated)
 		if err := s.Runtime().UpdateContainer(ctx, c, resources); err != nil {
 			return nil, err
