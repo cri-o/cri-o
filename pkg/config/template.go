@@ -561,11 +561,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.NRI.Enabled, c.NRI.Enabled),
 		},
 		{
-			templateString: templateStringCrioNRIConfigPath,
-			group:          crioNRIConfig,
-			isDefaultValue: simpleEqual(dc.NRI.ConfigPath, c.NRI.ConfigPath),
-		},
-		{
 			templateString: templateStringCrioNRISocketPath,
 			group:          crioNRIConfig,
 			isDefaultValue: simpleEqual(dc.NRI.SocketPath, c.NRI.SocketPath),
@@ -574,6 +569,26 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioNRIPluginDir,
 			group:          crioNRIConfig,
 			isDefaultValue: simpleEqual(dc.NRI.PluginPath, c.NRI.PluginPath),
+		},
+		{
+			templateString: templateStringCrioNRIPluginConfigDir,
+			group:          crioNRIConfig,
+			isDefaultValue: simpleEqual(dc.NRI.PluginPath, c.NRI.PluginPath),
+		},
+		{
+			templateString: templateStringCrioNRIDisableConnections,
+			group:          crioNRIConfig,
+			isDefaultValue: simpleEqual(dc.NRI.DisableConnections, c.NRI.DisableConnections),
+		},
+		{
+			templateString: templateStringCrioNRIPluginRegistrationTimeout,
+			group:          crioNRIConfig,
+			isDefaultValue: simpleEqual(dc.NRI.PluginRegistrationTimeout, c.NRI.PluginRegistrationTimeout),
+		},
+		{
+			templateString: templateStringCrioNRIPluginRequestTimeout,
+			group:          crioNRIConfig,
+			isDefaultValue: simpleEqual(dc.NRI.PluginRequestTimeout, c.NRI.PluginRequestTimeout),
 		},
 	}
 
@@ -1418,11 +1433,6 @@ const templateStringCrioNRIEnable = `# Globally enable or disable NRI.
 
 `
 
-const templateStringCrioNRIConfigPath = `# NRI configuration file to use.
-{{ $.Comment }}nri_config_file = "{{ .NRI.ConfigPath }}"
-
-`
-
 const templateStringCrioNRISocketPath = `# NRI socket to listen on.
 {{ $.Comment }}nri_listen = "{{ .NRI.SocketPath }}"
 
@@ -1430,5 +1440,25 @@ const templateStringCrioNRISocketPath = `# NRI socket to listen on.
 
 const templateStringCrioNRIPluginDir = `# NRI plugin directory to use.
 {{ $.Comment }}nri_plugin_dir = "{{ .NRI.PluginPath }}"
+
+`
+
+const templateStringCrioNRIPluginConfigDir = `# NRI plugin configuration directory to use.
+{{ $.Comment }}nri_plugin_config_dir = "{{ .NRI.PluginConfigPath }}"
+
+`
+
+const templateStringCrioNRIDisableConnections = `# Disable connections from externally launched NRI plugins.
+{{ $.Comment }}nri_disable_connections = {{ .NRI.DisableConnections }}
+
+`
+
+const templateStringCrioNRIPluginRegistrationTimeout = `# Timeout for a plugin to register itself with NRI.
+{{ $.Comment }}nri_plugin_registration_timeout = "{{ .NRI.PluginRegistrationTimeout }}"
+
+`
+
+const templateStringCrioNRIPluginRequestTimeout = `# Timeout for a plugin to handle an NRI request.
+{{ $.Comment }}nri_plugin_request_timeout = "{{ .NRI.PluginRequestTimeout }}"
 
 `
