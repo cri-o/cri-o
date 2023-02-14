@@ -36,8 +36,16 @@ import (
 )
 
 const (
-	pluginRegistrationTimeout = 2 * time.Second
-	pluginRequestTimeout      = 2 * time.Second
+	// DefaultPluginRegistrationTimeout is the default timeout for plugin registration.
+	DefaultPluginRegistrationTimeout = 5 * time.Second
+	// DefaultPluginRequestTimeout is the default timeout for plugins to handle a request.
+	DefaultPluginRequestTimeout = 2 * time.Second
+)
+
+var (
+	pluginRegistrationTimeout = DefaultPluginRegistrationTimeout
+	pluginRequestTimeout      = DefaultPluginRequestTimeout
+	timeoutCfgLock            sync.RWMutex
 )
 
 type plugin struct {
@@ -59,8 +67,34 @@ type plugin struct {
 	r      *Adaptation
 }
 
+// SetPluginRegistrationTimeout sets the timeout for plugin registration.
+func SetPluginRegistrationTimeout(t time.Duration) {
+	timeoutCfgLock.Lock()
+	defer timeoutCfgLock.Unlock()
+	pluginRegistrationTimeout = t
+}
+
+func getPluginRegistrationTimeout() time.Duration {
+	timeoutCfgLock.RLock()
+	defer timeoutCfgLock.RUnlock()
+	return pluginRegistrationTimeout
+}
+
+// SetPluginRequestTimeout sets the timeout for plugins to handle a request.
+func SetPluginRequestTimeout(t time.Duration) {
+	timeoutCfgLock.Lock()
+	defer timeoutCfgLock.Unlock()
+	pluginRequestTimeout = t
+}
+
+func getPluginRequestTimeout() time.Duration {
+	timeoutCfgLock.RLock()
+	defer timeoutCfgLock.RUnlock()
+	return pluginRequestTimeout
+}
+
 // Launch a pre-installed plugin with a pre-connected socketpair.
-func newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, retErr error) {
+func (r *Adaptation) newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, retErr error) {
 	name := idx + "-" + base
 
 	sockets, err := net.NewSocketPair()
@@ -97,6 +131,7 @@ func newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, retErr error) {
 		base:   base,
 		regC:   make(chan error, 1),
 		closeC: make(chan struct{}),
+		r:      r,
 	}
 
 	if err = p.cmd.Start(); err != nil {
@@ -111,16 +146,38 @@ func newLaunchedPlugin(dir, idx, base, cfg string) (p *plugin, retErr error) {
 }
 
 // Create a plugin (stub) for an accepted external plugin connection.
-func newExternalPlugin(conn stdnet.Conn) (p *plugin, retErr error) {
+func (r *Adaptation) newExternalPlugin(conn stdnet.Conn) (p *plugin, retErr error) {
 	p = &plugin{
 		regC:   make(chan error, 1),
 		closeC: make(chan struct{}),
+		r:      r,
 	}
 	if err := p.connect(conn); err != nil {
 		return nil, err
 	}
 
 	return p, nil
+}
+
+// Get plugin-specific configuration for an NRI-launched plugin.
+func (r *Adaptation) getPluginConfig(id, base string) (string, error) {
+	name := id + "-" + base
+	dropIns := []string{
+		filepath.Join(r.dropinPath, name+".conf"),
+		filepath.Join(r.dropinPath, base+".conf"),
+	}
+
+	for _, path := range dropIns {
+		buf, err := os.ReadFile(path)
+		if err == nil {
+			return string(buf), nil
+		}
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("failed to read configuration for plugin %q: %w", name, err)
+		}
+	}
+
+	return "", nil
 }
 
 // Check if the plugin is external (was not launched by us).
@@ -187,7 +244,10 @@ func (p *plugin) connect(conn stdnet.Conn) (retErr error) {
 
 // Start Runtime service, wait for plugin to register, then configure it.
 func (p *plugin) start(name, version string) error {
-	var err error
+	var (
+		err     error
+		timeout = getPluginRegistrationTimeout()
+	)
 
 	go func() {
 		err := p.rpcs.Serve(context.Background(), p.rpcl)
@@ -206,7 +266,7 @@ func (p *plugin) start(name, version string) error {
 		}
 	case <-p.closeC:
 		return fmt.Errorf("failed to register plugin, connection closed")
-	case <-time.After(pluginRegistrationTimeout):
+	case <-time.After(timeout):
 		p.close()
 		p.stop()
 		return errors.New("plugin registration timed out")
@@ -316,7 +376,7 @@ func (p *plugin) UpdateContainers(ctx context.Context, req *UpdateContainersRequ
 
 // configure the plugin and subscribe it for the events it requested.
 func (p *plugin) configure(ctx context.Context, name, version, config string) error {
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	rpl, err := p.stub.Configure(ctx, &ConfigureRequest{
@@ -345,7 +405,7 @@ func (p *plugin) configure(ctx context.Context, name, version, config string) er
 func (p *plugin) synchronize(ctx context.Context, pods []*PodSandbox, containers []*Container) ([]*ContainerUpdate, error) {
 	log.Infof(ctx, "synchronizing plugin %s", p.name())
 
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	req := &SynchronizeRequest{
@@ -366,13 +426,13 @@ func (p *plugin) createContainer(ctx context.Context, req *CreateContainerReques
 		return nil, nil
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	rpl, err := p.stub.CreateContainer(ctx, req)
 	if err != nil {
 		if isFatalError(err) {
-			log.Errorf(ctx, "closing plugin %s, failed to handle CreateContainer request: %w",
+			log.Errorf(ctx, "closing plugin %s, failed to handle CreateContainer request: %v",
 				p.name(), err)
 			p.close()
 			return nil, nil
@@ -389,13 +449,13 @@ func (p *plugin) updateContainer(ctx context.Context, req *UpdateContainerReques
 		return nil, nil
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	rpl, err := p.stub.UpdateContainer(ctx, req)
 	if err != nil {
 		if isFatalError(err) {
-			log.Errorf(ctx, "closing plugin %s, failed to handle UpdateContainer request: %w",
+			log.Errorf(ctx, "closing plugin %s, failed to handle UpdateContainer request: %v",
 				p.name(), err)
 			p.close()
 			return nil, nil
@@ -412,13 +472,13 @@ func (p *plugin) stopContainer(ctx context.Context, req *StopContainerRequest) (
 		return nil, nil
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	rpl, err := p.stub.StopContainer(ctx, req)
 	if err != nil {
 		if isFatalError(err) {
-			log.Errorf(ctx, "closing plugin %s, failed to handle StopContainer request: %w",
+			log.Errorf(ctx, "closing plugin %s, failed to handle StopContainer request: %v",
 				p.name(), err)
 			p.close()
 			return nil, nil
@@ -435,13 +495,13 @@ func (p *plugin) StateChange(ctx context.Context, evt *StateChangeEvent) error {
 		return nil
 	}
 
-	ctx, cancel := context.WithTimeout(ctx, pluginRequestTimeout)
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
 	defer cancel()
 
 	_, err := p.stub.StateChange(ctx, evt)
 	if err != nil {
 		if isFatalError(err) {
-			log.Errorf(ctx, "closing plugin %s, failed to handle event %d: %w",
+			log.Errorf(ctx, "closing plugin %s, failed to handle event %d: %v",
 				p.name(), evt.Event, err)
 			p.close()
 			return nil

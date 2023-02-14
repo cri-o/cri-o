@@ -115,6 +115,8 @@ func New(cfg *config.Config) (*local, error) {
 		updateFn       = l.updateFromPlugin
 	)
 
+	cfg.ConfigureTimeouts()
+
 	l.nri, err = nri.New(runtimeName, runtimeVersion, syncFn, updateFn, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize NRI interface: %w", err)
