@@ -1704,7 +1704,7 @@ github.com/opencontainers/runc/libcontainer/utils
 # github.com/opencontainers/runtime-spec v1.0.3-0.20220825212826-86290f6a00fb
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
-# github.com/opencontainers/runtime-tools v0.9.1-0.20221014010322-58c91d646d86
+# github.com/opencontainers/runtime-tools v0.9.1-0.20230110161035-a6a073817ab0
 ## explicit; go 1.16
 github.com/opencontainers/runtime-tools/error
 github.com/opencontainers/runtime-tools/filepath
@@ -1712,6 +1712,7 @@ github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
 github.com/opencontainers/runtime-tools/specerror
 github.com/opencontainers/runtime-tools/validate
+github.com/opencontainers/runtime-tools/validate/capabilities
 # github.com/opencontainers/selinux v1.10.2
 ## explicit; go 1.13
 github.com/opencontainers/selinux/go-selinux
