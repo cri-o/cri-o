@@ -18,11 +18,9 @@ function setup() {
 }
 
 function enable_nri() {
-	touch "$TESTDIR/nri.conf"
 	cat << EOF > "$CRIO_CONFIG_DIR/zz-nri.conf"
 [crio.nri]
 enable_nri = true
-nri_config_file = "$TESTDIR/nri.conf"
 nri_listen = "$NRI_SOCKET"
 EOF
 }
