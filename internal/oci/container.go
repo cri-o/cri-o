@@ -204,7 +204,10 @@ func (c *Container) SetSpec(s *specs.Spec) {
 
 // Spec returns a copy of the spec for the container
 func (c *Container) Spec() specs.Spec {
-	return *c.spec
+	if c.spec != nil {
+		return *c.spec
+	}
+	return specs.Spec{}
 }
 
 // ConmonCgroupfsPath returns the path to conmon's cgroup. This is only set when
