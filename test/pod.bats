@@ -233,7 +233,7 @@ function teardown() {
 @test "pod stop idempotent with ctrs already stopped" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	crictl stop "$ctr_id"
 	crictl stopp "$pod_id"
