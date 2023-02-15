@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 15 Feb 2023 10:44:13 UTC for commit [9f3f5f5][0]._
+_Generated on Wed, 15 Feb 2023 14:50:25 UTC for commit [3b2f740][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9f3f5f53f4483202c9e316d8530fd5b71c6c9a2a
+[0]: https://github.com/cri-o/cri-o/commit/3b2f74036fc91077fe485cf6b96a2f8be890d438
 
 ## Outdated Dependencies
 
@@ -320,7 +320,7 @@ _Generated on Wed, 15 Feb 2023 10:44:13 UTC for commit [9f3f5f5][0]._
 | github.com/caarlos0/ctrlc                                                               | v1.0.0                                            | v1.2.0                             | false  | true             |
 | github.com/campoy/unique                                                                | v0.0.0-20180121183637-88950e537e7e                |                                    | false  | true             |
 | github.com/carolynvs/magex                                                              | v0.9.0                                            |                                    | false  | true             |
-| github.com/casbin/casbin/v2                                                             | v2.1.2                                            | v2.62.0                            | false  | true             |
+| github.com/casbin/casbin/v2                                                             | v2.1.2                                            | v2.63.0                            | false  | true             |
 | github.com/cavaliercoder/badio                                                          | v0.0.0-20160213150051-ce5280129e9e                |                                    | false  | true             |
 | github.com/cavaliercoder/go-cpio                                                        | v0.0.0-20180626203310-925f9528c45e                | v1.0.1                             | false  | true             |
 | github.com/cavaliercoder/go-rpm                                                         | v0.0.0-20200122174316-8cb9fd9c31a8                | v1.2.0                             | false  | true             |
