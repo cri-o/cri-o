@@ -96,14 +96,17 @@ type State interface { //nolint:interfacebloat
 	// The container being checked must be part of the set namespace.
 	ContainerInUse(ctr *Container) ([]string, error)
 	// Retrieves all containers presently in state.
+	// If `loadState` is set, the containers' state will be loaded as well.
 	// If a namespace is set, only containers within the namespace will be
 	// returned.
-	AllContainers() ([]*Container, error)
+	AllContainers(loadState bool) ([]*Container, error)
 
 	// Get networks the container is currently connected to.
 	GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error)
 	// Add the container to the given network with the given options
 	NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error
+	// Modify the container network with the given options.
+	NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error
 	// Remove the container from the given network, removing all aliases for
 	// the container in that network in the process.
 	NetworkDisconnect(ctr *Container, network string) error
