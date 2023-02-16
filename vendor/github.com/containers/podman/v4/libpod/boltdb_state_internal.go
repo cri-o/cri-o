@@ -428,9 +428,43 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 	return nil
 }
 
-func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+func (s *BoltState) getContainerStateDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket) error {
+	newState := new(ContainerState)
+	ctrToUpdate := ctrsBkt.Bucket(id)
+	if ctrToUpdate == nil {
+		ctr.valid = false
+		return fmt.Errorf("container %s does not exist in database: %w", ctr.ID(), define.ErrNoSuchCtr)
+	}
+
+	newStateBytes := ctrToUpdate.Get(stateKey)
+	if newStateBytes == nil {
+		return fmt.Errorf("container %s does not have a state key in DB: %w", ctr.ID(), define.ErrInternal)
+	}
+
+	if err := json.Unmarshal(newStateBytes, newState); err != nil {
+		return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
+	}
+
+	// backwards compat, previously we used a extra bucket for the netns so try to get it from there
+	netNSBytes := ctrToUpdate.Get(netNSKey)
+	if netNSBytes != nil && newState.NetNS == "" {
+		newState.NetNS = string(netNSBytes)
+	}
+
+	// New state compiled successfully, swap it into the current state
+	ctr.state = newState
+	return nil
+}
+
+func (s *BoltState) getContainerFromDB(id []byte, ctr *Container, ctrsBkt *bolt.Bucket, loadState bool) error {
 	if err := s.getContainerConfigFromDB(id, ctr.config, ctrsBkt); err != nil {
 		return err
+	}
+
+	if loadState {
+		if err := s.getContainerStateDB(id, ctr, ctrsBkt); err != nil {
+			return err
+		}
 	}
 
 	// Get the lock
@@ -590,7 +624,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
-	netNSPath := getNetNSPath(ctr)
 	dependsCtrs := ctr.Dependencies()
 
 	ctrID := []byte(ctr.ID())
@@ -739,11 +772,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if pod != nil {
 			if err := newCtrBkt.Put(podIDKey, []byte(pod.ID())); err != nil {
 				return fmt.Errorf("adding container %s pod to DB: %w", ctr.ID(), err)
-			}
-		}
-		if netNSPath != "" {
-			if err := newCtrBkt.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("adding container %s netns path to DB: %w", ctr.ID(), err)
 			}
 		}
 		if len(networks) > 0 {

@@ -46,3 +46,23 @@ const (
 	// and manage cgroups.
 	CgroupManagerCgroupfs
 )
+
+// Namespace is the enum for all available namespaces.
+type Namespace int
+
+const (
+	// NamespaceIPC is the reference to the IPC namespace.
+	NamespaceIPC Namespace = iota
+
+	// NamespacePID is the reference to the PID namespace.
+	NamespacePID
+
+	// NamespaceNet is the reference to the network namespace.
+	NamespaceNet
+
+	// NamespaceUser is the reference to the user namespace.
+	NamespaceUser
+
+	// NamespaceUTS is the reference to the UTS namespace.
+	NamespaceUTS
+)

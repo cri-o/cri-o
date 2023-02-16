@@ -62,6 +62,7 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
+ZEITGEIST_VERSION := v0.3.5
 BOM := ${BUILD_BIN_PATH}/bom
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
@@ -284,7 +285,10 @@ ${GO_MOD_OUTDATED}:
 	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
 
 ${ZEITGEIST}:
-	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
+	mkdir -p $(BUILD_BIN_PATH)
+	curl -sSfL -o $(BUILD_BIN_PATH)/zeitgeist \
+		https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64
+	chmod +x $(BUILD_BIN_PATH)/zeitgeist
 
 ${BOM}:
 	$(call go-build, ./vendor/sigs.k8s.io/bom/cmd/bom)

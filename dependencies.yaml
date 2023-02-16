@@ -72,3 +72,9 @@ dependencies:
       match: bats
     - path: contrib/test/integration/build/bats.yml
       match: version
+
+  - name: zeitgeist
+    version: 0.3.5
+    refPaths:
+      - path: Makefile
+        match: ZEITGEIST_VERSION
