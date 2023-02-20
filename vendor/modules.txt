@@ -1784,8 +1784,8 @@ github.com/prometheus/procfs/internal/util
 github.com/protocolbuffers/txtpbfmt/ast
 github.com/protocolbuffers/txtpbfmt/parser
 github.com/protocolbuffers/txtpbfmt/unquote
-# github.com/psampaz/go-mod-outdated v0.8.0
-## explicit; go 1.14
+# github.com/psampaz/go-mod-outdated v0.9.0
+## explicit; go 1.18
 github.com/psampaz/go-mod-outdated
 github.com/psampaz/go-mod-outdated/internal/mod
 github.com/psampaz/go-mod-outdated/internal/runner

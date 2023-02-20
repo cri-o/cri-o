@@ -41,22 +41,16 @@ linters-settings:
       - wrapperFunc
 
 linters:
-  enable-all: true
-  disable:
-    - maligned
-    - prealloc
-    - gochecknoglobals
-    - gofmt
-    - godot
-    - nlreturn
-    - gofumpt
-    - gci
-    - goerr113
-    - exhaustivestruct
-    - paralleltest
-    - errorlint
-    - thelper
-    - wrapcheck
+  disable-all: true
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - unused
+    - revive
 
 run:
   skip-dirs:
@@ -68,11 +62,15 @@ issues:
     - text: "weak cryptographic primitive"
       linters:
         - gosec
+    - text: "fieldalignment: struct with"
+      linters:
+        - govet
+
   exclude-use-default: false
 
 # golangci.com configuration
 # https://github.com/golangci/golangci/wiki/Configuration
 service:
-  golangci-lint-version: 1.31.x # use the fixed version to not introduce new linters unexpectedly
+  golangci-lint-version: 1.50.1 # use the fixed version to not introduce new linters unexpectedly
   prepare:
     - echo "here I can run custom commands, but no preparation needed for this repo"

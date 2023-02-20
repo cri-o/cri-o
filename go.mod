@@ -55,7 +55,7 @@ require (
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230110161035-a6a073817ab0
 	github.com/opencontainers/selinux v1.11.0
 	github.com/prometheus/client_golang v1.14.0
-	github.com/psampaz/go-mod-outdated v0.8.0
+	github.com/psampaz/go-mod-outdated v0.9.0
 	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/soheilhy/cmux v0.1.5

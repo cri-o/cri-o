@@ -40,8 +40,16 @@ into this
 +-------------------------------------------+--------------------------------------+------------------------------------+--------+--------+---------+
 | github.com/BurntSushi/locker              | v0.0.0-20171006230638-a6e239ea1c69   |                                    | true   | true             |
 | github.com/BurntSushi/toml                | v0.0.0-20170626110600-a368813c5e64   | v0.3.1                             | true   | true             |
-+-------------------------------------------+--------------------------------------+------------------------------------+--------+--------+---------+
++-------------------------------------------+--------------------------------------+----------------o --------------------+--------+--------+---------+
 ```
+
+## Contributing
+ 
+You are welcome to contribute bug fixes or improvements.
+
+- In case of a bug fix please submit a PR directly.
+- In case of a new feature/improvement please **open an issue first**, describing in detail the desired change. I would like to keep this tool as simple as possible so that it is easy to use and easy to maintain. My time is limited and I want to respect your time also.
+
 ## Installation
 
 ```
@@ -114,11 +122,11 @@ The following will work:
 ### Docker
 In the folder where your go.mod lives run
 ```
-go list -u -m -json all | docker run -i psampaz/go-mod-outdated
+go list -u -m -json all | docker run --rm -i psampaz/go-mod-outdated
 ```
 To use parameters just append
 ```
-go list -u -m -json all | docker run -i psampaz/go-mod-outdated -update
+go list -u -m -json all | docker run --rm -i psampaz/go-mod-outdated -update
 ```
 ### CI pipelines
 
@@ -180,13 +188,12 @@ there is a fully automated way to detect breaking changes in a codebase, a good 
 tests and avoid dependencies on modules not well maintained and documented.
 
 
-## Supported Go versions
+## Supported (tested) Go versions
 
-- 1.13.x
-- 1.14.x
-- 1.15.x
+- 1.19.x
+- 1.20.x
 
-## Supported operating systems
+## Supported (tested) operating systems
 
 - linux 
 - osx
