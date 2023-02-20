@@ -318,3 +318,27 @@ function teardown() {
 	crictl stopp "$id"
 	[[ $(find "$CONTAINER_NAMESPACES_DIR" -type f) -eq 0 ]]
 }
+
+@test "pod with the correct etc folder ownership" {
+	start_crio
+	etc_perm_config="$TESTDIR"/container_sleep.json
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq '	  .metadata.name = "etc-permission"
+	| .image.image = "quay.io/crio/etc-permission"
+	| .annotations.pod = "etc-permission"
+	| .linux.security_context.run_as_user = {
+		value: 5000
+	} |
+	  .linux.security_context.run_as_group = {
+		value: 5000
+	} |
+	  .linux.security_context.fs_group = {
+		value: 5000
+	} |
+	  .linux.security_context.capabilities.add_capabilities[0] = "setuid"
+	  | .linux.security_context.capabilities.add_capabilities[1] = "setgid"' \
+		"$TESTDATA"/container_sleep.json > "$etc_perm_config"
+	ctr_id=$(crictl create "$pod_id" "$etc_perm_config" "$TESTDATA"/sandbox_config.json)
+	output=$(crictl exec --sync "$ctr_id" ls -ld /etc)
+	[[ "$output" == *"test test"* ]]
+}
