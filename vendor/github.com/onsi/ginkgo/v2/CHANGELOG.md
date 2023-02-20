@@ -1,3 +1,22 @@
+## 2.8.3
+
+Released to fix security issue in golang.org/x/net dependency
+
+### Maintenance
+
+- Bump golang.org/x/net from 0.6.0 to 0.7.0 (#1141) [fc1a02e]
+- remove tools.go hack from documentation [0718693]
+
+## 2.8.2
+
+Ginkgo now includes a `tools.go` file in the root directory of the `ginkgo` package.  This should allow modules that simply `go get github.com/onsi/ginkgo/v2` to also pull in the CLI dependencies.  This obviates the need for consumers of Ginkgo to have their own `tools.go` file and makes it simpler to ensure that the version of the `ginkgo` CLI being used matches the version of the library.  You can simply run `go run github.com/onsi/ginkgo/v2/ginkgo` to run the version of the cli associated with your package go.mod.
+
+### Maintenance
+
+- Bump github.com/onsi/gomega from 1.26.0 to 1.27.0 (#1139) [5767b0a]
+- Fix minor typos (#1138) [e1e9723]
+- Fix link in V2 Migration Guide (#1137) [a588f60]
+
 ## 2.8.1
 
 ### Fixes
@@ -164,7 +183,7 @@ to build tooling on top of as it has stronger guarantees to be stable from versi
 
 ### Fixes
 - correcting some typos (#1064) [1403d3c]
-- fix flaky internal_integration interupt specs [2105ba3]
+- fix flaky internal_integration interrupt specs [2105ba3]
 - Correct busted link in README [be6b5b9]
 
 ### Maintenance
