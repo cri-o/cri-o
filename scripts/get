@@ -212,8 +212,16 @@ OCIDIR=${OCIDIR:-$PREFIX/share/oci-umount/oci-umount.d}
 BASHINSTALLDIR=${BASHINSTALLDIR:-$PREFIX/share/bash-completion/completions}
 FISHINSTALLDIR=${FISHINSTALLDIR:-$PREFIX/share/fish/completions}
 ZSHINSTALLDIR=${ZSHINSTALLDIR:-$PREFIX/share/zsh/site-functions}
-SYSTEMDDIR=${SYSTEMDDIR:-$PREFIX/lib/systemd/system}
 OPT_CNI_BIN_DIR=${OPT_CNI_BIN_DIR:-/opt/cni/bin}
+
+# Update systemddir based on OS
+source /etc/os-release
+if { [[ "${ID}" == "fedora" ]] && [[ "${VARIANT_ID}" == "coreos" ]]; } ||
+    [[ "${ID}" == "rhcos" ]]; then
+    SYSTEMDDIR=${SYSTEMDDIR:-/etc/systemd/system}
+else
+    SYSTEMDDIR=${SYSTEMDDIR:-$PREFIX/lib/systemd/system}
+fi
 
 SELINUX=
 if selinuxenabled 2>/dev/null; then
