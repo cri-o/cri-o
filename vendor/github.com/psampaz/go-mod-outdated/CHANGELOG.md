@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)
 
+## [0.9.0]  2023-02-19
+### Added
+- Goreleaser
+- Tests for Go 1.19 and 1.20
+### Changed
+- Skip rendering the table if there are no updates to display https://github.com/psampaz/go-mod-outdated/pull/46
+- Updated dependencies to latest versions
+- Update ci config
+### Removed
+- Tests for Go 1.16 and 1.17
+
 ## [0.8.0] 2021-04-12
 ### Added
 - Tests for Go 1.16
