@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 21 Feb 2023 08:21:33 UTC for commit [140a53b][0]._
+_Generated on Tue, 21 Feb 2023 12:01:15 UTC for commit [6ae0849][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/140a53b3130154131cb662218cecd48a445a658e
+[0]: https://github.com/cri-o/cri-o/commit/6ae0849c0b73975c647ccfd9516539a512ff7d96
 
 ## Outdated Dependencies
 
@@ -12,7 +12,6 @@ _Generated on Tue, 21 Feb 2023 08:21:33 UTC for commit [140a53b][0]._
 | github.com/container-orchestrated-devices/container-device-interface | v0.5.3                             | v0.5.4                             | true   | true             |
 | github.com/containerd/containerd                                     | v1.7.0-beta.3                      | v1.7.0-beta.4                      | true   | true             |
 | github.com/containers/buildah                                        | v1.29.0                            | v1.29.1                            | true   | true             |
-| github.com/onsi/ginkgo/v2                                            | v2.8.1                             | v2.8.3                             | true   | true             |
 | github.com/onsi/gomega                                               | v1.27.0                            | v1.27.1                            | true   | true             |
 | github.com/psampaz/go-mod-outdated                                   | v0.8.0                             | v0.9.0                             | true   | true             |
 | k8s.io/utils                                                         | v0.0.0-20230209194617-a36077c30491 | v0.0.0-20230220204549-a5ecb0141aa5 | true   | true             |
@@ -759,7 +758,7 @@ _Generated on Tue, 21 Feb 2023 08:21:33 UTC for commit [140a53b][0]._
 | github.com/oklog/ulid                                                                   | v1.3.1                                            |                                    | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                            |                                    | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                    | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.8.1                                            | v2.8.3                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.8.3                                            |                                    | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.27.0                                           | v1.27.1                            | true   | true             |
 | github.com/op/go-logging                                                                | v0.0.0-20160315200505-970db520ece7                |                                    | false  | true             |
 | github.com/open-policy-agent/opa                                                        | v0.45.0                                           | v0.49.0                            | false  | true             |
