@@ -198,5 +198,7 @@ func convertCgroupFsNameToSystemd(cgroupfsName string) string {
 
 // CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
 func (m *SystemdManager) CreateSandboxCgroup(sbParent, containerID string) error {
-	return createSandboxCgroup(sbParent, containerID, m)
+	// If we are running systemd as cgroup driver then we would rely on
+	// systemd to create cgroups for us, there's nothing to do here in this case
+	return nil
 }
