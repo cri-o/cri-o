@@ -1040,3 +1040,11 @@ function check_oci_annotation() {
 		! ps -p "$process" o pid=,stat= | grep -v 'Z'
 	done
 }
+
+@test "ctr HOME env newline invalid" {
+	start_crio
+	jq ' .envs = [{"key": "HOME=", "value": "/root:/sbin/nologin\\ntest::0:0::/:/bin/bash"}]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+
+	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+}
