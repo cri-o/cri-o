@@ -12,7 +12,7 @@ require (
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.0-beta.3
 	github.com/containerd/cri-containerd v1.19.0
-	github.com/containerd/fifo v1.0.0
+	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.2.1-0.20230216075458-2dfff71dbb74
 	github.com/containerd/ttrpc v1.1.1-0.20220420014843-944ef4a40df3
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
