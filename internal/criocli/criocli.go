@@ -365,14 +365,23 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("enable-nri") {
 		config.NRI.Enabled = ctx.Bool("enable-nri")
 	}
-	if ctx.IsSet("nri-config-file") {
-		config.NRI.ConfigPath = ctx.String("nri-config-file")
-	}
 	if ctx.IsSet("nri-listen") {
 		config.NRI.SocketPath = ctx.String("nri-listen")
 	}
 	if ctx.IsSet("nri-plugin-dir") {
 		config.NRI.PluginPath = ctx.String("nri-plugin-dir")
+	}
+	if ctx.IsSet("nri-plugin-config-dir") {
+		config.NRI.PluginConfigPath = ctx.String("nri-plugin-config-dir")
+	}
+	if ctx.IsSet("nri-disable-connections") {
+		config.NRI.DisableConnections = ctx.Bool("nri-disable-connections")
+	}
+	if ctx.IsSet("nri-plugin-registration-timeout") {
+		config.NRI.PluginRegistrationTimeout = ctx.Duration("nri-plugin-registration-timeout")
+	}
+	if ctx.IsSet("nri-plugin-request-timeout") {
+		config.NRI.PluginRequestTimeout = ctx.Duration("nri-plugin-request-timeout")
 	}
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
@@ -833,16 +842,30 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage: fmt.Sprintf("Enable NRI (Node Resource Interface) support. (default: %v)", defConf.NRI.Enabled),
 		},
 		&cli.StringFlag{
-			Name:  "nri-config-file",
-			Usage: fmt.Sprintf("NRI configuration file to use. (default: %q)", defConf.NRI.ConfigPath),
-		},
-		&cli.StringFlag{
 			Name:  "nri-listen",
 			Usage: fmt.Sprintf("Socket to listen on for externally started NRI plugins to connect to. (default: %q)", defConf.NRI.SocketPath),
 		},
 		&cli.StringFlag{
 			Name:  "nri-plugin-dir",
 			Usage: fmt.Sprintf("Directory to scan for pre-installed NRI plugins to start automatically. (default: %q)", defConf.NRI.PluginPath),
+		},
+		&cli.StringFlag{
+			Name:  "nri-plugin-config-dir",
+			Usage: fmt.Sprintf("Directory to scan for configuration of pre-installed NRI plugins. (default: %q)", defConf.NRI.PluginConfigPath),
+		},
+		&cli.StringFlag{
+			Name:  "nri-disable-connections",
+			Usage: fmt.Sprintf("Disable connections from externally started NRI plugins. (default: %v)", defConf.NRI.DisableConnections),
+		},
+		&cli.DurationFlag{
+			Name:  "nri-plugin-registration-timeout",
+			Usage: `Timeout for a plugin to register itself with NRI.`,
+			Value: defConf.NRI.PluginRegistrationTimeout,
+		},
+		&cli.DurationFlag{
+			Name:  "nri-plugin-request-timeout",
+			Usage: `Timeout for a plugin to handle an NRI request.`,
+			Value: defConf.NRI.PluginRequestTimeout,
 		},
 		&cli.StringFlag{
 			Name:    "big-files-temporary-dir",

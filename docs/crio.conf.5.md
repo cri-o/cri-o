@@ -473,14 +473,23 @@ The `crio.nri` table contains settings for controlling NRI (Node Resource Interf
 **enable_nri**=false
   Enable CRI-O NRI support.
 
-**nri_config_file**="/etc/nri/nri.conf"
-  NRI configuration file to use.
-
 **nri_plugin_dir**="/opt/nri/plugins"
   Directory to scan for pre-installed plugins to automatically start.
 
-**nri_listen**="/var/run/nri.sock"
+**nri_plugin_config_dir**="/etc/nri/conf.d"
+  Directory to scan for configuration of pre-installed plugins.
+
+**nri_listen**="/var/run/nri/nri.sock"
   Socket to listen on for externally started NRI plugins to connect to.
+
+**nri_disable_connections**=false
+  Disable connections from externally started NRI plugins.
+
+**nri_plugin_registration_timeout**="5s"
+  Timeout for a plugin to register itself with NRI.
+
+**nri_plugin_request_timeout**="2s"
+  Timeout for a plugin to handle an NRI request.
 
 # SEE ALSO
 crio.conf.d(5), containers-storage.conf(5), containers-policy.json(5), containers-registries.conf(5), crio(8)
