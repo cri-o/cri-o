@@ -802,13 +802,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if containerIDMappings == nil {
 		rootPair = idtools.IDPair{UID: 0, GID: 0}
 	}
+
+	etc := filepath.Join(mountPoint, "/etc")
+	// create the `/etc` folder only when it doesn't exist
+	if _, err := os.Stat(etc); err != nil && os.IsNotExist(err) {
+		if err := idtools.MkdirAllAndChown(etc, 0o755, rootPair); err != nil {
+			return nil, fmt.Errorf("error creating mtab directory: %w", err)
+		}
+	}
 	// add symlink /etc/mtab to /proc/mounts allow looking for mountfiles there in the container
 	// compatible with Docker
-	mtab := filepath.Join(mountPoint, "/etc/mtab")
-	if err := idtools.MkdirAllAs(filepath.Dir(mtab), 0o755, rootPair.UID, rootPair.GID); err != nil {
-		return nil, fmt.Errorf("error creating mtab directory: %w", err)
-	}
-	if err := os.Symlink("/proc/mounts", mtab); err != nil && !os.IsExist(err) {
+	if err := os.Symlink("/proc/mounts", filepath.Join(etc, "mtab")); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
 
