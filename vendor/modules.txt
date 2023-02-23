@@ -453,7 +453,7 @@ github.com/cockroachdb/apd/v2
 # github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be
 ## explicit
 github.com/common-nighthawk/go-figure
-# github.com/container-orchestrated-devices/container-device-interface v0.5.3
+# github.com/container-orchestrated-devices/container-device-interface v0.5.4
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/internal/multierror
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
