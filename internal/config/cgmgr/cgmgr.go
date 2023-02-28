@@ -10,10 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
-	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -138,21 +136,6 @@ func VerifyMemoryIsEnough(memoryLimit int64) error {
 		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
 	}
 	return nil
-}
-
-// createSandboxCgroup takes the sandbox parent, and sandbox ID.
-// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
-func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error {
-	path, err := mgr.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	if mgr.IsSystemd() {
-		_, err = cgroups.NewSystemd(path, &cgcfgs.Resources{})
-	} else {
-		_, err = cgroups.New(path, &cgcfgs.Resources{})
-	}
-	return err
 }
 
 // MoveProcessToContainerCgroup moves process to the container cgroup
