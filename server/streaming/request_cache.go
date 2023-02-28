@@ -20,10 +20,10 @@ package streaming
 
 import (
 	"container/list"
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"math"
+	"math/rand"
 	"sync"
 	"time"
 
