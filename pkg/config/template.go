@@ -266,6 +266,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.IrqBalanceConfigFile, c.IrqBalanceConfigFile),
 		},
 		{
+			templateString: templateStringCrioRuntimeIrqBalanceConfigRestoreFile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.IrqBalanceConfigRestoreFile, c.IrqBalanceConfigRestoreFile),
+		},
+		{
 			templateString: templateStringCrioRuntimeRdtConfigFile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.RdtConfigFile, c.RdtConfigFile),
@@ -1078,6 +1083,13 @@ const templateStringCrioRuntimeDropInfraCtr = `# drop_infra_ctr determines wheth
 # a kernel separating runtime (like kata).
 # It requires manage_ns_lifecycle to be true.
 {{ $.Comment }}drop_infra_ctr = {{ .DropInfraCtr }}
+
+`
+
+const templateStringCrioRuntimeIrqBalanceConfigRestoreFile = `# irqbalance_config_restore_file allows to set a cpu mask CRI-O should
+# restore as irqbalance config at startup. Set to empty string to disable this flow entirely.
+# By default, CRI-O manages the irqbalance configuration to enable dynamic IRQ pinning.
+{{ $.Comment }}irqbalance_config_restore_file = "{{ .IrqBalanceConfigRestoreFile }}"
 
 `
 
