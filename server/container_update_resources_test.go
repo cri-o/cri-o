@@ -13,16 +13,14 @@ import (
 
 // The actual test suite
 var _ = t.Describe("UpdateContainerResources", func() {
-	// Prepare the sut
-	BeforeEach(func() {
-		beforeEach()
-		mockRuncInLibConfig()
-		setupSUT()
-	})
-
 	AfterEach(afterEach)
-
 	t.Describe("UpdateContainerResources", func() {
+		// Prepare the sut
+		BeforeEach(func() {
+			beforeEach()
+			mockRuncInLibConfig()
+			setupSUT()
+		})
 		It("should succeed", func() {
 			// Given
 			testContainer.SetSpec(&specs.Spec{
@@ -118,6 +116,38 @@ var _ = t.Describe("UpdateContainerResources", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("UpdateContainerResources with nri enabled", func() {
+		// Prepare the sut
+		BeforeEach(func() {
+			beforeEach()
+			serverConfig.NRI.Enabled = true
+			mockRuncInLibConfig()
+			setupSUT()
+		})
+		It("should succeed", func() {
+			// Given
+			testContainer.SetSpec(&specs.Spec{
+				Linux: &specs.Linux{
+					Resources: &specs.LinuxResources{},
+				},
+			})
+			testContainer.SetState(&oci.ContainerState{
+				State: specs.State{Status: oci.ContainerStateRunning},
+			})
+			addContainerAndSandbox()
+
+			// When
+			_, err := sut.UpdateContainerResources(context.Background(),
+				&types.UpdateContainerResourcesRequest{
+					ContainerId: testContainer.ID(),
+				},
+			)
+
+			// Then
+			Expect(err).To(BeNil())
 		})
 	})
 })
