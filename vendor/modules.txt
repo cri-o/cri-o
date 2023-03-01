@@ -3104,7 +3104,7 @@ k8s.io/component-helpers/node/util/sysctl
 # k8s.io/cri-api v0.26.1 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20221208195143-b46a3f887ca9
 ## explicit; go 1.19
 k8s.io/cri-api/pkg/apis/runtime/v1
-# k8s.io/klog/v2 v2.90.0
+# k8s.io/klog/v2 v2.90.1
 ## explicit; go 1.13
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
