@@ -9,6 +9,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.19'
+  NIX_VERSION: '2.13.3'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -123,7 +124,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - uses: cachix/install-nix-action@v19
+        with:
+          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v12
         with:
           name: cri-o-static
@@ -143,7 +146,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - uses: cachix/install-nix-action@v19
+        with:
+          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v12
         with:
           name: cri-o-static
