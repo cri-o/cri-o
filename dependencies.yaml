@@ -78,3 +78,9 @@ dependencies:
     refPaths:
       - path: Makefile
         match: ZEITGEIST_VERSION
+
+  - name: nix
+    version: 2.13.3
+    refPaths:
+      - path: .github/workflows/test.yml
+        match: NIX_VERSION
