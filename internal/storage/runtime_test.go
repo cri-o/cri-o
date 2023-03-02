@@ -17,9 +17,10 @@ import (
 // The actual test suite
 var _ = t.Describe("Runtime", func() {
 	var (
-		mockCtrl        *gomock.Controller
-		storeMock       *containerstoragemock.MockStore
-		imageServerMock *criostoragemock.MockImageServer
+		mockCtrl            *gomock.Controller
+		storeMock           *containerstoragemock.MockStore
+		imageServerMock     *criostoragemock.MockImageServer
+		imageServerListMock *criostoragemock.MockImageServerList
 	)
 
 	// The system under test
@@ -34,8 +35,9 @@ var _ = t.Describe("Runtime", func() {
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
 		imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
+		imageServerListMock = criostoragemock.NewMockImageServerList(mockCtrl)
 
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
+		sut = storage.GetRuntimeService(context.Background(), imageServerListMock)
 		Expect(sut).NotTo(BeNil())
 
 		ctx = context.TODO()
@@ -47,6 +49,7 @@ var _ = t.Describe("Runtime", func() {
 	// The part of createContainerOrPodSandbox before a CreateContainer call, if the image already exists locally.
 	mockCreateContainerOrPodSandboxImageExists := func() mockSequence {
 		return inOrder(
+			imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -61,10 +64,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to retrieve the run dir", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 					Return("dir", nil),
 			)
@@ -80,6 +83,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the run dir on not existing container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, t.TestError),
@@ -96,6 +100,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the run dir on invalid container ID", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, cs.ErrContainerUnknown),
@@ -116,10 +121,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to retrieve the work dir", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("dir", nil),
 			)
@@ -135,6 +140,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the work dir on not existing container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, t.TestError),
@@ -151,6 +157,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the work dir on invalid container ID", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, cs.ErrContainerUnknown),
@@ -170,10 +177,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to stop a container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).
 					Return(true, nil),
 			)
@@ -198,6 +205,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to stop a container on unknown container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, t.TestError),
@@ -213,10 +221,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to stop a container on unmount error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Unmount(gomock.Any(), gomock.Any()).
 					Return(false, t.TestError),
 			)
@@ -233,10 +241,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to start a container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{Metadata: "{}"}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).
 					Return("mount", nil),
 			)
@@ -252,6 +260,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to start a container on store error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, t.TestError),
@@ -268,6 +277,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to start a container on unknown ID", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, cs.ErrContainerUnknown),
@@ -285,6 +295,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to start a container on invalid metadata", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{Metadata: "invalid"}, nil),
@@ -301,10 +312,10 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to start a container on mount error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{Metadata: "{}"}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).
 					Return("", t.TestError),
 			)
@@ -322,6 +333,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to retrieve the container metadata", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": true}`, nil),
@@ -339,6 +351,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the container metadata on store error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return("", t.TestError),
@@ -355,6 +368,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to retrieve the container metadata on invalid JSON", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return("invalid", nil),
@@ -375,6 +389,7 @@ var _ = t.Describe("Runtime", func() {
 			metadata := &storage.RuntimeContainerMetadata{Pod: true}
 			metadata.SetMountLabel("label")
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().SetMetadata(gomock.Any(), gomock.Any()).
 					Return(nil),
@@ -391,6 +406,7 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			metadata := &storage.RuntimeContainerMetadata{Pod: true}
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().SetMetadata(gomock.Any(), gomock.Any()).
 					Return(t.TestError),
@@ -408,12 +424,11 @@ var _ = t.Describe("Runtime", func() {
 		It("should succeed to delete a container", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Layer("").Return(nil, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(nil),
 			)
@@ -438,6 +453,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to delete a container on store retrieval error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(nil, t.TestError),
@@ -453,12 +469,11 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to delete a container on store deletion error", func() {
 			// Given
 			gomock.InOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Container(gomock.Any()).
 					Return(&cs.Container{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Layer("").Return(nil, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).
 					Return(t.TestError),
 			)
@@ -748,6 +763,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a container on error accessing local image", func() {
 			// Given
 			inOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -784,6 +800,7 @@ var _ = t.Describe("Runtime", func() {
 			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
 			Expect(err).To(BeNil())
 			inOrder(
+				imageServerListMock.EXPECT().GetImageServer(gomock.Any()).Return(imageServerMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "pauseimagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -812,7 +829,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using default credentials", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerListMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
@@ -832,7 +849,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerListMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given

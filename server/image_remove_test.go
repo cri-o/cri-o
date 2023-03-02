@@ -26,6 +26,8 @@ var _ = t.Describe("ImageRemove", func() {
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Image(gomock.Any()).Return(nil, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(nil),
 			)
@@ -43,6 +45,8 @@ var _ = t.Describe("ImageRemove", func() {
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return(nil, storage.ErrCannotParseImageID),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Image(gomock.Any()).Return(nil, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(nil),
 			)
@@ -60,6 +64,8 @@ var _ = t.Describe("ImageRemove", func() {
 				imageServerMock.EXPECT().ResolveNames(
 					gomock.Any(), gomock.Any()).
 					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Image(gomock.Any()).Return(nil, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					gomock.Any()).Return(t.TestError),
 			)

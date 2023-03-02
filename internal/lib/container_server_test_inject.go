@@ -17,5 +17,5 @@ func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) 
 
 // SetStorageImageServer sets the ImageServer for the ContainerServer
 func (c *ContainerServer) SetStorageImageServer(server storage.ImageServer) {
-	c.storageImageServer = server
+	c.storageImageServers.SetDefaultImageServer(server)
 }

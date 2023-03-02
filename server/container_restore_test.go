@@ -541,7 +541,6 @@ var _ = t.Describe("ContainerRestore", func() {
 				storeMock.EXPECT().GraphDriverName().Return(""),
 				storeMock.EXPECT().GraphRoot().Return(""),
 				storeMock.EXPECT().RunRoot().Return(""),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{
 						ID: "abcdef",
@@ -549,10 +548,8 @@ var _ = t.Describe("ContainerRestore", func() {
 							"localhost/checkpoint-image:tag1",
 						},
 					}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
 					Return("", nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
 					Return(false, nil),
 			)

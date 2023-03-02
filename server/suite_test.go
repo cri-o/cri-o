@@ -37,22 +37,23 @@ func TestServer(t *testing.T) {
 }
 
 var (
-	libMock           *libmock.MockIface
-	mockCtrl          *gomock.Controller
-	serverConfig      *config.Config
-	storeMock         *containerstoragemock.MockStore
-	imageServerMock   *criostoragemock.MockImageServer
-	runtimeServerMock *criostoragemock.MockRuntimeServer
-	imageCloserMock   *imagetypesmock.MockImageCloser
-	cniPluginMock     *ocicnitypesmock.MockCNIPlugin
-	ociRuntimeMock    *ocimock.MockRuntimeImpl
-	sut               *server.Server
-	t                 *TestFramework
-	testContainer     *oci.Container
-	testManifest      []byte
-	testPath          string
-	testSandbox       *sandbox.Sandbox
-	testStreamService server.StreamService
+	libMock             *libmock.MockIface
+	mockCtrl            *gomock.Controller
+	serverConfig        *config.Config
+	storeMock           *containerstoragemock.MockStore
+	imageServerMock     *criostoragemock.MockImageServer
+	imageServerListMock *criostoragemock.MockImageServerList
+	runtimeServerMock   *criostoragemock.MockRuntimeServer
+	imageCloserMock     *imagetypesmock.MockImageCloser
+	cniPluginMock       *ocicnitypesmock.MockCNIPlugin
+	ociRuntimeMock      *ocimock.MockRuntimeImpl
+	sut                 *server.Server
+	t                   *TestFramework
+	testContainer       *oci.Container
+	testManifest        []byte
+	testPath            string
+	testSandbox         *sandbox.Sandbox
+	testStreamService   server.StreamService
 
 	emptyDir string
 )
@@ -71,6 +72,7 @@ var _ = BeforeSuite(func() {
 	libMock = libmock.NewMockIface(mockCtrl)
 	storeMock = containerstoragemock.NewMockStore(mockCtrl)
 	imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
+	imageServerListMock = criostoragemock.NewMockImageServerList(mockCtrl)
 	runtimeServerMock = criostoragemock.NewMockRuntimeServer(mockCtrl)
 	imageCloserMock = imagetypesmock.NewMockImageCloser(mockCtrl)
 	cniPluginMock = ocicnitypesmock.NewMockCNIPlugin(mockCtrl)

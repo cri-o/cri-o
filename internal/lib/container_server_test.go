@@ -100,7 +100,7 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed to get the StorageImageServer", func() {
 			// Given
 			// When
-			res := sut.StorageImageServer()
+			res := sut.StorageImageServer("")
 
 			// Then
 			Expect(res).NotTo(BeNil())
