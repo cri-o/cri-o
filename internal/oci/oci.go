@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
@@ -47,6 +48,7 @@ type Runtime struct {
 	config              *config.Config
 	runtimeImplMap      map[string]RuntimeImpl
 	runtimeImplMapMutex sync.RWMutex
+	imageServers        storage.ImageServerList
 }
 
 // RuntimeImpl is an interface used by the caller to interact with the
@@ -80,7 +82,7 @@ type RuntimeImpl interface {
 }
 
 // New creates a new Runtime with options provided
-func New(c *config.Config) (*Runtime, error) {
+func New(c *config.Config, is storage.ImageServerList) (*Runtime, error) {
 	execNotifyDir := filepath.Join(c.ContainerAttachSocketDir, "exec-pid-dir")
 	if err := os.MkdirAll(execNotifyDir, 0o750); err != nil {
 		return nil, fmt.Errorf("create oci runtime pid dir: %w", err)
@@ -89,6 +91,7 @@ func New(c *config.Config) (*Runtime, error) {
 	return &Runtime{
 		config:         c,
 		runtimeImplMap: make(map[string]RuntimeImpl),
+		imageServers:   is,
 	}, nil
 }
 
@@ -176,6 +179,8 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
+		// TODO: for peer-pods, create a different image server and add it to the imageServerList
+		// e.g: r.imageServers.SetImageServer(c.ID(), newImageServerForPeerPods())
 		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath, r.config.RuntimeConfig.ContainerExitsDir), nil
 	}
 
@@ -302,6 +307,7 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 				r.runtimeImplMapMutex.Lock()
 				delete(r.runtimeImplMap, c.ID())
 				r.runtimeImplMapMutex.Unlock()
+				r.imageServers.DeleteImageServer(c.ID())
 			}
 		}()
 	}

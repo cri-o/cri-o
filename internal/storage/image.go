@@ -3,7 +3,6 @@ package storage
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -33,6 +32,7 @@ import (
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -98,6 +98,11 @@ type imageService struct {
 	ctx            context.Context
 }
 
+type imageServiceList struct {
+	defaultImageServer ImageServer
+	imageServers       map[string]ImageServer
+}
+
 // ImageBeingPulled map[string]bool to keep track of the images haven't done pulling.
 var ImageBeingPulled sync.Map
 
@@ -139,6 +144,38 @@ type ImageServer interface {
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
 	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
+}
+
+// ImageServerList provides a way to access ImageServer instances.
+// A default ImageServer is used for most containers, and a specific ImageServer
+// can be registered for some containers.
+type ImageServerList interface {
+	// GetDefaultImageServer returns the default ImageServer
+	GetDefaultImageServer() ImageServer
+	// SetDefaultImageServer sets the default ImageServer for the ImageServerList
+	SetDefaultImageServer(is ImageServer)
+	// GetImageServer returns the ImageServer associated to the given container ID.
+	// If there is none, it returns the default ImageServer.
+	GetImageServer(containerID string) ImageServer
+	// SetImageServer associates an ImageServer to the given container ID.
+	SetImageServer(containerID string, is ImageServer)
+	// DeleteImageServer removes the ImageServer associated to the given
+	// containerID (if any)
+	DeleteImageServer(containerID string)
+	// ResolveNames makes a call to ResolveName() on each ImageServer and returns
+	// the data returned by the first ImageServer that can resolve the name.
+	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
+	// ListImages makes a call to ListImages() on each ImageServer, and returns
+	// the combined list of images.
+	ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error)
+	// UntagImage makes a call to UntagImage on each ImageServer that contains
+	// the target image.
+	UntagImage(systemContext *types.SystemContext, nameOrID string) (lastError error)
+	// ImageStatus makes a call to ImageStatus on each ImageServer, starting
+	// with the default, and returns the status from the first ImageServer that
+	// can find the image.
+	// It returns storage.ErrImageUnknown if no ImageServer can find the image.
+	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 }
 
 func (svc *imageService) getRef(name string) (types.ImageReference, error) {
@@ -826,6 +863,126 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 	return images, nil
 }
 
+func (isl *imageServiceList) GetDefaultImageServer() ImageServer {
+	return isl.defaultImageServer
+}
+
+func (isl *imageServiceList) SetDefaultImageServer(is ImageServer) {
+	isl.defaultImageServer = is
+}
+
+func (isl *imageServiceList) GetImageServer(containerID string) ImageServer {
+	is, ok := isl.imageServers[containerID]
+	if ok {
+		return is
+	}
+	return isl.defaultImageServer
+}
+
+func (isl *imageServiceList) SetImageServer(containerID string, is ImageServer) {
+	isl.imageServers[containerID] = is
+}
+
+func (isl *imageServiceList) DeleteImageServer(containerID string) {
+	delete(isl.imageServers, containerID)
+}
+
+// ResolveNames will call ResolveNames on each registered ImageServer, starting
+// with the default.
+// It returns the data provided by the first ImageServer that provides valid
+// data.
+// It returns an error if no ImageServer could resolve the name.
+func (isl *imageServiceList) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
+	// check the default ImageServer first
+	names, err := isl.defaultImageServer.ResolveNames(systemContext, imageName)
+	if err == nil {
+		return names, nil
+	}
+	if err != nil && (err == ErrCannotParseImageID || err == ErrImageMultiplyTagged) {
+		return []string{}, err
+	}
+
+	// if no answer came from it, try the other registered servers
+	for _, is := range isl.imageServers {
+		names, err := is.ResolveNames(systemContext, imageName)
+		if err != nil {
+			if err == ErrCannotParseImageID || err == ErrImageMultiplyTagged {
+				return []string{}, err
+			}
+			continue
+		}
+		return names, nil
+	}
+	return []string{}, fmt.Errorf("failed resolving image name for %s - not found", imageName)
+}
+
+func (isl *imageServiceList) ListImages(systemContext *types.SystemContext, filter string) (imageResults []ImageResult, lastError error) {
+	// first call ListImages on the default ImageServer
+	imageResults, lastError = isl.defaultImageServer.ListImages(systemContext, filter)
+
+	// then call it on each container-specific ImageServer
+	for _, is := range isl.imageServers {
+		images, err := is.ListImages(systemContext, filter)
+		if err != nil {
+			if lastError == nil {
+				lastError = err
+			} else {
+				lastError = errors.Wrap(lastError, err.Error())
+			}
+			continue
+		}
+		imageResults = append(imageResults, images...)
+	}
+	return imageResults, lastError
+}
+
+func (isl *imageServiceList) UntagImage(systemContext *types.SystemContext, nameOrID string) (lastError error) {
+	// start with the default ImageServer
+	_, e := isl.defaultImageServer.GetStore().Image(nameOrID)
+	if e == nil {
+		lastError = isl.defaultImageServer.UntagImage(systemContext, nameOrID)
+	}
+
+	for _, is := range isl.imageServers {
+		_, e := is.GetStore().Image(nameOrID)
+		if e != nil {
+			continue
+		}
+		err := is.UntagImage(systemContext, nameOrID)
+		if err != nil {
+			if lastError == nil {
+				lastError = err
+			} else {
+				lastError = errors.Wrap(lastError, err.Error())
+			}
+		}
+	}
+	return lastError
+}
+
+// ImageStatus returns the image status for the given image.
+func (isl *imageServiceList) ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error) {
+	// start with the default ImageServer
+	status, lastError := isl.defaultImageServer.ImageStatus(systemContext, filter)
+	if lastError == nil {
+		return status, nil
+	}
+
+	for _, is := range isl.imageServers {
+		status, err := is.ImageStatus(systemContext, filter)
+		if err == nil {
+			return status, nil
+		}
+		if lastError == nil {
+			lastError = err
+		} else {
+			lastError = errors.Wrap(lastError, err.Error())
+		}
+	}
+
+	return nil, lastError
+}
+
 // GetImageService returns an ImageServer that uses the passed-in store, and
 // which will prepend the passed-in DefaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
@@ -872,4 +1029,11 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 	}
 
 	return is, nil
+}
+
+func GetImageServiceList(is ImageServer) ImageServerList {
+	return &imageServiceList{
+		defaultImageServer: is,
+		imageServers:       make(map[string]ImageServer),
+	}
 }

@@ -45,7 +45,8 @@ func (c *ContainerServer) ContainerRestore(
 		return "", err
 	}
 	// During checkpointing the container is unmounted. This mounts the container again.
-	mountPoint, err := c.StorageImageServer().GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
+	store := c.StorageImageServer(ctr.ID()).GetStore()
+	mountPoint, err := store.Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
 	if err != nil {
 		log.Debugf(ctx, "Failed to mount container %q: %v", ctr.ID(), err)
 		return "", err
@@ -61,13 +62,13 @@ func (c *ContainerServer) ContainerRestore(
 	if ctr.RestoreArchive() != "" {
 		if ctr.RestoreIsOCIImage() {
 			log.Debugf(ctx, "Restoring from %v", ctr.RestoreArchive())
-			imageMountPoint, err := c.StorageImageServer().GetStore().MountImage(ctr.RestoreArchive(), nil, "")
+			imageMountPoint, err := store.MountImage(ctr.RestoreArchive(), nil, "")
 			if err != nil {
 				return "", err
 			}
 			logrus.Debugf("Checkpoint image mounted at %v", imageMountPoint)
 			defer func() {
-				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreArchive(), true)
+				_, err := store.UnmountImage(ctr.RestoreArchive(), true)
 				if err != nil {
 					log.Errorf(ctx, "Failed to unmount checkpoint image: %q", err)
 				}

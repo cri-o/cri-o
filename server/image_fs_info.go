@@ -32,7 +32,9 @@ func getStorageFsInfo(store storage.Store) (*types.FilesystemUsage, error) {
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
 func (s *Server) ImageFsInfo(context.Context, *types.ImageFsInfoRequest) (*types.ImageFsInfoResponse, error) {
-	store := s.StorageImageServer().GetStore()
+	// Using default ImageServer here, as we're using a single Store object
+	// we return the filesystem info for the default store.
+	store := s.ImageServerList().GetDefaultImageServer().GetStore()
 	fsUsage, err := getStorageFsInfo(store)
 	if err != nil {
 		return nil, err

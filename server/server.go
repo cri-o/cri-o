@@ -99,6 +99,7 @@ type pullArguments struct {
 	image         string
 	sandboxCgroup string
 	credentials   imageTypes.DockerAuthConfig
+	containerID   string
 }
 
 // pullOperation is used to synchronize parallel pull operations via the

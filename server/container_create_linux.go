@@ -207,7 +207,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	images, err := s.StorageImageServer(containerID).ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -222,7 +222,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		imgResultErr error
 	)
 	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		imgResult, imgResultErr = s.StorageImageServer(containerID).ImageStatus(s.config.SystemContext, img)
 		if imgResultErr == nil {
 			break
 		}

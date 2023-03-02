@@ -38,7 +38,7 @@ const ContainerManagerCRIO = "cri-o"
 type ContainerServer struct {
 	runtime              *oci.Runtime
 	store                cstorage.Store
-	storageImageServer   storage.ImageServer
+	storageImageServers  storage.ImageServerList
 	storageRuntimeServer storage.RuntimeServer
 	ctrNameIndex         *registrar.Registrar
 	ctrIDIndex           *truncindex.TruncIndex
@@ -63,8 +63,13 @@ func (c *ContainerServer) Store() cstorage.Store {
 }
 
 // StorageImageServer returns the ImageServer for the ContainerServer
-func (c *ContainerServer) StorageImageServer() storage.ImageServer {
-	return c.storageImageServer
+func (c *ContainerServer) StorageImageServer(containerID string) storage.ImageServer {
+	return c.storageImageServers.GetImageServer(containerID)
+}
+
+// ImageServerList returns the list of ImageServer instances available
+func (c *ContainerServer) ImageServerList() storage.ImageServerList {
+	return c.storageImageServers
 }
 
 // CtrIDIndex returns the TruncIndex for the ContainerServer
@@ -107,9 +112,11 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
+	imageServers := storage.GetImageServiceList(imageService)
 
-	runtime, err := oci.New(config)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageServers)
+
+	runtime, err := oci.New(config, imageServers)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +129,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	c := &ContainerServer{
 		runtime:              runtime,
 		store:                store,
-		storageImageServer:   imageService,
+		storageImageServers:  imageServers,
 		storageRuntimeServer: storageRuntimeService,
 		ctrNameIndex:         registrar.NewRegistrar(),
 		ctrIDIndex:           truncindex.NewTruncIndex([]string{}),

@@ -30,7 +30,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	}
 
 	log.Infof(ctx, "Checking image status: %s", image)
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	images, err := s.ImageServerList().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
 		if err == pkgstorage.ErrCannotParseImageID {
 			images = append(images, image)
@@ -43,7 +43,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		lastErr  error
 	)
 	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
+		status, err := s.ImageServerList().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Is(err, storage.ErrImageUnknown) {
 				log.Debugf(ctx, "Can't find %s", image)

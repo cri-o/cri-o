@@ -32,7 +32,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, imageRef)
+	images, err := s.ImageServerList().ResolveNames(s.config.SystemContext, imageRef)
 	if err != nil {
 		if err == storage.ErrCannotParseImageID {
 			images = append(images, imageRef)
@@ -41,7 +41,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 		}
 	}
 	for _, img := range images {
-		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
+		err = s.ImageServerList().UntagImage(s.config.SystemContext, img)
 		if err != nil {
 			log.Debugf(ctx, "Error deleting image %s: %v", img, err)
 			continue
