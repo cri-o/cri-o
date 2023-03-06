@@ -119,7 +119,7 @@ jobs:
             ~/.cache/go-build
           key: go-get-script-${{ hashFiles('**/go.sum') }}
           restore-keys: go-get-script-
-      - uses: sigstore/cosign-installer@v2
+      - uses: sigstore/cosign-installer@v3
       - run: |
           make get-script
           hack/tree_status.sh
