@@ -466,8 +466,8 @@ github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE
 github.com/codahale/rfc6979 v0.0.0-20141003034818-6a90f24967eb h1:EDmT6Q9Zs+SbUoc7Ik9EfrFqcylYqgPZ9ANSbTAntnE=
 github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be h1:J5BL2kskAlV9ckgEsNQXscjIaLiOYiZ75d4e94E6dcQ=
 github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be/go.mod h1:mk5IQ+Y0ZeO87b858TlA645sVcEcbiX6YqP98kt+7+w=
-github.com/container-orchestrated-devices/container-device-interface v0.5.3 h1:4v6FMaa1Pn8SS0IBwgsvCsno8HRXoQvI87Uj1Zu7Tw4=
-github.com/container-orchestrated-devices/container-device-interface v0.5.3/go.mod h1:SQohok453ewi9dItvUcO0MrP7K1CEQTxPDNd7OV+nxI=
+github.com/container-orchestrated-devices/container-device-interface v0.5.4 h1:PqQGqJqQttMP5oJ/qNGEg8JttlHqGY3xDbbcKb5T9E8=
+github.com/container-orchestrated-devices/container-device-interface v0.5.4/go.mod h1:DjE95rfPiiSmG7uVXtg0z6MnPm/Lx4wxKCIts0ZE0vg=
 github.com/container-storage-interface/spec v1.7.0/go.mod h1:JYuzLqr9VVNoDJl44xp/8fmCOvWPDKzuGTwCoklhuqk=
 github.com/containerd/aufs v0.0.0-20200908144142-dab0cbea06f4/go.mod h1:nukgQABAEopAHvB6j7cnP5zJ+/3aVcE7hCYqvIwAHyE=
 github.com/containerd/aufs v0.0.0-20201003224125-76a6863f2989/go.mod h1:AkGGQs9NM2vtYHaUen+NljV0/baGCAPELGm2q9ZXpWU=
@@ -507,8 +507,8 @@ github.com/containerd/containerd v1.5.0-beta.4/go.mod h1:GmdgZd2zA2GYIBZ0w09Zvgq
 github.com/containerd/containerd v1.5.0-rc.0/go.mod h1:V/IXoMqNGgBlabz3tHD2TWDoTJseu1FGOKuoA4nNb2s=
 github.com/containerd/containerd v1.5.1/go.mod h1:0DOxVqwDy2iZvrZp2JUx/E+hS0UNTVn7dJnIOwtYR4g=
 github.com/containerd/containerd v1.5.7/go.mod h1:gyvv6+ugqY25TiXxcZC3L5yOeYgEw0QMhscqVp1AR9c=
-github.com/containerd/containerd v1.7.0-beta.4 h1:G+9m+A08B1ODzt8eKPq0oXZxv0hEMBz0afhg2H++ilk=
-github.com/containerd/containerd v1.7.0-beta.4/go.mod h1:zFq+CWtHzfVGVKgs0NKgb482Lv2eb5bBkH43jNxVwyU=
+github.com/containerd/containerd v1.7.0-rc.1 h1:Picl2mIO3fwX92iptM308gfLQ2LlxMBtulG/CrH0YC0=
+github.com/containerd/containerd v1.7.0-rc.1/go.mod h1:7MbZqMXy9721b34Q0h8E8prpPN55Zu3SKs6K4jTxYFQ=
 github.com/containerd/continuity v0.0.0-20190426062206-aaeac12a7ffc/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20190815185530-f2a389ac0a02/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
 github.com/containerd/continuity v0.0.0-20191127005431-f65d91d395eb/go.mod h1:GL3xCUCBDV3CZiTSEKksMWbLE66hEyuu9qyDOOqM47Y=
@@ -1996,8 +1996,9 @@ github.com/zeebo/errs v1.2.2/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtC
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.3/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.etcd.io/bbolt v1.3.5/go.mod h1:G5EMThwa9y8QZGBClrRx5EY+Yw9kAhnjy3bSjsnlVTQ=
-go.etcd.io/bbolt v1.3.6 h1:/ecaJf0sk1l4l6V4awd65v2C3ILy7MSj+s/x1ADCIMU=
 go.etcd.io/bbolt v1.3.6/go.mod h1:qXsaaIqmgQH0T+OPdb99Bf+PKfBBQVAdyD6TY9G8XM4=
+go.etcd.io/bbolt v1.3.7 h1:j+zJOnnEjF/kyHlDDgGnVL/AIqIJPq8UoB2GSNfkUfQ=
+go.etcd.io/bbolt v1.3.7/go.mod h1:N9Mkw9X8x5fupy0IKsmuqVtoGDyxsaDlbk4Rd05IAQw=
 go.etcd.io/etcd v0.0.0-20191023171146-3cf2f69b5738/go.mod h1:dnLIgRNXwCJa5e+c6mIZCrds/GIG4ncV9HhK5PX7jPg=
 go.etcd.io/etcd/api/v3 v3.5.0-alpha.0/go.mod h1:mPcW6aZJukV6Aa81LSKpBjQXTWlXB5r74ymPoSWa3Sw=
 go.etcd.io/etcd/api/v3 v3.5.0/go.mod h1:cbVKeC6lCfl7j/8jBhAK6aIYO9XOjdptoxU/nLQcPvs=
