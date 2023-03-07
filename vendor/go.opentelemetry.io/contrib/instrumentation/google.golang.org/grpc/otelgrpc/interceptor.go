@@ -473,13 +473,13 @@ func peerAttr(addr string) []attribute.KeyValue {
 	var attr []attribute.KeyValue
 	if ip := net.ParseIP(host); ip != nil {
 		attr = []attribute.KeyValue{
-			semconv.NetSockPeerAddrKey.String(host),
-			semconv.NetSockPeerPortKey.Int(port),
+			semconv.NetSockPeerAddr(host),
+			semconv.NetSockPeerPort(port),
 		}
 	} else {
 		attr = []attribute.KeyValue{
-			semconv.NetPeerNameKey.String(host),
-			semconv.NetPeerPortKey.Int(port),
+			semconv.NetPeerName(host),
+			semconv.NetPeerPort(port),
 		}
 	}
 
