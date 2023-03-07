@@ -70,3 +70,9 @@ dependencies:
       match: bats
     - path: contrib/test/integration/build/bats.yml
       match: version
+
+  - name: nix
+    version: 2.13.3
+    refPaths:
+      - path: .github/workflows/test.yml
+        match: NIX_VERSION

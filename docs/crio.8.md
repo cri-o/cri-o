@@ -77,9 +77,12 @@ crio
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
 [--no-pivot]
-[--nri-config-file]=[value]
+[--nri-disable-connections]=[value]
 [--nri-listen]=[value]
+[--nri-plugin-config-dir]=[value]
 [--nri-plugin-dir]=[value]
+[--nri-plugin-registration-timeout]=[value]
+[--nri-plugin-request-timeout]=[value]
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
@@ -315,11 +318,17 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
-**--nri-config-file**="": NRI configuration file to use. (default: "/etc/nri/nri.conf")
+**--nri-disable-connections**="": Disable connections from externally started NRI plugins. (default: false)
 
-**--nri-listen**="": Socket to listen on for externally started NRI plugins to connect to. (default: "/var/run/nri.sock")
+**--nri-listen**="": Socket to listen on for externally started NRI plugins to connect to. (default: "/var/run/nri/nri.sock")
+
+**--nri-plugin-config-dir**="": Directory to scan for configuration of pre-installed NRI plugins. (default: "/etc/nri/conf.d")
 
 **--nri-plugin-dir**="": Directory to scan for pre-installed NRI plugins to start automatically. (default: "/opt/nri/plugins")
+
+**--nri-plugin-registration-timeout**="": Timeout for a plugin to register itself with NRI. (default: 5s)
+
+**--nri-plugin-request-timeout**="": Timeout for a plugin to handle an NRI request. (default: 2s)
 
 **--pause-command**="": Path to the pause executable in the pause image. (default: /pause)
 

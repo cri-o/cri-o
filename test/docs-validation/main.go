@@ -234,6 +234,10 @@ func allEntries(c *config.Config) []entry {
 	return *entries
 }
 
+type stringer interface {
+	String() string
+}
+
 func recursiveEntries(
 	v reflect.Value,
 	entries *[]entry,
@@ -265,12 +269,19 @@ func recursiveEntries(
 			vv := v.FieldByName(name)
 			value := ""
 			if !stringInSlice(tag, excludedTagsValue) {
-				switch vv.Kind() {
-				case reflect.Bool:
+				switch {
+				case field.Type.Implements(reflect.TypeOf((*stringer)(nil)).Elem()):
+					// We need a checked type asertion to make golangci-lint happy...
+					if str, ok := vv.MethodByName("String").Interface().(func() string); ok {
+						value = strconv.Quote(str())
+						break
+					}
+					fallthrough
+				case vv.Kind() == reflect.Bool:
 					value = strconv.FormatBool(vv.Bool())
-				case reflect.Int64:
+				case vv.Kind() == reflect.Int64:
 					value = strconv.FormatInt(vv.Int(), 10)
-				case reflect.String:
+				case vv.Kind() == reflect.String:
 					value = strconv.Quote(vv.String())
 				}
 			}

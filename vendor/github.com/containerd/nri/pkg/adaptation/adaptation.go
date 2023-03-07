@@ -32,12 +32,12 @@ import (
 )
 
 const (
-	// DefaultConfigPath is the default path to the NRI configuration.
-	DefaultConfigPath = "/etc/nri/nri.conf"
 	// DefaultPluginPath is the default path to search for NRI plugins.
 	DefaultPluginPath = "/opt/nri/plugins"
 	// DefaultSocketPath is the default socket path for external plugins.
 	DefaultSocketPath = api.DefaultSocketPath
+	// PluginConfigDir is the drop-in directory for NRI-launched plugin configuration.
+	DefaultPluginConfigPath = "/etc/nri/conf.d"
 )
 
 // SyncFn is a container runtime function for state synchronization.
@@ -54,12 +54,12 @@ type Adaptation struct {
 	sync.Mutex
 	name       string
 	version    string
-	configPath string
+	dropinPath string
 	pluginPath string
 	socketPath string
+	dontListen bool
 	syncFn     SyncFn
 	updateFn   UpdateFn
-	cfg        *Config
 	listener   net.Listener
 	plugins    []*plugin
 }
@@ -72,27 +72,18 @@ var (
 // Option to apply to the NRI runtime.
 type Option func(*Adaptation) error
 
-// WithConfigPath returns an option to override the default NRI config path.
-func WithConfigPath(path string) Option {
-	return func(r *Adaptation) error {
-		r.configPath = path
-		return nil
-	}
-}
-
-// WithConfig returns an option to provide a pre-parsed NRI configuration.
-func WithConfig(cfg *Config) Option {
-	return func(r *Adaptation) error {
-		r.cfg = cfg
-		r.configPath = cfg.path
-		return nil
-	}
-}
-
 // WithPluginPath returns an option to override the default NRI plugin path.
 func WithPluginPath(path string) Option {
 	return func(r *Adaptation) error {
 		r.pluginPath = path
+		return nil
+	}
+}
+
+// WithPluginConfigPath returns an option to override the default NRI plugin config path.
+func WithPluginConfigPath(path string) Option {
+	return func(r *Adaptation) error {
+		r.dropinPath = path
 		return nil
 	}
 }
@@ -105,29 +96,38 @@ func WithSocketPath(path string) Option {
 	}
 }
 
+// WithDisabledExternalConnections returns an options to disable accepting plugin connections.
+func WithDisabledExternalConnections() Option {
+	return func(r *Adaptation) error {
+		r.dontListen = true
+		return nil
+	}
+}
+
 // New creates a new NRI Runtime.
 func New(name, version string, syncFn SyncFn, updateFn UpdateFn, opts ...Option) (*Adaptation, error) {
 	var err error
+
+	if syncFn == nil {
+		return nil, fmt.Errorf("failed to create NRI adaptation, nil SyncFn")
+	}
+	if updateFn == nil {
+		return nil, fmt.Errorf("failed to create NRI adaptation, nil UpdateFn")
+	}
 
 	r := &Adaptation{
 		name:       name,
 		version:    version,
 		syncFn:     syncFn,
 		updateFn:   updateFn,
-		configPath: DefaultConfigPath,
 		pluginPath: DefaultPluginPath,
+		dropinPath: DefaultPluginConfigPath,
 		socketPath: DefaultSocketPath,
 	}
 
 	for _, o := range opts {
 		if err = o(r); err != nil {
 			return nil, fmt.Errorf("failed to apply option: %w", err)
-		}
-	}
-
-	if r.cfg == nil {
-		if r.cfg, err = ReadConfig(r.configPath); err != nil {
-			return nil, err
 		}
 	}
 
@@ -328,7 +328,7 @@ func (r *Adaptation) startPlugins() (retErr error) {
 
 		id := ids[i]
 
-		p, err := newLaunchedPlugin(r.pluginPath, id, name, configs[i])
+		p, err := r.newLaunchedPlugin(r.pluginPath, id, name, configs[i])
 		if err != nil {
 			return fmt.Errorf("failed to start NRI plugin %q: %w", name, err)
 		}
@@ -367,13 +367,13 @@ func (r *Adaptation) removeClosedPlugins() {
 }
 
 func (r *Adaptation) startListener() error {
-	if r.cfg.DisableConnections {
+	if r.dontListen {
 		log.Infof(noCtx, "connection from external plugins disabled")
 		return nil
 	}
 
 	os.Remove(r.socketPath)
-	if err := os.MkdirAll(filepath.Dir(r.socketPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(r.socketPath), 0700); err != nil {
 		return fmt.Errorf("failed to create socket %q: %w", r.socketPath, err)
 	}
 
@@ -408,7 +408,7 @@ func (r *Adaptation) acceptPluginConnections(l net.Listener) error {
 				return
 			}
 
-			p, err := newExternalPlugin(conn)
+			p, err := r.newExternalPlugin(conn)
 			if err != nil {
 				log.Errorf(ctx, "failed to create external plugin: %v", err)
 				continue
@@ -474,7 +474,7 @@ func (r *Adaptation) discoverPlugins() ([]string, []string, []string, error) {
 				r.pluginPath, err)
 		}
 
-		cfg, err := r.cfg.getPluginConfig(idx, base)
+		cfg, err := r.getPluginConfig(idx, base)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to discover plugins in %s: %w",
 				r.pluginPath, err)
