@@ -34,10 +34,10 @@ func ParseFullMethod(fullMethod string) (string, []attribute.KeyValue) {
 
 	var attrs []attribute.KeyValue
 	if service := parts[0]; service != "" {
-		attrs = append(attrs, semconv.RPCServiceKey.String(service))
+		attrs = append(attrs, semconv.RPCService(service))
 	}
 	if method := parts[1]; method != "" {
-		attrs = append(attrs, semconv.RPCMethodKey.String(method))
+		attrs = append(attrs, semconv.RPCMethod(method))
 	}
 	return name, attrs
 }
