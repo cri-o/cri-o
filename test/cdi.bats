@@ -55,7 +55,7 @@ function run_cmd() {
 function write_cdi_spec() {
 	mkdir -p "$cdidir"
 	cat << EOF > "$cdidir/vendor0.yaml"
-cdiVersion: "0.2.0"
+cdiVersion: "0.3.0"
 kind: "vendor0.com/device"
 devices:
   - name: loop8
@@ -113,7 +113,7 @@ function verify_injected_loop9() {
 function write_invalid_cdi_spec() {
 	mkdir -p "$cdidir"
 	cat << EOF > "$cdidir/vendor1.yaml"
-cdiVersion: "0.2.0"
+cdiVersion: "0.3.0"
 kind: "vendor1.com/device"
 devices:
   invalid data
