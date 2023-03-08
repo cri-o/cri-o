@@ -164,6 +164,8 @@ if command -v cosign >/dev/null; then
     for BLOB in "${BLOBS[@]}"; do
         echo "Verifying blob $BLOB"
         COSIGN_EXPERIMENTAL=1 cosign verify-blob "$BLOB" \
+            --certificate-identity-regexp '.*' \
+            --certificate-oidc-issuer-regexp '.*' \
             --signature "$BLOB.sig" \
             --certificate "$BLOB.cert"
     done
