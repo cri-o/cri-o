@@ -256,6 +256,17 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 
+		Context("with 10 latency", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUsOriginal = ""
+			})
+
+			It("should change the CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("10", "10", "n/a", false)
+			})
+		})
+
 		Context("with missing latency file", func() {
 			BeforeEach(func() {
 				pmQosResumeLatencyUs = ""
@@ -491,6 +502,70 @@ var _ = Describe("high_performance_hooks", func() {
 
 			It("should restore irq balance config with content from banned cpu config file", func() {
 				verifyRestoreIrqBalanceConfig("00000000,00000000", "00000000,00000000")
+			})
+		})
+	})
+
+	Describe("convertAnnotationToLatency", func() {
+		verifyConvertAnnotationToLatency := func(annotation string, expected string, expect_error bool) {
+			latency, err := convertAnnotationToLatency(annotation)
+			if !expect_error {
+				Expect(err).ShouldNot(HaveOccurred())
+			} else {
+				Expect(err).Should(HaveOccurred())
+			}
+
+			if expected != "" {
+				Expect(err).To(BeNil())
+				Expect(latency).To(Equal(expected))
+			}
+		}
+
+		Context("with enable annotation", func() {
+			It("should result in latency: 0", func() {
+				verifyConvertAnnotationToLatency("enable", "0", false)
+			})
+		})
+
+		Context("with disable annotation", func() {
+			It("should result in latency: n/a", func() {
+				verifyConvertAnnotationToLatency("disable", "n/a", false)
+			})
+		})
+
+		Context("with max_latency:10 annotation", func() {
+			It("should result in latency: 10", func() {
+				verifyConvertAnnotationToLatency("max_latency:10", "10", false)
+			})
+		})
+
+		Context("with max_latency:1 annotation", func() {
+			It("should result in latency: 1", func() {
+				verifyConvertAnnotationToLatency("max_latency:1", "1", false)
+			})
+		})
+
+		Context("with max_latency:0 annotation", func() {
+			It("should result in error", func() {
+				verifyConvertAnnotationToLatency("max_latency:0", "", true)
+			})
+		})
+
+		Context("with max_latency:-1 annotation", func() {
+			It("should result in error", func() {
+				verifyConvertAnnotationToLatency("max_latency:-1", "", true)
+			})
+		})
+
+		Context("with max_latency:bad annotation", func() {
+			It("should result in error", func() {
+				verifyConvertAnnotationToLatency("max_latency:bad", "", true)
+			})
+		})
+
+		Context("with bad annotation", func() {
+			It("should result in error", func() {
+				verifyConvertAnnotationToLatency("bad", "", true)
 			})
 		})
 	})

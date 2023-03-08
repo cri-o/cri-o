@@ -70,20 +70,16 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// Configure c-states for the container CPUs.
 	if configure, value := shouldCStatesBeConfigured(s.Annotations()); configure {
-		log.Infof(ctx, "Configure c-states for container %q to %q", c.ID(), value)
-		switch value {
-		case annotationEnable:
-			// Enable all c-states.
-			if err := setCPUPMQOSResumeLatency(c, "0"); err != nil {
+		maxLatency, err := convertAnnotationToLatency(value)
+		if err != nil {
+			return err
+		}
+
+		if maxLatency != "" {
+			log.Infof(ctx, "Configure c-states for container %q to %q (pm_qos_resume_latency_us: %q)", c.ID(), value, maxLatency)
+			if err := setCPUPMQOSResumeLatency(c, maxLatency); err != nil {
 				return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
 			}
-		case annotationDisable:
-			// Lock the c-state to C0.
-			if err := setCPUPMQOSResumeLatency(c, "n/a"); err != nil {
-				return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
-			}
-		default:
-			return fmt.Errorf("invalid annotation value %s", value)
 		}
 	}
 
@@ -540,4 +536,43 @@ func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
 
 func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
 	return *(cSpec.Linux.Resources.CPU.Shares)%1024 == 0
+}
+
+// convertAnnotationToLatency converts the cpu-c-states.crio.io annotation to a maximum
+// latency value in microseconds.
+//
+// The cpu-c-states.crio.io annotation can be used to control c-states in several ways:
+//
+//	enable: enable all c-states (cpu-c-states.crio.io: "enable")
+//	disable: disable all c-states (cpu-c-states.crio.io: "disable")
+//	max_latency: enable c-states with a maximum latency in microseconds
+//	             (for example,  cpu-c-states.crio.io: "max_latency:10")
+//
+// Examples:
+//
+// cpu-c-states.crio.io: "disable" (disable all c-states)
+// cpu-c-states.crio.io: "enable" (enable all c-states)
+// cpu-c-states.crio.io: "max_latency:10" (use a max latency of 10us)
+func convertAnnotationToLatency(annotation string) (maxLatency string, err error) {
+	//nolint:gocritic // this would not be better as a switch statement
+	if annotation == annotationEnable {
+		// Enable all c-states.
+		return "0", nil
+	} else if annotation == annotationDisable {
+		// Disable all c-states.
+		return "n/a", nil //nolint:goconst // there are not 4 occurrences of this string
+	} else if strings.HasPrefix(annotation, "max_latency:") {
+		// Use the latency provided
+		latency, err := strconv.Atoi(strings.TrimPrefix(annotation, "max_latency:"))
+		if err != nil {
+			return "", err
+		}
+
+		// Latency must be greater than 0
+		if latency > 0 {
+			return strconv.Itoa(latency), nil
+		}
+	}
+
+	return "", fmt.Errorf("invalid annotation value %s", annotation)
 }
