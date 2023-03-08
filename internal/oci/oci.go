@@ -179,9 +179,10 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
-		// TODO: for peer-pods, create a different image server and add it to the imageServerList
-		// e.g: r.imageServers.SetImageServer(c.ID(), newImageServerForPeerPods())
-		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath, r.config.RuntimeConfig.ContainerExitsDir), nil
+		impl := newRuntimeVM(r.imageServers.GetDefaultImageServer(), rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath, r.config.RuntimeConfig.ContainerExitsDir)
+		// TODO: for peer-pods, register the runtimeVM as the ImageServer for the container
+		// r.imageServers.SetImageServer(c.ID(), impl)
+		return impl, nil
 	}
 
 	if rh.RuntimeType == config.RuntimeTypePod {

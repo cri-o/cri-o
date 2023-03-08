@@ -27,8 +27,11 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	systemCtxTypes "github.com/containers/image/v5/types"
+	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
+	criostorage "github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
@@ -55,6 +58,8 @@ type runtimeVM struct {
 	client     *ttrpc.Client
 	task       task.TaskService
 
+	defaultIs criostorage.ImageServer
+
 	sync.Mutex
 	ctrs map[string]containerInfo
 }
@@ -69,7 +74,7 @@ const (
 )
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path, root, configPath, exitsPath string) RuntimeImpl {
+func newRuntimeVM(defaultImageServer criostorage.ImageServer, path, root, configPath, exitsPath string) *runtimeVM {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -92,6 +97,7 @@ func newRuntimeVM(path, root, configPath, exitsPath string) RuntimeImpl {
 		fifoDir:    filepath.Join(root, "crio", "fifo"),
 		ctx:        context.Background(),
 		ctrs:       make(map[string]containerInfo),
+		defaultIs:  defaultImageServer,
 	}
 }
 
@@ -1070,4 +1076,52 @@ func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupPa
 	defer log.Debugf(ctx, "RuntimeVM.RestoreContainer() end")
 
 	return errors.New("restoring not implemented for runtimeVM")
+}
+
+func (r *runtimeVM) ListImages(systemContext *systemCtxTypes.SystemContext, filter string) ([]criostorage.ImageResult, error) {
+	log.Debugf(r.ctx, "RuntimeVM.ListImages() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.ListImages() end")
+	// Do not call the default ImageServer here: it is already called for ListImages
+	// so this would just create duplicates
+	return []criostorage.ImageResult{}, nil
+}
+
+func (r *runtimeVM) ImageStatus(systemContext *systemCtxTypes.SystemContext, nameOrID string) (*criostorage.ImageResult, error) {
+	log.Debugf(r.ctx, "RuntimeVM.ImageStatus() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.ImageStatus() end")
+	// Returning ImageUnknown on purpose, to make the caller call PullImage next
+	// To be replaced with actual Image Status information.
+	return nil, storage.ErrImageUnknown
+}
+
+func (r *runtimeVM) PrepareImage(inputSystemContext *systemCtxTypes.SystemContext, imageName string) (systemCtxTypes.ImageCloser, error) {
+	log.Debugf(r.ctx, "RuntimeVM.PrepareImage() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.PrepareImage() end")
+	return r.defaultIs.PrepareImage(inputSystemContext, imageName)
+}
+
+func (r *runtimeVM) PullImage(systemContext *systemCtxTypes.SystemContext, imageName string, inputOptions *criostorage.ImageCopyOptions) (systemCtxTypes.ImageReference, error) {
+	log.Debugf(r.ctx, "RuntimeVM.PullImage() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.PullImage() end")
+
+	// if peer_pods, call the shim's PullImage
+	return r.defaultIs.PullImage(systemContext, imageName, inputOptions)
+}
+
+func (r *runtimeVM) UntagImage(systemContext *systemCtxTypes.SystemContext, nameOrID string) error {
+	log.Debugf(r.ctx, "RuntimeVM.UntagImage() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.UntagImage() end")
+	return r.defaultIs.UntagImage(systemContext, nameOrID)
+}
+
+func (r *runtimeVM) GetStore() storage.Store {
+	log.Debugf(r.ctx, "RuntimeVM.GetStore() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.GetStore() end")
+	return r.defaultIs.GetStore()
+}
+
+func (r *runtimeVM) ResolveNames(systemContext *systemCtxTypes.SystemContext, imageName string) ([]string, error) {
+	log.Debugf(r.ctx, "RuntimeVM.ResolveNames() start")
+	defer log.Debugf(r.ctx, "RuntimeVM.ResolveNames() end")
+	return r.defaultIs.ResolveNames(systemContext, imageName)
 }
