@@ -18,11 +18,12 @@ package binary
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"unicode"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -55,13 +56,10 @@ type Options struct {
 	Path string
 }
 
-// DefaultOptions set of options
-var DefaultOptions = &Options{}
-
 // New creates a new binary instance.
 func New(filePath string) (bin *Binary, err error) {
 	// Get the right implementation for the specified file
-	return NewWithOptions(filePath, DefaultOptions)
+	return NewWithOptions(filePath, &Options{Path: filePath})
 }
 
 // NewWithOptions creates a new binary with the specified options
@@ -72,7 +70,7 @@ func NewWithOptions(filePath string, opts *Options) (bin *Binary, err error) {
 	// Get the right implementation for the specified file
 	impl, err := getArchImplementation(filePath, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "getting arch implementation")
+		return nil, fmt.Errorf("getting arch implementation: %w", err)
 	}
 	bin.options.Path = filePath
 	bin.SetImplementation(impl)
@@ -85,7 +83,7 @@ func getArchImplementation(filePath string, opts *Options) (impl binaryImplement
 	// Check if we're dealing with a Linux binary
 	elf, err := NewELFBinary(filePath, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "checking if file is an ELF binary")
+		return nil, fmt.Errorf("checking if file is an ELF binary: %w", err)
 	}
 	if elf != nil {
 		return elf, nil
@@ -94,7 +92,7 @@ func getArchImplementation(filePath string, opts *Options) (impl binaryImplement
 	// Check if its a darwin binary
 	macho, err := NewMachOBinary(filePath, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "checking if file is a Mach-O binary")
+		return nil, fmt.Errorf("checking if file is a Mach-O binary: %w", err)
 	}
 	if macho != nil {
 		return macho, nil
@@ -103,7 +101,7 @@ func getArchImplementation(filePath string, opts *Options) (impl binaryImplement
 	// Finally we check to see if it's a windows binary
 	pe, err := NewPEBinary(filePath, opts)
 	if err != nil {
-		return nil, errors.Wrap(err, "checking if file is a windows PE binary")
+		return nil, fmt.Errorf("checking if file is a windows PE binary: %w", err)
 	}
 	if pe != nil {
 		return pe, nil
@@ -120,6 +118,9 @@ type binaryImplementation interface {
 
 	// GetOS Returns a string with the GOOS of the binary
 	OS() string
+
+	// LinkMode returns the linking mode of the binary.
+	LinkMode() (LinkMode, error)
 }
 
 // SetImplementation sets the implementation to handle this sort of executable
@@ -137,6 +138,20 @@ func (b *Binary) OS() string {
 	return b.binaryImplementation.OS()
 }
 
+// LinkMode is the enum for all available linking modes.
+type LinkMode string
+
+const (
+	LinkModeUnknown LinkMode = "unknown"
+	LinkModeStatic  LinkMode = "static"
+	LinkModeDynamic LinkMode = "dynamic"
+)
+
+// LinkMode returns the linking mode of the binary.
+func (b *Binary) LinkMode() (LinkMode, error) {
+	return b.binaryImplementation.LinkMode()
+}
+
 // ContainsStrings searches the printable strings un a binary file
 func (b *Binary) ContainsStrings(s ...string) (match bool, err error) {
 	// We cannot search for 0 items:
@@ -147,7 +162,7 @@ func (b *Binary) ContainsStrings(s ...string) (match bool, err error) {
 	// Open the binary
 	f, err := os.Open(b.options.Path)
 	if err != nil {
-		return match, errors.Wrap(err, "opening binary to search")
+		return match, fmt.Errorf("opening binary to search: %w", err)
 	}
 	defer f.Close()
 	terms := map[string]bool{}
@@ -163,7 +178,7 @@ func (b *Binary) ContainsStrings(s ...string) (match bool, err error) {
 		r, _, err := in.ReadRune()
 		if err != nil {
 			if err != io.EOF {
-				return match, errors.Wrap(err, "while reading binary data")
+				return match, fmt.Errorf("while reading binary data: %w", err)
 			}
 			return false, nil
 		}

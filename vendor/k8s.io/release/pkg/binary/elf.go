@@ -18,11 +18,11 @@ package binary
 
 import (
 	"bufio"
+	debugelf "debug/elf"
 	"encoding/binary"
 	"fmt"
 	"os"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
 
@@ -48,7 +48,7 @@ type ELFHeader struct {
 func NewELFBinary(filePath string, opts *Options) (*ELFBinary, error) {
 	header, err := GetELFHeader(filePath)
 	if err != nil {
-		return nil, errors.Wrap(err, "while trying to get ELF header from file")
+		return nil, fmt.Errorf("while trying to get ELF header from file: %w", err)
 	}
 	if header == nil {
 		logrus.Debug("file is not an ELF binary")
@@ -56,7 +56,8 @@ func NewELFBinary(filePath string, opts *Options) (*ELFBinary, error) {
 	}
 
 	return &ELFBinary{
-		Header: header,
+		Header:  header,
+		Options: opts,
 	}, nil
 }
 
@@ -119,7 +120,7 @@ func (eh *ELFHeader) MachineType() string {
 func GetELFHeader(path string) (*ELFHeader, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening binary for reading")
+		return nil, fmt.Errorf("opening binary for reading: %w", err)
 	}
 	defer f.Close()
 
@@ -128,10 +129,10 @@ func GetELFHeader(path string) (*ELFHeader, error) {
 	reader := bufio.NewReader(f)
 	hBytes, err := reader.Peek(6)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading the binary header")
+		return nil, fmt.Errorf("reading the binary header: %w", err)
 	}
 
-	logrus.StandardLogger().Debugf("Header bytes: %+v", hBytes)
+	logrus.Debugf("Header bytes: %+v", hBytes)
 
 	// Check we're dealing with an elf binary:
 	if string(hBytes[1:4]) != "ELF" {
@@ -149,15 +150,15 @@ func GetELFHeader(path string) (*ELFHeader, error) {
 		endianness = binary.BigEndian
 
 	default:
-		return nil, errors.Wrap(err, "invalid endianness specified in elf binary")
+		return nil, fmt.Errorf("invalid endianness specified in elf binary: %w", err)
 	}
 
 	header := &ELFHeader{}
 	if _, err := f.Seek(4, 0); err != nil {
-		return nil, errors.Wrap(err, "seeking past the ELF magic bytes")
+		return nil, fmt.Errorf("seeking past the ELF magic bytes: %w", err)
 	}
 	if err := binary.Read(f, endianness, header); err != nil {
-		return nil, errors.Wrap(err, "reading elf header from binary file")
+		return nil, fmt.Errorf("reading elf header from binary file: %w", err)
 	}
 	return header, nil
 }
@@ -170,4 +171,28 @@ func (elf *ELFBinary) Arch() string {
 // OS returns the GOOS label for the operating system
 func (elf *ELFBinary) OS() string {
 	return LINUX
+}
+
+// LinkMode returns the linking mode of the binary.
+func (elf *ELFBinary) LinkMode() (LinkMode, error) {
+	file, err := os.Open(elf.Options.Path)
+	if err != nil {
+		return LinkModeUnknown, fmt.Errorf("open binary path: %w", err)
+	}
+
+	elfFile, err := debugelf.NewFile(file)
+	if err != nil {
+		return LinkModeUnknown, fmt.Errorf("unable to parse elf: %w", err)
+	}
+
+	for _, programHeader := range elfFile.Progs {
+		// If the elf program header refers to an interpreter, then the binary
+		// is not statically linked. See `file` implementation reference:
+		// https://github.com/file/file/blob/FILE5_36/src/readelf.c#L1581
+		if programHeader.Type == debugelf.PT_INTERP {
+			return LinkModeDynamic, nil
+		}
+	}
+
+	return LinkModeStatic, nil
 }

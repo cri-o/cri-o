@@ -17,11 +17,11 @@ limitations under the License.
 package image
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sort"
 
-	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 
 	"sigs.k8s.io/release-utils/util"
@@ -56,12 +56,12 @@ func NewManifestListFromFile(manifestPath string) (imagesList *ManifestList, err
 	}
 	yamlCode, err := os.ReadFile(manifestPath)
 	if err != nil {
-		return nil, errors.Wrap(err, "reading yaml code from file")
+		return nil, fmt.Errorf("reading yaml code from file: %w", err)
 	}
 
 	imagesList = &ManifestList{}
 	if err := imagesList.Parse(yamlCode); err != nil {
-		return nil, errors.Wrap(err, "parsing manifest yaml")
+		return nil, fmt.Errorf("parsing manifest yaml: %w", err)
 	}
 
 	return imagesList, nil
@@ -79,11 +79,11 @@ func (imagesList *ManifestList) Parse(yamlCode []byte) error {
 func (imagesList *ManifestList) Write(filePath string) error {
 	yamlCode, err := imagesList.ToYAML()
 	if err != nil {
-		return errors.Wrap(err, "while marshalling image list")
+		return fmt.Errorf("while marshalling image list: %w", err)
 	}
 	// Write the yaml into the specified file
 	if err := os.WriteFile(filePath, yamlCode, os.FileMode(0o644)); err != nil {
-		return errors.Wrap(err, "writing yaml code into file")
+		return fmt.Errorf("writing yaml code into file: %w", err)
 	}
 
 	return nil

@@ -17,13 +17,13 @@ limitations under the License.
 package release
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/bom/pkg/license"
@@ -48,11 +48,11 @@ func PrepareWorkspaceStage(directory string, noMock bool) error {
 		// the artifacts into non-default locations. This needs further
 		// investigation and goes beyond the currently implemented testing
 		// approach.
-		return errors.Errorf(
+		return errors.New(
 			"staging non default upstream Kubernetes is forbidden. " +
 				"Verify that the $K8S_ORG, $K8S_REPO and $K8S_REF " +
 				"environment variables point to their defaults when " +
-				"doing using nomock releases.",
+				"doing using nomock releases",
 		)
 	}
 
@@ -60,7 +60,7 @@ func PrepareWorkspaceStage(directory string, noMock bool) error {
 
 	repo, err := git.CloneOrOpenGitHubRepo(directory, k8sOrg, k8sRepo, false)
 	if err != nil {
-		return errors.Wrap(err, "clone k/k repository")
+		return fmt.Errorf("clone k/k repository: %w", err)
 	}
 
 	// Prewarm the SPDX licenses cache. As it is one of the main
@@ -72,17 +72,17 @@ func PrepareWorkspaceStage(directory string, noMock bool) error {
 	doptions.CacheDir = s.Options().LicenseCacheDir
 	downloader, err := license.NewDownloaderWithOptions(doptions)
 	if err != nil {
-		return errors.Wrap(err, "creating license downloader")
+		return fmt.Errorf("creating license downloader: %w", err)
 	}
 	// Fetch the SPDX licenses
 	if _, err := downloader.GetLicenses(); err != nil {
-		return errors.Wrap(err, "retrieving SPDX licenses")
+		return fmt.Errorf("retrieving SPDX licenses: %w", err)
 	}
 
 	if isDefaultK8sUpstream {
 		token, ok := os.LookupEnv(github.TokenEnvKey)
 		if !ok {
-			return errors.Errorf("%s env variable is not set", github.TokenEnvKey)
+			return fmt.Errorf("%s env variable is not set", github.TokenEnvKey)
 		}
 
 		if err := repo.SetURL(git.DefaultRemote, (&url.URL{
@@ -91,7 +91,7 @@ func PrepareWorkspaceStage(directory string, noMock bool) error {
 			Host:   "github.com",
 			Path:   filepath.Join(git.DefaultGithubOrg, git.DefaultGithubRepo),
 		}).String()); err != nil {
-			return errors.Wrap(err, "changing git remote of repository")
+			return fmt.Errorf("changing git remote of repository: %w", err)
 		}
 	} else {
 		logrus.Info("Using non-default k8s upstream, doing no git modifications")
@@ -107,7 +107,7 @@ func PrepareWorkspaceRelease(directory, buildVersion, bucket string) error {
 	logrus.Infof("Searching for staged %s on %s", SourcesTar, bucket)
 	tempDir, err := os.MkdirTemp("", "staged-")
 	if err != nil {
-		return errors.Wrap(err, "create staged sources temp dir")
+		return fmt.Errorf("create staged sources temp dir: %w", err)
 	}
 	defer os.RemoveAll(tempDir)
 
@@ -118,25 +118,25 @@ func PrepareWorkspaceRelease(directory, buildVersion, bucket string) error {
 	gcs := object.NewGCS()
 	gcs.WithAllowMissing(false)
 	if err := gcs.CopyToLocal(src, dst); err != nil {
-		return errors.Wrap(err, "copying staged sources from GCS")
+		return fmt.Errorf("copying staged sources from GCS: %w", err)
 	}
 
 	logrus.Info("Got staged sources, extracting archive")
 	if err := tar.Extract(
 		dst, strings.TrimSuffix(directory, "/src/k8s.io/kubernetes"),
 	); err != nil {
-		return errors.Wrapf(err, "extracting %s", dst)
+		return fmt.Errorf("extracting %s: %w", dst, err)
 	}
 
 	// Reset the github token in the staged k/k clone
 	token, ok := os.LookupEnv(github.TokenEnvKey)
 	if !ok {
-		return errors.Errorf("%s env variable is not set", github.TokenEnvKey)
+		return fmt.Errorf("%s env variable is not set", github.TokenEnvKey)
 	}
 
 	repo, err := git.OpenRepo(directory)
 	if err != nil {
-		return errors.Wrap(err, "opening staged clone of k/k")
+		return fmt.Errorf("opening staged clone of k/k: %w", err)
 	}
 
 	if err := repo.SetURL(git.DefaultRemote, (&url.URL{
@@ -145,7 +145,7 @@ func PrepareWorkspaceRelease(directory, buildVersion, bucket string) error {
 		Host:   "github.com",
 		Path:   filepath.Join(git.DefaultGithubOrg, git.DefaultGithubRepo),
 	}).String()); err != nil {
-		return errors.Wrap(err, "changing git remote of repository")
+		return fmt.Errorf("changing git remote of repository: %w", err)
 	}
 
 	return nil
@@ -170,7 +170,7 @@ func ListBuildBinaries(gitroot, version string) (list []struct{ Path, Platform, 
 	}
 	platformsAndArches, err := os.ReadDir(platformsPath)
 	if err != nil {
-		return nil, errors.Wrapf(err, "retrieve platforms from %s", platformsPath)
+		return nil, fmt.Errorf("retrieve platforms from %s: %w", platformsPath, err)
 	}
 
 	for _, platformArch := range platformsAndArches {
@@ -184,7 +184,7 @@ func ListBuildBinaries(gitroot, version string) (list []struct{ Path, Platform, 
 
 		split := strings.Split(platformArch.Name(), "-")
 		if len(split) != 2 {
-			return nil, errors.Errorf(
+			return nil, fmt.Errorf(
 				"expected `platform-arch` format for %s", platformArch.Name(),
 			)
 		}
@@ -226,7 +226,7 @@ func ListBuildBinaries(gitroot, version string) (list []struct{ Path, Platform, 
 				return nil
 			},
 		); err != nil {
-			return nil, errors.Wrapf(err, "gathering binaries from %s", src)
+			return nil, fmt.Errorf("gathering binaries from %s: %w", src, err)
 		}
 
 		// Copy node binaries if they exist and this isn't a 'server' platform
@@ -250,7 +250,7 @@ func ListBuildBinaries(gitroot, version string) (list []struct{ Path, Platform, 
 					return nil
 				},
 			); err != nil {
-				return nil, errors.Wrapf(err, "gathering node binaries from %s", src)
+				return nil, fmt.Errorf("gathering node binaries from %s: %w", src, err)
 			}
 		}
 	}
@@ -279,7 +279,7 @@ func ListBuildTarballs(gitroot, version string) (tarList []string, err error) {
 			return nil
 		},
 	); err != nil {
-		return nil, errors.Wrapf(err, "gathering tarfiles binaries from %s", tarsPath)
+		return nil, fmt.Errorf("gathering tarfiles binaries from %s: %w", tarsPath, err)
 	}
 	return tarList, nil
 }
@@ -293,7 +293,7 @@ func ListBuildImages(gitroot, version string) (imageList []string, err error) {
 
 	arches, err := os.ReadDir(filepath.Join(buildDir, ImagesPath))
 	if err != nil {
-		return nil, errors.Wrap(err, "opening images directory")
+		return nil, fmt.Errorf("opening images directory: %w", err)
 	}
 	for _, arch := range arches {
 		if !arch.IsDir() {
@@ -301,7 +301,7 @@ func ListBuildImages(gitroot, version string) (imageList []string, err error) {
 		}
 		images, err := os.ReadDir(filepath.Join(buildDir, ImagesPath, arch.Name()))
 		if err != nil {
-			return nil, errors.Wrapf(err, "opening %s images directory", arch.Name())
+			return nil, fmt.Errorf("opening %s images directory: %w", arch.Name(), err)
 		}
 		for _, tarball := range images {
 			imageList = append(

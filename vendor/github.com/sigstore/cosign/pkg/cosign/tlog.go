@@ -84,9 +84,17 @@ func getLogID(pub crypto.PublicKey) (string, error) {
 }
 
 func intotoEntry(ctx context.Context, signature, pubKey []byte) (models.ProposedEntry, error) {
+	var pubKeyBytes [][]byte
+
+	if len(pubKey) == 0 {
+		return nil, errors.New("none of the Rekor public keys have been found")
+	}
+
+	pubKeyBytes = append(pubKeyBytes, pubKey)
+
 	return types.NewProposedEntry(ctx, intoto.KIND, intoto_v001.APIVERSION, types.ArtifactProperties{
 		ArtifactBytes:  signature,
-		PublicKeyBytes: pubKey,
+		PublicKeyBytes: pubKeyBytes,
 	})
 }
 
@@ -381,7 +389,8 @@ func proposedEntry(b64Sig string, payload, pubKey []byte) ([]models.ProposedEntr
 	return proposedEntry, nil
 }
 
-func FindTlogEntry(ctx context.Context, rekorClient *client.Rekor, b64Sig string, payload, pubKey []byte) (entry *models.LogEntryAnon, err error) {
+func FindTlogEntry(ctx context.Context, rekorClient *client.Rekor,
+	b64Sig string, payload, pubKey []byte) ([]models.LogEntryAnon, error) {
 	searchParams := entries.NewSearchLogQueryParamsWithContext(ctx)
 	searchLogQuery := models.SearchLogQuery{}
 	proposedEntry, err := proposedEntry(b64Sig, payload, pubKey)
@@ -398,23 +407,21 @@ func FindTlogEntry(ctx context.Context, rekorClient *client.Rekor, b64Sig string
 	}
 	if len(resp.Payload) == 0 {
 		return nil, errors.New("signature not found in transparency log")
-	} else if len(resp.Payload) > 1 {
-		return nil, errors.New("multiple entries returned; this should not happen")
-	}
-	logEntry := resp.Payload[0]
-	if len(logEntry) != 1 {
-		return nil, errors.New("UUID value can not be extracted")
 	}
 
-	var tlogEntry models.LogEntryAnon
-	for k, e := range logEntry {
-		// Check body hash matches uuid
-		if err := verifyUUID(k, e); err != nil {
-			return nil, err
+	// This may accumulate multiple entries on multiple tree IDs.
+	results := make([]models.LogEntryAnon, 0)
+	for _, logEntry := range resp.GetPayload() {
+		for k, e := range logEntry {
+			// Check body hash matches uuid
+			if err := verifyUUID(k, e); err != nil {
+				continue
+			}
+			results = append(results, e)
 		}
-		tlogEntry = e
 	}
-	return &tlogEntry, nil
+
+	return results, nil
 }
 
 func FindTLogEntriesByPayload(ctx context.Context, rekorClient *client.Rekor, payload []byte) (uuids []string, err error) {

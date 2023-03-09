@@ -17,6 +17,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/OneOfOne/xxhash"
 	"github.com/pkg/errors"
@@ -892,19 +893,16 @@ func (ref Ref) Append(term *Term) Ref {
 // existing elements are shifted to the right. If pos > len(ref)+1 this
 // function panics.
 func (ref Ref) Insert(x *Term, pos int) Ref {
-	if pos == len(ref) {
+	switch {
+	case pos == len(ref):
 		return ref.Append(x)
-	} else if pos > len(ref)+1 {
+	case pos > len(ref)+1:
 		panic("illegal index")
 	}
 	cpy := make(Ref, len(ref)+1)
-	for i := 0; i < pos; i++ {
-		cpy[i] = ref[i]
-	}
+	copy(cpy, ref[:pos])
 	cpy[pos] = x
-	for i := pos; i < len(ref); i++ {
-		cpy[i+1] = ref[i]
-	}
+	copy(cpy[pos+1:], ref[pos:])
 	return cpy
 }
 
@@ -918,9 +916,8 @@ func (ref Ref) Extend(other Ref) Ref {
 	head.Value = String(head.Value.(Var))
 	offset := len(ref)
 	dst[offset] = head
-	for i := range other[1:] {
-		dst[offset+i+1] = other[i+1]
-	}
+
+	copy(dst[offset+1:], other[1:])
 	return dst
 }
 
@@ -931,10 +928,7 @@ func (ref Ref) Concat(terms []*Term) Ref {
 	}
 	cpy := make(Ref, len(ref)+len(terms))
 	copy(cpy, ref)
-
-	for i := range terms {
-		cpy[len(ref)+i] = terms[i]
-	}
+	copy(cpy[len(ref):], terms)
 	return cpy
 }
 
@@ -1078,7 +1072,7 @@ func (ref Ref) String() string {
 }
 
 // OutputVars returns a VarSet containing variables that would be bound by evaluating
-//  this expression in isolation.
+// this expression in isolation.
 func (ref Ref) OutputVars() VarSet {
 	vis := NewVarVisitor().WithParams(VarVisitorParams{SkipRefHead: true})
 	vis.Walk(ref)
@@ -1352,10 +1346,11 @@ func newset(n int) *set {
 		keys = make([]*Term, 0, n)
 	}
 	return &set{
-		elems:  make(map[int]*Term, n),
-		keys:   keys,
-		hash:   0,
-		ground: true,
+		elems:     make(map[int]*Term, n),
+		keys:      keys,
+		hash:      0,
+		ground:    true,
+		sortGuard: new(sync.Once),
 	}
 }
 
@@ -1368,10 +1363,11 @@ func SetTerm(t ...*Term) *Term {
 }
 
 type set struct {
-	elems  map[int]*Term
-	keys   []*Term
-	hash   int
-	ground bool
+	elems     map[int]*Term
+	keys      []*Term
+	hash      int
+	ground    bool
+	sortGuard *sync.Once // Prevents race condition around sorting.
 }
 
 // Copy returns a deep copy of s.
@@ -1401,7 +1397,7 @@ func (s *set) String() string {
 	}
 	var b strings.Builder
 	b.WriteRune('{')
-	for i := range s.keys {
+	for i := range s.sortedKeys() {
 		if i > 0 {
 			b.WriteString(", ")
 		}
@@ -1409,6 +1405,13 @@ func (s *set) String() string {
 	}
 	b.WriteRune('}')
 	return b.String()
+}
+
+func (s *set) sortedKeys() []*Term {
+	s.sortGuard.Do(func() {
+		sort.Sort(termSlice(s.keys))
+	})
+	return s.keys
 }
 
 // Compare compares s to other, return <0, 0, or >0 if it is less than, equal to,
@@ -1422,7 +1425,7 @@ func (s *set) Compare(other Value) int {
 		return 1
 	}
 	t := other.(*set)
-	return termSliceCompare(s.keys, t.keys)
+	return termSliceCompare(s.sortedKeys(), t.sortedKeys())
 }
 
 // Find returns the set or dereferences the element itself.
@@ -1488,7 +1491,7 @@ func (s *set) Add(t *Term) {
 // Iter calls f on each element in s. If f returns an error, iteration stops
 // and the return value is the error.
 func (s *set) Iter(f func(*Term) error) error {
-	for i := range s.keys {
+	for i := range s.sortedKeys() {
 		if err := f(s.keys[i]); err != nil {
 			return err
 		}
@@ -1564,22 +1567,23 @@ func (s *set) MarshalJSON() ([]byte, error) {
 	if s.keys == nil {
 		return []byte(`[]`), nil
 	}
-	return json.Marshal(s.keys)
+	return json.Marshal(s.sortedKeys())
 }
 
 // Sorted returns an Array that contains the sorted elements of s.
 func (s *set) Sorted() *Array {
 	cpy := make([]*Term, len(s.keys))
-	copy(cpy, s.keys)
-	sort.Sort(termSlice(cpy))
+	copy(cpy, s.sortedKeys())
 	return NewArray(cpy...)
 }
 
 // Slice returns a slice of terms contained in the set.
 func (s *set) Slice() []*Term {
-	return s.keys
+	return s.sortedKeys()
 }
 
+// NOTE(philipc): We assume a many-readers, single-writer model here.
+// This method should NOT be used concurrently, or else we risk data races.
 func (s *set) insert(x *Term) {
 	hash := x.Hash()
 	insertHash := hash
@@ -1670,15 +1674,11 @@ func (s *set) insert(x *Term) {
 	}
 
 	s.elems[insertHash] = x
-	i := sort.Search(len(s.keys), func(i int) bool { return Compare(x, s.keys[i]) < 0 })
-	if i < len(s.keys) {
-		// insert at position `i`:
-		s.keys = append(s.keys, nil)   // add some space
-		copy(s.keys[i+1:], s.keys[i:]) // move things over
-		s.keys[i] = x                  // drop it in position
-	} else {
-		s.keys = append(s.keys, x)
-	}
+	// O(1) insertion, but we'll have to re-sort the keys later.
+	s.keys = append(s.keys, x)
+	// Reset the sync.Once instance.
+	// See https://github.com/golang/go/issues/25955 for why we do it this way.
+	s.sortGuard = new(sync.Once)
 
 	s.hash += hash
 	s.ground = s.ground && x.IsGround()
@@ -1815,8 +1815,8 @@ type object struct {
 	keys   objectElemSlice
 	ground int // number of key and value grounds. Counting is
 	// required to support insert's key-value replace.
-	hash       int
-	numInserts int // number of inserts since last sorting.
+	hash      int
+	sortGuard *sync.Once // Prevents race condition around sorting.
 }
 
 func newobject(n int) *object {
@@ -1825,11 +1825,11 @@ func newobject(n int) *object {
 		keys = make(objectElemSlice, 0, n)
 	}
 	return &object{
-		elems:      make(map[int]*objectElem, n),
-		keys:       keys,
-		ground:     0,
-		hash:       0,
-		numInserts: 0,
+		elems:     make(map[int]*objectElem, n),
+		keys:      keys,
+		ground:    0,
+		hash:      0,
+		sortGuard: new(sync.Once),
 	}
 }
 
@@ -1852,10 +1852,9 @@ func Item(key, value *Term) [2]*Term {
 }
 
 func (obj *object) sortedKeys() objectElemSlice {
-	if obj.numInserts > 0 {
+	obj.sortGuard.Do(func() {
 		sort.Sort(obj.keys)
-		obj.numInserts = 0
-	}
+	})
 	return obj.keys
 }
 
@@ -2219,6 +2218,8 @@ func (obj *object) get(k *Term) *objectElem {
 	return nil
 }
 
+// NOTE(philipc): We assume a many-readers, single-writer model here.
+// This method should NOT be used concurrently, or else we risk data races.
 func (obj *object) insert(k, v *Term) {
 	hash := k.Hash()
 	head := obj.elems[hash]
@@ -2324,7 +2325,9 @@ func (obj *object) insert(k, v *Term) {
 	obj.elems[hash] = elem
 	// O(1) insertion, but we'll have to re-sort the keys later.
 	obj.keys = append(obj.keys, elem)
-	obj.numInserts++ // Track insertions since the last re-sorting.
+	// Reset the sync.Once instance.
+	// See https://github.com/golang/go/issues/25955 for why we do it this way.
+	obj.sortGuard = new(sync.Once)
 	obj.hash += hash + v.Hash()
 
 	if k.IsGround() {

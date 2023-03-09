@@ -19,8 +19,7 @@ package release
 import (
 	"fmt"
 
-	"github.com/blang/semver"
-	"github.com/pkg/errors"
+	"github.com/blang/semver/v4"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -65,8 +64,10 @@ func (r *BranchChecker) NeedsCreation(
 		fmt.Sprintf("refs/heads/%s", branch),
 	)
 	if err != nil {
-		return false, errors.Wrapf(
-			err, "get remote commit for %s branch", branch,
+		return false, fmt.Errorf(
+			"get remote commit for %s branch: %w",
+			branch,
+			err,
 		)
 	}
 
@@ -75,8 +76,8 @@ func (r *BranchChecker) NeedsCreation(
 	} else {
 		logrus.Infof("Branch %s does not yet exist on remote location", branch)
 		if releaseType == ReleaseTypeOfficial {
-			return false, errors.Errorf(
-				"Can't do officials relases when creating a new branch",
+			return false, fmt.Errorf(
+				"can't do officials relases when creating a new branch",
 			)
 		}
 		createReleaseBranch = true
@@ -92,9 +93,10 @@ func (r *BranchChecker) NeedsCreation(
 		"release-%d.%d", buildVersion.Major, buildVersion.Minor,
 	)
 	if branch != requiredReleaseBranch {
-		return false, errors.Errorf(
+		return false, fmt.Errorf(
 			"branch and build version does not match, got: %v, required: %v",
-			branch, requiredReleaseBranch,
+			branch,
+			requiredReleaseBranch,
 		)
 	}
 

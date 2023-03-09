@@ -17,13 +17,13 @@ limitations under the License.
 package release
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -40,6 +40,7 @@ func NewRepo() *Repo {
 }
 
 // Repository is an interface for interacting with a git repository
+//
 //counterfeiter:generate . Repository
 type Repository interface {
 	Describe(opts *git.DescribeOptions) (string, error)
@@ -56,11 +57,11 @@ type Repository interface {
 func (r *Repo) Open() error {
 	dir, err := os.Getwd()
 	if err != nil {
-		return errors.Wrap(err, "getting current working directory")
+		return fmt.Errorf("getting current working directory: %w", err)
 	}
 	repo, err := git.OpenRepo(dir)
 	if err != nil {
-		return errors.Wrap(err, "opening release repository")
+		return fmt.Errorf("opening release repository: %w", err)
 	}
 	r.repo = repo
 	return nil
@@ -80,7 +81,7 @@ func (r *Repo) GetTag() (string, error) {
 			WithTags(),
 	)
 	if err != nil {
-		return "", errors.Wrap(err, "running git describe")
+		return "", fmt.Errorf("running git describe: %w", err)
 	}
 	t := time.Now().Format("20060102")
 	return fmt.Sprintf("%s-%s", describeOutput, t), nil
@@ -92,7 +93,7 @@ func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 
 	dirty, err := r.repo.IsDirty()
 	if err != nil {
-		return errors.Wrap(err, "checking if repository is dirty")
+		return fmt.Errorf("checking if repository is dirty: %w", err)
 	}
 	if dirty {
 		return errors.New(
@@ -103,23 +104,23 @@ func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 
 	branch, err := r.repo.CurrentBranch()
 	if err != nil {
-		return errors.Wrap(err, "retrieving current branch")
+		return fmt.Errorf("retrieving current branch: %w", err)
 	}
 
 	head, err := r.repo.Head()
 	if err != nil {
-		return errors.Wrap(err, "retrieving repository HEAD")
+		return fmt.Errorf("retrieving repository HEAD: %w", err)
 	}
 
 	logrus.Infof("Repo head is: %s", head)
 
 	rev, err := r.repo.RevParse(expRev)
 	if err != nil {
-		return errors.Wrapf(err, "retrieving rev-parse for %s", expRev)
+		return fmt.Errorf("retrieving rev-parse for %s: %w", expRev, err)
 	}
 
 	if rev != head {
-		return errors.Errorf("revision %q expected but got %q", head, rev)
+		return fmt.Errorf("revision %q expected but got %q", head, rev)
 	}
 
 	if nomock && !(expOrg == DefaultToolOrg && expRepo == DefaultToolRepo && expRev == DefaultToolRef) {
@@ -131,7 +132,7 @@ func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 	// Verify the remote
 	remotes, err := r.repo.Remotes()
 	if err != nil {
-		return errors.Wrap(err, "retrieving repository remotes")
+		return fmt.Errorf("retrieving repository remotes: %w", err)
 	}
 	var foundRemote *git.Remote
 	for _, remote := range remotes {
@@ -146,7 +147,7 @@ func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 		}
 	}
 	if foundRemote == nil {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"unable to find remote matching organization %q and repository %q",
 			expOrg, expRepo,
 		)
@@ -160,34 +161,25 @@ func (r *Repo) CheckState(expOrg, expRepo, expRev string, nomock bool) error {
 	)
 
 	logrus.Info("Verifying remote HEAD commit")
-	args := []string{
-		"--heads",
-		foundRemote.Name(),
-		fmt.Sprintf("refs/heads/%s", branch),
-	}
+	ref := fmt.Sprintf("refs/heads/%s", branch)
 	if branch == "" {
-		args = []string{
-			"--tags",
-			"--heads",
-			foundRemote.Name(),
-			fmt.Sprintf("refs/tags/%s^{}", expRev),
-		}
+		ref = fmt.Sprintf("refs/tags/%s^{}", expRev)
 	}
-	lsRemoteOut, err := r.repo.LsRemote(args...)
+	lsRemoteOut, err := r.repo.LsRemote(foundRemote.Name(), ref)
 	if err != nil {
-		return errors.Wrap(err, "getting remote HEAD")
+		return fmt.Errorf("getting remote HEAD: %w", err)
 	}
 	fields := strings.Fields(lsRemoteOut)
 	if len(fields) < 1 {
-		return errors.Errorf("unexpected output: %s", lsRemoteOut)
+		return fmt.Errorf("unexpected output: %s", lsRemoteOut)
 	}
 	commit := fields[0]
 	logrus.Infof("Got remote commit: %s", commit)
 
 	logrus.Info("Verifying that remote commit is equal to the local one")
 	if head != commit {
-		return errors.Errorf(
-			"Local HEAD (%s) is not equal to latest remote commit (%s)",
+		return fmt.Errorf(
+			"local HEAD (%s) is not equal to latest remote commit (%s)",
 			head, commit,
 		)
 	}
