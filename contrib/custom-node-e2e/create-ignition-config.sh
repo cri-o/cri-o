@@ -138,15 +138,6 @@ set -euo pipefail
 # Commit to run upstream node e2e tests
 NODE_E2E_COMMIT=${CRIO_SHA}
 
-enable_selinux() {
-    # Make sure SELinux is enabled
-    setenforce 1
-
-    # Get the SELinux package
-    curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /tmp/kubelet-e2e.pp https://storage.googleapis.com/cri-o/selinux/kubelet-e2e.pp
-    semodule -i /tmp/kubelet-e2e.pp
-}
-
 install_crio() {
     # Download and install CRIO
     curl --fail --retry 5 --retry-delay 3 --silent --show-error -o /usr/local/crio-install.sh https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get
@@ -184,8 +175,6 @@ EOF
 
 ${CONF_CONTENT}
 }
-
-enable_selinux
 
 install_crio
 
