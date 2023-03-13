@@ -443,7 +443,8 @@ var _ = t.Describe("ContainerRestore", func() {
 					`"io.kubernetes.cri-o.SandboxID": "sandboxID"},`+
 					`"mounts": [{"destination": "/proc"},`+
 					`{"destination":"/data","source":"/data","options":`+
-					`["rw","ro","rbind","rprivate","rshared","rslaved"]}]}`),
+					`["rw","ro","rbind","rprivate","rshared","rslaved"]}],`+
+					`"linux": {"maskedPaths": ["/proc/acpi"], "readonlyPaths": ["/proc/asound"]}}`),
 				0o644,
 			)
 			Expect(err).To(BeNil())
