@@ -26,7 +26,7 @@ const (
 )
 
 func parseUnitsError(msg string) error {
-	return fmt.Errorf("%s error: %s", ast.UnitsParse.Name, msg)
+	return fmt.Errorf("%s: %s", ast.UnitsParse.Name, msg)
 }
 
 func errUnitNotRecognized(unit string) error {
@@ -107,6 +107,11 @@ func builtinUnits(_ BuiltinContext, operands []*ast.Term, iter func(*ast.Term) e
 	}
 
 	numRat.Mul(numRat, &x)
+
+	// Cleaner printout when we have a pure integer value.
+	if numRat.IsInt() {
+		return iter(ast.NumberTerm(json.Number(numRat.Num().String())))
+	}
 
 	// When using just big.Float, we had floating-point precision
 	// issues because quantities like 0.001 are not exactly representable.
