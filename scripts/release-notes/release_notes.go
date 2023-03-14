@@ -119,17 +119,23 @@ Download one of our static release bundles via our Google Cloud Bucket:
   - [cri-o.amd64.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.sig)
   - [cri-o.amd64.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.cert)
   - [cri-o.amd64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx)
+  - [cri-o.amd64.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.sig)
+  - [cri-o.amd64.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.%s.tar.gz.spdx.cert)
 - [cri-o.arm64.%s.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz)
   - [cri-o.arm64.%s.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.sha256sum)
   - [cri-o.arm64.%s.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.sig)
   - [cri-o.arm64.%s.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.cert)
   - [cri-o.arm64.%s.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx)
+  - [cri-o.arm64.%s.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.sig)
+  - [cri-o.arm64.%s.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.%s.tar.gz.spdx.cert)
 
 To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
 
 `+"```"+`console
 > export COSIGN_EXPERIMENTAL=1
 > cosign verify-blob cri-o.amd64.%s.tar.gz \
+    --certificate-identity-regexp '.*' \
+    --certificate-oidc-issuer-regexp '.*' \
     --signature cri-o.amd64.%s.tar.gz.sig \
     --certificate cri-o.amd64.%s.tar.gz.cert
 `+"```"+`
@@ -161,6 +167,10 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
+		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
