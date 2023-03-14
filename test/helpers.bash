@@ -86,7 +86,12 @@ function crioctl() {
 
 # Run the runtime binary with the specified RUNTIME_ROOT
 function runtime() {
-    "$RUNTIME_BINARY_PATH" --root "$RUNTIME_ROOT" "$@"
+    if [ "$RUNTIME_TYPE" == "vm" ]; then
+        # A specific tool should be used for runtime calls
+        ./kata_cmdline_tool.bash "$@"
+    else
+        "$RUNTIME_BINARY_PATH" --root "$RUNTIME_ROOT" "$@"
+    fi
 }
 
 # Communicate with Docker on the host machine.
