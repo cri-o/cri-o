@@ -10,9 +10,9 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -22,7 +22,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
 
@@ -70,7 +69,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := setCPUSLoadBalancingWithRetry(ctx, c, false); err != nil {
+		if err := disableCPULoadBalancing(c); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -142,13 +141,6 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 	if !isContainerRequestWholeCPU(c) {
 		log.Infof(ctx, "Container %q requests partial cpu(s). Skip PreStop", c.ID())
 		return nil
-	}
-
-	// enable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := setCPUSLoadBalancingWithRetry(ctx, c, true); err != nil {
-			return fmt.Errorf("set CPU load balancing: %w", err)
-		}
 	}
 
 	// enable the IRQ smp balancing for the container CPUs
@@ -234,26 +226,13 @@ func isContainerRequestWholeCPU(c *oci.Container) bool {
 	return *(c.Spec().Linux.Resources.CPU.Shares)%1024 == 0
 }
 
-func setCPUSLoadBalancingWithRetry(ctx context.Context, c *oci.Container, enable bool) error {
-	log.Infof(ctx, "Disable cpu load balancing for container %q", c.ID())
-	// it is possible to have errors during reading or writing to sched_domain files because
-	// that kernel rebuilds it with updated values
-	// the retry will not fix it for 100% but should reduce the possibility for failures to minimum
-	// TODO: re-visit once we will have some more acceptable cgroups hierarchy to disable CPU load balancing
-	// correctly via cgroups, see -https://bugzilla.redhat.com/show_bug.cgi?id=1946801
-	return wait.PollImmediate(time.Second, 5*time.Second, func() (bool, error) {
-		if err := setCPUSLoadBalancing(c, enable, schedDomainDir); err != nil {
-			if os.IsNotExist(err) {
-				log.Errorf(ctx, "Failed to set CPU load balancing: %v", err)
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-	})
-}
-
-func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) error {
+// disableCPULoadBalancing relies on the cpuset cgroup to disable load balancing for containers.
+// The requisite condition to allow this is `cpuset.sched_load_balance` field must be set to 0 for all cgroups
+// that intersect with `cpuset.cpus` of the container that desires load balancing.
+// Since CRI-O is the owner of the container cgroup, it must set this value for
+// the container. Some other entity (kubelet, external service) must ensure this is the case for all
+// other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
+func disableCPULoadBalancing(c *oci.Container) error {
 	lspec := c.Spec().Linux
 	if lspec == nil ||
 		lspec.Resources == nil ||
@@ -262,50 +241,25 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
-	cpus, err := cpuset.Parse(lspec.Resources.CPU.Cpus)
+	if node.CgroupIsV2() {
+		return fmt.Errorf("disabling CPU load balancing on cgroupv2 not yet supported")
+	}
+
+	pid, err := c.Pid()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get pid of container %s: %w", c.ID(), err)
+	}
+	controllers, err := cgroups.ParseCgroupFile("/proc/" + strconv.Itoa(pid) + "/cgroup")
+	if err != nil {
+		return fmt.Errorf("failed to get cgroups of container %s: %w", c.ID(), err)
 	}
 
-	for _, cpu := range cpus.ToSlice() {
-		cpuSchedDomainDir := fmt.Sprintf("%s/cpu%d", schedDomainDir, cpu)
-		err := filepath.Walk(cpuSchedDomainDir, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.Mode().IsRegular() || info.Name() != "flags" {
-				return nil
-			}
-			content, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			flags, err := strconv.Atoi(strings.Trim(string(content), "\n"))
-			if err != nil {
-				return err
-			}
-
-			var newContent string
-			if enable {
-				newContent = strconv.Itoa(flags | 1)
-			} else {
-				// we should set the LSB to 0 to disable the load balancing for the specified CPU
-				// in case of sched domain all flags can be represented by the binary number 111111111111111 that equals
-				// to 32767 in the decimal form
-				// see https://github.com/torvalds/linux/blob/0fe5f9ca223573167c4c4156903d751d2c8e160e/include/linux/sched/topology.h#L14
-				// for more information regarding the sched domain flags
-				newContent = strconv.Itoa(flags & 32766)
-			}
-
-			return os.WriteFile(path, []byte(newContent), 0o644)
-		})
-		if err != nil {
-			return err
-		}
+	cpusetPath, ok := controllers["cpuset"]
+	if !ok {
+		return fmt.Errorf("failed to get cpuset of container %s", c.ID())
 	}
 
-	return nil
+	return cgroups.WriteFile("/sys/fs/cgroup/cpuset"+cpusetPath, "cpuset.sched_load_balance", "0")
 }
 
 func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
