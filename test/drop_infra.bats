@@ -17,6 +17,9 @@ function teardown() {
 }
 
 @test "test infra ctr dropped" {
+	if [ "$RUNTIME_TYPE" == "vm" ]; then
+		skip "infra ctr is not expected to drop with runtime type VM"
+	fi
 	jq '.linux.security_context.namespace_options.pid = 1' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_no_infra.json
 	pod_id=$(crictl runp "$TESTDIR"/sandbox_no_infra.json)
@@ -26,8 +29,13 @@ function teardown() {
 }
 
 @test "test infra ctr not dropped" {
-	jq '.linux.security_context.namespace_options.pid = 0' \
-		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_no_infra.json
+	if [ "$RUNTIME_TYPE" == "vm" ]; then
+		# with runtime type VM, the infra ctr is supposed to be kept always
+		cp "$TESTDATA"/sandbox_config.json "$TESTDIR"/sandbox_no_infra.json
+	else
+		jq '.linux.security_context.namespace_options.pid = 0' \
+			"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_no_infra.json
+	fi
 	pod_id=$(crictl runp "$TESTDIR"/sandbox_no_infra.json)
 
 	output=$(runtime list)

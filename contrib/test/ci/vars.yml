@@ -56,7 +56,6 @@ kata_skip_files:
   - "ctr_pause_unpause.bats"
   - "ctr_seccomp.bats"  # see https://github.com/kata-containers/tests/issues/4587
   - "ctr_userns.bats"
-  - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
   - "infra_ctr_cpuset.bats"
   - "inspect.bats"
   - "metrics.bats"
