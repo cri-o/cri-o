@@ -29,6 +29,7 @@ var (
 
 // Sandbox contains data surrounding kubernetes sandboxes on the server
 type Sandbox struct {
+	SpecImgRef   string
 	criSandbox   *types.PodSandbox
 	portMappings []*hostport.PortMapping
 	namespace    string

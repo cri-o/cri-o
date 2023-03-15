@@ -413,7 +413,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		s.ReleaseContainerName(ctx, ctr.Name())
 		return nil
 	})
-
+	sb.SpecImgRef = req.Config.Image.Image
 	newContainer, err := s.createSandboxContainer(ctx, ctr, sb)
 	if err != nil {
 		return nil, err

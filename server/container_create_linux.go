@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/subscriptions"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/podman/v4/pkg/rootless"
 	selinux "github.com/containers/podman/v4/pkg/selinux"
 	cstorage "github.com/containers/storage"
@@ -239,6 +240,28 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if len(imgResult.RepoDigests) > 0 {
 		imageRef = imgResult.RepoDigests[0]
 	}
+
+	parsedSpecName, err := reference.ParseNamed(sb.SpecImgRef)
+	if err != nil {
+		return nil, err
+	}
+	specRepo := parsedSpecName.Name()
+
+	for _, repoDigest := range imgResult.RepoDigests {
+		if repoDigest == sb.SpecImgRef {
+			imageRef = repoDigest
+			break
+		}
+		repo, err := reference.ParseNamed(repoDigest)
+		if err != nil {
+			return nil, err
+		}
+		if repo.Name() == specRepo {
+			imageRef = repoDigest
+			break
+		}
+	}
+	log.Infof(ctx, " Image ref is %s", imageRef)
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
