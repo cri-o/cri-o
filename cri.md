@@ -34,9 +34,9 @@ Both tags and digests will be used by:
   [
     {
       "names": [
-        "k8s.gcr.io/pause@sha256:4a1c4b21597c1b4415bdbecb28a3296c6b5e23ca4f9feeb599860a1dac6a0108",
-        "k8s.gcr.io/pause@sha256:927d98197ec1141a368550822d18fa1c60bdae27b78b0c004f705f548c07814f",
-        "k8s.gcr.io/pause:3.2"
+        "registry.k8s.io/pause@sha256:4a1c4b21597c1b4415bdbecb28a3296c6b5e23ca4f9feeb599860a1dac6a0108",
+        "registry.k8s.io/pause@sha256:927d98197ec1141a368550822d18fa1c60bdae27b78b0c004f705f548c07814f",
+        "registry.k8s.io/pause:3.2"
       ],
       "sizeBytes": 688049
     }
@@ -51,7 +51,7 @@ Both tags and digests will be used by:
   ```
   > sudo crictl images --digests
   IMAGE                 TAG       DIGEST           IMAGE ID         SIZE
-  k8s.gcr.io/pause      3.2       4a1c4b21597c1    80d28bedfe5de    688kB
+  registry.k8s.io/pause      3.2       4a1c4b21597c1    80d28bedfe5de    688kB
   ```
 
 CRI-O implements the [`ConvertImage`][1] function to follow the following self-defined
