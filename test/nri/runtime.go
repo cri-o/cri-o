@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	busyboxImage   = "quay.io/crio/busybox:latest"
+	ciImage        = "quay.io/crio/fedora-crio-ci:latest"
 	connectTimeout = 3 * time.Second
 	requestTimeout = 10 * time.Second
 	pullimgTimeout = 300 * time.Second
@@ -72,7 +72,7 @@ func (r *runtime) PullImages() error {
 	imgRefs := &imageRefs{}
 
 	for name, setRef := range map[string]func(string){
-		busyboxImage: func(ref string) { imgRefs.busybox = ref },
+		ciImage: func(ref string) { imgRefs.busybox = ref },
 	} {
 		ref, err := r.PullImage(name)
 		if err != nil {

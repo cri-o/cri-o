@@ -124,7 +124,7 @@ function start_crio_with_stopped_pod() {
 	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
-	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
+	run_podman_with_args run --name test -d quay.io/crio/fedora-crio-ci:latest top
 
 	run_crio_wipe
 
@@ -154,7 +154,7 @@ function start_crio_with_stopped_pod() {
 	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
 
-	run_podman_with_args run --name test quay.io/crio/busybox:latest ls
+	run_podman_with_args run --name test quay.io/crio/fedora-crio-ci:latest ls
 	# all podman containers would be stopped after a reboot
 	run_podman_with_args stop -a
 
@@ -175,7 +175,7 @@ function start_crio_with_stopped_pod() {
 	stop_crio_no_clean
 
 	# all podman containers would be stopped after a reboot
-	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
+	run_podman_with_args run --name test -d quay.io/crio/fedora-crio-ci:latest top
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
@@ -272,7 +272,7 @@ function start_crio_with_stopped_pod() {
 	start_crio_with_stopped_pod
 	stop_crio_no_clean
 
-	run_podman_with_args run --name test -d quay.io/crio/busybox:latest top
+	run_podman_with_args run --name test -d quay.io/crio/fedora-crio-ci:latest top
 
 	CONTAINER_INTERNAL_WIPE=true start_crio_no_setup
 

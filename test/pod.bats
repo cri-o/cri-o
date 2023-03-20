@@ -324,7 +324,7 @@ function teardown() {
 	etc_perm_config="$TESTDIR"/container_sleep.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq '	  .metadata.name = "etc-permission"
-	| .image.image = "quay.io/crio/etc-permission"
+	| .image.image = "quay.io/crio/fedora-crio-ci:latest"
 	| .annotations.pod = "etc-permission"
 	| .linux.security_context.run_as_user = {
 		value: 5000

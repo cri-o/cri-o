@@ -4,7 +4,7 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "quay.io/crio/redis:alpine"
+		"image": "quay.io/crio/fedora-crio-ci:latest"
 	},
 	"command": [
 		"/bin/ls"

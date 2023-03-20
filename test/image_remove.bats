@@ -12,7 +12,7 @@ function teardown() {
 
 function remove_images_by() {
 	local by="$1"
-	local image=quay.io/crio/busybox
+	local image=quay.io/crio/fedora-crio-ci
 
 	start_crio
 	# Add a second name to the image.

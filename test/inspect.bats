@@ -31,12 +31,12 @@ function teardown() {
 
 	out=$(echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"\"sandbox\":\"$pod_id\""* ]]
-	[[ "$out" == *"\"image\":\"quay.io/crio/redis:alpine\""* ]]
+	[[ "$out" == *"\"image\":\"quay.io/crio/fedora-crio-ci:latest\""* ]]
 	[[ "$out" == *"\"image_ref\":\"$REDIS_IMAGEREF\""* ]]
 
 	output=$(crictl inspect --output json "$ctr_id")
 	[[ "$output" == *"\"id\": \"$ctr_id\""* ]]
-	[[ "$output" == *"\"image\": \"quay.io/crio/redis:alpine\""* ]]
+	[[ "$output" == *"\"image\": \"quay.io/crio/fedora-crio-ci:latest\""* ]]
 	[[ "$output" == *"\"imageRef\": \"$REDIS_IMAGEREF\""* ]]
 
 	output=$(crictl inspectp --output json "$pod_id")
