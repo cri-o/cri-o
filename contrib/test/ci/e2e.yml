@@ -20,7 +20,10 @@
       - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data"
       - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity"
       - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails" 
-      - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should adopt matching orphans and release non-matching pods" 
+      - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should adopt matching orphans and release non-matching pods"
+      # Started failing after https://github.com/kubernetes/kubernetes/pull/116232.
+      # It needs further investigation but temporarily disabling for v1.27 release.
+      - "[sig-network] Connectivity Pod Lifecycle should be able to connect to other Pod from a terminating Pod"
       # Started failing at https://github.com/kubernetes/kubernetes/pull/98587, and tests something out of the scope of CRI-O
       - "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer"
       # While fully conformant kubernetes clusters require more than 2 nodes, verifying that CRI-O
