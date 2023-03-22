@@ -24,6 +24,7 @@
       - hostname
       - iproute
       - iptables
+      - irqbalance
       - krb5-workstation
       - libffi-devel
       - libgpg-error-devel

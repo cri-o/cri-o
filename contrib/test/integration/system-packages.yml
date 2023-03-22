@@ -21,7 +21,6 @@
       - hostname
       - iproute
       - iptables
-      - irqbalance
       - krb5-workstation
       - libassuan-devel
       - libffi-devel
