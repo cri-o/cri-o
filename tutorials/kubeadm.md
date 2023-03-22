@@ -10,7 +10,7 @@ kubeadm expects a POD Network CIDR (`--pod-network-cidr`) to be defined when you
 | CNI Plugin              | CIDR          | Notes                                                                                                                                         |
 | ----------------------- | ------------- | --------------                                                                                                                                |
 | Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined [here](/contrib/cni/10-crio-bridge.conflist). This is only suitable when your cluster has a **single node**. |
-| Flannel                 | 10.224.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                       |
+| Flannel                 | 10.244.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                       |
 
 For example, to use the script below with the **bridge** plugin, run `export CIDR=10.85.0.0/16`.
 
