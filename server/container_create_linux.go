@@ -722,6 +722,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			Options:     append(m.Options, "bind"),
 			Destination: m.Destination,
 			Source:      m.Source,
+			UIDMappings: m.UIDMappings,
+			GIDMappings: m.GIDMappings,
 		}
 		ctr.SpecAddMount(rspecMount)
 	}
@@ -1030,6 +1032,8 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			Source:      src,
 			Destination: dest,
 			Options:     options,
+			UIDMappings: getOCIMappings(m.UidMappings),
+			GIDMappings: getOCIMappings(m.GidMappings),
 		})
 	}
 
@@ -1050,6 +1054,21 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 	}
 
 	return volumes, ociMounts, nil
+}
+
+func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
+	if m == nil {
+		return nil
+	}
+	ids := make([]rspec.LinuxIDMapping, 0, len(m))
+	for i, m := range m {
+		ids[i] = rspec.LinuxIDMapping{
+			ContainerID: m.ContainerId,
+			HostID:      m.HostId,
+			Size:        m.Length,
+		}
+	}
+	return ids
 }
 
 // mountExists returns true if dest exists in the list of mounts
