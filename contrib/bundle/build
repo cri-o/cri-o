@@ -178,7 +178,7 @@ $BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
 pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
-EXP_CNT=64
+EXP_CNT=65
 if ! command -v runc; then
     EXP_CNT=$((EXP_CNT + 1))
 fi
