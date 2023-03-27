@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -604,6 +605,11 @@ func (m *Metrics) startEndpoint(
 
 	go func() {
 		var err error
+
+		srv := http.Server{
+			Handler: me,
+		}
+
 		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
 			logrus.Infof("Serving metrics on %s via HTTPs", address)
 
@@ -614,29 +620,31 @@ func (m *Metrics) startEndpoint(
 				logrus.Fatalf("Creating key pair reloader: %v", reloadErr)
 			}
 
-			srv := http.Server{
-				Handler: me,
-				TLSConfig: &tls.Config{
-					GetCertificate: kpr.getCertificate,
-					MinVersion:     tls.VersionTLS12,
-				},
+			srv.TLSConfig = &tls.Config{
+				GetCertificate: kpr.getCertificate,
+				MinVersion:     tls.VersionTLS12,
 			}
+
 			go func() {
 				<-stop
-				l.Close()
+				if err := srv.Shutdown(context.Background()); err != nil {
+					logrus.Errorf("Error on metrics server shutdown: %v", err)
+				}
 			}()
 			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
 		} else {
 			logrus.Infof("Serving metrics on %s via HTTP", address)
 			go func() {
 				<-stop
-				l.Close()
+				if err := srv.Shutdown(context.Background()); err != nil {
+					logrus.Errorf("Error on metrics server shutdown: %v", err)
+				}
 			}()
-			err = http.Serve(l, me)
+			err = srv.Serve(l)
 		}
 
-		if err != nil {
-			logrus.Fatalf("Failed to serve metrics endpoint %v: %v", l, err)
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			logrus.Errorf("Failed to serve metrics endpoint %v: %v", l, err)
 		}
 	}()
 
