@@ -48,6 +48,14 @@ var _ = Describe("Utils", func() {
 				input:    Input{cpus: "4-13", mask: "ffff,ffffc00f", set: true},
 				expected: Expected{mask: "0000ffff,ffffffff", invMask: "00000000,00000000"},
 			}),
+			Entry("clear a single bit that was one when odd mask is present", TestData{
+				input:    Input{cpus: "9", mask: "fff", set: false},
+				expected: Expected{mask: "00000dff", invMask: "0000f200"},
+			}),
+			Entry("clear two bits from a short mask", TestData{
+				input:    Input{cpus: "2-3", mask: "ffffff", set: false},
+				expected: Expected{mask: "00fffff3", invMask: "0000000c"},
+			}),
 		)
 
 		Context("UpdateIRQBalanceConfigFile", func() {
