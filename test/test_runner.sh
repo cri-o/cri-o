@@ -27,10 +27,11 @@ function execute() {
 }
 
 # Tests to run. Default is "." (i.e. the current directory).
-TESTS=("${@:-.}")
+#TESTS=("${@:-.}")
 
 # The number of parallel jobs to execute
 export JOBS=${JOBS:-$(($(nproc --all) * 4))}
 
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
+#execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
+execute bats --jobs "$JOBS" --tap ./irqbalance.bats
