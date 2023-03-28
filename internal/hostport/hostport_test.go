@@ -17,51 +17,11 @@ limitations under the License.
 package hostport
 
 import (
-	"errors"
-	"fmt"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
-
-type fakeSocket struct {
-	closed   bool
-	port     int32
-	protocol string
-	ip       string
-}
-
-func (f *fakeSocket) Close() error {
-	if f.closed {
-		return fmt.Errorf("socket %q.%s already closed", f.port, f.protocol)
-	}
-	f.closed = true
-	return nil
-}
-
-func newFakeSocketManager() *fakeSocketManager {
-	return &fakeSocketManager{mem: make(map[hostport]*fakeSocket)}
-}
-
-type fakeSocketManager struct {
-	mem map[hostport]*fakeSocket
-}
-
-func (f *fakeSocketManager) openFakeSocket(hp *hostport) (closeable, error) {
-	if socket, ok := f.mem[*hp]; ok && !socket.closed {
-		return nil, errors.New("hostport is occupied")
-	}
-	fs := &fakeSocket{
-		port:     hp.port,
-		protocol: hp.protocol,
-		closed:   false,
-		ip:       hp.ip,
-	}
-	f.mem[*hp] = fs
-	return fs, nil
-}
 
 var _ = t.Describe("HostPort", func() {
 	It("should ensure kube hostport chains", func() {

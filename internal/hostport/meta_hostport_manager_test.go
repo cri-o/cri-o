@@ -17,22 +17,16 @@ var _ = t.Describe("MetaHostportManager", func() {
 		// ipv4
 		iptables := newFakeIPTables()
 		iptables.protocol = utiliptables.ProtocolIPv4
-		portOpener := newFakeSocketManager()
 		// ipv6
 		ip6tables := newFakeIPTables()
 		ip6tables.protocol = utiliptables.ProtocolIPv6
-		port6Opener := newFakeSocketManager()
 
 		manager := metaHostportManager{
 			ipv4HostportManager: &hostportManager{
-				hostPortMap: make(map[hostport]closeable),
-				iptables:    iptables,
-				portOpener:  portOpener.openFakeSocket,
+				iptables: iptables,
 			},
 			ipv6HostportManager: &hostportManager{
-				hostPortMap: make(map[hostport]closeable),
-				iptables:    ip6tables,
-				portOpener:  port6Opener.openFakeSocket,
+				iptables: ip6tables,
 			},
 		}
 
@@ -140,24 +134,6 @@ var _ = t.Describe("MetaHostportManager", func() {
 				},
 				expectError: false,
 			},
-			// port already taken by other pod
-			// but using same IP family must fail
-			{
-				mapping: &PodPortMapping{
-					Name:        "pod5",
-					Namespace:   "ns3",
-					IP:          net.ParseIP("192.168.12.12"),
-					HostNetwork: false,
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8443,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-						},
-					},
-				},
-				expectError: true,
-			},
 		}
 
 		// Add Hostports
@@ -168,33 +144,6 @@ var _ = t.Describe("MetaHostportManager", func() {
 				continue
 			}
 			Expect(err).NotTo(HaveOccurred())
-		}
-
-		// Check port opened IPv4
-		expectedPorts := []hostport{{IPv4, "", 8080, "tcp"}, {IPv4, "", 8081, "udp"}, {IPv4, "127.0.0.1", 8084, "tcp"}, {IPv4, "", 8443, "tcp"}}
-		openedPorts := make(map[hostport]bool)
-		for hp, port := range portOpener.mem {
-			if !port.closed {
-				openedPorts[hp] = true
-			}
-		}
-		Expect(len(openedPorts)).To(BeEquivalentTo(len(expectedPorts)))
-		for _, hp := range expectedPorts {
-			_, ok := openedPorts[hp]
-			Expect(ok).To(BeTrue())
-		}
-		// Check port opened IPv6
-		expectedv6Ports := []hostport{{IPv6, "", 8080, "tcp"}, {IPv6, "", 8081, "udp"}, {IPv6, "", 8443, "tcp"}}
-		openedv6Ports := make(map[hostport]bool)
-		for hp, port := range port6Opener.mem {
-			if !port.closed {
-				openedv6Ports[hp] = true
-			}
-		}
-		Expect(len(openedv6Ports)).To(BeEquivalentTo(len(expectedv6Ports)))
-		for _, hp := range expectedv6Ports {
-			_, ok := openedv6Ports[hp]
-			Expect(ok).To(BeTrue())
 		}
 
 		// Check IPv4 Iptables-save result after adding hostports
@@ -354,11 +303,6 @@ var _ = t.Describe("MetaHostportManager", func() {
 		for _, chain := range expectv6DeletedChains {
 			_, ok := remainingv6Chains[chain]
 			Expect(ok).To(BeFalse())
-		}
-
-		// check if all ports are closed
-		for _, port := range portOpener.mem {
-			Expect(port.closed).To(BeTrue())
 		}
 	})
 })

@@ -29,211 +29,11 @@ import (
 )
 
 var _ = t.Describe("HostPortManager", func() {
-	It("OpenCloseHostports", func() {
-		openPortCases := []struct {
-			podPortMapping *PodPortMapping
-			expectError    bool
-		}{
-			// no portmaps
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n0",
-				},
-				false,
-			},
-			// allocate port 80/TCP, 8080/TCP and 443/TCP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n1",
-					PortMappings: []*PortMapping{
-						{HostPort: 80, Protocol: v1.ProtocolTCP},
-						{HostPort: 8080, Protocol: v1.ProtocolTCP},
-						{HostPort: 443, Protocol: v1.ProtocolTCP},
-					},
-				},
-				false,
-			},
-			// fail to allocate port previously allocated 80/TCP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n2",
-					PortMappings: []*PortMapping{
-						{HostPort: 80, Protocol: v1.ProtocolTCP},
-					},
-				},
-				true,
-			},
-			// fail to allocate port previously allocated 8080/TCP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n3",
-					PortMappings: []*PortMapping{
-						{HostPort: 8081, Protocol: v1.ProtocolTCP},
-						{HostPort: 8080, Protocol: v1.ProtocolTCP},
-					},
-				},
-				true,
-			},
-			// allocate port 8081/TCP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n3",
-					PortMappings: []*PortMapping{
-						{HostPort: 8081, Protocol: v1.ProtocolTCP},
-					},
-				},
-				false,
-			},
-			// allocate port 7777/SCTP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n4",
-					PortMappings: []*PortMapping{
-						{HostPort: 7777, Protocol: v1.ProtocolSCTP},
-					},
-				},
-				false,
-			},
-			// same HostPort different HostIP
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n5",
-					PortMappings: []*PortMapping{
-						{HostPort: 8888, Protocol: v1.ProtocolUDP, HostIP: "127.0.0.1"},
-						{HostPort: 8888, Protocol: v1.ProtocolUDP, HostIP: "127.0.0.2"},
-					},
-				},
-				false,
-			},
-			// same HostPort different protocol
-			{
-				&PodPortMapping{
-					Namespace: "ns1",
-					Name:      "n6",
-					PortMappings: []*PortMapping{
-						{HostPort: 9999, Protocol: v1.ProtocolTCP},
-						{HostPort: 9999, Protocol: v1.ProtocolUDP},
-					},
-				},
-				false,
-			},
-		}
-
-		iptables := newFakeIPTables()
-		iptables.protocol = utiliptables.ProtocolIPv4
-		portOpener := newFakeSocketManager()
-		manager := &hostportManager{
-			hostPortMap: make(map[hostport]closeable),
-			iptables:    iptables,
-			portOpener:  portOpener.openFakeSocket,
-		}
-
-		// open all hostports defined in the test cases
-		for _, tc := range openPortCases {
-			mapping, err := manager.openHostports(tc.podPortMapping)
-			for hostport, socket := range mapping {
-				manager.hostPortMap[hostport] = socket
-			}
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-				continue
-			}
-			Expect(err).NotTo(HaveOccurred())
-			// SCTP ports are not allocated
-			countSctp := 0
-			for _, pm := range tc.podPortMapping.PortMappings {
-				if pm.Protocol == v1.ProtocolSCTP {
-					countSctp++
-				}
-			}
-			Expect(len(mapping)).To(BeEquivalentTo(len(tc.podPortMapping.PortMappings) - countSctp))
-		}
-
-		// We have following ports open: 80/TCP, 443/TCP, 8080/TCP, 8081/TCP,
-		// 127.0.0.1:8888/TCP, 127.0.0.2:8888/TCP, 9999/TCP and 9999/UDP open now.
-		Expect(manager.hostPortMap).To(HaveLen(8))
-		closePortCases := []struct {
-			portMappings []*PortMapping
-			expectError  bool
-		}{
-			{
-				portMappings: nil,
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 80, Protocol: v1.ProtocolTCP},
-					{HostPort: 8080, Protocol: v1.ProtocolTCP},
-					{HostPort: 443, Protocol: v1.ProtocolTCP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 80, Protocol: v1.ProtocolTCP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 8081, Protocol: v1.ProtocolTCP},
-					{HostPort: 8080, Protocol: v1.ProtocolTCP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 8081, Protocol: v1.ProtocolTCP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 7070, Protocol: v1.ProtocolTCP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 7777, Protocol: v1.ProtocolSCTP},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 8888, Protocol: v1.ProtocolUDP, HostIP: "127.0.0.1"},
-					{HostPort: 8888, Protocol: v1.ProtocolUDP, HostIP: "127.0.0.2"},
-				},
-			},
-			{
-				portMappings: []*PortMapping{
-					{HostPort: 9999, Protocol: v1.ProtocolTCP},
-					{HostPort: 9999, Protocol: v1.ProtocolUDP},
-				},
-			},
-		}
-
-		// close all the hostports opened in previous step
-		for _, tc := range closePortCases {
-			err := manager.closeHostports(tc.portMappings)
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-				continue
-			}
-			Expect(err).NotTo(HaveOccurred())
-		}
-		// assert all elements in hostPortMap were cleared
-		Expect(manager.hostPortMap).To(BeEmpty())
-	})
-
 	It("HostportManager", func() {
 		iptables := newFakeIPTables()
 		iptables.protocol = utiliptables.ProtocolIPv4
-		portOpener := newFakeSocketManager()
 		manager := &hostportManager{
-			hostPortMap: make(map[hostport]closeable),
-			iptables:    iptables,
-			portOpener:  portOpener.openFakeSocket,
+			iptables: iptables,
 		}
 		testCases := []struct {
 			mapping     *PodPortMapping
@@ -266,33 +66,6 @@ var _ = t.Describe("HostPortManager", func() {
 				},
 				expectError: false,
 			},
-			// fail to open HostPort due to conflict 8083/SCTP
-			{
-				mapping: &PodPortMapping{
-					Name:        "pod2",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.3"),
-					HostNetwork: false,
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8082,
-							ContainerPort: 80,
-							Protocol:      v1.ProtocolTCP,
-						},
-						{
-							HostPort:      8081,
-							ContainerPort: 81,
-							Protocol:      v1.ProtocolUDP,
-						},
-						{
-							HostPort:      8083,
-							ContainerPort: 83,
-							Protocol:      v1.ProtocolSCTP,
-						},
-					},
-				},
-				expectError: true,
-			},
 			// open port 443
 			{
 				mapping: &PodPortMapping{
@@ -309,23 +82,6 @@ var _ = t.Describe("HostPortManager", func() {
 					},
 				},
 				expectError: false,
-			},
-			// fail to open HostPort 8443 already allocated
-			{
-				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("192.168.12.12"),
-					HostNetwork: false,
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8443,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-						},
-					},
-				},
-				expectError: true,
 			},
 			// skip HostPort with PodIP and HostIP using different families
 			{
@@ -402,28 +158,6 @@ var _ = t.Describe("HostPortManager", func() {
 				continue
 			}
 			Expect(err).NotTo(HaveOccurred())
-		}
-
-		// Check port opened
-		expectedPorts := []hostport{
-			{IPv4, "", 8080, "tcp"},
-			{IPv4, "", 8081, "udp"},
-			{IPv4, "", 8443, "tcp"},
-			{IPv4, "127.0.0.1", 8888, "tcp"},
-			{IPv4, "127.0.0.2", 8888, "tcp"},
-			{IPv4, "", 9999, "tcp"},
-			{IPv4, "", 9999, "udp"},
-		}
-		openedPorts := make(map[hostport]bool)
-		for hp, port := range portOpener.mem {
-			if !port.closed {
-				openedPorts[hp] = true
-			}
-		}
-		Expect(len(openedPorts)).To(BeEquivalentTo(len(expectedPorts)))
-		for _, hp := range expectedPorts {
-			_, ok := openedPorts[hp]
-			Expect(ok).To(BeTrue())
 		}
 
 		// Check Iptables-save result after adding hostports
@@ -528,13 +262,6 @@ var _ = t.Describe("HostPortManager", func() {
 			_, ok := remainingChains[chain]
 			Expect(ok).To(BeFalse())
 		}
-
-		// check if all ports are closed
-		for _, port := range portOpener.mem {
-			Expect(port.closed).To(BeTrue())
-		}
-		// Clear all elements in hostPortMap
-		Expect(manager.hostPortMap).To(BeEmpty())
 	})
 
 	It("GetHostportChain", func() {
@@ -553,11 +280,8 @@ var _ = t.Describe("HostPortManager", func() {
 	It("HostportManagerIPv6", func() {
 		iptables := newFakeIPTables()
 		iptables.protocol = utiliptables.ProtocolIPv6
-		portOpener := newFakeSocketManager()
 		manager := &hostportManager{
-			hostPortMap: make(map[hostport]closeable),
-			iptables:    iptables,
-			portOpener:  portOpener.openFakeSocket,
+			iptables: iptables,
 		}
 		testCases := []struct {
 			mapping     *PodPortMapping
@@ -588,32 +312,6 @@ var _ = t.Describe("HostPortManager", func() {
 					},
 				},
 				expectError: false,
-			},
-			{
-				mapping: &PodPortMapping{
-					Name:        "pod2",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::3"),
-					HostNetwork: false,
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8082,
-							ContainerPort: 80,
-							Protocol:      v1.ProtocolTCP,
-						},
-						{
-							HostPort:      8081,
-							ContainerPort: 81,
-							Protocol:      v1.ProtocolUDP,
-						},
-						{
-							HostPort:      8083,
-							ContainerPort: 83,
-							Protocol:      v1.ProtocolSCTP,
-						},
-					},
-				},
-				expectError: true,
 			},
 			{
 				mapping: &PodPortMapping{
@@ -657,20 +355,6 @@ var _ = t.Describe("HostPortManager", func() {
 				continue
 			}
 			Expect(err).NotTo(HaveOccurred())
-		}
-
-		// Check port opened
-		expectedPorts := []hostport{{IPv6, "", 8080, "tcp"}, {IPv6, "", 8081, "udp"}, {IPv6, "", 8443, "tcp"}}
-		openedPorts := make(map[hostport]bool)
-		for hp, port := range portOpener.mem {
-			if !port.closed {
-				openedPorts[hp] = true
-			}
-		}
-		Expect(len(openedPorts)).To(BeEquivalentTo(len(expectedPorts)))
-		for _, hp := range expectedPorts {
-			_, ok := openedPorts[hp]
-			Expect(ok).To(BeTrue())
 		}
 
 		// Check Iptables-save result after adding hostports
@@ -747,11 +431,6 @@ var _ = t.Describe("HostPortManager", func() {
 		for _, chain := range expectDeletedChains {
 			_, ok := remainingChains[chain]
 			Expect(ok).To(BeFalse())
-		}
-
-		// check if all ports are closed
-		for _, port := range portOpener.mem {
-			Expect(port.closed).To(BeTrue())
 		}
 	})
 })
