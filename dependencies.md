@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 28 Mar 2023 15:01:31 UTC for commit [4e6e1c7][0]._
+_Generated on Tue, 28 Mar 2023 19:28:45 UTC for commit [5795c9f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4e6e1c7714789ff6d0e49492581a0e742f26af4b
+[0]: https://github.com/cri-o/cri-o/commit/5795c9f183544ec5fcf3c86194974c0b675202f0
 
 ## Outdated Dependencies
 
@@ -258,7 +258,7 @@ _Generated on Tue, 28 Mar 2023 15:01:31 UTC for commit [4e6e1c7][0]._
 | github.com/aryann/difflib                                                               | v0.0.0-20170710044230-e206f873d14a                | v0.0.0-20210328193216-ff5ff6dc229b | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20210307081110-f21760c49a8d                | v0.0.0-20230301143203-a9d515a09cc2 | false  | true             |
 | github.com/aws/aws-lambda-go                                                            | v1.13.3                                           | v1.39.1                            | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.180                                         | v1.44.230                          | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.180                                         | v1.44.231                          | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.17.3                                           | v1.17.7                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.3                                            | v1.4.10                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.8                                           | v1.18.19                           | false  | true             |
@@ -719,7 +719,7 @@ _Generated on Tue, 28 Mar 2023 15:01:31 UTC for commit [4e6e1c7][0]._
 | github.com/mediocregopher/radix/v4                                                      | v4.1.1                                            | v4.1.2                             | false  | true             |
 | github.com/mgutz/ansi                                                                   | v0.0.0-20170206155736-9520e82c474b                | v0.0.0-20200706080929-d51e80ef957d | false  | true             |
 | github.com/mholt/archiver/v3                                                            | v3.5.1                                            |                                    | false  | true             |
-| github.com/miekg/dns                                                                    | v1.1.50                                           | v1.1.52                            | false  | true             |
+| github.com/miekg/dns                                                                    | v1.1.50                                           | v1.1.53                            | false  | true             |
 | github.com/miekg/pkcs11                                                                 | v1.1.1                                            |                                    | false  | true             |
 | github.com/mindprince/gonvml                                                            | v0.0.0-20190828220739-9ebdce4bb989                | v0.0.0-20211002210717-ac0b66419a41 | false  | true             |
 | github.com/minio/sha256-simd                                                            | v1.0.0                                            |                                    | false  | true             |
@@ -829,7 +829,7 @@ _Generated on Tue, 28 Mar 2023 15:01:31 UTC for commit [4e6e1c7][0]._
 | github.com/prometheus/procfs                                                            | v0.8.0                                            | v0.9.0                             | false  | true             |
 | github.com/prometheus/prometheus                                                        | v2.5.0+incompatible                               |                                    | false  | true             |
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                            | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20201118171849-f6a6b3f636fc                | v0.0.0-20230327180353-7e3b7136cc9f | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20201118171849-f6a6b3f636fc                | v0.0.0-20230328191034-3462fbc510c0 | false  | true             |
 | github.com/psampaz/go-mod-outdated                                                      | v0.9.0                                            |                                    | true   | true             |
 | github.com/pseudomuto/protoc-gen-doc                                                    | v1.5.1                                            |                                    | false  | true             |
 | github.com/pseudomuto/protokit                                                          | v0.2.0                                            | v0.2.1                             | false  | true             |
