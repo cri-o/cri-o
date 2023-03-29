@@ -160,7 +160,7 @@ EOF
 
 	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
 	# verify CRI-O did not specify memory swap value
-	jq -e .linux.resources.memory.swap "$(runtime list | grep "$ctr_id" | awk '{ print $4 }')/config.json"
+	jq -e .linux.resources.memory.swap "$(runtime state "$ctr_id" | jq -r .bundle)/config.json"
 }
 
 @test "ctr with swap should succeed when swap is unlimited" {
