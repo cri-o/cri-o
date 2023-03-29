@@ -94,6 +94,15 @@ function runtime() {
     fi
 }
 
+# Uses the runtime() wrapper to retrieve the PID of the given container
+function runtime_pid() {
+    if [ "$RUNTIME_TYPE" == "vm" ]; then
+        runtime list | grep "$1" | awk '{ print $1 }'
+    else
+        runtime list -f json | jq ".[] | select(.id==\"$1\") | .pid"
+    fi
+}
+
 # Communicate with Docker on the host machine.
 # Should rarely use this.
 function docker_host() {

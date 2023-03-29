@@ -999,7 +999,7 @@ function check_oci_annotation() {
 	ctr_id=$(crictl run "$newconfig" "$newsandbox")
 	processes=$(list_all_children "$(pidof conmon)")
 
-	pid=$(runtime list -f json | jq .[].pid)
+	pid=$(runtime_pid "$ctr_id")
 	[[ "$pid" -gt 0 ]]
 	kill -9 "$pid"
 
