@@ -33,6 +33,11 @@ const (
 	kubeHostportsChain utiliptables.Chain = "KUBE-HOSTPORTS"
 	// prefix for hostport chains
 	kubeHostportChainPrefix string = "KUBE-HP-"
+
+	// the masquerade chain
+	crioMasqueradeChain utiliptables.Chain = "CRIO-HOSTPORTS-MASQ"
+	// prefix for masquerade chains
+	crioMasqueradeChainPrefix string = "CRIO-MASQ-"
 )
 
 // PortMapping represents a network port in a container
@@ -153,6 +158,20 @@ func ensureKubeHostportChains(iptables utiliptables.Interface, natInterfaceName 
 			return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", tc.table, tc.chain, kubeHostportsChain, err)
 		}
 	}
+
+	// Ensure crioMasqueradeChain
+	if _, err := iptables.EnsureChain(utiliptables.TableNAT, crioMasqueradeChain); err != nil {
+		return fmt.Errorf("failed to ensure that %s chain %s exists: %w", utiliptables.TableNAT, crioMasqueradeChain, err)
+	}
+	args = []string{
+		"-m", "comment", "--comment", "kube hostport masquerading",
+		"-m", "conntrack", "--ctstate", "DNAT",
+		"-j", string(crioMasqueradeChain),
+	}
+	if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
+		return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, crioMasqueradeChain, err)
+	}
+
 	if natInterfaceName != "" && natInterfaceName != "lo" {
 		// Need to SNAT traffic from localhost
 		localhost := "127.0.0.0/8"
@@ -160,7 +179,7 @@ func ensureKubeHostportChains(iptables utiliptables.Interface, natInterfaceName 
 			localhost = "::1/128"
 		}
 		args = []string{"-m", "comment", "--comment", "SNAT for localhost access to hostports", "-o", natInterfaceName, "-s", localhost, "-j", "MASQUERADE"}
-		if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
+		if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, crioMasqueradeChain, args...); err != nil {
 			return fmt.Errorf("failed to ensure that %s chain %s jumps to MASQUERADE: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, err)
 		}
 	}
