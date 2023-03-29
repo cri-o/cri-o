@@ -54,13 +54,13 @@ dependencies:
       match: cri_tools_git_version
 
   - name: runc
-    version: v1.1.4
+    version: v1.1.5
     refPaths:
     - path: scripts/versions
       match: runc
 
   - name: crun
-    version: 1.8.1
+    version: 1.8.3
     refPaths:
     - path: scripts/versions
       match: crun
