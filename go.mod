@@ -5,6 +5,7 @@ module github.com/cri-o/cri-o
 require (
 	github.com/BurntSushi/toml v1.2.1
 	github.com/Microsoft/go-winio v0.6.0
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v0.0.0-20221220135617-5b24f461ba2f
 	github.com/checkpoint-restore/go-criu/v6 v6.3.0
@@ -148,7 +149,6 @@ require (
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
-	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
