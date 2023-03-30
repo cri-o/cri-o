@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
+_Generated on Thu, 30 Mar 2023 17:11:42 UTC for commit [73664e8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a22a6a49215c0bb1e14830317903f15aa93a7bd4
+[0]: https://github.com/cri-o/cri-o/commit/73664e81d6e70f7e94555cd58c8657d4b5ce7a5f
 
 ## Outdated Dependencies
 
@@ -14,9 +14,10 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | github.com/containers/common                 | v0.51.0                              | v0.51.1                            | true   | true             |
 | github.com/containers/conmon-rs              | v0.5.0                               | v0.5.1                             | true   | true             |
 | github.com/containers/podman/v4              | v4.4.2                               | v4.4.4                             | true   | true             |
+| github.com/go-logr/logr                      | v1.2.3                               | v1.2.4                             | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware | v1.3.0                               | v1.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                    | v2.8.4                               | v2.9.2                             | true   | true             |
-| github.com/onsi/gomega                       | v1.27.2                              | v1.27.5                            | true   | true             |
+| github.com/onsi/gomega                       | v1.27.2                              | v1.27.6                            | true   | true             |
 | github.com/opencontainers/runc               | v1.1.1-0.20220617142545-8b9452f75cbc | v1.1.5                             | true   | true             |
 | github.com/urfave/cli/v2                     | v2.24.4                              | v2.25.1                            | true   | true             |
 | google.golang.org/grpc                       | v1.53.0                              | v1.54.0                            | true   | true             |
@@ -462,7 +463,7 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | github.com/franela/goreq                                                                | v0.0.0-20171204163338-bcd34c9993f8                |                                    | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.4                                           |                                    | false  | true             |
 | github.com/fsnotify/fsnotify                                                            | v1.6.0                                            |                                    | true   | true             |
-| github.com/fsouza/go-dockerclient                                                       | v1.9.4                                            | v1.9.6                             | false  | true             |
+| github.com/fsouza/go-dockerclient                                                       | v1.9.4                                            | v1.9.7                             | false  | true             |
 | github.com/fullsailor/pkcs7                                                             | v0.0.0-20190404230743-d7302db945fa                |                                    | false  | true             |
 | github.com/fullstorydev/grpcurl                                                         | v1.8.7                                            |                                    | false  | true             |
 | github.com/fvbommel/sortorder                                                           | v1.0.1                                            | v1.1.0                             | false  | true             |
@@ -486,7 +487,7 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | github.com/go-kit/kit                                                                   | v0.10.0                                           | v0.12.0                            | false  | true             |
 | github.com/go-kit/log                                                                   | v0.2.0                                            | v0.2.1                             | false  | true             |
 | github.com/go-logfmt/logfmt                                                             | v0.5.1                                            | v0.6.0                             | false  | true             |
-| github.com/go-logr/logr                                                                 | v1.2.3                                            |                                    | true   | true             |
+| github.com/go-logr/logr                                                                 | v1.2.3                                            | v1.2.4                             | true   | true             |
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                    | false  | true             |
 | github.com/go-logr/zapr                                                                 | v1.2.3                                            |                                    | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            |                                    | false  | true             |
@@ -686,7 +687,7 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.1                                            | v1.0.2                             | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.25                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.0                                            | v1.0.1                             | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20221109233200-85aa52084eaf                | v0.0.0-20230329182243-13d79fcd54eb | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20221109233200-85aa52084eaf                | v0.0.0-20230329230832-3850ab3bd81f | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/lib/pq                                                                       | v1.10.6                                           | v1.10.7                            | false  | true             |
@@ -781,7 +782,7 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                            |                                    | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.8.4                                            | v2.9.2                             | true   | true             |
-| github.com/onsi/gomega                                                                  | v1.27.2                                           | v1.27.5                            | true   | true             |
+| github.com/onsi/gomega                                                                  | v1.27.2                                           | v1.27.6                            | true   | true             |
 | github.com/op/go-logging                                                                | v0.0.0-20160315200505-970db520ece7                |                                    | false  | true             |
 | github.com/open-policy-agent/opa                                                        | v0.45.0                                           | v0.50.2                            | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                    | true   | true             |
@@ -1007,7 +1008,7 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | go.uber.org/atomic                                                                      | v1.10.0                                           |                                    | false  | true             |
 | go.uber.org/automaxprocs                                                                | v1.5.1                                            | v1.5.2                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.2.1                                            |                                    | false  | true             |
-| go.uber.org/multierr                                                                    | v1.8.0                                            | v1.10.0                            | false  | true             |
+| go.uber.org/multierr                                                                    | v1.8.0                                            | v1.11.0                            | false  | true             |
 | go.uber.org/tools                                                                       | v0.0.0-20190618225709-2cfd321de3ee                |                                    | false  | true             |
 | go.uber.org/zap                                                                         | v1.23.0                                           | v1.24.0                            | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                    | false  | true             |
@@ -1031,10 +1032,10 @@ _Generated on Wed, 29 Mar 2023 19:07:40 UTC for commit [a22a6a4][0]._
 | google.golang.org/api                                                                   | v0.107.0                                          | v0.114.0                           | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.7                                            |                                    | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.110.0                           | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20230131230820-1c016267d619                | v0.0.0-20230327215041-6ac7f18bb9d5 | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20230131230820-1c016267d619                | v0.0.0-20230330154414-c0448cd141ea | false  | true             |
 | google.golang.org/grpc                                                                  | v1.53.0                                           | v1.54.0                            | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.2.0                                            | v1.3.0                             | false  | true             |
-| google.golang.org/grpc/examples                                                         | v0.0.0-20201130180447-c456688b1860                | v0.0.0-20230328230341-415ccdf15456 | false  | true             |
+| google.golang.org/grpc/examples                                                         | v0.0.0-20201130180447-c456688b1860                | v0.0.0-20230330000412-42dd7ac9d9df | false  | true             |
 | google.golang.org/protobuf                                                              | v1.28.1                                           | v1.30.0                            | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                            | v2.3.2                             | false  | true             |
