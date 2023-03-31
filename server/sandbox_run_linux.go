@@ -534,9 +534,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE
 	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE
 
-	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
+	// Don't use SELinux separation with Host Pid or IPC Namespace.
 	if hostPID || hostIPC {
-		processLabel, mountLabel = "", ""
+		mountLabel = ""
+		if !isUnconfinedSELinuxProcess(processLabel) {
+			processLabel = ""
+		}
 	}
 	g := sbox.Spec()
 	g.SetProcessSelinuxLabel(processLabel)
@@ -1107,4 +1110,8 @@ func (s *Server) configureGeneratorForSandboxNamespaces(ctx context.Context, hos
 	}
 
 	return cleanupFuncs, nil
+}
+
+func isUnconfinedSELinuxProcess(processLabel string) bool {
+	return strings.HasPrefix(processLabel, "unconfined_u:unconfined_r:unconfined_t")
 }

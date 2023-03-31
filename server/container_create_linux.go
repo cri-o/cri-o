@@ -279,7 +279,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	mountLabel := containerInfo.MountLabel
 	var processLabel string
-	if !ctr.Privileged() {
+	isUnconfined := isUnconfinedSELinuxProcess(containerInfo.ProcessLabel)
+	if !ctr.Privileged() || isUnconfined {
 		processLabel = containerInfo.ProcessLabel
 	}
 	if securityContext.NamespaceOptions == nil {
@@ -291,10 +292,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	// Don't use SELinux separation with Host Pid or IPC Namespace or privileged.
 	if hostPID || hostIPC {
-		processLabel, mountLabel = "", ""
+		mountLabel = ""
 	}
 
-	if hostNet {
+	if !isUnconfined && (hostPID || hostIPC || hostNet) {
 		processLabel = ""
 	}
 
