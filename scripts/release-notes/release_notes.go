@@ -134,8 +134,10 @@ To verify the artifact signatures via [cosign](https://github.com/sigstore/cosig
 `+"```"+`console
 > export COSIGN_EXPERIMENTAL=1
 > cosign verify-blob cri-o.amd64.%s.tar.gz \
-    --certificate-identity-regexp '.*' \
-    --certificate-oidc-issuer-regexp '.*' \
+    --certificate-identity https://github.com/cri-o/cri-o/.github/workflows/test.yml@refs/tags/v%s \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/cri-o \
+    --certificate-github-workflow-ref refs/tags/v%s \
     --signature cri-o.amd64.%s.tar.gz.sig \
     --certificate cri-o.amd64.%s.tar.gz.cert
 `+"```"+`
