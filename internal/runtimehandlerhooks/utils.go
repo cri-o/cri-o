@@ -51,12 +51,16 @@ func mapHexCharToByte(h string) ([]byte, error) {
 }
 
 func mapByteToHexChar(b []byte) string {
+	// The kernel will not accept longer bit mask than the count of cpus
+	// on the system rounded up to the closest 32 bit multiple.
+	// See https://bugzilla.redhat.com/show_bug.cgi?id=2181546
+
 	var breversed []byte
 	var rindex int
 	l := len(b)
-	// align it to 8 byte
-	if l%8 != 0 {
-		lfill := 8 - l%8
+	// align it to 4 byte
+	if l%4 != 0 {
+		lfill := 4 - l%4
 		l += lfill
 		for i := 0; i < lfill; i++ {
 			b = append(b, byte(0))
@@ -107,6 +111,8 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 	s := strings.ReplaceAll(current, ",", "")
 
 	// the index 0 corresponds to the cpu 0-7
+	// the LSb (right-most bit) represents the lowest cpu id from the byte
+	// and the MSb (left-most bit) represents the highest cpu id from the byte
 	currentMaskArray, err := mapHexCharToByte(s)
 	if err != nil {
 		return cpus, "", err
