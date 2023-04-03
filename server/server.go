@@ -519,7 +519,7 @@ func useDefaultUmask() {
 	const defaultUmask = 0o022
 	oldUmask := unix.Umask(defaultUmask)
 	if oldUmask != defaultUmask {
-		logrus.Infof(
+		logrus.Warnf(
 			"Using default umask 0o%#o instead of 0o%#o",
 			defaultUmask, oldUmask,
 		)

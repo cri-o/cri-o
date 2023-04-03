@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/common/pkg/umask"
 	"github.com/containers/storage/pkg/idtools"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
@@ -241,10 +240,6 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 			if err != nil {
 				return nil, err
 			}
-
-			// Don't let the umask have any influence on the file and directory creation
-			oldUmask := umask.Set(0)
-			defer umask.Set(oldUmask)
 
 			switch mode := fileInfo.Mode(); {
 			case mode.IsDir():
