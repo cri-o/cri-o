@@ -402,7 +402,7 @@ func New(
 	}
 	config := configIface.GetData()
 
-	useDefaultUmask()
+	useDefaultUmask(context.Background())
 
 	config.SystemContext.AuthFilePath = config.GlobalAuthFile
 	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
@@ -565,11 +565,11 @@ func New(
 	return s, nil
 }
 
-func useDefaultUmask() {
+func useDefaultUmask(ctx context.Context) {
 	const defaultUmask = 0o022
 	oldUmask := unix.Umask(defaultUmask)
 	if oldUmask != defaultUmask {
-		logrus.Infof(
+		log.Warnf(ctx,
 			"Using default umask 0o%#o instead of 0o%#o",
 			defaultUmask, oldUmask,
 		)

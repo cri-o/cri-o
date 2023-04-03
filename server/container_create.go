@@ -298,6 +298,7 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+	useDefaultUmask(ctx)
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
 	checkpointImage, err := func() (bool, error) {

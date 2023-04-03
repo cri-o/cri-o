@@ -65,6 +65,8 @@ func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error)
 
 // RunPodSandbox creates and runs a pod-level sandbox.
 func (s *Server) RunPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (*types.RunPodSandboxResponse, error) {
+	useDefaultUmask(ctx)
+
 	// platform dependent call
 	return s.runPodSandbox(ctx, req)
 }
