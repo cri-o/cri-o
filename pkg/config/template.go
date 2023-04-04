@@ -451,6 +451,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: WorkloadsEqual(dc.Workloads, c.Workloads),
 		},
 		{
+			templateString: templateStringCrioRuntimeHostNetworkDisableSELinux,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.HostNetworkDisableSELinux, c.HostNetworkDisableSELinux),
+		},
+		{
 			templateString: templateStringCrioImageDefaultTransport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
@@ -1265,6 +1270,13 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 {{ $.Comment }}cpuset = "{{ $workload_config.Resources.CPUSet }}"
 {{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}{{ end }}
 {{ end }}
+`
+
+const templateStringCrioRuntimeHostNetworkDisableSELinux = `# hostnetwork_disable_selinux determines whether
+# SELinux should be disabled within a pod when it is running in the host network namespace
+# Default value is set to true
+{{ $.Comment }}hostnetwork_disable_selinux = {{ .HostNetworkDisableSELinux }}
+
 `
 
 const templateStringCrioImage = `# The crio.image table contains settings pertaining to the management of OCI images.

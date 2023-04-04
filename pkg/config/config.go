@@ -442,6 +442,11 @@ type RuntimeConfig struct {
 
 	// namespaceManager is the internal NamespaceManager configuration
 	namespaceManager *nsmgr.NamespaceManager
+
+	// Whether SELinux should be disabled within a pod,
+	// when it is running in the host network namespace
+	// https://github.com/cri-o/cri-o/issues/5501
+	HostNetworkDisableSELinux bool `toml:"hostnetwork_disable_selinux"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -827,6 +832,7 @@ func DefaultConfig() (*Config, error) {
 			namespaceManager:            nsmgr.New(defaultNamespacesDir, ""),
 			rdtConfig:                   rdt.New(),
 			ulimitsConfig:               ulimits.New(),
+			HostNetworkDisableSELinux:   true,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport: "docker://",

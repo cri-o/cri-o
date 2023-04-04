@@ -401,6 +401,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("enable-pod-events") {
 		config.EnablePodEvents = ctx.Bool("enable-pod-events")
 	}
+	if ctx.IsSet("hostnetwork-disable-selinux") {
+		config.HostNetworkDisableSELinux = ctx.Bool("hostnetwork-disable-selinux")
+	}
 	return nil
 }
 
@@ -1113,6 +1116,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:  "irqbalance-config-restore-file",
 			Value: defConf.IrqBalanceConfigRestoreFile,
 			Usage: "Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the 'disable' value to disable the restore flow entirely.",
+		},
+		&cli.BoolFlag{
+			Name:    "hostnetwork-disable-selinux",
+			Usage:   "Determines whether SELinux should be disabled within a pod when it is running in the host network namespace.",
+			EnvVars: []string{"CONTAINER_HOSTNETWORK_DISABLE_SELINUX"},
+			Value:   defConf.HostNetworkDisableSELinux,
 		},
 	}
 }

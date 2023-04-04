@@ -55,6 +55,7 @@ crio
 [--grpc-max-send-msg-size]=[value]
 [--help|-h]
 [--hooks-dir]=[value]
+[--hostnetwork-disable-selinux]
 [--image-volumes]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
@@ -260,6 +261,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
     For the bind-mount conditions, only mounts explicitly requested by
     Kubernetes configuration are considered. Bind mounts that CRI-O
     inserts by default (e.g. '/dev/shm') are not considered. (default: "/usr/share/containers/oci/hooks.d")
+
+**--hostnetwork-disable-selinux**: Determines whether SELinux should be disabled within a pod when it is running in the host network namespace.
 
 **--image-volumes**="": Image volume handling ('mkdir', 'bind', or 'ignore')
     1. mkdir: A directory is created inside the container root filesystem for
