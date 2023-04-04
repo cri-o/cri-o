@@ -11,7 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/podman/v3/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -138,15 +137,4 @@ func VerifyMemoryIsEnough(memoryLimit int64) error {
 		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
 	}
 	return nil
-}
-
-// createSandboxCgroup takes the sandbox parent, and sandbox ID.
-// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
-func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error {
-	path, err := mgr.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	_, err = cgroups.New(path, &rspec.LinuxResources{})
-	return err
 }
