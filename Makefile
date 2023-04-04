@@ -64,6 +64,7 @@ RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.4.1
 BOM := ${BUILD_BIN_PATH}/bom
+BOM_VERSION := v0.5.1
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
 BATS_FILES := $(wildcard test/*.bats)
@@ -291,7 +292,10 @@ ${ZEITGEIST}:
 	chmod +x $(BUILD_BIN_PATH)/zeitgeist
 
 ${BOM}:
-	$(call go-build, ./vendor/sigs.k8s.io/bom/cmd/bom)
+	mkdir -p $(BUILD_BIN_PATH)
+	curl -sSfL -o $(BUILD_BIN_PATH)/bom \
+		https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux
+	chmod +x $(BUILD_BIN_PATH)/bom
 
 bom: ${BOM}
 

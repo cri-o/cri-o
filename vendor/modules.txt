@@ -3194,13 +3194,9 @@ mvdan.cc/sh/v3/syntax
 mvdan.cc/sh/v3/syntax/typedjson
 # sigs.k8s.io/bom v0.4.1
 ## explicit; go 1.19
-sigs.k8s.io/bom/cmd/bom
-sigs.k8s.io/bom/cmd/bom/cmd
 sigs.k8s.io/bom/pkg/license
 sigs.k8s.io/bom/pkg/osinfo
 sigs.k8s.io/bom/pkg/provenance
-sigs.k8s.io/bom/pkg/query
-sigs.k8s.io/bom/pkg/serialize
 sigs.k8s.io/bom/pkg/spdx
 sigs.k8s.io/bom/pkg/spdx/json/document
 sigs.k8s.io/bom/pkg/spdx/json/v2.2
