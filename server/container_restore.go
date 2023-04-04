@@ -65,6 +65,7 @@ func (s *Server) CRImportCheckpoint(
 	input := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
+	createLabels := createConfig.Labels
 
 	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
 	if err != nil {
@@ -162,7 +163,9 @@ func (s *Server) CRImportCheckpoint(
 		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Metadata]), &ctrMetadata); err != nil {
 			return "", fmt.Errorf("failed to read %q: %w", annotations.Metadata, err)
 		}
-
+		if createConfig.Metadata != nil && createConfig.Metadata.Name != "" {
+			ctrMetadata.Name = createConfig.Metadata.Name
+		}
 		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
 			return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
 		}
@@ -176,6 +179,30 @@ func (s *Server) CRImportCheckpoint(
 			}
 			if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
 				originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
+			}
+		}
+
+		if createLabels != nil {
+			fixupLabels := []string{
+				// Update the container name. It has already been update in metadata.Name.
+				// It also needs to be updated in the container labels.
+				kubetypes.KubernetesContainerNameLabel,
+				// Update pod name in the labels.
+				kubetypes.KubernetesPodNameLabel,
+				// Also update namespace.
+				kubetypes.KubernetesPodNamespaceLabel,
+			}
+
+			for _, annotation := range fixupLabels {
+				_, ok1 := createLabels[annotation]
+				_, ok2 := originalLabels[annotation]
+
+				// If the value is not set in the original container or
+				// if it is not set in the new container, just skip
+				// the step of updating metadata.
+				if ok1 && ok2 {
+					originalLabels[annotation] = createLabels[annotation]
+				}
 			}
 		}
 
