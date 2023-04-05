@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
+_Generated on Wed, 05 Apr 2023 13:08:24 UTC for commit [71af442][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e8f2e108098f134b85d7dd6d66aacc0512d0308c
+[0]: https://github.com/cri-o/cri-o/commit/71af44278ae6592539789bb02e586b42e786f961
 
 ## Outdated Dependencies
 
@@ -13,6 +13,7 @@ _Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
 | github.com/containerd/ttrpc                  | v1.1.1-0.20230127163717-32fab2374638 | v1.2.1                             | true   | true             |
 | github.com/containers/common                 | v0.51.0                              | v0.51.2                            | true   | true             |
 | github.com/containers/conmon-rs              | v0.5.0                               | v0.5.1                             | true   | true             |
+| github.com/containers/image/v5               | v5.24.2                              | v5.25.0                            | true   | true             |
 | github.com/containers/podman/v4              | v4.4.2                               | v4.4.4                             | true   | true             |
 | github.com/containers/storage                | v1.45.4                              | v1.46.0                            | true   | true             |
 | github.com/go-logr/logr                      | v1.2.3                               | v1.2.4                             | true   | true             |
@@ -373,7 +374,7 @@ _Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
 | github.com/containers/common                                                            | v0.51.0                                           | v0.51.2                            | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                    | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.5.0                                            | v0.5.1                             | true   | true             |
-| github.com/containers/image/v5                                                          | v5.24.2                                           |                                    | true   | true             |
+| github.com/containers/image/v5                                                          | v5.24.2                                           | v5.25.0                            | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                            |                                    | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.7                                            |                                    | true   | true             |
@@ -639,7 +640,7 @@ _Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
 | github.com/iancoleman/strcase                                                           | v0.2.0                                            |                                    | false  | true             |
 | github.com/ianlancetaylor/demangle                                                      | v0.0.0-20200824232613-28f6c0f3b639                | v0.0.0-20230322204757-857afb9054cd | false  | true             |
 | github.com/imdario/mergo                                                                | v0.3.13                                           | v0.3.15                            | false  | true             |
-| github.com/in-toto/in-toto-golang                                                       | v0.3.4-0.20220709202702-fa494aaa0add              | v0.7.0                             | false  | true             |
+| github.com/in-toto/in-toto-golang                                                       | v0.3.4-0.20220709202702-fa494aaa0add              | v0.7.1                             | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.0.1                                            | v1.1.0                             | false  | true             |
 | github.com/influxdata/influxdb1-client                                                  | v0.0.0-20191209144304-8bf82d3c094d                | v0.0.0-20220302092344-a9ab5670611c | false  | true             |
 | github.com/intel/goresctrl                                                              | v0.3.0                                            |                                    | true   | true             |
@@ -673,7 +674,7 @@ _Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                             | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                    | false  | true             |
-| github.com/klauspost/compress                                                           | v1.15.15                                          | v1.16.3                            | false  | true             |
+| github.com/klauspost/compress                                                           | v1.15.15                                          | v1.16.4                            | false  | true             |
 | github.com/klauspost/cpuid/v2                                                           | v2.0.4                                            | v2.2.4                             | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6-0.20220930104621-17e8dac29df8              |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.3                                            |                                    | false  | true             |
@@ -683,7 +684,7 @@ _Generated on Wed, 05 Apr 2023 09:32:02 UTC for commit [e8f2e10][0]._
 | github.com/kr/pty                                                                       | v1.1.8                                            |                                    | false  | true             |
 | github.com/kr/text                                                                      | v0.2.0                                            |                                    | false  | true             |
 | github.com/kylelemons/godebug                                                           | v1.1.0                                            |                                    | false  | true             |
-| github.com/leodido/go-urn                                                               | v1.2.1                                            | v1.2.2                             | false  | true             |
+| github.com/leodido/go-urn                                                               | v1.2.1                                            | v1.2.3                             | false  | true             |
 | github.com/lestrrat-go/backoff/v2                                                       | v2.0.8                                            |                                    | false  | true             |
 | github.com/lestrrat-go/blackmagic                                                       | v1.0.0                                            | v1.0.1                             | false  | true             |
 | github.com/lestrrat-go/httpcc                                                           | v1.0.1                                            |                                    | false  | true             |
