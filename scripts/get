@@ -157,6 +157,10 @@ if command -v cosign >/dev/null; then
         curl_retry "$BASE_URL/$FILE" -o "$FILE"
     done
 
+    GIT_REF=refs/heads/main
+    if git ls-remote --exit-code --tags https://github.com/cri-o/cri-o "refs/tags/$VERSION" >/dev/null; then
+        GIT_REF="refs/tags/$VERSION"
+    fi
     BLOBS=(
         "$TARBALL"
         "$SPDX"
@@ -164,8 +168,10 @@ if command -v cosign >/dev/null; then
     for BLOB in "${BLOBS[@]}"; do
         echo "Verifying blob $BLOB"
         COSIGN_EXPERIMENTAL=1 cosign verify-blob "$BLOB" \
-            --certificate-identity-regexp '.*' \
-            --certificate-oidc-issuer-regexp '.*' \
+            --certificate-identity "https://github.com/cri-o/cri-o/.github/workflows/test.yml@$GIT_REF" \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --certificate-github-workflow-repository cri-o/cri-o \
+            --certificate-github-workflow-ref "$GIT_REF" \
             --signature "$BLOB.sig" \
             --certificate "$BLOB.cert"
     done

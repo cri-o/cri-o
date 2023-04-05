@@ -134,8 +134,10 @@ To verify the artifact signatures via [cosign](https://github.com/sigstore/cosig
 `+"```"+`console
 > export COSIGN_EXPERIMENTAL=1
 > cosign verify-blob cri-o.amd64.%s.tar.gz \
-    --certificate-identity-regexp '.*' \
-    --certificate-oidc-issuer-regexp '.*' \
+    --certificate-identity https://github.com/cri-o/cri-o/.github/workflows/test.yml@refs/tags/%s \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/cri-o \
+    --certificate-github-workflow-ref refs/tags/%s \
     --signature cri-o.amd64.%s.tar.gz.sig \
     --certificate cri-o.amd64.%s.tar.gz.cert
 `+"```"+`
@@ -167,6 +169,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
+		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
