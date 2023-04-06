@@ -409,8 +409,8 @@ github.com/cespare/xxhash/v2 v2.1.2/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XL
 github.com/cespare/xxhash/v2 v2.2.0 h1:DC2CZ1Ep5Y4k3ZQ899DldepgrayRUGE6BBZ/cd9Cj44=
 github.com/cespare/xxhash/v2 v2.2.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
 github.com/chai2010/gettext-go v1.0.2/go.mod h1:y+wnP2cHYaVj19NZhYKAwEMH2CI1gNHeQQ+5AjwawxA=
-github.com/checkpoint-restore/checkpointctl v0.0.0-20221220135617-5b24f461ba2f h1:WHi5EdyciXKZgYkrSb6AMT+da4uL752/CLtSD9rH88o=
-github.com/checkpoint-restore/checkpointctl v0.0.0-20221220135617-5b24f461ba2f/go.mod h1:rZPubvdqxUqsIfF1dUZg/T3kis2FQ79OHqsh3/VfVEk=
+github.com/checkpoint-restore/checkpointctl v0.1.0 h1:xa12IvEO9mtIltQ519h9sbwBNBiKK89EsT9JSZAWsko=
+github.com/checkpoint-restore/checkpointctl v0.1.0/go.mod h1:nK+iL+C5Sld3aybCOUt55XBEvwALi/WNTSadHUk+cZM=
 github.com/checkpoint-restore/go-criu/v5 v5.3.0/go.mod h1:E/eQpaFtUKGOOSEBZgmKAcn+zUUwWxqcaKZlF54wK8E=
 github.com/checkpoint-restore/go-criu/v6 v6.3.0 h1:mIdrSO2cPNWQY1truPg6uHLXyKHk3Z5Odx4wjKOASzA=
 github.com/checkpoint-restore/go-criu/v6 v6.3.0/go.mod h1:rrRTN/uSwY2X+BPRl/gkulo9gsKOSAeVp9/K2tv7xZI=

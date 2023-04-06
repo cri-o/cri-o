@@ -398,7 +398,7 @@ github.com/census-instrumentation/opencensus-proto/gen-go/trace/v1
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/checkpoint-restore/checkpointctl v0.0.0-20221220135617-5b24f461ba2f
+# github.com/checkpoint-restore/checkpointctl v0.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
 # github.com/checkpoint-restore/go-criu/v6 v6.3.0

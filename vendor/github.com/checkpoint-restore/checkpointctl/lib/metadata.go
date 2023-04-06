@@ -10,7 +10,6 @@ import (
 	"time"
 
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -56,6 +55,22 @@ type ContainerdStatus struct {
 	Message    string
 }
 
+// This structure is used by the KubernetesContainerCheckpointMetadata structure
+type KubernetesCheckpoint struct {
+	Archive   string `json:"archive,omitempty"`
+	Size      int64  `json:"size,omitempty"`
+	Timestamp int64  `json:"timestamp,omitempty"`
+}
+
+// This structure is the basis for Kubernetes to track how many checkpoints
+// for a certain container have been created.
+type KubernetesContainerCheckpointMetadata struct {
+	PodFullName   string                 `json:"podFullName,omitempty"`
+	ContainerName string                 `json:"containerName,omitempty"`
+	TotalSize     int64                  `json:"totalSize,omitempty"`
+	Checkpoints   []KubernetesCheckpoint `json:"checkpoints"`
+}
+
 func ReadContainerCheckpointSpecDump(checkpointDirectory string) (*spec.Spec, string, error) {
 	var specDump spec.Spec
 	specDumpFile, err := ReadJSONFile(&specDump, checkpointDirectory, SpecDumpFile)
@@ -88,11 +103,11 @@ func ReadContainerCheckpointStatusFile(checkpointDirectory string) (*ContainerdS
 func WriteJSONFile(v interface{}, dir, file string) (string, error) {
 	fileJSON, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return "", errors.Wrapf(err, "Error marshalling JSON")
+		return "", fmt.Errorf("error marshalling JSON: %w", err)
 	}
 	file = filepath.Join(dir, file)
 	if err := os.WriteFile(file, fileJSON, 0o600); err != nil {
-		return "", errors.Wrapf(err, "Error writing to %q", file)
+		return "", err
 	}
 
 	return file, nil
@@ -102,10 +117,10 @@ func ReadJSONFile(v interface{}, dir, file string) (string, error) {
 	file = filepath.Join(dir, file)
 	content, err := os.ReadFile(file)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed to read %s", file)
+		return "", err
 	}
 	if err = json.Unmarshal(content, v); err != nil {
-		return "", errors.Wrapf(err, "failed to unmarshal %s", file)
+		return "", fmt.Errorf("failed to unmarshal %s: %w", file, err)
 	}
 
 	return file, nil
