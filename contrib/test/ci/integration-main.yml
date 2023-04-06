@@ -8,6 +8,9 @@
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tasks:
+    - name: build and install cri-o
+      include: "build/cri-o.yml"
+
     - name: enable and start CRI-O
       become: yes
       systemd:
