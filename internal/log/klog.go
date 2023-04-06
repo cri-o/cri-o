@@ -56,14 +56,14 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...interface{}) {
 
 		switch v.(type) {
 		case string, error:
-			b.WriteString(fmt.Sprintf("%s=%q", k, v))
+			fmt.Fprintf(b, "%s=%q", k, v)
 		case []byte:
-			b.WriteString(fmt.Sprintf("%s=%+q", k, v))
+			fmt.Fprintf(b, "%s=%+q", k, v)
 		default:
 			if _, ok := v.(fmt.Stringer); ok {
-				b.WriteString(fmt.Sprintf("%s=%q", k, v))
+				fmt.Fprintf(b, "%s=%q", k, v)
 			} else {
-				b.WriteString(fmt.Sprintf("%s=%+v", k, v))
+				fmt.Fprintf(b, "%s=%+v", k, v)
 			}
 		}
 

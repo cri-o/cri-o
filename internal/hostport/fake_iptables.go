@@ -242,7 +242,7 @@ func (f *fakeIPTables) Protocol() utiliptables.Protocol {
 // nolint:interfacer
 func saveChain(chain *fakeChain, data *bytes.Buffer) {
 	for _, rule := range chain.rules {
-		data.WriteString(fmt.Sprintf("-A %s %s\n", chain.name, rule))
+		fmt.Fprintf(data, "-A %s %s\n", chain.name, rule)
 	}
 }
 
@@ -252,11 +252,11 @@ func (f *fakeIPTables) SaveInto(tableName utiliptables.Table, buffer *bytes.Buff
 		return err
 	}
 
-	buffer.WriteString(fmt.Sprintf("*%s\n", table.name))
+	fmt.Fprintf(buffer, "*%s\n", table.name)
 
 	rules := bytes.NewBuffer(nil)
 	for _, chain := range table.chains {
-		buffer.WriteString(fmt.Sprintf(":%s - [0:0]\n", string(chain.name)))
+		fmt.Fprintf(buffer, ":%s - [0:0]\n", string(chain.name))
 		saveChain(chain, rules)
 	}
 	buffer.Write(rules.Bytes())
