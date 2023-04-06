@@ -197,7 +197,7 @@ github.com/Microsoft/hcsshim/osversion
 # github.com/OneOfOne/xxhash v1.2.8
 ## explicit; go 1.11
 github.com/OneOfOne/xxhash
-# github.com/ProtonMail/go-crypto v0.0.0-20221026131551-cf6655e29de4
+# github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8
 ## explicit; go 1.13
 github.com/ProtonMail/go-crypto/bitcurves
 github.com/ProtonMail/go-crypto/brainpool
@@ -1280,6 +1280,9 @@ github.com/google/go-github/v45/github
 # github.com/google/go-github/v48 v48.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v48/github
+# github.com/google/go-github/v50 v50.2.0
+## explicit; go 1.17
+github.com/google/go-github/v50/github
 # github.com/google/go-intervals v0.0.2
 ## explicit; go 1.12
 github.com/google/go-intervals/intervalset
@@ -2349,7 +2352,7 @@ go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zapgrpc
 go.uber.org/zap/zaptest
-# golang.org/x/crypto v0.5.0
+# golang.org/x/crypto v0.7.0
 ## explicit; go 1.17
 golang.org/x/crypto/bcrypt
 golang.org/x/crypto/blake2b
@@ -2361,6 +2364,7 @@ golang.org/x/crypto/cryptobyte/asn1
 golang.org/x/crypto/curve25519
 golang.org/x/crypto/curve25519/internal/field
 golang.org/x/crypto/ed25519
+golang.org/x/crypto/hkdf
 golang.org/x/crypto/internal/alias
 golang.org/x/crypto/internal/poly1305
 golang.org/x/crypto/nacl/box
@@ -2397,7 +2401,6 @@ golang.org/x/mod/sumdb/note
 # golang.org/x/net v0.8.0
 ## explicit; go 1.17
 golang.org/x/net/context
-golang.org/x/net/context/ctxhttp
 golang.org/x/net/html
 golang.org/x/net/html/atom
 golang.org/x/net/html/charset
@@ -2410,7 +2413,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.4.0
+# golang.org/x/oauth2 v0.6.0
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
