@@ -49,10 +49,7 @@
 - name: clone build and install kubetest                                                                     
   include: "build/kubetest.yml"                                                                              
   vars:                                                                                                      
-    force_clone: true  
-
-- name: clone and build crio 
-  include: build/cri-o.yml
+    force_clone: true
 
 - name: Ensures crio conf dir exists
   file: path=/etc/crio/crio.conf.d state=directory
