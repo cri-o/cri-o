@@ -54,6 +54,10 @@
         line: "skip \"{{ item  | regex_replace('\"', \"'\") }} not working in kata\""
         state: present
       with_items: "{{ kata_skip_ctr_tests }}"
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
+
 
   when: "build_kata | bool"
 

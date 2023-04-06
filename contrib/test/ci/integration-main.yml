@@ -8,6 +8,10 @@
   vars_files:
     - "{{ playbook_dir }}/vars.yml"
   tasks:
+    - name: install kata
+      include: "build/kata.yml"
+      when: "build_kata | default(False) | bool"
+
     - name: build and install cri-o
       include: "build/cri-o.yml"
 

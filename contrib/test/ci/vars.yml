@@ -44,7 +44,7 @@ ssh_user: "{{ lookup('env','USER') }}"
 ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 kata_int_test_env:
-    CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/usr/bin/containerd-shim-kata-v2:/run/vc:vm"
+    CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
     CONTAINER_RUNTIME: "containerd-shim-kata-v2"
     CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
     RUNTIME_NAME: "containerd-shim-kata-v2"
@@ -52,6 +52,9 @@ kata_int_test_env:
     RUNTIME_TYPE: "vm"
     TESTFLAGS: "ctr.bats"
     JOBS: "1"  # TODO: add support to parallelization in kata (causes failures in the integration tests)
+    PRIVILEGED_WITHOUT_HOST_DEVICES: true
+    RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+    PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
 
 kata_skip_ctr_tests:
   - 'test "ctr lifecycle"'
