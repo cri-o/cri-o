@@ -48,6 +48,9 @@ const (
 	// SeccompNotifierActionAnnotation indicates a container is allowed to use the seccomp notifier feature.
 	SeccompNotifierActionAnnotation = "io.kubernetes.cri-o.seccompNotifierAction"
 
+	// UmaskAnnotation is the umask to use in the container init process
+	UmaskAnnotation = "io.kubernetes.cri-o.umask"
+
 	// SeccompNotifierActionStop indicates that a container should be stopped if used via the SeccompNotifierActionAnnotation key.
 	SeccompNotifierActionStop = "stop"
 )
@@ -67,4 +70,5 @@ var AllAllowedAnnotations = []string{
 	CPUCStatesAnnotation,
 	CPUFreqGovernorAnnotation,
 	SeccompNotifierActionAnnotation,
+	UmaskAnnotation,
 }
