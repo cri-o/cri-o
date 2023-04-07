@@ -378,10 +378,12 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 		},
 	})
 
-	pSpec := c.Spec().Process
+	// It's important to make a spec copy here to not overwrite the initial
+	// process spec
+	pSpec := *c.Spec().Process
 	pSpec.Args = cmd
 
-	any, err := typeurl.MarshalAny(pSpec)
+	any, err := typeurl.MarshalAny(&pSpec)
 	if err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
