@@ -105,9 +105,9 @@ function teardown() {
 	EXPECTED_EXIT_STATUS=137 wait_until_exit "$CTR"
 
 	# Assert
-	grep -q "Got seccomp notifier message for container ID: $CTR (syscall = chmod)" "$CRIO_LOG"
+	grep -q "Got seccomp notifier message for container ID: $CTR (syscall = swapoff)" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.status.reason == "seccomp killed"'
-	crictl inspect "$CTR" | jq -e '.status.message == "Used forbidden syscalls: chmod (5x), swapoff (5x)"'
+	crictl inspect "$CTR" | jq -e '.status.message == "Used forbidden syscalls: swapoff (5x)"'
 }
 
 @test "seccomp notifier should not work if annotation is not allowed" {
