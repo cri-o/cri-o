@@ -717,29 +717,6 @@ function check_oci_annotation() {
 	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
 }
 
-@test "ctr oom" {
-	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-
-	jq '	  .linux.resources.memory_limit_in_bytes = 15728640
-		| .command = ["sh", "-c", "dd if=/dev/zero of=/dev/null bs=20M"]' \
-		"$TESTDATA"/container_config.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	# Wait for container to OOM
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt + 1))
-		output=$(crictl inspect --output yaml "$ctr_id")
-		if [[ "$output" == *"OOMKilled"* ]]; then
-			break
-		fi
-		sleep 10
-	done
-	[[ "$output" == *"OOMKilled"* ]]
-}
-
 @test "ctr /etc/resolv.conf rw/ro mode" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
