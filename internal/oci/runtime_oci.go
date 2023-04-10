@@ -1502,6 +1502,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	args = append(
 		args,
 		"checkpoint",
+		"--file-locks",
 		"--image-path",
 		imagePath,
 		"--work-path",
