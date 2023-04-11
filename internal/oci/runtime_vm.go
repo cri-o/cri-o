@@ -273,7 +273,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 		if err == nil {
 			// create a file on the exitsDir so that cri-o server can detect it
 			path := filepath.Join(r.exitsPath+"/", c.ID())
-			if fileErr := os.WriteFile(path, []byte("Exited"), 0o644); err != nil {
+			if fileErr := os.WriteFile(path, []byte("Exited"), 0o644); fileErr != nil {
 				log.Warnf(ctx, "Unable to write exit file %v", fileErr)
 			}
 			if err1 := r.updateContainerStatus(ctx, c); err1 != nil {

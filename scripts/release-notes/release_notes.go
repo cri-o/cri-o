@@ -112,7 +112,7 @@ func run() error {
 		logrus.Infof("Not using git tag because `git describe` failed: %v", err)
 	}
 
-	if _, err := templateFile.WriteString(fmt.Sprintf(`# CRI-O %s
+	if _, err := fmt.Fprintf(templateFile, `# CRI-O %s
 
 The release notes have been generated for the commit range
 [%s...%s](https://github.com/cri-o/cri-o/compare/%s...%s) on %s.
@@ -194,7 +194,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		bundleVersion, bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		startTag,
-	)); err != nil {
+	); err != nil {
 		return fmt.Errorf("writing tmplate to file: %w", err)
 	}
 
