@@ -133,6 +133,7 @@ the container runtime configuration.
 
 **seccomp_profile**=""
   Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the internal default seccomp profile will be used.
+  This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
 **seccomp_use_default_when_empty**=true
   Changes the meaning of an empty seccomp profile.  By default (and according to CRI spec), an empty profile means unconfined.

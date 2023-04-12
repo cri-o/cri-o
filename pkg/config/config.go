@@ -222,6 +222,7 @@ type Runtimes map[string]*RuntimeHandler
 type RuntimeConfig struct {
 	// SeccompUseDefaultWhenEmpty specifies whether the default profile
 	// should be used when an empty one is specified.
+	// This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 	SeccompUseDefaultWhenEmpty bool `toml:"seccomp_use_default_when_empty"`
 
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`

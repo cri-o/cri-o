@@ -881,6 +881,8 @@ const templateStringCrioRuntimeSeccompUseDefaultWhenEmpty = `# Changes the meani
 # (and according to CRI spec), an empty profile means unconfined.
 # This option tells CRI-O to treat an empty profile as the default profile,
 # which might increase security.
+# This option is currently deprecated,
+# and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 {{ $.Comment }}seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
 
 `
