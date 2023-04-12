@@ -10,10 +10,10 @@ import (
 	reflect "reflect"
 	syscall "syscall"
 
+	resize "github.com/containers/common/pkg/resize"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
-	remotecommand "k8s.io/client-go/tools/remotecommand"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -41,7 +41,7 @@ func (m *MockRuntimeImpl) EXPECT() *MockRuntimeImplMockRecorder {
 }
 
 // AttachContainer mocks base method.
-func (m *MockRuntimeImpl) AttachContainer(arg0 context.Context, arg1 *oci.Container, arg2 io.Reader, arg3, arg4 io.WriteCloser, arg5 bool, arg6 <-chan remotecommand.TerminalSize) error {
+func (m *MockRuntimeImpl) AttachContainer(arg0 context.Context, arg1 *oci.Container, arg2 io.Reader, arg3, arg4 io.WriteCloser, arg5 bool, arg6 <-chan resize.TerminalSize) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AttachContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 	ret0, _ := ret[0].(error)
@@ -112,7 +112,7 @@ func (mr *MockRuntimeImplMockRecorder) DeleteContainer(arg0, arg1 interface{}) *
 }
 
 // ExecContainer mocks base method.
-func (m *MockRuntimeImpl) ExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 io.Reader, arg4, arg5 io.WriteCloser, arg6 bool, arg7 <-chan remotecommand.TerminalSize) error {
+func (m *MockRuntimeImpl) ExecContainer(arg0 context.Context, arg1 *oci.Container, arg2 []string, arg3 io.Reader, arg4, arg5 io.WriteCloser, arg6 bool, arg7 <-chan resize.TerminalSize) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ExecContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
 	ret0, _ := ret[0].(error)

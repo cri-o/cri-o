@@ -26,6 +26,7 @@ import (
 	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
+	"github.com/containers/common/pkg/resize"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
@@ -37,9 +38,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	anypb "google.golang.org/protobuf/types/known/anypb"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	kioutil "k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	utilexec "k8s.io/utils/exec"
 )
@@ -288,11 +287,11 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.ExecContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.ExecContainer() end")
 
-	exitCode, err := r.execContainerCommon(ctx, c, cmd, 0, stdin, stdout, stderr, tty, resize)
+	exitCode, err := r.execContainerCommon(ctx, c, cmd, 0, stdin, stdout, stderr, tty, resizeChan)
 	if err != nil {
 		return err
 	}
@@ -306,14 +305,27 @@ func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []strin
 	return nil
 }
 
+// writeCloserWrapper represents a WriteCloser whose closer operation is noop.
+type writeCloserWrapper struct {
+	Writer io.Writer
+}
+
+func (w *writeCloserWrapper) Write(buf []byte) (int, error) {
+	return w.Writer.Write(buf)
+}
+
+func (w *writeCloserWrapper) Close() error {
+	return nil
+}
+
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
 func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	stdout := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stdoutBuf, maxExecSyncSize))
-	stderr := kioutil.WriteCloserWrapper(kioutil.LimitWriter(&stderrBuf, maxExecSyncSize))
+	stdout := &writeCloserWrapper{kioutil.LimitWriter(&stdoutBuf, maxExecSyncSize)}
+	stderr := &writeCloserWrapper{kioutil.LimitWriter(&stderrBuf, maxExecSyncSize)}
 
 	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
@@ -335,7 +347,7 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	}, nil
 }
 
-func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
+func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) (exitCode int32, retErr error) {
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
@@ -421,8 +433,8 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	closeIOChan = nil
 
 	// Initialize terminal resizing if necessary
-	if resize != nil {
-		kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	if resizeChan != nil {
+		resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
 			log.Debugf(ctx, "Got a resize event: %+v", size)
 
 			if err := r.resizePty(c.ID(), execID, size); err != nil {
@@ -930,12 +942,12 @@ func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig sysca
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.AttachContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.AttachContainer() end")
 
 	// Initialize terminal resizing
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
 
 		if err := r.resizePty(c.ID(), "", size); err != nil {
@@ -1031,7 +1043,7 @@ func (r *runtimeVM) remove(ctrID, execID string) error {
 	return nil
 }
 
-func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalSize) error {
+func (r *runtimeVM) resizePty(ctrID, execID string, size resize.TerminalSize) error {
 	_, err := r.task.ResizePty(r.ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,

@@ -8,12 +8,11 @@ import (
 	"io"
 	"os/exec"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/containers/storage/pkg/pools"
 	"github.com/creack/pty"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	"k8s.io/client-go/tools/remotecommand"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 )
 
 func Kill(pid int) error {
@@ -24,12 +23,12 @@ func Kill(pid int) error {
 	return nil
 }
 
-func setSize(fd uintptr, size remotecommand.TerminalSize) error {
+func setSize(fd uintptr, size resize.TerminalSize) error {
 	winsize := &unix.Winsize{Row: size.Height, Col: size.Width}
 	return unix.IoctlSetWinsize(int(fd), unix.TIOCSWINSZ, winsize)
 }
 
-func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-chan remotecommand.TerminalSize) error {
+func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan resize.TerminalSize) error {
 	p, err := pty.Start(execCmd)
 	if err != nil {
 		return err
@@ -39,7 +38,7 @@ func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resize <-
 	// make sure to close the stdout stream
 	defer stdout.Close()
 
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
 		if err := setSize(p.Fd(), size); err != nil {
 			logrus.Warnf("Unable to set terminal size: %v", err)
 		}

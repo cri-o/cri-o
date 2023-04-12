@@ -238,6 +238,7 @@ func setCPUSLoadBalancingWithRetry(ctx context.Context, c *oci.Container, enable
 	// the retry will not fix it for 100% but should reduce the possibility for failures to minimum
 	// TODO: re-visit once we will have some more acceptable cgroups hierarchy to disable CPU load balancing
 	// correctly via cgroups, see -https://bugzilla.redhat.com/show_bug.cgi?id=1946801
+	//nolint:staticcheck
 	return wait.PollImmediate(time.Second, 5*time.Second, func() (bool, error) {
 		if err := setCPUSLoadBalancing(c, enable, schedDomainDir); err != nil {
 			if os.IsNotExist(err) {
@@ -264,7 +265,7 @@ func setCPUSLoadBalancing(c *oci.Container, enable bool, schedDomainDir string) 
 		return err
 	}
 
-	for _, cpu := range cpus.ToSlice() {
+	for _, cpu := range cpus.List() {
 		cpuSchedDomainDir := fmt.Sprintf("%s/cpu%d", schedDomainDir, cpu)
 		err := filepath.Walk(cpuSchedDomainDir, func(path string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -436,7 +437,7 @@ func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir st
 		return err
 	}
 
-	for _, cpu := range cpus.ToSlice() {
+	for _, cpu := range cpus.List() {
 		latencyFile := fmt.Sprintf("%s/cpu%d/power/pm_qos_resume_latency_us", cpuDir, cpu)
 		cpuPowerSaveDir := fmt.Sprintf("%s/cpu%d/power", cpuSaveDir, cpu)
 		latencyFileOrig := path.Join(cpuPowerSaveDir, "pm_qos_resume_latency_us")
@@ -534,7 +535,7 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 		return err
 	}
 
-	for _, cpu := range cpus.ToSlice() {
+	for _, cpu := range cpus.List() {
 		governorFile := fmt.Sprintf("%s/cpu%d/cpufreq/scaling_governor", cpuDir, cpu)
 		cpuFreqSaveDir := fmt.Sprintf("%s/cpu%d/cpufreq", cpuSaveDir, cpu)
 		governorFileOrig := path.Join(cpuFreqSaveDir, "scaling_governor")

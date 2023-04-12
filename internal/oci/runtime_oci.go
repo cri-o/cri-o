@@ -16,6 +16,7 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/containers/common/pkg/resize"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/podman/v4/pkg/criu"
@@ -33,9 +34,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubecontainer "k8s.io/kubernetes/pkg/kubelet/container"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -394,7 +393,7 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -416,7 +415,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	}
 	var cmdErr, copyError error
 	if tty {
-		cmdErr = ttyCmd(execCmd, stdin, stdout, resize)
+		cmdErr = ttyCmd(execCmd, stdin, stdout, resizeChan)
 	} else {
 		var r, w *os.File
 		if stdin != nil {
@@ -1142,7 +1141,7 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	if c.Spoofed() {
@@ -1156,7 +1155,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	}
 	defer controlFile.Close()
 
-	kubecontainer.HandleResizing(resize, func(size remotecommand.TerminalSize) {
+	resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
