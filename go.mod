@@ -11,11 +11,11 @@ require (
 	github.com/checkpoint-restore/go-criu/v6 v6.3.0
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.0-beta.4
+	github.com/containerd/containerd v1.7.0
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.3.0
-	github.com/containerd/ttrpc v1.1.1-0.20230127163717-32fab2374638
+	github.com/containerd/ttrpc v1.2.1
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
@@ -84,7 +84,7 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/kubernetes v1.27.0
 	k8s.io/release v0.15.0
-	k8s.io/utils v0.0.0-20230209194617-a36077c30491
+	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	mvdan.cc/sh/v3 v3.6.0
 	sigs.k8s.io/release-sdk v0.10.0
 	sigs.k8s.io/release-utils v0.7.3
@@ -94,10 +94,10 @@ require (
 require (
 	bitbucket.org/creachadair/shell v0.0.7 // indirect
 	capnproto.org/go/capnp/v3 v3.0.0-alpha.9 // indirect
-	cloud.google.com/go v0.107.0 // indirect
+	cloud.google.com/go v0.110.0 // indirect
 	cloud.google.com/go/compute v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	cloud.google.com/go/iam v0.8.0 // indirect
+	cloud.google.com/go/iam v0.12.0 // indirect
 	cloud.google.com/go/storage v1.28.1 // indirect
 	cuelang.org/go v0.4.3 // indirect
 	github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper v0.2.0 // indirect
@@ -111,7 +111,7 @@ require (
 	github.com/Azure/go-autorest/autorest/date v0.3.0 // indirect
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
-	github.com/Microsoft/hcsshim v0.10.0-rc.5 // indirect
+	github.com/Microsoft/hcsshim v0.10.0-rc.7 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/docker/go-metrics v0.0.1 // indirect
 	github.com/docker/go-plugins-helpers v0.0.0-20211224144127-6eecb7beb651 // indirect
 	github.com/dustin/go-humanize v1.0.0 // indirect
-	github.com/emicklei/go-restful/v3 v3.9.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/emicklei/proto v1.6.15 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/envoyproxy/go-control-plane v0.10.3 // indirect
@@ -239,7 +239,7 @@ require (
 	github.com/google/renameio/v2 v2.0.0 // indirect
 	github.com/google/shlex v0.0.0-20191202100458-e7afc7fbc510 // indirect
 	github.com/google/trillian v1.5.0 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.2.1 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.2.3 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
@@ -367,7 +367,7 @@ require (
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
 	github.com/zeebo/errs v1.2.2 // indirect
-	go.etcd.io/bbolt v1.3.6 // indirect
+	go.etcd.io/bbolt v1.3.7 // indirect
 	go.etcd.io/etcd/api/v3 v3.6.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.6.0-alpha.0 // indirect
 	go.etcd.io/etcd/client/v2 v2.306.0-alpha.0 // indirect
@@ -398,9 +398,9 @@ require (
 	golang.org/x/time v0.2.0 // indirect
 	golang.org/x/tools v0.7.0 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
-	google.golang.org/api v0.108.0 // indirect
+	google.golang.org/api v0.110.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20230131230820-1c016267d619 // indirect
+	google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4 // indirect
 	gopkg.in/cheggaaa/pb.v1 v1.0.28 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
@@ -410,7 +410,7 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/component-base v0.26.0 // indirect
+	k8s.io/component-base v0.26.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20230308215209-15aac26d736a // indirect
 	mvdan.cc/editorconfig v0.2.0 // indirect
 	sigs.k8s.io/bom v0.4.1 // indirect
