@@ -10,13 +10,12 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/common/pkg/resize"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-
-	"k8s.io/client-go/tools/remotecommand"
 )
 
 const (
@@ -60,7 +59,7 @@ type RuntimeImpl interface {
 	CreateContainer(context.Context, *Container, string, bool) error
 	StartContainer(context.Context, *Container) error
 	ExecContainer(context.Context, *Container, []string, io.Reader, io.WriteCloser, io.WriteCloser,
-		bool, <-chan remotecommand.TerminalSize) error
+		bool, <-chan resize.TerminalSize) error
 	ExecSyncContainer(context.Context, *Container, []string, int64) (*types.ExecSyncResponse, error)
 	UpdateContainer(context.Context, *Container, *rspec.LinuxResources) error
 	StopContainer(context.Context, *Container, int64) error
@@ -71,7 +70,7 @@ type RuntimeImpl interface {
 	ContainerStats(context.Context, *Container, string) (*types.ContainerStats, error)
 	SignalContainer(context.Context, *Container, syscall.Signal) error
 	AttachContainer(context.Context, *Container, io.Reader, io.WriteCloser, io.WriteCloser,
-		bool, <-chan remotecommand.TerminalSize) error
+		bool, <-chan resize.TerminalSize) error
 	PortForwardContainer(context.Context, *Container, string,
 		int32, io.ReadWriteCloser) error
 	ReopenContainerLog(context.Context, *Container) error
@@ -238,7 +237,7 @@ func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	impl, err := r.RuntimeImpl(c)
@@ -246,7 +245,7 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 		return err
 	}
 
-	return impl.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resize)
+	return impl.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
 }
 
 // ExecSyncContainer execs a command in a container and returns it's stdout, stderr and return code.
@@ -370,7 +369,7 @@ func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resize <-chan remotecommand.TerminalSize) error {
+func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	impl, err := r.RuntimeImpl(c)
@@ -378,7 +377,7 @@ func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream
 		return err
 	}
 
-	return impl.AttachContainer(ctx, c, inputStream, outputStream, errorStream, tty, resize)
+	return impl.AttachContainer(ctx, c, inputStream, outputStream, errorStream, tty, resizeChan)
 }
 
 // PortForwardContainer forwards the specified port provides statistics of a container.

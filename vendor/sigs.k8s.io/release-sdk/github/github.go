@@ -25,8 +25,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
-	"github.com/google/go-github/v48/github"
+	"github.com/google/go-github/v50/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -146,6 +147,9 @@ type Client interface {
 	ListIssues(
 		context.Context, string, string, *github.IssueListByRepoOptions,
 	) ([]*github.Issue, *github.Response, error)
+	ListComments(
+		context.Context, string, string, int, *github.IssueListCommentsOptions,
+	) ([]*github.IssueComment, *github.Response, error)
 }
 
 // NewIssueOptions is a struct of optional fields for new issues
@@ -490,6 +494,20 @@ func (g *githubClient) ListIssues(
 	}
 
 	return issues, response, nil
+}
+
+func (g *githubClient) ListComments(
+	ctx context.Context,
+	owner, repo string,
+	number int,
+	opts *github.IssueListCommentsOptions,
+) ([]*github.IssueComment, *github.Response, error) {
+	comments, response, err := g.Issues.ListComments(ctx, owner, repo, number, opts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching comments from issue: %w", err)
+	}
+
+	return comments, response, nil
 }
 
 // SetClient can be used to manually set the internal GitHub client
@@ -1098,4 +1116,56 @@ func (g *GitHub) ListIssues(owner, repo string, state IssueState) ([]*github.Iss
 	}
 
 	return issues, nil
+}
+
+// Sort specifies how to sort comments. Possible values are: created, updated.
+type Sort string
+
+// SortDirection in which to sort comments. Possible values are: asc, desc.
+type SortDirection string
+
+const (
+	SortCreated Sort = "created"
+	SortUpdated Sort = "updated"
+
+	SortDirectionAscending  SortDirection = "asc"
+	SortDirectionDescending SortDirection = "desc"
+)
+
+// ListComments lists all comments on the specified issue. Specifying an issue
+// number of 0 will return all comments on all issues for the repository.
+//
+// GitHub API docs: https://docs.github.com/en/rest/issues/comments#list-issue-comments
+// GitHub API docs: https://docs.github.com/en/rest/issues/comments#list-issue-comments-for-a-repository
+func (g *GitHub) ListComments(
+	owner, repo string,
+	issueNumber int,
+	sort Sort,
+	direction SortDirection,
+	since *time.Time,
+) ([]*github.IssueComment, error) {
+	options := &github.IssueListCommentsOptions{
+		Sort:        github.String(string(sort)),
+		Direction:   github.String(string(direction)),
+		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
+	}
+
+	if since != nil {
+		options.Since = since
+	}
+
+	comments := []*github.IssueComment{}
+	for {
+		more, r, err := g.Client().ListComments(context.Background(), owner, repo, issueNumber, options)
+		if err != nil {
+			return comments, fmt.Errorf("getting comments from client: %w", err)
+		}
+		comments = append(comments, more...)
+		if r.NextPage == 0 {
+			break
+		}
+		options.Page = r.NextPage
+	}
+
+	return comments, nil
 }

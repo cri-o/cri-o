@@ -34,7 +34,7 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 }
 
 func (c *CNIManager) pollUntilReady() {
-	// nolint:errcheck
+	// nolint:errcheck,staticcheck
 	_ = wait.PollInfinite(500*time.Millisecond, c.pollFunc)
 }
 

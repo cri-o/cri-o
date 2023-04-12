@@ -15,6 +15,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
+	"github.com/cri-o/cri-o/server/streaming"
 	. "github.com/cri-o/cri-o/test/framework"
 	imagetypesmock "github.com/cri-o/cri-o/test/mocks/containers/image/v5"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
@@ -27,7 +28,6 @@ import (
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/kubernetes/pkg/kubelet/cri/streaming"
 )
 
 // TestServer runs the created specs
@@ -170,7 +170,7 @@ var beforeEach = func() {
 	streamServerConfig := streaming.DefaultConfig
 	testStreamService = server.StreamService{}
 	testStreamService.SetRuntimeServer(sut)
-	server, err := streaming.NewServer(streamServerConfig, testStreamService)
+	server, err := streaming.NewServer(context.Background(), &streamServerConfig, testStreamService)
 	Expect(err).To(BeNil())
 	Expect(server).NotTo(BeNil())
 }
