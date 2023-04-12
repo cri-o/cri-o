@@ -2657,7 +2657,7 @@ google.golang.org/grpc/xds/internal/xdsclient/load
 google.golang.org/grpc/xds/internal/xdsclient/transport
 google.golang.org/grpc/xds/internal/xdsclient/xdsresource
 google.golang.org/grpc/xds/internal/xdsclient/xdsresource/version
-# google.golang.org/protobuf v1.29.1
+# google.golang.org/protobuf v1.30.0
 ## explicit; go 1.11
 google.golang.org/protobuf/cmd/protoc-gen-go
 google.golang.org/protobuf/cmd/protoc-gen-go/internal_gengo
