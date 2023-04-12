@@ -11,11 +11,11 @@
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
 
-- name: link crictl and critest
-  file:
+- name: copy crictl and critest to /usr/bin
+  copy:
     src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/build/bin/{{ item }}"
     dest: "/usr/bin/{{ item }}"
-    state: link
+    mode: "preserve"
   with_items:
     - "critest"
     - "crictl"

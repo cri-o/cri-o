@@ -38,7 +38,7 @@
     state: directory
 
 - name: Print critest version
-  command: critest --version
+  shell: critest --version
 
 - name: Generate image mirror config
   copy:
