@@ -15,7 +15,7 @@ require (
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.3.0
-	github.com/containerd/ttrpc v1.1.1-0.20230127163717-32fab2374638
+	github.com/containerd/ttrpc v1.2.1
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
