@@ -274,7 +274,8 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 	if idMappingsOptions != nil {
-		*idMappingsOptions = coptions.IDMappingOptions
+		idMappingsOptions.UIDMap = container.UIDMap
+		idMappingsOptions.GIDMap = container.GIDMap
 	}
 	if metadata.Pod {
 		logrus.Debugf("Created pod sandbox %q", container.ID)
