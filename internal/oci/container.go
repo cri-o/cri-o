@@ -79,6 +79,7 @@ type Container struct {
 	restore            bool
 	restoreArchive     string
 	restoreIsOCIImage  bool
+	resources          *types.ContainerResources
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -202,6 +203,7 @@ func (c *Container) CRIContainer() *types.Container {
 // SetSpec loads the OCI spec in the container struct
 func (c *Container) SetSpec(s *specs.Spec) {
 	c.spec = s
+	c.SetResources(s)
 }
 
 // Spec returns a copy of the spec for the container
@@ -709,4 +711,56 @@ func (c *Container) RestoreIsOCIImage() bool {
 
 func (c *Container) SetRestoreIsOCIImage(restoreIsOCIImage bool) {
 	c.restoreIsOCIImage = restoreIsOCIImage
+}
+
+// SetResources loads the OCI Spec.Linux.Resources in the container struct
+func (c *Container) SetResources(s *specs.Spec) {
+	if s.Linux != nil && s.Linux.Resources != nil {
+		linuxResources := s.Linux.Resources
+		resourceStatus := &types.ContainerResources{}
+		resourceStatus.Linux = &types.LinuxContainerResources{}
+		if linuxResources.CPU != nil {
+			resourceStatus.Linux.CpusetCpus = linuxResources.CPU.Cpus
+			resourceStatus.Linux.CpusetMems = linuxResources.CPU.Mems
+			if linuxResources.CPU.Period != nil {
+				resourceStatus.Linux.CpuPeriod = int64(*linuxResources.CPU.Period)
+			}
+			if linuxResources.CPU.Quota != nil {
+				resourceStatus.Linux.CpuQuota = *linuxResources.CPU.Quota
+			}
+			if linuxResources.CPU.Shares != nil {
+				resourceStatus.Linux.CpuShares = int64(*linuxResources.CPU.Shares)
+			}
+		}
+		if linuxResources.Memory != nil {
+			if linuxResources.Memory.Limit != nil {
+				resourceStatus.Linux.MemoryLimitInBytes = *linuxResources.Memory.Limit
+			}
+			if linuxResources.Memory.Swap != nil {
+				resourceStatus.Linux.MemorySwapLimitInBytes = *linuxResources.Memory.Swap
+			}
+		}
+		if s.Process != nil {
+			if s.Process.OOMScoreAdj != nil {
+				resourceStatus.Linux.OomScoreAdj = int64(*s.Process.OOMScoreAdj)
+			}
+		}
+		resourceStatus.Linux.Unified = make(map[string]string)
+		for key, value := range linuxResources.Unified {
+			resourceStatus.Linux.Unified[key] = value
+		}
+		resourceStatus.Linux.HugepageLimits = []*types.HugepageLimit{}
+		for _, entry := range linuxResources.HugepageLimits {
+			resourceStatus.Linux.HugepageLimits = append(resourceStatus.Linux.HugepageLimits, &types.HugepageLimit{
+				PageSize: entry.Pagesize,
+				Limit:    entry.Limit,
+			})
+		}
+		c.resources = resourceStatus
+	}
+}
+
+// GetResources returns a copy of the Linux resources from Container
+func (c *Container) GetResources() *types.ContainerResources {
+	return c.resources
 }
