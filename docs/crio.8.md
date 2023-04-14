@@ -368,7 +368,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
 
-**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified.
+**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified. This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
 **--selinux**: Enable selinux support.
 

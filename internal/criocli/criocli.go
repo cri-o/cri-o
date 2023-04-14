@@ -624,7 +624,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "seccomp-use-default-when-empty",
-			Usage:   "Use the default seccomp profile when an empty one is specified.",
+			Usage:   "Use the default seccomp profile when an empty one is specified. This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.",
 			EnvVars: []string{"CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY"},
 			Value:   defConf.Seccomp().UseDefaultWhenEmpty(),
 		},
