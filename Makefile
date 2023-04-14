@@ -458,6 +458,7 @@ bundle-test-e2e-conmonrs:
 bundles: ${BOM}
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64
+	contrib/bundle/build ppc64le
 
 get-script:
 	sed -i '/# INCLUDE/q' scripts/get

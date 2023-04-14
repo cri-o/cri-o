@@ -166,12 +166,35 @@ jobs:
             result/bin/crio-status
             result/bin/pinns
 
+  build-static-ppc64le:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v20
+        with:
+          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
+      - uses: cachix/cachix-action@v12
+        with:
+          name: cri-o-static
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          pushFilter: cri-o
+      - run: nix-build nix/default-ppc64le.nix
+      - run: file result/bin/crio
+      - uses: actions/upload-artifact@v3
+        with:
+          name: build-static-ppc64le
+          path: |
+            result/bin/crio
+            result/bin/crio-status
+            result/bin/pinns
+
   bundles:
     runs-on: ubuntu-latest
     needs:
       - build
       - build-static-amd64
       - build-static-arm64
+      - build-static-ppc64le
     steps:
       - uses: actions/checkout@v3
       - uses: actions/cache@v3
@@ -190,6 +213,10 @@ jobs:
         with:
           name: build-static-arm64
           path: bin/static-arm64
+      - uses: actions/download-artifact@v3
+        with:
+          name: build-static-ppc64le
+          path: bin/static-ppc64le
       - uses: actions/download-artifact@v3
         with:
           name: docs
