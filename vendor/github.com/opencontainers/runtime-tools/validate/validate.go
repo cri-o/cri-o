@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
@@ -88,7 +87,7 @@ func NewValidatorFromPath(bundlePath string, hostSpecific bool, platform string)
 	}
 
 	configPath := filepath.Join(bundlePath, specConfig)
-	content, err := ioutil.ReadFile(configPath)
+	content, err := os.ReadFile(configPath)
 	if err != nil {
 		return Validator{}, specerror.NewError(specerror.ConfigInRootBundleDir, err, rspec.Version)
 	}
