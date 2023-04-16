@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"golang.org/x/net/context"
@@ -27,12 +28,31 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 		networkCondition.Message = fmt.Sprintf("Network plugin returns error: %v", err)
 	}
 
-	return &types.StatusResponse{
+	resp := &types.StatusResponse{
 		Status: &types.RuntimeStatus{
 			Conditions: []*types.RuntimeCondition{
 				runtimeCondition,
 				networkCondition,
 			},
 		},
-	}, nil
+	}
+	if req.Verbose {
+		info, err := s.createRuntimeInfo()
+		if err != nil {
+			return nil, fmt.Errorf("creating runtime info: %w", err)
+		}
+		resp.Info = info
+	}
+	return resp, nil
+}
+
+func (s *Server) createRuntimeInfo() (map[string]string, error) {
+	config := map[string]interface{}{
+		"sandboxImage": s.config.ImageConfig.PauseImage,
+	}
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("marshal data: %w", err)
+	}
+	return map[string]string{"config": string(bytes)}, nil
 }
