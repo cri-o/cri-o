@@ -144,7 +144,7 @@ its `$PATH`. The same applies to the [SPDX](https://spdx.org) based bill of
 materials (SBOM), which gets automatically verified if the
 [bom](https://sigs.k8s.io/bom) tool is in `$PATH`.
 
-Beside `amd64` we also support the `arm64` bit architecture. This can be
+Besides `amd64`, we also support the `arm64` and `ppc64le` bit architectures. This can be
 selected via the script, too:
 
 ```console
@@ -164,7 +164,7 @@ tarball matching the format:
 https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
 ```
 
-where `$ARCH` can be `amd64` or `arm64` and `$REV` can be any git SHA or tag.
+where `$ARCH` can be `amd64` or `arm64` or `ppc64le` and `$REV` can be any git SHA or tag.
 Please be aware that using the latest `main` SHA might cause a race, because
 the CI has not finished publishing the artifacts yet or failed.
 
