@@ -78,7 +78,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 		// 1. XDG_RUNTIME_DIR -> XDG_RUNTIME_DIR/rootless-netns/XDG_RUNTIME_DIR
 		// 2. /run/systemd -> XDG_RUNTIME_DIR/rootless-netns/run/systemd (only if it exists)
 		// 3. XDG_RUNTIME_DIR/rootless-netns/resolv.conf -> /etc/resolv.conf or XDG_RUNTIME_DIR/rootless-netns/run/symlink/target
-		// 4. XDG_RUNTIME_DIR/rootless-netns/var/lib/cni -> /var/lib/cni (if /var/lib/cni does not exists use the parent dir)
+		// 4. XDG_RUNTIME_DIR/rootless-netns/var/lib/cni -> /var/lib/cni (if /var/lib/cni does not exist, use the parent dir)
 		// 5. XDG_RUNTIME_DIR/rootless-netns/run -> /run
 
 		// Create a new mount namespace,
@@ -124,7 +124,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 			// If /etc/resolv.conf has more than one symlink under /run, e.g.
 			// -> /run/systemd/resolve/stub-resolv.conf -> /run/systemd/resolve/resolv.conf
 			// we would put the netns resolv.conf file to the last path. However this will
-			// break dns because the second link does not exists in the mount ns.
+			// break dns because the second link does not exist in the mount ns.
 			// see https://github.com/containers/podman/issues/11222
 			//
 			// We also need to resolve all path components not just the last file.
@@ -255,7 +255,7 @@ func (r *RootlessNetNS) Do(toRun func() error) error {
 func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 	_, err := os.Stat(r.dir)
 	if os.IsNotExist(err) {
-		// the directory does not exists no need for cleanup
+		// the directory does not exist, so no need for cleanup
 		return nil
 	}
 	activeNetns := func(c *Container) bool {
@@ -322,7 +322,7 @@ func (r *RootlessNetNS) Cleanup(runtime *Runtime) error {
 }
 
 // GetRootlessNetNs returns the rootless netns object. If create is set to true
-// the rootless network namespace will be created if it does not exists already.
+// the rootless network namespace will be created if it does not already exist.
 // If called as root it returns always nil.
 // On success the returned RootlessCNI lock is locked and must be unlocked by the caller.
 func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
@@ -365,15 +365,26 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	netnsName := fmt.Sprintf("%s-%x", rootlessNetNsName, hash[:10])
 
 	path := filepath.Join(nsDir, netnsName)
-	ns, err := ns.GetNS(path)
+	nsReference, err := ns.GetNS(path)
 	if err != nil {
 		if !new {
 			// return an error if we could not get the namespace and should no create one
 			return nil, fmt.Errorf("getting rootless network namespace: %w", err)
 		}
+
+		// When the netns is not valid but the file exists we have to remove it first,
+		// https://github.com/containers/common/pull/1381 changed the behavior from
+		// NewNSWithName()so it will now error whe the file already exists.
+		// https://github.com/containers/podman/issues/17903#issuecomment-1494329622
+		if errors.As(err, &ns.NSPathNotNSErr{}) {
+			logrus.Infof("rootless netns is no longer valid: %v", err)
+			// ignore errors, if something is wrong NewNSWithName() will fail below anyway
+			_ = os.Remove(path)
+		}
+
 		// create a new namespace
 		logrus.Debugf("creating rootless network namespace with name %q", netnsName)
-		ns, err = netns.NewNSWithName(netnsName)
+		nsReference, err = netns.NewNSWithName(netnsName)
 		if err != nil {
 			return nil, fmt.Errorf("creating rootless network namespace: %w", err)
 		}
@@ -408,7 +419,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 		}
 		// Note we do not use --exit-fd, we kill this process by pid
 		cmdArgs = append(cmdArgs, "-c", "-r", "3")
-		cmdArgs = append(cmdArgs, "--netns-type=path", ns.Path(), "tap0")
+		cmdArgs = append(cmdArgs, "--netns-type=path", nsReference.Path(), "tap0")
 
 		cmd := exec.Command(path, cmdArgs...)
 		logrus.Debugf("slirp4netns command: %s", strings.Join(cmd.Args, " "))
@@ -540,7 +551,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 	// Important set rootlessNetNS as last step.
 	// Do not return any errors after this.
 	rootlessNetNS = &RootlessNetNS{
-		ns:   ns,
+		ns:   nsReference,
 		dir:  rootlessNetNsDir,
 		Lock: lock,
 	}

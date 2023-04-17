@@ -14,7 +14,7 @@
                     "writeOnly": true
                 },
                 "hash": {
-                    "description": "Specifies the hash algorithm and value encompassing the entire signed envelope",
+                    "description": "Specifies the hash algorithm and value encompassing the entire signed envelope; this is computed by the rekor server, client-provided values are ignored",
                     "type": "object",
                     "properties": {
                         "algorithm": {
@@ -36,7 +36,7 @@
                     "readOnly": true
                 },
                 "payloadHash": {
-                    "description": "Specifies the hash algorithm and value covering the payload within the DSSE envelope",
+                    "description": "Specifies the hash algorithm and value covering the payload within the DSSE envelope; this is computed by the rekor server, client-provided values are ignored",
                     "type": "object",
                     "properties": {
                         "algorithm": {

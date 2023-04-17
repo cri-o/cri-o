@@ -28,6 +28,7 @@ import (
 	"strings"
 
 	"github.com/sassoftware/relic/lib/pkcs7"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 )
 
@@ -211,5 +212,36 @@ func (k PublicKey) EmailAddresses() []string {
 
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
-	return k.EmailAddresses()
+	// combine identities in the subject and SANs
+	identities := k.EmailAddresses()
+	cert, err := x509.ParseCertificate(k.certs[0].Raw)
+	if err != nil {
+		// This should not happen from a valid PublicKey, but fail gracefully.
+		return identities
+	}
+	identities = append(identities, cryptoutils.GetSubjectAlternateNames(cert)...)
+	return identities
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	var identities []string
+
+	// pkcs7 structure may contain both a key and certificate chain
+	pemCert, err := cryptoutils.MarshalCertificateToPEM(k.certs[0])
+	if err != nil {
+		return nil, err
+	}
+	identities = append(identities, string(pemCert))
+	pemKey, err := cryptoutils.MarshalPublicKeyToPEM(k.key)
+	if err != nil {
+		return nil, err
+	}
+	identities = append(identities, string(pemKey))
+
+	// Subjects come from the certificate Subject and SANs
+	// SANs could include an email, IP address, DNS name, URI, or any other value in the SAN
+	identities = append(identities, k.Subjects()...)
+
+	return identities, nil
 }

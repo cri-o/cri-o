@@ -59,12 +59,12 @@ type StartOpts struct {
 
 // BootstrapParams is a JSON payload returned in stdout from shim.Start call.
 type BootstrapParams struct {
+	// Version is the version of shim parameters (expected 2 for shim v2)
+	Version int `json:"version"`
 	// Address is a address containerd should use to connect to shim.
 	Address string `json:"address"`
 	// Protocol is either TTRPC or GRPC.
 	Protocol string `json:"protocol"`
-	// Caps is a list of capabilities supported by shim implementation (reserved for future)
-	//Caps []string `json:"caps"`
 }
 
 type StopStatus struct {
@@ -147,6 +147,9 @@ var (
 
 const (
 	ttrpcAddressEnv = "TTRPC_ADDRESS"
+	grpcAddressEnv  = "GRPC_ADDRESS"
+	namespaceEnv    = "NAMESPACE"
+	maxVersionEnv   = "MAX_SHIM_VERSION"
 )
 
 func parseFlags() {
@@ -242,7 +245,7 @@ func (stm shimToManager) Stop(ctx context.Context, id string) (StopStatus, error
 	}, nil
 }
 
-// RunManager initialzes and runs a shim server
+// RunManager initializes and runs a shim server.
 // TODO(2.0): Rename to Run
 func RunManager(ctx context.Context, manager Manager, opts ...BinaryOpts) {
 	var config Config
@@ -325,7 +328,7 @@ func run(ctx context.Context, manager Manager, initFunc Init, name string, confi
 		if debugFlag {
 			logrus.SetLevel(logrus.DebugLevel)
 		}
-		logger := log.G(ctx).WithFields(logrus.Fields{
+		logger := log.G(ctx).WithFields(log.Fields{
 			"pid":       os.Getpid(),
 			"namespace": namespaceFlag,
 		})
@@ -504,7 +507,7 @@ func serve(ctx context.Context, server *ttrpc.Server, signals chan os.Signal, sh
 			log.G(ctx).WithError(err).Fatal("containerd-shim: ttrpc server failure")
 		}
 	}()
-	logger := log.G(ctx).WithFields(logrus.Fields{
+	logger := log.G(ctx).WithFields(log.Fields{
 		"pid":       os.Getpid(),
 		"path":      path,
 		"namespace": namespaceFlag,
