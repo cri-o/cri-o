@@ -46,5 +46,16 @@ var _ = t.Describe("Status", func() {
 				Expect(condition.Status).To(BeTrue())
 			}
 		})
+
+		It("should return info as part of a verbose response", func() {
+			// When
+			response, err := sut.Status(context.Background(),
+				&types.StatusRequest{Verbose: true})
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(response).NotTo(BeNil())
+			Expect(response.Info).NotTo(BeNil())
+		})
 	})
 })
