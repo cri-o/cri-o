@@ -1,36 +1,30 @@
 package metric
 
-import "strings"
-
-//AvailabilityImpact is metric type for Base Metrics
+// AvailabilityImpact is metric type for Base Metrics
 type AvailabilityImpact int
 
-//Constant of AvailabilityImpact result
+// Constant of AvailabilityImpact result
 const (
 	AvailabilityImpactUnknown AvailabilityImpact = iota
-	AvailabilityImpactNotDefined
 	AvailabilityImpactNone
 	AvailabilityImpactLow
 	AvailabilityImpactHigh
 )
 
 var availabilityImpactMap = map[AvailabilityImpact]string{
-	AvailabilityImpactNotDefined: "X",
-	AvailabilityImpactNone:       "N",
-	AvailabilityImpactLow:        "L",
-	AvailabilityImpactHigh:       "H",
+	AvailabilityImpactNone: "N",
+	AvailabilityImpactLow:  "L",
+	AvailabilityImpactHigh: "H",
 }
 
 var availabilityImpactValueMap = map[AvailabilityImpact]float64{
-	AvailabilityImpactNotDefined: 0.00,
-	AvailabilityImpactNone:       0.00,
-	AvailabilityImpactLow:        0.22,
-	AvailabilityImpactHigh:       0.56,
+	AvailabilityImpactNone: 0.00,
+	AvailabilityImpactLow:  0.22,
+	AvailabilityImpactHigh: 0.56,
 }
 
-//GetAvailabilityImpact returns result of AvailabilityImpact metric
+// GetAvailabilityImpact returns result of AvailabilityImpact metric
 func GetAvailabilityImpact(s string) AvailabilityImpact {
-	s = strings.ToUpper(s)
 	for k, v := range availabilityImpactMap {
 		if s == v {
 			return k
@@ -46,7 +40,7 @@ func (ai AvailabilityImpact) String() string {
 	return ""
 }
 
-//Value returns value of AvailabilityImpact metric
+// Value returns value of AvailabilityImpact metric
 func (ai AvailabilityImpact) Value() float64 {
 	if v, ok := availabilityImpactValueMap[ai]; ok {
 		return v
@@ -54,17 +48,12 @@ func (ai AvailabilityImpact) Value() float64 {
 	return 0.0
 }
 
-//IsUnknown returns false if undefined result value of metric
+// IsUnknown returns false if undefined result value of metric
 func (ai AvailabilityImpact) IsUnknown() bool {
 	return ai == AvailabilityImpactUnknown
 }
 
-//IsDefined returns false if undefined result value of metric
-func (ai AvailabilityImpact) IsDefined() bool {
-	return !ai.IsUnknown() && ai != AvailabilityImpactNotDefined
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

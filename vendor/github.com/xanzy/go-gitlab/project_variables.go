@@ -41,6 +41,7 @@ type ProjectVariable struct {
 	VariableType     VariableTypeValue `json:"variable_type"`
 	Protected        bool              `json:"protected"`
 	Masked           bool              `json:"masked"`
+	Raw              bool              `json:"raw"`
 	EnvironmentScope string            `json:"environment_scope"`
 }
 
@@ -48,7 +49,7 @@ func (v ProjectVariable) String() string {
 	return Stringify(v)
 }
 
-//VariableFilter filters available for project variable related functions
+// VariableFilter filters available for project variable related functions
 type VariableFilter struct {
 	EnvironmentScope string `url:"environment_scope, omitempty" json:"environment_scope,omitempty"`
 }
@@ -89,7 +90,7 @@ func (s *ProjectVariablesService) ListVariables(pid interface{}, opt *ListProjec
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#show-variable-details
+// https://docs.gitlab.com/ee/api/project_level_variables.html#get-a-single-variable
 type GetProjectVariableOptions struct {
 	Filter *VariableFilter `url:"filter,omitempty" json:"filter,omitempty"`
 }
@@ -97,7 +98,7 @@ type GetProjectVariableOptions struct {
 // GetVariable gets a variable.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#show-variable-details
+// https://docs.gitlab.com/ee/api/project_level_variables.html#get-a-single-variable
 func (s *ProjectVariablesService) GetVariable(pid interface{}, key string, opt *GetProjectVariableOptions, options ...RequestOptionFunc) (*ProjectVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -123,20 +124,21 @@ func (s *ProjectVariablesService) GetVariable(pid interface{}, key string, opt *
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#create-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#create-a-variable
 type CreateProjectVariableOptions struct {
 	Key              *string            `url:"key,omitempty" json:"key,omitempty"`
 	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
 	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
 	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
 	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 }
 
 // CreateVariable creates a new project variable.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#create-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#create-a-variable
 func (s *ProjectVariablesService) CreateVariable(pid interface{}, opt *CreateProjectVariableOptions, options ...RequestOptionFunc) (*ProjectVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -162,12 +164,13 @@ func (s *ProjectVariablesService) CreateVariable(pid interface{}, opt *CreatePro
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#update-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#update-a-variable
 type UpdateProjectVariableOptions struct {
 	Value            *string            `url:"value,omitempty" json:"value,omitempty"`
 	VariableType     *VariableTypeValue `url:"variable_type,omitempty" json:"variable_type,omitempty"`
 	Protected        *bool              `url:"protected,omitempty" json:"protected,omitempty"`
 	Masked           *bool              `url:"masked,omitempty" json:"masked,omitempty"`
+	Raw              *bool              `url:"raw,omitempty" json:"raw,omitempty"`
 	EnvironmentScope *string            `url:"environment_scope,omitempty" json:"environment_scope,omitempty"`
 	Filter           *VariableFilter    `url:"filter,omitempty" json:"filter,omitempty"`
 }
@@ -175,7 +178,7 @@ type UpdateProjectVariableOptions struct {
 // UpdateVariable updates a project's variable.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#update-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#update-a-variable
 func (s *ProjectVariablesService) UpdateVariable(pid interface{}, key string, opt *UpdateProjectVariableOptions, options ...RequestOptionFunc) (*ProjectVariable, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -201,7 +204,7 @@ func (s *ProjectVariablesService) UpdateVariable(pid interface{}, key string, op
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#remove-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#delete-a-variable
 type RemoveProjectVariableOptions struct {
 	Filter *VariableFilter `url:"filter,omitempty" json:"filter,omitempty"`
 }
@@ -209,7 +212,7 @@ type RemoveProjectVariableOptions struct {
 // RemoveVariable removes a project's variable.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/project_level_variables.html#remove-variable
+// https://docs.gitlab.com/ee/api/project_level_variables.html#delete-a-variable
 func (s *ProjectVariablesService) RemoveVariable(pid interface{}, key string, opt *RemoveProjectVariableOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

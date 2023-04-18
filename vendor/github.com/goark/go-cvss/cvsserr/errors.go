@@ -1,36 +1,22 @@
 package cvsserr
 
-import "fmt"
+import "errors"
 
-//Num is error number for CVSS
-type Num int
-
-const (
-	ErrNullPointer Num = iota + 1
-	ErrUndefinedMetric
-	ErrInvalidVector
-	ErrNotSupportVer
-	ErrNotSupportMetric
-	ErrInvalidTemplate
+var (
+	ErrNullPointer            = errors.New("Null reference instance")
+	ErrInvalidVector          = errors.New("invalid vector")
+	ErrNotSupportVer          = errors.New("not support version")
+	ErrNotSupportMetric       = errors.New("not support metric")
+	ErrInvalidTemplate        = errors.New("invalid templete string")
+	ErrSameMetric             = errors.New("exist same metric")
+	ErrInvalidValue           = errors.New("invalid value of metric")
+	ErrNoBaseMetrics          = errors.New("no Base metrics")
+	ErrNoTemporalMetrics      = errors.New("no Temporal metrics")
+	ErrNoEnvironmentalMetrics = errors.New("no Environmental metrics")
+	ErrMisordered             = errors.New("misordered vector string")
 )
 
-var errMessage = map[Num]string{
-	ErrNullPointer:      "Null reference instance",
-	ErrUndefinedMetric:  "undefined metric",
-	ErrInvalidVector:    "invalid vector",
-	ErrNotSupportVer:    "not support version",
-	ErrNotSupportMetric: "not support metric",
-	ErrInvalidTemplate:  "invalid templete string",
-}
-
-func (n Num) Error() string {
-	if s, ok := errMessage[n]; ok {
-		return s
-	}
-	return fmt.Sprintf("unknown error (%d)", int(n))
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

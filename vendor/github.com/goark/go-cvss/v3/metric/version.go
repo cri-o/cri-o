@@ -7,8 +7,10 @@ import (
 	"github.com/goark/go-cvss/cvsserr"
 )
 
-//Version is error number for CVSS
+// Version is error number for CVSS
 type Version int
+
+const nameCVSS = "CVSS"
 
 const (
 	VUnknown Version = iota //unknown version
@@ -21,7 +23,7 @@ var verStrings = map[Version]string{
 	V3_1: "3.1",
 }
 
-//String is Stringer method
+// String is Stringer method
 func (n Version) String() string {
 	if s, ok := verStrings[n]; ok {
 		return s
@@ -29,13 +31,13 @@ func (n Version) String() string {
 	return "unknown"
 }
 
-//GetVersion returns Version number from string
+// GetVersion returns Version number from string
 func GetVersion(vec string) (Version, error) {
 	v := strings.Split(vec, ":")
 	if len(v) != 2 {
 		return VUnknown, errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("vector", vec))
 	}
-	if strings.ToUpper(v[0]) != "CVSS" {
+	if v[0] != nameCVSS {
 		return VUnknown, errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("vector", vec))
 	}
 	return get(v[1]), nil
@@ -50,7 +52,7 @@ func get(s string) Version {
 	return VUnknown
 }
 
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

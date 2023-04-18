@@ -34,7 +34,7 @@ import (
 	"time"
 	"unicode"
 
-	gogithub "github.com/google/go-github/v48/github"
+	gogithub "github.com/google/go-github/v50/github"
 	"github.com/nozzle/throttler"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/cases"
@@ -550,8 +550,8 @@ func (g *Gatherer) listCommits(branch, start, end string) ([]*gogithub.Repositor
 
 	clo := gogithub.CommitsListOptions{
 		SHA:   branch,
-		Since: startCommit.GetCommitter().GetDate(),
-		Until: endCommit.GetCommitter().GetDate(),
+		Since: startCommit.GetCommitter().GetDate().Time,
+		Until: endCommit.GetCommitter().GetDate().Time,
 		ListOptions: gogithub.ListOptions{
 			Page:    1,
 			PerPage: 100,

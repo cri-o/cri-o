@@ -1,36 +1,30 @@
 package metric
 
-import "strings"
-
-//IntegrityImpact is metric type for Base Metrics
+// IntegrityImpact is metric type for Base Metrics
 type IntegrityImpact int
 
-//Constant of IntegrityImpact result
+// Constant of IntegrityImpact result
 const (
 	IntegrityImpactUnknown IntegrityImpact = iota
-	IntegrityImpactNotDefined
 	IntegrityImpactNone
 	IntegrityImpactLow
 	IntegrityImpactHigh
 )
 
 var integrityImpactMap = map[IntegrityImpact]string{
-	IntegrityImpactNotDefined: "X",
-	IntegrityImpactNone:       "N",
-	IntegrityImpactLow:        "L",
-	IntegrityImpactHigh:       "H",
+	IntegrityImpactNone: "N",
+	IntegrityImpactLow:  "L",
+	IntegrityImpactHigh: "H",
 }
 
 var integrityImpactValueMap = map[IntegrityImpact]float64{
-	IntegrityImpactNotDefined: 0.00,
-	IntegrityImpactNone:       0.00,
-	IntegrityImpactLow:        0.22,
-	IntegrityImpactHigh:       0.56,
+	IntegrityImpactNone: 0.00,
+	IntegrityImpactLow:  0.22,
+	IntegrityImpactHigh: 0.56,
 }
 
-//GetIntegrityImpact returns result of IntegrityImpact metric
+// GetIntegrityImpact returns result of IntegrityImpact metric
 func GetIntegrityImpact(s string) IntegrityImpact {
-	s = strings.ToUpper(s)
 	for k, v := range integrityImpactMap {
 		if s == v {
 			return k
@@ -46,7 +40,7 @@ func (ii IntegrityImpact) String() string {
 	return ""
 }
 
-//Value returns value of IntegrityImpact metric
+// Value returns value of IntegrityImpact metric
 func (ii IntegrityImpact) Value() float64 {
 	if v, ok := integrityImpactValueMap[ii]; ok {
 		return v
@@ -54,17 +48,12 @@ func (ii IntegrityImpact) Value() float64 {
 	return 0.0
 }
 
-//IsUnKnown returns false if undefined result value of metric
-func (ii IntegrityImpact) IsUnKnown() bool {
+// IsUnKnown returns false if undefined result value of metric
+func (ii IntegrityImpact) IsUnknown() bool {
 	return ii == IntegrityImpactUnknown
 }
 
-//IsDefined returns false if undefined result value of metric
-func (ii IntegrityImpact) IsDefined() bool {
-	return !ii.IsUnKnown() && ii != IntegrityImpactNotDefined
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

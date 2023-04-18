@@ -1,33 +1,27 @@
 package metric
 
-import "strings"
-
-//UserInteraction is metric type for Base Metrics
+// UserInteraction is metric type for Base Metrics
 type UserInteraction int
 
-//Constant of UserInteraction result
+// Constant of UserInteraction result
 const (
 	UserInteractionUnknown UserInteraction = iota
-	UserInteractionNotDefined
 	UserInteractionRequired
 	UserInteractionNone
 )
 
 var userInteractionMap = map[UserInteraction]string{
-	UserInteractionNotDefined: "X",
-	UserInteractionRequired:   "R",
-	UserInteractionNone:       "N",
+	UserInteractionRequired: "R",
+	UserInteractionNone:     "N",
 }
 
 var userInteractionValueMap = map[UserInteraction]float64{
-	UserInteractionNotDefined: 0,
-	UserInteractionRequired:   0.62,
-	UserInteractionNone:       0.85,
+	UserInteractionRequired: 0.62,
+	UserInteractionNone:     0.85,
 }
 
-//GetUserInteraction returns result of UserInteraction metric
+// GetUserInteraction returns result of UserInteraction metric
 func GetUserInteraction(s string) UserInteraction {
-	s = strings.ToUpper(s)
 	for k, v := range userInteractionMap {
 		if s == v {
 			return k
@@ -43,7 +37,7 @@ func (ui UserInteraction) String() string {
 	return ""
 }
 
-//Value returns value of UserInteraction metric
+// Value returns value of UserInteraction metric
 func (ui UserInteraction) Value() float64 {
 	if v, ok := userInteractionValueMap[ui]; ok {
 		return v
@@ -51,17 +45,12 @@ func (ui UserInteraction) Value() float64 {
 	return 0.0
 }
 
-//IsUnknown returns false if undefined result value of metric
+// IsUnknown returns false if undefined result value of metric
 func (ui UserInteraction) IsUnknown() bool {
 	return ui == UserInteractionUnknown
 }
 
-//IsDefined returns false if undefined result value of metric
-func (ui UserInteraction) IsDefined() bool {
-	return !ui.IsUnknown() && ui != UserInteractionNotDefined
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

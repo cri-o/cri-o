@@ -12,7 +12,7 @@ func roundUp(input float64) float64 {
 	return (math.Floor(intInput/10000) + 1) / 10.0
 }
 
-//GetSeverity returns severity by score of Base metrics
+// GetSeverity returns severity by score of Base metrics
 func severity(score float64) Severity {
 	switch true {
 	case score <= 0:

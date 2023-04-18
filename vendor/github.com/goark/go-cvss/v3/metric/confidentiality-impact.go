@@ -1,36 +1,30 @@
 package metric
 
-import "strings"
-
-//ConfidentialityImpact is metric type for Base Metrics
+// ConfidentialityImpact is metric type for Base Metrics
 type ConfidentialityImpact int
 
-//Constant of ConfidentialityImpact result
+// Constant of ConfidentialityImpact result
 const (
 	ConfidentialityImpactUnknown ConfidentialityImpact = iota
-	ConfidentialityImpactNotDefined
 	ConfidentialityImpactNone
 	ConfidentialityImpactLow
 	ConfidentialityImpactHigh
 )
 
 var confidentialityImpactMap = map[ConfidentialityImpact]string{
-	ConfidentialityImpactNotDefined: "X",
-	ConfidentialityImpactNone:       "N",
-	ConfidentialityImpactLow:        "L",
-	ConfidentialityImpactHigh:       "H",
+	ConfidentialityImpactNone: "N",
+	ConfidentialityImpactLow:  "L",
+	ConfidentialityImpactHigh: "H",
 }
 
 var confidentialityImpactValueMap = map[ConfidentialityImpact]float64{
-	ConfidentialityImpactNotDefined: 0.00,
-	ConfidentialityImpactNone:       0.00,
-	ConfidentialityImpactLow:        0.22,
-	ConfidentialityImpactHigh:       0.56,
+	ConfidentialityImpactNone: 0.00,
+	ConfidentialityImpactLow:  0.22,
+	ConfidentialityImpactHigh: 0.56,
 }
 
-//GetConfidentialityImpact returns result of ConfidentialityImpact metric
+// GetConfidentialityImpact returns result of ConfidentialityImpact metric
 func GetConfidentialityImpact(s string) ConfidentialityImpact {
-	s = strings.ToUpper(s)
 	for k, v := range confidentialityImpactMap {
 		if s == v {
 			return k
@@ -46,7 +40,7 @@ func (ci ConfidentialityImpact) String() string {
 	return ""
 }
 
-//Value returns value of ConfidentialityImpact metric
+// Value returns value of ConfidentialityImpact metric
 func (ci ConfidentialityImpact) Value() float64 {
 	if v, ok := confidentialityImpactValueMap[ci]; ok {
 		return v
@@ -54,17 +48,12 @@ func (ci ConfidentialityImpact) Value() float64 {
 	return 0.0
 }
 
-//IsUnknown returns false if undefined result value of metric
+// IsUnknown returns false if undefined result value of metric
 func (ci ConfidentialityImpact) IsUnknown() bool {
 	return ci == ConfidentialityImpactUnknown
 }
 
-//IsDefined returns false if undefined result value of metric
-func (ci ConfidentialityImpact) IsDefined() bool {
-	return !ci.IsUnknown() && ci != ConfidentialityImpactNotDefined
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

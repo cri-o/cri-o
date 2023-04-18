@@ -1,27 +1,36 @@
 package metric
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/goark/errs"
 	"github.com/goark/go-cvss/cvsserr"
 )
 
-//Base is Temporal Metrics for CVSSv3
+const (
+	metricE  = "E"
+	metricRL = "RL"
+	metricRC = "RC"
+)
+
+// Base is Temporal Metrics for CVSSv3
 type Temporal struct {
 	*Base
-	E  Exploitability
-	RL RemediationLevel
-	RC ReportConfidence
+	E     Exploitability
+	RL    RemediationLevel
+	RC    ReportConfidence
+	names map[string]bool
 }
 
-//NewBase returns Base Metrics instance
+// NewTemporal returns Temporal Metrics instance
 func NewTemporal() *Temporal {
 	return &Temporal{
-		Base: NewBase(),
-		E:    ExploitabilityNotDefined,
-		RL:   RemediationLevelNotDefined,
-		RC:   ReportConfidenceNotDefined,
+		Base:  NewBase(),
+		E:     ExploitabilityNotDefined,
+		RL:    RemediationLevelNotDefined,
+		RC:    ReportConfidenceNotDefined,
+		names: map[string]bool{},
 	}
 }
 
@@ -30,16 +39,13 @@ func (tm *Temporal) Decode(vector string) (*Temporal, error) {
 		tm = NewTemporal()
 	}
 	values := strings.Split(vector, "/")
-	if len(values) < 9 { // E, RL, RC metrics are optional.
-		return tm, errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("vector", vector))
-	}
 	//CVSS version
 	ver, err := GetVersion(values[0])
 	if err != nil {
-		return tm, errs.Wrap(err, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 	}
 	if ver == VUnknown {
-		return tm, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
 	}
 	tm.Ver = ver
 	//parse vector
@@ -47,15 +53,18 @@ func (tm *Temporal) Decode(vector string) (*Temporal, error) {
 	for _, value := range values[1:] {
 		if err := tm.decodeOne(value); err != nil {
 			if !errs.Is(err, cvsserr.ErrNotSupportMetric) {
-				return tm, errs.Wrap(err, errs.WithContext("vector", vector))
+				return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 			}
 			lastErr = err
 		}
 	}
 	if lastErr != nil {
-		return tm, lastErr
+		return nil, lastErr
 	}
-	return tm, tm.GetError()
+	if err := tm.GetError(); err != nil {
+		return nil, err
+	}
+	return tm, nil
 }
 func (tm *Temporal) decodeOne(str string) error {
 	if err := tm.Base.decodeOne(str); err != nil {
@@ -66,56 +75,73 @@ func (tm *Temporal) decodeOne(str string) error {
 		return nil
 	}
 	m := strings.Split(str, ":")
-	if len(m) != 2 {
+	if len(m) != 2 || len(m[0]) == 0 || len(m[1]) == 0 {
 		return errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("metric", str))
 	}
-	switch strings.ToUpper(m[0]) {
-	case "E": //Exploitability
+	name := m[0]
+	if tm.names[name] {
+		return errs.Wrap(cvsserr.ErrSameMetric, errs.WithContext("metric", str))
+	}
+	switch name {
+	case metricE: //Exploitability
 		tm.E = GetExploitability(m[1])
-	case "RL": //RemediationLevel
+		if tm.E == ExploitabilityInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricRL: //RemediationLevel
 		tm.RL = GetRemediationLevel(m[1])
-	case "RC": //RemediationLevel
+		if tm.RL == RemediationLevelInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricRC: //RemediationLevel
 		tm.RC = GetReportConfidence(m[1])
+		if tm.RC == ReportConfidenceInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
 	default:
 		return errs.Wrap(cvsserr.ErrNotSupportMetric, errs.WithContext("metric", str))
 	}
+	tm.names[name] = true
 	return nil
 }
 
-//GetError returns error instance if undefined metric
+// GetError returns error instance if undefined metric
 func (tm *Temporal) GetError() error {
 	if tm == nil {
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+		return errs.Wrap(cvsserr.ErrNoTemporalMetrics)
 	}
 	if err := tm.Base.GetError(); err != nil {
 		return errs.Wrap(err)
 	}
 	switch true {
-	case !tm.E.IsDefined(), !tm.RL.IsDefined(), !tm.RC.IsDefined():
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+	case !tm.E.IsValid(), !tm.RL.IsValid(), !tm.RC.IsValid():
+		return errs.Wrap(cvsserr.ErrInvalidValue)
 	default:
 		return nil
 	}
 }
 
-//Encode returns CVSSv3 vector string
+// Encode returns CVSSv3 vector string
 func (tm *Temporal) Encode() (string, error) {
-	if err := tm.GetError(); err != nil {
-		return "", errs.Wrap(err)
+	if tm == nil {
+		return "", errs.Wrap(cvsserr.ErrNoTemporalMetrics)
 	}
-	bs, err := tm.Base.Encode()
-	if err != nil {
-		return "", errs.Wrap(err)
-	}
+	bs, _ := tm.Base.Encode()
 	r := &strings.Builder{}
-	r.WriteString(bs)                      //Vector of Base metrics
-	r.WriteString("/E:" + tm.E.String())   //Exploitability
-	r.WriteString("/RL:" + tm.RL.String()) //Remediation Level
-	r.WriteString("/RC:" + tm.RC.String()) //Report Confidence
-	return r.String(), nil
+	r.WriteString(bs)                                     //Vector of Base metrics
+	r.WriteString(fmt.Sprintf("/%v:%v", metricE, tm.E))   //Exploitability
+	r.WriteString(fmt.Sprintf("/%v:%v", metricRL, tm.RL)) //Remediation Level
+	r.WriteString(fmt.Sprintf("/%v:%v", metricRC, tm.RC)) //Report Confidence
+	return r.String(), tm.GetError()
 }
 
-//Score returns score of Temporal metrics
+// String is stringer method.
+func (tm *Temporal) String() string {
+	s, _ := tm.Encode()
+	return s
+}
+
+// Score returns score of Temporal metrics
 func (tm *Temporal) Score() float64 {
 	if err := tm.GetError(); err != nil {
 		return 0.0
@@ -123,12 +149,12 @@ func (tm *Temporal) Score() float64 {
 	return roundUp(tm.Base.Score() * tm.E.Value() * tm.RL.Value() * tm.RC.Value())
 }
 
-//Severity returns severity by score of Temporal metrics
+// Severity returns severity by score of Temporal metrics
 func (tm *Temporal) Severity() Severity {
 	return severity(tm.Score())
 }
 
-//BaseMetrics returns Base metrics in Temporal metrics instance
+// BaseMetrics returns Base metrics in Temporal metrics instance
 func (tm *Temporal) BaseMetrics() *Base {
 	if tm == nil {
 		return nil
@@ -137,4 +163,4 @@ func (tm *Temporal) BaseMetrics() *Base {
 }
 
 /* Copyright by Florent Viel, 2020 */
-/* Contributed by Spiegel, 2020 */
+/* Contributed by Spiegel, 2020-2023 */
