@@ -15,8 +15,9 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/specgen"
+	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 )
@@ -24,10 +25,38 @@ import (
 // MakeContainer creates a container based on the SpecGenerator.
 // Returns the created, container and any warnings resulting from creating the
 // container, or an error.
-func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, clone bool, c *libpod.Container) (*spec.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
+func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGenerator, clone bool, c *libpod.Container) (*specs.Spec, *specgen.SpecGenerator, []libpod.CtrCreateOption, error) {
 	rtc, err := rt.GetConfigNoCopy()
 	if err != nil {
 		return nil, nil, nil, err
+	}
+
+	rlimits, err := specgenutil.GenRlimits(rtc.Ulimits())
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	s.Rlimits = append(rlimits, s.Rlimits...)
+
+	if s.OOMScoreAdj == nil {
+		s.OOMScoreAdj = rtc.Containers.OOMScoreAdj
+	}
+
+	if len(rtc.Containers.CgroupConf) > 0 {
+		if s.ResourceLimits == nil {
+			s.ResourceLimits = &specs.LinuxResources{}
+		}
+		if s.ResourceLimits.Unified == nil {
+			s.ResourceLimits.Unified = make(map[string]string)
+		}
+		for _, cgroupConf := range rtc.Containers.CgroupConf {
+			cgr := strings.SplitN(cgroupConf, "=", 2)
+			if len(cgr) != 2 {
+				return nil, nil, nil, fmt.Errorf("CgroupConf %q from containers.conf invalid, must be name=value", cgr)
+			}
+			if _, ok := s.ResourceLimits.Unified[cgr[0]]; !ok {
+				s.ResourceLimits.Unified[cgr[0]] = cgr[1]
+			}
+		}
 	}
 
 	// If joining a pod, retrieve the pod for use, and its infra container
@@ -48,7 +77,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	options := []libpod.CtrCreateOption{}
 	compatibleOptions := &libpod.InfraInherit{}
-	var infraSpec *spec.Spec
+	var infraSpec *specs.Spec
 	if infra != nil {
 		options, infraSpec, compatibleOptions, err = Inherit(*infra, s, rt)
 		if err != nil {
@@ -118,7 +147,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
 	}
 
 	newImage, resolvedImageName, imageData, err := getImageFromSpec(ctx, rt, s)
@@ -250,7 +279,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	}
 	return runtimeSpec, s, options, err
 }
-func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *spec.Spec, s *specgen.SpecGenerator, infra bool, options ...libpod.CtrCreateOption) (*libpod.Container, error) {
+func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *specs.Spec, s *specgen.SpecGenerator, infra bool, options ...libpod.CtrCreateOption) (*libpod.Container, error) {
 	ctr, err := rt.NewContainer(ctx, runtimeSpec, s, infra, options...)
 	if err != nil {
 		return ctr, err
@@ -263,7 +292,7 @@ func ExecuteCreate(ctx context.Context, rt *libpod.Runtime, runtimeSpec *spec.Sp
 // The CDI devices are added to the list of CtrCreateOptions.
 // Note that this may modify the device list associated with the spec, which should then only contain non-CDI devices.
 func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
-	devs := make([]spec.LinuxDevice, 0, len(s.Devices))
+	devs := make([]specs.LinuxDevice, 0, len(s.Devices))
 	var cdiDevs []string
 	var options []libpod.CtrCreateOption
 
@@ -311,6 +340,9 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	if s.PasswdEntry != "" {
 		options = append(options, libpod.WithPasswdEntry(s.PasswdEntry))
+	}
+	if s.GroupEntry != "" {
+		options = append(options, libpod.WithGroupEntry(s.GroupEntry))
 	}
 
 	if s.Privileged {
@@ -479,6 +511,9 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 			options = append(options, libpod.WithLogDriver(s.LogConfiguration.Driver))
 		}
 	}
+	if s.ContainerSecurityConfig.LabelNested {
+		options = append(options, libpod.WithLabelNested(s.ContainerSecurityConfig.LabelNested))
+	}
 	// Security options
 	if len(s.SelinuxOpts) > 0 {
 		options = append(options, libpod.WithSecLabels(s.SelinuxOpts))
@@ -512,8 +547,11 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	if s.ShmSize != nil {
 		options = append(options, libpod.WithShmSize(*s.ShmSize))
 	}
+	if s.ShmSizeSystemd != nil {
+		options = append(options, libpod.WithShmSizeSystemd(*s.ShmSizeSystemd))
+	}
 	if s.Rootfs != "" {
-		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay))
+		options = append(options, libpod.WithRootFS(s.Rootfs, s.RootfsOverlay, s.RootfsMapping))
 	}
 	// Default used if not overridden on command line
 
@@ -586,7 +624,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	return options, nil
 }
 
-func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *spec.Spec, compat *libpod.InfraInherit, err error) {
+func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *specs.Spec, compat *libpod.InfraInherit, err error) {
 	inheritSpec := &specgen.SpecGenerator{}
 	_, compatibleOptions, err := ConfigToSpec(rt, inheritSpec, infra.ID())
 	if err != nil {

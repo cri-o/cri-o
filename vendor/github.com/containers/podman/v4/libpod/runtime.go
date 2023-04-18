@@ -38,9 +38,13 @@ import (
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/docker/docker/pkg/namesgenerator"
+	jsoniter "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
+
+// Set up the JSON library for all of Libpod
+var json = jsoniter.ConfigCompatibleWithStandardLibrary
 
 // A RuntimeOption is a functional option which alters the Runtime created by
 // NewRuntime
@@ -330,16 +334,19 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 
 	// Set up the state.
 	//
+	// TODO: We probably need a "default" type that will select BoltDB if
+	// a DB exists already, and SQLite otherwise.
+	//
 	// TODO - if we further break out the state implementation into
 	// libpod/state, the config could take care of the code below.  It
 	// would further allow to move the types and consts into a coherent
 	// package.
-	switch runtime.config.Engine.StateType {
-	case config.InMemoryStateStore:
-		return fmt.Errorf("in-memory state is currently disabled: %w", define.ErrInvalidArg)
-	case config.SQLiteStateStore:
-		return fmt.Errorf("SQLite state is currently disabled: %w", define.ErrInvalidArg)
-	case config.BoltDBStateStore:
+	backend, err := config.ParseDBBackend(runtime.config.Engine.DBBackend)
+	if err != nil {
+		return err
+	}
+	switch backend {
+	case config.DBBackendBoltDB:
 		baseDir := runtime.config.Engine.StaticDir
 		if runtime.storageConfig.TransientStore {
 			baseDir = runtime.config.Engine.TmpDir
@@ -347,6 +354,12 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		dbPath := filepath.Join(baseDir, "bolt_state.db")
 
 		state, err := NewBoltState(dbPath, runtime)
+		if err != nil {
+			return err
+		}
+		runtime.state = state
+	case config.DBBackendSQLite:
+		state, err := NewSqliteState(runtime)
 		if err != nil {
 			return err
 		}
@@ -385,7 +398,7 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		if err := unix.Access(runtime.storageConfig.RunRoot, unix.W_OK); err != nil {
 			msg := fmt.Sprintf("RunRoot is pointing to a path (%s) which is not writable. Most likely podman will fail.", runtime.storageConfig.RunRoot)
 			if errors.Is(err, os.ErrNotExist) {
-				// if dir does not exists try to create it
+				// if dir does not exist, try to create it
 				if err := os.MkdirAll(runtime.storageConfig.RunRoot, 0700); err != nil {
 					logrus.Warn(msg)
 				}
@@ -415,10 +428,9 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		logrus.Errorf("Runtime paths differ from those stored in database, storage reset may not remove all files")
 	}
 
-	if err := runtime.state.SetNamespace(runtime.config.Engine.Namespace); err != nil {
-		return fmt.Errorf("setting libpod namespace in state: %w", err)
+	if runtime.config.Engine.Namespace != "" {
+		return fmt.Errorf("namespaces are not supported by this version of Libpod, please unset the `namespace` field in containers.conf: %w", define.ErrNotImplemented)
 	}
-	logrus.Debugf("Set libpod namespace to %q", runtime.config.Engine.Namespace)
 
 	needsUserns := os.Geteuid() != 0
 	if !needsUserns {
@@ -567,10 +579,17 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 			}
 			unLockFunc()
 			unLockFunc = nil
-			pausePid, err := util.GetRootlessPauseProcessPidPathGivenDir(runtime.config.Engine.TmpDir)
+			pausePid, err := util.GetRootlessPauseProcessPidPath()
 			if err != nil {
 				return fmt.Errorf("could not get pause process pid file path: %w", err)
 			}
+
+			// create the path in case it does not already exists
+			// https://github.com/containers/podman/issues/8539
+			if err := os.MkdirAll(filepath.Dir(pausePid), 0o700); err != nil {
+				return fmt.Errorf("could not create pause process pid file directory: %w", err)
+			}
+
 			became, ret, err := rootless.BecomeRootInUserNS(pausePid)
 			if err != nil {
 				return err
@@ -704,8 +723,8 @@ var libimageEventsMap = map[libimage.EventType]events.Status{
 	libimage.EventTypeImageUnmount: events.Unmount,
 }
 
-// libimageEvents spawns a goroutine in the background which is listenting for
-// events on the libimage.Runtime.  The gourtine will be cleaned up implicitly
+// libimageEvents spawns a goroutine which will listen for events on
+// the libimage.Runtime.  The goroutine will be cleaned up implicitly
 // when the main() exists.
 func (r *Runtime) libimageEvents() {
 	r.libimageEventsShutdown = make(chan bool)
@@ -973,17 +992,23 @@ func (r *Runtime) RunRoot() string {
 	return r.store.RunRoot()
 }
 
-// GetName retrieves the name associated with a given full ID.
-// This works for both containers and pods, and does not distinguish between the
-// two.
+// GraphRoot retrieves the current c/storage directory in use by Libpod.
+func (r *Runtime) GraphRoot() string {
+	if r.store == nil {
+		return ""
+	}
+	return r.store.GraphRoot()
+}
+
+// GetPodName retrieves the pod name associated with a given full ID.
 // If the given ID does not correspond to any existing Pod or Container,
-// ErrNoSuchCtr is returned.
-func (r *Runtime) GetName(id string) (string, error) {
+// ErrNoSuchPod is returned.
+func (r *Runtime) GetPodName(id string) (string, error) {
 	if !r.valid {
 		return "", define.ErrRuntimeStopped
 	}
 
-	return r.state.GetName(id)
+	return r.state.GetPodName(id)
 }
 
 // DBConfig is a set of Libpod runtime configuration settings that are saved in

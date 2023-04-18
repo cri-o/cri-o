@@ -58,7 +58,9 @@ type SignedData struct {
 	SignerInfos                []SignerInfo               `asn1:"set"`
 }
 
-type RawCertificates []asn1.RawValue
+type RawCertificates struct {
+	Raw asn1.RawContent
+}
 
 type Attribute struct {
 	Type   asn1.ObjectIdentifier
@@ -68,8 +70,6 @@ type Attribute struct {
 type AttributeList []Attribute
 
 type SignerInfo struct {
-	RawContent asn1.RawContent
-
 	Version                   int                      `asn1:"default:1"`
 	IssuerAndSerialNumber     IssuerAndSerial          ``
 	DigestAlgorithm           pkix.AlgorithmIdentifier ``

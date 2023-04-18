@@ -16,9 +16,12 @@
 package ssh
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"net/http"
 
+	"github.com/asaskevich/govalidator"
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 	"golang.org/x/crypto/ssh"
 )
@@ -71,22 +74,28 @@ func (s Signature) Verify(r io.Reader, k interface{}, opts ...sigsig.VerifyOptio
 
 // PublicKey contains an ssh PublicKey
 type PublicKey struct {
-	key ssh.PublicKey
+	key     ssh.PublicKey
+	comment string
 }
 
 // NewPublicKey implements the pki.PublicKey interface
 func NewPublicKey(r io.Reader) (*PublicKey, error) {
-	rawPub, err := io.ReadAll(r)
+	// 64K seems generous as a limit for valid SSH keys
+	// we use http.MaxBytesReader and pass nil for ResponseWriter to reuse stdlib
+	// and not reimplement this; There is a proposal for this to be fixed in 1.20
+	// https://github.com/golang/go/issues/51115
+	// TODO: switch this to stdlib once golang 1.20 comes out
+	rawPub, err := io.ReadAll(http.MaxBytesReader(nil, io.NopCloser(r), 65536))
 	if err != nil {
 		return nil, err
 	}
 
-	key, _, _, _, err := ssh.ParseAuthorizedKey(rawPub)
+	key, comment, _, _, err := ssh.ParseAuthorizedKey(rawPub)
 	if err != nil {
 		return nil, err
 	}
 
-	return &PublicKey{key: key}, nil
+	return &PublicKey{key: key, comment: comment}, nil
 }
 
 // CanonicalValue implements the pki.PublicKey interface
@@ -105,4 +114,19 @@ func (k PublicKey) EmailAddresses() []string {
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
 	return nil
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	var identities []string
+
+	// an authorized key format
+	authorizedKey := string(bytes.TrimSpace(ssh.MarshalAuthorizedKey(k.key)))
+	identities = append(identities, authorizedKey)
+
+	if govalidator.IsEmail(k.comment) {
+		identities = append(identities, k.comment)
+	}
+
+	return identities, nil
 }

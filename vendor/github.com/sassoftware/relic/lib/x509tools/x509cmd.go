@@ -222,10 +222,10 @@ func SignCSR(csrBytes []byte, rand io.Reader, key crypto.Signer, cacert *x509.Ce
 	}
 	csr, err := x509.ParseCertificateRequest(csrBytes)
 	if err != nil {
-		return "", fmt.Errorf("parsing CSR: %w", err)
+		return "", fmt.Errorf("parsing CSR: %s", err)
 	}
 	if err := csr.CheckSignature(); err != nil {
-		return "", fmt.Errorf("validating CSR: %w", err)
+		return "", fmt.Errorf("validating CSR: %s", err)
 	}
 	// update fields
 	template := &x509.Certificate{Subject: csr.Subject}
@@ -255,7 +255,7 @@ func CrossSign(certBytes []byte, rand io.Reader, key crypto.Signer, cacert *x509
 	}
 	template, err := x509.ParseCertificate(certBytes)
 	if err != nil {
-		return "", fmt.Errorf("parsing certificate: %w", err)
+		return "", fmt.Errorf("parsing certificate: %s", err)
 	}
 	if err := fillCertFields(template, template.PublicKey, key.Public()); err != nil {
 		return "", err

@@ -17,6 +17,7 @@ package dsse
 
 import (
 	"bytes"
+	"context"
 	"crypto"
 	"encoding/base64"
 	"encoding/json"
@@ -109,7 +110,8 @@ func (w *wrappedVerifier) VerifySignature(s, _ io.Reader, opts ...signature.Veri
 	if err != nil {
 		return err
 	}
-	_, err = verifier.Verify(&env)
+
+	_, err = verifier.Verify(context.Background(), &env)
 	return err
 }
 
