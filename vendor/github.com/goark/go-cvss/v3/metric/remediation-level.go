@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//RemediationLevel is metric type for Temporal Metrics
+// RemediationLevel is metric type for Temporal Metrics
 type RemediationLevel int
 
-//Constant of RemediationLevel result
+// Constant of RemediationLevel result
 const (
-	RemediationLevelNotDefined RemediationLevel = iota
+	RemediationLevelInvalid RemediationLevel = iota
+	RemediationLevelNotDefined
 	RemediationLevelOfficialFix
 	RemediationLevelTemporaryFix
 	RemediationLevelWorkaround
@@ -30,15 +29,14 @@ var remediationLevelValueMap = map[RemediationLevel]float64{
 	RemediationLevelUnavailable:  1,
 }
 
-//GetRemediationLevel returns result of RemediationLevel metric
+// GetRemediationLevel returns result of RemediationLevel metric
 func GetRemediationLevel(s string) RemediationLevel {
-	s = strings.ToUpper(s)
 	for k, v := range remediationLevelMap {
 		if s == v {
 			return k
 		}
 	}
-	return RemediationLevelNotDefined
+	return RemediationLevelInvalid
 }
 
 func (rl RemediationLevel) String() string {
@@ -48,7 +46,7 @@ func (rl RemediationLevel) String() string {
 	return ""
 }
 
-//Value returns value of RemediationLevel metric
+// Value returns value of RemediationLevel metric
 func (rl RemediationLevel) Value() float64 {
 	if v, ok := remediationLevelValueMap[rl]; ok {
 		return v
@@ -56,11 +54,11 @@ func (rl RemediationLevel) Value() float64 {
 	return 1
 }
 
-//IsDefined returns false if undefined result value of metric
-func (rl RemediationLevel) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (rl RemediationLevel) IsValid() bool {
 	_, ok := remediationLevelValueMap[rl]
 	return ok
 }
 
 /* Copyright by Florent Viel, 2020 */
-/* Contributed by Spiegel, 2020 */
+/* Contributed by Spiegel, 2020-2023 */

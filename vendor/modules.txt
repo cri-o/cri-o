@@ -22,17 +22,17 @@ cloud.google.com/go/internal
 cloud.google.com/go/internal/optional
 cloud.google.com/go/internal/trace
 cloud.google.com/go/internal/version
-# cloud.google.com/go/compute v1.18.0
+# cloud.google.com/go/compute v1.19.0
 ## explicit; go 1.19
 cloud.google.com/go/compute/internal
 # cloud.google.com/go/compute/metadata v0.2.3
 ## explicit; go 1.19
 cloud.google.com/go/compute/metadata
-# cloud.google.com/go/iam v0.12.0
+# cloud.google.com/go/iam v1.0.0
 ## explicit; go 1.19
 cloud.google.com/go/iam
 cloud.google.com/go/iam/apiv1/iampb
-# cloud.google.com/go/storage v1.29.0
+# cloud.google.com/go/storage v1.30.1
 ## explicit; go 1.19
 cloud.google.com/go/storage
 cloud.google.com/go/storage/internal
@@ -393,8 +393,8 @@ github.com/checkpoint-restore/checkpointctl/lib
 github.com/checkpoint-restore/go-criu/v6
 github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats
-# github.com/cheggaaa/pb/v3 v3.1.0
-## explicit; go 1.12
+# github.com/cheggaaa/pb/v3 v3.1.2
+## explicit; go 1.17
 github.com/cheggaaa/pb/v3
 github.com/cheggaaa/pb/v3/termutil
 # github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21
@@ -922,8 +922,8 @@ github.com/emirpasic/gods/lists/arraylist
 github.com/emirpasic/gods/trees
 github.com/emirpasic/gods/trees/binaryheap
 github.com/emirpasic/gods/utils
-# github.com/fatih/color v1.13.0
-## explicit; go 1.13
+# github.com/fatih/color v1.14.1
+## explicit; go 1.17
 github.com/fatih/color
 # github.com/fsnotify/fsnotify v1.6.0
 ## explicit; go 1.16
@@ -1082,8 +1082,8 @@ github.com/go-zoo/bone
 # github.com/goark/errs v1.1.0
 ## explicit; go 1.17
 github.com/goark/errs
-# github.com/goark/go-cvss v1.3.0
-## explicit; go 1.19
+# github.com/goark/go-cvss v1.6.6
+## explicit; go 1.20
 github.com/goark/go-cvss/cvsserr
 github.com/goark/go-cvss/v3/metric
 # github.com/gobwas/glob v0.2.3
@@ -1194,9 +1194,6 @@ github.com/google/go-containerregistry/pkg/v1/types
 # github.com/google/go-github/v45 v45.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v45/github
-# github.com/google/go-github/v48 v48.2.0
-## explicit; go 1.17
-github.com/google/go-github/v48/github
 # github.com/google/go-github/v50 v50.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v50/github
@@ -1366,7 +1363,7 @@ github.com/manifoldco/promptui/screenbuf
 # github.com/mattn/go-colorable v0.1.13
 ## explicit; go 1.15
 github.com/mattn/go-colorable
-# github.com/mattn/go-isatty v0.0.17
+# github.com/mattn/go-isatty v0.0.18
 ## explicit; go 1.15
 github.com/mattn/go-isatty
 # github.com/mattn/go-runewidth v0.0.14
@@ -1687,8 +1684,8 @@ github.com/russross/blackfriday
 # github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
 github.com/russross/blackfriday/v2
-# github.com/saschagrunert/go-modiff v1.3.1
-## explicit; go 1.18
+# github.com/saschagrunert/go-modiff v1.3.2
+## explicit; go 1.20
 github.com/saschagrunert/go-modiff/pkg/modiff
 # github.com/sassoftware/relic v7.2.1+incompatible
 ## explicit
@@ -1710,7 +1707,7 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/shibumi/go-pathspec v1.3.0
 ## explicit; go 1.17
 github.com/shibumi/go-pathspec
-# github.com/shirou/gopsutil/v3 v3.22.12
+# github.com/shirou/gopsutil/v3 v3.23.3
 ## explicit; go 1.15
 github.com/shirou/gopsutil/v3/disk
 github.com/shirou/gopsutil/v3/internal/common
@@ -1957,7 +1954,7 @@ github.com/vishvananda/netlink/nl
 # github.com/vishvananda/netns v0.0.2
 ## explicit; go 1.12
 github.com/vishvananda/netns
-# github.com/xanzy/go-gitlab v0.73.1
+# github.com/xanzy/go-gitlab v0.81.0
 ## explicit; go 1.18
 github.com/xanzy/go-gitlab
 # github.com/xanzy/ssh-agent v0.3.3
@@ -2145,7 +2142,7 @@ golang.org/x/net/internal/timeseries
 golang.org/x/net/proxy
 golang.org/x/net/trace
 golang.org/x/net/websocket
-# golang.org/x/oauth2 v0.6.0
+# golang.org/x/oauth2 v0.7.0
 ## explicit; go 1.17
 golang.org/x/oauth2
 golang.org/x/oauth2/authhandler
@@ -2195,7 +2192,7 @@ golang.org/x/text/secure/bidirule
 golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-# golang.org/x/time v0.2.0
+# golang.org/x/time v0.3.0
 ## explicit
 golang.org/x/time/rate
 # golang.org/x/tools v0.7.0
@@ -2227,7 +2224,7 @@ golang.org/x/tools/internal/typesinternal
 ## explicit; go 1.17
 golang.org/x/xerrors
 golang.org/x/xerrors/internal
-# google.golang.org/api v0.114.0
+# google.golang.org/api v0.115.0
 ## explicit; go 1.19
 google.golang.org/api/googleapi
 google.golang.org/api/googleapi/transport
@@ -2261,12 +2258,11 @@ google.golang.org/appengine/internal/socket
 google.golang.org/appengine/internal/urlfetch
 google.golang.org/appengine/socket
 google.golang.org/appengine/urlfetch
-# google.golang.org/genproto v0.0.0-20230306155012-7f2fa6fef1f4
+# google.golang.org/genproto v0.0.0-20230331144136-dcfb400f0633
 ## explicit; go 1.19
 google.golang.org/genproto/googleapis/api
 google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
-google.golang.org/genproto/googleapis/iam/v1
 google.golang.org/genproto/googleapis/rpc/code
 google.golang.org/genproto/googleapis/rpc/errdetails
 google.golang.org/genproto/googleapis/rpc/status
@@ -2685,7 +2681,7 @@ k8s.io/kubernetes/pkg/kubelet/cri/streaming/portforward
 k8s.io/kubernetes/pkg/kubelet/types
 k8s.io/kubernetes/pkg/kubelet/util/ioutils
 k8s.io/kubernetes/pkg/util/iptables
-# k8s.io/release v0.15.0
+# k8s.io/release v0.15.1
 ## explicit; go 1.19
 k8s.io/release/cmd/release-notes
 k8s.io/release/pkg/binary
@@ -2730,7 +2726,7 @@ sigs.k8s.io/json/internal/golang/encoding/json
 # sigs.k8s.io/mdtoc v1.1.0
 ## explicit; go 1.15
 sigs.k8s.io/mdtoc/pkg/mdtoc
-# sigs.k8s.io/promo-tools/v3 v3.4.11
+# sigs.k8s.io/promo-tools/v3 v3.5.2
 ## explicit; go 1.19
 sigs.k8s.io/promo-tools/v3/image
 # sigs.k8s.io/release-sdk v0.10.0

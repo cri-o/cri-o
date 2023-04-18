@@ -1,33 +1,30 @@
 package metric
 
-import "strings"
-
-//AttackComplexity is metric type for Base Metrics
+// AttackComplexity is metric type for Base Metrics
 type AttackComplexity int
 
-//Constant of AttackComplexity result
+// Constant of AttackComplexity result
 const (
 	AttackComplexityUnknown AttackComplexity = iota
-	AttackComplexityNotDefined
+	// AttackComplexityNotDefined
 	AttackComplexityHigh
 	AttackComplexityLow
 )
 
 var attackComplexityMap = map[AttackComplexity]string{
-	AttackComplexityNotDefined: "X",
-	AttackComplexityHigh:       "H",
-	AttackComplexityLow:        "L",
+	// AttackComplexityNotDefined: "X",
+	AttackComplexityHigh: "H",
+	AttackComplexityLow:  "L",
 }
 
 var attackComplexityValueMap = map[AttackComplexity]float64{
-	AttackComplexityNotDefined: 0,
-	AttackComplexityHigh:       0.44,
-	AttackComplexityLow:        0.77,
+	// AttackComplexityNotDefined: 0,
+	AttackComplexityHigh: 0.44,
+	AttackComplexityLow:  0.77,
 }
 
-//GetAttackComplexity returns result of AttackComplexity metric
+// GetAttackComplexity returns result of AttackComplexity metric
 func GetAttackComplexity(s string) AttackComplexity {
-	s = strings.ToUpper(s)
 	for k, v := range attackComplexityMap {
 		if s == v {
 			return k
@@ -43,7 +40,7 @@ func (ac AttackComplexity) String() string {
 	return ""
 }
 
-//Value returns value of AttackComplexity metric
+// Value returns value of AttackComplexity metric
 func (ac AttackComplexity) Value() float64 {
 	if v, ok := attackComplexityValueMap[ac]; ok {
 		return v
@@ -51,17 +48,12 @@ func (ac AttackComplexity) Value() float64 {
 	return 0.0
 }
 
-//IsUnknown returns false if unknown result value of metric
+// IsUnknown returns false if unknown result value of metric
 func (ac AttackComplexity) IsUnknown() bool {
 	return ac == AttackComplexityUnknown
 }
 
-//IsDefined returns false if undefined result value of metric
-func (ac AttackComplexity) IsDefined() bool {
-	return !ac.IsUnknown() && ac != AttackComplexityNotDefined
-}
-
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

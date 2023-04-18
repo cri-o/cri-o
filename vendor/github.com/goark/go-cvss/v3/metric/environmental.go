@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -8,23 +9,38 @@ import (
 	"github.com/goark/go-cvss/cvsserr"
 )
 
-//Base is Environmental Metrics for CVSSv3
+const (
+	metricCR  = "CR"
+	metricIR  = "IR"
+	metricAR  = "AR"
+	metricMAV = "MAV"
+	metricMAC = "MAC"
+	metricMPR = "MPR"
+	metricMUI = "MUI"
+	metricMS  = "MS"
+	metricMC  = "MC"
+	metricMI  = "MI"
+	metricMA  = "MA"
+)
+
+// Base is Environmental Metrics for CVSSv3
 type Environmental struct {
 	*Temporal
-	CR  ConfidentialityRequirement
-	IR  IntegrityRequirement
-	AR  AvailabilityRequirement
-	MAV ModifiedAttackVector
-	MAC ModifiedAttackComplexity
-	MPR ModifiedPrivilegesRequired
-	MUI ModifiedUserInteraction
-	MS  ModifiedScope
-	MC  ModifiedConfidentialityImpact
-	MI  ModifiedIntegrityImpact
-	MA  ModifiedAvailabilityImpact
+	CR    ConfidentialityRequirement
+	IR    IntegrityRequirement
+	AR    AvailabilityRequirement
+	MAV   ModifiedAttackVector
+	MAC   ModifiedAttackComplexity
+	MPR   ModifiedPrivilegesRequired
+	MUI   ModifiedUserInteraction
+	MS    ModifiedScope
+	MC    ModifiedConfidentialityImpact
+	MI    ModifiedIntegrityImpact
+	MA    ModifiedAvailabilityImpact
+	names map[string]bool
 }
 
-//NewBase returns Base Metrics instance
+// NewBase returns Environmental Metrics instance
 func NewEnvironmental() *Environmental {
 	return &Environmental{
 		Temporal: NewTemporal(),
@@ -39,6 +55,7 @@ func NewEnvironmental() *Environmental {
 		MC:       ModifiedConfidentialityImpactNotDefined,
 		MI:       ModifiedIntegrityImpactNotDefined,
 		MA:       ModifiedAvailabilityImpactNotDefined,
+		names:    map[string]bool{},
 	}
 }
 
@@ -47,16 +64,13 @@ func (em *Environmental) Decode(vector string) (*Environmental, error) {
 		em = NewEnvironmental()
 	}
 	values := strings.Split(vector, "/")
-	if len(values) < 9 { // E, RL, RC metrics are optional.
-		return em, errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("vector", vector))
-	}
 	//CVSS version
 	ver, err := GetVersion(values[0])
 	if err != nil {
-		return em, errs.Wrap(err, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 	}
 	if ver == VUnknown {
-		return em, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
 	}
 	em.Ver = ver
 	//parse vector
@@ -64,15 +78,18 @@ func (em *Environmental) Decode(vector string) (*Environmental, error) {
 	for _, value := range values[1:] {
 		if err := em.decodeOne(value); err != nil {
 			if !errs.Is(err, cvsserr.ErrNotSupportMetric) {
-				return em, errs.Wrap(err, errs.WithContext("vector", vector))
+				return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 			}
 			lastErr = err
 		}
 	}
 	if lastErr != nil {
-		return em, lastErr
+		return nil, lastErr
 	}
-	return em, em.GetError()
+	if err := em.GetError(); err != nil {
+		return nil, err
+	}
+	return em, nil
 }
 func (em *Environmental) decodeOne(str string) error {
 	if err := em.Temporal.decodeOne(str); err != nil {
@@ -83,125 +100,159 @@ func (em *Environmental) decodeOne(str string) error {
 		return nil
 	}
 	m := strings.Split(str, ":")
-	if len(m) != 2 {
+	if len(m) != 2 || len(m[0]) == 0 || len(m[1]) == 0 {
 		return errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("metric", str))
 	}
-	switch strings.ToUpper(m[0]) {
-	case "CR": //Exploitability
+	name := m[0]
+	if em.names[name] {
+		return errs.Wrap(cvsserr.ErrSameMetric, errs.WithContext("metric", str))
+	}
+	switch name {
+	case metricCR: //ConfidentialityRequirement
 		em.CR = GetConfidentialityRequirement(m[1])
-	case "IR": //RemediationLevel
+		if em.CR == ConfidentialityRequirementInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricIR: //IntegrityRequirement
 		em.IR = GetIntegrityRequirement(m[1])
-	case "AR": //RemediationLevel
+		if em.IR == IntegrityRequirementInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricAR: //AvailabilityRequirement
 		em.AR = GetAvailabilityRequirement(m[1])
-	case "MAV": //RemediationLevel
+		if em.AR == AvailabilityRequirementInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMAV: //ModifiedAttackVector
 		em.MAV = GetModifiedAttackVector(m[1])
-	case "MAC": //RemediationLevel
+		if em.MAV == ModifiedAttackVectorInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMAC: //ModifiedAttackComplexity
 		em.MAC = GetModifiedAttackComplexity(m[1])
-	case "MPR": //RemediationLevel
+		if em.MAC == ModifiedAttackComplexityInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMPR: //ModifiedPrivilegesRequired
 		em.MPR = GetModifiedPrivilegesRequired(m[1])
-	case "MUI": //RemediationLevel
+		if em.MPR == ModifiedPrivilegesRequiredInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMUI: //ModifiedUserInteraction
 		em.MUI = GetModifiedUserInteraction(m[1])
-	case "MS": //RemediationLevel
+		if em.MUI == ModifiedUserInteractionInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMS: //ModifiedScope
 		em.MS = GetModifiedScope(m[1])
-	case "MC": //RemediationLevel
+		if em.MS == ModifiedScopeInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMC: //ModifiedConfidentialityImpact
 		em.MC = GetModifiedConfidentialityImpact(m[1])
-	case "MI": //RemediationLevel
+		if em.MC == ModifiedConfidentialityImpactInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMI: //ModifiedIntegrityImpact
 		em.MI = GetModifiedIntegrityImpact(m[1])
-	case "MA": //RemediationLevel
+		if em.MI == ModifiedIntegrityImpactInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricMA: //ModifiedAvailabilityImpact
 		em.MA = GetModifiedAvailabilityImpact(m[1])
+		if em.MA == ModifiedAvailabilityInvalid {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
 	default:
 		return errs.Wrap(cvsserr.ErrNotSupportMetric, errs.WithContext("metric", str))
 	}
+	em.names[name] = true
 	return nil
 }
 
-//GetError returns error instance if undefined metric
+// GetError returns error instance if undefined metric
 func (em *Environmental) GetError() error {
 	if em == nil {
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+		return errs.Wrap(cvsserr.ErrNoEnvironmentalMetrics)
 	}
-	if err := em.Base.GetError(); err != nil {
+	if err := em.Temporal.GetError(); err != nil {
 		return errs.Wrap(err)
 	}
 	switch true {
-	case !em.CR.IsDefined(), !em.IR.IsDefined(), !em.AR.IsDefined(), !em.MAV.IsDefined(), !em.MAC.IsDefined(), !em.MPR.IsDefined(), !em.MUI.IsDefined(),
-		!em.MS.IsDefined(), !em.MC.IsDefined(), !em.MI.IsDefined(), !em.MA.IsDefined():
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+	case !em.CR.IsValid(), !em.IR.IsValid(), !em.AR.IsValid(), !em.MAV.IsValid(), !em.MAC.IsValid(), !em.MPR.IsValid(), !em.MUI.IsValid(),
+		!em.MS.IsValid(), !em.MC.IsValid(), !em.MI.IsValid(), !em.MA.IsValid():
+		return errs.Wrap(cvsserr.ErrInvalidValue)
 	default:
 		return nil
 	}
 }
 
-//Encode returns CVSSv3 vector string
+// Encode returns CVSSv3 vector string
 func (em *Environmental) Encode() (string, error) {
+	if em == nil {
+		return "", errs.Wrap(cvsserr.ErrNoEnvironmentalMetrics)
+	}
 	if err := em.GetError(); err != nil {
 		return "", errs.Wrap(err)
 	}
-	bs, err := em.Base.Encode()
-	if err != nil {
-		return "", errs.Wrap(err)
-	}
+	ts, _ := em.Temporal.Encode()
 	r := &strings.Builder{}
-	r.WriteString(bs)                        //Vector of Base metrics
-	r.WriteString("/CR:" + em.CR.String())   //Exploitability
-	r.WriteString("/IR:" + em.IR.String())   //Remediation Level
-	r.WriteString("/AR:" + em.AR.String())   //Report Confidence
-	r.WriteString("/MAV:" + em.MAV.String()) //Report Confidence
-	r.WriteString("/MAC:" + em.MAC.String()) //Report Confidence
-	r.WriteString("/MPR:" + em.MPR.String()) //Report Confidence
-	r.WriteString("/MUI:" + em.MUI.String()) //Report Confidence
-	r.WriteString("/MS:" + em.MS.String())   //Report Confidence
-	r.WriteString("/MC:" + em.MC.String())   //Report Confidence
-	r.WriteString("/MI:" + em.MI.String())   //Report Confidence
-	r.WriteString("/MA:" + em.MA.String())   //Report Confidence
-	return r.String(), nil
+	r.WriteString(ts)                                       //Vector of Temporal metrics
+	r.WriteString(fmt.Sprintf("/%v:%v", metricCR, em.CR))   //Confidentiality Requirement
+	r.WriteString(fmt.Sprintf("/%v:%v", metricIR, em.IR))   //Integrity Requirement
+	r.WriteString(fmt.Sprintf("/%v:%v", metricAR, em.AR))   //Availability Requirement
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMAV, em.MAV)) //Modified Attack Vector
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMAC, em.MAC)) //Modified Attack Complexity
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMPR, em.MPR)) //Modified Privileges Required
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMUI, em.MUI)) //Modified User Interaction
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMS, em.MS))   //Modified Scope
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMC, em.MC))   //Modified Confidentiality Impact
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMI, em.MI))   //Modified Integrity Impact
+	r.WriteString(fmt.Sprintf("/%v:%v", metricMA, em.MA))   //Modified Availability Impact
+	return r.String(), em.GetError()
 }
 
-//Score returns score of Environmental metrics
+// String is stringer method.
+func (em *Environmental) String() string {
+	s, _ := em.Encode()
+	return s
+}
 
+// Score returns score of Environmental metrics
 func (em *Environmental) Score() float64 {
 	if err := em.GetError(); err != nil {
 		return 0.0
 	}
-	var score, ModifiedImpact float64
-	ModifiedImpactSubScore := math.Min(1-(1-em.CR.Value()*em.MC.Value(em.C))*(1-em.IR.Value()*em.MI.Value(em.I))*(1-em.AR.Value()*em.MA.Value(em.A)), 0.915)
-
-	if em.MS == ModifiedScopeUnchanged {
-		ModifiedImpact = 6.42 * ModifiedImpactSubScore
-	} else if em.MS == ModifiedScopeChanged {
-		ModifiedImpact = 7.52*(ModifiedImpactSubScore-0.029) - 3.25*math.Pow(ModifiedImpactSubScore*0.9731-0.02, 13)
-	} else {
-		if em.S == ScopeUnchanged {
-			ModifiedImpact = 6.42 * ModifiedImpactSubScore
-		} else {
+	ModifiedImpactSubScore := math.Min(1-((1-em.CR.Value()*em.MC.Value(em.C))*(1-em.IR.Value()*em.MI.Value(em.I))*(1-em.AR.Value()*em.MA.Value(em.A))), 0.915)
+	changes := em.MS.IsChanged(em.S)
+	var ModifiedImpact float64
+	if changes {
+		if em.Ver == V3_1 {
 			ModifiedImpact = 7.52*(ModifiedImpactSubScore-0.029) - 3.25*math.Pow(ModifiedImpactSubScore*0.9731-0.02, 13)
+		} else {
+			ModifiedImpact = 7.52*(ModifiedImpactSubScore-0.029) - 3.25*math.Pow(ModifiedImpactSubScore-0.02, 15)
 		}
+	} else {
+		ModifiedImpact = 6.42 * ModifiedImpactSubScore
+	}
+	if ModifiedImpact <= 0 {
+		return 0.0
 	}
 
 	ModifiedExploitability := 8.22 * em.MAV.Value(em.AV) * em.MAC.Value(em.AC) * em.MPR.Value(em.MS, em.S, em.PR) * em.MUI.Value(em.UI)
 
-	if ModifiedImpact <= 0 {
-		score = 0.0
-	} else if em.MS == ModifiedScopeUnchanged {
-		score = roundUp(roundUp(math.Min((ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
-	} else if em.MS == ModifiedScopeChanged {
-		score = roundUp(roundUp(math.Min(1.08*(ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
-	} else {
-		if em.S == ScopeUnchanged {
-			score = roundUp(roundUp(math.Min((ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
-		} else {
-			score = roundUp(roundUp(math.Min(1.08*(ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
-		}
+	if changes {
+		return roundUp(roundUp(math.Min(1.08*(ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
 	}
-	return score
+	return roundUp(roundUp(math.Min((ModifiedImpact+ModifiedExploitability), 10)) * em.E.Value() * em.RL.Value() * em.RC.Value())
 }
 
-//Severity returns severity by score of Environmental metrics
+// Severity returns severity by score of Environmental metrics
 func (em *Environmental) Severity() Severity {
 	return severity(em.Score())
 }
 
-//BaseMetrics returns Base metrics in Environmental metrics instance
+// BaseMetrics returns Base metrics in Environmental metrics instance
 func (em *Environmental) BaseMetrics() *Base {
 	if em == nil {
 		return nil
@@ -209,6 +260,7 @@ func (em *Environmental) BaseMetrics() *Base {
 	return em.Base
 }
 
+// TemporalMetrics returns Temporal metrics in Environmental metrics instance
 func (em *Environmental) TemporalMetrics() *Temporal {
 	if em == nil {
 		return nil
@@ -217,3 +269,4 @@ func (em *Environmental) TemporalMetrics() *Temporal {
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */
