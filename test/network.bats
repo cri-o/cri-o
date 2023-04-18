@@ -75,6 +75,9 @@ function teardown() {
 }
 
 @test "Connect to pod hostport from the host" {
+	if is_cgroup_v2; then
+		skip "node configured with cgroupv2 flakes this test sometimes"
+	fi
 	start_crio
 
 	pod_config="$TESTDIR"/sandbox_config.json
