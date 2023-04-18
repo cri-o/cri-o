@@ -35,8 +35,6 @@ import (
 	utilnet "k8s.io/utils/net"
 )
 
-const kubeMarkMasqChain = "KUBE-MARK-MASQ"
-
 // HostPortManager is an interface for adding and removing hostport for a given pod sandbox.
 // nolint:golint // no reason to change the type name now "type name will be used as hostport.HostPortManager by other packages"
 type HostPortManager interface {
@@ -121,42 +119,54 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 	conntrackPortsToRemove := []int{}
 	for _, pm := range hostportMappings {
 		protocol := strings.ToLower(string(pm.Protocol))
-		chain := getHostportChain(id, pm)
-		newChains = append(newChains, chain)
+		hpChain := getHostportChain(kubeHostportChainPrefix, id, pm)
+		masqChain := getHostportChain(crioMasqueradeChainPrefix, id, pm)
+		newChains = append(newChains, hpChain, masqChain)
 		if pm.Protocol == v1.ProtocolUDP {
 			conntrackPortsToRemove = append(conntrackPortsToRemove, int(pm.HostPort))
 		}
 
 		// Add new hostport chain
-		writeLine(natChains, utiliptables.MakeChainLine(chain))
+		writeLine(natChains, utiliptables.MakeChainLine(hpChain))
+		writeLine(natChains, utiliptables.MakeChainLine(masqChain))
 
-		// Prepend the new chain to KUBE-HOSTPORTS
-		// This avoids any leaking iptables rule that takes up the same port
+		// Prepend the new chains to KUBE-HOSTPORTS and CRIO-HOSTPORTS-MASQ
+		// This avoids any leaking iptables rules that take up the same port
 		writeLine(natRules, "-I", string(kubeHostportsChain),
 			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 			"-m", protocol, "-p", protocol, "--dport", fmt.Sprintf("%d", pm.HostPort),
-			"-j", string(chain),
+			"-j", string(hpChain),
 		)
-
-		// SNAT if the traffic comes from the pod itself
-		writeLine(natRules, "-A", string(chain),
+		writeLine(natRules, "-I", string(crioMasqueradeChain),
 			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
-			"-s", podIP,
-			"-j", kubeMarkMasqChain)
+			"-j", string(masqChain),
+		)
 
 		// DNAT to the podIP:containerPort
 		hostPortBinding := net.JoinHostPort(podIP, strconv.Itoa(int(pm.ContainerPort)))
 		if pm.HostIP == "" || pm.HostIP == "0.0.0.0" || pm.HostIP == "::" {
-			writeLine(natRules, "-A", string(chain),
+			writeLine(natRules, "-A", string(hpChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 				"-m", protocol, "-p", protocol,
 				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
 		} else {
-			writeLine(natRules, "-A", string(chain),
+			writeLine(natRules, "-A", string(hpChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 				"-m", protocol, "-p", protocol, "-d", pm.HostIP,
 				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
 		}
+
+		// SNAT hairpin traffic. There is no "ctorigaddrtype" so we can't
+		// _exactly_ match only the traffic that was definitely DNATted by our
+		// rule as opposed to someone else's. But if the traffic has been DNATted
+		// and has src=dst=podIP then _someone_ needs to masquerade it, and the
+		// worst case here is just that "-j MASQUERADE" gets called twice.
+		writeLine(natRules, "-A", string(masqChain),
+			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+			"-m", "conntrack", "--ctorigdstport", fmt.Sprintf("%d", pm.HostPort),
+			"-m", protocol, "-p", protocol, "--dport", fmt.Sprintf("%d", pm.ContainerPort),
+			"-s", podIP, "-d", podIP,
+			"-j", "MASQUERADE")
 	}
 
 	// getHostportChain should be able to provide unique hostport chain name using hash
@@ -218,7 +228,10 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 	// Gather target hostport chains for removal
 	chainsToRemove := []utiliptables.Chain{}
 	for _, pm := range hostportMappings {
-		chainsToRemove = append(chainsToRemove, getHostportChain(id, pm))
+		chainsToRemove = append(chainsToRemove,
+			getHostportChain(kubeHostportChainPrefix, id, pm),
+			getHostportChain(crioMasqueradeChainPrefix, id, pm),
+		)
 	}
 
 	// remove rules that consists of target chains
@@ -341,15 +354,15 @@ func (hm *hostportManager) getIPFamily() ipFamily {
 }
 
 // getHostportChain takes id, hostport and protocol for a pod and returns associated iptables chain.
-// This is computed by hashing (sha256) then encoding to base32 and truncating with the prefix
-// "KUBE-HP-". We do this because IPTables Chain Names must be <= 28 chars long, and the longer
+// This is computed by hashing (sha256) then encoding to base32 and truncating, and prepending
+// the prefix. We do this because IPTables Chain Names must be <= 28 chars long, and the longer
 // they are the harder they are to read.
 // WARNING: Please do not change this function. Otherwise, HostportManager may not be able to
 // identify existing iptables chains.
-func getHostportChain(id string, pm *PortMapping) utiliptables.Chain {
+func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 	hash := sha256.Sum256([]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol) + pm.HostIP))
 	encoded := base32.StdEncoding.EncodeToString(hash[:])
-	return utiliptables.Chain(kubeHostportChainPrefix + encoded[:16])
+	return utiliptables.Chain(prefix + encoded[:16])
 }
 
 // gatherHostportMappings returns all the PortMappings which has hostport for a pod
@@ -383,14 +396,18 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 	existingHostportRules := []string{}
 
 	for chain := range existingNATChains {
-		if strings.HasPrefix(string(chain), string(kubeHostportsChain)) || strings.HasPrefix(string(chain), kubeHostportChainPrefix) {
+		if chain == kubeHostportsChain || chain == crioMasqueradeChain ||
+			strings.HasPrefix(string(chain), kubeHostportChainPrefix) ||
+			strings.HasPrefix(string(chain), crioMasqueradeChainPrefix) {
 			existingHostportChains[chain] = string(existingNATChains[chain])
 		}
 	}
 
 	for _, line := range strings.Split(iptablesData.String(), "\n") {
 		if strings.HasPrefix(line, fmt.Sprintf("-A %s", kubeHostportChainPrefix)) ||
-			strings.HasPrefix(line, fmt.Sprintf("-A %s", string(kubeHostportsChain))) {
+			strings.HasPrefix(line, fmt.Sprintf("-A %s", crioMasqueradeChainPrefix)) ||
+			strings.HasPrefix(line, fmt.Sprintf("-A %s ", string(kubeHostportsChain))) ||
+			strings.HasPrefix(line, fmt.Sprintf("-A %s ", string(crioMasqueradeChain))) {
 			existingHostportRules = append(existingHostportRules, line)
 		}
 	}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-
 	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
@@ -21,15 +19,9 @@ func NewMetaHostportManager() HostPortManager {
 	exec := utilexec.New()
 	// Create IPv4 handler
 	iptInterface := utiliptables.New(exec, utiliptables.ProtocolIPv4)
-	if _, err := iptInterface.EnsureChain(utiliptables.TableNAT, kubeMarkMasqChain); err != nil {
-		logrus.Warnf("Unable to ensure iptables chain: %v", err)
-	}
 	hostportManagerv4 := NewHostportManager(iptInterface)
 	// Create IPv6 handler
 	ip6tInterface := utiliptables.New(exec, utiliptables.ProtocolIPv6)
-	if _, err := ip6tInterface.EnsureChain(utiliptables.TableNAT, kubeMarkMasqChain); err != nil {
-		logrus.Warnf("Unable to ensure ip6tables chain: %v", err)
-	}
 	hostportManagerv6 := NewHostportManager(ip6tInterface)
 
 	h := &metaHostportManager{

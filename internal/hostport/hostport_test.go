@@ -64,9 +64,6 @@ func (f *fakeSocketManager) openFakeSocket(hp *hostport) (closeable, error) {
 var _ = t.Describe("HostPort", func() {
 	It("should ensure kube hostport chains", func() {
 		interfaceName := "cbr0"
-		builtinChains := []string{"PREROUTING", "OUTPUT"}
-		jumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
-		masqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
 
 		fakeIPTables := newFakeIPTables()
 		Expect(ensureKubeHostportChains(fakeIPTables, interfaceName)).To(BeNil())
@@ -74,16 +71,27 @@ var _ = t.Describe("HostPort", func() {
 		_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
 		Expect(err).To(BeNil())
 
-		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
-		Expect(err).To(BeNil())
-		Expect(len(chain.rules)).To(BeEquivalentTo(1))
-		Expect(chain.rules).To(ContainElement(masqRule))
+		builtinChains := []string{"PREROUTING", "OUTPUT"}
+		hostPortJumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
 
 		for _, chainName := range builtinChains {
 			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
 			Expect(err).To(BeNil())
 			Expect(len(chain.rules)).To(BeEquivalentTo(1))
-			Expect(chain.rules).To(ContainElement(jumpRule))
+			Expect(chain.rules).To(ContainElement(hostPortJumpRule))
 		}
+
+		masqJumpRule := "-m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ"
+		localhostMasqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
+
+		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
+		Expect(err).To(BeNil())
+		Expect(len(chain.rules)).To(BeEquivalentTo(1))
+		Expect(chain.rules).To(ContainElement(masqJumpRule))
+
+		_, chain, err = fakeIPTables.getChain(utiliptables.TableNAT, crioMasqueradeChain)
+		Expect(err).To(BeNil())
+		Expect(len(chain.rules)).To(BeEquivalentTo(1))
+		Expect(chain.rules).To(ContainElement(localhostMasqRule))
 	})
 })
