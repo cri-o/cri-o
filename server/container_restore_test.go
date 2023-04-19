@@ -94,7 +94,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				"",
 			)
 			// Then
-			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": `))
+			Expect(err.Error()).To(ContainSubstring(`failed to read "spec.dump": open `))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
