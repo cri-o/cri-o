@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//ConfidentialityRequirement is metric type for Base Metrics
+// ConfidentialityRequirement is metric type for Base Metrics
 type ConfidentialityRequirement int
 
-//Constant of ConfidentialityRequirement result
+// Constant of ConfidentialityRequirement result
 const (
-	ConfidentialityRequirementNotDefined ConfidentialityRequirement = iota
+	ConfidentialityRequirementInvalid ConfidentialityRequirement = iota
+	ConfidentialityRequirementNotDefined
 	ConfidentialityRequirementLow
 	ConfidentialityRequirementMedium
 	ConfidentialityRequirementHigh
@@ -27,15 +26,14 @@ var ConfidentialityRequirementValueMap = map[ConfidentialityRequirement]float64{
 	ConfidentialityRequirementHigh:       1.5,
 }
 
-//GetConfidentialityRequirement returns result of ConfidentalityRequirement metric
+// GetConfidentialityRequirement returns result of ConfidentalityRequirement metric
 func GetConfidentialityRequirement(s string) ConfidentialityRequirement {
-	s = strings.ToUpper(s)
 	for k, v := range ConfidentialityRequirementMap {
 		if s == v {
 			return k
 		}
 	}
-	return ConfidentialityRequirementNotDefined
+	return ConfidentialityRequirementInvalid
 }
 
 func (cr ConfidentialityRequirement) String() string {
@@ -45,7 +43,7 @@ func (cr ConfidentialityRequirement) String() string {
 	return ""
 }
 
-//Value returns value of ConfidentialityRequirement metric
+// Value returns value of ConfidentialityRequirement metric
 func (cr ConfidentialityRequirement) Value() float64 {
 	if v, ok := ConfidentialityRequirementValueMap[cr]; ok {
 		return v
@@ -53,10 +51,11 @@ func (cr ConfidentialityRequirement) Value() float64 {
 	return 0.0
 }
 
-//IsDefined returns false if undefined result value of metric
-func (cr ConfidentialityRequirement) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (cr ConfidentialityRequirement) IsValid() bool {
 	_, ok := ConfidentialityRequirementValueMap[cr]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */

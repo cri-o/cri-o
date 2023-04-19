@@ -1,6 +1,7 @@
 package metric
 
 import (
+	"fmt"
 	"math"
 	"strings"
 
@@ -8,31 +9,44 @@ import (
 	"github.com/goark/go-cvss/cvsserr"
 )
 
-//Base is Base Metrics for CVSSv3
+const (
+	metricAV = "AV"
+	metricAC = "AC"
+	metricPR = "PR"
+	metricUI = "UI"
+	metricS  = "S"
+	metricC  = "C"
+	metricI  = "I"
+	metricA  = "A"
+)
+
+// Base is Base Metrics for CVSSv3
 type Base struct {
-	Ver Version
-	AV  AttackVector
-	AC  AttackComplexity
-	PR  PrivilegesRequired
-	UI  UserInteraction
-	S   Scope
-	C   ConfidentialityImpact
-	I   IntegrityImpact
-	A   AvailabilityImpact
+	Ver   Version
+	AV    AttackVector
+	AC    AttackComplexity
+	PR    PrivilegesRequired
+	UI    UserInteraction
+	S     Scope
+	C     ConfidentialityImpact
+	I     IntegrityImpact
+	A     AvailabilityImpact
+	names map[string]bool
 }
 
-//NewBase returns Base Metrics instance
+// NewBase returns Base Metrics instance
 func NewBase() *Base {
 	return &Base{
-		Ver: VUnknown,
-		AV:  AttackVectorUnknown,
-		AC:  AttackComplexityUnknown,
-		PR:  PrivilegesRequiredUnknown,
-		UI:  UserInteractionUnknown,
-		S:   ScopeUnknown,
-		C:   ConfidentialityImpactUnknown,
-		I:   IntegrityImpactUnknown,
-		A:   AvailabilityImpactUnknown,
+		Ver:   VUnknown,
+		AV:    AttackVectorUnknown,
+		AC:    AttackComplexityUnknown,
+		PR:    PrivilegesRequiredUnknown,
+		UI:    UserInteractionUnknown,
+		S:     ScopeUnknown,
+		C:     ConfidentialityImpactUnknown,
+		I:     IntegrityImpactUnknown,
+		A:     AvailabilityImpactUnknown,
+		names: map[string]bool{},
 	}
 }
 
@@ -41,16 +55,13 @@ func (bm *Base) Decode(vector string) (*Base, error) {
 		bm = NewBase()
 	}
 	values := strings.Split(vector, "/")
-	if len(values) < 9 {
-		return bm, errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("vector", vector))
-	}
 	//CVSS version
 	ver, err := GetVersion(values[0])
 	if err != nil {
-		return bm, errs.Wrap(err, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 	}
 	if ver == VUnknown {
-		return bm, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
+		return nil, errs.Wrap(cvsserr.ErrNotSupportVer, errs.WithContext("vector", vector))
 	}
 	bm.Ver = ver
 	//parse vector
@@ -58,101 +69,159 @@ func (bm *Base) Decode(vector string) (*Base, error) {
 	for _, value := range values[1:] {
 		if err := bm.decodeOne(value); err != nil {
 			if !errs.Is(err, cvsserr.ErrNotSupportMetric) {
-				return bm, errs.Wrap(err, errs.WithContext("vector", vector))
+				return nil, errs.Wrap(err, errs.WithContext("vector", vector))
 			}
 			lastErr = err
 		}
 	}
 	if lastErr != nil {
-		return bm, lastErr
+		return nil, lastErr
 	}
-	return bm, bm.GetError()
+	if err := bm.GetError(); err != nil {
+		return nil, err
+	}
+	return bm, nil
 }
 func (bm *Base) decodeOne(str string) error {
 	m := strings.Split(str, ":")
-	if len(m) != 2 {
+	if len(m) != 2 || len(m[0]) == 0 || len(m[1]) == 0 {
 		return errs.Wrap(cvsserr.ErrInvalidVector, errs.WithContext("metric", str))
 	}
-	switch strings.ToUpper(m[0]) {
-	case "AV": //Attack Vector
+	name := m[0]
+	if bm.names[name] {
+		return errs.Wrap(cvsserr.ErrSameMetric, errs.WithContext("metric", str))
+	}
+	switch name {
+	case metricAV: //Attack Vector
 		bm.AV = GetAttackVector(m[1])
-	case "AC": //Attack Complexity
+		if bm.AV == AttackVectorUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricAC: //Attack Complexity
 		bm.AC = GetAttackComplexity(m[1])
-	case "PR": //Privileges Required
+		if bm.AC == AttackComplexityUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricPR: //Privileges Required
 		bm.PR = GetPrivilegesRequired(m[1])
-	case "UI": //User Interaction
+		if bm.PR == PrivilegesRequiredUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricUI: //User Interaction
 		bm.UI = GetUserInteraction(m[1])
-	case "S": //Scope
+		if bm.UI == UserInteractionUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricS: //Scope
 		bm.S = GetScope(m[1])
-	case "C": //Confidentiality Impact
+		if bm.S == ScopeUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricC: //Confidentiality Impact
 		bm.C = GetConfidentialityImpact(m[1])
-	case "I": //Integrity Impact
+		if bm.C == ConfidentialityImpactUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricI: //Integrity Impact
 		bm.I = GetIntegrityImpact(m[1])
-	case "A": //Availability Impact
+		if bm.I == IntegrityImpactUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
+	case metricA: //Availability Impact
 		bm.A = GetAvailabilityImpact(m[1])
+		if bm.A == AvailabilityImpactUnknown {
+			return errs.Wrap(cvsserr.ErrInvalidValue, errs.WithContext("metric", str))
+		}
 	default:
 		return errs.Wrap(cvsserr.ErrNotSupportMetric, errs.WithContext("metric", str))
 	}
+	bm.names[name] = true
 	return nil
 }
 
-//GetError returns error instance if undefined metric
+// GetError returns error instance if undefined metric
 func (bm *Base) GetError() error {
 	if bm == nil {
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+		return errs.Wrap(cvsserr.ErrNoBaseMetrics)
 	}
 	switch true {
-	case bm.Ver == VUnknown, !bm.AV.IsDefined(), !bm.AC.IsDefined(), !bm.PR.IsDefined(), !bm.UI.IsDefined(), !bm.S.IsDefined(), !bm.C.IsDefined(), !bm.I.IsDefined(), !bm.A.IsDefined():
-		return errs.Wrap(cvsserr.ErrUndefinedMetric)
+	case bm.Ver == VUnknown:
+		return errs.Wrap(cvsserr.ErrNotSupportVer)
+	case bm.AV.IsUnknown(), bm.AC.IsUnknown(), bm.PR.IsUnknown(), bm.UI.IsUnknown(), bm.S.IsUnknown(), bm.C.IsUnknown(), bm.I.IsUnknown(), bm.A.IsUnknown():
+		return errs.Wrap(cvsserr.ErrNoBaseMetrics)
 	default:
 		return nil
 	}
 }
 
-//Encode returns CVSSv3 vector string
+// Encode returns CVSSv3 vector string
 func (bm *Base) Encode() (string, error) {
-	if err := bm.GetError(); err != nil {
-		return "", err
+	if bm == nil {
+		return "", errs.Wrap(cvsserr.ErrNoBaseMetrics)
 	}
-	r := &strings.Builder{}
-	r.WriteString("CVSS:" + bm.Ver.String()) //CVSS Version
-	r.WriteString("/AV:" + bm.AV.String())   //Attack Vector
-	r.WriteString("/AC:" + bm.AC.String())   //Attack Complexity
-	r.WriteString("/PR:" + bm.PR.String())   //Privileges Required
-	r.WriteString("/UI:" + bm.UI.String())   //User Interaction
-	r.WriteString("/S:" + bm.S.String())     //Scope
-	r.WriteString("/C:" + bm.C.String())     //Confidentiality Impact
-	r.WriteString("/I:" + bm.I.String())     //Integrity Impact
-	r.WriteString("/A:" + bm.A.String())     //Availability Impact
-	return r.String(), nil
+	r := []string{}
+	if bm.Ver != VUnknown {
+		r = append(r, fmt.Sprintf("%v:%v", nameCVSS, bm.Ver)) //CVSS Version
+	}
+	if bm.names[metricAV] {
+		r = append(r, fmt.Sprintf("%v:%v", metricAV, bm.AV)) //Attack Vector
+	}
+	if bm.names[metricAC] {
+		r = append(r, fmt.Sprintf("%v:%v", metricAC, bm.AC)) //Attack Complexity
+	}
+	if bm.names[metricPR] {
+		r = append(r, fmt.Sprintf("%v:%v", metricPR, bm.PR)) //Privileges Required
+	}
+	if bm.names[metricUI] {
+		r = append(r, fmt.Sprintf("%v:%v", metricUI, bm.UI)) //User Interaction
+	}
+	if bm.names[metricS] {
+		r = append(r, fmt.Sprintf("%v:%v", metricS, bm.S)) //Scope
+	}
+	if bm.names[metricC] {
+		r = append(r, fmt.Sprintf("%v:%v", metricC, bm.C)) //Confidentiality Impact
+	}
+	if bm.names[metricI] {
+		r = append(r, fmt.Sprintf("%v:%v", metricI, bm.I)) //Integrity Impact
+	}
+	if bm.names[metricA] {
+		r = append(r, fmt.Sprintf("%v:%v", metricA, bm.A)) //Availability Impact
+	}
+	return strings.Join(r, "/"), bm.GetError()
 }
 
-//Score returns score of Base metrics
+// String is stringer method.
+func (bm *Base) String() string {
+	s, _ := bm.Encode()
+	return s
+}
+
+// Score returns score of Base metrics
 func (bm *Base) Score() float64 {
 	if err := bm.GetError(); err != nil {
 		return 0.0
 	}
 
+	changed := bm.S.IsChanged()
 	impact := 1.0 - (1-bm.C.Value())*(1-bm.I.Value())*(1-bm.A.Value())
-	if bm.S == ScopeUnchanged {
-		impact *= 6.42
-	} else {
+	if changed {
 		impact = 7.52*(impact-0.029) - 3.25*math.Pow(impact-0.02, 15.0)
+	} else {
+		impact *= 6.42
 	}
+	if impact <= 0 {
+		return 0.0
+	}
+
 	ease := 8.22 * bm.AV.Value() * bm.AC.Value() * bm.PR.Value(bm.S) * bm.UI.Value()
 
-	var score float64
-	if impact <= 0 {
-		score = 0.0
-	} else if bm.S == ScopeUnchanged {
-		score = roundUp(math.Min(impact+ease, 10))
-	} else {
-		score = roundUp(math.Min(1.08*(impact+ease), 10))
+	if changed {
+		return roundUp(math.Min(1.08*(impact+ease), 10))
 	}
-	return score
+	return roundUp(math.Min(impact+ease, 10))
 }
 
-//Severity returns severity by score of Base metrics
+// Severity returns severity by score of Base metrics
 func (bm *Base) Severity() Severity {
 	return severity(bm.Score())
 }
@@ -166,7 +235,7 @@ func (bm *Base) BaseMetrics() *Base {
 	return bm
 }
 
-/* Copyright 2018-2020 Spiegel
+/* Copyright 2018-2023 Spiegel
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

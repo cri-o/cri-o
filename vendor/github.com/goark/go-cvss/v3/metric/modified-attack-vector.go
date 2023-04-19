@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//ModifiedAttackVector is metric type for Base Metrics
+// ModifiedAttackVector is metric type for Base Metrics
 type ModifiedAttackVector int
 
-//Constant of ModifiedAttackVector result
+// Constant of ModifiedAttackVector result
 const (
-	ModifiedAttackVectorNotDefined ModifiedAttackVector = iota
+	ModifiedAttackVectorInvalid ModifiedAttackVector = iota
+	ModifiedAttackVectorNotDefined
 	ModifiedAttackVectorPhysical
 	ModifiedAttackVectorLocal
 	ModifiedAttackVectorAdjacent
@@ -30,15 +29,14 @@ var ModifiedAttackVectorValueMap = map[ModifiedAttackVector]float64{
 	ModifiedAttackVectorNetwork:    0.85,
 }
 
-//GetModifiedAttackVector returns result of ModifiedAttackVector metric
+// GetModifiedAttackVector returns result of ModifiedAttackVector metric
 func GetModifiedAttackVector(s string) ModifiedAttackVector {
-	s = strings.ToUpper(s)
 	for k, v := range ModifiedAttackVectorMap {
 		if s == v {
 			return k
 		}
 	}
-	return ModifiedAttackVectorNotDefined
+	return ModifiedAttackVectorInvalid
 }
 
 func (mav ModifiedAttackVector) String() string {
@@ -48,9 +46,9 @@ func (mav ModifiedAttackVector) String() string {
 	return ""
 }
 
-//Value returns value of ModifiedAttackVector metric
+// Value returns value of ModifiedAttackVector metric
 func (mav ModifiedAttackVector) Value(av AttackVector) float64 {
-	if mav.String() == ModifiedAttackVectorNotDefined.String() {
+	if mav == ModifiedAttackVectorNotDefined {
 		if v, ok := attackVectorValueMap[av]; ok {
 			return v
 		}
@@ -63,10 +61,11 @@ func (mav ModifiedAttackVector) Value(av AttackVector) float64 {
 	}
 }
 
-//IsDefined returns false if undefined result value of metric
-func (mav ModifiedAttackVector) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (mav ModifiedAttackVector) IsValid() bool {
 	_, ok := ModifiedAttackVectorValueMap[mav]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */

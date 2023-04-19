@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//ModifiedAttackComplexity is metric type for Base Metrics
+// ModifiedAttackComplexity is metric type for Base Metrics
 type ModifiedAttackComplexity int
 
-//Constant of ModifiedAttackComplexity result
+// Constant of ModifiedAttackComplexity result
 const (
-	ModifiedAttackComplexityNotDefined ModifiedAttackComplexity = iota
+	ModifiedAttackComplexityInvalid ModifiedAttackComplexity = iota
+	ModifiedAttackComplexityNotDefined
 	ModifiedAttackComplexityHigh
 	ModifiedAttackComplexityLow
 )
@@ -24,15 +23,14 @@ var ModifiedAttackComplexityValueMap = map[ModifiedAttackComplexity]float64{
 	ModifiedAttackComplexityLow:        0.77,
 }
 
-//GetModifiedAttackComplexity returns result of ModifiedAttackComplexity metric
+// GetModifiedAttackComplexity returns result of ModifiedAttackComplexity metric
 func GetModifiedAttackComplexity(s string) ModifiedAttackComplexity {
-	s = strings.ToUpper(s)
 	for k, v := range ModifiedAttackComplexityMap {
 		if s == v {
 			return k
 		}
 	}
-	return ModifiedAttackComplexityNotDefined
+	return ModifiedAttackComplexityInvalid
 }
 
 func (mac ModifiedAttackComplexity) String() string {
@@ -42,9 +40,9 @@ func (mac ModifiedAttackComplexity) String() string {
 	return ""
 }
 
-//Value returns value of ModifiedAttackComplexity metric
+// Value returns value of ModifiedAttackComplexity metric
 func (mac ModifiedAttackComplexity) Value(ac AttackComplexity) float64 {
-	if mac.String() == ModifiedAttackComplexityNotDefined.String() {
+	if mac == ModifiedAttackComplexityNotDefined {
 		if v, ok := attackComplexityValueMap[ac]; ok {
 			return v
 		}
@@ -57,10 +55,11 @@ func (mac ModifiedAttackComplexity) Value(ac AttackComplexity) float64 {
 	}
 }
 
-//IsDefined returns false if undefined result value of metric
-func (mac ModifiedAttackComplexity) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (mac ModifiedAttackComplexity) IsValid() bool {
 	_, ok := ModifiedAttackComplexityValueMap[mac]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */
