@@ -58,7 +58,7 @@ const (
 	BucketPrefix                    = "kubernetes-release-"
 	BucketPrefixK8sInfra            = "k8s-release-"
 
-	versionReleaseRE   = `v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[a-zA-Z0-9]+)*\.*(0|[1-9][0-9]*)?`
+	versionReleaseRE   = `v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)-?([a-zA-Z0-9]+\.(0|[1-9][0-9]*)\.)?`
 	versionBuildRE     = `([0-9]{1,})\+([0-9a-f]{5,40})`
 	versionWorkspaceRE = `gitVersion ([^\n]+)`
 	versionDirtyRE     = `(-dirty)`
@@ -241,9 +241,9 @@ func ReadDockerizedVersion(workDir string) (string, error) {
 func IsValidReleaseBuild(build string) (bool, error) {
 	// If the tag has a plus sign, then we force the versionBuildRe to match
 	if strings.Contains(build, "+") {
-		return regexp.MatchString("("+versionReleaseRE+`(\.`+versionBuildRE+")"+versionDirtyRE+"?)", build)
+		return regexp.MatchString("("+versionReleaseRE+`(`+versionBuildRE+")"+versionDirtyRE+"?)", build)
 	}
-	return regexp.MatchString("("+versionReleaseRE+`(\.`+versionBuildRE+")?"+versionDirtyRE+"?)", build)
+	return regexp.MatchString("("+versionReleaseRE+`(`+versionBuildRE+")?"+versionDirtyRE+"?)", build)
 }
 
 // IsDirtyBuild checks if build version is dirty.

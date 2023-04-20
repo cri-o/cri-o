@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//ModifiedAvailabilityImpact is metric type for Base Metrics
+// ModifiedAvailabilityImpact is metric type for Base Metrics
 type ModifiedAvailabilityImpact int
 
-//Constant of ModifiedAvailabilityImpact result
+// Constant of ModifiedAvailabilityImpact result
 const (
-	ModifiedAvailabilityImpactNotDefined ModifiedAvailabilityImpact = iota
+	ModifiedAvailabilityInvalid ModifiedAvailabilityImpact = iota
+	ModifiedAvailabilityImpactNotDefined
 	ModifiedAvailabilityImpactNone
 	ModifiedAvailabilityImpactLow
 	ModifiedAvailabilityImpactHigh
@@ -27,15 +26,14 @@ var ModifiedAvailabilityImpactValueMap = map[ModifiedAvailabilityImpact]float64{
 	ModifiedAvailabilityImpactHigh:       0.56,
 }
 
-//GetModifiedAvailabilityImpact returns result of ModifiedAvailabilityImpact metric
+// GetModifiedAvailabilityImpact returns result of ModifiedAvailabilityImpact metric
 func GetModifiedAvailabilityImpact(s string) ModifiedAvailabilityImpact {
-	s = strings.ToUpper(s)
 	for k, v := range ModifiedAvailabilityImpactMap {
 		if s == v {
 			return k
 		}
 	}
-	return ModifiedAvailabilityImpactNotDefined
+	return ModifiedAvailabilityInvalid
 }
 
 func (mai ModifiedAvailabilityImpact) String() string {
@@ -45,7 +43,7 @@ func (mai ModifiedAvailabilityImpact) String() string {
 	return ""
 }
 
-//Value returns value of ModifiedAvailabilityImpact metric
+// Value returns value of ModifiedAvailabilityImpact metric
 func (mai ModifiedAvailabilityImpact) Value(ai AvailabilityImpact) float64 {
 	if mai.String() == ModifiedAvailabilityImpactNotDefined.String() {
 		if v, ok := availabilityImpactValueMap[ai]; ok {
@@ -60,10 +58,11 @@ func (mai ModifiedAvailabilityImpact) Value(ai AvailabilityImpact) float64 {
 	}
 }
 
-//IsDefined returns false if undefined result value of metric
-func (mai ModifiedAvailabilityImpact) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (mai ModifiedAvailabilityImpact) IsValid() bool {
 	_, ok := ModifiedAvailabilityImpactValueMap[mai]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */

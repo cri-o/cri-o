@@ -1,15 +1,12 @@
 package metric
 
-import (
-	"strings"
-)
-
-//ReportConfidence is metric type for Temporal Metrics
+// ReportConfidence is metric type for Temporal Metrics
 type ReportConfidence int
 
-//Constant of ReportConfidence result
+// Constant of ReportConfidence result
 const (
-	ReportConfidenceNotDefined ReportConfidence = iota
+	ReportConfidenceInvalid ReportConfidence = iota
+	ReportConfidenceNotDefined
 	ReportConfidenceUnknown
 	ReportConfidenceReasonable
 	ReportConfidenceConfirmed
@@ -29,15 +26,14 @@ var reportConfidenceValueMap = map[ReportConfidence]float64{
 	ReportConfidenceConfirmed:  1,
 }
 
-//GetReportConfidence returns result of ReportConfidence metric
+// GetReportConfidence returns result of ReportConfidence metric
 func GetReportConfidence(s string) ReportConfidence {
-	s = strings.ToUpper(s)
 	for k, v := range reportConfidenceMap {
 		if s == v {
 			return k
 		}
 	}
-	return ReportConfidenceNotDefined
+	return ReportConfidenceInvalid
 }
 
 func (rc ReportConfidence) String() string {
@@ -47,7 +43,7 @@ func (rc ReportConfidence) String() string {
 	return ""
 }
 
-//Value returns value of ReportConfidence metric
+// Value returns value of ReportConfidence metric
 func (rc ReportConfidence) Value() float64 {
 	if v, ok := reportConfidenceValueMap[rc]; ok {
 		return v
@@ -55,11 +51,11 @@ func (rc ReportConfidence) Value() float64 {
 	return 1
 }
 
-//IsDefined returns false if undefined result value of metric
-func (rc ReportConfidence) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (rc ReportConfidence) IsValid() bool {
 	_, ok := reportConfidenceValueMap[rc]
 	return ok
 }
 
 /* Copyright by Florent Viel, 2020 */
-/* Contributed by Spiegel, 2020 */
+/* Contributed by Spiegel, 2020-2023 */

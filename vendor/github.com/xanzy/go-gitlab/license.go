@@ -17,6 +17,7 @@
 package gitlab
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -70,8 +71,8 @@ func (l License) String() string {
 //
 // GitLab API docs:
 // https://docs.gitlab.com/ee/api/license.html#retrieve-information-about-the-current-license
-func (s *LicenseService) GetLicense() (*License, *Response, error) {
-	req, err := s.client.NewRequest(http.MethodGet, "license", nil, nil)
+func (s *LicenseService) GetLicense(options ...RequestOptionFunc) (*License, *Response, error) {
+	req, err := s.client.NewRequest(http.MethodGet, "license", nil, options)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -109,4 +110,19 @@ func (s *LicenseService) AddLicense(opt *AddLicenseOptions, options ...RequestOp
 	}
 
 	return l, resp, err
+}
+
+// DeleteLicense deletes an existing license.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/license.html#delete-a-license
+func (s *LicenseService) DeleteLicense(licenseID int, options ...RequestOptionFunc) (*Response, error) {
+	u := fmt.Sprintf("license/%d", licenseID)
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
 }

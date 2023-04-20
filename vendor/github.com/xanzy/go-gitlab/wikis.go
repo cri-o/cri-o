@@ -24,14 +24,14 @@ import (
 // WikisService handles communication with the wikis related methods of
 // the Gitlab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/wikis.html
 type WikisService struct {
 	client *Client
 }
 
 // Wiki represents a GitLab wiki.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/wikis.html
 type Wiki struct {
 	Content  string          `json:"content"`
 	Encoding string          `json:"encoding"`
@@ -47,7 +47,7 @@ func (w Wiki) String() string {
 // ListWikisOptions represents the available ListWikis options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#list-wiki-pages
+// https://docs.gitlab.com/ee/api/wikis.html#list-wiki-pages
 type ListWikisOptions struct {
 	WithContent *bool `url:"with_content,omitempty" json:"with_content,omitempty"`
 }
@@ -56,7 +56,7 @@ type ListWikisOptions struct {
 // When with_content is set, it also returns the content of the pages.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#list-wiki-pages
+// https://docs.gitlab.com/ee/api/wikis.html#list-wiki-pages
 func (s *WikisService) ListWikis(pid interface{}, opt *ListWikisOptions, options ...RequestOptionFunc) ([]*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -90,7 +90,7 @@ type GetWikiPageOptions struct {
 // GetWikiPage gets a wiki page for a given project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#get-a-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#get-a-wiki-page
 func (s *WikisService) GetWikiPage(pid interface{}, slug string, opt *GetWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *WikisService) GetWikiPage(pid interface{}, slug string, opt *GetWikiPag
 // CreateWikiPageOptions represents options to CreateWikiPage.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#create-a-new-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#create-a-new-wiki-page
 type CreateWikiPageOptions struct {
 	Content *string          `url:"content,omitempty" json:"content,omitempty"`
 	Title   *string          `url:"title,omitempty" json:"title,omitempty"`
@@ -126,7 +126,7 @@ type CreateWikiPageOptions struct {
 // the given title, slug, and content.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#create-a-new-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#create-a-new-wiki-page
 func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -151,7 +151,7 @@ func (s *WikisService) CreateWikiPage(pid interface{}, opt *CreateWikiPageOption
 // EditWikiPageOptions represents options to EditWikiPage.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#edit-an-existing-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#edit-an-existing-wiki-page
 type EditWikiPageOptions struct {
 	Content *string          `url:"content,omitempty" json:"content,omitempty"`
 	Title   *string          `url:"title,omitempty" json:"title,omitempty"`
@@ -162,7 +162,7 @@ type EditWikiPageOptions struct {
 // required to update the wiki page.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#edit-an-existing-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#edit-an-existing-wiki-page
 func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiPageOptions, options ...RequestOptionFunc) (*Wiki, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -187,7 +187,7 @@ func (s *WikisService) EditWikiPage(pid interface{}, slug string, opt *EditWikiP
 // DeleteWikiPage deletes a wiki page with a given slug.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/wikis.html#delete-a-wiki-page
+// https://docs.gitlab.com/ee/api/wikis.html#delete-a-wiki-page
 func (s *WikisService) DeleteWikiPage(pid interface{}, slug string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

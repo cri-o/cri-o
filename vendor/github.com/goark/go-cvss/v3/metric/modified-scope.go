@@ -1,13 +1,12 @@
 package metric
 
-import "strings"
-
-//ModifiedScope is metric type for Base Metrics
+// ModifiedScope is metric type for Base Metrics
 type ModifiedScope int
 
-//Constant of ModifiedScope result
+// Constant of ModifiedScope result
 const (
-	ModifiedScopeNotDefined ModifiedScope = iota
+	ModifiedScopeInvalid ModifiedScope = iota
+	ModifiedScopeNotDefined
 	ModifiedScopeUnchanged
 	ModifiedScopeChanged
 )
@@ -18,15 +17,22 @@ var ModifiedScopeValueMap = map[ModifiedScope]string{
 	ModifiedScopeChanged:    "C",
 }
 
-//GetModifiedScope returns result of ModifiedScope metric
+// GetModifiedScope returns result of ModifiedScope metric
 func GetModifiedScope(s string) ModifiedScope {
-	s = strings.ToUpper(s)
 	for k, v := range ModifiedScopeValueMap {
 		if s == v {
 			return k
 		}
 	}
-	return ModifiedScopeNotDefined
+	return ModifiedScopeInvalid
+}
+
+// IsChanged returns true if ModifiedScope value is ModifiedScopeChanged.
+func (msc ModifiedScope) IsChanged(sc Scope) bool {
+	if msc == ModifiedScopeNotDefined {
+		return sc.IsChanged()
+	}
+	return msc == ModifiedScopeChanged
 }
 
 func (msc ModifiedScope) String() string {
@@ -36,10 +42,11 @@ func (msc ModifiedScope) String() string {
 	return ""
 }
 
-//IsDefined returns false if undefined result value of metric
-func (msc ModifiedScope) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (msc ModifiedScope) IsValid() bool {
 	_, ok := ModifiedScopeValueMap[msc]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */

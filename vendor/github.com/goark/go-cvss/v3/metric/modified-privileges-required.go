@@ -1,15 +1,12 @@
 package metric
 
-import (
-	"strings"
-)
-
-//ModifiedPrivilegesRequired is metric type for Base Metrics
+// ModifiedPrivilegesRequired is metric type for Base Metrics
 type ModifiedPrivilegesRequired int
 
-//Constant of ModifiedPrivilegesRequired result
+// Constant of ModifiedPrivilegesRequired result
 const (
-	ModifiedPrivilegesRequiredNotDefined ModifiedPrivilegesRequired = iota
+	ModifiedPrivilegesRequiredInvalid ModifiedPrivilegesRequired = iota
+	ModifiedPrivilegesRequiredNotDefined
 	ModifiedPrivilegesRequiredHigh
 	ModifiedPrivilegesRequiredLow
 	ModifiedPrivilegesRequiredNone
@@ -35,15 +32,14 @@ var ModifiedPrivilegesRequiredWithCValueMap = map[ModifiedPrivilegesRequired]flo
 	ModifiedPrivilegesRequiredNone:       0.85,
 }
 
-//GetModifiedPrivilegesRequired returns result of ModifiedPrivilegesRequired metric
+// GetModifiedPrivilegesRequired returns result of ModifiedPrivilegesRequired metric
 func GetModifiedPrivilegesRequired(s string) ModifiedPrivilegesRequired {
-	s = strings.ToUpper(s)
 	for k, v := range ModifiedPrivilegesRequiredMap {
 		if s == v {
 			return k
 		}
 	}
-	return ModifiedPrivilegesRequiredNotDefined
+	return ModifiedPrivilegesRequiredInvalid
 }
 
 func (mpr ModifiedPrivilegesRequired) String() string {
@@ -53,47 +49,34 @@ func (mpr ModifiedPrivilegesRequired) String() string {
 	return ""
 }
 
-//Value returns value of ModifiedPrivilegesRequired metric
+// Value returns value of ModifiedPrivilegesRequired metric
 func (mpr ModifiedPrivilegesRequired) Value(ms ModifiedScope, s Scope, pr PrivilegesRequired) float64 {
-	var m map[ModifiedPrivilegesRequired]float64
-	if mpr.String() == ModifiedPrivilegesRequiredNotDefined.String() {
-		switch s {
-		case ScopeUnchanged:
-			if v, ok := privilegesRequiredWithUValueMap[pr]; ok {
-				return v
-			}
-		case ScopeChanged:
-			if v, ok := privilegesRequiredWithCValueMap[pr]; ok {
-				return v
-			}
+	if mpr == ModifiedPrivilegesRequiredNotDefined {
+		if ms.IsChanged(s) {
+			s = ScopeChanged
+		} else {
+			s = ScopeUnchanged
 		}
+		return pr.Value(s)
 	} else {
-		switch ms {
-		case ModifiedScopeUnchanged:
-			m = ModifiedPrivilegesRequiredWithUValueMap
-		case ModifiedScopeChanged:
+		var m map[ModifiedPrivilegesRequired]float64
+		if ms.IsChanged(s) {
 			m = ModifiedPrivilegesRequiredWithCValueMap
-		case ModifiedScopeNotDefined:
-			if s == ScopeUnchanged {
-				m = ModifiedPrivilegesRequiredWithUValueMap
-			} else {
-				m = ModifiedPrivilegesRequiredWithCValueMap
-			}
-		default:
-			return 0.0
+		} else {
+			m = ModifiedPrivilegesRequiredWithUValueMap
 		}
 		if v, ok := m[mpr]; ok {
 			return v
 		}
-
 	}
 	return 0.0
 }
 
-//IsDefined returns false if undefined result value of metric
-func (mpr ModifiedPrivilegesRequired) IsDefined() bool {
+// IsDefined returns false if undefined result value of metric
+func (mpr ModifiedPrivilegesRequired) IsValid() bool {
 	_, ok := ModifiedPrivilegesRequiredWithCValueMap[mpr]
 	return ok
 }
 
 /* Copyright 2022 thejohnbrown */
+/* Contributed by Spiegel, 2023 */

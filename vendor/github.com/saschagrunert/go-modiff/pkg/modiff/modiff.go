@@ -3,7 +3,6 @@ package modiff
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"sort"
@@ -50,7 +49,7 @@ func Run(config *Config) (string, error) {
 	}
 
 	// Prepare the environment
-	dir, err := ioutil.TempDir("", "go-modiff")
+	dir, err := os.MkdirTemp("", "go-modiff")
 	if err != nil {
 		return logErr(err)
 	}
@@ -100,7 +99,7 @@ func diffModules(mods modules, addLinks bool, headerLevel uint) string {
 	var added, removed, changed []string
 	for name, mod := range mods {
 		txt := fmt.Sprintf("- %s: ", name)
-		if mod.before == "" { // nolint: gocritic
+		if mod.before == "" { //nolint: gocritic
 			if addLinks && isGitHubURL(name) {
 				txt += fmt.Sprintf("[%s](%s/tree/%s)",
 					mod.after, toURL(name), sanitizeTag(mod.after))
@@ -136,16 +135,17 @@ func diffModules(mods modules, addLinks bool, headerLevel uint) string {
 
 	// Pretty print
 	builder := &strings.Builder{}
-	builder.WriteString(fmt.Sprintf(
-		"%s Dependencies\n", strings.Repeat("#", int(headerLevel)),
-	))
+	fmt.Fprintf(
+		builder, "%s Dependencies\n", strings.Repeat("#", int(headerLevel)),
+	)
 	forEach := func(section string, input []string) {
-		builder.WriteString(fmt.Sprintf("\n%s %s\n",
-			strings.Repeat("#", int(headerLevel)+1), section,
-		))
+		fmt.Fprintf(
+			builder,
+			"\n%s %s\n", strings.Repeat("#", int(headerLevel)+1), section,
+		)
 		if len(input) > 0 {
 			for _, mod := range input {
-				builder.WriteString(fmt.Sprintf("%s\n", mod))
+				fmt.Fprintf(builder, "%s\n", mod)
 			}
 		} else {
 			builder.WriteString("_Nothing has changed._\n")
@@ -272,7 +272,14 @@ func runCmdOutput(dir, cmd string, args ...string) ([]byte, error) {
 
 	output, err := c.Output()
 	if err != nil {
-		return nil, fmt.Errorf("unable to run cmd: %w", err)
+		return nil, fmt.Errorf(
+			"unable to run cmd: %s %s, workdir: %s, output: %s, error: %w",
+			cmd,
+			strings.Join(args, " "),
+			dir,
+			string(output),
+			err,
+		)
 	}
 
 	return output, nil

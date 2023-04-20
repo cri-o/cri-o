@@ -25,36 +25,44 @@ import (
 // GitIgnoreTemplatesService handles communication with the gitignore
 // templates related methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/templates/gitignores.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/templates/gitignores.html
 type GitIgnoreTemplatesService struct {
 	client *Client
 }
 
 // GitIgnoreTemplate represents a GitLab gitignore template.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/templates/gitignores.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/templates/gitignores.html
 type GitIgnoreTemplate struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
 
+// GitIgnoreTemplateListItem represents a GitLab gitignore template from the list.
+//
+// GitLab API docs: https://docs.gitlab.com/ee/api/templates/gitignores.html
+type GitIgnoreTemplateListItem struct {
+	Key  string `json:"key"`
+	Name string `json:"name"`
+}
+
 // ListTemplatesOptions represents the available ListAllTemplates() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/templates/gitignores.html#list-gitignore-templates
+// https://docs.gitlab.com/ee/api/templates/gitignores.html#get-all-gitignore-templates
 type ListTemplatesOptions ListOptions
 
 // ListTemplates get a list of available git ignore templates
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/templates/gitignores.html#list-gitignore-templates
-func (s *GitIgnoreTemplatesService) ListTemplates(opt *ListTemplatesOptions, options ...RequestOptionFunc) ([]*GitIgnoreTemplate, *Response, error) {
+// https://docs.gitlab.com/ee/api/templates/gitignores.html#get-all-gitignore-templates
+func (s *GitIgnoreTemplatesService) ListTemplates(opt *ListTemplatesOptions, options ...RequestOptionFunc) ([]*GitIgnoreTemplateListItem, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodGet, "templates/gitignores", opt, options)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var gs []*GitIgnoreTemplate
+	var gs []*GitIgnoreTemplateListItem
 	resp, err := s.client.Do(req, &gs)
 	if err != nil {
 		return nil, resp, err
@@ -66,7 +74,7 @@ func (s *GitIgnoreTemplatesService) ListTemplates(opt *ListTemplatesOptions, opt
 // GetTemplate get a git ignore template
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/templates/gitignores.html#get-a-single-gitignore-template
+// https://docs.gitlab.com/ee/api/templates/gitignores.html#get-a-single-gitignore-template
 func (s *GitIgnoreTemplatesService) GetTemplate(key string, options ...RequestOptionFunc) (*GitIgnoreTemplate, *Response, error) {
 	u := fmt.Sprintf("templates/gitignores/%s", url.PathEscape(key))
 
