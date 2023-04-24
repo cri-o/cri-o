@@ -64,6 +64,7 @@ GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.4.1
+RELEASE_NOTES_VERSION := v0.15.1
 BOM := ${BUILD_BIN_PATH}/bom
 BOM_VERSION := v0.5.1
 SHFMT := ${BUILD_BIN_PATH}/shfmt
@@ -278,7 +279,10 @@ ${MOCKGEN}:
 	$(call go-build,./vendor/github.com/golang/mock/mockgen)
 
 ${RELEASE_NOTES}:
-	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
+	mkdir -p $(BUILD_BIN_PATH)
+	curl -sSfL -o $(RELEASE_NOTES) \
+		https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-linux-amd64
+	chmod +x $(RELEASE_NOTES)
 
 ${SHFMT}:
 	$(call go-build,./vendor/mvdan.cc/sh/v3/cmd/shfmt)
