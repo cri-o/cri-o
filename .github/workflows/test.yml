@@ -387,6 +387,24 @@ jobs:
           path: build/release-notes
           if-no-files-found: ignore
 
+  release-notes-tool:
+    permissions:
+      contents: none
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go-build-release-notes-tool-${{ hashFiles('**/go.sum') }}
+          restore-keys: go-build-
+      - run: make release-notes-tool
+
   dependencies:
     permissions:
       contents: none
