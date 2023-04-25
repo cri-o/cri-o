@@ -25,7 +25,7 @@ dependencies:
     version: v0.8.0
     refPaths:
     - path: Makefile
-      match: VERSION
+      match: SHELLCHECK_VERSION
 
   - name: cni-plugins
     version: v1.2.0
@@ -96,3 +96,21 @@ dependencies:
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
+
+  - name: shfmt
+    version: 3.6.0
+    refPaths:
+      - path: Makefile
+        match: SHFMT_VERSION
+
+  - name: mockgen
+    version: 1.6.0
+    refPaths:
+      - path: Makefile
+        match: MOCKGEN_VERSION
+
+  - name: go-mod-outdated
+    version: 0.9.0
+    refPaths:
+      - path: Makefile
+        match: GO_MOD_OUTDATED_VERSION
