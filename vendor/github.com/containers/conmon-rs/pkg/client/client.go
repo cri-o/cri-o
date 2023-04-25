@@ -1026,6 +1026,13 @@ type CreateaNamespacesConfig struct {
 	// IDMappings are the user and group ID mappings when unsharing the user
 	// namespace.
 	IDMappings *idtools.IDMappings
+
+	// BasePath is the root path for storing the namespaces.
+	// Defaults to "/var/run" if unset.
+	BasePath string
+
+	// PodID is the unique identifier of the pod.
+	PodID string
 }
 
 // CreateaNamespacesResponse is the response of the CreateNamespaces method.
@@ -1042,7 +1049,16 @@ type NamespacesResponse struct {
 	Path string
 }
 
-// CreateNamespaces can be used to create a new set of namespaces.
+// CreateNamespaces can be used to create a new set of unshared namespaces by
+// bind mounting it to the local filesystem.
+//
+// If a namespace is not selected by the CreateaNamespacesConfig, then the
+// server will fallback to the host namespace and still create the bind mount
+// to it. All namespaces are mounted to /var/run/[ipc,pid,net,user,uts]ns/$POD_ID,
+// whereas the POD_ID is being used from the CreateaNamespacesConfig as well.
+//
+// UID and GID mappings are required if unsharing of the user namespace is
+// requested.
 func (c *ConmonClient) CreateNamespaces(
 	ctx context.Context, cfg *CreateaNamespacesConfig,
 ) (*CreateaNamespacesResponse, error) {
@@ -1125,6 +1141,18 @@ func (c *ConmonClient) CreateNamespaces(
 
 		if err := req.SetNamespaces(namespaces); err != nil {
 			return fmt.Errorf("set namespaces: %w", err)
+		}
+
+		if cfg.BasePath == "" {
+			cfg.BasePath = "/var/run"
+		}
+
+		if err := req.SetBasePath(cfg.BasePath); err != nil {
+			return fmt.Errorf("set base path: %w", err)
+		}
+
+		if err := req.SetPodId(cfg.PodID); err != nil {
+			return fmt.Errorf("set base path: %w", err)
 		}
 
 		return nil
