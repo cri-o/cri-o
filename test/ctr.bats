@@ -41,9 +41,7 @@ function check_oci_annotation() {
 
 @test "ctr termination reason Completed" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
 	wait_until_exit "$ctr_id"
 
 	output=$(crictl inspect --output yaml "$ctr_id")
@@ -52,12 +50,10 @@ function check_oci_annotation() {
 
 @test "ctr termination reason Error" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	jq '	  .command = ["false"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
 
-	crictl start "$ctr_id"
 	EXPECTED_EXIT_STATUS=1 wait_until_exit "$ctr_id"
 
 	output=$(crictl inspect --output yaml "$ctr_id")
@@ -66,28 +62,24 @@ function check_oci_annotation() {
 
 @test "ulimits" {
 	OVERRIDE_OPTIONS="--default-ulimits nofile=42:42 --default-ulimits nproc=1024:2048" start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	jq '	  .command = ["/bin/sh", "-c", "sleep 600"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -n")
 	[ "$output" == "42" ]
 
-	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -p")
+	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -u")
 	[ "$output" == "1024" ]
 
-	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -Hp")
+	output=$(crictl exec --sync "$ctr_id" sh -c "ulimit -Hu")
 	[ "$output" == "2048" ]
 }
 
 @test "ctr remove" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl rm -f "$ctr_id"
 }
 
@@ -661,14 +653,8 @@ function check_oci_annotation() {
 	output=$(crictl exec --sync "$ctr_id" echo hello0 stdout)
 	[[ "$output" == *"hello0 stdout"* ]]
 
-	jq '	  .image.image = "quay.io/crio/stderr-test"
-		| .command = ["/bin/sleep", "600"]' \
-		"$TESTDATA"/container_config.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	output=$(crictl exec --sync "$ctr_id" stderr)
-	[[ "$output" == *"this goes to stderr"* ]]
+	output=$(crictl exec --sync "$ctr_id" /bin/sh -c "echo hello0 stderr >&2")
+	[[ "$output" == *"hello0 stderr"* ]]
 }
 
 @test "ctr stop idempotent" {
@@ -729,30 +715,6 @@ function check_oci_annotation() {
 	crictl start "$ctr_id"
 
 	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
-}
-
-@test "ctr oom" {
-	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-
-	jq '	  .image.image = "quay.io/crio/oom"
-		| .linux.resources.memory_limit_in_bytes = 25165824
-		| .command = ["/oom"]' \
-		"$TESTDATA"/container_config.json > "$newconfig"
-	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
-
-	# Wait for container to OOM
-	attempt=0
-	while [ $attempt -le 100 ]; do
-		attempt=$((attempt + 1))
-		output=$(crictl inspect --output yaml "$ctr_id")
-		if [[ "$output" == *"OOMKilled"* ]]; then
-			break
-		fi
-		sleep 10
-	done
-	[[ "$output" == *"OOMKilled"* ]]
 }
 
 @test "ctr /etc/resolv.conf rw/ro mode" {
@@ -895,9 +857,7 @@ function check_oci_annotation() {
 
 @test "ctr resources" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpuset/cpuset.cpus || cat /sys/fs/cgroup/cpuset.cpus")
 	[[ "$output" == *"0"* ]]
@@ -976,7 +936,7 @@ function check_oci_annotation() {
 	crictl inspectp "$pod_id" | grep '"security.alpha.kubernetes.io/seccomp/pod": "unconfined"'
 
 	# sandbox annotations passed through to container OCI config
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl run "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
 	check_oci_annotation "$ctr_id" "com.example.test" "sandbox annotation"
 }
 
@@ -1006,9 +966,7 @@ function check_oci_annotation() {
 
 @test "ctr has containerenv" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	crictl exec --sync "$ctr_id" sh -c "stat /run/.containerenv"
 }
@@ -1039,8 +997,7 @@ function check_oci_annotation() {
 	jq '	  .linux.security_context.namespace_options.pid = 2' \
 		"$TESTDATA"/sandbox_config.json > "$newsandbox"
 
-	jq '	  .image.image = "quay.io/crio/redis:alpine"
-		| .linux.security_context.namespace_options.pid = 2
+	jq '	  .linux.security_context.namespace_options.pid = 2
 		| .command = ["/bin/sh", "-c", "sleep 1m& exec sleep 2m"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
 

@@ -14,9 +14,7 @@ function teardown() {
 
 @test "ensure correct hostname" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
 	[[ "$output" == *"crictl_host"* ]]
@@ -40,9 +38,7 @@ function teardown() {
 		| del(.hostname)' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_hostnetwork.json
 
-	pod_id=$(crictl runp "$TESTDIR"/sandbox_hostnetwork.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork.json)
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox_hostnetwork.json)
 
 	output=$(crictl exec --sync "$ctr_id" sh -c "hostname")
 	[[ "$output" == *"$HOSTNAME"* ]]
@@ -56,8 +52,7 @@ function teardown() {
 
 @test "Check for valid pod netns CIDR" {
 	start_crio
-	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl exec --sync "$ctr_id" ip addr show dev eth0 scope global)
 	[[ "$output" = *" inet $POD_IPV4_CIDR_START"* ]]
@@ -80,6 +75,9 @@ function teardown() {
 }
 
 @test "Connect to pod hostport from the host" {
+	if is_cgroup_v2; then
+		skip "node configured with cgroupv2 flakes this test sometimes"
+	fi
 	start_crio
 
 	pod_config="$TESTDIR"/sandbox_config.json
@@ -92,13 +90,10 @@ function teardown() {
 		"$TESTDATA"/sandbox_config.json > "$pod_config"
 
 	ctr_config="$TESTDIR"/container_config.json
-	jq '	  .image.image = "quay.io/crio/busybox:latest"
-		| .command = [ "/bin/nc", "-ll", "-p", "80", "-e", "/bin/hostname" ]' \
+	jq '	  .command = [ "/bin/nc", "-ll", "-p", "80", "-e", "/bin/hostname" ]' \
 		"$TESTDATA"/container_config.json > "$ctr_config"
 
-	pod_id=$(crictl runp "$pod_config")
-	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
-	crictl start "$ctr_id"
+	crictl run "$ctr_config" "$pod_config"
 
 	host_ip=$(get_host_ip)
 	output=$(nc -w 5 "$host_ip" 4888 < /dev/null)

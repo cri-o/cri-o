@@ -94,13 +94,7 @@ POD_IPV6_DEF_ROUTE="1100:200::1/24"
 
 IMAGES=(
     registry.k8s.io/pause:3.6
-    quay.io/crio/busybox:latest
-    quay.io/crio/fedora-ping:latest
-    quay.io/crio/image-volume-test:latest
-    quay.io/crio/oom:latest
-    quay.io/crio/redis:alpine
-    quay.io/crio/stderr-test:latest
-    quay.io/crio/etc-permission:latest
+    quay.io/crio/fedora-crio-ci:latest
 )
 
 function img2dir() {
@@ -335,7 +329,7 @@ function check_images() {
 
     # these two variables are used by a few tests
     eval "$(jq -r '.images[] |
-        select(.repoTags[0] == "quay.io/crio/redis:alpine") |
+        select(.repoTags[0] == "quay.io/crio/fedora-crio-ci:latest") |
         "REDIS_IMAGEID=" + .id + "\n" +
 	"REDIS_IMAGEREF=" + .repoDigests[0]' <<<"$json")"
 }

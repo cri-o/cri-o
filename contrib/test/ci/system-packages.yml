@@ -52,18 +52,6 @@
       - tar
       - wget
 
-- name: Install optional packages For RedHat
-  become: yes
-  yum:
-    state: present
-    enablerepo: codeready-builder-for-rhel-9-x86_64-rpms
-    name:
-      - glibc-static
-      - gpgme-devel
-      - yajl-devel
-      - libsemanage-devel
-  when: ansible_distribution == 'RedHat'
-
 - name: Install optional packages For CentOS Stream 9
   become: yes
   yum:

@@ -3,11 +3,11 @@
 		"name": "podsandbox1-redis"
 	},
 	"image": {
-		"image": "quay.io/crio/redis:alpine"
+		"image": "quay.io/crio/fedora-crio-ci:latest"
 	},
 	"args": [
-                "docker-entrypoint.sh",
-                "redis-server"
+		"docker-entrypoint.sh",
+		"redis-server"
 	],
 	"working_dir": "/data",
 	"envs": [
@@ -21,15 +21,15 @@
 		},
 		{
 			"key": "REDIS_VERSION",
-			"value": "3.2.3"
+			"value": "6.0.18"
 		},
 		{
 			"key": "REDIS_DOWNLOAD_URL",
-			"value": "http://download.redis.io/releases/redis-3.2.3.tar.gz"
+			"value": "http://download.redis.io/releases/redis-6.0.18.tar.gz"
 		},
 		{
 			"key": "REDIS_DOWNLOAD_SHA1",
-			"value": "92d6d93ef2efc91e595c8bf578bf72baff397507"
+			"value": "d7b4f2a97fcab96727284092b0a4aa854af47d570803fa0e7a0345359743836e"
 		}
 	],
 	"labels": {

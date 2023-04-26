@@ -96,9 +96,8 @@ function teardown() {
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
-	jq '.image.image = "quay.io/crio/oom"
-        | .linux.resources.memory_limit_in_bytes = 25165824
-        | .command = ["/oom"]' \
+	jq '.linux.resources.memory_limit_in_bytes = 15728640
+        | .command = ["sh", "-c", "dd if=/dev/zero of=/dev/null bs=20M"]' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/config.json"
 	CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
 
