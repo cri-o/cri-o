@@ -453,3 +453,14 @@ jobs:
           languages: go
       - uses: github/codeql-action/autobuild@v2
       - uses: github/codeql-action/analyze@v2
+
+  auto-approve:
+    permissions:
+      contents: none
+    if: github.actor == 'dependabot[bot]' || github.actor == 'dependabot-preview[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto approve
+        uses: cognitedata/auto-approve-dependabot-action@v3.0.1
+        with:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
