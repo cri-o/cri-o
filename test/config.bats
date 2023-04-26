@@ -119,3 +119,14 @@ EOF
 	# then
 	"$CRIO_BINARY_PATH" -c "$TESTDIR"/workload.conf -d "" config
 }
+
+@test "config dir should fail with invalid disable_hostport_mapping option" {
+	# given
+	printf '[crio.runtime]\ndisable_hostport_mapping = false\n' > "$CRIO_CONFIG"
+	printf '[crio.runtime]\ndisable_hostport_mapping = "no"\n' > "$CRIO_CONFIG_DIR"/00-default
+
+	# when
+	run "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
+	# then
+	[ "$status" -ne 0 ]
+}

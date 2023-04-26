@@ -407,6 +407,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("pinned-images") {
 		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
 	}
+	if ctx.IsSet("disable-hostport-mapping") {
+		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
+	}
 	return nil
 }
 
@@ -1131,6 +1134,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "A list of images that will be excluded from the kubelet's garbage collection.",
 			EnvVars: []string{"CONTAINER_PINNED_IMAGES"},
 			Value:   cli.NewStringSlice(defConf.PinnedImages...),
+		},
+		&cli.BoolFlag{
+			Name:    "disable-hostport-mapping",
+			Usage:   "If true, CRI-O would disable the hostport mapping.",
+			EnvVars: []string{"DISABLE_HOSTPORT_MAPPING"},
+			Value:   defConf.DisableHostPortMapping,
 		},
 	}
 }
