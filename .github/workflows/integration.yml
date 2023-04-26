@@ -16,7 +16,7 @@ jobs:
   critest:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -38,7 +38,7 @@ jobs:
   critest-conmonrs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -62,7 +62,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -83,7 +83,7 @@ jobs:
   test-cgroupfs:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -107,7 +107,7 @@ jobs:
   test-userns:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
@@ -129,7 +129,7 @@ jobs:
   test-conmonrs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v3
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
