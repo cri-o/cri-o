@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 26 Apr 2023 10:04:18 UTC for commit [52ec29d][0]._
+_Generated on Wed, 26 Apr 2023 10:43:31 UTC for commit [99d0375][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/52ec29d276b158ae4e315a3ac2150677c63d3a50
+[0]: https://github.com/cri-o/cri-o/commit/99d0375b1970504aa860996b6c07d57740936465
 
 ## Outdated Dependencies
 
@@ -183,7 +183,7 @@ _Generated on Wed, 26 Apr 2023 10:04:18 UTC for commit [52ec29d][0]._
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
 | github.com/PaesslerAG/jsonpath                                                          | v0.1.1                                            |                                    | false  | true             |
-| github.com/ProtonMail/go-crypto                                                         | v0.0.0-20230217124315-7d5c6f04bbb8                | v0.0.0-20230424174541-a2e3b023bd29 | false  | true             |
+| github.com/ProtonMail/go-crypto                                                         | v0.0.0-20230217124315-7d5c6f04bbb8                | v0.0.0-20230426101702-58e86b294756 | false  | true             |
 | github.com/PuerkitoBio/purell                                                           | v1.1.1                                            | v1.2.0                             | false  | true             |
 | github.com/PuerkitoBio/urlesc                                                           | v0.0.0-20170810143723-de5bf2ad4578                |                                    | false  | true             |
 | github.com/Shopify/logrus-bugsnag                                                       | v0.0.0-20171204204709-577dee27f20d                | v0.0.0-20230117174420-439a4b8ba167 | false  | true             |
