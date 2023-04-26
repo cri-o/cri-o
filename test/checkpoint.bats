@@ -103,3 +103,42 @@ function teardown() {
 	rm -f "$RESTORE_JSON"
 	crictl start "$ctr_id"
 }
+
+@test "checkpoint and restore one container into a new pod with a new name" {
+	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	# Add Kubernetes like annotations
+	START_CONTAINER_JSON_1=$(mktemp)
+	jq '
+			.labels."io.kubernetes.container.name" = "podsandbox-sleep"
+		|	.labels."io.kubernetes.pod.name" = "podsandbox1" ' \
+		"$TESTDATA"/container_sleep.json > "$START_CONTAINER_JSON_1"
+	ctr_id=$(crictl create "$pod_id" "$START_CONTAINER_JSON_1" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	crictl checkpoint --export="$TESTDIR"/cp.tar "$ctr_id"
+	crictl rm -f "$ctr_id"
+	crictl rmp -f "$pod_id"
+	# Replace original container with checkpoint image
+	RESTORE_CONTAINER_JSON_1=$(mktemp)
+	RESTORE_CONTAINER_JSON_2=$(mktemp)
+	RESTORE_SANDBOX_JSON=$(mktemp)
+	jq ".image.image=\"$TESTDIR/cp.tar\"" "$TESTDATA"/container_sleep.json > "$RESTORE_CONTAINER_JSON_1"
+	# rename pod and container
+	jq '.metadata.name="restoresandbox2"' "$TESTDATA"/sandbox_config.json > "$RESTORE_SANDBOX_JSON"
+	jq '
+			.metadata.name = "restored-sleep-container"
+		|	.labels."io.kubernetes.container.name" = "restored-sleep-container"
+		|	.labels."io.kubernetes.pod.name" = "restoresandbox2" ' \
+		"$RESTORE_CONTAINER_JSON_1" > "$RESTORE_CONTAINER_JSON_2"
+	pod_id=$(crictl runp "$RESTORE_SANDBOX_JSON")
+	ctr_id=$(crictl create "$pod_id" "$RESTORE_CONTAINER_JSON_2" "$RESTORE_SANDBOX_JSON")
+	rm -f "$RESTORE_CONTAINER_JSON_1"
+	rm -f "$RESTORE_CONTAINER_JSON_2"
+	rm -f "$RESTORE_SANDBOX_JSON"
+	rm -f "$START_CONTAINER_JSON_1"
+	crictl start "$ctr_id"
+	container_name=$(crictl inspect --output go-template --template '{{(index .status.labels "io.kubernetes.container.name" )}}' "$ctr_id")
+	pod_name=$(crictl inspect --output go-template --template '{{(index .status.labels "io.kubernetes.pod.name" )}}' "$ctr_id")
+	[[ "$container_name" == "restored-sleep-container" ]]
+	[[ "$pod_name" == "restoresandbox2" ]]
+}

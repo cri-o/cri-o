@@ -17,6 +17,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
 
 var _ = t.Describe("ContainerRestore", func() {
@@ -438,8 +439,11 @@ var _ = t.Describe("ContainerRestore", func() {
 				"spec.dump",
 				[]byte(`{"annotations":{"io.kubernetes.cri-o.Metadata"`+
 					`:"{\"name\":\"container-to-restore\"}",`+
-					`"io.kubernetes.cri-o.Annotations": "{\"name\":\"NAME\"}",`+
-					`"io.kubernetes.cri-o.Labels": "{\"io.kubernetes.container.name\":\"counter\"}",`+
+					`"io.kubernetes.cri-o.Annotations": "{\"name\":\"NAME\",`+
+					`\"io.kubernetes.container.hash\":\"b4eeb97f\",`+
+					`\"io.kubernetes.pod.uid\":\"old-sandbox-uid\"}",`+
+					`"io.kubernetes.cri-o.Labels": "{\"io.kubernetes.container.name\":\"counter\",`+
+					`\"io.kubernetes.pod.uid\":\"old-sandbox-uid\"}",`+
 					`"io.kubernetes.cri-o.SandboxID": "sandboxID"},`+
 					`"mounts": [{"destination": "/proc"},`+
 					`{"destination":"/data","source":"/data","options":`+
@@ -471,6 +475,16 @@ var _ = t.Describe("ContainerRestore", func() {
 				Linux: &types.LinuxContainerConfig{
 					Resources:       &types.LinuxContainerResources{},
 					SecurityContext: &types.LinuxContainerSecurityContext{},
+				},
+				Labels: map[string]string{
+					kubetypes.KubernetesContainerNameLabel: "NEW-NAME",
+				},
+				Annotations: map[string]string{
+					kubetypes.KubernetesPodUIDLabel: "new-sandbox-uid",
+					"io.kubernetes.container.hash":  "new-hash",
+				},
+				Metadata: &types.ContainerMetadata{
+					Name: "new-container-name",
 				},
 			}
 
@@ -513,7 +527,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				context.Background(),
 				containerConfig,
 				"",
-				"",
+				"new-sandbox-id",
 			)
 
 			// Then
