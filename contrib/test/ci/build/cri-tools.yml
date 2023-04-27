@@ -16,6 +16,7 @@
     src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/build/bin/{{ item }}"
     dest: "/usr/bin/{{ item }}"
     state: link
+    force: yes
   with_items:
     - "critest"
     - "crictl"
