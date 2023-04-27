@@ -463,4 +463,4 @@ jobs:
       - name: Auto approve
         uses: cognitedata/auto-approve-dependabot-action@v3.0.1
         with:
-          token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ secrets.GH_TOKEN }}
