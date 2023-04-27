@@ -1081,12 +1081,12 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 		return nil
 	}
 	ids := make([]rspec.LinuxIDMapping, 0, len(m))
-	for i, m := range m {
-		ids[i] = rspec.LinuxIDMapping{
+	for _, m := range m {
+		ids = append(ids, rspec.LinuxIDMapping{
 			ContainerID: m.ContainerId,
 			HostID:      m.HostId,
 			Size:        m.Length,
-		}
+		})
 	}
 	return ids
 }
