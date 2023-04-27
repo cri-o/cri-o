@@ -1075,7 +1075,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 }
 
 func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
-	if m == nil {
+	if len(m) == 0 {
 		return nil
 	}
 	ids := make([]rspec.LinuxIDMapping, 0, len(m))
