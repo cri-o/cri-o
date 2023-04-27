@@ -58,16 +58,21 @@ SOURCE_DATE_EPOCH ?= $(shell date +%s)
 GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
+MOCKGEN_VERSION := 1.6.0
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GOLANGCI_LINT_VERSION := v1.52.2
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
+GO_MOD_OUTDATED_VERSION := 0.9.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
+RELEASE_NOTES_VERSION := v0.15.1
 ZEITGEIST_VERSION := v0.4.1
 BOM := ${BUILD_BIN_PATH}/bom
 BOM_VERSION := v0.5.1
 SHFMT := ${BUILD_BIN_PATH}/shfmt
+SHFMT_VERSION := v3.6.0
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
+SHELLCHECK_VERSION := v0.8.0
 BATS_FILES := $(wildcard test/*.bats)
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
@@ -262,56 +267,57 @@ nixpkgs:
 	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
 		--no-deepClone https://github.com/nixos/nixpkgs > nix/nixpkgs.json
 
-
 define go-build
 	$(shell cd `pwd` && $(GO_BUILD) -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
 	@echo > /dev/null
 endef
 
-${GO_MD2MAN}:
+$(BUILD_BIN_PATH):
+	mkdir -p $(BUILD_BIN_PATH)
+
+$(GO_MD2MAN):
 	$(call go-build,./vendor/github.com/cpuguy83/go-md2man)
 
-${GINKGO}:
+$(GINKGO):
 	$(call go-build,./vendor/github.com/onsi/ginkgo/v2/ginkgo)
 
-${MOCKGEN}:
-	$(call go-build,./vendor/github.com/golang/mock/mockgen)
+define curl_to
+    curl -sSfL --retry 5 --retry-delay 3 "$(1)" -o $(2)
+	chmod +x $(2)
+endef
 
-${RELEASE_NOTES}:
-	$(call go-build,./vendor/k8s.io/release/cmd/release-notes)
+$(RELEASE_NOTES): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-linux-amd64,$(RELEASE_NOTES))
 
-${SHFMT}:
-	$(call go-build,./vendor/mvdan.cc/sh/v3/cmd/shfmt)
+$(SHFMT): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
 
-${GO_MOD_OUTDATED}:
-	$(call go-build,./vendor/github.com/psampaz/go-mod-outdated)
+$(ZEITGEIST): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64,$(BUILD_BIN_PATH)/zeitgeist)
 
-${ZEITGEIST}:
-	mkdir -p $(BUILD_BIN_PATH)
-	curl -sSfL -o $(BUILD_BIN_PATH)/zeitgeist \
-		https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64
-	chmod +x $(BUILD_BIN_PATH)/zeitgeist
+$(BOM): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux,$(BUILD_BIN_PATH)/bom)
 
-${BOM}:
-	mkdir -p $(BUILD_BIN_PATH)
-	curl -sSfL -o $(BUILD_BIN_PATH)/bom \
-		https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux
-	chmod +x $(BUILD_BIN_PATH)/bom
+$(MOCKGEN): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
+	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
 
-bom: ${BOM}
+$(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_x86_64.tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
+	tar xf $(BUILD_BIN_PATH)/gmo.tar.gz -C $(BUILD_BIN_PATH)
 
-${GOLANGCI_LINT}:
+bom: $(BOM)
+
+$(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
 
-${SHELLCHECK}:
-	mkdir -p ${BUILD_BIN_PATH} && \
-	VERSION=v0.8.0 \
-	URL=https://github.com/koalaman/shellcheck/releases/download/$$VERSION/shellcheck-$$VERSION.linux.x86_64.tar.xz \
+$(SHELLCHECK): $(BUILD_BIN_PATH)
+	URL=https://github.com/koalaman/shellcheck/releases/download/$(SHELLCHECK_VERSION)/shellcheck-$(SHELLCHECK_VERSION).linux.x86_64.tar.xz \
 	SHA256SUM=f4bce23c11c3919c1b20bcb0f206f6b44c44e26f2bc95f8aa708716095fa0651 && \
-	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$$VERSION/shellcheck && \
+	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$(SHELLCHECK_VERSION)/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
 vendor: export GOSUMDB :=
