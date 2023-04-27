@@ -94,7 +94,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	log.Infof(ctx, "Stopped pod sandbox: %s", sb.ID())
 	sb.SetStopped(ctx, true)
-	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STOPPED_EVENT)
+
+	if podInfraContainer.Spoofed() {
+		// event generation would be needed in case of a spoofed infra container where there is no
+		// exit process that hits the handleExit() code.
+		s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STOPPED_EVENT)
+	}
 
 	return nil
 }
