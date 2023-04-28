@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/pkg/config"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -54,9 +55,18 @@ var _ = t.Describe("Image", func() {
 		ctx = &types.SystemContext{
 			SystemRegistriesConfPath: t.MustTempFile("registries"),
 		}
+		config := &config.Config{
+			SystemContext: &types.SystemContext{
+				SystemRegistriesConfPath: t.MustTempFile("registries"),
+			},
+			ImageConfig: config.ImageConfig{
+				DefaultTransport:   "docker://",
+				InsecureRegistries: []string{},
+			},
+		}
 
 		sut, err = storage.GetImageService(
-			context.Background(), ctx, storeMock, "docker://", []string{},
+			context.Background(), storeMock, config,
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -81,7 +91,7 @@ var _ = t.Describe("Image", func() {
 			// Given
 			// When
 			imageService, err := storage.GetImageService(
-				context.Background(), nil, storeMock, "", []string{},
+				context.Background(), storeMock, &config.Config{},
 			)
 
 			// Then
@@ -92,12 +102,18 @@ var _ = t.Describe("Image", func() {
 		It("should succeed with custom registries.conf", func() {
 			// Given
 			// When
-			imageService, err := storage.GetImageService(
-				context.Background(),
-				&types.SystemContext{
+			config := &config.Config{
+				SystemContext: &types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
-				storeMock, "", []string{},
+				ImageConfig: config.ImageConfig{
+					DefaultTransport:   "",
+					InsecureRegistries: []string{},
+				},
+			}
+			imageService, err := storage.GetImageService(
+				context.Background(),
+				storeMock, config,
 			)
 
 			// Then
@@ -280,11 +296,15 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(&cs.Image{ID: "id"}, nil),
 			)
-
+			config := &config.Config{
+				SystemContext: ctx,
+				ImageConfig: config.ImageConfig{
+					DefaultTransport:   "",
+					InsecureRegistries: []string{},
+				},
+			}
 			// Create an empty file for the registries config path
-			sut, err := storage.GetImageService(context.Background(),
-				ctx, storeMock, "", []string{},
-			)
+			sut, err := storage.GetImageService(context.Background(), storeMock, config)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
@@ -744,6 +764,37 @@ var _ = t.Describe("Image", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(BeNil())
+		})
+	})
+
+	t.Describe("CompileRegexpsForPinnedImages", func() {
+		It("should return regexps for exact patterns", func() {
+			patterns := []string{"quay.io/crio/pause:latest", "docker.io/crio/sandbox:latest"}
+			regexps := storage.CompileRegexpsForPinnedImages(patterns)
+			Expect(len(regexps)).To(Equal(len(patterns)))
+			Expect(regexps[0].MatchString("quay.io/crio/pause:latest")).To(BeTrue())
+			Expect(regexps[1].MatchString("docker.io/crio/sandbox:latest")).To(BeTrue())
+		})
+
+		It("should return regexps for keyword patterns", func() {
+			patterns := []string{"*Fedora*"}
+			regexps := storage.CompileRegexpsForPinnedImages(patterns)
+			Expect(len(regexps)).To(Equal(len(patterns)))
+			Expect(regexps[0].MatchString("quay.io/crio/Fedora34:latest")).To(BeTrue())
+		})
+
+		It("should return regexps for glob patterns", func() {
+			patterns := []string{"quay.io/*", "*Fedora*", "docker.io/*"}
+			regexps := storage.CompileRegexpsForPinnedImages(patterns)
+			Expect(len(regexps)).To(Equal(len(patterns)))
+			Expect(regexps[0].MatchString("quay.io/test/image")).To(BeTrue())
+			Expect(regexps[1].MatchString("gcr.io/CRIO-Fedora34")).To(BeTrue())
+			Expect(regexps[2].MatchString("docker.io/test/image")).To(BeTrue())
+		})
+
+		It("should panic for invalid pattern", func() {
+			patterns := []string{"*"}
+			Expect(func() { storage.CompileRegexpsForPinnedImages(patterns) }).To(Panic())
 		})
 	})
 })

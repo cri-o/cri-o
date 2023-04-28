@@ -481,6 +481,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PauseCommand, c.PauseCommand),
 		},
 		{
+			templateString: templateStringCrioImagePinnedImages,
+			group:          crioImageConfig,
+			isDefaultValue: stringSliceEqual(dc.PinnedImages, c.PinnedImages),
+		},
+		{
 			templateString: templateStringCrioImageSignaturePolicy,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.SignaturePolicyPath, c.SignaturePolicyPath),
@@ -1321,6 +1326,12 @@ const templateStringCrioImagePauseCommand = `# The command to run to have a cont
 # specified in the pause image. When commented out, it will fallback to the
 # default: "/pause". This option supports live configuration reload.
 {{ $.Comment }}pause_command = "{{ .PauseCommand }}"
+
+`
+
+const templateStringCrioImagePinnedImages = `# List of container images to be skipped from the kubelet's garbage collection.
+{{ $.Comment }}pinned_images = [
+{{ range $opt := .PinnedImages }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 

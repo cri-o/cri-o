@@ -9,6 +9,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
@@ -28,6 +29,7 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
 	json "github.com/json-iterator/go"
@@ -62,6 +64,7 @@ type ImageResult struct {
 	Labels       map[string]string
 	OCIConfig    *specs.Image
 	Annotations  map[string]string
+	Pinned       bool // pinned image to prevent it from garbage collection
 }
 
 type indexInfo struct {
@@ -75,11 +78,12 @@ type indexInfo struct {
 // Every field in imageCacheItem are fixed properties of an "image", which in this
 // context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
-	config       *specs.Image
-	size         *uint64
-	configDigest digest.Digest
-	info         *types.ImageInspectInfo
-	annotations  map[string]string
+	config        *specs.Image
+	size          *uint64
+	configDigest  digest.Digest
+	info          *types.ImageInspectInfo
+	annotations   map[string]string
+	isImagePinned bool
 }
 
 type imageCache map[string]imageCacheItem
@@ -91,11 +95,13 @@ type imageLookupService struct {
 }
 
 type imageService struct {
-	lookup         *imageLookupService
-	store          storage.Store
-	imageCache     imageCache
-	imageCacheLock sync.Mutex
-	ctx            context.Context
+	lookup               *imageLookupService
+	store                storage.Store
+	imageCache           imageCache
+	imageCacheLock       sync.Mutex
+	ctx                  context.Context
+	config               *config.Config
+	regexForPinnedImages []*regexp.Regexp
 }
 
 // ImageBeingPulled map[string]bool to keep track of the images haven't done pulling.
@@ -215,7 +221,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *s
 	return imageDigest, repoDigests
 }
 
-func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference) (imageCacheItem, error) {
+func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
 	imageFull, err := ref.NewImage(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -249,13 +255,14 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 			return imageCacheItem{}, err
 		}
 	}
-
+	name, _, _ := sortNamesByType(image.Names)
 	return imageCacheItem{
-		config:       imageConfig,
-		size:         size,
-		configDigest: configDigest,
-		info:         info,
-		annotations:  ociManifest.Annotations,
+		config:        imageConfig,
+		size:          size,
+		configDigest:  configDigest,
+		info:          info,
+		annotations:   ociManifest.Annotations,
+		isImagePinned: FilterPinnedImage(name, svc.regexForPinnedImages),
 	}, nil
 }
 
@@ -286,6 +293,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Labels:       cacheItem.info.Labels,
 		OCIConfig:    cacheItem.config,
 		Annotations:  cacheItem.annotations,
+		Pinned:       cacheItem.isImagePinned,
 	}
 }
 
@@ -295,7 +303,7 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image)
 		if err != nil {
 			return results, err
 		}
@@ -380,7 +388,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	svc.imageCacheLock.Unlock()
 
 	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image) // Single-use-only, not actually cached
 		if err != nil {
 			return nil, err
 		}
@@ -830,7 +838,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 // which will prepend the passed-in DefaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, sc *types.SystemContext, store storage.Store, defaultTransport string, insecureRegistries []string) (ImageServer, error) {
+func GetImageService(ctx context.Context, store storage.Store, serverConfig *config.Config) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -843,20 +851,22 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 		}
 	}
 	ils := &imageLookupService{
-		DefaultTransport:      defaultTransport,
+		DefaultTransport:      serverConfig.DefaultTransport,
 		IndexConfigs:          make(map[string]*indexInfo),
 		InsecureRegistryCIDRs: make([]*net.IPNet, 0),
 	}
 	is := &imageService{
-		lookup:     ils,
-		store:      store,
-		imageCache: make(map[string]imageCacheItem),
-		ctx:        ctx,
+		lookup:               ils,
+		store:                store,
+		imageCache:           make(map[string]imageCacheItem),
+		ctx:                  ctx,
+		config:               serverConfig,
+		regexForPinnedImages: CompileRegexpsForPinnedImages(serverConfig.PinnedImages),
 	}
 
-	insecureRegistries = append(insecureRegistries, "127.0.0.0/8")
+	serverConfig.InsecureRegistries = append(serverConfig.InsecureRegistries, "127.0.0.0/8")
 	// Split --insecure-registry into CIDR and registry-specific settings.
-	for _, r := range insecureRegistries {
+	for _, r := range serverConfig.InsecureRegistries {
 		// Check if CIDR was passed to --insecure-registry
 		_, ipnet, err := net.ParseCIDR(r)
 		if err == nil {
@@ -872,4 +882,44 @@ func GetImageService(ctx context.Context, sc *types.SystemContext, store storage
 	}
 
 	return is, nil
+}
+
+// FilterPinnedImage checks if the give image needs to be pinned
+// to exclude from kubelet's image GC.
+func FilterPinnedImage(image string, pinnedImages []*regexp.Regexp) bool {
+	if len(pinnedImages) == 0 {
+		return false
+	}
+
+	for _, pinnedImage := range pinnedImages {
+		if pinnedImage.MatchString(image) {
+			return true
+		}
+	}
+	return false
+}
+
+// CompileRegexpsForPinnedImages compiles regular expressions for the given
+// list of pinned images.
+func CompileRegexpsForPinnedImages(patterns []string) []*regexp.Regexp {
+	regexps := make([]*regexp.Regexp, 0, len(patterns))
+	for _, pattern := range patterns {
+		var re *regexp.Regexp
+		switch {
+		case strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*"):
+			// keyword pattern
+			keyword := regexp.QuoteMeta(pattern[1 : len(pattern)-1])
+			re = regexp.MustCompile("(?i)" + keyword)
+		case strings.HasSuffix(pattern, "*"):
+			// glob pattern
+			pattern = regexp.QuoteMeta(pattern[:len(pattern)-1]) + ".*"
+			re = regexp.MustCompile("(?i)" + pattern)
+		default:
+			// exact pattern
+			re = regexp.MustCompile("(?i)^" + regexp.QuoteMeta(pattern) + "$")
+		}
+		regexps = append(regexps, re)
+	}
+
+	return regexps
 }
