@@ -55,8 +55,7 @@ func joinTwoPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts,
 }
 
 // joinTwoContainerPortsToRangePortIfPossible will expect two ports with both no host port set,
-//
-//	the previous port one must have a lower or equal containerPort than the current port.
+//  the previous port one must have a lower or equal containerPort than the current port.
 func joinTwoContainerPortsToRangePortIfPossible(ports *[]types.PortMapping, allHostPorts, allContainerPorts, currentHostPorts *[65536]bool,
 	previousPort *types.PortMapping, port types.PortMapping) (*types.PortMapping, error) {
 	// no previous port just return the current one
@@ -95,7 +94,7 @@ func addPortToUsedPorts(ports *[]types.PortMapping, allHostPorts, allContainerPo
 }
 
 // getRandomHostPort get a random host port mapping for the given port
-// the caller has to supply an array with the already used ports
+// the caller has to supply a array with  he already used ports
 func getRandomHostPort(hostPorts *[65536]bool, port types.PortMapping) (types.PortMapping, error) {
 outer:
 	for i := 0; i < 15; i++ {
@@ -311,8 +310,6 @@ func ParsePortMapping(portMappings []types.PortMapping, exposePorts map[uint16][
 						return nil, err
 					}
 					portMappings = append(portMappings, p)
-					// Mark this port as used so it doesn't get re-generated
-					allPorts[p.HostPort] = true
 				} else {
 					newProtocols = append(newProtocols, protocol)
 				}

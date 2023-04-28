@@ -44,6 +44,10 @@ func (p *Pod) startInitContainers(ctx context.Context) error {
 				icLock.Unlock()
 				return fmt.Errorf("failed to remove once init container %s: %w", initCon.ID(), err)
 			}
+			// Removing a container this way requires an explicit call to clean up the db
+			if err := p.runtime.state.RemoveContainerFromPod(p, initCon); err != nil {
+				logrus.Errorf("Removing container %s from database: %v", initCon.ID(), err)
+			}
 			icLock.Unlock()
 		}
 	}
@@ -577,15 +581,20 @@ func (p *Pod) Status() (map[string]define.ContainerStatus, error) {
 }
 
 func containerStatusFromContainers(allCtrs []*Container) (map[string]define.ContainerStatus, error) {
+	// We need to lock all the containers
+	for _, ctr := range allCtrs {
+		ctr.lock.Lock()
+		defer ctr.lock.Unlock()
+	}
+
+	// Now that all containers are locked, get their status
 	status := make(map[string]define.ContainerStatus, len(allCtrs))
 	for _, ctr := range allCtrs {
-		state, err := ctr.State()
-
-		if err != nil {
+		if err := ctr.syncContainer(); err != nil {
 			return nil, err
 		}
 
-		status[ctr.ID()] = state
+		status[ctr.ID()] = ctr.state.State
 	}
 
 	return status, nil
@@ -705,7 +714,7 @@ func (p *Pod) Inspect() (*define.InspectPodData, error) {
 			infraConfig.Networks = netNames
 		}
 		infraConfig.NetworkOptions = infra.config.ContainerNetworkConfig.NetworkOptions
-		infraConfig.PortBindings = makeInspectPortBindings(infra.config.ContainerNetworkConfig.PortMappings)
+		infraConfig.PortBindings = makeInspectPortBindings(infra.config.ContainerNetworkConfig.PortMappings, nil)
 	}
 
 	inspectData := define.InspectPodData{

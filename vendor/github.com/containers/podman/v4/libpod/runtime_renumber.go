@@ -20,7 +20,7 @@ func (r *Runtime) renumberLocks() error {
 		return err
 	}
 
-	allCtrs, err := r.state.AllContainers(false)
+	allCtrs, err := r.state.AllContainers()
 	if err != nil {
 		return err
 	}

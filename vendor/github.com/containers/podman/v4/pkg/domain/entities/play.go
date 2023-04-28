@@ -58,14 +58,6 @@ type PlayKubeOptions struct {
 	ServiceContainer bool
 	// Userns - define the user namespace to use.
 	Userns string
-	// IsRemote - was the request triggered by running podman-remote
-	IsRemote bool
-	// Force - remove volumes on --down
-	Force bool
-	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
-	PublishPorts []string
-	// Wait - indicates whether to return after having created the pods
-	Wait bool
 }
 
 // PlayKubePod represents a single pod and associated containers created by play kube
@@ -96,26 +88,18 @@ type PlayKubeReport struct {
 	// Volumes - volumes created by play kube.
 	Volumes []PlayKubeVolume
 	PlayKubeTeardown
-	// Secrets - secrets created by play kube
 	Secrets []PlaySecret
-	// ServiceContainerID - ID of the service container if one is created
-	ServiceContainerID string
 }
 
 type KubePlayReport = PlayKubeReport
 
 // PlayKubeDownOptions are options for tearing down pods
-type PlayKubeDownOptions struct {
-	// Force - remove volumes if passed
-	Force bool
-}
+type PlayKubeDownOptions struct{}
 
 // PlayKubeDownReport contains the results of tearing down play kube
 type PlayKubeTeardown struct {
-	StopReport     []*PodStopReport
-	RmReport       []*PodRmReport
-	VolumeRmReport []*VolumeRmReport
-	SecretRmReport []*SecretRmReport
+	StopReport []*PodStopReport
+	RmReport   []*PodRmReport
 }
 
 type PlaySecret struct {

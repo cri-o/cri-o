@@ -1,5 +1,5 @@
-//go:build !(linux || freebsd) || !cgo
-// +build !linux,!freebsd !cgo
+//go:build !linux || !cgo
+// +build !linux !cgo
 
 package rootless
 
@@ -57,7 +57,7 @@ func ConfigurationMatches() (bool, error) {
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
-func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	return nil, nil, errors.New("this function is not supported on this os")
 }
 

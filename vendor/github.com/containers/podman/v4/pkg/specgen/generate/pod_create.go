@@ -18,15 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr error) {
-	var createdPod *libpod.Pod
-	defer func() {
-		if finalErr != nil && createdPod != nil {
-			if err := rt.RemovePod(context.Background(), createdPod, true, true, nil); err != nil {
-				logrus.Errorf("Removing pod: %v", err)
-			}
-		}
-	}()
+func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (*libpod.Pod, error) {
 	if err := p.PodSpecGen.Validate(); err != nil {
 		return nil, err
 	}
@@ -57,10 +49,10 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 		if err != nil {
 			return nil, err
 		}
-		if p.PodSpecGen.InfraContainerSpec.ResourceLimits != nil &&
-			p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO != nil {
+		if p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO != nil {
 			p.PodSpecGen.ResourceLimits.BlockIO = p.PodSpecGen.InfraContainerSpec.ResourceLimits.BlockIO
 		}
+
 		err = specgen.WeightDevices(p.PodSpecGen.InfraContainerSpec)
 		if err != nil {
 			return nil, err
@@ -77,8 +69,6 @@ func MakePod(p *entities.PodSpec, rt *libpod.Runtime) (_ *libpod.Pod, finalErr e
 	if err != nil {
 		return nil, err
 	}
-	createdPod = pod
-
 	if !p.PodSpecGen.NoInfra && p.PodSpecGen.InfraContainerSpec != nil {
 		if p.PodSpecGen.InfraContainerSpec.Name == "" {
 			p.PodSpecGen.InfraContainerSpec.Name = pod.ID()[:12] + "-infra"
@@ -205,16 +195,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
 			p.InfraContainerSpec.NetNS.NSMode = specgen.Slirp
 		}
-	case specgen.Pasta:
-		logrus.Debugf("Pod will use pasta")
-		if p.InfraContainerSpec.NetNS.NSMode != specgen.Host {
-			p.InfraContainerSpec.NetworkOptions = p.NetworkOptions
-			p.InfraContainerSpec.NetNS.NSMode = specgen.Pasta
-		}
-	case specgen.Path:
-		logrus.Debugf("Pod will use namespace path networking")
-		p.InfraContainerSpec.NetNS.NSMode = specgen.Path
-		p.InfraContainerSpec.NetNS.Value = p.PodNetworkConfig.NetNS.Value
 	case specgen.NoNetwork:
 		logrus.Debugf("Pod will not use networking")
 		if len(p.InfraContainerSpec.PortMappings) > 0 ||
@@ -262,10 +242,6 @@ func MapSpec(p *specgen.PodSpecGenerator) (*specgen.SpecGenerator, error) {
 
 	if len(p.InfraConmonPidFile) > 0 {
 		p.InfraContainerSpec.ConmonPidFile = p.InfraConmonPidFile
-	}
-
-	if p.Sysctl != nil && len(p.Sysctl) > 0 {
-		p.InfraContainerSpec.Sysctl = p.Sysctl
 	}
 
 	p.InfraContainerSpec.Image = p.InfraImage

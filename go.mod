@@ -19,14 +19,14 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
-	github.com/containers/buildah v1.30.0
+	github.com/containers/buildah v1.27.3
 	github.com/containers/common v0.53.0
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.5.1
+	github.com/containers/conmon-rs v0.3.0
 	github.com/containers/image/v5 v5.25.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.7
-	github.com/containers/podman/v4 v4.5.0
+	github.com/containers/podman/v4 v4.3.0-rc1
 	github.com/containers/storage v1.46.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -83,7 +83,7 @@ require (
 	k8s.io/klog/v2 v2.90.1
 	k8s.io/kubernetes v1.27.0
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
-	sigs.k8s.io/release-sdk v0.10.0
+	sigs.k8s.io/release-sdk v0.9.3
 	sigs.k8s.io/release-utils v0.7.3
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -100,6 +100,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/checkpoint-restore/go-criu/v5 v5.3.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
@@ -122,6 +123,7 @@ require (
 	github.com/emicklei/go-restful/v3 v3.10.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/fsouza/go-dockerclient v1.9.7 // indirect
+	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.4.1 // indirect
 	github.com/go-git/go-git/v5 v5.6.1 // indirect
@@ -141,7 +143,8 @@ require (
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/gnostic v0.5.7-v3refs // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
-	github.com/google/go-containerregistry v0.14.0 // indirect
+	github.com/google/go-containerregistry v0.13.0 // indirect
+	github.com/google/go-github/v45 v45.2.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
@@ -165,7 +168,6 @@ require (
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.0 // indirect
@@ -181,7 +183,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/openshift/imagebuilder v1.2.4 // indirect
+	github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -212,6 +214,9 @@ require (
 	github.com/vbauerster/mpb/v8 v8.3.0 // indirect
 	github.com/vishvananda/netns v0.0.2 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
+	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
+	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
+	github.com/xeipuuv/gojsonschema v1.2.0 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	go.etcd.io/bbolt v1.3.7 // indirect
 	go.mongodb.org/mongo-driver v1.11.3 // indirect

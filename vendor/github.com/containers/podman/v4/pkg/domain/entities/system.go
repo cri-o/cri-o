@@ -18,10 +18,9 @@ type ServiceOptions struct {
 
 // SystemPruneOptions provides options to prune system.
 type SystemPruneOptions struct {
-	All      bool
-	Volume   bool
-	Filters  map[string][]string `json:"filters" schema:"filters"`
-	External bool
+	All     bool
+	Volume  bool
+	Filters map[string][]string `json:"filters" schema:"filters"`
 }
 
 // SystemPruneReport provides report after system prune is executed.
@@ -48,7 +47,6 @@ type SystemDfOptions struct {
 
 // SystemDfReport describes the response for df information
 type SystemDfReport struct {
-	ImagesSize int64
 	Images     []*SystemDfImageReport
 	Containers []*SystemDfContainerReport
 	Volumes    []*SystemDfVolumeReport
@@ -85,6 +83,12 @@ type SystemDfVolumeReport struct {
 	Links           int
 	Size            int64
 	ReclaimableSize int64
+}
+
+// SystemResetOptions describes the options for resetting your
+// container runtime storage, etc
+type SystemResetOptions struct {
+	Force bool
 }
 
 // SystemVersionReport describes version information about the running Podman service

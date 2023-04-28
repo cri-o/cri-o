@@ -2,10 +2,14 @@ package libpod
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
+	"github.com/containers/common/pkg/config"
 	"github.com/containers/podman/v4/libpod/define"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/sirupsen/logrus"
 )
 
 // Creates a new, empty pod
@@ -44,7 +48,7 @@ func (p *Pod) save() error {
 // This cannot lock any other pod, but may lock individual containers, as those
 // will have refreshed by the time pod refresh runs.
 func (p *Pod) refresh() error {
-	// Need to do an update from the DB to pull potentially-missing state
+	// Need to to an update from the DB to pull potentially-missing state
 	if err := p.runtime.state.UpdatePod(p); err != nil {
 		return err
 	}
@@ -60,17 +64,26 @@ func (p *Pod) refresh() error {
 	}
 	p.lock = lock
 
-	if err := p.platformRefresh(); err != nil {
-		return err
+	// We need to recreate the pod's cgroup
+	if p.config.UsePodCgroup {
+		switch p.runtime.config.Engine.CgroupManager {
+		case config.SystemdCgroupsManager:
+			cgroupPath, err := systemdSliceFromPath(p.config.CgroupParent, fmt.Sprintf("libpod_pod_%s", p.ID()), p.ResourceLim())
+			if err != nil {
+				logrus.Errorf("Creating Cgroup for pod %s: %v", p.ID(), err)
+			}
+			p.state.CgroupPath = cgroupPath
+		case config.CgroupfsCgroupsManager:
+			if rootless.IsRootless() && isRootlessCgroupSet(p.config.CgroupParent) {
+				p.state.CgroupPath = filepath.Join(p.config.CgroupParent, p.ID())
+
+				logrus.Debugf("setting pod cgroup to %s", p.state.CgroupPath)
+			}
+		default:
+			return fmt.Errorf("unknown cgroups manager %s specified: %w", p.runtime.config.Engine.CgroupManager, define.ErrInvalidArg)
+		}
 	}
 
 	// Save changes
 	return p.save()
-}
-
-// resetPodState resets state fields to default values.
-// It is performed before a refresh and clears the state after a reboot.
-// It does not save the results - assumes the database will do that for us.
-func resetPodState(state *podState) {
-	state.CgroupPath = ""
 }

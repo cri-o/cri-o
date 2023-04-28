@@ -5,11 +5,9 @@ package proto
 import (
 	capnp "capnproto.org/go/capnp/v3"
 	text "capnproto.org/go/capnp/v3/encoding/text"
-	fc "capnproto.org/go/capnp/v3/flowcontrol"
 	schemas "capnproto.org/go/capnp/v3/schemas"
 	server "capnproto.org/go/capnp/v3/server"
 	context "context"
-	fmt "fmt"
 )
 
 type Conmon capnp.Client
@@ -113,51 +111,13 @@ func (c Conmon) SetWindowSizeContainer(ctx context.Context, params func(Conmon_s
 	ans, release := capnp.Client(c).SendCall(ctx, s)
 	return Conmon_setWindowSizeContainer_Results_Future{Future: ans.Future()}, release
 }
-func (c Conmon) CreateNamespaces(ctx context.Context, params func(Conmon_createNamespaces_Params) error) (Conmon_createNamespaces_Results_Future, capnp.ReleaseFunc) {
-	s := capnp.Send{
-		Method: capnp.Method{
-			InterfaceID:   0xb737e899dd6633f1,
-			MethodID:      6,
-			InterfaceName: "conmon-rs/common/proto/conmon.capnp:Conmon",
-			MethodName:    "createNamespaces",
-		},
-	}
-	if params != nil {
-		s.ArgsSize = capnp.ObjectSize{DataSize: 0, PointerCount: 1}
-		s.PlaceArgs = func(s capnp.Struct) error { return params(Conmon_createNamespaces_Params(s)) }
-	}
-	ans, release := capnp.Client(c).SendCall(ctx, s)
-	return Conmon_createNamespaces_Results_Future{Future: ans.Future()}, release
-}
 
-// String returns a string that identifies this capability for debugging
-// purposes.  Its format should not be depended on: in particular, it
-// should not be used to compare clients.  Use IsSame to compare clients
-// for equality.
-func (c Conmon) String() string {
-	return fmt.Sprintf("%T(%v)", c, capnp.Client(c))
-}
-
-// AddRef creates a new Client that refers to the same capability as c.
-// If c is nil or has resolved to null, then AddRef returns nil.
 func (c Conmon) AddRef() Conmon {
 	return Conmon(capnp.Client(c).AddRef())
 }
 
-// Release releases a capability reference.  If this is the last
-// reference to the capability, then the underlying resources associated
-// with the capability will be released.
-//
-// Release will panic if c has already been released, but not if c is
-// nil or resolved to null.
 func (c Conmon) Release() {
 	capnp.Client(c).Release()
-}
-
-// Resolve blocks until the capability is fully resolved or the Context
-// expires.
-func (c Conmon) Resolve(ctx context.Context) error {
-	return capnp.Client(c).Resolve(ctx)
 }
 
 func (c Conmon) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
@@ -168,34 +128,11 @@ func (Conmon) DecodeFromPtr(p capnp.Ptr) Conmon {
 	return Conmon(capnp.Client{}.DecodeFromPtr(p))
 }
 
-// IsValid reports whether c is a valid reference to a capability.
-// A reference is invalid if it is nil, has resolved to null, or has
-// been released.
 func (c Conmon) IsValid() bool {
 	return capnp.Client(c).IsValid()
 }
 
-// IsSame reports whether c and other refer to a capability created by the
-// same call to NewClient.  This can return false negatives if c or other
-// are not fully resolved: use Resolve if this is an issue.  If either
-// c or other are released, then IsSame panics.
-func (c Conmon) IsSame(other Conmon) bool {
-	return capnp.Client(c).IsSame(capnp.Client(other))
-}
-
-// Update the flowcontrol.FlowLimiter used to manage flow control for
-// this client. This affects all future calls, but not calls already
-// waiting to send. Passing nil sets the value to flowcontrol.NopLimiter,
-// which is also the default.
-func (c Conmon) SetFlowLimiter(lim fc.FlowLimiter) {
-	capnp.Client(c).SetFlowLimiter(lim)
-}
-
-// Get the current flowcontrol.FlowLimiter used to manage flow control
-// for this client.
-func (c Conmon) GetFlowLimiter() fc.FlowLimiter {
-	return capnp.Client(c).GetFlowLimiter()
-} // A Conmon_Server is a Conmon with a local implementation.
+// A Conmon_Server is a Conmon with a local implementation.
 type Conmon_Server interface {
 	Version(context.Context, Conmon_version) error
 
@@ -208,8 +145,6 @@ type Conmon_Server interface {
 	ReopenLogContainer(context.Context, Conmon_reopenLogContainer) error
 
 	SetWindowSizeContainer(context.Context, Conmon_setWindowSizeContainer) error
-
-	CreateNamespaces(context.Context, Conmon_createNamespaces) error
 }
 
 // Conmon_NewServer creates a new Server from an implementation of Conmon_Server.
@@ -228,7 +163,7 @@ func Conmon_ServerToClient(s Conmon_Server) Conmon {
 // This can be used to create a more complicated Server.
 func Conmon_Methods(methods []server.Method, s Conmon_Server) []server.Method {
 	if cap(methods) == 0 {
-		methods = make([]server.Method, 0, 7)
+		methods = make([]server.Method, 0, 6)
 	}
 
 	methods = append(methods, server.Method{
@@ -300,18 +235,6 @@ func Conmon_Methods(methods []server.Method, s Conmon_Server) []server.Method {
 		},
 		Impl: func(ctx context.Context, call *server.Call) error {
 			return s.SetWindowSizeContainer(ctx, Conmon_setWindowSizeContainer{call})
-		},
-	})
-
-	methods = append(methods, server.Method{
-		Method: capnp.Method{
-			InterfaceID:   0xb737e899dd6633f1,
-			MethodID:      6,
-			InterfaceName: "conmon-rs/common/proto/conmon.capnp:Conmon",
-			MethodName:    "createNamespaces",
-		},
-		Impl: func(ctx context.Context, call *server.Call) error {
-			return s.CreateNamespaces(ctx, Conmon_createNamespaces{call})
 		},
 	})
 
@@ -420,23 +343,6 @@ func (c Conmon_setWindowSizeContainer) AllocResults() (Conmon_setWindowSizeConta
 	return Conmon_setWindowSizeContainer_Results(r), err
 }
 
-// Conmon_createNamespaces holds the state for a server call to Conmon.createNamespaces.
-// See server.Call for documentation.
-type Conmon_createNamespaces struct {
-	*server.Call
-}
-
-// Args returns the call's arguments.
-func (c Conmon_createNamespaces) Args() Conmon_createNamespaces_Params {
-	return Conmon_createNamespaces_Params(c.Call.Args())
-}
-
-// AllocResults allocates the results struct.
-func (c Conmon_createNamespaces) AllocResults() (Conmon_createNamespaces_Results, error) {
-	r, err := c.Call.AllocResults(capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_createNamespaces_Results(r), err
-}
-
 // Conmon_List is a list of Conmon.
 type Conmon_List = capnp.CapList[Conmon]
 
@@ -452,12 +358,12 @@ type Conmon_VersionRequest capnp.Struct
 const Conmon_VersionRequest_TypeID = 0xad2a33d6b9304413
 
 func NewConmon_VersionRequest(s *capnp.Segment) (Conmon_VersionRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 0})
 	return Conmon_VersionRequest(st), err
 }
 
 func NewRootConmon_VersionRequest(s *capnp.Segment) (Conmon_VersionRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 0})
 	return Conmon_VersionRequest(st), err
 }
 
@@ -501,34 +407,21 @@ func (s Conmon_VersionRequest) SetVerbose(v bool) {
 	capnp.Struct(s).SetBit(0, v)
 }
 
-func (s Conmon_VersionRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_VersionRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_VersionRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(0, v)
-}
-
 // Conmon_VersionRequest_List is a list of Conmon_VersionRequest.
 type Conmon_VersionRequest_List = capnp.StructList[Conmon_VersionRequest]
 
 // NewConmon_VersionRequest creates a new list of Conmon_VersionRequest.
 func NewConmon_VersionRequest_List(s *capnp.Segment, sz int32) (Conmon_VersionRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 0}, sz)
 	return capnp.StructList[Conmon_VersionRequest](l), err
 }
 
 // Conmon_VersionRequest_Future is a wrapper for a Conmon_VersionRequest promised by a client call.
 type Conmon_VersionRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_VersionRequest_Future) Struct() (Conmon_VersionRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_VersionRequest(p.Struct()), err
+func (p Conmon_VersionRequest_Future) Struct() (Conmon_VersionRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_VersionRequest(s), err
 }
 
 type Conmon_VersionResponse capnp.Struct
@@ -537,12 +430,12 @@ type Conmon_VersionResponse capnp.Struct
 const Conmon_VersionResponse_TypeID = 0xf34be5cbac1feed1
 
 func NewConmon_VersionResponse(s *capnp.Segment) (Conmon_VersionResponse, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8})
 	return Conmon_VersionResponse(st), err
 }
 
 func NewRootConmon_VersionResponse(s *capnp.Segment) (Conmon_VersionResponse, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8})
 	return Conmon_VersionResponse(st), err
 }
 
@@ -730,34 +623,21 @@ func (s Conmon_VersionResponse) SetCargoTree(v string) error {
 	return capnp.Struct(s).SetText(7, v)
 }
 
-func (s Conmon_VersionResponse) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(8)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_VersionResponse) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(8)
-}
-
-func (s Conmon_VersionResponse) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(8, v)
-}
-
 // Conmon_VersionResponse_List is a list of Conmon_VersionResponse.
 type Conmon_VersionResponse_List = capnp.StructList[Conmon_VersionResponse]
 
 // NewConmon_VersionResponse creates a new list of Conmon_VersionResponse.
 func NewConmon_VersionResponse_List(s *capnp.Segment, sz int32) (Conmon_VersionResponse_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8}, sz)
 	return capnp.StructList[Conmon_VersionResponse](l), err
 }
 
 // Conmon_VersionResponse_Future is a wrapper for a Conmon_VersionResponse promised by a client call.
 type Conmon_VersionResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_VersionResponse_Future) Struct() (Conmon_VersionResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_VersionResponse(p.Struct()), err
+func (p Conmon_VersionResponse_Future) Struct() (Conmon_VersionResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_VersionResponse(s), err
 }
 
 type Conmon_CreateContainerRequest capnp.Struct
@@ -766,12 +646,12 @@ type Conmon_CreateContainerRequest capnp.Struct
 const Conmon_CreateContainerRequest_TypeID = 0xba77e3fa3aa9b6ca
 
 func NewConmon_CreateContainerRequest(s *capnp.Segment) (Conmon_CreateContainerRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8})
 	return Conmon_CreateContainerRequest(st), err
 }
 
 func NewRootConmon_CreateContainerRequest(s *capnp.Segment) (Conmon_CreateContainerRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8})
 	return Conmon_CreateContainerRequest(st), err
 }
 
@@ -851,14 +731,6 @@ func (s Conmon_CreateContainerRequest) SetTerminal(v bool) {
 	capnp.Struct(s).SetBit(0, v)
 }
 
-func (s Conmon_CreateContainerRequest) Stdin() bool {
-	return capnp.Struct(s).Bit(1)
-}
-
-func (s Conmon_CreateContainerRequest) SetStdin(v bool) {
-	capnp.Struct(s).SetBit(1, v)
-}
-
 func (s Conmon_CreateContainerRequest) ExitPaths() (capnp.TextList, error) {
 	p, err := capnp.Struct(s).Ptr(2)
 	return capnp.TextList(p.List()), err
@@ -882,6 +754,7 @@ func (s Conmon_CreateContainerRequest) NewExitPaths(n int32) (capnp.TextList, er
 	err = capnp.Struct(s).SetPtr(2, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_CreateContainerRequest) OomExitPaths() (capnp.TextList, error) {
 	p, err := capnp.Struct(s).Ptr(3)
 	return capnp.TextList(p.List()), err
@@ -905,6 +778,7 @@ func (s Conmon_CreateContainerRequest) NewOomExitPaths(n int32) (capnp.TextList,
 	err = capnp.Struct(s).SetPtr(3, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_CreateContainerRequest) LogDrivers() (Conmon_LogDriver_List, error) {
 	p, err := capnp.Struct(s).Ptr(4)
 	return Conmon_LogDriver_List(p.List()), err
@@ -928,6 +802,7 @@ func (s Conmon_CreateContainerRequest) NewLogDrivers(n int32) (Conmon_LogDriver_
 	err = capnp.Struct(s).SetPtr(4, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_CreateContainerRequest) CleanupCmd() (capnp.TextList, error) {
 	p, err := capnp.Struct(s).Ptr(5)
 	return capnp.TextList(p.List()), err
@@ -951,6 +826,7 @@ func (s Conmon_CreateContainerRequest) NewCleanupCmd(n int32) (capnp.TextList, e
 	err = capnp.Struct(s).SetPtr(5, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_CreateContainerRequest) GlobalArgs() (capnp.TextList, error) {
 	p, err := capnp.Struct(s).Ptr(6)
 	return capnp.TextList(p.List()), err
@@ -974,6 +850,7 @@ func (s Conmon_CreateContainerRequest) NewGlobalArgs(n int32) (capnp.TextList, e
 	err = capnp.Struct(s).SetPtr(6, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_CreateContainerRequest) CommandArgs() (capnp.TextList, error) {
 	p, err := capnp.Struct(s).Ptr(7)
 	return capnp.TextList(p.List()), err
@@ -997,34 +874,22 @@ func (s Conmon_CreateContainerRequest) NewCommandArgs(n int32) (capnp.TextList, 
 	err = capnp.Struct(s).SetPtr(7, l.ToPtr())
 	return l, err
 }
-func (s Conmon_CreateContainerRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(8)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_CreateContainerRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(8)
-}
-
-func (s Conmon_CreateContainerRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(8, v)
-}
 
 // Conmon_CreateContainerRequest_List is a list of Conmon_CreateContainerRequest.
 type Conmon_CreateContainerRequest_List = capnp.StructList[Conmon_CreateContainerRequest]
 
 // NewConmon_CreateContainerRequest creates a new list of Conmon_CreateContainerRequest.
 func NewConmon_CreateContainerRequest_List(s *capnp.Segment, sz int32) (Conmon_CreateContainerRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 9}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 8}, sz)
 	return capnp.StructList[Conmon_CreateContainerRequest](l), err
 }
 
 // Conmon_CreateContainerRequest_Future is a wrapper for a Conmon_CreateContainerRequest promised by a client call.
 type Conmon_CreateContainerRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_CreateContainerRequest_Future) Struct() (Conmon_CreateContainerRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_CreateContainerRequest(p.Struct()), err
+func (p Conmon_CreateContainerRequest_Future) Struct() (Conmon_CreateContainerRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_CreateContainerRequest(s), err
 }
 
 type Conmon_LogDriver capnp.Struct
@@ -1120,9 +985,9 @@ func NewConmon_LogDriver_List(s *capnp.Segment, sz int32) (Conmon_LogDriver_List
 // Conmon_LogDriver_Future is a wrapper for a Conmon_LogDriver promised by a client call.
 type Conmon_LogDriver_Future struct{ *capnp.Future }
 
-func (f Conmon_LogDriver_Future) Struct() (Conmon_LogDriver, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_LogDriver(p.Struct()), err
+func (p Conmon_LogDriver_Future) Struct() (Conmon_LogDriver, error) {
+	s, err := p.Future.Struct()
+	return Conmon_LogDriver(s), err
 }
 
 type Conmon_LogDriver_Type uint16
@@ -1231,9 +1096,9 @@ func NewConmon_CreateContainerResponse_List(s *capnp.Segment, sz int32) (Conmon_
 // Conmon_CreateContainerResponse_Future is a wrapper for a Conmon_CreateContainerResponse promised by a client call.
 type Conmon_CreateContainerResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_CreateContainerResponse_Future) Struct() (Conmon_CreateContainerResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_CreateContainerResponse(p.Struct()), err
+func (p Conmon_CreateContainerResponse_Future) Struct() (Conmon_CreateContainerResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_CreateContainerResponse(s), err
 }
 
 type Conmon_ExecSyncContainerRequest capnp.Struct
@@ -1242,12 +1107,12 @@ type Conmon_ExecSyncContainerRequest capnp.Struct
 const Conmon_ExecSyncContainerRequest_TypeID = 0xf41122f890a371a6
 
 func NewConmon_ExecSyncContainerRequest(s *capnp.Segment) (Conmon_ExecSyncContainerRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 2})
 	return Conmon_ExecSyncContainerRequest(st), err
 }
 
 func NewRootConmon_ExecSyncContainerRequest(s *capnp.Segment) (Conmon_ExecSyncContainerRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 16, PointerCount: 2})
 	return Conmon_ExecSyncContainerRequest(st), err
 }
 
@@ -1332,6 +1197,7 @@ func (s Conmon_ExecSyncContainerRequest) NewCommand(n int32) (capnp.TextList, er
 	err = capnp.Struct(s).SetPtr(1, l.ToPtr())
 	return l, err
 }
+
 func (s Conmon_ExecSyncContainerRequest) Terminal() bool {
 	return capnp.Struct(s).Bit(64)
 }
@@ -1340,34 +1206,21 @@ func (s Conmon_ExecSyncContainerRequest) SetTerminal(v bool) {
 	capnp.Struct(s).SetBit(64, v)
 }
 
-func (s Conmon_ExecSyncContainerRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(2)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_ExecSyncContainerRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(2)
-}
-
-func (s Conmon_ExecSyncContainerRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(2, v)
-}
-
 // Conmon_ExecSyncContainerRequest_List is a list of Conmon_ExecSyncContainerRequest.
 type Conmon_ExecSyncContainerRequest_List = capnp.StructList[Conmon_ExecSyncContainerRequest]
 
 // NewConmon_ExecSyncContainerRequest creates a new list of Conmon_ExecSyncContainerRequest.
 func NewConmon_ExecSyncContainerRequest_List(s *capnp.Segment, sz int32) (Conmon_ExecSyncContainerRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 3}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 16, PointerCount: 2}, sz)
 	return capnp.StructList[Conmon_ExecSyncContainerRequest](l), err
 }
 
 // Conmon_ExecSyncContainerRequest_Future is a wrapper for a Conmon_ExecSyncContainerRequest promised by a client call.
 type Conmon_ExecSyncContainerRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_ExecSyncContainerRequest_Future) Struct() (Conmon_ExecSyncContainerRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_ExecSyncContainerRequest(p.Struct()), err
+func (p Conmon_ExecSyncContainerRequest_Future) Struct() (Conmon_ExecSyncContainerRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_ExecSyncContainerRequest(s), err
 }
 
 type Conmon_ExecSyncContainerResponse capnp.Struct
@@ -1471,9 +1324,9 @@ func NewConmon_ExecSyncContainerResponse_List(s *capnp.Segment, sz int32) (Conmo
 // Conmon_ExecSyncContainerResponse_Future is a wrapper for a Conmon_ExecSyncContainerResponse promised by a client call.
 type Conmon_ExecSyncContainerResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_ExecSyncContainerResponse_Future) Struct() (Conmon_ExecSyncContainerResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_ExecSyncContainerResponse(p.Struct()), err
+func (p Conmon_ExecSyncContainerResponse_Future) Struct() (Conmon_ExecSyncContainerResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_ExecSyncContainerResponse(s), err
 }
 
 type Conmon_AttachRequest capnp.Struct
@@ -1482,12 +1335,12 @@ type Conmon_AttachRequest capnp.Struct
 const Conmon_AttachRequest_TypeID = 0xdf703ca0befc3afc
 
 func NewConmon_AttachRequest(s *capnp.Segment) (Conmon_AttachRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 4})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 3})
 	return Conmon_AttachRequest(st), err
 }
 
 func NewRootConmon_AttachRequest(s *capnp.Segment) (Conmon_AttachRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 4})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 3})
 	return Conmon_AttachRequest(st), err
 }
 
@@ -1577,42 +1430,21 @@ func (s Conmon_AttachRequest) SetExecSessionId(v string) error {
 	return capnp.Struct(s).SetText(2, v)
 }
 
-func (s Conmon_AttachRequest) StopAfterStdinEof() bool {
-	return capnp.Struct(s).Bit(0)
-}
-
-func (s Conmon_AttachRequest) SetStopAfterStdinEof(v bool) {
-	capnp.Struct(s).SetBit(0, v)
-}
-
-func (s Conmon_AttachRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(3)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_AttachRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(3)
-}
-
-func (s Conmon_AttachRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(3, v)
-}
-
 // Conmon_AttachRequest_List is a list of Conmon_AttachRequest.
 type Conmon_AttachRequest_List = capnp.StructList[Conmon_AttachRequest]
 
 // NewConmon_AttachRequest creates a new list of Conmon_AttachRequest.
 func NewConmon_AttachRequest_List(s *capnp.Segment, sz int32) (Conmon_AttachRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 4}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 3}, sz)
 	return capnp.StructList[Conmon_AttachRequest](l), err
 }
 
 // Conmon_AttachRequest_Future is a wrapper for a Conmon_AttachRequest promised by a client call.
 type Conmon_AttachRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_AttachRequest_Future) Struct() (Conmon_AttachRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_AttachRequest(p.Struct()), err
+func (p Conmon_AttachRequest_Future) Struct() (Conmon_AttachRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_AttachRequest(s), err
 }
 
 type Conmon_AttachResponse capnp.Struct
@@ -1675,9 +1507,9 @@ func NewConmon_AttachResponse_List(s *capnp.Segment, sz int32) (Conmon_AttachRes
 // Conmon_AttachResponse_Future is a wrapper for a Conmon_AttachResponse promised by a client call.
 type Conmon_AttachResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_AttachResponse_Future) Struct() (Conmon_AttachResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_AttachResponse(p.Struct()), err
+func (p Conmon_AttachResponse_Future) Struct() (Conmon_AttachResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_AttachResponse(s), err
 }
 
 type Conmon_ReopenLogRequest capnp.Struct
@@ -1686,12 +1518,12 @@ type Conmon_ReopenLogRequest capnp.Struct
 const Conmon_ReopenLogRequest_TypeID = 0xd0476e0f34d1411a
 
 func NewConmon_ReopenLogRequest(s *capnp.Segment) (Conmon_ReopenLogRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 2})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
 	return Conmon_ReopenLogRequest(st), err
 }
 
 func NewRootConmon_ReopenLogRequest(s *capnp.Segment) (Conmon_ReopenLogRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 2})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
 	return Conmon_ReopenLogRequest(st), err
 }
 
@@ -1745,34 +1577,21 @@ func (s Conmon_ReopenLogRequest) SetId(v string) error {
 	return capnp.Struct(s).SetText(0, v)
 }
 
-func (s Conmon_ReopenLogRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(1)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_ReopenLogRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(1)
-}
-
-func (s Conmon_ReopenLogRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(1, v)
-}
-
 // Conmon_ReopenLogRequest_List is a list of Conmon_ReopenLogRequest.
 type Conmon_ReopenLogRequest_List = capnp.StructList[Conmon_ReopenLogRequest]
 
 // NewConmon_ReopenLogRequest creates a new list of Conmon_ReopenLogRequest.
 func NewConmon_ReopenLogRequest_List(s *capnp.Segment, sz int32) (Conmon_ReopenLogRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 2}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
 	return capnp.StructList[Conmon_ReopenLogRequest](l), err
 }
 
 // Conmon_ReopenLogRequest_Future is a wrapper for a Conmon_ReopenLogRequest promised by a client call.
 type Conmon_ReopenLogRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_ReopenLogRequest_Future) Struct() (Conmon_ReopenLogRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_ReopenLogRequest(p.Struct()), err
+func (p Conmon_ReopenLogRequest_Future) Struct() (Conmon_ReopenLogRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_ReopenLogRequest(s), err
 }
 
 type Conmon_ReopenLogResponse capnp.Struct
@@ -1835,9 +1654,9 @@ func NewConmon_ReopenLogResponse_List(s *capnp.Segment, sz int32) (Conmon_Reopen
 // Conmon_ReopenLogResponse_Future is a wrapper for a Conmon_ReopenLogResponse promised by a client call.
 type Conmon_ReopenLogResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_ReopenLogResponse_Future) Struct() (Conmon_ReopenLogResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_ReopenLogResponse(p.Struct()), err
+func (p Conmon_ReopenLogResponse_Future) Struct() (Conmon_ReopenLogResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_ReopenLogResponse(s), err
 }
 
 type Conmon_SetWindowSizeRequest capnp.Struct
@@ -1846,12 +1665,12 @@ type Conmon_SetWindowSizeRequest capnp.Struct
 const Conmon_SetWindowSizeRequest_TypeID = 0xb5418b8ea8ead17b
 
 func NewConmon_SetWindowSizeRequest(s *capnp.Segment) (Conmon_SetWindowSizeRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2})
+	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
 	return Conmon_SetWindowSizeRequest(st), err
 }
 
 func NewRootConmon_SetWindowSizeRequest(s *capnp.Segment) (Conmon_SetWindowSizeRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2})
+	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
 	return Conmon_SetWindowSizeRequest(st), err
 }
 
@@ -1921,34 +1740,21 @@ func (s Conmon_SetWindowSizeRequest) SetHeight(v uint16) {
 	capnp.Struct(s).SetUint16(2, v)
 }
 
-func (s Conmon_SetWindowSizeRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(1)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_SetWindowSizeRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(1)
-}
-
-func (s Conmon_SetWindowSizeRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(1, v)
-}
-
 // Conmon_SetWindowSizeRequest_List is a list of Conmon_SetWindowSizeRequest.
 type Conmon_SetWindowSizeRequest_List = capnp.StructList[Conmon_SetWindowSizeRequest]
 
 // NewConmon_SetWindowSizeRequest creates a new list of Conmon_SetWindowSizeRequest.
 func NewConmon_SetWindowSizeRequest_List(s *capnp.Segment, sz int32) (Conmon_SetWindowSizeRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 2}, sz)
+	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1}, sz)
 	return capnp.StructList[Conmon_SetWindowSizeRequest](l), err
 }
 
 // Conmon_SetWindowSizeRequest_Future is a wrapper for a Conmon_SetWindowSizeRequest promised by a client call.
 type Conmon_SetWindowSizeRequest_Future struct{ *capnp.Future }
 
-func (f Conmon_SetWindowSizeRequest_Future) Struct() (Conmon_SetWindowSizeRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_SetWindowSizeRequest(p.Struct()), err
+func (p Conmon_SetWindowSizeRequest_Future) Struct() (Conmon_SetWindowSizeRequest, error) {
+	s, err := p.Future.Struct()
+	return Conmon_SetWindowSizeRequest(s), err
 }
 
 type Conmon_SetWindowSizeResponse capnp.Struct
@@ -2011,428 +1817,9 @@ func NewConmon_SetWindowSizeResponse_List(s *capnp.Segment, sz int32) (Conmon_Se
 // Conmon_SetWindowSizeResponse_Future is a wrapper for a Conmon_SetWindowSizeResponse promised by a client call.
 type Conmon_SetWindowSizeResponse_Future struct{ *capnp.Future }
 
-func (f Conmon_SetWindowSizeResponse_Future) Struct() (Conmon_SetWindowSizeResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_SetWindowSizeResponse(p.Struct()), err
-}
-
-type Conmon_CreateNamespacesRequest capnp.Struct
-
-// Conmon_CreateNamespacesRequest_TypeID is the unique identifier for the type Conmon_CreateNamespacesRequest.
-const Conmon_CreateNamespacesRequest_TypeID = 0x8b5b1693940f607e
-
-func NewConmon_CreateNamespacesRequest(s *capnp.Segment) (Conmon_CreateNamespacesRequest, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 6})
-	return Conmon_CreateNamespacesRequest(st), err
-}
-
-func NewRootConmon_CreateNamespacesRequest(s *capnp.Segment) (Conmon_CreateNamespacesRequest, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 6})
-	return Conmon_CreateNamespacesRequest(st), err
-}
-
-func ReadRootConmon_CreateNamespacesRequest(msg *capnp.Message) (Conmon_CreateNamespacesRequest, error) {
-	root, err := msg.Root()
-	return Conmon_CreateNamespacesRequest(root.Struct()), err
-}
-
-func (s Conmon_CreateNamespacesRequest) String() string {
-	str, _ := text.Marshal(0x8b5b1693940f607e, capnp.Struct(s))
-	return str
-}
-
-func (s Conmon_CreateNamespacesRequest) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
-	return capnp.Struct(s).EncodeAsPtr(seg)
-}
-
-func (Conmon_CreateNamespacesRequest) DecodeFromPtr(p capnp.Ptr) Conmon_CreateNamespacesRequest {
-	return Conmon_CreateNamespacesRequest(capnp.Struct{}.DecodeFromPtr(p))
-}
-
-func (s Conmon_CreateNamespacesRequest) ToPtr() capnp.Ptr {
-	return capnp.Struct(s).ToPtr()
-}
-func (s Conmon_CreateNamespacesRequest) IsValid() bool {
-	return capnp.Struct(s).IsValid()
-}
-
-func (s Conmon_CreateNamespacesRequest) Message() *capnp.Message {
-	return capnp.Struct(s).Message()
-}
-
-func (s Conmon_CreateNamespacesRequest) Segment() *capnp.Segment {
-	return capnp.Struct(s).Segment()
-}
-func (s Conmon_CreateNamespacesRequest) Metadata() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return []byte(p.Data()), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasMetadata() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_CreateNamespacesRequest) SetMetadata(v []byte) error {
-	return capnp.Struct(s).SetData(0, v)
-}
-
-func (s Conmon_CreateNamespacesRequest) Namespaces() (Conmon_Namespace_List, error) {
-	p, err := capnp.Struct(s).Ptr(1)
-	return Conmon_Namespace_List(p.List()), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasNamespaces() bool {
-	return capnp.Struct(s).HasPtr(1)
-}
-
-func (s Conmon_CreateNamespacesRequest) SetNamespaces(v Conmon_Namespace_List) error {
-	return capnp.Struct(s).SetPtr(1, v.ToPtr())
-}
-
-// NewNamespaces sets the namespaces field to a newly
-// allocated Conmon_Namespace_List, preferring placement in s's segment.
-func (s Conmon_CreateNamespacesRequest) NewNamespaces(n int32) (Conmon_Namespace_List, error) {
-	l, err := NewConmon_Namespace_List(capnp.Struct(s).Segment(), n)
-	if err != nil {
-		return Conmon_Namespace_List{}, err
-	}
-	err = capnp.Struct(s).SetPtr(1, l.ToPtr())
-	return l, err
-}
-func (s Conmon_CreateNamespacesRequest) UidMappings() (capnp.TextList, error) {
-	p, err := capnp.Struct(s).Ptr(2)
-	return capnp.TextList(p.List()), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasUidMappings() bool {
-	return capnp.Struct(s).HasPtr(2)
-}
-
-func (s Conmon_CreateNamespacesRequest) SetUidMappings(v capnp.TextList) error {
-	return capnp.Struct(s).SetPtr(2, v.ToPtr())
-}
-
-// NewUidMappings sets the uidMappings field to a newly
-// allocated capnp.TextList, preferring placement in s's segment.
-func (s Conmon_CreateNamespacesRequest) NewUidMappings(n int32) (capnp.TextList, error) {
-	l, err := capnp.NewTextList(capnp.Struct(s).Segment(), n)
-	if err != nil {
-		return capnp.TextList{}, err
-	}
-	err = capnp.Struct(s).SetPtr(2, l.ToPtr())
-	return l, err
-}
-func (s Conmon_CreateNamespacesRequest) GidMappings() (capnp.TextList, error) {
-	p, err := capnp.Struct(s).Ptr(3)
-	return capnp.TextList(p.List()), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasGidMappings() bool {
-	return capnp.Struct(s).HasPtr(3)
-}
-
-func (s Conmon_CreateNamespacesRequest) SetGidMappings(v capnp.TextList) error {
-	return capnp.Struct(s).SetPtr(3, v.ToPtr())
-}
-
-// NewGidMappings sets the gidMappings field to a newly
-// allocated capnp.TextList, preferring placement in s's segment.
-func (s Conmon_CreateNamespacesRequest) NewGidMappings(n int32) (capnp.TextList, error) {
-	l, err := capnp.NewTextList(capnp.Struct(s).Segment(), n)
-	if err != nil {
-		return capnp.TextList{}, err
-	}
-	err = capnp.Struct(s).SetPtr(3, l.ToPtr())
-	return l, err
-}
-func (s Conmon_CreateNamespacesRequest) BasePath() (string, error) {
-	p, err := capnp.Struct(s).Ptr(4)
-	return p.Text(), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasBasePath() bool {
-	return capnp.Struct(s).HasPtr(4)
-}
-
-func (s Conmon_CreateNamespacesRequest) BasePathBytes() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(4)
-	return p.TextBytes(), err
-}
-
-func (s Conmon_CreateNamespacesRequest) SetBasePath(v string) error {
-	return capnp.Struct(s).SetText(4, v)
-}
-
-func (s Conmon_CreateNamespacesRequest) PodId() (string, error) {
-	p, err := capnp.Struct(s).Ptr(5)
-	return p.Text(), err
-}
-
-func (s Conmon_CreateNamespacesRequest) HasPodId() bool {
-	return capnp.Struct(s).HasPtr(5)
-}
-
-func (s Conmon_CreateNamespacesRequest) PodIdBytes() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(5)
-	return p.TextBytes(), err
-}
-
-func (s Conmon_CreateNamespacesRequest) SetPodId(v string) error {
-	return capnp.Struct(s).SetText(5, v)
-}
-
-// Conmon_CreateNamespacesRequest_List is a list of Conmon_CreateNamespacesRequest.
-type Conmon_CreateNamespacesRequest_List = capnp.StructList[Conmon_CreateNamespacesRequest]
-
-// NewConmon_CreateNamespacesRequest creates a new list of Conmon_CreateNamespacesRequest.
-func NewConmon_CreateNamespacesRequest_List(s *capnp.Segment, sz int32) (Conmon_CreateNamespacesRequest_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 6}, sz)
-	return capnp.StructList[Conmon_CreateNamespacesRequest](l), err
-}
-
-// Conmon_CreateNamespacesRequest_Future is a wrapper for a Conmon_CreateNamespacesRequest promised by a client call.
-type Conmon_CreateNamespacesRequest_Future struct{ *capnp.Future }
-
-func (f Conmon_CreateNamespacesRequest_Future) Struct() (Conmon_CreateNamespacesRequest, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_CreateNamespacesRequest(p.Struct()), err
-}
-
-type Conmon_Namespace uint16
-
-// Conmon_Namespace_TypeID is the unique identifier for the type Conmon_Namespace.
-const Conmon_Namespace_TypeID = 0xd61491b560a8f3a3
-
-// Values of Conmon_Namespace.
-const (
-	Conmon_Namespace_ipc  Conmon_Namespace = 0
-	Conmon_Namespace_net  Conmon_Namespace = 1
-	Conmon_Namespace_pid  Conmon_Namespace = 2
-	Conmon_Namespace_user Conmon_Namespace = 3
-	Conmon_Namespace_uts  Conmon_Namespace = 4
-)
-
-// String returns the enum's constant name.
-func (c Conmon_Namespace) String() string {
-	switch c {
-	case Conmon_Namespace_ipc:
-		return "ipc"
-	case Conmon_Namespace_net:
-		return "net"
-	case Conmon_Namespace_pid:
-		return "pid"
-	case Conmon_Namespace_user:
-		return "user"
-	case Conmon_Namespace_uts:
-		return "uts"
-
-	default:
-		return ""
-	}
-}
-
-// Conmon_NamespaceFromString returns the enum value with a name,
-// or the zero value if there's no such value.
-func Conmon_NamespaceFromString(c string) Conmon_Namespace {
-	switch c {
-	case "ipc":
-		return Conmon_Namespace_ipc
-	case "net":
-		return Conmon_Namespace_net
-	case "pid":
-		return Conmon_Namespace_pid
-	case "user":
-		return Conmon_Namespace_user
-	case "uts":
-		return Conmon_Namespace_uts
-
-	default:
-		return 0
-	}
-}
-
-type Conmon_Namespace_List = capnp.EnumList[Conmon_Namespace]
-
-func NewConmon_Namespace_List(s *capnp.Segment, sz int32) (Conmon_Namespace_List, error) {
-	return capnp.NewEnumList[Conmon_Namespace](s, sz)
-}
-
-type Conmon_CreateNamespacesResponse capnp.Struct
-
-// Conmon_CreateNamespacesResponse_TypeID is the unique identifier for the type Conmon_CreateNamespacesResponse.
-const Conmon_CreateNamespacesResponse_TypeID = 0x9887a60f577a1ecb
-
-func NewConmon_CreateNamespacesResponse(s *capnp.Segment) (Conmon_CreateNamespacesResponse, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_CreateNamespacesResponse(st), err
-}
-
-func NewRootConmon_CreateNamespacesResponse(s *capnp.Segment) (Conmon_CreateNamespacesResponse, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_CreateNamespacesResponse(st), err
-}
-
-func ReadRootConmon_CreateNamespacesResponse(msg *capnp.Message) (Conmon_CreateNamespacesResponse, error) {
-	root, err := msg.Root()
-	return Conmon_CreateNamespacesResponse(root.Struct()), err
-}
-
-func (s Conmon_CreateNamespacesResponse) String() string {
-	str, _ := text.Marshal(0x9887a60f577a1ecb, capnp.Struct(s))
-	return str
-}
-
-func (s Conmon_CreateNamespacesResponse) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
-	return capnp.Struct(s).EncodeAsPtr(seg)
-}
-
-func (Conmon_CreateNamespacesResponse) DecodeFromPtr(p capnp.Ptr) Conmon_CreateNamespacesResponse {
-	return Conmon_CreateNamespacesResponse(capnp.Struct{}.DecodeFromPtr(p))
-}
-
-func (s Conmon_CreateNamespacesResponse) ToPtr() capnp.Ptr {
-	return capnp.Struct(s).ToPtr()
-}
-func (s Conmon_CreateNamespacesResponse) IsValid() bool {
-	return capnp.Struct(s).IsValid()
-}
-
-func (s Conmon_CreateNamespacesResponse) Message() *capnp.Message {
-	return capnp.Struct(s).Message()
-}
-
-func (s Conmon_CreateNamespacesResponse) Segment() *capnp.Segment {
-	return capnp.Struct(s).Segment()
-}
-func (s Conmon_CreateNamespacesResponse) Namespaces() (Conmon_NamespaceResponse_List, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return Conmon_NamespaceResponse_List(p.List()), err
-}
-
-func (s Conmon_CreateNamespacesResponse) HasNamespaces() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_CreateNamespacesResponse) SetNamespaces(v Conmon_NamespaceResponse_List) error {
-	return capnp.Struct(s).SetPtr(0, v.ToPtr())
-}
-
-// NewNamespaces sets the namespaces field to a newly
-// allocated Conmon_NamespaceResponse_List, preferring placement in s's segment.
-func (s Conmon_CreateNamespacesResponse) NewNamespaces(n int32) (Conmon_NamespaceResponse_List, error) {
-	l, err := NewConmon_NamespaceResponse_List(capnp.Struct(s).Segment(), n)
-	if err != nil {
-		return Conmon_NamespaceResponse_List{}, err
-	}
-	err = capnp.Struct(s).SetPtr(0, l.ToPtr())
-	return l, err
-}
-
-// Conmon_CreateNamespacesResponse_List is a list of Conmon_CreateNamespacesResponse.
-type Conmon_CreateNamespacesResponse_List = capnp.StructList[Conmon_CreateNamespacesResponse]
-
-// NewConmon_CreateNamespacesResponse creates a new list of Conmon_CreateNamespacesResponse.
-func NewConmon_CreateNamespacesResponse_List(s *capnp.Segment, sz int32) (Conmon_CreateNamespacesResponse_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_CreateNamespacesResponse](l), err
-}
-
-// Conmon_CreateNamespacesResponse_Future is a wrapper for a Conmon_CreateNamespacesResponse promised by a client call.
-type Conmon_CreateNamespacesResponse_Future struct{ *capnp.Future }
-
-func (f Conmon_CreateNamespacesResponse_Future) Struct() (Conmon_CreateNamespacesResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_CreateNamespacesResponse(p.Struct()), err
-}
-
-type Conmon_NamespaceResponse capnp.Struct
-
-// Conmon_NamespaceResponse_TypeID is the unique identifier for the type Conmon_NamespaceResponse.
-const Conmon_NamespaceResponse_TypeID = 0xa93853d6a4e3fa16
-
-func NewConmon_NamespaceResponse(s *capnp.Segment) (Conmon_NamespaceResponse, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
-	return Conmon_NamespaceResponse(st), err
-}
-
-func NewRootConmon_NamespaceResponse(s *capnp.Segment) (Conmon_NamespaceResponse, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1})
-	return Conmon_NamespaceResponse(st), err
-}
-
-func ReadRootConmon_NamespaceResponse(msg *capnp.Message) (Conmon_NamespaceResponse, error) {
-	root, err := msg.Root()
-	return Conmon_NamespaceResponse(root.Struct()), err
-}
-
-func (s Conmon_NamespaceResponse) String() string {
-	str, _ := text.Marshal(0xa93853d6a4e3fa16, capnp.Struct(s))
-	return str
-}
-
-func (s Conmon_NamespaceResponse) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
-	return capnp.Struct(s).EncodeAsPtr(seg)
-}
-
-func (Conmon_NamespaceResponse) DecodeFromPtr(p capnp.Ptr) Conmon_NamespaceResponse {
-	return Conmon_NamespaceResponse(capnp.Struct{}.DecodeFromPtr(p))
-}
-
-func (s Conmon_NamespaceResponse) ToPtr() capnp.Ptr {
-	return capnp.Struct(s).ToPtr()
-}
-func (s Conmon_NamespaceResponse) IsValid() bool {
-	return capnp.Struct(s).IsValid()
-}
-
-func (s Conmon_NamespaceResponse) Message() *capnp.Message {
-	return capnp.Struct(s).Message()
-}
-
-func (s Conmon_NamespaceResponse) Segment() *capnp.Segment {
-	return capnp.Struct(s).Segment()
-}
-func (s Conmon_NamespaceResponse) Type() Conmon_Namespace {
-	return Conmon_Namespace(capnp.Struct(s).Uint16(0))
-}
-
-func (s Conmon_NamespaceResponse) SetType(v Conmon_Namespace) {
-	capnp.Struct(s).SetUint16(0, uint16(v))
-}
-
-func (s Conmon_NamespaceResponse) Path() (string, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return p.Text(), err
-}
-
-func (s Conmon_NamespaceResponse) HasPath() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_NamespaceResponse) PathBytes() ([]byte, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return p.TextBytes(), err
-}
-
-func (s Conmon_NamespaceResponse) SetPath(v string) error {
-	return capnp.Struct(s).SetText(0, v)
-}
-
-// Conmon_NamespaceResponse_List is a list of Conmon_NamespaceResponse.
-type Conmon_NamespaceResponse_List = capnp.StructList[Conmon_NamespaceResponse]
-
-// NewConmon_NamespaceResponse creates a new list of Conmon_NamespaceResponse.
-func NewConmon_NamespaceResponse_List(s *capnp.Segment, sz int32) (Conmon_NamespaceResponse_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 8, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_NamespaceResponse](l), err
-}
-
-// Conmon_NamespaceResponse_Future is a wrapper for a Conmon_NamespaceResponse promised by a client call.
-type Conmon_NamespaceResponse_Future struct{ *capnp.Future }
-
-func (f Conmon_NamespaceResponse_Future) Struct() (Conmon_NamespaceResponse, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_NamespaceResponse(p.Struct()), err
+func (p Conmon_SetWindowSizeResponse_Future) Struct() (Conmon_SetWindowSizeResponse, error) {
+	s, err := p.Future.Struct()
+	return Conmon_SetWindowSizeResponse(s), err
 }
 
 type Conmon_version_Params capnp.Struct
@@ -2518,10 +1905,11 @@ func NewConmon_version_Params_List(s *capnp.Segment, sz int32) (Conmon_version_P
 // Conmon_version_Params_Future is a wrapper for a Conmon_version_Params promised by a client call.
 type Conmon_version_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_version_Params_Future) Struct() (Conmon_version_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_version_Params(p.Struct()), err
+func (p Conmon_version_Params_Future) Struct() (Conmon_version_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_version_Params(s), err
 }
+
 func (p Conmon_version_Params_Future) Request() Conmon_VersionRequest_Future {
 	return Conmon_VersionRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -2609,10 +1997,11 @@ func NewConmon_version_Results_List(s *capnp.Segment, sz int32) (Conmon_version_
 // Conmon_version_Results_Future is a wrapper for a Conmon_version_Results promised by a client call.
 type Conmon_version_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_version_Results_Future) Struct() (Conmon_version_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_version_Results(p.Struct()), err
+func (p Conmon_version_Results_Future) Struct() (Conmon_version_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_version_Results(s), err
 }
+
 func (p Conmon_version_Results_Future) Response() Conmon_VersionResponse_Future {
 	return Conmon_VersionResponse_Future{Future: p.Future.Field(0, nil)}
 }
@@ -2700,10 +2089,11 @@ func NewConmon_createContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_c
 // Conmon_createContainer_Params_Future is a wrapper for a Conmon_createContainer_Params promised by a client call.
 type Conmon_createContainer_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_createContainer_Params_Future) Struct() (Conmon_createContainer_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_createContainer_Params(p.Struct()), err
+func (p Conmon_createContainer_Params_Future) Struct() (Conmon_createContainer_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_createContainer_Params(s), err
 }
+
 func (p Conmon_createContainer_Params_Future) Request() Conmon_CreateContainerRequest_Future {
 	return Conmon_CreateContainerRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -2791,10 +2181,11 @@ func NewConmon_createContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_
 // Conmon_createContainer_Results_Future is a wrapper for a Conmon_createContainer_Results promised by a client call.
 type Conmon_createContainer_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_createContainer_Results_Future) Struct() (Conmon_createContainer_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_createContainer_Results(p.Struct()), err
+func (p Conmon_createContainer_Results_Future) Struct() (Conmon_createContainer_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_createContainer_Results(s), err
 }
+
 func (p Conmon_createContainer_Results_Future) Response() Conmon_CreateContainerResponse_Future {
 	return Conmon_CreateContainerResponse_Future{Future: p.Future.Field(0, nil)}
 }
@@ -2882,10 +2273,11 @@ func NewConmon_execSyncContainer_Params_List(s *capnp.Segment, sz int32) (Conmon
 // Conmon_execSyncContainer_Params_Future is a wrapper for a Conmon_execSyncContainer_Params promised by a client call.
 type Conmon_execSyncContainer_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_execSyncContainer_Params_Future) Struct() (Conmon_execSyncContainer_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_execSyncContainer_Params(p.Struct()), err
+func (p Conmon_execSyncContainer_Params_Future) Struct() (Conmon_execSyncContainer_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_execSyncContainer_Params(s), err
 }
+
 func (p Conmon_execSyncContainer_Params_Future) Request() Conmon_ExecSyncContainerRequest_Future {
 	return Conmon_ExecSyncContainerRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -2973,10 +2365,11 @@ func NewConmon_execSyncContainer_Results_List(s *capnp.Segment, sz int32) (Conmo
 // Conmon_execSyncContainer_Results_Future is a wrapper for a Conmon_execSyncContainer_Results promised by a client call.
 type Conmon_execSyncContainer_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_execSyncContainer_Results_Future) Struct() (Conmon_execSyncContainer_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_execSyncContainer_Results(p.Struct()), err
+func (p Conmon_execSyncContainer_Results_Future) Struct() (Conmon_execSyncContainer_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_execSyncContainer_Results(s), err
 }
+
 func (p Conmon_execSyncContainer_Results_Future) Response() Conmon_ExecSyncContainerResponse_Future {
 	return Conmon_ExecSyncContainerResponse_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3064,10 +2457,11 @@ func NewConmon_attachContainer_Params_List(s *capnp.Segment, sz int32) (Conmon_a
 // Conmon_attachContainer_Params_Future is a wrapper for a Conmon_attachContainer_Params promised by a client call.
 type Conmon_attachContainer_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_attachContainer_Params_Future) Struct() (Conmon_attachContainer_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_attachContainer_Params(p.Struct()), err
+func (p Conmon_attachContainer_Params_Future) Struct() (Conmon_attachContainer_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_attachContainer_Params(s), err
 }
+
 func (p Conmon_attachContainer_Params_Future) Request() Conmon_AttachRequest_Future {
 	return Conmon_AttachRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3155,10 +2549,11 @@ func NewConmon_attachContainer_Results_List(s *capnp.Segment, sz int32) (Conmon_
 // Conmon_attachContainer_Results_Future is a wrapper for a Conmon_attachContainer_Results promised by a client call.
 type Conmon_attachContainer_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_attachContainer_Results_Future) Struct() (Conmon_attachContainer_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_attachContainer_Results(p.Struct()), err
+func (p Conmon_attachContainer_Results_Future) Struct() (Conmon_attachContainer_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_attachContainer_Results(s), err
 }
+
 func (p Conmon_attachContainer_Results_Future) Response() Conmon_AttachResponse_Future {
 	return Conmon_AttachResponse_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3246,10 +2641,11 @@ func NewConmon_reopenLogContainer_Params_List(s *capnp.Segment, sz int32) (Conmo
 // Conmon_reopenLogContainer_Params_Future is a wrapper for a Conmon_reopenLogContainer_Params promised by a client call.
 type Conmon_reopenLogContainer_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_reopenLogContainer_Params_Future) Struct() (Conmon_reopenLogContainer_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_reopenLogContainer_Params(p.Struct()), err
+func (p Conmon_reopenLogContainer_Params_Future) Struct() (Conmon_reopenLogContainer_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_reopenLogContainer_Params(s), err
 }
+
 func (p Conmon_reopenLogContainer_Params_Future) Request() Conmon_ReopenLogRequest_Future {
 	return Conmon_ReopenLogRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3337,10 +2733,11 @@ func NewConmon_reopenLogContainer_Results_List(s *capnp.Segment, sz int32) (Conm
 // Conmon_reopenLogContainer_Results_Future is a wrapper for a Conmon_reopenLogContainer_Results promised by a client call.
 type Conmon_reopenLogContainer_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_reopenLogContainer_Results_Future) Struct() (Conmon_reopenLogContainer_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_reopenLogContainer_Results(p.Struct()), err
+func (p Conmon_reopenLogContainer_Results_Future) Struct() (Conmon_reopenLogContainer_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_reopenLogContainer_Results(s), err
 }
+
 func (p Conmon_reopenLogContainer_Results_Future) Response() Conmon_ReopenLogResponse_Future {
 	return Conmon_ReopenLogResponse_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3428,10 +2825,11 @@ func NewConmon_setWindowSizeContainer_Params_List(s *capnp.Segment, sz int32) (C
 // Conmon_setWindowSizeContainer_Params_Future is a wrapper for a Conmon_setWindowSizeContainer_Params promised by a client call.
 type Conmon_setWindowSizeContainer_Params_Future struct{ *capnp.Future }
 
-func (f Conmon_setWindowSizeContainer_Params_Future) Struct() (Conmon_setWindowSizeContainer_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_setWindowSizeContainer_Params(p.Struct()), err
+func (p Conmon_setWindowSizeContainer_Params_Future) Struct() (Conmon_setWindowSizeContainer_Params, error) {
+	s, err := p.Future.Struct()
+	return Conmon_setWindowSizeContainer_Params(s), err
 }
+
 func (p Conmon_setWindowSizeContainer_Params_Future) Request() Conmon_SetWindowSizeRequest_Future {
 	return Conmon_SetWindowSizeRequest_Future{Future: p.Future.Field(0, nil)}
 }
@@ -3519,385 +2917,156 @@ func NewConmon_setWindowSizeContainer_Results_List(s *capnp.Segment, sz int32) (
 // Conmon_setWindowSizeContainer_Results_Future is a wrapper for a Conmon_setWindowSizeContainer_Results promised by a client call.
 type Conmon_setWindowSizeContainer_Results_Future struct{ *capnp.Future }
 
-func (f Conmon_setWindowSizeContainer_Results_Future) Struct() (Conmon_setWindowSizeContainer_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_setWindowSizeContainer_Results(p.Struct()), err
+func (p Conmon_setWindowSizeContainer_Results_Future) Struct() (Conmon_setWindowSizeContainer_Results, error) {
+	s, err := p.Future.Struct()
+	return Conmon_setWindowSizeContainer_Results(s), err
 }
+
 func (p Conmon_setWindowSizeContainer_Results_Future) Response() Conmon_SetWindowSizeResponse_Future {
 	return Conmon_SetWindowSizeResponse_Future{Future: p.Future.Field(0, nil)}
 }
 
-type Conmon_createNamespaces_Params capnp.Struct
-
-// Conmon_createNamespaces_Params_TypeID is the unique identifier for the type Conmon_createNamespaces_Params.
-const Conmon_createNamespaces_Params_TypeID = 0x8b4c03a0662a38dc
-
-func NewConmon_createNamespaces_Params(s *capnp.Segment) (Conmon_createNamespaces_Params, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_createNamespaces_Params(st), err
-}
-
-func NewRootConmon_createNamespaces_Params(s *capnp.Segment) (Conmon_createNamespaces_Params, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_createNamespaces_Params(st), err
-}
-
-func ReadRootConmon_createNamespaces_Params(msg *capnp.Message) (Conmon_createNamespaces_Params, error) {
-	root, err := msg.Root()
-	return Conmon_createNamespaces_Params(root.Struct()), err
-}
-
-func (s Conmon_createNamespaces_Params) String() string {
-	str, _ := text.Marshal(0x8b4c03a0662a38dc, capnp.Struct(s))
-	return str
-}
-
-func (s Conmon_createNamespaces_Params) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
-	return capnp.Struct(s).EncodeAsPtr(seg)
-}
-
-func (Conmon_createNamespaces_Params) DecodeFromPtr(p capnp.Ptr) Conmon_createNamespaces_Params {
-	return Conmon_createNamespaces_Params(capnp.Struct{}.DecodeFromPtr(p))
-}
-
-func (s Conmon_createNamespaces_Params) ToPtr() capnp.Ptr {
-	return capnp.Struct(s).ToPtr()
-}
-func (s Conmon_createNamespaces_Params) IsValid() bool {
-	return capnp.Struct(s).IsValid()
-}
-
-func (s Conmon_createNamespaces_Params) Message() *capnp.Message {
-	return capnp.Struct(s).Message()
-}
-
-func (s Conmon_createNamespaces_Params) Segment() *capnp.Segment {
-	return capnp.Struct(s).Segment()
-}
-func (s Conmon_createNamespaces_Params) Request() (Conmon_CreateNamespacesRequest, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return Conmon_CreateNamespacesRequest(p.Struct()), err
-}
-
-func (s Conmon_createNamespaces_Params) HasRequest() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_createNamespaces_Params) SetRequest(v Conmon_CreateNamespacesRequest) error {
-	return capnp.Struct(s).SetPtr(0, capnp.Struct(v).ToPtr())
-}
-
-// NewRequest sets the request field to a newly
-// allocated Conmon_CreateNamespacesRequest struct, preferring placement in s's segment.
-func (s Conmon_createNamespaces_Params) NewRequest() (Conmon_CreateNamespacesRequest, error) {
-	ss, err := NewConmon_CreateNamespacesRequest(capnp.Struct(s).Segment())
-	if err != nil {
-		return Conmon_CreateNamespacesRequest{}, err
-	}
-	err = capnp.Struct(s).SetPtr(0, capnp.Struct(ss).ToPtr())
-	return ss, err
-}
-
-// Conmon_createNamespaces_Params_List is a list of Conmon_createNamespaces_Params.
-type Conmon_createNamespaces_Params_List = capnp.StructList[Conmon_createNamespaces_Params]
-
-// NewConmon_createNamespaces_Params creates a new list of Conmon_createNamespaces_Params.
-func NewConmon_createNamespaces_Params_List(s *capnp.Segment, sz int32) (Conmon_createNamespaces_Params_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_createNamespaces_Params](l), err
-}
-
-// Conmon_createNamespaces_Params_Future is a wrapper for a Conmon_createNamespaces_Params promised by a client call.
-type Conmon_createNamespaces_Params_Future struct{ *capnp.Future }
-
-func (f Conmon_createNamespaces_Params_Future) Struct() (Conmon_createNamespaces_Params, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_createNamespaces_Params(p.Struct()), err
-}
-func (p Conmon_createNamespaces_Params_Future) Request() Conmon_CreateNamespacesRequest_Future {
-	return Conmon_CreateNamespacesRequest_Future{Future: p.Future.Field(0, nil)}
-}
-
-type Conmon_createNamespaces_Results capnp.Struct
-
-// Conmon_createNamespaces_Results_TypeID is the unique identifier for the type Conmon_createNamespaces_Results.
-const Conmon_createNamespaces_Results_TypeID = 0x8aef91973dc8a4f5
-
-func NewConmon_createNamespaces_Results(s *capnp.Segment) (Conmon_createNamespaces_Results, error) {
-	st, err := capnp.NewStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_createNamespaces_Results(st), err
-}
-
-func NewRootConmon_createNamespaces_Results(s *capnp.Segment) (Conmon_createNamespaces_Results, error) {
-	st, err := capnp.NewRootStruct(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1})
-	return Conmon_createNamespaces_Results(st), err
-}
-
-func ReadRootConmon_createNamespaces_Results(msg *capnp.Message) (Conmon_createNamespaces_Results, error) {
-	root, err := msg.Root()
-	return Conmon_createNamespaces_Results(root.Struct()), err
-}
-
-func (s Conmon_createNamespaces_Results) String() string {
-	str, _ := text.Marshal(0x8aef91973dc8a4f5, capnp.Struct(s))
-	return str
-}
-
-func (s Conmon_createNamespaces_Results) EncodeAsPtr(seg *capnp.Segment) capnp.Ptr {
-	return capnp.Struct(s).EncodeAsPtr(seg)
-}
-
-func (Conmon_createNamespaces_Results) DecodeFromPtr(p capnp.Ptr) Conmon_createNamespaces_Results {
-	return Conmon_createNamespaces_Results(capnp.Struct{}.DecodeFromPtr(p))
-}
-
-func (s Conmon_createNamespaces_Results) ToPtr() capnp.Ptr {
-	return capnp.Struct(s).ToPtr()
-}
-func (s Conmon_createNamespaces_Results) IsValid() bool {
-	return capnp.Struct(s).IsValid()
-}
-
-func (s Conmon_createNamespaces_Results) Message() *capnp.Message {
-	return capnp.Struct(s).Message()
-}
-
-func (s Conmon_createNamespaces_Results) Segment() *capnp.Segment {
-	return capnp.Struct(s).Segment()
-}
-func (s Conmon_createNamespaces_Results) Response() (Conmon_CreateNamespacesResponse, error) {
-	p, err := capnp.Struct(s).Ptr(0)
-	return Conmon_CreateNamespacesResponse(p.Struct()), err
-}
-
-func (s Conmon_createNamespaces_Results) HasResponse() bool {
-	return capnp.Struct(s).HasPtr(0)
-}
-
-func (s Conmon_createNamespaces_Results) SetResponse(v Conmon_CreateNamespacesResponse) error {
-	return capnp.Struct(s).SetPtr(0, capnp.Struct(v).ToPtr())
-}
-
-// NewResponse sets the response field to a newly
-// allocated Conmon_CreateNamespacesResponse struct, preferring placement in s's segment.
-func (s Conmon_createNamespaces_Results) NewResponse() (Conmon_CreateNamespacesResponse, error) {
-	ss, err := NewConmon_CreateNamespacesResponse(capnp.Struct(s).Segment())
-	if err != nil {
-		return Conmon_CreateNamespacesResponse{}, err
-	}
-	err = capnp.Struct(s).SetPtr(0, capnp.Struct(ss).ToPtr())
-	return ss, err
-}
-
-// Conmon_createNamespaces_Results_List is a list of Conmon_createNamespaces_Results.
-type Conmon_createNamespaces_Results_List = capnp.StructList[Conmon_createNamespaces_Results]
-
-// NewConmon_createNamespaces_Results creates a new list of Conmon_createNamespaces_Results.
-func NewConmon_createNamespaces_Results_List(s *capnp.Segment, sz int32) (Conmon_createNamespaces_Results_List, error) {
-	l, err := capnp.NewCompositeList(s, capnp.ObjectSize{DataSize: 0, PointerCount: 1}, sz)
-	return capnp.StructList[Conmon_createNamespaces_Results](l), err
-}
-
-// Conmon_createNamespaces_Results_Future is a wrapper for a Conmon_createNamespaces_Results promised by a client call.
-type Conmon_createNamespaces_Results_Future struct{ *capnp.Future }
-
-func (f Conmon_createNamespaces_Results_Future) Struct() (Conmon_createNamespaces_Results, error) {
-	p, err := f.Future.Ptr()
-	return Conmon_createNamespaces_Results(p.Struct()), err
-}
-func (p Conmon_createNamespaces_Results_Future) Response() Conmon_CreateNamespacesResponse_Future {
-	return Conmon_CreateNamespacesResponse_Future{Future: p.Future.Field(0, nil)}
-}
-
-const schema_ffaaf7385bc4adad = "x\xda\xacY\x7fpT\xd5\xf5?\xe7\xde\xdd\xbc\x0d\xbf" +
-	"\x96\x97\xb7D\xbe\x19\xf9\xc62\xe0@\x10A\x82\x15\x19" +
-	"\x98$@\x86B\xd1\xe6eA; \x0e/\xbb\x97d" +
-	"1\xbboy\xef\xad\x10,\xc5\xa8L\x05[[(\x8c" +
-	"\xc6\x91\x19\xa8\xe8\x08\x95jk\xb1B\xad\x9d\xfact" +
-	"PZ\xc3\xb4\xb4:\xb5\xad\xa5Tp\xfcQF\x99\xa2" +
-	"\xe3\xf4u\xce{\xfb~d\xb3\xa3\x9b\xa4\x7fe\xf7\xbc" +
-	"\xcf\x9es\xef\xb9\xe7~\xce\xe7\xbc\xcc\x9e\x18k\x8e\\" +
-	"3\xf6\xd7c\x80\xa9{\xa2U\xb6\xf9N\x8f\xf1\xd8\xbe" +
-	"\xa5w\x83<\x03\x01\xa2(\x014\xb6VMf\x80\xca" +
-	"\xda\xaa&@\xfb\xe2\xc1W\x17>\xb0\xeb\xa3\x9da\xc0" +
-	"V\x17\xb0\xd7\x01\xfcy^\xc3\xfa\xfd|\xc5}a\xc0" +
-	"\xb1\xaa:\x02\xf4;\x80o\xaf\x8b\xef\xf9a\xed\x1a\x07" +
-	"`_h\\\xffv\xdf\xb9\xeb~\x01\xd1*\x02^\xa8" +
-	"\xaac\x8a,\xd1\xc7\xb1\xd2\xcd\x08h\xbf\xf6\xff[n" +
-	"\x8e?\xf6\x9d\x07K\xd0\x8e\xdb}\xb1\xc9L\xf9UL" +
-	"\x02P\x8e\xc5\xc8\xf5\xf6\xf37>\xb3\xea\xee\x8f\xf6\x87" +
-	"c\x7f\x10\x9bC\xb1\xa3\xd5\x04\xe8[s\xee\xb6\xd6e" +
-	"\xf1\x1f\x0d\xf4\x16!\xdc\xf4\xea\xf7Pi\xad\x96\x80\xdb" +
-	"\xb5\x9f\x9d9x:9\xef\x10\xa83pP\xd0\xaf\x10" +
-	"na5\x05\xbd\xbez\x13\xa0=\xe5\xc9\x17\xfbw." +
-	"\x98u8\x1ctou\x0d\x05=\xe2\x04\xdd\xb4\xee\xd5" +
-	"'\xb7\xa8g\x9f(\x13\xf4d\xf5)T\xce;A\x95" +
-	"%\xb3\x8f\x9dnl8R6\xe8\xcb\x84{\xc7\x09\xfa" +
-	"\xb6\x13t\xee\x81\xa7\x9f\xb9\xff\xc3\xcd?!4+E" +
-	"/\x1cu\x18\x95U\xa3.\x03P\xd6\x8ez\x12\xd0\xbe" +
-	"\xa3\xff\xbd\xc7\xef\xbf\xaf\xe5h\xa9oF\xe8\x8b\xa3\x18" +
-	"S\xe4\xd1\xe4{\xec\xe8w!\xf4\\\x9e\xc2\xed#G" +
-	"^Z3\xef\xdf\x87m\x00l<;z56~:" +
-	"\xfa2\xa4\x18c_Ae\xeb8\x09\xc0>\xf1\xcc\xa1" +
-	"\xf9\x9f\x9d\xd9t\xbc\xd4;-\xb7Q\x8c\xaba\xcav" +
-	"\xc25\xf6\x8e\xd3\x19\xa0=~\xcd\xef\x16\xbe\x7f\xeb?" +
-	"_\x1ePA\xb2S {e\xca\xd7\xbb\xda/Y\xeb" +
-	"\xc9\xeeW\x06T\x90\xbc\x9c\x00\x7fp\x01\xff\xf8\xcf\x86" +
-	"\xce\xfc\xac\xd7\xc3\x80\x8b\xf2)\x04T\xaak\x08pi" +
-	"\xc2\xf3\x0f\xd4-8\xfe\xdb0`z\x8d\x13\xa2\xc5\x01" +
-	"\xd4\xb5\xf4\xcf\x8d\xe7\x96\xbeQRUN>D\xcd\xdf" +
-	"Q\xe9\xad\xa1|l\xad\xa1\\?\xf2\xf1\xe3\xeb\x8e\xee" +
-	"J\x9c\x06yF(\xd5\x80\x8do\xd7\x1cF\xe5\xa2\x83" +
-	"\xbcP\xb3\x0d\xd0\xfe|\xfb\x82;'M:\xfdf\xd9" +
-	"<OU\x1a\x98\xd2\xaa\x10\xbaE\xa1<?4cS" +
-	"\xfe\xd6\x8e\xf9\x7f)A;\x851)Q\xc7\x94\x85\x09" +
-	"\xa7\xca\x12\xb4\xe2\xcf\xe7\x7f\xfe\xfc\xfe\x05\xf9\xbf\x96\xba" +
-	"v\xd0k\x13'P\xe9!tc!QO\xd7fU" +
-	"~\xa9|e\xfb\xb8\xbf\x853\xd07\xa1\x9d2pt" +
-	"\x02\xf9\x9b}\xc7\xd2C\xb7f\x943a\xc0\x9b\x13\xde" +
-	"\xa2\x1c~\xe0\x00\xbe\xaa\xbc\xf8Tn\xd7{g\xc3\x00" +
-	"\xb9\xb6\x81<L\xaf%\xc0o\xd64\xb6\xfd\xf1\xcc\x95" +
-	"\xff\x02\xf9Z\x16\xd4#`\xe3\xb2\xdaS\xa8\x88ZZ" +
-	"\xbbV[\x0fh\xf7\x7fX\xff\xc4kg\xbf\xfeq\xd9" +
-	"\x02\xd1j\xdfBe+\xa1\x1b{j\xaf\xa3\x02yl" +
-	"\xe3#?\xb84Y\xfe\xa4\xb4\xb6\xb9sc&Nf" +
-	"\xca\x07\x13\xe9\xe3\xf9\x89\xceV\x9f}h\xcf\xf7_\x9a" +
-	"\xb3\xf4\x93\xf0B'\xd49\xf7of\x1d-\xf49<" +
-	"<\xfa\x96\x0d\xe7.\x85\x017\xd49;\x11\x0e\xe0\xd2" +
-	"\x81\x1f7\xdey\xf2\xe9O\xcb\\\xd0\x1du\xa3\x98r" +
-	"\xa8N\x82YvJ\xcfe\xf5\xdcLC2g\xa5\xf4" +
-	"lV\xcf\xcd\xca\x1b\xba\xa5\xcfr\xedW\xa7\xb4|." +
-	"?\x7f\xb1\xfbEl\x16\xa9dO.\xb5X\xcfYZ" +
-	"&'\x8c)m\x9a!iYS\x8d\xf0\x08@\x04\x01" +
-	"\xe4\xb1\x8b\x00\xd4\x18G5\xc1p\x9b!6\x16\x84i" +
-	"\xe1\xf8`\xf7\x808\x1epHaS\x86\xd0,q\xa3" +
-	"\x96\x15f^K\x09sJ\xbb0\x0bR\xb75 \xec" +
-	"r\x00u\x0cGu\"C\xdb\x10f^\xcf\x99\x02\x00" +
-	"p|\xc0\xb5\xff\x8b\xd0m\x9a\xa1\xf1J6\xec\xf7\x83" +
-	"aD]\\\x12\xb5\x9d\xbcr\xd3jCT'\xfa\x81" +
-	"\xfbh\xcb\x0frT\x0f2\x94\x11\x13H\xc6\x03\xab\x01" +
-	"\xd4\xfd\x1c\xd5\xe7\x18\xca\x8c%\x90\x01\xc8\xc7:\x00\xd4" +
-	"g9\xaa\xbfg(s\x9e@\x0e \xf7\x93\xf1\x0d\x8e" +
-	"\xea\xfb\x0c\xe5H$\x81\x11\x00\xf9<\xf9<\xc7Q\xfd" +
-	"\x84\xa1\x1c\x8d&0\x0a _\x98\x03\xa0\xbe\xcfQ\xbd" +
-	"\xc4\xd0\xce\x0aKKk\x96F\xb9\x1d\x0b\x0c\xc7\x02\xda" +
-	"\xb9\xe2J\x81\x0b\x13\xc7\x01\xb6q\xc4x@0\x80d" +
-	"\xb4\x0b\x99\xf4\x0dZ>\x9f\x01)\xd7\xe9\xc3\xc6\x00s" +
-	"\x1ev~\xd1\xc3\x0e\xcd\x14m\x9a\xd5E1\xc96\x06" +
-	"\xb0>\xaf\xa7\x97\xa5\xbdo#\xcc\xae\x99\xd7\xa5\x9c)" +
-	"(\xbd\xa1s]]\xac\xa8i\xac\xfc\x0e\xc7\x07\x1d\xb5" +
-	"\xb8\xc3\xa1\xac\xc2\x10z^\xe4V\xe8\x9d\xc1ej\x17" +
-	"\xf5f\xa1\xe2\xb2\xf6\x9b~I\x81UU\x10\xbc\xdd\x0b" +
-	"N{\x8f\xeb\xee\xde\x87\xe4\xc1O_\xd8\x83\x1a\xf3\x17" +
-	">\xbd\x01@\x9d\xc2Q\x9d\xcd\xd0\xab\xcd\x99d\x9b\xc6" +
-	"Q\x9d\xcb0n\xf5\xe4EI\x91\xc4\x01\xe3y\xcd\xea" +
-	"\x1a\xd6\xa9j\x96\xa5\xa5\xba\x060\x93\x96\xc5\x0a.\xaa" +
-	"\xdf\x82\x86\x91\xc7\x16'h\xbb{.8\xe4$\xde$" +
-	"\x0c3\xa3\xe7\x9c\xebm\xa2U\x92\xc1Ee2H\xe5" +
-	"p\x15Gu\x1e\xc3m\xb7\x0b\xa3C7\x05\"0\xa4" +
-	"\x8eQ\xeefz\xab\x89V\xb0\x9a\x15z\xe7\x12#\x9e" +
-	"\xb9]\x18j\x04\xc3\x8d\x10\x1b\xe2+{\xf2B\x1d\xe3" +
-	"\xaf\xad\x95N\xb2\x99\xa3\xba\"X\xdb2\xb2-\xe1\xa8" +
-	"\xb6\x11\xf3\xa0\xcb<7\xd0&\xbe\xc6Q]\x19\x1c\xb9" +
-	"\xef\xb8\xcc\x91o\xcbj\x9b\x93\x99-\x02\xab\x81a\xf5" +
-	"\x10K )\xac\x9b3\xb9\xb4\xbe\x89<\xb8I\xb5\x80" +
-	"\x92:\xde_\xb8V\x07\xa0\xde\xc2Q\xed\x0a\x16.\x88" +
-	"\xde\xd6qT\xbbC\x0b\xcf\xcc\x07P\xd3\x1c\xd5<Q" +
-	"&\xba\x94\x99\xa5\xf4wsT73\xe4\x19\x9f}\xea" +
-	"7e\xd2V\x17J\xc0P\x02l\xea\x12\x99\xce.\xcb" +
-	"\xfb\xfa\x85\xc7\x12\xf9\xb2]q=\xa7.A\x0cd\xb4" +
-	"\xdc\xbb%\x10\x1er\xef]\x81L\x95{\x8f\x07zE" +
-	"\xde\xde\x1e\x081y\xfb\x0bA\xff\x95w\x9c\x08\x04\x9d" +
-	"\xbc\xebTP\xffr\x9f\x11\x12\xf5}[Br\xb2o" +
-	"gh\xc6\xd8\xb7;P\xde\xf2\x81\xc3!\x9d\xf1\xe8\xcf" +
-	"Bc\xd0\xa1\x17B\x12\xf3H{h\xe49r\"`" +
-	"N\xf9\xe8n\xdb\xbb\x06\xd0\xe4\x9e\x99o\xe0\x1e\xe1\xb9" +
-	"\x94\xed_\xeev\x0f\xe8\x94l\xe6v\x01h\xd8\x1e&" +
-	"\xea\x81\xbc\x1f\xb7\x96\xaa\x16\xaf4\xc0\xf6\x1e\xb1\xd0\xb3" +
-	"\xe2]\xb6\xbd\xbb\x0d\xf5n,\xff{\x93\xeb\xd7\xf6H" +
-	"\x14;\x03\x87a\x9b\xe7\xc8+K\xf4\xea2\xee\xf8+" +
-	"5\x9b\xf5\xae[\xaf=\xf1\x01\xdd\xdf\xb4\xc0\xa3\\\x0c" +
-	"0l@\x0fsZ\x83\x1d\xc0\xfc%\xa8\x97\xf3(\x80" +
-	"?`\xa0\xa7\x92\xe5\xfeE\xc0\xe4\x97%\x0c\xe4&z" +
-	"C\x86|\xec.`\xf2O%d\xfe\xf4\x8c\x9e\xe4\x94" +
-	"\x1f\xdd\x0dL> !\xf7\xc7D\xf4\xe6\x1fy/\xfd" +
-	"\xee{\x12F|\xad\x8d\xde\x00+\xf7>\x04L\xde*" +
-	"a\xd4\x9f\x86\xd0\x93\xf4\xf2\xc6\xe3\xc0\xe4\xac\x84U\xfe" +
-	"\xac\x8d\xdeT.k;\x81\xc9k%\xa2<*\x8cf" +
-	"\xb4S\xc5\xd3\xc6\xe2\xb9A3\xda\x9e<E\xef4\xd1" +
-	"hF\xdbk\x0ca\xa4\xe1\x1fS\x11\xca\x05A\xcd\x01" +
-	"G\xb2X\xcf5\xb9?\xf1\xe3\xdd\xa8\xa1\x97q\x80f" +
-	"\x0c\xf3}\xe5\xca\xa3\xa4\x0e]\xde\xbf\xca\xa3(e*" +
-	"\xd6\x01$\xaf@\x8e\xc9\xab0Pv\xcat\\\x0d\x90" +
-	"\x9cF\xf6\xb9\xc8\x10]m\xa7\\\x83\xcb\x01\x92\xb3\xc9" +
-	"\xbc\x00\x03\xaeR\xae\xc79\x00\xc9\xb9do&{\x84" +
-	"9\x0aOY\x88\xed\x00\xc9\x05d\xff&\xd9\xa3\xdc\x11" +
-	"y\xca*\xdc\x00\x90\\I\xf6<\xd9\xab\"\x09\xac\x02" +
-	"P\xb2N\xd8n\xb2\xdfKv)\x9a\xa0QC\xd9\xee" +
-	"\xd8\xef!\xfb~\xb2\xc7\xaa\x12\x18\x03P\xf69\xf6\x87" +
-	"\xc9\xfe,\xd9\xab\xa5\x04V\x03(G\xb1\x03 \xf9s" +
-	"\xb2\xbfA\xf6Q\xb1\x04\x8e\x02PN:\xeb\x7f\x9d\xec" +
-	"\x7f\xc2\x01\xb4jw\x14r\xe9n\xd1\xa6\x01\x0fi\x02" +
-	"K\x18\xd9LN\xeb&:-v\xbez\xd3Jgr" +
-	"~\x1f\x14\x9b3\x96\xa3\x16q\x90\x90\xd4\xf5l+=" +
-	"\x85\xb8fu\x0dz\xda\xed\xb1\x097B\"/4\x03" +
-	"\xba\"\xaf[h\xb9B~1\xf0lz\x90\x8a\xed\xd6" +
-	";\xb4\xee\x16\x03\xf8`\x11K\xd5\xa1\xe5\xd2- \x19" +
-	"\x83\x1f~Q\x93\x18\x8e\xfa\xa1\x09\xa9\x9bW*%}" +
-	"\xd6/\x91@\xb1\x0a\"\x9b\xe1\xa6[\"\xbfL\x80/" +
-	"\xd7_~/\x19\x86\xfe*\xf2A\xe5b\xcf\xef\xa3\xc3" +
-	"\x9e\x05\x87\x9bc\xbf\x1b\x8fL\xaeo,H\xc2,U" +
-	"\x8au\x81R\x94\xcbI\xc5\xf0\xa5\x1a\xa9Jt\xdaK" +
-	"\x9c(\x90\x16\xe1\x8a\xa5k'\xd3\xae\xe4\x99\xf4\x87\xc9" +
-	"S\xe9\x0f\x97'5\x00`D\x9e0\x19@\xca\xe4S" +
-	"RNXR>\x93\x8e\x17LaH\x05\xcb\x1cR\xee" +
-	"\xcb\xf4\xf0\xd0\xd8\x11\xd2w\xcb\x03-\xe7eb\x80\x94" +
-	"\xf3\xf4]\x96\x8c]\x1cU\x8b8\xf3\x0aW\xdfm\xa4" +
-	"_\xe79\xaa\xdfb.\x8d,\xd6\xd3\xce\xf1E\x80a" +
-	"\x04\xb0\xc9\xb4\xd2z\xc1\xf2\xf2F_\x85a\xf8i\xb4" +
-	"2Y\x91\xfeF\xc1\x0aQ\xd3\xc8\xda\x03\xd5\x0f\x1f4" +
-	"\x97n\x08\xd5X\xaa\x08\x86\xb8\xd1\x96Ic\x0c\x18\xc6" +
-	"\x869\xc3\x14%\x8cs\xaa~\xb0\xadTZ\x9b9\xaa" +
-	"\xf7\x84J\xab\x97&\xe3;9\xaa\xdf\x0d\xbdc\xd8a" +
-	"\x00\xa8\xf7rT\xf70\xc4\xe2+\x86]\xbb\x01\xd4=" +
-	"\x1c\xd5\xfd\xd4\x80\xb8\xfb\x8aa\x1f%\xf9a\x8e\xea\xe3" +
-	"\x03\x0b\xd3\xd4S\xb7\x09\xab\x84\xed\x9d\x96.L\x13\xea" +
-	"3z.4\xef\x9b\x96\x9eoYo\x094\x92\xc4\xfd" +
-	"\xad:\xae\xafh\x0e\x1a\x01\xa39\xd7\xdd\xc2\x0a\xaf\xbb" +
-	"/\x8aG\xc0jC#\x18\x7f*\x18\x06\xb5\x95y\x19" +
-	"\xd1\xa6\xc5\x8d\x8a\xde\xec\xf9S\xc20v\xea\xe9w\xe3" +
-	"\xea\x95=yt\x0b\xdd\xa9\xa6\xe8)\x00\xbf\xb8\x99\xd1" +
-	"^\xc8\xd1\xe5Z\x96\xb3\x84\xb1\xdeQ\xc0\xc3\x1a\xb3C" +
-	"\xf7i\x9a\xaf\xb7\xaa\x1dA\x14#\x01\x92@\x9f5\x14" +
-	"\x19\x17\x01$\xc7\x90y\"\x06\xc4\xa1L\xc0\xc9\x00\xc9" +
-	"\xf1d\xbf\xdc\xd1[\xcc\xd5[\xff\x87\xf3\x01\x92\x09\xb2" +
-	"_\x81A\xb9+\x93\x1c\xf7\x97\x93}\x9a\xa3\xb7\"\xae" +
-	"\xde\x9a\xea\xe0\x03\x99W\x15u\xf5\xd6tG'\xf92" +
-	"O\x96\xaa\\\xbdu\x8d\xa3\xcf\x02\x9d\x17\x93\\\xbdu" +
-	"\xbd\xe3\x7f\x1e\xd9\x978z+\xe6\xea\xad\x16GW5" +
-	"\x93}\x052\xb4\xf3\x86\x9e\x12\xa6\xb9\x0c\xd0\xa7\x09O" +
-	"N{\xb7J\xb2\xb4N\xefs\x13e5c\x85\xb4X" +
-	"\xa6;\xbdD\xb3\x00\x85\x0f\xb14\xa3S\x04\x10\xa3`" +
-	"Z\x94j\x90B>\xed\x94ft\xea7\x09\x03\xe2\xe6" +
-	" \xf3JC\x84\xfc\x8dX\x04\x95\x1d\xf4\xbcvY\x9e" +
-	"\xd3\xcaSZ\xb1G\xec\xa0\x82\xbf\xa7H_\xbc\xd9\xe5" +
-	"\xb40}y\xa2Z~\x94\x8c\x079\xaaO\x0d\xe44" +
-	"*Z\xbd`%\x81\x8b\x94\xf7Jc[Q\x08\x96J" +
-	"\xc02\xc2v\xc4\x19)\x95,\x15\xeb$\xff\xad\xc20" +
-	"\xc8d\xf0\x7f\x09\xda\x85\x19\xaf\xfc\xc5\xa6\xffvb\x18" +
-	"\xb1K^\x01yn\xdb\x10\xff\x1b\x00\x00\xff\xffn\x1e" +
-	"\x85n"
+const schema_ffaaf7385bc4adad = "x\xda\xacX\x7fl\x1cW\x11\x9ey{wk\x97\xb3" +
+	"\xd7\x9b\xbd\x88\xc4j\xe4\x12\x85\x0a\x1c\xa5N\xe3\x04\xa8" +
+	"\x95\xcav\x1c\xcbuI\xe0\xf6.)\xc2\x09Q\xd6w" +
+	"\xaf\xe7K\xefv\xcf\xbb{\xb1/\x0dJ\xd2b!\x0a" +
+	")\xa4j\x85\x12\xa9R\x03\xa2\"\xa6!\x94*\x01\x02" +
+	"\xaa\x14Z\x04\x04\x02\xc4\x12\xadR\x89\x1f!\x84\x86\xa8" +
+	")\x8dH\x85\x83\x12\x16\xbd\xbd\xdb\xdd\xe7\xf3U=\xdb" +
+	"\xfd\xefv\xf6\xdby\xf3\xe6\xcd|\xf3\xbd[\xbd4\xd2" +
+	"\x13\xba\xb7\xe9\xc4\x1d@\xd4\xbd\xe1\x88c],\x99\xcf" +
+	"?;\xf08\xc8+\x11 \x8c\"@\xe7\xfd\xe1\xe5\x04" +
+	"P\xd9\x1a\xee\x06t&\xfe\xf9\x99S[\x1f\xff\xd7s" +
+	"<\xa0\x18^\xc3\x00\x07]\xc0\xe1mW\x1e\xe9\x1f\x94" +
+	"\xbe\xc5\x00\xce\xf5\xce\x87\xfft\xf8\xca'\x7f\x04!\x86" +
+	"{1|\x15\x95sa\x11\x04g\xc5\x89W\xce?\xb1" +
+	"\xbec\x92ws,\xbc\x88\xb99\xe3\xba\x19\xdb\xf9\xab" +
+	"\x13{\xd4\xcb/\xd4ps1<\x85\xcam\xd7\x8d\xb2" +
+	"q\xf5O^\xebl?\x0e\xeaJ\xac\x86]`\xb0w" +
+	"\xc3\"\x80r\xddu\xb9\xf6\xe8K\xa7\x9e|{\xfc\xfb" +
+	"\x0cL\x02pyq92\x89\xca\xc7#\x1f\x06P\xee" +
+	"\x8d\x9c\x00t\x1e=\x7f\xf5\xbbO~\xb5\xf7d\x95\xeb" +
+	"2\xfa\xd7\x11B\x94\xcb\x11\xe6\xfb\xa2\x8b\xf6\xdf\xcb+" +
+	"\x04\xe7\xf8\xf1W\xb7}\xea?\x93\x0e\x00v\x96\xc4!" +
+	"T\x0e\x8a\xaf\x03t\x1eh\xf82*\x87\x1aE\x00\xe7" +
+	"\xec\xa9c]\xff\xbd4v\xba\xday\x03s^j\\" +
+	"D\x94\xc3\x0c\xd7\xf9L\xa3\x83\x80N\xcb\xb6\xdf\xdf\xff" +
+	"\xd6\x8e\x7f\xfc\x82\xcf\xd6\xe2h+\xcb\xd6\xaa(\xdb\xda" +
+	"\x9b\xdaOI\xff\xb9\xdc/y\x80\x1a}\x90\x01\xf2e" +
+	"\xc0\xdf\xff\xb7+S\xe8\xf8-\x0f8\x18\x9dB@\xe5" +
+	"\xa8\x0b\x98^\xfc\xf27[\xd7\x9f\xfe\x1d\x0f8S^" +
+	"\xe2\x82\x0bh\xed=\xbfV\xd2\x07\xfe0\xf3@\xca\xc0" +
+	"\xdb\xd1\xbf\xa1\xb2\xb4\x89\xa5cq\x13\x03\xdf\x9aX\xbf" +
+	"\x7f\xd9\xb2\xd7.T\xef\x8f0\xf4\xba\xa6v\xa2lu" +
+	"\xd1j\xd3\x9b\x80\xce\x91\x95c\x85\x1d\xc3]\x7f\xaeu" +
+	"\x8a\xab\x9a[\x89\xb2\xb9\x99\x81\x07\x9b]\xd7]\xb7^" +
+	"~n}\xe1/Uq\x08\x0c\x9co>\x8b\xcaW\\" +
+	"\xf0D3;\x96\xad\x85\x01\xf9\xeeD\xf3_\xf9]}" +
+	"TJ\xb0]\xf5J\xcc\xdb\xeaG\x07\x8e\xed\xc8*\x97" +
+	"x\x00\x95\xde`y)\xb9\x80O(\xaf\xfc@?t" +
+	"\xf52\x0fxVjg\x1eN\xba\x803\xdb:\xe3\xaf" +
+	"_\xba\xfb\x1d\x90\xd7\x91\xa0\xc4\x00;\xff(M\xa1r" +
+	"]b\xc1\\\x93\xda\x00\x9d\xf3o\xb7\xbd\xf0\x9b\xcb\x9f" +
+	"\xfew\xcdC\xbf&\xbd\x81Jc\x0b\xfb\x19nq\x0f" +
+	"\xfd\xf9\xd1o\x7fcz\xb9|\xa3\xba\\\xdd\x1c.]" +
+	"\xb4\x9c(\xf7-b\xce\xd7-b9\xfc\xf1\x91\xa7\xbf" +
+	"\xfe\xea\x9a\x81\x1b|\x9c\x1fQ\xdc\x86\xbaOaq\xfe" +
+	"\x0c'?\xb4}\xd7\x95i\x1e\xf0y\xc5\xdd\xc8\xa8\x0b" +
+	"\x98>\xfa\xbd\xce\xfd\xe7^\xbaY\xa3\xe3\x9eQ\xee " +
+	"\xcaIE\x84\x0e'e\xe8yC_e\x8aVG\xca" +
+	"\xc8\xe7\x0d\xbd\xa3`\x1a\xb6\xd1Q\xb6\xdf\x93\xd2\x0az" +
+	"\xa1\xab\xaf\xfc@\xc7i*Y\xd2S}\x86nkY" +
+	"\x9d\x9a+\xe2\x9a)jyK\x0d\x09!\x80\x10\x02\xc8" +
+	"M\x1b\x00\xd4\x06\x01\xd5\x18\xc1}&\x1d-R\xcb\xc6" +
+	"\x96`\xf3\x80\xd8\x028\xa7eMj\x14\xa8\xbe\xc9\xc8" +
+	"\x04\xeb&h\x9bU\xcc\xd93\x16~\x10@\x8d\x0a\xa8" +
+	".!\xe8\x98\xd4*\x18\xbaE\x01\x00[\x02\x0a\xabZ" +
+	"<R\xc7\xe2\x09o\xf1\x04\xb5\x0a\x12\xf3\x19\xc7\xb9\x85" +
+	"\xaf\xd9\xb6\x96\x1a\x99\x913-\x8fu\xe4\xcc\xef\x8cy" +
+	"\x84\xdd\xeb.\x9a(\xa7\x01g\xc4\\\xcf\xe7\x0fQ\xd3" +
+	"\xca\x1az\xc2\x8d\x05\xed8\xe2{\x85\xbb\x9b\x9a\xc3\x86" +
+	"E\x11\x81 rA\x86\xebXe\x93\x91\xd9hJ\xd9" +
+	"\xdd\xd4TC\xc8w\x1e\xb6K[J\x05\xaaF\xfd5" +
+	"\xfb\xdb\x01\xd4\x1e\x01\xd5M\x04\x11c\xc8l\x83\xcc\xb6" +
+	"Q@5NP&\x18C\x02 of\xc1= \xa0" +
+	"\xba\x85\xa0d\x97\x0a\x14\xa5\xc01 J\x80RA\xb3" +
+	"G0\x0a\x04\xa3\x80\xfb\xf2\xdax2\xbb\x87b#\x10" +
+	"l\x9cce&\xa9\xfd\xb9\xac\x9e6\xc6\x98\x87r\xb2" +
+	"l`\xc9\xe2\x02o\xad\x11\xf8\x9aZ\x81w\x05\x81\x0b" +
+	"\xd9\xb4\x17_\xdbX6m\x8f\xa0\x08\x04E\xc0\xee\x11" +
+	"\x9a\xcd\x8c\xd8\xde\xa3\x1fl\xe8\xfd\x82\x15\x0c]]\x8b" +
+	"\x18\x0cXY\xdb\x13\x10\x98\xac=\x16\x8c0Y;\x1d" +
+	"\xf0\x9eL\x13\x01\x9d\xcb\xf4\xe7A#\xcb\xd9\xb3\xc1X" +
+	"\x90G\xa78\"/\x99\xdc\xb8/\xed\xe1FM\xe9\x09" +
+	"NO|\xf1\xa9`(\xcb\x07&9\xc2\x9a\xf8\xa1\xe3" +
+	"U t\x97\xd3\xea\x1b\x04\xaf\xb5\xfbL\xaa\xd9\xd4\xef" +
+	"\xab\x84\x07t\xab*\xbb\x9b\x02\x9a\x8e\x87\x09{ \xef" +
+	"\xe3\xfej*\xf3N\x0f\x1c\xef\x15\xe1\xdeU\xda\xc8\xf1" +
+	"\xda\x0a\xda\xcak\xf9\xcf\xdde\xbf\x8eG\x17\x98\x09\x1c" +
+	"\xf26\xcf\x91W9\xe8\x95\x8e\xe4\xfa\xab6[m\xae" +
+	"[u\x89\x10\x06\xf0\x87>zSN~q\x03\x10\xf9" +
+	";\"\x06\xf3\x02\xbd\xc1/\x1f~\x0c\x88|HD\xe2" +
+	"\x8b@\xf4f\x86<\xf1\x14\x10\xf9\x80\x88\x81pCO" +
+	"\x93\xc8E\xf6]^\xc4\x90?+\xd1\x13\x89\xb2v\x04" +
+	"\x88\xfc\x05\x11\xc3\xbeBAo$\xcb\xeai \xf2f" +
+	"\x911\x02;\xa8\x1etR\x95\xecc%\x8f\xd0\x83\x8e" +
+	"7C\xd0\xcb.\x9a=\xe8x\x1c\xc9#M?m\x15" +
+	"\xa8@\x19\xd4\x9a\x91\xa2>C\xef.\x7f\xd2\x83s%" +
+	"\xe6\xea\x02\xe2\xc8n\x85\xdf\xbf\xd7X\xff^\x11P\xbd" +
+	"AP\xf6\x1a\xf8\xfa\x10\x80\xfa\x8e\x80\xea-\x82H\xca" +
+	"\xfd{\x93\xcd\x9fi\x01\x93!$(\x0b$\x86\x02\x80" +
+	"\x82\x98\x00H\xa0\x80\xc9;\x999$\xc40\x04\xa0," +
+	"\xc5]\x00\xc9%\xcc\xbe\x96\xd9\xc3\xa1\x18\x86\x99T\xc5" +
+	"!\x80\xe4jf\xdf\xc4\xec\x91p\x0c#L*\xb9\xf6" +
+	"\x07\x98=\xcd\xecb$\xc6\x06\xbe\xa2\xb9\xf6\x9d\xcc\xbe" +
+	"\x97\xd9\x1b\xc4\x186\x00(%\x1c\x06H\x8e3\xfb\xd3" +
+	"8\x83O\x9c\xe1\xa2\x9e\xce\xd1\xb8\x06B@\x82\x8eM" +
+	"\xcd|V\xd7rl^zLN\xc7\xb3v\\\xb3G" +
+	"\x00-l\x06\x8c\x0b\xe8\xc2\x9b\x01\x1d\xc3\xc8\xf7\xb3\xb7" +
+	" i\xf6\xc8\xac\xb79\xaf\x01\x05\xd3\x7f\xd7\xc2K)" +
+	"\x17\x95\xcaQM/\x16\xfa@\xc8\xa7\xab=dr\xc6" +
+	"\xb0\x96\xeb5A\xc8\xcc\xf2\xce\x8eU\xd3\xd3\xbd \x9a" +
+	"\xb5^\xce\x7f.'\xa8U\xcc\x09\xf5j\x0a\x9f\xe0\xaa" +
+	"\x86sC\x1d+[\xfc\xd8\xa8\x12\x06\x16\xc0\xfb+\x03" +
+	"\x9f6\xe7\xa1\x0c*\xedY\xbf\x0c\xf1G\xc6<\xa4[" +
+	"jf\x8b\xcd1\xc7\xfe\xe0Y\x98n\x1b-\x8a\xd4\xaa" +
+	"\xd60\xad\xc1^\xf9\xee\x98\xcb\xe6j\xcc\x90@\"\xaa" +
+	"-\xfeZ\x1a\xdb\xe1N\x01\xd5\\ \x01\xb2l\xda\xa7" +
+	"\x05T\x0b\x9c\x04\xc83\xe3\x88\x80\xaa\xcd\x18\xe4.\x97" +
+	"A\xe4Q\xf6uA@u/)\xf7d\x9f\x91v\xf3" +
+	"\x13\x02\x82!\xc0n\xcbN\x1bE\x1b\x9b\x80`S\xf9" +
+	"\x91\x9a\xa6\xf7\xe8\xd8\xd9<M\x7f\xb6h\xf3\x9d\xbd " +
+	"\x92d\x07$\x94\xb7\xc8\xa5s\x17w\x88\xa9\x0a\x18$" +
+	"3\x9eMc\x03\x10l\x98\xa7|\xad\x8c\xd0\xf7\x96T" +
+	">%\x0f\x0e\x05\xf2I&\x15NVM\x005.\xa0" +
+	"\xba}\xe6)[F\xea\x11jWq\xa0;\x99\xa8e" +
+	"A[\xd6\xd0\x07g\x97\xc4\x02:\xdb-{\x1b\xeb," +
+	"{_\x07-\xa0\xbb\xe7\xd6h\xbe\x10\xfc`ngq" +
+	"M2\xeb\xba\x15\xfa\xc2p\x1e;\xf5d\x9ey\xcf\x96" +
+	"R\x01\xcb\xf5\xe8\x1ezx\x0a\xc0\xafAb&\x8a:" +
+	"\xeb\x81A\xdd\xa6\xe6\xc3Z\x0a\xe9\xfc.B\\\xd9s" +
+	"\xe2 \x01\xa0\xbe%\xa0:\x1dt\xf6\xbb\x1b\x02m\xe0" +
+	"w\xf6\xcd\xe5\x00\xea\x0d\x01\x13\x9c6\x90ow\xf1\x8a" +
+	"\xc1\x93\x06\x81b\x88\xf2\xca\xa0\x11\xbb\x00\x92!fo" +
+	"\xe1\x95A\x93;\xe9\xa3\xcc\xbe\x84W\x06\x8b]\x85\x11" +
+	"c\xf6\xbbxe\xb0\x8c\xb9O\xde\xc9\xec\x1fC\x82N" +
+	"\xc14R\xd4\xb2\x06\x01\xfdN\xf5\x14\x9c\xd7\x01\xa2\xad" +
+	"e\xbc\xdf\xdd,cY\x9bS\x13\xd9\\z\xa3f\x03" +
+	"R\x1fbkf\x86\x06\x10\xb3h\xd9,\x8d r>" +
+	"\x9d\x94ff\x8c\x87\xa8\x09\x925\xcb\xbc\xc5\xa4\x9c\xbf" +
+	"\x85rr@\xff\x1c%3\x0a\xd9.\xa0:\x12\x1c\x1c" +
+	"\x1d\xaaE\xc9\x1b*\x94\xfc%vp=\xe5\x83;\xc0" +
+	":i\xbf\x80\xea\xd7f\xd2\x0a\xab3\xa3h'A\xa0" +
+	")\xef>\xb9\xaf\xa2W\xaa\x95J-\xc5\xb5\x90\xc9Z" +
+	"\xf78\xf7\xefy\xf3\xe8\xf5\xd9\x7f\x00%\xa8%\xd5\xff" +
+	"G\x8c\x7f_\x9c\xc7\xdaUwm\xcfm\x1c\xf1\xff\x01" +
+	"\x00\x00\xff\xff\xbe\xec\xa9\x9f"
 
 func init() {
 	schemas.Register(schema_ffaaf7385bc4adad,
 		0x83479da67279e173,
-		0x8aef91973dc8a4f5,
-		0x8b4c03a0662a38dc,
-		0x8b5b1693940f607e,
-		0x9887a60f577a1ecb,
 		0xa0ef8355b64ee985,
 		0xa20f49456be85b99,
-		0xa93853d6a4e3fa16,
 		0xaa2f3c8ad1c3af24,
 		0xace5517aafc86077,
 		0xad2a33d6b9304413,
@@ -3910,7 +3079,6 @@ func init() {
 		0xcc2f70676afee4e7,
 		0xceba3c1a97be15f8,
 		0xd0476e0f34d1411a,
-		0xd61491b560a8f3a3,
 		0xd9d61d1d803c85fc,
 		0xde3a625e70772b9a,
 		0xdf703ca0befc3afc,

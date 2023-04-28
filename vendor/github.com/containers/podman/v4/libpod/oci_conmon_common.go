@@ -376,7 +376,7 @@ func (r *ConmonOCIRuntime) KillContainer(ctr *Container, signal uint, all bool) 
 			logrus.Infof("Error updating status for container %s: %v", ctr.ID(), err2)
 		}
 		if ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return fmt.Errorf("%w: %s", define.ErrCtrStateInvalid, ctr.state.State)
+			return define.ErrCtrStateInvalid
 		}
 		return fmt.Errorf("sending signal to container %s: %w", ctr.ID(), err)
 	}
@@ -400,11 +400,12 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		return nil
 	}
 
+	stopSignal := ctr.config.StopSignal
+	if stopSignal == 0 {
+		stopSignal = uint(syscall.SIGTERM)
+	}
+
 	if timeout > 0 {
-		stopSignal := ctr.config.StopSignal
-		if stopSignal == 0 {
-			stopSignal = uint(syscall.SIGTERM)
-		}
 		if err := r.KillContainer(ctr, stopSignal, all); err != nil {
 			// Is the container gone?
 			// If so, it probably died between the first check and
@@ -427,21 +428,7 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 		}
 	}
 
-	// If the timeout was set to 0 or if stopping the container with the
-	// specified signal did not work, use the big hammer with SIGKILL.
 	if err := r.KillContainer(ctr, uint(unix.SIGKILL), all); err != nil {
-		// There's an inherent race with the cleanup process (see
-		// #16142, #17142). If the container has already been marked as
-		// stopped or exited by the cleanup process, we can return
-		// immediately.
-		if errors.Is(err, define.ErrCtrStateInvalid) && ctr.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-			return nil
-		}
-
-		// If the PID is 0, then the container is already stopped.
-		if ctr.state.PID == 0 {
-			return nil
-		}
 		// Again, check if the container is gone. If it is, exit cleanly.
 		if aliveErr := unix.Kill(ctr.state.PID, 0); errors.Is(aliveErr, unix.ESRCH) {
 			return nil
@@ -506,7 +493,10 @@ func socketCloseWrite(conn *net.UnixConn) error {
 // Returns any errors that occurred, and whether the connection was successfully
 // hijacked before that error occurred.
 func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.ResponseWriter, streams *HTTPAttachStreams, detachKeys *string, cancel <-chan bool, hijackDone chan<- bool, streamAttach, streamLogs bool) (deferredErr error) {
-	isTerminal := ctr.Terminal()
+	isTerminal := false
+	if ctr.config.Spec.Process != nil {
+		isTerminal = ctr.config.Spec.Process.Terminal
+	}
 
 	if streams != nil {
 		if !streams.Stdin && !streams.Stdout && !streams.Stderr {
@@ -607,10 +597,6 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 					device := logLine.Device
 					var header []byte
 					headerLen := uint32(len(logLine.Msg))
-					if !logLine.Partial() {
-						// we append an extra newline in this case so we need to increment the len as well
-						headerLen++
-					}
 					logSize += len(logLine.Msg)
 					switch strings.ToLower(device) {
 					case "stdin":
@@ -953,20 +939,31 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
-	timer := time.NewTimer(timeout)
-	for {
-		select {
-		case <-timer.C:
-			return fmt.Errorf("given PID did not die within timeout")
-		default:
-			if err := unix.Kill(pid, 0); err != nil {
-				if err == unix.ESRCH {
-					return nil
+	done := make(chan struct{})
+	chControl := make(chan struct{})
+	go func() {
+		for {
+			select {
+			case <-chControl:
+				return
+			default:
+				if err := unix.Kill(pid, 0); err != nil {
+					if err == unix.ESRCH {
+						close(done)
+						return
+					}
+					logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
 				}
-				logrus.Errorf("Pinging PID %d with signal 0: %v", pid, err)
+				time.Sleep(100 * time.Millisecond)
 			}
-			time.Sleep(10 * time.Millisecond)
 		}
+	}()
+	select {
+	case <-done:
+		return nil
+	case <-time.After(timeout):
+		close(chControl)
+		return fmt.Errorf("given PIDs did not die within timeout")
 	}
 }
 
@@ -1041,7 +1038,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, fmt.Sprintf("--sdnotify-socket=%s", ctr.config.SdNotifySocket))
 	}
 
-	if ctr.Terminal() {
+	if ctr.config.Spec.Process.Terminal {
 		args = append(args, "-t")
 	} else if ctr.config.Stdin {
 		args = append(args, "-i")
@@ -1138,7 +1135,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	if ctr.Terminal() {
+	if ctr.config.Spec.Process.Terminal {
 		cmd.Stderr = &stderrBuf
 	}
 
@@ -1323,7 +1320,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 	case define.PassthroughLogging:
 		logDriverArg = define.PassthroughLogging
 	//lint:ignore ST1015 the default case has to be here
-	default: //nolint:gocritic
+	default: //nolint:stylecheck,gocritic
 		// No case here should happen except JSONLogging, but keep this here in case the options are extended
 		logrus.Errorf("%s logging specified but not supported. Choosing k8s-file logging instead", ctr.LogDriver())
 		fallthrough
@@ -1444,7 +1441,7 @@ func readConmonPipeData(runtimeName string, pipe *os.File, ociLog string) (int, 
 		ch <- syncStruct{si: si}
 	}()
 
-	data := -1
+	data := -1 //nolint: wastedassign
 	select {
 	case ss := <-ch:
 		if ss.err != nil {

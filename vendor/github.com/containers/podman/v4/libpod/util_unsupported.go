@@ -1,5 +1,5 @@
-//go:build !linux && !freebsd
-// +build !linux,!freebsd
+//go:build !linux
+// +build !linux
 
 package libpod
 
@@ -22,6 +22,6 @@ func Unmount(mount string) {
 
 // LabelVolumePath takes a mount path for a volume and gives it an
 // selinux label of either shared or not
-func LabelVolumePath(path, mountLabel string) error {
+func LabelVolumePath(path string) error {
 	return errors.New("not implemented LabelVolumePath")
 }

@@ -3,6 +3,7 @@ package define
 import (
 	"bufio"
 	"io"
+	"regexp"
 
 	"github.com/containers/common/libnetwork/types"
 )
@@ -19,6 +20,8 @@ var (
 	NameRegex = types.NameRegex
 	// RegexError is thrown in presence of an invalid container/pod name.
 	RegexError = types.RegexError
+	// UmaskRegex is a regular expression to validate Umask.
+	UmaskRegex = regexp.MustCompile(`^[0-7]{1,4}$`)
 )
 
 const (

@@ -17,7 +17,6 @@ import (
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 )
 
 // Init creates a container in the OCI runtime, moving a container from
@@ -79,27 +78,10 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // ContainerStatePaused via Pause(), or to ContainerStateStopped by the process
 // stopping (either due to exit, or being forced to stop by the Kill or Stop API
 // calls).
-// Start requires that all dependency containers (e.g. pod infra containers) are
-// running before starting the container. The recursive parameter, if set, will start all
+// Start requites that all dependency containers (e.g. pod infra containers) be
+// running before being run. The recursive parameter, if set, will start all
 // dependencies before starting this container.
-func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
+func (c *Container) Start(ctx context.Context, recursive bool) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -131,24 +113,7 @@ func (c *Container) Update(res *spec.LinuxResources) error {
 // Attach call occurs before Start).
 // In overall functionality, it is identical to the Start call, with the added
 // side effect that an attach session will also be started.
-func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (retChan <-chan error, finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
+func (c *Container) StartAndAttach(ctx context.Context, streams *define.AttachStreams, keys string, resize <-chan resize.TerminalSize, recursive bool) (<-chan error, error) {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -227,24 +192,7 @@ func (c *Container) Stop() error {
 // StopWithTimeout is a version of Stop that allows a timeout to be specified
 // manually. If timeout is 0, SIGKILL will be used immediately to kill the
 // container.
-func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
-	defer func() {
-		if finalErr != nil {
-			// Have to re-lock.
-			// As this is the first defer, it's the last thing to
-			// happen in the function - so `defer c.lock.Unlock()`
-			// below already fired.
-			if !c.batched {
-				c.lock.Lock()
-				defer c.lock.Unlock()
-			}
-
-			if err := saveContainerError(c, finalErr); err != nil {
-				logrus.Debug(err)
-			}
-		}
-	}()
-
+func (c *Container) StopWithTimeout(timeout uint) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -295,12 +243,7 @@ func (c *Container) Kill(signal uint) error {
 
 	c.newContainerEvent(events.Kill)
 
-	// Make sure to wait for the container to exit in case of SIGKILL.
-	if signal == uint(unix.SIGKILL) {
-		return c.waitForConmonToExitAndSave()
-	}
-
-	return nil
+	return c.save()
 }
 
 // Attach attaches to a container.
@@ -330,11 +273,9 @@ func (c *Container) Attach(streams *define.AttachStreams, keys string, resize <-
 	// Send a SIGWINCH after attach succeeds so that most programs will
 	// redraw the screen for the new attach session.
 	attachRdy := make(chan bool, 1)
-	if c.Terminal() {
+	if c.config.Spec.Process != nil && c.config.Spec.Process.Terminal {
 		go func() {
 			<-attachRdy
-			c.lock.Lock()
-			defer c.lock.Unlock()
 			if err := c.ociRuntime.KillContainer(c, uint(signal.SIGWINCH), false); err != nil {
 				logrus.Warnf("Unable to send SIGWINCH to container %s after attach: %v", c.ID(), err)
 			}
@@ -513,7 +454,7 @@ func (c *Container) Unpause() error {
 
 // Export exports a container's root filesystem as a tar archive
 // The archive will be saved as a file at the given path
-func (c *Container) Export(out io.Writer) error {
+func (c *Container) Export(path string) error {
 	if !c.batched {
 		c.lock.Lock()
 		defer c.lock.Unlock()
@@ -528,7 +469,7 @@ func (c *Container) Export(out io.Writer) error {
 	}
 
 	defer c.newContainerEvent(events.Mount)
-	return c.export(out)
+	return c.export(path)
 }
 
 // AddArtifact creates and writes to an artifact file for the container
@@ -573,12 +514,6 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 	id := c.ID()
 	var conmonTimer time.Timer
 	conmonTimerSet := false
-
-	conmonPidFd := c.getConmonPidFd()
-	if conmonPidFd != -1 {
-		defer unix.Close(conmonPidFd)
-	}
-	conmonPidFdTriggered := false
 
 	getExitCode := func() (bool, int32, error) {
 		containerRemoved := false
@@ -647,18 +582,7 @@ func (c *Container) WaitForExit(ctx context.Context, pollInterval time.Duration)
 		case <-ctx.Done():
 			return -1, fmt.Errorf("waiting for exit code of container %s canceled", id)
 		default:
-			if conmonPidFd != -1 && !conmonPidFdTriggered {
-				// If possible (pidfd works), the first cycle we block until conmon dies
-				// If this happens, and we fall back to the old poll delay
-				// There is a deadlock in the cleanup code for "play kube" which causes
-				// conmon to not exit, so unfortunately we have to use the poll interval
-				// timeout here to avoid hanging.
-				fds := []unix.PollFd{{Fd: int32(conmonPidFd), Events: unix.POLLIN}}
-				_, _ = unix.Poll(fds, int(pollInterval.Milliseconds()))
-				conmonPidFdTriggered = true
-			} else {
-				time.Sleep(pollInterval)
-			}
+			time.Sleep(pollInterval)
 		}
 	}
 }
@@ -786,21 +710,6 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// If we didn't restart, we perform a normal cleanup
 
-	// make sure all the container processes are terminated if we are running without a pid namespace.
-	hasPidNs := false
-	if c.config.Spec.Linux != nil {
-		for _, i := range c.config.Spec.Linux.Namespaces {
-			if i.Type == spec.PIDNamespace {
-				hasPidNs = true
-				break
-			}
-		}
-	}
-	if !hasPidNs {
-		// do not fail on errors
-		_ = c.ociRuntime.KillContainer(c, uint(unix.SIGKILL), true)
-	}
-
 	// Check for running exec sessions
 	sessions, err := c.getActiveExecSessions()
 	if err != nil {
@@ -831,6 +740,10 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	if err := c.syncContainer(); err != nil {
+		return err
+	}
+
 	newCtr := new(Container)
 	newCtr.config = c.config
 	newCtr.state = c.state
@@ -852,7 +765,7 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 // Most of the time, Podman does not explicitly query the OCI runtime for
 // container status, and instead relies upon exit files created by conmon.
 // This can cause a disconnect between running state and what Podman sees in
-// cases where Conmon was killed unexpectedly, or runc was upgraded.
+// cases where Conmon was killed unexpected, or runc was upgraded.
 // Running a manual Sync() ensures that container state will be correct in
 // such situations.
 func (c *Container) Sync() error {
@@ -1098,9 +1011,4 @@ func (c *Container) Stat(ctx context.Context, containerPath string) (*define.Fil
 
 	info, _, _, err := c.stat(mountPoint, containerPath)
 	return info, err
-}
-
-func saveContainerError(c *Container, err error) error {
-	c.state.Error = err.Error()
-	return c.save()
 }

@@ -20,9 +20,13 @@ import (
 func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, previousStats *define.ContainerStats) error {
 	now := uint64(time.Now().UnixNano())
 
-	entries, err := rctl.GetRacct("jail:" + c.jailName())
+	jailName := c.ID()
+	if c.state.NetNS != nil {
+		jailName = c.state.NetNS.Name + "." + jailName
+	}
+	entries, err := rctl.GetRacct("jail:" + jailName)
 	if err != nil {
-		return fmt.Errorf("unable to read accounting for %s: %w", c.jailName(), err)
+		return fmt.Errorf("unable to read accounting for %s: %w", jailName, err)
 	}
 
 	// If the current total usage is less than what was previously
@@ -82,8 +86,8 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 
 	// Handle case where the container is not in a network namespace
 	if netStats != nil {
-		stats.NetInput = netStats.RxBytes
-		stats.NetOutput = netStats.TxBytes
+		stats.NetInput = netStats.TxBytes
+		stats.NetOutput = netStats.RxBytes
 	} else {
 		stats.NetInput = 0
 		stats.NetOutput = 0
@@ -96,9 +100,9 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 func (c *Container) getMemLimit() uint64 {
 	memLimit := uint64(math.MaxUint64)
 
-	resources := c.LinuxResources()
-	if resources != nil && resources.Memory != nil && resources.Memory.Limit != nil {
-		memLimit = uint64(*resources.Memory.Limit)
+	if c.config.Spec.Linux != nil && c.config.Spec.Linux.Resources != nil &&
+		c.config.Spec.Linux.Resources.Memory != nil && c.config.Spec.Linux.Resources.Memory.Limit != nil {
+		memLimit = uint64(*c.config.Spec.Linux.Resources.Memory.Limit)
 	}
 
 	mi, err := system.ReadMemInfo()

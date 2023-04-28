@@ -20,7 +20,9 @@ import (
 	"regexp"
 )
 
-const branchRegexStr = `master|main|release-(\d+)\.(\d+)(\.(\d+))*$`
+const (
+	branchRegexStr = `master|release-([0-9]{1,})\.([0-9]{1,})(\.([0-9]{1,}))*$`
+)
 
 // BranchRegex returns a *regexp.Regexp which evaluates the structure of a
 // Kubernetes release branch

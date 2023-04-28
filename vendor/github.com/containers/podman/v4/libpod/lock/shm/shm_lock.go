@@ -1,15 +1,11 @@
-//go:build (linux || freebsd) && cgo
-// +build linux freebsd
-// +build cgo
+//go:build linux && cgo
+// +build linux,cgo
 
 package shm
 
 // #cgo LDFLAGS: -lrt -lpthread
 // #cgo CFLAGS: -Wall -Werror
 // #include <stdlib.h>
-// #include <sys/types.h>
-// #include <sys/mman.h>
-// #include <fcntl.h>
 // #include "shm_lock.h"
 // const uint32_t bitmap_size_c = BITMAP_SIZE;
 import "C"
@@ -33,7 +29,7 @@ var (
 
 // SHMLocks is a struct enabling POSIX semaphore locking in a shared memory
 // segment.
-type SHMLocks struct { //nolint:revive // linter complains about stutter
+type SHMLocks struct {
 	lockStruct *C.shm_struct_t
 	maxLocks   uint32
 	valid      bool
@@ -263,15 +259,5 @@ func (locks *SHMLocks) UnlockSemaphore(sem uint32) error {
 	// LockOSThread()
 	runtime.UnlockOSThread()
 
-	return nil
-}
-
-func unlinkSHMLock(path string) error {
-	cPath := C.CString(path)
-	defer C.free(unsafe.Pointer(cPath))
-
-	if _, err := C.shm_unlink(cPath); err != nil {
-		return fmt.Errorf("failed to unlink SHM locks: %w", err)
-	}
 	return nil
 }

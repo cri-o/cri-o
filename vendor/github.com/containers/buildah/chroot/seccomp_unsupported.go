@@ -1,5 +1,5 @@
-//go:build (!linux && !freebsd) || !seccomp
-// +build !linux,!freebsd !seccomp
+//go:build !linux || !seccomp
+// +build !linux !seccomp
 
 package chroot
 

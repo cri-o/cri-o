@@ -324,7 +324,7 @@ const (
 	PersistentVolumeClaimFileSystemResizePending PersistentVolumeClaimConditionType = "FileSystemResizePending"
 )
 
-// PersistentVolumeClaimCondition contains details about state of pvc
+// PersistentVolumeClaimCondition contails details about state of pvc
 type PersistentVolumeClaimCondition struct {
 	Type   PersistentVolumeClaimConditionType `json:"type"`
 	Status ConditionStatus                    `json:"status"`
@@ -939,15 +939,15 @@ type HTTPHeader struct {
 
 // HTTPGetAction describes an action based on HTTP Get requests.
 type HTTPGetAction struct {
-	// Path to access on the HTTP server. Defaults to /.
+	// Path to access on the HTTP server.
 	// +optional
 	Path string `json:"path,omitempty"`
 	// Name or number of the port to access on the container.
 	// Number must be in the range 1 to 65535.
 	// Name must be an IANA_SVC_NAME.
 	Port intstr.IntOrString `json:"port"`
-	// Host name to connect to. You probably want to set "Host" in httpHeaders instead.
-	// Defaults to the pod IP in Kubernetes, in case of Podman to localhost.
+	// Host name to connect to, defaults to the pod IP. You probably want to set
+	// "Host" in httpHeaders instead.
 	// +optional
 	Host string `json:"host,omitempty"`
 	// Scheme to use for connecting to the host.
@@ -964,9 +964,9 @@ type URIScheme string
 
 const (
 	// URISchemeHTTP means that the scheme used will be http://
-	URISchemeHTTP URIScheme = "http"
+	URISchemeHTTP URIScheme = "HTTP"
 	// URISchemeHTTPS means that the scheme used will be https://
-	URISchemeHTTPS URIScheme = "https"
+	URISchemeHTTPS URIScheme = "HTTPS"
 )
 
 // TCPSocketAction describes an action based on opening a socket
@@ -1249,7 +1249,7 @@ type Container struct {
 	// sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
 	// first client attaches to stdin, and then remains open and accepts data until the client disconnects,
 	// at which time stdin is closed and remains closed until the container is restarted. If this
-	// flag is false, a container process that reads from stdin will never receive an EOF.
+	// flag is false, a container processes that reads from stdin will never receive an EOF.
 	// Default is false
 	// +optional
 	StdinOnce bool `json:"stdinOnce,omitempty"`
@@ -2237,8 +2237,7 @@ type PodDNSConfigOption struct {
 
 // IP address information for entries in the (plural) PodIPs field.
 // Each entry includes:
-//
-//	IP: An IP address allocated to the pod. Routable at least within the cluster.
+//    IP: An IP address allocated to the pod. Routable at least within the cluster.
 type PodIP struct {
 	// ip is an IP address (IPv4 or IPv6) assigned to the pod
 	IP string `json:"ip,omitempty"`
@@ -2367,7 +2366,7 @@ type EphemeralContainerCommon struct {
 	// sessions. If stdinOnce is set to true, stdin is opened on container start, is empty until the
 	// first client attaches to stdin, and then remains open and accepts data until the client disconnects,
 	// at which time stdin is closed and remains closed until the container is restarted. If this
-	// flag is false, a container process that reads from stdin will never receive an EOF.
+	// flag is false, a container processes that reads from stdin will never receive an EOF.
 	// Default is false
 	// +optional
 	StdinOnce bool `json:"stdinOnce,omitempty"`
@@ -2393,7 +2392,7 @@ var _ = Container(EphemeralContainerCommon{})
 type EphemeralContainer struct {
 	// Ephemeral containers have all of the fields of Container, plus additional fields
 	// specific to ephemeral containers. Fields in common with Container are in the
-	// following inlined struct so that an EphemeralContainer may easily be converted
+	// following inlined struct so than an EphemeralContainer may easily be converted
 	// to a Container.
 	EphemeralContainerCommon `json:",inline"`
 
@@ -2639,7 +2638,7 @@ type ReplicationControllerSpec struct {
 // ReplicationControllerStatus represents the current status of a replication
 // controller.
 type ReplicationControllerStatus struct {
-	// Replicas is the most recently observed number of replicas.
+	// Replicas is the most recently oberved number of replicas.
 	// More info: https://kubernetes.io/docs/concepts/workloads/controllers/replicationcontroller#what-is-a-replicationcontroller
 	Replicas int32 `json:"replicas"`
 
@@ -3287,18 +3286,17 @@ type ServiceAccountList struct {
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 
 // Endpoints is a collection of endpoints that implement the actual service. Example:
-//
-//	 Name: "mysvc",
-//	 Subsets: [
-//	   {
-//	     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//	     Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-//	   },
-//	   {
-//	     Addresses: [{"ip": "10.10.3.3"}],
-//	     Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
-//	   },
-//	]
+//   Name: "mysvc",
+//   Subsets: [
+//     {
+//       Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//       Ports: [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//     },
+//     {
+//       Addresses: [{"ip": "10.10.3.3"}],
+//       Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
+//     },
+//  ]
 type Endpoints struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -3320,16 +3318,13 @@ type Endpoints struct {
 // EndpointSubset is a group of addresses with a common set of ports. The
 // expanded set of endpoints is the Cartesian product of Addresses x Ports.
 // For example, given:
-//
-//	{
-//	  Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
-//	  Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
-//	}
-//
+//   {
+//     Addresses: [{"ip": "10.10.1.1"}, {"ip": "10.10.2.2"}],
+//     Ports:     [{"name": "a", "port": 8675}, {"name": "b", "port": 309}]
+//   }
 // The resulting set of endpoints can be viewed as:
-//
-//	a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
-//	b: [ 10.10.1.1:309, 10.10.2.2:309 ]
+//     a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
+//     b: [ 10.10.1.1:309, 10.10.2.2:309 ]
 type EndpointSubset struct {
 	// IP addresses which offer the related ports that are marked as ready. These endpoints
 	// should be considered safe for load balancers and clients to utilize.
@@ -3661,7 +3656,6 @@ type ServiceProxyOptions struct {
 //     and the version of the actual struct is irrelevant.
 //  5. We cannot easily change it.  Because this type is embedded in many locations, updates to this type
 //     will affect numerous schemas.  Don't make new APIs embed an underspecified API type they do not control.
-//
 // Instead of using this type, create a locally provided and used type that is well-focused on your reference.
 // For example, ServiceReferences for admission registration: https://github.com/kubernetes/api/blob/release-1.17/admissionregistration/v1/types.go#L533 .
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
@@ -4403,9 +4397,6 @@ type SELinuxOptions struct {
 	// Type is a SELinux type label that applies to the container.
 	// +optional
 	Type string `json:"type,omitempty"`
-	// FileType is a SELinux file type label that applies to the container.
-	// +optional
-	FileType string `json:"filetype,omitempty"`
 	// Level is SELinux level label that applies to the container.
 	// +optional
 	Level string `json:"level,omitempty"`
@@ -4492,466 +4483,4 @@ type PortStatus struct {
 	// +kubebuilder:validation:Pattern=`^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$`
 	// +kubebuilder:validation:MaxLength=316
 	Error *string `json:"error,omitempty"`
-}
-
-// The following has been copied from https://github.com/kubernetes/client-go/blob/master/tools/clientcmd/api/v1/types.go
-// It holds the struct information for a kubeconfig that let's us unmarshal a given kubeconfig so that we can deploy workloads
-// to the cluster with podman generate kube.
-
-// Config holds the information needed to build connect to remote kubernetes clusters as a given user
-type Config struct {
-	// Legacy field from pkg/api/types.go TypeMeta.
-	// TODO(jlowdermilk): remove this after eliminating downstream dependencies.
-	// +k8s:conversion-gen=false
-	// +optional
-	Kind string `json:"kind,omitempty"`
-	// Legacy field from pkg/api/types.go TypeMeta.
-	// TODO(jlowdermilk): remove this after eliminating downstream dependencies.
-	// +k8s:conversion-gen=false
-	// +optional
-	APIVersion string `json:"apiVersion,omitempty"`
-	// Preferences holds general information to be use for cli interactions
-	Preferences Preferences `json:"preferences"`
-	// Clusters is a map of referenceable names to cluster configs
-	Clusters []NamedCluster `json:"clusters"`
-	// AuthInfos is a map of referenceable names to user configs
-	AuthInfos []NamedAuthInfo `json:"users"`
-	// Contexts is a map of referenceable names to context configs
-	Contexts []NamedContext `json:"contexts"`
-	// CurrentContext is the name of the context that you would like to use by default
-	CurrentContext string `json:"current-context"`
-	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
-	// +optional
-	Extensions []NamedExtension `json:"extensions,omitempty"`
-}
-
-type Preferences struct {
-	// +optional
-	Colors bool `json:"colors,omitempty"`
-	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
-	// +optional
-	Extensions []NamedExtension `json:"extensions,omitempty"`
-}
-
-// Cluster contains information about how to communicate with a kubernetes cluster
-type Cluster struct {
-	// Server is the address of the kubernetes cluster (https://hostname:port).
-	Server string `json:"server"`
-	// TLSServerName is used to check server certificate. If TLSServerName is empty, the hostname used to contact the server is used.
-	// +optional
-	TLSServerName string `json:"tls-server-name,omitempty"`
-	// InsecureSkipTLSVerify skips the validity check for the server's certificate. This will make your HTTPS connections insecure.
-	// +optional
-	InsecureSkipTLSVerify bool `json:"insecure-skip-tls-verify,omitempty"`
-	// CertificateAuthority is the path to a cert file for the certificate authority.
-	// +optional
-	CertificateAuthority string `json:"certificate-authority,omitempty"`
-	// CertificateAuthorityData contains PEM-encoded certificate authority certificates. Overrides CertificateAuthority
-	// +optional
-	CertificateAuthorityData []byte `json:"certificate-authority-data,omitempty"`
-	// ProxyURL is the URL to the proxy to be used for all requests made by this
-	// client. URLs with "http", "https", and "socks5" schemes are supported.  If
-	// this configuration is not provided or the empty string, the client
-	// attempts to construct a proxy configuration from http_proxy and
-	// https_proxy environment variables. If these environment variables are not
-	// set, the client does not attempt to proxy requests.
-	//
-	// socks5 proxying does not currently support spdy streaming endpoints (exec,
-	// attach, port forward).
-	// +optional
-	ProxyURL string `json:"proxy-url,omitempty"`
-	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
-	// +optional
-	Extensions []NamedExtension `json:"extensions,omitempty"`
-}
-
-// AuthInfo contains information that describes identity information.  This is use to tell the kubernetes cluster who you are.
-type AuthInfo struct {
-	// ClientCertificate is the path to a client cert file for TLS.
-	// +optional
-	ClientCertificate string `json:"client-certificate,omitempty"`
-	// ClientCertificateData contains PEM-encoded data from a client cert file for TLS. Overrides ClientCertificate
-	// +optional
-	ClientCertificateData []byte `json:"client-certificate-data,omitempty"`
-	// ClientKey is the path to a client key file for TLS.
-	// +optional
-	ClientKey string `json:"client-key,omitempty"`
-	// ClientKeyData contains PEM-encoded data from a client key file for TLS. Overrides ClientKey
-	// +optional
-	ClientKeyData []byte `json:"client-key-data,omitempty" datapolicy:"security-key"`
-	// Token is the bearer token for authentication to the kubernetes cluster.
-	// +optional
-	Token string `json:"token,omitempty" datapolicy:"token"`
-	// TokenFile is a pointer to a file that contains a bearer token (as described above).  If both Token and TokenFile are present, Token takes precedence.
-	// +optional
-	TokenFile string `json:"tokenFile,omitempty"`
-	// Impersonate is the username to impersonate.  The name matches the flag.
-	// +optional
-	Impersonate string `json:"as,omitempty"`
-	// ImpersonateUID is the uid to impersonate.
-	// +optional
-	ImpersonateUID string `json:"as-uid,omitempty"`
-	// ImpersonateGroups is the groups to impersonate.
-	// +optional
-	ImpersonateGroups []string `json:"as-groups,omitempty"`
-	// ImpersonateUserExtra contains additional information for impersonated user.
-	// +optional
-	ImpersonateUserExtra map[string][]string `json:"as-user-extra,omitempty"`
-	// Username is the username for basic authentication to the kubernetes cluster.
-	// +optional
-	Username string `json:"username,omitempty"`
-	// Password is the password for basic authentication to the kubernetes cluster.
-	// +optional
-	Password string `json:"password,omitempty" datapolicy:"password"`
-	// AuthProvider specifies a custom authentication plugin for the kubernetes cluster.
-	// +optional
-	AuthProvider *AuthProviderConfig `json:"auth-provider,omitempty"`
-	// Exec specifies a custom exec-based authentication plugin for the kubernetes cluster.
-	// +optional
-	Exec *ExecConfig `json:"exec,omitempty"`
-	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
-	// +optional
-	Extensions []NamedExtension `json:"extensions,omitempty"`
-}
-
-// Context is a tuple of references to a cluster (how do I communicate with a kubernetes cluster), a user (how do I identify myself), and a namespace (what subset of resources do I want to work with)
-type Context struct {
-	// Cluster is the name of the cluster for this context
-	Cluster string `json:"cluster"`
-	// AuthInfo is the name of the authInfo for this context
-	AuthInfo string `json:"user"`
-	// Namespace is the default namespace to use on unspecified requests
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-	// Extensions holds additional information. This is useful for extenders so that reads and writes don't clobber unknown fields
-	// +optional
-	Extensions []NamedExtension `json:"extensions,omitempty"`
-}
-
-// NamedCluster relates nicknames to cluster information
-type NamedCluster struct {
-	// Name is the nickname for this Cluster
-	Name string `json:"name"`
-	// Cluster holds the cluster information
-	Cluster Cluster `json:"cluster"`
-}
-
-// NamedContext relates nicknames to context information
-type NamedContext struct {
-	// Name is the nickname for this Context
-	Name string `json:"name"`
-	// Context holds the context information
-	Context Context `json:"context"`
-}
-
-// NamedAuthInfo relates nicknames to auth information
-type NamedAuthInfo struct {
-	// Name is the nickname for this AuthInfo
-	Name string `json:"name"`
-	// AuthInfo holds the auth information
-	AuthInfo AuthInfo `json:"user"`
-}
-
-// NamedExtension relates nicknames to extension information
-type NamedExtension struct {
-	// Name is the nickname for this Extension
-	Name string `json:"name"`
-	// Extension holds the extension information
-	Extension interface{} `json:"extension"`
-}
-
-// AuthProviderConfig holds the configuration for a specified auth provider.
-type AuthProviderConfig struct {
-	Name   string            `json:"name"`
-	Config map[string]string `json:"config"`
-}
-
-// ExecConfig specifies a command to provide client credentials. The command is exec'd
-// and outputs structured stdout holding credentials.
-//
-// See the client.authentication.k8s.io API group for specifications of the exact input
-// and output format
-type ExecConfig struct {
-	// Command to execute.
-	Command string `json:"command"`
-	// Arguments to pass to the command when executing it.
-	// +optional
-	Args []string `json:"args"`
-	// Env defines additional environment variables to expose to the process. These
-	// are unioned with the host's environment, as well as variables client-go uses
-	// to pass argument to the plugin.
-	// +optional
-	Env []ExecEnvVar `json:"env"`
-
-	// Preferred input version of the ExecInfo. The returned ExecCredentials MUST use
-	// the same encoding version as the input.
-	APIVersion string `json:"apiVersion,omitempty"`
-
-	// This text is shown to the user when the executable doesn't seem to be
-	// present. For example, `brew install foo-cli` might be a good InstallHint for
-	// foo-cli on Mac OS systems.
-	InstallHint string `json:"installHint,omitempty"`
-
-	// ProvideClusterInfo determines whether or not to provide cluster information,
-	// which could potentially contain very large CA data, to this exec plugin as a
-	// part of the KUBERNETES_EXEC_INFO environment variable. By default, it is set
-	// to false. Package k8s.io/client-go/tools/auth/exec provides helper methods for
-	// reading this environment variable.
-	ProvideClusterInfo bool `json:"provideClusterInfo"`
-
-	// InteractiveMode determines this plugin's relationship with standard input. Valid
-	// values are "Never" (this exec plugin never uses standard input), "IfAvailable" (this
-	// exec plugin wants to use standard input if it is available), or "Always" (this exec
-	// plugin requires standard input to function). See ExecInteractiveMode values for more
-	// details.
-	//
-	// If APIVersion is client.authentication.k8s.io/v1alpha1 or
-	// client.authentication.k8s.io/v1beta1, then this field is optional and defaults
-	// to "IfAvailable" when unset. Otherwise, this field is required.
-	//+optional
-	InteractiveMode ExecInteractiveMode `json:"interactiveMode,omitempty"`
-}
-
-// ExecEnvVar is used for setting environment variables when executing an exec-based
-// credential plugin.
-type ExecEnvVar struct {
-	Name  string `json:"name"`
-	Value string `json:"value"`
-}
-
-// ExecInteractiveMode is a string that describes an exec plugin's relationship with standard input.
-type ExecInteractiveMode string
-
-const (
-	// NeverExecInteractiveMode declares that this exec plugin never needs to use standard
-	// input, and therefore the exec plugin will be run regardless of whether standard input is
-	// available for user input.
-	NeverExecInteractiveMode ExecInteractiveMode = "Never"
-	// IfAvailableExecInteractiveMode declares that this exec plugin would like to use standard input
-	// if it is available, but can still operate if standard input is not available. Therefore, the
-	// exec plugin will be run regardless of whether stdin is available for user input. If standard
-	// input is available for user input, then it will be provided to this exec plugin.
-	IfAvailableExecInteractiveMode ExecInteractiveMode = "IfAvailable"
-	// AlwaysExecInteractiveMode declares that this exec plugin requires standard input in order to
-	// run, and therefore the exec plugin will only be run if standard input is available for user
-	// input. If standard input is not available for user input, then the exec plugin will not be run
-	// and an error will be returned by the exec plugin runner.
-	AlwaysExecInteractiveMode ExecInteractiveMode = "Always"
-)
-
-// +genclient
-// +genclient:method=GetScale,verb=get,subresource=scale,result=k8s.io/api/autoscaling/v1.Scale
-// +genclient:method=UpdateScale,verb=update,subresource=scale,input=k8s.io/api/autoscaling/v1.Scale,result=k8s.io/api/autoscaling/v1.Scale
-// +genclient:method=ApplyScale,verb=apply,subresource=scale,input=k8s.io/api/autoscaling/v1.Scale,result=k8s.io/api/autoscaling/v1.Scale
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Deployment enables declarative updates for Pods and ReplicaSets.
-type Deployment struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard object's metadata.
-	// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#metadata
-	// +optional
-	metav1.ObjectMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// Specification of the desired behavior of the Deployment.
-	// +optional
-	Spec DeploymentSpec `json:"spec,omitempty" protobuf:"bytes,2,opt,name=spec"`
-
-	// Most recently observed status of the Deployment.
-	// +optional
-	Status DeploymentStatus `json:"status,omitempty" protobuf:"bytes,3,opt,name=status"`
-}
-
-// DeploymentSpec is the specification of the desired behavior of the Deployment.
-type DeploymentSpec struct {
-	// Number of desired pods. This is a pointer to distinguish between explicit
-	// zero and not specified. Defaults to 1.
-	// +optional
-	Replicas *int32 `json:"replicas,omitempty" protobuf:"varint,1,opt,name=replicas"`
-
-	// Label selector for pods. Existing ReplicaSets whose pods are
-	// selected by this will be the ones affected by this deployment.
-	// It must match the pod template's labels.
-	Selector *metav1.LabelSelector `json:"selector" protobuf:"bytes,2,opt,name=selector"`
-
-	// Template describes the pods that will be created.
-	// The only allowed template.spec.restartPolicy value is "Always".
-	Template PodTemplateSpec `json:"template" protobuf:"bytes,3,opt,name=template"`
-
-	// The deployment strategy to use to replace existing pods with new ones.
-	// +optional
-	// +patchStrategy=retainKeys
-	Strategy DeploymentStrategy `json:"strategy,omitempty" patchStrategy:"retainKeys" protobuf:"bytes,4,opt,name=strategy"`
-
-	// Minimum number of seconds for which a newly created pod should be ready
-	// without any of its container crashing, for it to be considered available.
-	// Defaults to 0 (pod will be considered available as soon as it is ready)
-	// +optional
-	MinReadySeconds int32 `json:"minReadySeconds,omitempty" protobuf:"varint,5,opt,name=minReadySeconds"`
-
-	// The number of old ReplicaSets to retain to allow rollback.
-	// This is a pointer to distinguish between explicit zero and not specified.
-	// Defaults to 10.
-	// +optional
-	RevisionHistoryLimit *int32 `json:"revisionHistoryLimit,omitempty" protobuf:"varint,6,opt,name=revisionHistoryLimit"`
-
-	// Indicates that the deployment is paused.
-	// +optional
-	Paused bool `json:"paused,omitempty" protobuf:"varint,7,opt,name=paused"`
-
-	// The maximum time in seconds for a deployment to make progress before it
-	// is considered to be failed. The deployment controller will continue to
-	// process failed deployments and a condition with a ProgressDeadlineExceeded
-	// reason will be surfaced in the deployment status. Note that progress will
-	// not be estimated during the time a deployment is paused. Defaults to 600s.
-	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty" protobuf:"varint,9,opt,name=progressDeadlineSeconds"`
-}
-
-const (
-	// DefaultDeploymentUniqueLabelKey is the default key of the selector that is added
-	// to existing ReplicaSets (and label key that is added to its pods) to prevent the existing ReplicaSets
-	// to select new pods (and old pods being select by new ReplicaSet).
-	DefaultDeploymentUniqueLabelKey string = "pod-template-hash"
-)
-
-// DeploymentStrategy describes how to replace existing pods with new ones.
-type DeploymentStrategy struct {
-	// Type of deployment. Can be "Recreate" or "RollingUpdate". Default is RollingUpdate.
-	// +optional
-	Type DeploymentStrategyType `json:"type,omitempty" protobuf:"bytes,1,opt,name=type,casttype=DeploymentStrategyType"`
-
-	// Rolling update config params. Present only if DeploymentStrategyType =
-	// RollingUpdate.
-	//---
-	// TODO: Update this to follow our convention for oneOf, whatever we decide it
-	// to be.
-	// +optional
-	RollingUpdate *RollingUpdateDeployment `json:"rollingUpdate,omitempty" protobuf:"bytes,2,opt,name=rollingUpdate"`
-}
-
-// +enum
-type DeploymentStrategyType string
-
-const (
-	// Kill all existing pods before creating new ones.
-	RecreateDeploymentStrategyType DeploymentStrategyType = "Recreate"
-
-	// Replace the old ReplicaSets by new one using rolling update i.e gradually scale down the old ReplicaSets and scale up the new one.
-	RollingUpdateDeploymentStrategyType DeploymentStrategyType = "RollingUpdate"
-)
-
-// Spec to control the desired behavior of rolling update.
-type RollingUpdateDeployment struct {
-	// The maximum number of pods that can be unavailable during the update.
-	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
-	// Absolute number is calculated from percentage by rounding down.
-	// This can not be 0 if MaxSurge is 0.
-	// Defaults to 25%.
-	// Example: when this is set to 30%, the old ReplicaSet can be scaled down to 70% of desired pods
-	// immediately when the rolling update starts. Once new pods are ready, old ReplicaSet
-	// can be scaled down further, followed by scaling up the new ReplicaSet, ensuring
-	// that the total number of pods available at all times during the update is at
-	// least 70% of desired pods.
-	// +optional
-	MaxUnavailable *intstr.IntOrString `json:"maxUnavailable,omitempty" protobuf:"bytes,1,opt,name=maxUnavailable"`
-
-	// The maximum number of pods that can be scheduled above the desired number of
-	// pods.
-	// Value can be an absolute number (ex: 5) or a percentage of desired pods (ex: 10%).
-	// This can not be 0 if MaxUnavailable is 0.
-	// Absolute number is calculated from percentage by rounding up.
-	// Defaults to 25%.
-	// Example: when this is set to 30%, the new ReplicaSet can be scaled up immediately when
-	// the rolling update starts, such that the total number of old and new pods do not exceed
-	// 130% of desired pods. Once old pods have been killed,
-	// new ReplicaSet can be scaled up further, ensuring that total number of pods running
-	// at any time during the update is at most 130% of desired pods.
-	// +optional
-	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,2,opt,name=maxSurge"`
-}
-
-// DeploymentStatus is the most recently observed status of the Deployment.
-type DeploymentStatus struct {
-	// The generation observed by the deployment controller.
-	// +optional
-	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,1,opt,name=observedGeneration"`
-
-	// Total number of non-terminated pods targeted by this deployment (their labels match the selector).
-	// +optional
-	Replicas int32 `json:"replicas,omitempty" protobuf:"varint,2,opt,name=replicas"`
-
-	// Total number of non-terminated pods targeted by this deployment that have the desired template spec.
-	// +optional
-	UpdatedReplicas int32 `json:"updatedReplicas,omitempty" protobuf:"varint,3,opt,name=updatedReplicas"`
-
-	// readyReplicas is the number of pods targeted by this Deployment with a Ready Condition.
-	// +optional
-	ReadyReplicas int32 `json:"readyReplicas,omitempty" protobuf:"varint,7,opt,name=readyReplicas"`
-
-	// Total number of available pods (ready for at least minReadySeconds) targeted by this deployment.
-	// +optional
-	AvailableReplicas int32 `json:"availableReplicas,omitempty" protobuf:"varint,4,opt,name=availableReplicas"`
-
-	// Total number of unavailable pods targeted by this deployment. This is the total number of
-	// pods that are still required for the deployment to have 100% available capacity. They may
-	// either be pods that are running but not yet available or pods that still have not been created.
-	// +optional
-	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
-
-	// Represents the latest available observations of a deployment's current state.
-	// +patchMergeKey=type
-	// +patchStrategy=merge
-	Conditions []DeploymentCondition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,6,rep,name=conditions"`
-
-	// Count of hash collisions for the Deployment. The Deployment controller uses this
-	// field as a collision avoidance mechanism when it needs to create the name for the
-	// newest ReplicaSet.
-	// +optional
-	CollisionCount *int32 `json:"collisionCount,omitempty" protobuf:"varint,8,opt,name=collisionCount"`
-}
-
-type DeploymentConditionType string
-
-// These are valid conditions of a deployment.
-const (
-	// Available means the deployment is available, ie. at least the minimum available
-	// replicas required are up and running for at least minReadySeconds.
-	DeploymentAvailable DeploymentConditionType = "Available"
-	// Progressing means the deployment is progressing. Progress for a deployment is
-	// considered when a new replica set is created or adopted, and when new pods scale
-	// up or old pods scale down. Progress is not estimated for paused deployments or
-	// when progressDeadlineSeconds is not specified.
-	DeploymentProgressing DeploymentConditionType = "Progressing"
-	// ReplicaFailure is added in a deployment when one of its pods fails to be created
-	// or deleted.
-	DeploymentReplicaFailure DeploymentConditionType = "ReplicaFailure"
-)
-
-// DeploymentCondition describes the state of a deployment at a certain point.
-type DeploymentCondition struct {
-	// Type of deployment condition.
-	Type DeploymentConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=DeploymentConditionType"`
-	// Status of the condition, one of True, False, Unknown.
-	Status ConditionStatus `json:"status" protobuf:"bytes,2,opt,name=status,casttype=k8s.io/api/core/v1.ConditionStatus"`
-	// The last time this condition was updated.
-	LastUpdateTime metav1.Time `json:"lastUpdateTime,omitempty" protobuf:"bytes,6,opt,name=lastUpdateTime"`
-	// Last time the condition transitioned from one status to another.
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,7,opt,name=lastTransitionTime"`
-	// The reason for the condition's last transition.
-	Reason string `json:"reason,omitempty" protobuf:"bytes,4,opt,name=reason"`
-	// A human readable message indicating details about the transition.
-	Message string `json:"message,omitempty" protobuf:"bytes,5,opt,name=message"`
-}
-
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// DeploymentList is a list of Deployments.
-type DeploymentList struct {
-	metav1.TypeMeta `json:",inline"`
-	// Standard list metadata.
-	// +optional
-	metav1.ListMeta `json:"metadata,omitempty" protobuf:"bytes,1,opt,name=metadata"`
-
-	// Items is the list of Deployments.
-	Items []Deployment `json:"items" protobuf:"bytes,2,rep,name=items"`
 }

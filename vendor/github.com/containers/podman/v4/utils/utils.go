@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/storage/pkg/archive"
-	"github.com/containers/storage/pkg/chrootarchive"
 	"github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
 )
@@ -64,7 +63,7 @@ func CreateTarFromSrc(source string, dest string) error {
 		return fmt.Errorf("could not create tarball file '%s': %w", dest, err)
 	}
 	defer file.Close()
-	return TarChrootToFilesystem(source, file)
+	return TarToFilesystem(source, file)
 }
 
 // TarToFilesystem creates a tarball from source and writes to an os.file
@@ -86,28 +85,6 @@ func TarToFilesystem(source string, tarball *os.File) error {
 func Tar(source string) (io.ReadCloser, error) {
 	logrus.Debugf("creating tarball of %s", source)
 	return archive.Tar(source, archive.Uncompressed)
-}
-
-// TarChrootToFilesystem creates a tarball from source and writes to an os.file
-// provided while chrooted to the source.
-func TarChrootToFilesystem(source string, tarball *os.File) error {
-	tb, err := TarWithChroot(source)
-	if err != nil {
-		return err
-	}
-	_, err = io.Copy(tarball, tb)
-	if err != nil {
-		return err
-	}
-	logrus.Debugf("wrote tarball file %s", tarball.Name())
-	return nil
-}
-
-// TarWithChroot creates a tarball from source and returns a readcloser of it
-// while chrooted to the source.
-func TarWithChroot(source string) (io.ReadCloser, error) {
-	logrus.Debugf("creating tarball of %s", source)
-	return chrootarchive.Tar(source, nil, source)
 }
 
 // RemoveScientificNotationFromFloat returns a float without any
@@ -136,9 +113,9 @@ var (
 // RunsOnSystemd returns whether the system is using systemd
 func RunsOnSystemd() bool {
 	runsOnSystemdOnce.Do(func() {
-		// per sd_booted(3), check for this dir
-		fd, err := os.Stat("/run/systemd/system")
-		runsOnSystemd = err == nil && fd.IsDir()
+		initCommand, err := os.ReadFile("/proc/1/comm")
+		// On errors, default to systemd
+		runsOnSystemd = err != nil || strings.TrimRight(string(initCommand), "\n") == "systemd"
 	})
 	return runsOnSystemd
 }

@@ -172,7 +172,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 	if err != nil {
 		return false, 0, err
 	}
-	if (os.Geteuid() == 0 && hasCapSysAdmin) || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		return false, 0, nil
 	}
 
@@ -193,7 +193,7 @@ func joinUserAndMountNS(pid uint, pausePid string) (bool, int, error) {
 }
 
 // GetConfiguredMappings returns the additional IDs configured for the current user.
-func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error) {
+func GetConfiguredMappings() ([]idtools.IDMap, []idtools.IDMap, error) {
 	var uids, gids []idtools.IDMap
 	username := os.Getenv("USER")
 	if username == "" {
@@ -211,7 +211,7 @@ func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error)
 	mappings, err := idtools.NewIDMappings(username, username)
 	if err != nil {
 		logLevel := logrus.ErrorLevel
-		if quiet || (os.Geteuid() == 0 && GetRootlessUID() == 0) {
+		if os.Geteuid() == 0 && GetRootlessUID() == 0 {
 			logLevel = logrus.DebugLevel
 		}
 		logrus.StandardLogger().Logf(logLevel, "cannot find UID/GID for user %s: %v - check rootless mode in man pages.", username, err)
@@ -223,11 +223,6 @@ func GetConfiguredMappings(quiet bool) ([]idtools.IDMap, []idtools.IDMap, error)
 }
 
 func copyMappings(from, to string) error {
-	// when running as non-root always go through the newuidmap/newgidmap
-	// configuration since this is the expectation when running on Kubernetes
-	if os.Geteuid() != 0 {
-		return errors.New("copying mappings is allowed only for root")
-	}
 	content, err := os.ReadFile(from)
 	if err != nil {
 		return err
@@ -248,7 +243,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, 0, err
 	}
 
-	if (os.Geteuid() == 0 && hasCapSysAdmin) || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
+	if hasCapSysAdmin || os.Getenv("_CONTAINERS_USERNS_CONFIGURED") != "" {
 		if os.Getenv("_CONTAINERS_USERNS_CONFIGURED") == "init" {
 			return false, 0, runInUser()
 		}
@@ -322,7 +317,7 @@ func becomeRootInUserNS(pausePid, fileToRead string, fileOutput *os.File) (_ boo
 		return false, -1, fmt.Errorf("cannot re-exec process")
 	}
 
-	uids, gids, err := GetConfiguredMappings(false)
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
 		return false, -1, err
 	}
@@ -597,7 +592,7 @@ func ConfigurationMatches() (bool, error) {
 		return true, nil
 	}
 
-	uids, gids, err := GetConfiguredMappings(false)
+	uids, gids, err := GetConfiguredMappings()
 	if err != nil {
 		return false, err
 	}

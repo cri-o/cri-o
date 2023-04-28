@@ -129,7 +129,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			Pid:            runtimeInfo.PID,
 			ConmonPid:      runtimeInfo.ConmonPID,
 			ExitCode:       runtimeInfo.ExitCode,
-			Error:          runtimeInfo.Error,
+			Error:          "", // can't get yet
 			StartedAt:      runtimeInfo.StartedTime,
 			FinishedAt:     runtimeInfo.FinishedTime,
 			Checkpointed:   runtimeInfo.Checkpointed,
@@ -166,15 +166,6 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 		IsInfra:         c.IsInfra(),
 		IsService:       c.IsService(),
 	}
-
-	if config.RootfsImageID != "" { // May not be set if the container was created with --rootfs
-		image, _, err := c.runtime.libimageRuntime.LookupImage(config.RootfsImageID, nil)
-		if err != nil {
-			return nil, err
-		}
-		data.ImageDigest = image.Digest().String()
-	}
-
 	if ctrSpec.Process.Capabilities != nil {
 		data.EffectiveCaps = ctrSpec.Process.Capabilities.Effective
 		data.BoundingCaps = ctrSpec.Process.Capabilities.Bounding
@@ -185,7 +176,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		// This container has a healthcheck defined in it; we need to add its state
+		// This container has a healthcheck defined in it; we need to add it's state
 		healthCheckState, err := c.getHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed
@@ -552,9 +543,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.NetworkMode = networkMode
 
 	// Port bindings.
-	// Only populate if we are creating the network namespace to configure the network.
+	// Only populate if we're using CNI to configure the network.
 	if c.config.CreateNetNS {
-		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings)
+		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings, c.config.ExposedPorts)
 	} else {
 		hostConfig.PortBindings = make(map[string][]define.InspectHostPort)
 	}

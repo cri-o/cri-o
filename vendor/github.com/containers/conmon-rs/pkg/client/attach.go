@@ -66,9 +66,6 @@ type AttachConfig struct {
 	// Whether stdout/stderr should continue to be processed after stdin is closed.
 	StopAfterStdinEOF bool
 
-	// Whether the container supports stdin or not.
-	ContainerStdin bool
-
 	// Whether the output is passed through the caller's std streams, rather than
 	// ones created for the attach session.
 	Passthrough bool
@@ -99,11 +96,6 @@ type attachReaderValue struct {
 
 // AttachContainer can be used to attach to a running container.
 func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) error {
-	ctx, span := c.startSpan(ctx, "AttachContainer")
-	if span != nil {
-		defer span.End()
-	}
-
 	conn, err := c.newRPCConn()
 	if err != nil {
 		return fmt.Errorf("create RPC connection: %w", err)
@@ -121,14 +113,6 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
-		}
-
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
 		}
@@ -136,8 +120,6 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 		if err := req.SetSocketPath(cfg.SocketPath); err != nil {
 			return fmt.Errorf("set socket path: %w", err)
 		}
-
-		req.SetStopAfterStdinEof(cfg.StopAfterStdinEOF)
 
 		// TODO: add exec session
 		return nil
@@ -198,14 +180,14 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 
 	id := uuid.NewString()
 
-	receiveStdoutError, stdinDone := c.setupStdioChannels(ctx, cfg, conn, id)
+	receiveStdoutError, stdinDone := c.setupStdioChannels(cfg, conn, id)
 	if cfg.PostAttachFunc != nil {
 		if err := cfg.PostAttachFunc(); err != nil {
 			return fmt.Errorf("run post attach func: %w", err)
 		}
 	}
 
-	if err := c.readStdio(ctx, cfg, conn, id, receiveStdoutError, stdinDone); err != nil {
+	if err := c.readStdio(cfg, conn, id, receiveStdoutError, stdinDone); err != nil {
 		return fmt.Errorf("read stdio: %w", err)
 	}
 
@@ -213,16 +195,11 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 }
 
 func (c *ConmonClient) setupStdioChannels(
-	ctx context.Context, cfg *AttachConfig, conn *net.UnixConn, id string,
+	cfg *AttachConfig, conn *net.UnixConn, id string,
 ) (receiveStdoutError, stdinDone chan error) {
-	ctx, span := c.startSpan(ctx, "setupStdioChannels")
-	if span != nil {
-		defer span.End()
-	}
-
 	receiveStdoutError = make(chan error)
 	go func() {
-		receiveStdoutError <- c.redirectResponseToOutputStreams(ctx, cfg, conn)
+		receiveStdoutError <- c.redirectResponseToOutputStreams(cfg, conn)
 	}()
 
 	stdinDone = make(chan error)
@@ -243,14 +220,7 @@ func (c *ConmonClient) setupStdioChannels(
 	return receiveStdoutError, stdinDone
 }
 
-func (c *ConmonClient) redirectResponseToOutputStreams(
-	ctx context.Context, cfg *AttachConfig, conn io.Reader,
-) (err error) {
-	ctx, span := c.startSpan(ctx, "redirectResponseToOutputStreams")
-	if span != nil {
-		defer span.End()
-	}
-
+func (c *ConmonClient) redirectResponseToOutputStreams(cfg *AttachConfig, conn io.Reader) (err error) {
 	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs ATTACH_PACKET_BUF_SIZE */
 	defer func() {
 		if cfg.Streams.Stdout != nil {
@@ -266,7 +236,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 		c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
 
 		if nr > 0 {
-			cont, er := c.handlePacket(ctx, cfg, buf, nr)
+			cont, er := c.handlePacket(cfg, buf, nr)
 			if er != nil {
 				return er
 			}
@@ -274,7 +244,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 				return nil
 			}
 		}
-		if er == io.EOF || (cfg.ContainerStdin && !cfg.StopAfterStdinEOF) {
+		if er == io.EOF {
 			return nil
 		}
 		if errors.Is(er, syscall.ECONNRESET) {
@@ -296,14 +266,7 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 	return nil
 }
 
-func (c *ConmonClient) handlePacket(
-	ctx context.Context, cfg *AttachConfig, buf []byte, nr int,
-) (cont bool, err error) {
-	_, span := c.startSpan(ctx, "handlePacket")
-	if span != nil {
-		defer span.End()
-	}
-
+func (c *ConmonClient) handlePacket(cfg *AttachConfig, buf []byte, nr int) (cont bool, err error) {
 	var dst io.Writer
 	switch buf[0] {
 	case attachPipeDone:
@@ -393,13 +356,8 @@ func (c *ConmonClient) closeAttachReader(val any) {
 }
 
 func (c *ConmonClient) readStdio(
-	ctx context.Context, cfg *AttachConfig, conn *net.UnixConn, id string, receiveStdoutError, stdinDone chan error,
+	cfg *AttachConfig, conn *net.UnixConn, id string, receiveStdoutError, stdinDone chan error,
 ) (err error) {
-	_, span := c.startSpan(ctx, "readStdio")
-	if span != nil {
-		defer span.End()
-	}
-
 	c.logger.Trace("Read stdio on attach")
 	select {
 	case err = <-receiveStdoutError:
@@ -418,6 +376,7 @@ func (c *ConmonClient) readStdio(
 
 	case err = <-stdinDone:
 		c.logger.WithError(err).Trace("Received message on input channel")
+		c.tryCloseAttachReaderForID(id)
 
 		// This particular case is for when we get a non-tty attach
 		// with --leave-stdin-open=true. We want to return as soon
@@ -427,9 +386,6 @@ func (c *ConmonClient) readStdio(
 		if cfg.StopAfterStdinEOF {
 			return nil
 		}
-
-		c.tryCloseAttachReaderForID(id)
-
 		if errors.Is(err, util.ErrDetach) {
 			if closeErr := conn.CloseWrite(); closeErr != nil {
 				return fmt.Errorf("%v: %w", closeErr, err)
@@ -462,11 +418,6 @@ type SetWindowSizeContainerConfig struct {
 
 // SetWindowSizeContainer can be used to change the window size of a running container.
 func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindowSizeContainerConfig) error {
-	ctx, span := c.startSpan(ctx, "SetWindowSizeContainer")
-	if span != nil {
-		defer span.End()
-	}
-
 	if cfg.Size == nil {
 		return errTerminalSizeNil
 	}
@@ -482,14 +433,6 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 		req, err := p.NewRequest()
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
-		}
-
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
 		}
 
 		if err := req.SetId(cfg.ID); err != nil {

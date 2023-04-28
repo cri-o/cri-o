@@ -118,7 +118,6 @@ func (r *Runtime) RenameContainer(ctx context.Context, ctr *Container, newName s
 		return nil, err
 	}
 
-	newName = strings.TrimPrefix(newName, "/")
 	if newName == "" || !define.NameRegex.MatchString(newName) {
 		return nil, define.RegexError
 	}
@@ -383,13 +382,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 					if err != nil {
 						return nil, fmt.Errorf("retrieving pod %s cgroup: %w", pod.ID(), err)
 					}
-					expectPodCgroup, err := ctr.expectPodCgroup()
-					if err != nil {
-						return nil, err
-					}
-					if expectPodCgroup && podCgroup == "" {
-						return nil, fmt.Errorf("pod %s cgroup is not set: %w", pod.ID(), define.ErrInternal)
-					}
 					ctr.config.CgroupParent = podCgroup
 				case rootless.IsRootless() && ctr.config.CgroupsMode != cgroupSplit:
 					ctr.config.CgroupParent = SystemdDefaultRootlessCgroupParent
@@ -414,6 +406,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 		// NewFromSpec() is deprecated according to its comment
 		// however the recommended replace just causes a nil map panic
+		//nolint:staticcheck
 		g := generate.NewFromSpec(ctr.config.Spec)
 		g.RemoveMount("/dev/shm")
 		ctr.config.ShmDir = ""
@@ -476,7 +469,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			vol.Name = stringid.GenerateRandomID()
 			isAnonymous = true
 		} else {
-			// Check if it already exists
+			// Check if it exists already
 			dbVol, err := r.state.Volume(vol.Name)
 			if err == nil {
 				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
@@ -495,24 +488,16 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{
-			WithVolumeName(vol.Name),
-			WithVolumeMountLabel(ctr.MountLabel()),
-		}
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name), WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID())}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
 
-		needsChown := true
-
-		// If volume-opts are set, parse and add driver opts.
+		// If volume-opts are set parse and add driver opts.
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)
 			for _, opts := range vol.Options {
-				if opts == "idmap" {
-					needsChown = false
-				}
 				if strings.HasPrefix(opts, "volume-opt") {
 					isDriverOpts = true
 					driverOptKey, driverOptValue, err := util.ParseDriverOpts(opts)
@@ -527,13 +512,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 				volOptions = append(volOptions, parsedOptions...)
 			}
 		}
-
-		if needsChown {
-			volOptions = append(volOptions, WithVolumeUID(ctr.RootUID()), WithVolumeGID(ctr.RootGID()))
-		} else {
-			volOptions = append(volOptions, WithVolumeNoChown())
-		}
-
 		newVol, err := r.newVolume(ctx, false, volOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
@@ -543,8 +521,12 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}
 
 	switch ctr.config.LogDriver {
-	case define.NoLogging, define.PassthroughLogging, define.JournaldLogging:
+	case define.NoLogging, define.PassthroughLogging:
 		break
+	case define.JournaldLogging:
+		if err := ctr.initializeJournal(ctx); err != nil {
+			return nil, fmt.Errorf("failed to initialize journal: %w", err)
+		}
 	default:
 		if ctr.config.LogPath == "" {
 			ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
@@ -589,14 +571,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	} else if err := r.state.AddContainer(ctr); err != nil {
 		return nil, err
 	}
-
-	if ctr.runtime.config.Engine.EventsContainerCreateInspectData {
-		if err := ctr.newContainerEventWithInspectData(events.Create, true); err != nil {
-			return nil, err
-		}
-	} else {
-		ctr.newContainerEvent(events.Create)
-	}
+	ctr.newContainerEvent(events.Create)
 	return ctr, nil
 }
 
@@ -606,7 +581,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 // be removed also if and only if the container is the sole user
 // Otherwise, RemoveContainer will return an error if the container is running
 func (r *Runtime) RemoveContainer(ctx context.Context, c *Container, force bool, removeVolume bool, timeout *uint) error {
-	// NOTE: container will be locked down the road.
 	return r.removeContainer(ctx, c, force, removeVolume, false, false, timeout)
 }
 
@@ -686,13 +660,11 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	if c.IsService() {
-		for _, id := range c.state.Service.Pods {
-			if _, err := c.runtime.LookupPod(id); err != nil {
-				if errors.Is(err, define.ErrNoSuchPod) {
-					continue
-				}
-				return err
-			}
+		canStop, err := c.canStopServiceContainer()
+		if err != nil {
+			return err
+		}
+		if !canStop {
 			return fmt.Errorf("container %s is the service container of pod(s) %s and cannot be removed without removing the pod(s)", c.ID(), strings.Join(c.state.Service.Pods, ","))
 		}
 	}
@@ -740,7 +712,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 	}
 
 	// Check that the container's in a good state to be removed.
-	if c.ensureState(define.ContainerStateRunning, define.ContainerStateStopping) {
+	if c.state.State == define.ContainerStateRunning {
 		time := c.StopTimeout()
 		if timeout != nil {
 			time = *timeout
@@ -774,6 +746,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		cleanupErr = fmt.Errorf("cleaning up container %s: %w", c.ID(), err)
 	}
 
+	// Set ContainerStateRemoving
+	c.state.State = define.ContainerStateRemoving
+
+	if err := c.save(); err != nil {
+		if cleanupErr != nil {
+			logrus.Errorf(err.Error())
+		}
+		return fmt.Errorf("unable to set container %s removing state in database: %w", c.ID(), err)
+	}
+
 	// Remove all active exec sessions
 	// removing the exec sessions might temporarily unlock the container's lock.  Using it
 	// after setting the state to ContainerStateRemoving will prevent that the container is
@@ -786,20 +768,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	// Set ContainerStateRemoving as an intermediate state (we may get
-	// killed at any time) and save the container.
-	c.state.State = define.ContainerStateRemoving
-
-	if err := c.save(); err != nil {
-		if !errors.Is(err, define.ErrCtrRemoved) {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Saving container: %v", err)
-			}
-		}
-	}
-
 	// Stop the container's storage
 	if err := c.teardownStorage(); err != nil {
 		if cleanupErr == nil {
@@ -809,16 +777,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		}
 	}
 
-	// Remove the container's CID file on container removal.
-	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {
-		if err := os.Remove(cidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Cleaning up CID file: %v", err)
-			}
-		}
-	}
 	// Remove the container from the state
 	if c.config.Pod != "" {
 		// If we're removing the pod, the container will be evicted
@@ -1049,7 +1007,7 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 			return nil, err
 		}
 		for _, cID := range podContainerIDS {
-			rmReports = append(rmReports, &reports.RmReport{Id: cID})
+			rmReports = append(rmReports, &reports.RmReport{Id: cID, RawInput: cID})
 		}
 		return rmReports, nil
 	}
@@ -1077,7 +1035,7 @@ func (r *Runtime) RemoveDepend(ctx context.Context, rmCtr *Container, force bool
 		rmReports = append(rmReports, reports...)
 	}
 
-	report := reports.RmReport{Id: rmCtr.ID()}
+	report := reports.RmReport{Id: rmCtr.ID(), RawInput: rmCtr.ID()}
 	report.Err = r.removeContainer(ctx, rmCtr, force, removeVolume, false, false, timeout)
 	return append(rmReports, &report), nil
 }
@@ -1118,17 +1076,16 @@ func (r *Runtime) LookupContainerID(idOrName string) (string, error) {
 	return r.state.LookupContainerID(idOrName)
 }
 
-// GetContainers retrieves all containers from the state.
-// If `loadState` is set, the containers' state will be loaded as well.
+// GetContainers retrieves all containers from the state
 // Filters can be provided which will determine what containers are included in
 // the output. Multiple filters are handled by ANDing their output, so only
 // containers matching all filters are returned
-func (r *Runtime) GetContainers(loadState bool, filters ...ContainerFilter) ([]*Container, error) {
+func (r *Runtime) GetContainers(filters ...ContainerFilter) ([]*Container, error) {
 	if !r.valid {
 		return nil, define.ErrRuntimeStopped
 	}
 
-	ctrs, err := r.state.AllContainers(loadState)
+	ctrs, err := r.GetAllContainers()
 	if err != nil {
 		return nil, err
 	}
@@ -1151,7 +1108,7 @@ func (r *Runtime) GetContainers(loadState bool, filters ...ContainerFilter) ([]*
 
 // GetAllContainers is a helper function for GetContainers
 func (r *Runtime) GetAllContainers() ([]*Container, error) {
-	return r.state.AllContainers(false)
+	return r.state.AllContainers()
 }
 
 // GetRunningContainers is a helper function for GetContainers
@@ -1160,7 +1117,7 @@ func (r *Runtime) GetRunningContainers() ([]*Container, error) {
 		state, _ := c.State()
 		return state == define.ContainerStateRunning
 	}
-	return r.GetContainers(false, running)
+	return r.GetContainers(running)
 }
 
 // GetContainersByList is a helper function for GetContainers
@@ -1234,7 +1191,7 @@ func (r *Runtime) PruneContainers(filterFuncs []ContainerFilter) ([]*reports.Pru
 		return false
 	}
 	filterFuncs = append(filterFuncs, containerStateFilter)
-	delContainers, err := r.GetContainers(false, filterFuncs...)
+	delContainers, err := r.GetContainers(filterFuncs...)
 	if err != nil {
 		return nil, err
 	}

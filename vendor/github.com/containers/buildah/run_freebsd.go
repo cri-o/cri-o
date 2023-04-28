@@ -6,6 +6,7 @@ package buildah
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,13 +20,11 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/jail"
-	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/resolvconf"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -72,7 +71,7 @@ func setChildProcess() error {
 }
 
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp("", Package)
+	p, err := ioutil.TempDir("", Package)
 	if err != nil {
 		return err
 	}
@@ -91,7 +90,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	gp, err := generate.New("freebsd")
 	if err != nil {
-		return fmt.Errorf("generating new 'freebsd' runtime spec: %w", err)
+		return fmt.Errorf("error generating new 'freebsd' runtime spec: %w", err)
 	}
 	g := &gp
 
@@ -99,13 +98,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if isolation == IsolationDefault {
 		isolation = b.Isolation
 		if isolation == IsolationDefault {
-			isolation, err = parse.IsolationOption("")
-			if err != nil {
-				logrus.Debugf("got %v while trying to determine default isolation, guessing OCI", err)
-				isolation = IsolationOCI
-			} else if isolation == IsolationDefault {
-				isolation = IsolationOCI
-			}
+			isolation = IsolationOCI
 		}
 	}
 	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {
@@ -130,7 +123,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	}
 	mountPoint, err := b.Mount(b.MountLabel)
 	if err != nil {
-		return fmt.Errorf("mounting container %q: %w", b.ContainerID, err)
+		return fmt.Errorf("error mounting container %q: %w", b.ContainerID, err)
 	}
 	defer func() {
 		if err := b.Unmount(); err != nil {
@@ -223,7 +216,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 
 	runArtifacts, err := b.setupMounts(mountPoint, spec, path, options.Mounts, bindFiles, volumes, b.CommonBuildOpts.Volumes, options.RunMounts, runMountInfo)
 	if err != nil {
-		return fmt.Errorf("resolving mountpoints for container %q: %w", b.ContainerID, err)
+		return fmt.Errorf("error resolving mountpoints for container %q: %w", b.ContainerID, err)
 	}
 	if runArtifacts.SSHAuthSock != "" {
 		sshenv := "SSH_AUTH_SOCK=" + runArtifacts.SSHAuthSock
@@ -259,6 +252,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		jconf.Set("devfs_ruleset", 4)
 		jconf.Set("allow.raw_sockets", true)
 		jconf.Set("allow.chflags", true)
+		jconf.Set("allow.mount", true)
+		jconf.Set("allow.mount.devfs", true)
+		jconf.Set("allow.mount.nullfs", true)
+		jconf.Set("allow.mount.fdescfs", true)
 		jconf.Set("securelevel", -1)
 		netjail, err := jail.Create(jconf)
 		if err != nil {
@@ -311,8 +308,7 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	return spec.Mounts, nil
 }
 
-// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, []string, error) {
 	return nil, nil, errors.New("cache mounts not supported on freebsd")
 }
 
@@ -320,7 +316,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 	// Make sure the overlay directory is clean before running
 	_, err := b.store.ContainerDirectory(b.ContainerID)
 	if err != nil {
-		return nil, fmt.Errorf("looking up container directory for %s: %w", b.ContainerID, err)
+		return nil, fmt.Errorf("error looking up container directory for %s: %w", b.ContainerID, err)
 	}
 
 	parseMount := func(mountType, host, container string, options []string) (specs.Mount, error) {
@@ -363,7 +359,8 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		mount, err := parseMount("nullfs", spliti[0], spliti[1], options)
+		options = append(options, "bind")
+		mount, err := parseMount("bind", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}
@@ -545,7 +542,7 @@ func runMakeStdioPipe(uid, gid int) ([][]int, error) {
 	for i := range stdioPipe {
 		stdioPipe[i] = make([]int, 2)
 		if err := unix.Pipe(stdioPipe[i]); err != nil {
-			return nil, fmt.Errorf("creating pipe for container FD %d: %w", i, err)
+			return nil, fmt.Errorf("error creating pipe for container FD %d: %w", i, err)
 		}
 	}
 	return stdioPipe, nil

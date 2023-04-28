@@ -15,7 +15,6 @@
 package name
 
 import (
-	// nolint: depguard
 	_ "crypto/sha256" // Recommended by go-digest.
 	"strings"
 

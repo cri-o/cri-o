@@ -173,7 +173,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			return nil, err
 		}
 
-		// labels from the image that don't already exist
+		// labels from the image that don't exist already
 		if len(labels) > 0 && s.Labels == nil {
 			s.Labels = make(map[string]string)
 		}
@@ -213,6 +213,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			sandboxID = infra.ID()
 		}
 		annotations[ann.SandboxID] = sandboxID
+		annotations[ann.ContainerType] = ann.ContainerTypeContainer
 		// Check if this is an init-ctr and if so, check if
 		// the pod is running.  we do not want to add init-ctrs to
 		// a running pod because it creates confusion for us.
@@ -307,8 +308,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 }
 
 // ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
-func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID string) (*libpod.Container, *libpod.InfraInherit, error) {
-	c, err := rt.LookupContainer(containerID)
+func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID string) (*libpod.Container, *libpod.InfraInherit, error) {
+	c, err := rt.LookupContainer(contaierID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -473,12 +474,11 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID 
 		}
 	}
 	specg.OverlayVolumes = overlay
-	_, mounts := c.SortUserVolumes(c.ConfigNoCopy().Spec)
+	_, mounts := c.SortUserVolumes(c.Spec())
 	specg.Mounts = mounts
 	specg.HostDeviceList = conf.DeviceHostSrc
 	specg.Networks = conf.Networks
 	specg.ShmSize = &conf.ShmSize
-	specg.ShmSizeSystemd = &conf.ShmSizeSystemd
 
 	mapSecurityConfig(conf, specg)
 

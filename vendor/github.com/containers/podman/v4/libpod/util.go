@@ -171,12 +171,11 @@ func queryPackageVersion(cmdArg ...string) string {
 func packageVersion(program string) string { // program is full path
 	packagers := [][]string{
 		{"/usr/bin/rpm", "-q", "-f"},
-		{"/usr/bin/dpkg", "-S"},                // Debian, Ubuntu
-		{"/usr/bin/pacman", "-Qo"},             // Arch
-		{"/usr/bin/qfile", "-qv"},              // Gentoo (quick)
-		{"/usr/bin/equery", "b"},               // Gentoo (slow)
-		{"/sbin/apk", "info", "-W"},            // Alpine
-		{"/usr/local/sbin/pkg", "which", "-q"}, // FreeBSD
+		{"/usr/bin/dpkg", "-S"},     // Debian, Ubuntu
+		{"/usr/bin/pacman", "-Qo"},  // Arch
+		{"/usr/bin/qfile", "-qv"},   // Gentoo (quick)
+		{"/usr/bin/equery", "b"},    // Gentoo (slow)
+		{"/sbin/apk", "info", "-W"}, // Alpine
 	}
 
 	for _, cmd := range packagers {
@@ -312,12 +311,7 @@ func writeHijackHeader(r *http.Request, conn io.Writer) {
 }
 
 // Convert OCICNI port bindings into Inspect-formatted port bindings.
-func makeInspectPortBindings(bindings []types.PortMapping) map[string][]define.InspectHostPort {
-	return makeInspectPorts(bindings, nil)
-}
-
-// Convert OCICNI port bindings into Inspect-formatted port bindings with exposed, but not bound ports set to nil.
-func makeInspectPorts(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
+func makeInspectPortBindings(bindings []types.PortMapping, expose map[uint16][]string) map[string][]define.InspectHostPort {
 	portBindings := make(map[string][]define.InspectHostPort)
 	for _, port := range bindings {
 		protocols := strings.Split(port.Protocol, ",")

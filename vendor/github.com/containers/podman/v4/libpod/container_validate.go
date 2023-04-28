@@ -3,9 +3,6 @@ package libpod
 import (
 	"fmt"
 
-	"github.com/containers/image/v5/docker"
-	"github.com/containers/image/v5/pkg/shortnames"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/podman/v4/libpod/define"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -82,7 +79,7 @@ func (c *Container) validate() error {
 		return fmt.Errorf("cannot set static IP or MAC address if not creating a network namespace: %w", define.ErrInvalidArg)
 	}
 
-	// Cannot set static IP or MAC if joining >1 network.
+	// Cannot set static IP or MAC if joining >1 CNI network.
 	if len(c.config.Networks) > 1 && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
 		return fmt.Errorf("cannot set static IP or MAC address if joining more than one network: %w", define.ErrInvalidArg)
 	}
@@ -131,7 +128,7 @@ func (c *Container) validate() error {
 		return fmt.Errorf("please set User explicitly via WithUser() instead of in OCI spec directly: %w", define.ErrInvalidArg)
 	}
 
-	// Init-ctrs must be used inside a Pod.  Check if an init container type is
+	// Init-ctrs must be used inside a Pod.  Check if a init container type is
 	// passed and if no pod is passed
 	if len(c.config.InitContainerType) > 0 && len(c.config.Pod) < 1 {
 		return fmt.Errorf("init containers must be created in a pod: %w", define.ErrInvalidArg)
@@ -143,41 +140,6 @@ func (c *Container) validate() error {
 
 	if c.config.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone && c.config.HealthCheckConfig == nil {
 		return fmt.Errorf("cannot set on-failure action to %s without a health check", c.config.HealthCheckOnFailureAction.String())
-	}
-
-	if value, exists := c.config.Labels[define.AutoUpdateLabel]; exists {
-		// TODO: we cannot reference pkg/autoupdate here due to
-		// circular dependencies.  It's worth considering moving the
-		// auto-update logic into the libpod package.
-		if value == "registry" || value == "image" {
-			if err := validateAutoUpdateImageReference(c.config.RawImageName); err != nil {
-				return err
-			}
-		}
-	}
-
-	// Cannot set startup HC without a healthcheck
-	if c.config.HealthCheckConfig == nil && c.config.StartupHealthCheckConfig != nil {
-		return fmt.Errorf("cannot set a startup healthcheck when there is no regular healthcheck: %w", define.ErrInvalidArg)
-	}
-
-	return nil
-}
-
-// validateAutoUpdateImageReference checks if the specified imageName is a
-// fully-qualified image reference to the docker transport. Such a reference
-// includes a domain, name and tag (e.g., quay.io/podman/stable:latest).  The
-// reference may also be prefixed with "docker://" explicitly indicating that
-// it's a reference to the docker transport.
-func validateAutoUpdateImageReference(imageName string) error {
-	// Make sure the input image is a docker.
-	imageRef, err := alltransports.ParseImageName(imageName)
-	if err == nil && imageRef.Transport().Name() != docker.Transport.Name() {
-		return fmt.Errorf("auto updates require the docker image transport but image is of transport %q", imageRef.Transport().Name())
-	} else if err != nil {
-		if shortnames.IsShortName(imageName) {
-			return fmt.Errorf("short name: auto updates require fully-qualified image reference: %q", imageName)
-		}
 	}
 	return nil
 }

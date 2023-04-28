@@ -152,6 +152,8 @@ func specConfigureNamespaces(s *specgen.SpecGenerator, g *generate.Generator, rt
 	}
 	if s.PublishExposedPorts {
 		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseTrue
+	} else {
+		g.Config.Annotations[define.InspectAnnotationPublishAll] = define.InspectResponseFalse
 	}
 
 	return nil

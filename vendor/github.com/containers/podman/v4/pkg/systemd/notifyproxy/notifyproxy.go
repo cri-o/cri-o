@@ -14,16 +14,6 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
-)
-
-const (
-	// All constants below are defined by systemd.
-	_notifyRcvbufSize = 8 * 1024 * 1024
-	_notifyBufferMax  = 4096
-	_notifyFdMax      = 768
-	_notifyBarrierMsg = "BARRIER=1"
-	_notifyRdyMsg     = daemon.SdNotifyReady
 )
 
 // SendMessage sends the specified message to the specified socket.
@@ -55,16 +45,9 @@ type NotifyProxy struct {
 	connection *net.UnixConn
 	socketPath string
 	container  Container // optional
-
-	// Channels for synchronizing the goroutine waiting for the READY
-	// message and the one checking if the optional container is still
-	// running.
-	errorChan chan error
-	readyChan chan bool
 }
 
-// New creates a NotifyProxy that starts listening immediately.  The specified
-// temp directory can be left empty.
+// New creates a NotifyProxy.  The specified temp directory can be left empty.
 func New(tmpDir string) (*NotifyProxy, error) {
 	tempFile, err := os.CreateTemp(tmpDir, "-podman-notify-proxy.sock")
 	if err != nil {
@@ -86,99 +69,7 @@ func New(tmpDir string) (*NotifyProxy, error) {
 		return nil, err
 	}
 
-	if err := conn.SetReadBuffer(_notifyRcvbufSize); err != nil {
-		return nil, fmt.Errorf("setting read buffer: %w", err)
-	}
-
-	errorChan := make(chan error, 1)
-	readyChan := make(chan bool, 1)
-
-	proxy := &NotifyProxy{
-		connection: conn,
-		socketPath: socketPath,
-		errorChan:  errorChan,
-		readyChan:  readyChan,
-	}
-
-	// Start waiting for the READY message in the background.  This way,
-	// the proxy can be created prior to starting the container and
-	// circumvents a race condition on writing/reading on the socket.
-	proxy.waitForReady()
-
-	return proxy, nil
-}
-
-// waitForReady waits for the READY message in the background. The goroutine
-// returns on receiving READY or when the socket is closed.
-func (p *NotifyProxy) waitForReady() {
-	go func() {
-		// Read until the `READY` message is received or the connection
-		// is closed.
-
-		// See https://github.com/containers/podman/issues/16515 for a description of the protocol.
-		fdSize := unix.CmsgSpace(4)
-		buffer := make([]byte, _notifyBufferMax)
-		oob := make([]byte, _notifyFdMax*fdSize)
-		sBuilder := strings.Builder{}
-		for {
-			n, oobn, flags, _, err := p.connection.ReadMsgUnix(buffer, oob)
-			if err != nil {
-				if !errors.Is(err, io.EOF) {
-					p.errorChan <- err
-					return
-				}
-				logrus.Errorf("Error reading unix message on socket %q: %v", p.socketPath, err)
-			}
-
-			if n > _notifyBufferMax || oobn > _notifyFdMax*fdSize {
-				logrus.Errorf("Ignoring unix message on socket %q: incorrect number of bytes read (n=%d, oobn=%d)", p.socketPath, n, oobn)
-				continue
-			}
-
-			if flags&unix.MSG_CTRUNC != 0 {
-				logrus.Errorf("Ignoring unix message on socket %q: message truncated", p.socketPath)
-				continue
-			}
-
-			sBuilder.Reset()
-			sBuilder.Write(buffer[:n])
-			var isBarrier, isReady bool
-
-			for _, line := range strings.Split(sBuilder.String(), "\n") {
-				switch line {
-				case _notifyRdyMsg:
-					isReady = true
-				case _notifyBarrierMsg:
-					isBarrier = true
-				}
-			}
-
-			if isBarrier {
-				scms, err := unix.ParseSocketControlMessage(oob)
-				if err != nil {
-					logrus.Errorf("parsing control message on socket %q: %v", p.socketPath, err)
-				}
-				for _, scm := range scms {
-					fds, err := unix.ParseUnixRights(&scm)
-					if err != nil {
-						logrus.Errorf("parsing unix rights of control message on socket %q: %v", p.socketPath, err)
-						continue
-					}
-					for _, fd := range fds {
-						if err := unix.Close(fd); err != nil {
-							logrus.Errorf("closing fd passed on socket %q: %v", fd, err)
-							continue
-						}
-					}
-				}
-				continue
-			}
-
-			if isReady {
-				p.readyChan <- true
-			}
-		}
-	}()
+	return &NotifyProxy{connection: conn, socketPath: socketPath}, nil
 }
 
 // SocketPath returns the path of the socket the proxy is listening on.
@@ -186,8 +77,8 @@ func (p *NotifyProxy) SocketPath() string {
 	return p.socketPath
 }
 
-// Close closes the listener and removes the socket.
-func (p *NotifyProxy) Close() error {
+// close closes the listener and removes the socket.
+func (p *NotifyProxy) close() error {
 	defer os.Remove(p.socketPath)
 	return p.connection.Close()
 }
@@ -207,47 +98,87 @@ type Container interface {
 	ID() string
 }
 
-// WaitAndClose waits until receiving the `READY` notify message. Note that the
-// this function must only be executed inside a systemd service which will kill
-// the process after a given timeout. If the (optional) container stopped
-// running before the `READY` is received, the waiting gets canceled and
-// ErrNoReadyMessage is returned.
-func (p *NotifyProxy) Wait() error {
-	// If the proxy has a container we need to watch it as it may exit
-	// without sending a READY message. The goroutine below returns when
-	// the container exits OR when the function returns (see deferred the
-	// cancel()) in which case we either we've either received the READY
-	// message or encountered an error reading from the socket.
-	if p.container != nil {
-		// Create a cancellable context to make sure the goroutine
-		// below terminates on function return.
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
-		go func() {
+// WaitAndClose waits until receiving the `READY` notify message and close the
+// listener. Note that the this function must only be executed inside a systemd
+// service which will kill the process after a given timeout.
+// If the (optional) container stopped running before the `READY` is received,
+// the waiting gets canceled and ErrNoReadyMessage is returned.
+func (p *NotifyProxy) WaitAndClose() error {
+	defer func() {
+		if err := p.close(); err != nil {
+			logrus.Errorf("Closing notify proxy: %v", err)
+		}
+	}()
+
+	// Since reading from the connection is blocking, we need to spin up two
+	// goroutines.  One waiting for the `READY` message, the other waiting
+	// for the container to stop running.
+	errorChan := make(chan error, 1)
+	readyChan := make(chan bool, 1)
+
+	go func() {
+		// Read until the `READY` message is received or the connection
+		// is closed.
+		const bufferSize = 1024
+		sBuilder := strings.Builder{}
+		for {
 			for {
-				select {
-				case <-ctx.Done():
-					return
-				case <-time.After(time.Second):
-					state, err := p.container.State()
-					if err != nil {
-						p.errorChan <- err
-						return
-					}
-					if state != define.ContainerStateRunning {
-						p.errorChan <- fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
+				buffer := make([]byte, bufferSize)
+				num, err := p.connection.Read(buffer)
+				if err != nil {
+					if !errors.Is(err, io.EOF) {
+						errorChan <- err
 						return
 					}
 				}
+				sBuilder.Write(buffer[:num])
+				if num != bufferSize || buffer[num-1] == '\n' {
+					// Break as we read an entire line that
+					// we can inspect for the `READY`
+					// message.
+					break
+				}
+			}
+
+			for _, line := range strings.Split(sBuilder.String(), "\n") {
+				if line == daemon.SdNotifyReady {
+					readyChan <- true
+					return
+				}
+			}
+			sBuilder.Reset()
+		}
+	}()
+
+	if p.container != nil {
+		// Create a cancellable context to make sure the goroutine
+		// below terminates.
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		go func() {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				state, err := p.container.State()
+				if err != nil {
+					errorChan <- err
+					return
+				}
+				if state != define.ContainerStateRunning {
+					errorChan <- fmt.Errorf("%w: %s", ErrNoReadyMessage, p.container.ID())
+					return
+				}
+				time.Sleep(time.Second)
 			}
 		}()
 	}
 
 	// Wait for the ready/error channel.
 	select {
-	case <-p.readyChan:
+	case <-readyChan:
 		return nil
-	case err := <-p.errorChan:
+	case err := <-errorChan:
 		return err
 	}
 }

@@ -10,12 +10,12 @@ import (
 	"path/filepath"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v6/stats"
+	"github.com/checkpoint-restore/go-criu/v5/stats"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/opencontainers/selinux/go-selinux/label"
 )
 
-// This file mainly exists to make the checkpoint/restore functions
+// This file mainly exist to make the checkpoint/restore functions
 // available for other users. One possible candidate would be CRI-O.
 
 // CRImportCheckpointWithoutConfig imports the checkpoint archive (input)
@@ -75,7 +75,7 @@ func CRImportCheckpointConfigOnly(destination, input string) error {
 // it exists deletes all files listed.
 func CRRemoveDeletedFiles(id, baseDirectory, containerRootDirectory string) error {
 	deletedFiles, _, err := metadata.ReadContainerCheckpointDeletedFiles(baseDirectory)
-	if os.IsNotExist(err) {
+	if os.IsNotExist(errors.Unwrap(errors.Unwrap(err))) {
 		// No files to delete. Just return
 		return nil
 	}
@@ -207,7 +207,7 @@ func CRCreateFileWithLabel(directory, fileName, fileLabel string) error {
 
 // CRRuntimeSupportsCheckpointRestore tests if the given runtime at 'runtimePath'
 // supports checkpointing. The checkpoint restore interface has no definition
-// but crun implements all commands just as runc does. What runc does is the
+// but crun implements all commands just as runc does. Whathh runc does it the
 // official definition of the checkpoint/restore interface.
 func CRRuntimeSupportsCheckpointRestore(runtimePath string) bool {
 	// Check if the runtime implements checkpointing. Currently only

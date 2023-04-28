@@ -111,10 +111,14 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v0.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
+# github.com/checkpoint-restore/go-criu/v5 v5.3.0
+## explicit; go 1.13
+github.com/checkpoint-restore/go-criu/v5
+github.com/checkpoint-restore/go-criu/v5/magic
+github.com/checkpoint-restore/go-criu/v5/rpc
+github.com/checkpoint-restore/go-criu/v5/stats
 # github.com/checkpoint-restore/go-criu/v6 v6.3.0
 ## explicit; go 1.16
-github.com/checkpoint-restore/go-criu/v6
-github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
@@ -223,8 +227,8 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.2.0
 ## explicit; go 1.17
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/buildah v1.30.0
-## explicit; go 1.18
+# github.com/containers/buildah v1.27.3
+## explicit; go 1.17
 github.com/containers/buildah
 github.com/containers/buildah/bind
 github.com/containers/buildah/chroot
@@ -294,7 +298,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.5.1
+# github.com/containers/conmon-rs v0.3.0
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
@@ -389,8 +393,8 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v4 v4.5.0
-## explicit; go 1.18
+# github.com/containers/podman/v4 v4.3.0-rc1
+## explicit; go 1.17
 github.com/containers/podman/v4/cmd/podman/parse
 github.com/containers/podman/v4/libpod
 github.com/containers/podman/v4/libpod/define
@@ -443,7 +447,6 @@ github.com/containers/podman/v4/pkg/trust
 github.com/containers/podman/v4/pkg/util
 github.com/containers/podman/v4/utils
 github.com/containers/podman/v4/version
-github.com/containers/podman/v4/version/rawversion
 # github.com/containers/psgo v1.8.0
 ## explicit; go 1.14
 github.com/containers/psgo
@@ -618,6 +621,9 @@ github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.9.7
 ## explicit; go 1.19
 github.com/fsouza/go-dockerclient
+# github.com/ghodss/yaml v1.0.0
+## explicit
+github.com/ghodss/yaml
 # github.com/go-git/gcfg v1.5.0
 ## explicit
 github.com/go-git/gcfg
@@ -766,9 +772,12 @@ github.com/google/go-cmp/cmp/internal/diff
 github.com/google/go-cmp/cmp/internal/flags
 github.com/google/go-cmp/cmp/internal/function
 github.com/google/go-cmp/cmp/internal/value
-# github.com/google/go-containerregistry v0.14.0
+# github.com/google/go-containerregistry v0.13.0
 ## explicit; go 1.18
 github.com/google/go-containerregistry/pkg/name
+# github.com/google/go-github/v45 v45.2.0
+## explicit; go 1.17
+github.com/google/go-github/v45/github
 # github.com/google/go-github/v50 v50.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v50/github
@@ -880,9 +889,6 @@ github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
 ## explicit; go 1.13
 github.com/mattn/go-shellwords
-# github.com/mattn/go-sqlite3 v1.14.16
-## explicit; go 1.16
-github.com/mattn/go-sqlite3
 # github.com/matttproud/golang_protobuf_extensions v1.0.4
 ## explicit; go 1.9
 github.com/matttproud/golang_protobuf_extensions/pbutil
@@ -994,8 +1000,12 @@ github.com/opencontainers/runc/libcontainer/utils
 github.com/opencontainers/runtime-spec/specs-go
 # github.com/opencontainers/runtime-tools v0.9.1-0.20230317050512-e931285f4b69
 ## explicit; go 1.19
+github.com/opencontainers/runtime-tools/error
+github.com/opencontainers/runtime-tools/filepath
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
+github.com/opencontainers/runtime-tools/specerror
+github.com/opencontainers/runtime-tools/validate
 github.com/opencontainers/runtime-tools/validate/capabilities
 # github.com/opencontainers/selinux v1.11.0
 ## explicit; go 1.19
@@ -1003,8 +1013,8 @@ github.com/opencontainers/selinux/go-selinux
 github.com/opencontainers/selinux/go-selinux/label
 github.com/opencontainers/selinux/pkg/pwalk
 github.com/opencontainers/selinux/pkg/pwalkdir
-# github.com/openshift/imagebuilder v1.2.4
-## explicit; go 1.19
+# github.com/openshift/imagebuilder v1.2.4-0.20220711175835-4151e43600df
+## explicit; go 1.16
 github.com/openshift/imagebuilder
 github.com/openshift/imagebuilder/dockerfile/command
 github.com/openshift/imagebuilder/dockerfile/parser
@@ -1151,6 +1161,15 @@ github.com/vishvananda/netns
 # github.com/xanzy/ssh-agent v0.3.3
 ## explicit; go 1.16
 github.com/xanzy/ssh-agent
+# github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb
+## explicit
+github.com/xeipuuv/gojsonpointer
+# github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415
+## explicit
+github.com/xeipuuv/gojsonreference
+# github.com/xeipuuv/gojsonschema v1.2.0
+## explicit
+github.com/xeipuuv/gojsonschema
 # github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673
 ## explicit
 github.com/xrash/smetrics
@@ -1761,8 +1780,8 @@ k8s.io/utils/trace
 ## explicit; go 1.18
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
-# sigs.k8s.io/release-sdk v0.10.0
-## explicit; go 1.19
+# sigs.k8s.io/release-sdk v0.9.3
+## explicit; go 1.18
 sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal

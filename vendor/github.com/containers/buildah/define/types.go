@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
+	"io/ioutil"
 	"net/http"
 	urlpkg "net/url"
 	"os"
@@ -28,8 +28,9 @@ const (
 	// Package is the name of this package, used in help output and to
 	// identify working containers.
 	Package = "buildah"
-	// Version for the Package. Also used by .packit.sh for Packit builds.
-	Version = "1.30.0"
+	// Version for the Package.  Bump version in contrib/rpm/buildah.spec
+	// too.
+	Version = "1.27.3"
 
 	// DefaultRuntime if containers.conf fails.
 	DefaultRuntime = "runc"
@@ -120,13 +121,13 @@ func TempDirForURL(dir, prefix, url string) (name string, subdir string, err err
 		url != "-" {
 		return "", "", nil
 	}
-	name, err = os.MkdirTemp(dir, prefix)
+	name, err = ioutil.TempDir(dir, prefix)
 	if err != nil {
-		return "", "", fmt.Errorf("creating temporary directory for %q: %w", url, err)
+		return "", "", fmt.Errorf("error creating temporary directory for %q: %w", url, err)
 	}
 	urlParsed, err := urlpkg.Parse(url)
 	if err != nil {
-		return "", "", fmt.Errorf("parsing url %q: %w", url, err)
+		return "", "", fmt.Errorf("error parsing url %q: %w", url, err)
 	}
 	if strings.HasPrefix(url, "git://") || strings.HasSuffix(urlParsed.Path, ".git") {
 		combinedOutput, gitSubDir, err := cloneToDirectory(url, name)
@@ -254,7 +255,7 @@ func downloadToDirectory(url, dir string) error {
 			return err
 		}
 		defer resp1.Body.Close()
-		body, err := io.ReadAll(resp1.Body)
+		body, err := ioutil.ReadAll(resp1.Body)
 		if err != nil {
 			return err
 		}
@@ -270,7 +271,7 @@ func downloadToDirectory(url, dir string) error {
 func stdinToDirectory(dir string) error {
 	logrus.Debugf("extracting stdin to %q", dir)
 	r := bufio.NewReader(os.Stdin)
-	b, err := io.ReadAll(r)
+	b, err := ioutil.ReadAll(r)
 	if err != nil {
 		return fmt.Errorf("failed to read from stdin: %w", err)
 	}

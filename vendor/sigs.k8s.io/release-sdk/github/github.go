@@ -25,9 +25,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v45/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -144,12 +143,6 @@ type Client interface {
 	CreateComment(
 		context.Context, string, string, int, string,
 	) (*github.IssueComment, *github.Response, error)
-	ListIssues(
-		context.Context, string, string, *github.IssueListByRepoOptions,
-	) ([]*github.Issue, *github.Response, error)
-	ListComments(
-		context.Context, string, string, int, *github.IssueListCommentsOptions,
-	) ([]*github.IssueComment, *github.Response, error)
 }
 
 // NewIssueOptions is a struct of optional fields for new issues
@@ -173,7 +166,7 @@ type NewIssueOptions struct {
 // GitHub requests.
 func New() *GitHub {
 	token := env.Default(TokenEnvKey, "")
-	client, _ := NewWithToken(token) //nolint: errcheck
+	client, _ := NewWithToken(token) // nolint: errcheck
 	return client
 }
 
@@ -346,7 +339,7 @@ func (g *githubClient) ListBranches(
 ) ([]*github.Branch, *github.Response, error) {
 	branches, response, err := g.Repositories.ListBranches(ctx, owner, repo, opt)
 	if err != nil {
-		return nil, nil, fmt.Errorf("fetching branches from repo: %w", err)
+		return nil, nil, fmt.Errorf("fetching brnaches from repo: %w", err)
 	}
 
 	return branches, response, nil
@@ -483,31 +476,6 @@ func (g *githubClient) CreateComment(
 			return issueComment, resp, err
 		}
 	}
-}
-
-func (g *githubClient) ListIssues(
-	ctx context.Context, owner, repo string, opts *github.IssueListByRepoOptions,
-) ([]*github.Issue, *github.Response, error) {
-	issues, response, err := g.Issues.ListByRepo(ctx, owner, repo, opts)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fetching issues from repo: %w", err)
-	}
-
-	return issues, response, nil
-}
-
-func (g *githubClient) ListComments(
-	ctx context.Context,
-	owner, repo string,
-	number int,
-	opts *github.IssueListCommentsOptions,
-) ([]*github.IssueComment, *github.Response, error) {
-	comments, response, err := g.Issues.ListComments(ctx, owner, repo, number, opts)
-	if err != nil {
-		return nil, nil, fmt.Errorf("fetching comments from issue: %w", err)
-	}
-
-	return comments, response, nil
 }
 
 // SetClient can be used to manually set the internal GitHub client
@@ -1078,94 +1046,4 @@ func (g *githubClient) AddLabels(
 			return appliedLabels, resp, err
 		}
 	}
-}
-
-// IssueState is the enum for all available issue states.
-type IssueState string
-
-const (
-	// IssueStateAll can be used to list all issues.
-	IssueStateAll IssueState = "all"
-
-	// IssueStateOpen can be used to list only open issues.
-	IssueStateOpen IssueState = "open"
-
-	// IssueStateClosed can be used to list only closed issues.
-	IssueStateClosed IssueState = "closed"
-)
-
-// ListIssues gets the issues from a GitHub repository.
-// State filters issues based on their state. Possible values are: open,
-// closed, all. Default is "open".
-func (g *GitHub) ListIssues(owner, repo string, state IssueState) ([]*github.Issue, error) {
-	options := &github.IssueListByRepoOptions{
-		State:       string(state),
-		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
-	}
-	issues := []*github.Issue{}
-	for {
-		more, r, err := g.Client().ListIssues(context.Background(), owner, repo, options)
-		if err != nil {
-			return issues, fmt.Errorf("getting issues from client: %w", err)
-		}
-		issues = append(issues, more...)
-		if r.NextPage == 0 {
-			break
-		}
-		options.Page = r.NextPage
-	}
-
-	return issues, nil
-}
-
-// Sort specifies how to sort comments. Possible values are: created, updated.
-type Sort string
-
-// SortDirection in which to sort comments. Possible values are: asc, desc.
-type SortDirection string
-
-const (
-	SortCreated Sort = "created"
-	SortUpdated Sort = "updated"
-
-	SortDirectionAscending  SortDirection = "asc"
-	SortDirectionDescending SortDirection = "desc"
-)
-
-// ListComments lists all comments on the specified issue. Specifying an issue
-// number of 0 will return all comments on all issues for the repository.
-//
-// GitHub API docs: https://docs.github.com/en/rest/issues/comments#list-issue-comments
-// GitHub API docs: https://docs.github.com/en/rest/issues/comments#list-issue-comments-for-a-repository
-func (g *GitHub) ListComments(
-	owner, repo string,
-	issueNumber int,
-	sort Sort,
-	direction SortDirection,
-	since *time.Time,
-) ([]*github.IssueComment, error) {
-	options := &github.IssueListCommentsOptions{
-		Sort:        github.String(string(sort)),
-		Direction:   github.String(string(direction)),
-		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
-	}
-
-	if since != nil {
-		options.Since = since
-	}
-
-	comments := []*github.IssueComment{}
-	for {
-		more, r, err := g.Client().ListComments(context.Background(), owner, repo, issueNumber, options)
-		if err != nil {
-			return comments, fmt.Errorf("getting comments from client: %w", err)
-		}
-		comments = append(comments, more...)
-		if r.NextPage == 0 {
-			break
-		}
-		options.Page = r.NextPage
-	}
-
-	return comments, nil
 }

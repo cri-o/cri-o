@@ -160,7 +160,7 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
-	// HostUsers is a list of host usernames or UIDs to add to the container
+	// HostUses is a list of host usernames or UIDs to add to the container
 	// /etc/passwd file
 	HostUsers []string `json:"hostusers,omitempty"`
 	// Sysctl sets kernel parameters for the container
@@ -219,8 +219,6 @@ type ContainerBasicConfig struct {
 	Passwd *bool `json:"manage_password,omitempty"`
 	// PasswdEntry specifies arbitrary data to append to a file.
 	PasswdEntry string `json:"passwd_entry,omitempty"`
-	// GroupEntry specifies arbitrary data to append to a file.
-	GroupEntry string `json:"group_entry,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -240,8 +238,6 @@ type ContainerStorageConfig struct {
 	Rootfs string `json:"rootfs,omitempty"`
 	// RootfsOverlay tells if rootfs is actually an overlay on top of base path
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
-	// RootfsMapping specifies if there are mappings to apply to the rootfs.
-	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
@@ -297,10 +293,6 @@ type ContainerStorageConfig struct {
 	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
 	ShmSize *int64 `json:"shm_size,omitempty"`
-	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
-	// specifically /run, /run/lock, /var/log/journal and /tmp.
-	// Optional
-	ShmSizeSystemd *int64 `json:"shm_size_systemd,omitempty"`
 	// WorkDir is the container's working directory.
 	// If unset, the default, /, will be used.
 	// Optional.
@@ -392,14 +384,6 @@ type ContainerSecurityConfig struct {
 	// ReadOnlyFilesystem indicates that everything will be mounted
 	// as read-only
 	ReadOnlyFilesystem bool `json:"read_only_filesystem,omitempty"`
-	// ReadWriteTmpfs indicates that when running with a ReadOnlyFilesystem
-	// mount temporary file systems
-	ReadWriteTmpfs bool `json:"read_write_tmpfs,omitempty"`
-
-	// LabelNested indicates whether or not the container is allowed to
-	// run fully nested containers including labelling
-	LabelNested bool `json:"label_nested,omitempty"`
-
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
 	// ProcOpts are the options used for the proc mount.
@@ -437,7 +421,7 @@ type ContainerNetworkConfig struct {
 	// Mandatory.
 	NetNS Namespace `json:"netns,omitempty"`
 	// PortBindings is a set of ports to map into the container.
-	// Only available if NetNS is set to bridge, slirp, or pasta.
+	// Only available if NetNS is set to bridge or slirp.
 	// Optional.
 	PortMappings []nettypes.PortMapping `json:"portmappings,omitempty"`
 	// PublishExposedPorts will publish ports specified in the image to
@@ -552,10 +536,6 @@ type ContainerResourceConfig struct {
 type ContainerHealthCheckConfig struct {
 	HealthConfig               *manifest.Schema2HealthConfig     `json:"healthconfig,omitempty"`
 	HealthCheckOnFailureAction define.HealthCheckOnFailureAction `json:"health_check_on_failure_action,omitempty"`
-	// Startup healthcheck for a container.
-	// Requires that HealthConfig be set.
-	// Optional.
-	StartupHealthConfig *define.StartupHealthCheck `json:"startupHealthConfig,omitempty"`
 }
 
 // SpecGenerator creates an OCI spec and Libpod configuration options to create
@@ -601,8 +581,6 @@ var (
 	// ErrNoStaticMACRootless is used when a rootless user requests to assign a static MAC address
 	// to a pod or container
 	ErrNoStaticMACRootless = errors.New("rootless containers and pods cannot be assigned static MAC addresses")
-	// Multiple volume mounts to the same destination is not allowed
-	ErrDuplicateDest = errors.New("duplicate mount destination")
 )
 
 // NewSpecGenerator returns a SpecGenerator struct given one of two mandatory inputs
@@ -612,15 +590,9 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 		csc.Rootfs = arg
 		// check if rootfs should use overlay
 		lastColonIndex := strings.LastIndex(csc.Rootfs, ":")
-		if lastColonIndex != -1 {
-			lastPart := csc.Rootfs[lastColonIndex+1:]
-			if lastPart == "O" {
-				csc.RootfsOverlay = true
-				csc.Rootfs = csc.Rootfs[:lastColonIndex]
-			} else if lastPart == "idmap" || strings.HasPrefix(lastPart, "idmap=") {
-				csc.RootfsMapping = &lastPart
-				csc.Rootfs = csc.Rootfs[:lastColonIndex]
-			}
+		if lastColonIndex != -1 && lastColonIndex+1 < len(csc.Rootfs) && csc.Rootfs[lastColonIndex+1:] == "O" {
+			csc.RootfsOverlay = true
+			csc.Rootfs = csc.Rootfs[:lastColonIndex]
 		}
 	} else {
 		csc.Image = arg
@@ -634,16 +606,4 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 func NewSpecGeneratorWithRootfs(rootfs string) *SpecGenerator {
 	csc := ContainerStorageConfig{Rootfs: rootfs}
 	return &SpecGenerator{ContainerStorageConfig: csc}
-}
-
-func StringSlicesEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }

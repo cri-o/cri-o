@@ -8,9 +8,8 @@ import (
 	"net"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
-
-	"github.com/containers/storage/pkg/regexp"
 )
 
 const (
@@ -23,8 +22,8 @@ const (
 
 var (
 	whiteSpaces  = " \t"
-	alphaRegexp  = regexp.Delayed(`[a-zA-Z]`)
-	domainRegexp = regexp.Delayed(`^(:?(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))(:?\.(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])))*)\.?\s*$`)
+	alphaRegexp  = regexp.MustCompile(`[a-zA-Z]`)
+	domainRegexp = regexp.MustCompile(`^(:?(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9]))(:?\.(:?[a-zA-Z0-9]|(:?[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])))*)\.?\s*$`)
 )
 
 // validateExtraHost validates that the specified string is a valid extrahost and returns it.

@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v50/github"
+	"github.com/google/go-github/v45/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,8 +49,6 @@ const (
 	gitHubAPIListReleaseAssets          gitHubAPI = "ListReleaseAssets"
 	gitHubAPICreateComment              gitHubAPI = "CreateComment"
 	gitHubAPIListMilestones             gitHubAPI = "ListMilestones"
-	gitHubAPIListIssues                 gitHubAPI = "ListIssues"
-	gitHubAPIListComments               gitHubAPI = "ListComments"
 )
 
 type apiRecord struct {
@@ -311,32 +309,6 @@ func (c *githubNotesRecordClient) CreateComment(ctx context.Context, owner, repo
 		return nil, nil, err
 	}
 	return issueComment, resp, nil
-}
-
-func (c *githubNotesRecordClient) ListIssues(
-	ctx context.Context, owner, repo string, opts *github.IssueListByRepoOptions,
-) ([]*github.Issue, *github.Response, error) {
-	issues, resp, err := c.client.ListIssues(ctx, owner, repo, opts)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := c.recordAPICall(gitHubAPIListIssues, issues, resp); err != nil {
-		return nil, nil, err
-	}
-	return issues, resp, nil
-}
-
-func (c *githubNotesRecordClient) ListComments(
-	ctx context.Context, owner, repo string, number int, opts *github.IssueListCommentsOptions,
-) ([]*github.IssueComment, *github.Response, error) {
-	comments, resp, err := c.client.ListComments(ctx, owner, repo, number, opts)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := c.recordAPICall(gitHubAPIListComments, comments, resp); err != nil {
-		return nil, nil, err
-	}
-	return comments, resp, nil
 }
 
 // recordAPICall records a single GitHub API call into a JSON file by ensuring
