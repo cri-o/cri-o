@@ -38,6 +38,28 @@ function teardown() {
 	[[ "$output" == *"customcrioconmon.slice"* ]]
 }
 
+@test "conmon custom cgroup with no infra container" {
+	parent="Burstablecriotest123"
+	if [ "$CONTAINER_CGROUP_MANAGER" == "systemd" ]; then
+		parent="$parent".slice
+	fi
+	cgroup_base="/sys/fs/cgroup"
+	if ! is_cgroup_v2; then
+		cgroup_base="$cgroup_base"/memory
+	fi
+
+	CONTAINER_DROP_INFRA_CTR=true start_crio
+
+	jq --arg cg "$parent" '	  .linux.cgroup_parent = $cg' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_config_slice.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_config_slice.json)
+	ls "$cgroup_base"/"$parent"/crio-"$pod_id"*
+
+	crictl rmp -fa
+	! ls "$cgroup_base"/"$parent"/crio-"$pod_id"*
+}
+
 @test "ctr with swap should be configured" {
 	if ! grep -v Filename < /proc/swaps; then
 		skip "swap not enabled"

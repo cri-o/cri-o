@@ -89,7 +89,7 @@ func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID strin
 		return "", errors.Wrapf(err, "error expanding systemd slice to get container %s stats", containerID)
 	}
 
-	return filepath.Join(cgroup, crioPrefix+"-"+containerID+".scope"), nil
+	return filepath.Join(cgroup, containerCgroupPath(containerID)+".scope"), nil
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
@@ -200,8 +200,37 @@ func convertCgroupFsNameToSystemd(cgroupfsName string) string {
 }
 
 // CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
+// Note: createSandboxCgroup will create a cgroupfs cgroup for the infra container underneath the pod slice.
+// It will not use dbus to create this cgroup, but instead call libcontainer's cgroupfs manager directly.
+// This is because a scope created here will not have a process within it (as it's usually for a dropped infra container),
+// and a slice cannot have the required `crio` prefix (while still being within the pod slice).
+// Ultimately, this cgroup is required for cAdvisor to be able to register the pod and collect network metrics for it.
+// This work will not be relevant when CRI-O is responsible for gathering pod metrics (KEP-2371), but is required until that's done.
 func (m *SystemdManager) CreateSandboxCgroup(sbParent, containerID string) error {
-	// If we are running systemd as cgroup driver then we would rely on
-	// systemd to create cgroups for us, there's nothing to do here in this case
-	return nil
+	// sbParent should always be specified by kubelet, but sometimes not by critest/crictl.
+	// Skip creation in this case.
+	if sbParent == "" {
+		logrus.Infof("Not creating sandbox cgroup: sbParent is empty")
+		return nil
+	}
+	expandedParent, err := systemd.ExpandSlice(sbParent)
+	if err != nil {
+		return err
+	}
+	return createSandboxCgroup(expandedParent, containerCgroupPath(containerID))
+}
+
+// RemoveSandboxCgroup calls the helper function removeSandboxCgroup for this manager.
+func (m *SystemdManager) RemoveSandboxCgroup(sbParent, containerID string) error {
+	// sbParent should always be specified by kubelet, but sometimes not by critest/crictl.
+	// Skip creation in this case.
+	if sbParent == "" {
+		logrus.Infof("Not creating sandbox cgroup: sbParent is empty")
+		return nil
+	}
+	expandedParent, err := systemd.ExpandSlice(sbParent)
+	if err != nil {
+		return err
+	}
+	return removeSandboxCgroup(expandedParent, containerCgroupPath(containerID))
 }
