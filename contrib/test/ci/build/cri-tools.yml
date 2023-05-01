@@ -13,7 +13,7 @@
 
 - name: link crictl and critest
   file:
-    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/build/bin/{{ item }}"
+    src: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools/build/bin/linux/amd64/{{ item }}"
     dest: "/usr/bin/{{ item }}"
     state: link
     force: yes
