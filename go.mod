@@ -80,7 +80,7 @@ require (
 	k8s.io/apiserver v0.27.0
 	k8s.io/client-go v0.27.0
 	k8s.io/cri-api v0.27.0
-	k8s.io/klog/v2 v2.90.1
+	k8s.io/klog/v2 v2.100.1
 	k8s.io/kubernetes v1.27.0
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	sigs.k8s.io/release-sdk v0.10.0
