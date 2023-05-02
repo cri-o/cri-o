@@ -1715,7 +1715,7 @@ k8s.io/component-base/version
 # k8s.io/cri-api v0.27.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20230411170423-1b4df30b3cdf
 ## explicit; go 1.20
 k8s.io/cri-api/pkg/apis/runtime/v1
-# k8s.io/klog/v2 v2.90.1
+# k8s.io/klog/v2 v2.100.1
 ## explicit; go 1.13
 k8s.io/klog/v2
 k8s.io/klog/v2/internal/buffer
