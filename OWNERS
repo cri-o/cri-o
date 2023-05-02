@@ -1,19 +1,20 @@
-approvers:
-  - mrunalp
-  - nalind
-  - giuseppe
-  - umohnani8
-  - saschagrunert
-  - haircommander
-  - fidencio
-  - kolyshkin
-reviewers:
-  - wgahnagl
-  - QiWang19
-  - klihub
-emeritus_approvers:
-  - sameo
-  - sboeuf
-  - runcom
-  - rhatdan
-  - vrothberg
+filters:
+  .*:
+    reviewers:
+    - cri-o-reviewers
+    approvers:
+    - cri-o-approvers
+    emeritus_approvers:
+    - sameo
+    - sboeuf
+    - runcom
+    - rhatdan
+    - vrothberg
+  # go.{mod,sum}, vendor/* files related to go dependencies, 
+  # and should be reviewed by the cri-o reviewers
+  "go\\.(mod|sum)$":
+    approvers:
+    - cri-o-reviewers
+  "^vendor/.*":
+    approvers:
+    - cri-o-reviewers
