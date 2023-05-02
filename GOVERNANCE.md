@@ -94,6 +94,7 @@ Further, some more detailed information can be found in the [CRI-O Maintainers f
   * **help wanted**: Unless it is immediately obvious that someone is going to work on an issue (and if so assign it), mark it as help wanted.
   * **CRI change**: If sufficiently fixing the issue involves a change to the CRI, this label is given. These changes require consensus from the Kubernetes SIG-Node community, and thus may be more complex than an internal CRI-O change.
 * Make sure that ongoing PRs are moving forward at the right pace or closing them.
+* Reviewers are granted approver rights to dependency bumps and are expected to focus their attention on them.
 
 ### Approver
 
