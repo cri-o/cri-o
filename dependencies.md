@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 02 May 2023 13:07:26 UTC for commit [954828c][0]._
+_Generated on Tue, 02 May 2023 14:46:32 UTC for commit [5bb8acd][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/954828c3004079a6823923296a6579034b7ec7fb
+[0]: https://github.com/cri-o/cri-o/commit/5bb8acd4a3319de7ab29c57b28c151afff0d4d43
 
 ## Outdated Dependencies
 
@@ -730,7 +730,7 @@ _Generated on Tue, 02 May 2023 13:07:26 UTC for commit [954828c][0]._
 | github.com/stretchr/objx                                                                | v0.5.0                                            |                                    | false  | true             |
 | github.com/stretchr/testify                                                             | v1.8.2                                            |                                    | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.4.2                                            |                                    | false  | true             |
-| github.com/sylabs/sif/v2                                                                | v2.11.1                                           |                                    | false  | true             |
+| github.com/sylabs/sif/v2                                                                | v2.11.1                                           | v2.11.2                            | false  | true             |
 | github.com/syndtr/gocapability                                                          | v0.0.0-20200815063812-42c35b437635                |                                    | true   | true             |
 | github.com/syndtr/goleveldb                                                             | v1.0.1-0.20220721030215-126854af5e6d              |                                    | false  | true             |
 | github.com/tchap/go-patricia                                                            | v2.3.0+incompatible                               |                                    | false  | true             |
@@ -908,7 +908,7 @@ _Generated on Tue, 02 May 2023 13:07:26 UTC for commit [954828c][0]._
 | k8s.io/sample-apiserver                                                                 | v0.0.0-20230411170423-1b4df30b3cdf                | v0.0.0-20230502124212-d95243792104 | false  | true             |
 | k8s.io/system-validators                                                                | v1.8.0                                            |                                    | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230220204549-a5ecb0141aa5                | v0.0.0-20230406110748-d93618cff8a2 | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230125083639-408ad0773f47                | v0.0.0-20230501013355-904966742b58 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230125083639-408ad0773f47                | v0.0.0-20230502134655-db8a35330281 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/pdf                                                                              | v0.1.1                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
