@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"syscall"
 	"time"
 
 	imageTypes "github.com/containers/image/v5/types"
@@ -15,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	k8simages "k8s.io/kubernetes/pkg/kubelet/images"
 )
 
 var localRegistryPrefix = "localhost/"
@@ -93,6 +95,9 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 
 	if pullOp.err != nil {
+		if errors.Is(pullOp.err, syscall.ECONNREFUSED) {
+			return nil, k8simages.ErrRegistryUnavailable
+		}
 		return nil, pullOp.err
 	}
 
