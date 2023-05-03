@@ -26,7 +26,7 @@ crio-status [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--help, -h**: show help
 
-**--socket, -s**="": absolute path to the unix socket (default: /var/run/crio/crio.sock)
+**--socket, -s**="": absolute path to the unix socket (default: "/var/run/crio/crio.sock")
 
 **--version, -v**: print the version
 
