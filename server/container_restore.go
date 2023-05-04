@@ -242,7 +242,27 @@ func (s *Server) CRImportCheckpoint(
 			Name:    ctrMetadata.Name,
 			Attempt: ctrMetadata.Attempt,
 		},
-		Image: &types.ImageSpec{Image: config.RootfsImageName},
+		Image: &types.ImageSpec{
+			Image: func() string {
+				if config.RootfsImageRef != "" {
+					// Newer checkpoints archives have RootfsImageRef set
+					// and using it for the restore is more correct.
+					// For the Kubernetes use case the output of 'crictl ps'
+					// contains for the original container under 'IMAGE' something
+					// like 'registry/path/container@sha256:123444444...'.
+					// The restored container was, however, only displaying something
+					// like 'registry/path/container'.
+					// This had two problems, first, the output from the restored
+					// container was different, but the bigger problem was, that
+					// CRI-O might pull the wrong image from the registry.
+					// If the container in the registry was updated (new latest tag)
+					// all of a sudden the wrong base image would be downloaded.
+					return config.RootfsImageRef
+				}
+				// For an older checkpoint archive, let's fallback to the old behavior.
+				return config.RootfsImageName
+			}(),
+		},
 		Linux: &types.LinuxContainerConfig{
 			Resources:       &types.LinuxContainerResources{},
 			SecurityContext: &types.LinuxContainerSecurityContext{},
