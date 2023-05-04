@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 May 2023 19:06:00 UTC for commit [3a1ba73][0]._
+_Generated on Thu, 04 May 2023 20:22:52 UTC for commit [bf91035][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3a1ba73f8f9f17d88f42a02cfb44af738fed790c
+[0]: https://github.com/cri-o/cri-o/commit/bf910356e245e7c55027806d8786a7f5860807db
 
 ## Outdated Dependencies
 
@@ -539,7 +539,7 @@ _Generated on Thu, 04 May 2023 19:06:00 UTC for commit [3a1ba73][0]._
 | github.com/hpcloud/tail                                                                 | v1.0.0                                            |                                    | false  | true             |
 | github.com/ianlancetaylor/demangle                                                      | v0.0.0-20200824232613-28f6c0f3b639                | v0.0.0-20230425220036-24673e7931eb | false  | true             |
 | github.com/imdario/mergo                                                                | v0.3.15                                           |                                    | false  | true             |
-| github.com/in-toto/in-toto-golang                                                       | v0.8.0                                            |                                    | false  | true             |
+| github.com/in-toto/in-toto-golang                                                       | v0.8.0                                            | v0.9.0                             | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.1.0                                            |                                    | false  | true             |
 | github.com/intel/goresctrl                                                              | v0.3.0                                            |                                    | true   | true             |
 | github.com/ishidawataru/sctp                                                            | v0.0.0-20190723014705-7c296d48a2b5                | v0.0.0-20230406120618-7ff4192f6ff2 | false  | true             |
