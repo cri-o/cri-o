@@ -57,6 +57,11 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 	if err := s.removeContainerInPod(ctx, sb, sb.InfraContainer()); err != nil {
 		return err
 	}
+	if sb.InfraContainer().Spoofed() {
+		if err := s.config.CgroupManager().RemoveSandboxCgroup(sb.CgroupParent(), sb.ID()); err != nil {
+			return err
+		}
+	}
 
 	// Cleanup network resources for this pod
 	if err := s.networkStop(ctx, sb); err != nil {
