@@ -1227,10 +1227,10 @@ github.com/ugorji/go v1.1.4/go.mod h1:uQMGLiO92mf5W77hV/PUCpI3pbzQx3CRekS0kk+RGr
 github.com/ulikunitz/xz v0.5.10/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
 github.com/ulikunitz/xz v0.5.11 h1:kpFauv27b6ynzBNT/Xy+1k+fK4WswhN/6PN5WhFAGw8=
 github.com/ulikunitz/xz v0.5.11/go.mod h1:nbz6k7qbPmH4IRqmfOplQw/tblSgqTqBwxkY0oWt/14=
-github.com/uptrace/opentelemetry-go-extra/otellogrus v0.1.21 h1:OXsouNDvuET5o1A4uvoCnAXuuNke8JlfZWceciyUlC8=
-github.com/uptrace/opentelemetry-go-extra/otellogrus v0.1.21/go.mod h1:Xm3wlRGm5xzdAGPOvqydXPiGj0Da1q0OlUNm7Utoda4=
-github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21 h1:HCqo51kNF8wxDMDhxcN5S6DlfZXigMtptRpkvjBCeVc=
-github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21/go.mod h1:2MNqrUmDrt5E0glMuoJI/9FyGVpBKo1FqjSH60UOZFg=
+github.com/uptrace/opentelemetry-go-extra/otellogrus v0.2.0 h1:Ql5rfcDmcG2x9+9wZNMImw6W1PXpc4hSElK+YroY2SI=
+github.com/uptrace/opentelemetry-go-extra/otellogrus v0.2.0/go.mod h1:aAqVF54M+869bIHiUuXlCK6Da/6JouOcGVn6grs9OTE=
+github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.0 h1:Y0fGBHZ66s0sl0aweB8Q3atCSpXLEYRBYf4fRi8IePY=
+github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.0/go.mod h1:GJdf0lFprZyBTx5O4EHPxitezZ6UvBrJFLIBDZEdHto=
 github.com/urfave/cli v0.0.0-20171014202726-7bc6a0acffa5/go.mod h1:70zkFmudgCuE/ngEzBv17Jvp/497gISqfk5gWijbERA=
 github.com/urfave/cli v1.22.1/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/urfave/cli v1.22.2/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
