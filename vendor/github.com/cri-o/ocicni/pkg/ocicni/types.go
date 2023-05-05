@@ -55,6 +55,9 @@ type RuntimeConfig struct {
 	Bandwidth *BandwidthConfig
 	// IpRanges is the ip range gather which is used for address allocation
 	IpRanges [][]IpRange
+	// CgroupPath is the path to the pod's cgroup
+	// e.g. "/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod28ce45bc_63f8_48a3_a99b_cfb9e63c856c.slice"
+	CgroupPath string
 }
 
 // BandwidthConfig maps to the standard CNI bandwidth Capability

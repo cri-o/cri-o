@@ -858,6 +858,12 @@ func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig Ru
 	if len(podNetwork.Aliases) > 0 {
 		rt.CapabilityArgs["aliases"] = podNetwork.Aliases
 	}
+
+	// set cgroupPath in Capabilities
+	if runtimeConfig.CgroupPath != "" {
+		rt.CapabilityArgs["cgroupPath"] = runtimeConfig.CgroupPath
+	}
+
 	return rt, nil
 }
 
