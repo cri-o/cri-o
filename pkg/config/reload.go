@@ -72,6 +72,7 @@ func (c *Config) Reload() error {
 	if err := c.ReloadPauseImage(newConfig); err != nil {
 		return err
 	}
+	c.ReloadPinnedImages(newConfig)
 	if err := c.ReloadRegistries(); err != nil {
 		return err
 	}
@@ -157,6 +158,20 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 		logConfig("pause_command", c.PauseCommand)
 	}
 	return nil
+}
+
+// ReloadPinnedImages updates the PinnedImages with the provided `newConfig`.
+func (c *Config) ReloadPinnedImages(newConfig *Config) {
+	updatedPinnedImages := make([]string, len(newConfig.PinnedImages))
+	for i, image := range newConfig.PinnedImages {
+		if i < len(c.PinnedImages) && image == c.PinnedImages[i] {
+			updatedPinnedImages[i] = c.PinnedImages[i]
+		} else {
+			updatedPinnedImages[i] = image
+		}
+	}
+	logrus.Infof("Updated new pinned images: %+v", updatedPinnedImages)
+	c.PinnedImages = updatedPinnedImages
 }
 
 // ReloadRegistries reloads the registry configuration from the Configs

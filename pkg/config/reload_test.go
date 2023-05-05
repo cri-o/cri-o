@@ -408,4 +408,22 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
 	})
+
+	t.Describe("ReloadPinnedImages", func() {
+		It("should update PinnedImages with newConfig's PinnedImages if they are different", func() {
+			sut.PinnedImages = []string{"image1", "image4", "image3"}
+			newConfig := &config.Config{}
+			newConfig.PinnedImages = []string{"image5"}
+			sut.ReloadPinnedImages(newConfig)
+			Expect(sut.PinnedImages).To(Equal([]string{"image5"}))
+		})
+
+		It("should not update PinnedImages if they are the same as newConfig's PinnedImages", func() {
+			sut.PinnedImages = []string{"image1", "image2", "image3"}
+			newConfig := &config.Config{}
+			newConfig.PinnedImages = []string{"image1", "image2", "image3"}
+			sut.ReloadPinnedImages(newConfig)
+			Expect(sut.PinnedImages).To(Equal([]string{"image1", "image2", "image3"}))
+		})
+	})
 })
