@@ -53,6 +53,10 @@ const (
 
 	// SeccompNotifierActionStop indicates that a container should be stopped if used via the SeccompNotifierActionAnnotation key.
 	SeccompNotifierActionStop = "stop"
+
+	// LinkLogsAnnotations indicates that CRI-O should link the pod containers logs into the specified
+	// emptyDir volume
+	LinkLogsAnnotation = "io.kubernetes.cri-o.LinkLogs"
 )
 
 var AllAllowedAnnotations = []string{
@@ -71,4 +75,5 @@ var AllAllowedAnnotations = []string{
 	CPUFreqGovernorAnnotation,
 	SeccompNotifierActionAnnotation,
 	UmaskAnnotation,
+	LinkLogsAnnotation,
 }

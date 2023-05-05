@@ -22,6 +22,7 @@ import (
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
@@ -347,6 +348,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	pathsToChown := []string{}
 
 	kubeName := sbox.Config().Metadata.Name
+	kubePodUID := sbox.Config().Metadata.Uid
 	namespace := sbox.Config().Metadata.Namespace
 	attempt := sbox.Config().Metadata.Attempt
 
@@ -573,6 +575,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			return nil
 		})
+	}
+
+	// Link logs if requested
+	if emptyDirVolName, ok := kubeAnnotations[ann.LinkLogsAnnotation]; ok {
+		if err = linklogs.MountPodLogs(ctx, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel); err != nil {
+			log.Warnf(ctx, "Failed to link logs: %v", err)
+		}
 	}
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox spec configuration")
