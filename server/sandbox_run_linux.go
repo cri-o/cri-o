@@ -349,6 +349,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
 
 	kubeName := sbox.Config().Metadata.Name
+	kubePodUID := sbox.Config().Metadata.Uid
 	namespace := sbox.Config().Metadata.Namespace
 	attempt := sbox.Config().Metadata.Attempt
 
@@ -570,6 +571,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			return nil
 		})
+	}
+
+	// Link logs if requested
+	if emptyDirVolName, ok := kubeAnnotations[ann.LinkLogsAnnotation]; ok {
+		if err = linkLogs(kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel); err != nil {
+			log.Warnf(ctx, "Failed to link logs: %v", err)
+		}
 	}
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox spec configuration")

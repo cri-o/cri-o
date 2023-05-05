@@ -198,6 +198,7 @@ type RuntimeHandler struct {
 	// "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+	// "io.kubernetes.cri-o.LinkLogs" for linking logs into the pod.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.

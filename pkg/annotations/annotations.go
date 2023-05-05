@@ -59,6 +59,10 @@ const (
 
 	// PodLinuxResources indicates the sum of container resources for this pod
 	PodLinuxResources = "io.kubernetes.cri-o.PodLinuxResources"
+
+	// LinkLogsAnnotations indicates that CRI-O should link the pod containers logs into the specified
+	// emptyDir volume
+	LinkLogsAnnotation = "io.kubernetes.cri-o.LinkLogs"
 )
 
 var AllAllowedAnnotations = []string{
@@ -79,4 +83,5 @@ var AllAllowedAnnotations = []string{
 	UmaskAnnotation,
 	PodLinuxOverhead,
 	PodLinuxResources,
+	LinkLogsAnnotation,
 }
