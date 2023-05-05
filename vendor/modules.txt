@@ -1121,10 +1121,10 @@ github.com/ulikunitz/xz
 github.com/ulikunitz/xz/internal/hash
 github.com/ulikunitz/xz/internal/xlog
 github.com/ulikunitz/xz/lzma
-# github.com/uptrace/opentelemetry-go-extra/otellogrus v0.1.21
+# github.com/uptrace/opentelemetry-go-extra/otellogrus v0.2.0
 ## explicit; go 1.18
 github.com/uptrace/opentelemetry-go-extra/otellogrus
-# github.com/uptrace/opentelemetry-go-extra/otelutil v0.1.21
+# github.com/uptrace/opentelemetry-go-extra/otelutil v0.2.0
 ## explicit; go 1.18
 github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli/v2 v2.25.3
