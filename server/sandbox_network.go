@@ -238,7 +238,10 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 		ID:        sb.ID(),
 		NetNS:     sb.NetNsPath(),
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
-			network: {Bandwidth: bwConfig},
+			network: {
+				Bandwidth:  bwConfig,
+				CgroupPath: sb.CgroupParent(),
+			},
 		},
 	}, nil
 }
