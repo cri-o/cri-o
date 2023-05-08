@@ -114,3 +114,9 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GO_MOD_OUTDATED_VERSION
+  
+  - name: gosec
+    version: 2.15.0
+    refPaths:
+      - path: Makefile
+        match: GOSEC_VERSION
