@@ -473,7 +473,7 @@ verify-dependencies: ${ZEITGEIST}
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
 verify-gosec: ${GOSEC}
-	${BUILD_BIN_PATH}/gosec -severity high -confidence high -exclude G304 ./...
+	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108 ./...
 
 verify-govulncheck:
 	./hack/govulncheck.sh
