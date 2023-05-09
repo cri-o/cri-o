@@ -17,8 +17,8 @@ import (
 	"sigs.k8s.io/release-utils/env"
 )
 
-const (
-	namespace = "cri-o-metrics-exporter"
+var (
+	namespace = env.Default("POD_NAMESPACE", "cri-o-metrics-exporter")
 	service   = namespace
 	configMap = namespace
 )
