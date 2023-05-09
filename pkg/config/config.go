@@ -469,6 +469,11 @@ type ImageConfig struct {
 	// PauseCommand is the path of the binary we run in an infra
 	// container that's been instantiated using PauseImage.
 	PauseCommand string `toml:"pause_command"`
+	// PinnedImages is a list of container images that should be pinned
+	// and not subject to garbage collection by kubelet.
+	// Pinned images will remain in the container runtime's storage until
+	// they are manually removed. Default value: empty list (no images pinned)
+	PinnedImages []string `toml:"pinned_images"`
 	// SignaturePolicyPath is the name of the file which decides what sort
 	// of policy we use when deciding whether or not to trust an image that
 	// we've pulled.  Outside of testing situations, it is strongly advised
