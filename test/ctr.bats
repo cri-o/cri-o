@@ -882,6 +882,18 @@ function check_oci_annotation() {
 	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
 }
 
+@test "ctr has gid in supplimental groups" {
+	start_crio
+
+	jq '	  .linux.security_context.run_as_user.value = 1000
+		|     .linux.security_context.run_as_group.value = 1000' \
+		"$TESTDATA"/container_redis.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	crictl exec --sync "$ctr_id" grep Groups:.1000 /proc/1/status
+}
+
 @test "ctr with low memory configured should not be created" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
