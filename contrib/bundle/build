@@ -3,6 +3,7 @@ set -euo pipefail
 
 ARCH_AMD64=amd64
 ARCH_ARM64=arm64
+ARCH_PPC64LE=ppc64le
 
 ARCH=${1:-$ARCH_AMD64}
 
@@ -138,9 +139,12 @@ curl_to - \
     tar xfz - -C "$TMP_BIN"
 
 # Check the architectures of the binaries
-ELF_ARCH=x86-64
 if [[ $ARCH == "$ARCH_ARM64" ]]; then
     ELF_ARCH=aarch64
+elif [[ $ARCH == "$ARCH_PPC64LE" ]]; then
+    ELF_ARCH=ppc64le
+else
+    ELF_ARCH=x86-64
 fi
 for FILE in "$TMP_BIN"/*; do
     if ! file "$FILE" | grep -q "$ELF_ARCH"; then
