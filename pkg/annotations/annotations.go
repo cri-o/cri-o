@@ -53,6 +53,12 @@ const (
 
 	// SeccompNotifierActionStop indicates that a container should be stopped if used via the SeccompNotifierActionAnnotation key.
 	SeccompNotifierActionStop = "stop"
+
+	// PodLinuxOverhead indicates the overheads associated with the pod
+	PodLinuxOverhead = "io.kubernetes.cri-o.PodLinuxOverhead"
+
+	// PodLinuxResources indicates the sum of container resources for this pod
+	PodLinuxResources = "io.kubernetes.cri-o.PodLinuxResources"
 )
 
 var AllAllowedAnnotations = []string{
@@ -71,4 +77,6 @@ var AllAllowedAnnotations = []string{
 	CPUFreqGovernorAnnotation,
 	SeccompNotifierActionAnnotation,
 	UmaskAnnotation,
+	PodLinuxOverhead,
+	PodLinuxResources,
 }

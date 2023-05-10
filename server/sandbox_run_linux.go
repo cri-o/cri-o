@@ -674,7 +674,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	}
 
-	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode)
+	overhead := sbox.Config().GetLinux().GetOverhead()
+	overheadJSON, err := json.Marshal(overhead)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation(ann.PodLinuxOverhead, string(overheadJSON))
+
+	resources := sbox.Config().GetLinux().GetResources()
+	resourcesJSON, err := json.Marshal(resources)
+	if err != nil {
+		return nil, err
+	}
+	g.AddAnnotation(ann.PodLinuxResources, string(resourcesJSON))
+
+	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode, overhead, resources)
 	if err != nil {
 		return nil, err
 	}

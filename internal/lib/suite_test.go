@@ -86,6 +86,8 @@ var _ = BeforeSuite(func() {
 			"io.kubernetes.cri-o.StdinOnce": "{}",
 			"io.kubernetes.cri-o.Volumes": "[{}]",
 			"io.kubernetes.cri-o.HostNetwork": "{}",
+			"io.kubernetes.cri-o.PodLinuxOverhead": "{}",
+			"io.kubernetes.cri-o.PodLinuxResources": "{}",
 			"io.kubernetes.cri-o.CNIResult": "{}"
 		},
 		"linux": {
@@ -153,7 +155,7 @@ func beforeEach() {
 	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
 		make(map[string]string), make(map[string]string), "", "",
 		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "")
+		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
 	Expect(err).To(BeNil())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",

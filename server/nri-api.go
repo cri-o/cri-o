@@ -529,20 +529,16 @@ func (p *criPodSandbox) GetPodLinuxOverhead() *api.LinuxResources {
 	if p.Sandbox == nil {
 		return nil
 	}
-	// TODO(klihub): AFAICT, CRI PodSandboxConfig is not stored, so we can only
-	// get our hands on it during RunPodSandbox() request processing...
-	// return api.FromCRILinuxResources(p.Sandbox.GetConfig().GetLinux().GetOverhead())
-	return nil
+
+	return api.FromCRILinuxResources(p.Sandbox.PodLinuxOverhead())
 }
 
 func (p *criPodSandbox) GetPodLinuxResources() *api.LinuxResources {
 	if p.Sandbox == nil {
 		return nil
 	}
-	// TODO(klihub): AFAICT, CRI PodSandboxConfig is not stored, so we can only
-	// get our hands on it during RunPodSandbox() request processing...
-	// return api.FromCRILinuxResources(p.Sandbox.GetConfig().GetLinux().GetResources())
-	return nil
+
+	return api.FromCRILinuxResources(p.Sandbox.PodLinuxResources())
 }
 
 func (p *criPodSandbox) GetLinuxResources() *api.LinuxResources {

@@ -200,7 +200,21 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
 	}
 
-	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation])
+	podLinuxOverhead := types.LinuxContainerResources{}
+	if v, found := m.Annotations[crioann.PodLinuxOverhead]; found {
+		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", crioann.PodLinuxOverhead, err)
+		}
+	}
+
+	podLinuxResources := types.LinuxContainerResources{}
+	if v, found := m.Annotations[crioann.PodLinuxResources]; found {
+		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", crioann.PodLinuxResources, err)
+		}
+	}
+
+	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
 	if err != nil {
 		return nil, err
 	}
