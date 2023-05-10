@@ -3,7 +3,9 @@
 load helpers
 
 function setup() {
-	if ! crictl runp -h | grep -q "cancel-timeout"; then
+	# do not use the crictl() wrapper function here: we need to test the crictl
+	# features with no additional arg.
+	if ! "$CRICTL_BINARY" runp -h | grep -q "cancel-timeout"; then
 		skip "must have a crictl with the -T option to test CRI-O's timeout handling"
 	fi
 	setup_test
@@ -31,6 +33,22 @@ EOF
 	export CONTAINER_CONMON="$TESTDIR/tmp_conmon"
 }
 
+function create_pinns() {
+	local timeout=$1
+
+	cat > "$TESTDIR"/tmp_pinns << EOF
+#!/bin/bash
+if [[ "\$1" != "--version" ]]; then
+    echo "Delaying pinns by $timeout"
+	sleep $timeout
+fi
+$PINNS_BINARY_PATH \$@
+EOF
+	chmod +x "$TESTDIR/tmp_pinns"
+
+	export CONTAINER_PINNS_PATH="$TESTDIR/tmp_pinns"
+}
+
 # Allow cri-o to catch up. The sleep here should be less than
 # resourcestore.sleepTimeBeforeCleanup but enough for cri-o to
 # finish processing cancelled crictl create/runp.
@@ -45,6 +63,8 @@ function wait_clean() {
 }
 
 @test "should not clean up pod after timeout" {
+	create_pinns $CANCEL_TIMEOUT
+
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
@@ -89,6 +109,8 @@ function wait_clean() {
 }
 
 @test "should clean up pod after timeout if request changes" {
+	create_pinns $CANCEL_TIMEOUT
+
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
@@ -137,6 +159,8 @@ function wait_clean() {
 }
 
 @test "should clean up pod after timeout if not re-requested" {
+	create_pinns $CANCEL_TIMEOUT
+
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
@@ -192,6 +216,8 @@ function wait_clean() {
 # operate on a pod that's not created, and that we don't mark
 # a timed out pod as created before it's re-requested
 @test "should not be able to operate on a timed out pod" {
+	create_pinns $CANCEL_TIMEOUT
+
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
