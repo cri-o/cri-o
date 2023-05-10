@@ -31,7 +31,7 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
-	github.com/cri-o/ocicni v0.4.0
+	github.com/cri-o/ocicni v0.4.1-0.20230504062519-ad62f4ea0c11
 	github.com/cyphar/filepath-securejoin v0.2.3
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-units v0.5.0
