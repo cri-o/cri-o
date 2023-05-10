@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 09 May 2023 21:39:03 UTC for commit [45ae1e9][0]._
+_Generated on Wed, 10 May 2023 00:49:44 UTC for commit [e61cd44][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/45ae1e999c46299d3d7bfd35a713ead34534c87e
+[0]: https://github.com/cri-o/cri-o/commit/e61cd442b1bf16e79c19e5d26b9a0b6ce43e1a8e
 
 ## Outdated Dependencies
 
@@ -182,7 +182,7 @@ _Generated on Tue, 09 May 2023 21:39:03 UTC for commit [45ae1e9][0]._
 | github.com/Masterminds/semver/v3                                                        | v3.1.1                                            | v3.2.1                             | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.10.0-rc.7                                      | v0.10.0-rc.8                       | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230508223056-de0e11619bf9 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230509231534-a1d874ae0425 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -488,7 +488,7 @@ _Generated on Tue, 09 May 2023 21:39:03 UTC for commit [45ae1e9][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                            |                                    | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                               |                                    | false  | true             |
 | github.com/google/martian/v3                                                            | v3.2.1                                            | v3.3.2                             | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20210720184732-4bb14d4b1be1                | v0.0.0-20230509194759-b71a70eb8291 | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20210720184732-4bb14d4b1be1                | v0.0.0-20230510003242-05f3f57da91a | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                            |                                    | true   | true             |
 | github.com/google/rpmpack                                                               | v0.0.0-20210518075352-dc539ef4f2ea                | v0.0.0-20221120200012-98b63d62fd77 | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.2                                            | v0.1.3                             | false  | true             |
@@ -583,7 +583,7 @@ _Generated on Tue, 09 May 2023 21:39:03 UTC for commit [45ae1e9][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.1                                            | v1.0.2                             | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.25                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.0                                            | v1.0.1                             | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230508195520-9dce86fda0cf | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230509231644-ac4be89b5690 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/libopenstorage/openstorage                                                   | v1.0.0                                            | v9.4.47+incompatible               | false  | true             |
@@ -824,7 +824,7 @@ _Generated on Tue, 09 May 2023 21:39:03 UTC for commit [45ae1e9][0]._
 | go.opentelemetry.io/otel/trace                                                          | v1.15.1                                           |                                    | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v0.19.0                                           |                                    | false  | true             |
 | go.starlark.net                                                                         | v0.0.0-20200306205701-8dd3e2ee1dd5                | v0.0.0-20230302034142-4b1e35fe2254 | false  | true             |
-| go.step.sm/crypto                                                                       | v0.29.3                                           |                                    | false  | true             |
+| go.step.sm/crypto                                                                       | v0.29.3                                           | v0.30.0                            | false  | true             |
 | go.uber.org/atomic                                                                      | v1.10.0                                           | v1.11.0                            | false  | true             |
 | go.uber.org/goleak                                                                      | v1.2.1                                            |                                    | false  | true             |
 | go.uber.org/multierr                                                                    | v1.9.0                                            | v1.11.0                            | false  | true             |
