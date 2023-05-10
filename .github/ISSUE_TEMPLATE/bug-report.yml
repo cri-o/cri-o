@@ -44,7 +44,7 @@ body:
         ```
 
         ```console
-        $ kubectl --version
+        $ kubectl version --output=json
         # paste output here
         ```
 
