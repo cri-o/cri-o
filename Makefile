@@ -357,6 +357,12 @@ mockgen: \
 	mock-image-types \
 	mock-ocicni-types
 
+mock-containereventserver: ${MOCKGEN}
+	${MOCKGEN} \
+		-package containereventservermock \
+		-destination ${MOCK_PATH}/containereventserver/containereventserver.go \
+		k8s.io/cri-api/pkg/apis/runtime/v1 RuntimeService_GetContainerEventsServer
+
 mock-containerstorage: ${MOCKGEN}
 	${MOCKGEN} \
 		-package containerstoragemock \

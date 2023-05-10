@@ -144,6 +144,7 @@ var beforeEach = func() {
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
 	serverConfig.CleanShutdownFile = path.Join(testPath, "clean.shutdown")
+	serverConfig.EnablePodEvents = true
 
 	// We want a directory that is guaranteed to exist, but it must
 	// be empty so we don't erroneously load anything and make tests
@@ -151,7 +152,6 @@ var beforeEach = func() {
 	serverConfig.NetworkDir = emptyDir
 	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
-
 	// Initialize test container and sandbox
 	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
 		make(map[string]string), make(map[string]string), "", "",
