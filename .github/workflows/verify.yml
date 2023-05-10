@@ -29,6 +29,19 @@ jobs:
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
 
+  lint-markdown:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Lint the markdown
+        uses: DavidAnson/markdownlint-cli2-action@v10
+        with:
+          globs: |
+            **/*.md
+            !vendor
+            !docs
+            !.github
+
   shellcheck:
     runs-on: ubuntu-latest
     steps:
