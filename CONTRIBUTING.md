@@ -5,9 +5,17 @@ that we follow.
 
 ## Topics
 
-* [Reporting Issues](#reporting-issues)
-* [Submitting Pull Requests](#submitting-pull-requests)
-* [Communications](#communications)
+<!-- TOC start -->
+
+- [Contributing to CRI-O](#contributing-to-cri-o)
+  - [Topics](#topics)
+  - [Reporting Issues](#reporting-issues)
+  - [Submitting Pull Requests](#submitting-pull-requests)
+    - [Dependency management](#dependency-management)
+    - [Sign your PRs](#sign-your-prs)
+  - [Communications](#communications)
+
+<!-- TOC end -->
 
 ## Reporting Issues
 
@@ -42,9 +50,9 @@ code changes. But only if those smaller ones make sense as stand-alone PRs.
 
 Regardless of the type of PR, all PRs should include:
 
-* well documented code changes
-* additional testcases. Ideally, they should fail w/o your code change applied
-* documentation changes
+- well documented code changes
+- additional testcases. Ideally, they should fail w/o your code change applied
+- documentation changes
 
 Squash your commits into logical pieces of work that might want to be reviewed
 separate from the rest of the PRs. But, squashing down to just one commit is ok
@@ -53,15 +61,15 @@ squash.
 
 Test your changes by running:
 
-```console
-$ make lint
+```shell
+make lint
 ```
 
 And you can run the test suite if you have access to elevated permissions:
 
-```console
-# make testunit
-# make integration  # or, if you don't want to use Docker, localintegration
+```shell
+make testunit
+make integration  # or, if you don't want to use Docker, localintegration
 ```
 
 PRs that fix issues should include a reference like `Closes #XXXX` in the
@@ -69,14 +77,16 @@ commit message so that github will automatically close the referenced issue
 when the PR is merged.
 
 Most PRs will be reviewed by two [approvers][prow-approvers] (listed [here](OWNERS)).
-Some maintainers add themselves to [`CODEOWNERS`](.github/CODEOWNERS) to manage their [review notifications][code-owners], but those entries have no governance significance.
+Some maintainers add themselves to [`CODEOWNERS`](.github/CODEOWNERS)
+to manage their [review notifications][code-owners],
+but those entries have no governance significance.
 
 ### Dependency management
 
 In order to add or update a dependency to this project, run:
 
-```console
-$ go get -u [DEPENDENCY]
+```shell
+go get -u [DEPENDENCY]
 ```
 
 Since CRI-O uses go modules we highly recommend reading the [go modules
@@ -85,8 +95,8 @@ section](https://github.com/golang/go/wiki/Modules#daily-workflow).
 
 To ensure the working directory contains all necessary files afterwards, run:
 
-```console
-$ make vendor
+```shell
+make vendor
 ```
 
 ### Sign your PRs
@@ -96,7 +106,7 @@ signature certifies that you wrote the patch or otherwise have the right to pass
 it on as an open-source patch. The rules are simple: if you can certify
 the below (from [developercertificate.org](http://developercertificate.org/)):
 
-```
+```text
 Developer Certificate of Origin
 Version 1.1
 
@@ -136,7 +146,9 @@ By making a contribution to this project, I certify that:
 
 Then you just add a line to every git commit message:
 
+```text
     Signed-off-by: Joe Smith <joe.smith@email.com>
+```
 
 Use your real name (sorry, no pseudonyms or anonymous contributions.)
 
@@ -145,7 +157,8 @@ commit automatically with `git commit -s`.
 
 ## Communications
 
-For general questions, or discussions, please use our [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio).
+For general questions, or discussions,
+please use our [channel on the Kubernetes slack](https://kubernetes.slack.com/archives/crio).
 
 For discussions around issues/bugs and features, you can use the github
 [issues](https://github.com/cri-o/cri-o/issues)

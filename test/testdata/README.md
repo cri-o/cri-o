@@ -1,10 +1,14 @@
+# Test commands
+
 In terminal 1:
-```
+
+```shell
 sudo ./crio
 ```
 
 In terminal 2:
-```
+
+```shell
 sudo ./crictl runtimeversion
 
 sudo rm -rf /var/lib/containers/storage/sandboxes/podsandbox1
