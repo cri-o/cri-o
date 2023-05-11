@@ -7,9 +7,11 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -17,7 +19,9 @@ import (
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )
@@ -53,6 +57,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	if !shouldRunHooks(ctx, c.ID(), &cSpec, s) {
 		return nil
 	}
+
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
 		if err := disableCPULoadBalancing(c); err != nil {
@@ -65,6 +70,14 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 		if err := setIRQLoadBalancing(ctx, c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
+		}
+	}
+
+	// disable the CFS quota for the container CPUs
+	if shouldCPUQuotaBeDisabled(s.Annotations()) {
+		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
+		if err := setCPUQuota(s.CgroupParent(), c); err != nil {
+			return fmt.Errorf("set CPU CFS quota: %w", err)
 		}
 	}
 
@@ -146,6 +159,15 @@ func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
 
 	return annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue ||
 		annotations[crioannotations.CPULoadBalancingAnnotation] == annotationDisable
+}
+
+func shouldCPUQuotaBeDisabled(annotations fields.Set) bool {
+	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
+		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+	}
+
+	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
+		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
 }
 
 func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
@@ -254,6 +276,54 @@ func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irq
 		log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 	}
 	return nil
+}
+
+func setCPUQuota(parentDir string, c *oci.Container) error {
+	var (
+		cgroupManager cgmgr.CgroupManager
+		err           error
+	)
+
+	if strings.HasSuffix(parentDir, ".slice") {
+		if cgroupManager, err = cgmgr.SetCgroupManager("systemd"); err != nil {
+			// Programming error, this is only possible if the manager string is invalid.
+			panic(err)
+		}
+	} else if cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs"); err != nil {
+		// Programming error, this is only possible if the manager string is invalid.
+		panic(err)
+	}
+	cgroupPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
+	if err != nil {
+		return err
+	}
+	containerCgroup := filepath.Base(cgroupPath)
+	containerCgroupParent := filepath.Dir(cgroupPath)
+	podCgroup := filepath.Base(containerCgroupParent)
+	podCgroupParent := filepath.Dir(containerCgroupParent)
+
+	if err := disableCPUQuotaForCgroup(podCgroup, podCgroupParent, cgroupManager.IsSystemd()); err != nil {
+		return err
+	}
+	return disableCPUQuotaForCgroup(containerCgroup, containerCgroupParent, cgroupManager.IsSystemd())
+}
+
+func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
+	cg := &configs.Cgroup{
+		Name:   cgroup,
+		Parent: parent,
+		Resources: &configs.Resources{
+			SkipDevices: true,
+			CpuQuota:    -1,
+		},
+		Systemd: systemd,
+	}
+	mgr, err := libCtrMgr.New(cg)
+	if err != nil {
+		return err
+	}
+
+	return mgr.Set(cg.Resources)
 }
 
 // setCPUPMQOSResumeLatency sets the pm_qos_resume_latency_us for a cpu and stores the original
