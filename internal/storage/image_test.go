@@ -774,7 +774,7 @@ var _ = t.Describe("Image", func() {
 			Expect(len(regexps)).To(Equal(len(patterns)))
 			Expect(regexps[0].MatchString("quay.io/crio/pause:latest")).To(BeTrue())
 			Expect(regexps[1].MatchString("docker.io/crio/sandbox:latest")).To(BeTrue())
-			Expect(regexps[1].MatchString("registry.k8s.io/pause:3.9")).To(BeTrue())
+			Expect(regexps[2].MatchString("registry.k8s.io/pause:3.9")).To(BeTrue())
 		})
 
 		It("should return regexps for keyword patterns", func() {
