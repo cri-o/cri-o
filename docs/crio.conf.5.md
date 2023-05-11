@@ -398,7 +398,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **global_auth_file**=""
   The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
-**pause_image**="registry.k8s.io/pause:3.6"
+**pause_image**="registry.k8s.io/pause:3.9"
   The image used to instantiate infra containers. This option supports live configuration reload.
 
 **pause_image_auth_file**=""
@@ -408,7 +408,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   The command to run to have a container stay in the paused state. This option supports live configuration reload.
 
 **pinned_images**=[]
-  A list of images to be excluded from the kubelet's garbage collection. It allows specifying image names using either exact, glob, or keyword patterns. Exact matches must match the entire name, glob matches can have a wildcard * at the end, and keyword matches can have wildcards on both ends.
+  A list of images to be excluded from the kubelet's garbage collection. It allows specifying image names using either exact, glob, or keyword patterns. Exact matches must match the entire name, glob matches can have a wildcard * at the end, and keyword matches can have wildcards on both ends. By default, this list includes the `pause` image if configured by the user, which is used as a placeholder in Kubernetes pods.
 
 **signature_policy**=""
   Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.

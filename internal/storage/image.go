@@ -855,6 +855,10 @@ func GetImageService(ctx context.Context, store storage.Store, serverConfig *con
 		IndexConfigs:          make(map[string]*indexInfo),
 		InsecureRegistryCIDRs: make([]*net.IPNet, 0),
 	}
+	// add the sandbox/pause image configured by the user (if any) to the list of pinned_images.
+	if serverConfig.PauseImage != "" {
+		serverConfig.PinnedImages = append(serverConfig.PinnedImages, serverConfig.PauseImage)
+	}
 	is := &imageService{
 		lookup:               ils,
 		store:                store,
@@ -884,8 +888,8 @@ func GetImageService(ctx context.Context, store storage.Store, serverConfig *con
 	return is, nil
 }
 
-// FilterPinnedImage checks if the give image needs to be pinned
-// to exclude from kubelet's image GC.
+// FilterPinnedImage checks if the given image needs to be pinned
+// and excluded from kubelet's image GC.
 func FilterPinnedImage(image string, pinnedImages []*regexp.Regexp) bool {
 	if len(pinnedImages) == 0 {
 		return false
