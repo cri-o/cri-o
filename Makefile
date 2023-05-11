@@ -63,6 +63,8 @@ GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GOLANGCI_LINT_VERSION := v1.52.2
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
+GOSEC := ${BUILD_BIN_PATH}/gosec
+GOSEC_VERSION := 2.15.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.4.1
@@ -306,6 +308,10 @@ $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_x86_64.tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gmo.tar.gz -C $(BUILD_BIN_PATH)
 
+$(GOSEC): $(BUILD_BIN_PATH)
+	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
+	tar xf $(BUILD_BIN_PATH)/gosec.tar.gz -C $(BUILD_BIN_PATH)
+
 bom: $(BOM)
 
 $(GOLANGCI_LINT):
@@ -467,6 +473,12 @@ get-script:
 verify-dependencies: ${ZEITGEIST}
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
+verify-gosec: ${GOSEC}
+	${BUILD_BIN_PATH}/gosec -exclude-dir=test -exclude-dir=_output -severity high -confidence high -exclude G304,G108 ./...
+
+verify-govulncheck:
+	./hack/govulncheck.sh
+
 install: .gopathok install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
@@ -573,6 +585,7 @@ metrics-exporter: bin/metrics-exporter
 	default \
 	docs \
 	docs-validation \
+	gosec \
 	help \
 	install \
 	lint \

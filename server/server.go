@@ -512,6 +512,7 @@ func New(
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certCache.GetConfigForClient,
 			Certificates:       []tls.Certificate{cert},
+			MinVersion:         tls.VersionTLS12,
 		}
 	}
 	s.stream.ctx = ctx

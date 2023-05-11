@@ -480,3 +480,15 @@ jobs:
           languages: go
       - uses: github/codeql-action/autobuild@v2
       - uses: github/codeql-action/analyze@v2
+  
+  security-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}          
+      - name: Run Govulncheck
+        run: make verify-govulncheck
+      - name: Run Gosec
+        run: make verify-gosec
