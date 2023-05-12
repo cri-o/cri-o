@@ -1329,7 +1329,12 @@ const templateStringCrioImagePauseCommand = `# The command to run to have a cont
 
 `
 
-const templateStringCrioImagePinnedImages = `# List of container images to be skipped from the kubelet's garbage collection.
+const templateStringCrioImagePinnedImages = `# List of images to be excluded from the kubelet's garbage collection.
+# It allows specifying image names using either exact, glob, or keyword 
+# patterns. Exact matches must match the entire name, glob matches can 
+# have a wildcard * at the end, and keyword matches can have wildcards 
+# on both ends. By default, this list includes the "pause" image if 
+# configured by the user, which is used as a placeholder in Kubernetes pods.
 {{ $.Comment }}pinned_images = [
 {{ range $opt := .PinnedImages }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
