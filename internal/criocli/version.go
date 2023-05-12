@@ -1,4 +1,4 @@
-package main
+package criocli
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ const (
 	verboseFlag = "verbose"
 )
 
-var versionCommand = &cli.Command{
+var VersionCommand = &cli.Command{
 	Name:  "version",
 	Usage: "display detailed version information",
 	Flags: []cli.Flag{

@@ -12,7 +12,7 @@ function teardown() {
 }
 
 function run_crio_status() {
-	run "${CRIO_STATUS_BINARY_PATH}" "$@"
+	run "${CRIO_BINARY_PATH}" "status" "$@"
 	echo "$output"
 }
 

@@ -140,7 +140,7 @@ func main() {
 	}
 
 	sort.Sort(cli.FlagsByName(app.Flags))
-	sort.Sort(cli.FlagsByName(configCommand.Flags))
+	sort.Sort(cli.FlagsByName(criocli.ConfigCommand.Flags))
 
 	app.Metadata["Env"] = map[string]string{
 		kubensmnt.EnvName: kubensmntHelp,
@@ -148,10 +148,11 @@ func main() {
 
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands, []*cli.Command{
-		configCommand,
-		publishCommand,
-		versionCommand,
-		wipeCommand,
+		criocli.ConfigCommand,
+		criocli.PublishCommand,
+		criocli.VersionCommand,
+		criocli.WipeCommand,
+		criocli.StatusCommand,
 	}...)
 
 	app.Before = func(c *cli.Context) (err error) {

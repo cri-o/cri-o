@@ -467,6 +467,26 @@ wipe CRI-O's container and image storage
 
 **--force, -f**: force wipe by skipping the version check
 
+## status
+
+Display status information
+
+**--socket, -s**="": absolute path to the unix socket (default: /var/run/crio/crio.sock)
+
+### config, c
+
+Show the configuration of CRI-O as a TOML string.
+
+### containers, container, cs, s
+
+Display detailed information about the provided container ID.
+
+**--id, -i**="": the container ID
+
+### info, i
+
+Retrieve generic information about CRI-O, such as the cgroup and storage driver.
+
 ## help, h
 
 Shows a list of commands or help for one command

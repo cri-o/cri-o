@@ -5,6 +5,7 @@
 # NAME
 
 crio-status - A tool for CRI-O status retrieval
+[Deprecation Warning: This command has been deprecated and will be removed in future versions. Please use `crio status` instead.]
 
 # SYNOPSIS
 
@@ -53,7 +54,7 @@ Shows a list of commands or help for one command
 
 ## config, c
 
-Show the configuration of CRI-O as TOML string.
+Show the configuration of CRI-O as a TOML string.
 
 ## containers, container, cs, s
 
@@ -63,7 +64,7 @@ Display detailed information about the provided container ID.
 
 ## info, i
 
-Retrieve generic information about CRI-O, like the cgroup and storage driver.
+Retrieve generic information about CRI-O, such as the cgroup and storage driver.
 
 ## help, h
 

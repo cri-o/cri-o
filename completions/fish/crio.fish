@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i complete completion help h man markdown md config version wipe help h
+        if contains -- $i complete completion help h man markdown md config version wipe status config c containers container cs s info i help h
             return 1
         end
     end
@@ -196,5 +196,14 @@ complete -c crio -n '__fish_seen_subcommand_from version' -f -l verbose -s v -d 
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'wipe' -d 'wipe CRI-O\'s container and image storage'
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l force -s f -d 'force wipe by skipping the version check'
+complete -r -c crio -n '__fish_crio_no_subcommand' -a 'status' -d 'Display status information'
+complete -c crio -n '__fish_seen_subcommand_from status' -l socket -s s -r -d 'absolute path to the unix socket'
+complete -c crio -n '__fish_seen_subcommand_from config c' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'config c' -d 'Show the configuration of CRI-O as a TOML string.'
+complete -c crio -n '__fish_seen_subcommand_from containers container cs s' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'containers container cs s' -d 'Display detailed information about the provided container ID.'
+complete -c crio -n '__fish_seen_subcommand_from containers container cs s' -f -l id -s i -r -d 'the container ID'
+complete -c crio -n '__fish_seen_subcommand_from info i' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'info i' -d 'Retrieve generic information about CRI-O, such as the cgroup and storage driver.'
 complete -c crio -n '__fish_seen_subcommand_from help h' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'help h' -d 'Shows a list of commands or help for one command'
