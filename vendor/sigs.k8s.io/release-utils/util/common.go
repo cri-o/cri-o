@@ -40,9 +40,9 @@ const (
 
 var (
 	regexpCRLF       *regexp.Regexp = regexp.MustCompile(`\015$`)
-	regexpCtrlChar   *regexp.Regexp = regexp.MustCompile(`\x1B[\[(]([0-9]{1,2}(;[0-9]{1,2})?)?[mKB]`)
+	regexpCtrlChar   *regexp.Regexp = regexp.MustCompile(`\x1B[\[(](\d{1,2}(;\d{1,2})?)?[mKB]`)
 	regexpOauthToken *regexp.Regexp = regexp.MustCompile(`[a-f0-9]{40}:x-oauth-basic`)
-	regexpGitToken   *regexp.Regexp = regexp.MustCompile(`git:[a-f0-9]{35,40}@github.com`)
+	regexpGitToken   *regexp.Regexp = regexp.MustCompile(`git:[a-f0-9]{35,40}@github\.com`)
 )
 
 // UserInputError a custom error to handle more user input info
@@ -205,7 +205,7 @@ common::askyorn () {
 // return an error crafted with UserInputError. This error can be queried
 // to find out if the user canceled the input using its method IsCtrlC:
 //
-//     if err.(util.UserInputError).IsCtrlC() {}
+//	if err.(util.UserInputError).IsCtrlC() {}
 //
 // Note that in case of cancelling input, the user will still have to press
 // enter to finish the scan.
@@ -244,12 +244,12 @@ func readInput(question string) (string, error) {
 // To specify the valid responses, either pass a string or craft a series
 // of answers using the following format:
 //
-//      "|successAnswers|nonSuccessAnswers|defaultAnswer"
+//	"|successAnswers|nonSuccessAnswers|defaultAnswer"
 //
 // The successAnswers and nonSuccessAnswers can be either a string or a
 // series os responses like:
 //
-//       "|opt1a:opt1b|opt2a:opt2b|defaultAnswer"
+//	"|opt1a:opt1b|opt2a:opt2b|defaultAnswer"
 //
 // This example will accept opt1a and opt1b as successful answers, opt2a and
 // opt2b as unsuccessful answers and in case of an empty answer, it will
