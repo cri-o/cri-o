@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -98,6 +99,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		if errors.Is(pullOp.err, syscall.ECONNREFUSED) {
 			return nil, crierrors.ErrRegistryUnavailable
 		}
+
+		var policyErr signature.PolicyRequirementError
+		if errors.As(pullOp.err, &policyErr) {
+			return nil, crierrors.ErrSignatureValidationFailed
+		}
+
 		return nil, pullOp.err
 	}
 
