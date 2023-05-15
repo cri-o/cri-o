@@ -61,11 +61,12 @@ var _ = t.Describe("Collectors", func() {
 				collectors.ImageLayerReuseTotal,
 				collectors.ContainersOOMCountTotal,
 				collectors.ContainersSeccompNotifierCountTotal,
+				collectors.ResourcesStalledAtStage,
 			} {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(25))
+			Expect(all).To(HaveLen(26))
 		})
 	})
 

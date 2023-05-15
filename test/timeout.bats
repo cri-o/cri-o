@@ -86,6 +86,23 @@ function wait_clean() {
 	[[ "$output" == "$created_ctr_id" ]]
 }
 
+@test "emit metric when sandbox is re-requested" {
+	create_pinns "$CANCEL_TIMEOUT"
+
+	# need infra container so runp can timeout in conmon
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT="$PORT" CONTAINER_DROP_INFRA_CTR=false start_crio
+	run crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[[ "$output" == *"context deadline exceeded"* ]]
+	[ "$status" -ne 0 ]
+
+	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
+
+	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep 'crio_resources_stalled_at_stage{')
+	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="sandbox container runtime creation"} 1' ]]
+}
+
 @test "should not clean up container after timeout" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
@@ -201,6 +218,22 @@ function wait_clean() {
 
 	# we should recreate the container and not reuse the old one
 	crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "emit metric when container is re-requested" {
+	PORT=$(free_port)
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT="$PORT" start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+
+	run crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	echo "$output"
+	[[ "$output" == *"context deadline exceeded"* ]]
+	[ "$status" -ne 0 ]
+
+	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+
+	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep 'crio_resources_stalled_at_stage{')
+	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="container runtime creation"} 1' ]]
 }
 
 # this test case is paranoid, but mostly checks that we can't
