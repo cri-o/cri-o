@@ -113,9 +113,12 @@ curl_to() {
 TMP_BIN=$TMPDIR/bin
 
 # conmon
-curl_to "$TMP_BIN/conmon" \
-    "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
-chmod +x "$TMP_BIN/conmon"
+# TODO: remove when conmon ppc64le releases exists
+if [[ $ARCH != "$ARCH_PPC64LE" ]]; then
+    curl_to "$TMP_BIN/conmon" \
+        "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
+    chmod +x "$TMP_BIN/conmon"
+fi
 
 # runc
 curl_to "$TMP_BIN/runc" \
@@ -142,7 +145,7 @@ curl_to - \
 if [[ $ARCH == "$ARCH_ARM64" ]]; then
     ELF_ARCH=aarch64
 elif [[ $ARCH == "$ARCH_PPC64LE" ]]; then
-    ELF_ARCH=ppc64le
+    ELF_ARCH=PowerPC
 else
     ELF_ARCH=x86-64
 fi
@@ -182,10 +185,16 @@ $BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
 pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
-EXP_CNT=65
+EXP_CNT=66
 if ! command -v runc; then
     EXP_CNT=$((EXP_CNT + 1))
 fi
+
+# TODO: remove when conmon ppc64le releases exists
+if [[ $ARCH == "$ARCH_PPC64LE" ]]; then
+    EXP_CNT=$((EXP_CNT - 1))
+fi
+
 ACT_CNT=$(find test | wc -l)
 if [[ "$EXP_CNT" != "$ACT_CNT" ]]; then
     echo "install file count does not match, expected: $EXP_CNT, actual: $ACT_CNT"
