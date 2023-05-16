@@ -34,7 +34,7 @@ github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
 github.com/Microsoft/go-winio/tools/mkwinsyscall
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.10.0-rc.7
+# github.com/Microsoft/hcsshim v0.10.0-rc.8
 ## explicit; go 1.18
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -144,7 +144,7 @@ github.com/containerd/cgroups/stats/v1
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.7.0
+# github.com/containerd/containerd v1.7.1
 ## explicit; go 1.19
 github.com/containerd/containerd/api/runtime/task/v2
 github.com/containerd/containerd/api/services/ttrpc/events/v1
@@ -199,13 +199,13 @@ github.com/containerd/nri/pkg/stub
 ## explicit; go 1.19
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
-# github.com/containerd/ttrpc v1.2.1
+# github.com/containerd/ttrpc v1.2.2
 ## explicit; go 1.13
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 ## explicit; go 1.13
 github.com/containerd/typeurl
-# github.com/containerd/typeurl/v2 v2.1.0
+# github.com/containerd/typeurl/v2 v2.1.1
 ## explicit; go 1.13
 github.com/containerd/typeurl/v2
 # github.com/containernetworking/cni v1.1.2
@@ -1715,7 +1715,7 @@ k8s.io/component-base/metrics/legacyregistry
 k8s.io/component-base/metrics/prometheus/feature
 k8s.io/component-base/metrics/prometheusextension
 k8s.io/component-base/version
-# k8s.io/cri-api v0.27.0 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20230508064917-f0417ac850a0
+# k8s.io/cri-api v0.27.1 => k8s.io/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20230508064917-f0417ac850a0
 ## explicit; go 1.20
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
