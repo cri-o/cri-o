@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/go-zoo/bone"
+	"github.com/go-chi/chi/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -15,7 +15,7 @@ import (
 var _ = t.Describe("Inspect", func() {
 	var (
 		recorder *httptest.ResponseRecorder
-		mux      *bone.Mux
+		mux      *chi.Mux
 	)
 
 	// Prepare the sut

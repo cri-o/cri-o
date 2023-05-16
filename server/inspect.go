@@ -12,7 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/types"
-	"github.com/go-zoo/bone"
+	"github.com/go-chi/chi/v5"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -120,8 +120,8 @@ const (
 )
 
 // GetExtendInterfaceMux returns the mux used to serve extend interface requests
-func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
-	mux := bone.New()
+func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
+	mux := chi.NewMux()
 
 	mux.Get(InspectConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		b, err := s.config.ToBytes()
@@ -149,9 +149,9 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 		}
 	}))
 
-	mux.Get(InspectContainersEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(InspectContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.TODO()
-		containerID := bone.GetValue(req, "id")
+		containerID := chi.URLParam(req, "id")
 		ci, err := s.getContainerInfo(ctx, containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
 			switch err {
@@ -177,8 +177,8 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 		}
 	}))
 
-	mux.Get(InspectPauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		containerID := bone.GetValue(req, "id")
+	mux.Get(InspectPauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
 		ctr := s.GetContainer(ctx, containerID)
 
@@ -207,8 +207,8 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *bone.Mux {
 		}
 	}))
 
-	mux.Get(InspectUnpauseEndpoint+"/:id", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		containerID := bone.GetValue(req, "id")
+	mux.Get(InspectUnpauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
 		ctr := s.GetContainer(ctx, containerID)
 
