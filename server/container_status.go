@@ -122,7 +122,7 @@ func (s *Server) createContainerInfo(container *oci.Container) (map[string]strin
 		Privileged  bool      `json:"privileged"`
 	}{
 		container.Sandbox(),
-		container.State().Pid,
+		container.StateNoLock().Pid,
 		container.Spec(),
 		metadata.Privileged,
 	}
