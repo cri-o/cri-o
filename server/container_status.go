@@ -143,7 +143,7 @@ func (s *Server) createContainerInfo(container *oci.Container) (map[string]strin
 	bytes, err := func(metadata *storage.RuntimeContainerMetadata) ([]byte, error) {
 		localContainerInfo := containerInfo{
 			SandboxID:   container.Sandbox(),
-			Pid:         container.State().Pid,
+			Pid:         container.StateNoLock().InitPid,
 			RuntimeSpec: container.Spec(),
 			Privileged:  metadata.Privileged,
 		}
