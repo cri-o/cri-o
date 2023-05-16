@@ -56,11 +56,9 @@ func TestGetContainerInfo(t *testing.T) {
 		}
 		container.SetMountPoint("/var/foo/container")
 		cstate := &oci.ContainerState{}
-		cstate.State = specs.State{
-			Pid: 42,
-		}
+		cstate.State = specs.State{}
 		cstate.Created = created
-		container.SetState(cstate)
+		container.SetStateAndSpoofPid(cstate)
 		return container
 	}
 	getInfraContainerFunc := func(ctx context.Context, id string) *oci.Container {
@@ -78,8 +76,8 @@ func TestGetContainerInfo(t *testing.T) {
 	if ci.CreatedTime != created.UnixNano() {
 		t.Fatalf("expected same created time %d, got %d", created.UnixNano(), ci.CreatedTime)
 	}
-	if ci.Pid != 42 {
-		t.Fatalf("expected pid 42, got %v", ci.Pid)
+	if ci.Pid != 1 {
+		t.Fatalf("expected pid 1, got %v", ci.Pid)
 	}
 	if ci.Name != "testname" {
 		t.Fatalf("expected name testname, got %s", ci.Name)
