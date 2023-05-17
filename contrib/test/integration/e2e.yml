@@ -21,8 +21,6 @@
       - "for NodePort service"
       - "In-tree Volumes [Driver: local]"
       - "PersistentVolumes-local"
-      - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source"
-      - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data"
       # Started failing at https://github.com/kubernetes/kubernetes/pull/98587, and tests something out of the scope of CRI-O
       - "ServiceAccountIssuerDiscovery should support OIDC discovery of service account issuer"
       # While fully conformant kubernetes clusters require more than 2 nodes, verifying that CRI-O
