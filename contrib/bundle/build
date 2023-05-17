@@ -56,7 +56,7 @@ for FILE in "${FILES_BIN[@]}"; do
         echo "File '$FILE' does not exist"
         ERRORED=1
     elif [[ ! -x "$FILE" ]]; then
-        echo "File '$FILE' is not exectuable"
+        echo "File '$FILE' is not executable"
         ERRORED=1
     elif ! file "$FILE" | grep "statically linked" | grep -q stripped; then
         echo "Binary '$FILE' is not statically linked and stripped"

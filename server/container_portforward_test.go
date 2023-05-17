@@ -46,7 +46,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 	})
 
 	t.Describe("StreamServer: PortForward", func() {
-		It("shoud fail when sandbox not found", func() {
+		It("should fail when sandbox not found", func() {
 			// Given
 			// When
 			err := testStreamService.PortForward(context.Background(), testSandbox.ID(), 0, nil)

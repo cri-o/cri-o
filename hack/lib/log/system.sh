@@ -232,7 +232,7 @@ readonly -f os::log::system::start
 # Globals:
 #  None
 # Arguments:
-#  - 1: file to log binary outut to
+#  - 1: file to log binary output to
 #  - 2: file to log stderr of the logger to
 # Returns:
 #  None

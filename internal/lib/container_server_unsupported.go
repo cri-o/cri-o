@@ -8,9 +8,9 @@ import (
 )
 
 func (c *ContainerServer) addSandboxPlatform(sb *sandbox.Sandbox) {
-	// nothin' doin'
+	// nothing' doin'
 }
 
 func (c *ContainerServer) removeSandboxPlatform(sb *sandbox.Sandbox) {
-	// nothin' doin'
+	// nothing' doin'
 }

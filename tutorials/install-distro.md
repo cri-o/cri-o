@@ -3,7 +3,7 @@
 CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
 
 ## Supported Versions
-Below is a compatiblity matrix between versions of CRI-O (y-axis) and distributions (x-axis)
+Below is a compatibility matrix between versions of CRI-O (y-axis) and distributions (x-axis)
 
 |      | Fedora 31+ | openSUSE | CentOS_8 | CentOS_8_Stream | CentOS_7 | Debian_Unstable | Debian_Testing | Debian 10 | Rasbian_10 | xUbuntu_20.04 | xUbuntu_19.10 | xUbuntu_19.04 | xUbuntu_18.04 |
 | ---- | ---------- | -------- | -------- | --------------- | -------- | --------------- | -------------- | --------- | ---------- | ------------- | ------------- | ------------- | ------------- |

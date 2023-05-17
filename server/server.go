@@ -254,7 +254,7 @@ func (s *Server) restore(ctx context.Context) []string {
 		}
 	}
 
-	// Go through all the containers and check if it can be restored. If an error occurs, delete the conainer and
+	// Go through all the containers and check if it can be restored. If an error occurs, delete the container and
 	// release the name associated with you.
 	for containerID := range podContainers {
 		err := s.LoadContainer(ctx, containerID)

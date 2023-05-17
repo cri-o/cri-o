@@ -1017,7 +1017,7 @@ const templateStringCrioRuntimeLogSizeMax = `# Maximum sized allowed for the con
 
 `
 
-const templateStringCrioRuntimeLogToJournald = `# Whether container output should be logged to journald in addition to the kuberentes log file
+const templateStringCrioRuntimeLogToJournald = `# Whether container output should be logged to journald in addition to the kubernetes log file
 {{ $.Comment }}log_to_journald = {{ .LogToJournald }}
 
 `
@@ -1144,7 +1144,7 @@ const templateStringCrioRuntimeDefaultRuntime = `# default_runtime is the _name_
 
 const templateStringCrioRuntimeAbsentMountSourcesToReject = `# A list of paths that, when absent from the host,
 # will cause a container creation to fail (as opposed to the current behavior being created as a directory).
-# This option is to protect from source locations whose existence as a directory could jepordize the health of the node, and whose
+# This option is to protect from source locations whose existence as a directory could jeopardize the health of the node, and whose
 # creation as a file is not desired either.
 # An example is /etc/hostname, which will cause failures on reboot if it's created as a directory, but often doesn't exist because
 # the hostname is being managed dynamically.

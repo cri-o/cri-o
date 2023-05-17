@@ -878,7 +878,7 @@ function check_oci_annotation() {
 	crictl exec --sync "$ctr_id" grep "CapEff:\s0000000000000000" /proc/1/status
 }
 
-@test "ctr has gid in supplimental groups" {
+@test "ctr has gid in supplemental groups" {
 	start_crio
 
 	jq '	  .linux.security_context.run_as_user.value = 1000

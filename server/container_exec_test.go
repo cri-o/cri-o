@@ -47,7 +47,7 @@ var _ = t.Describe("ContainerStart", func() {
 	})
 
 	t.Describe("StreamServer: Exec", func() {
-		It("shoud fail when container not found", func() {
+		It("should fail when container not found", func() {
 			// Given
 			// When
 			err := testStreamService.Exec(context.Background(), testContainer.ID(), []string{},

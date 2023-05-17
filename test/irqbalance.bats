@@ -153,7 +153,7 @@ function teardown() {
 #	there is no previous status of banned cpus saved by cri-o
 # when
 #	cri-o starts using the proper irqbalance service configuration file
-#   and we explictly disable the restore file option
+#   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
 #	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
@@ -189,7 +189,7 @@ function teardown() {
 #   pointer by "BANNEDCPUS_CONF" env var
 # when
 #	cri-o starts using the proper irqbalance service configuration file
-#   and we explictly disable the restore file option
+#   and we explicitly disable the restore file option
 # then
 #	restore option does not disturb cri-o behaviour
 #	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field

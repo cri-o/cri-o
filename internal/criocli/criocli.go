@@ -1152,7 +1152,7 @@ func StringSliceTrySplit(ctx *cli.Context, name string) []string {
 		}
 
 		logrus.Infof(
-			"Parsed commma separated CLI flag %q into dedicated values %v",
+			"Parsed comma separated CLI flag %q into dedicated values %v",
 			name, values,
 		)
 

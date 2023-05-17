@@ -462,7 +462,7 @@ var _ = t.Describe("Container", func() {
 		})
 	})
 	t.Describe("IsAlive", func() {
-		It("should be false if pid unintialized", func() {
+		It("should be false if pid uninitialized", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = 0
