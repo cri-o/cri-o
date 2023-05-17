@@ -16,8 +16,6 @@
       - "for NodePort service"
       - "In-tree Volumes [Driver: local]"
       - "PersistentVolumes-local"
-      - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] provisioning should provision storage with pvc data source"
-      - "CSI Volumes [Driver: csi-hostpath] [Testpattern: Dynamic PV (block volmode)] volumes should store data"
       - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should provide basic identity"
       - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should not deadlock when a pod's predecessor fails" 
       - "[sig-apps] StatefulSet Basic StatefulSet functionality [StatefulSetBasic] should adopt matching orphans and release non-matching pods" 
