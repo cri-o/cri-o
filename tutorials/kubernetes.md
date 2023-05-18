@@ -3,7 +3,7 @@
 ## Switching runtime from docker to CRI-O
 
 In standard docker kubernetes cluster, kubelet is running on each node as systemd service and is taking care of communication between runtime and api service.
-It is reponsible for starting microservices pods (such as `kube-proxy`, `kubedns`, etc. - they can be different for various ways of deploying k8s) and user pods.
+It is responsible for starting microservices pods (such as `kube-proxy`, `kubedns`, etc. - they can be different for various ways of deploying k8s) and user pods.
 Configuration of kubelet determines which runtime is used and in what way.
 
 Kubelet itself is executed in docker container (as we can see in `kubelet.service`), but, what is important, **it's not** a kubernetes pod (at least for now), 

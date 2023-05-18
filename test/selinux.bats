@@ -85,7 +85,7 @@ function teardown() {
 
 }
 
-@test "selinux skips relabeling for super priviliged container" {
+@test "selinux skips relabeling for super privileged container" {
 	if [[ $(getenforce) != "Enforcing" ]]; then
 		skip "not enforcing"
 	fi

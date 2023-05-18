@@ -301,9 +301,9 @@ static bool is_host_ns(const char* const optarg) {
   return optarg && !strcmp (optarg, HOSTNS);
 }
 
-/* Mount namespaces can only be bound into unsharable mount namespaces (to
+/* Mount namespaces can only be bound into unshareable mount namespaces (to
  * avoid infinite loops), so force the pin_path to be a bind-mount to
- * itself and then marked as unsharable. */
+ * itself and then marked as unshareable. */
 static int setup_unbindable_bindpath(const char *pin_path, const char *ns_name) {
   char bind_root[PATH_MAX];
 
@@ -321,7 +321,7 @@ static int setup_unbindable_bindpath(const char *pin_path, const char *ns_name) 
 
   // Now that bind_root is definitely a mountpoint, set it to be UNBINDABLE (idempotent-safe)
   if (mount(NULL, bind_root, NULL, MS_UNBINDABLE, NULL) < 0) {
-    pwarnf("Could not make %s an unsharable mountpoint", bind_root);
+    pwarnf("Could not make %s an unshareable mountpoint", bind_root);
     return -1;
   }
   return 0;

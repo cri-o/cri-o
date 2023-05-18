@@ -83,7 +83,7 @@ var _ = t.Describe("completion generation", func() {
 			"'foobar:foobar handles $FOOBAR'",
 		),
 		Entry(
-			"should escape $'s within doube quotes",
+			"should escape $'s within double quotes",
 			"barfoo", "barfoo's usage $needs $escaped $dollars",
 			"\"barfoo:barfoo's usage \\$needs \\$escaped \\$dollars\"",
 		),

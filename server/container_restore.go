@@ -25,7 +25,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (b
 	if _, err := os.Stat(input); err == nil {
 		return false, nil
 	}
-	imageStatusRespone, err := s.ImageStatus(
+	imageStatusResponse, err := s.ImageStatus(
 		ctx,
 		&types.ImageStatusRequest{
 			Image: &types.ImageSpec{
@@ -37,14 +37,14 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (b
 		return false, err
 	}
 
-	if imageStatusRespone == nil ||
-		imageStatusRespone.Image == nil ||
-		imageStatusRespone.Image.Spec == nil ||
-		imageStatusRespone.Image.Spec.Annotations == nil {
+	if imageStatusResponse == nil ||
+		imageStatusResponse.Image == nil ||
+		imageStatusResponse.Image.Spec == nil ||
+		imageStatusResponse.Image.Spec.Annotations == nil {
 		return false, nil
 	}
 
-	ann, ok := imageStatusRespone.Image.Spec.Annotations[crioann.CheckpointAnnotationName]
+	ann, ok := imageStatusResponse.Image.Spec.Annotations[crioann.CheckpointAnnotationName]
 	if !ok {
 		return false, nil
 	}

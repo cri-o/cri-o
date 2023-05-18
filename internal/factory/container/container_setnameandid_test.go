@@ -37,7 +37,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		Expect(sut.Name()).To(ContainSubstring(uid))
 	})
 
-	It("should succeed with ID as paramater", func() {
+	It("should succeed with ID as parameter", func() {
 		// Given
 		const (
 			name      = "name"

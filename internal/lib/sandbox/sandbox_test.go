@@ -135,7 +135,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(testSandbox.DNSConfig()).To(BeNil())
 			dnsConfig := types.DNSConfig{
 				Servers:  []string{"server1", "server2"},
-				Searches: []string{"searche1", "searches"},
+				Searches: []string{"search1", "searches"},
 				Options:  []string{"option1", "option2"},
 			}
 

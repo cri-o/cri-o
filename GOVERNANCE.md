@@ -67,7 +67,7 @@ Further, some more detailed information can be found in the [CRI-O Maintainers f
 #### How to be come an org member
 
 * Organization members are contributors whose contributions automatically have CI run on them.
-* As such, a proven track-record of good faith contributions is requred for org membership.
+* As such, a proven track-record of good faith contributions is required for org membership.
 * To become an org member, one should file an issue with [this template](https://github.com/cri-o/cri-o/issues/new?template=org_member.yml&title=REQUEST%3A+New+organization+membership+for+%3Cyour-GH-handle%3E).
 
 #### Reviewer responsibilities

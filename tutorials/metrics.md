@@ -140,7 +140,7 @@ quay.io][4].
 
 The deployment requires enabled [RBAC][5] within the target Kubernetes
 environment and creates a new [ClusterRole][6] to be able to list available
-nodes. Beside that a new Role wille be created to be able to update a config-map
+nodes. Beside that a new Role will be created to be able to update a config-map
 within the `cri-o-exporter` namespace. Please be aware that the exporter only
 works if the pod has access to the node IP from its namespace. This should
 generally work but might be restricted due to network configuration or policies.

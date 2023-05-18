@@ -46,7 +46,7 @@ var _ = t.Describe("ImageList", func() {
 			Expect(response.Images[0].Id).To(Equal(imageID))
 		})
 
-		It("should succed with filter", func() {
+		It("should succeed with filter", func() {
 			// Given
 			gomock.InOrder(
 				imageServerMock.EXPECT().ListImages(

@@ -110,9 +110,9 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
-			preservBuf := []byte{}
+			preserveBuf := []byte{}
 			for i, key := range keys {
-				preservBuf = append(preservBuf, buf[0:nr]...)
+				preserveBuf = append(preserveBuf, buf[0:nr]...)
 				if nr != 1 || buf[0] != key {
 					break
 				}
@@ -122,8 +122,8 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
 				}
 				nr, er = src.Read(buf)
 			}
-			nw, ew := dst.Write(preservBuf)
-			nr = len(preservBuf)
+			nw, ew := dst.Write(preserveBuf)
+			nr = len(preserveBuf)
 			if nw > 0 {
 				written += int64(nw)
 			}

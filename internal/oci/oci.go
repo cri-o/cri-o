@@ -134,7 +134,7 @@ func (r *Runtime) getRuntimeHandler(handler string) (*config.RuntimeHandler, err
 	return rh, nil
 }
 
-// PrivelegedRuntimeHandler returns a boolean value configured for the
+// PrivilegedRuntimeHandler returns a boolean value configured for the
 // runtimeHandler indicating if devices on the host are passed/not passed
 // to a container running as privileged.
 func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {

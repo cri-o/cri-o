@@ -241,7 +241,7 @@ the container runtime configuration.
   This option is deprecated. The Kubelet flag `--container-log-max-size` should be used instead.
 
 **log_to_journald**=false
-  Whether container output should be logged to journald in addition to the kuberentes log file.
+  Whether container output should be logged to journald in addition to the kubernetes log file.
 
 **container_exits_dir**="/var/run/crio/exits"
   Path to directory in which container exit files are written to by conmon.
@@ -272,7 +272,7 @@ the container runtime configuration.
 
 **drop_infra_ctr**=true
   Determines whether we drop the infra container when a pod does not have a private PID namespace, and does not use a kernel separating runtime (like kata).
-  Requies **manage_ns_lifecycle** to be true.
+  Requires **manage_ns_lifecycle** to be true.
 
 **infra_ctr_cpuset**=""
     Determines the CPU set to run infra containers. If not specified, the CRI-O will use all online CPUs to run infra containers.

@@ -47,7 +47,7 @@ var _ = t.Describe("ContainerAttach", func() {
 	})
 
 	t.Describe("StreamServer: Attach", func() {
-		It("shoud fail if container was not found", func() {
+		It("should fail if container was not found", func() {
 			// Given
 			// When
 			err := testStreamService.Attach(context.Background(), testContainer.ID(),

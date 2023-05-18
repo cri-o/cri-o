@@ -143,3 +143,11 @@ jobs:
           key: go-verify-dependencies-${{ hashFiles('**/go.sum') }}
           restore-keys: go-verify-dependencies-
       - run: make verify-dependencies
+
+  typos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: crate-ci/typos@v1.14.9
+        with:
+          config: .typos.toml
