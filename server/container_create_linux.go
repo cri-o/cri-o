@@ -25,7 +25,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -407,12 +406,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if linux != nil {
 		resources := linux.Resources
 		if resources != nil {
-			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
 			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
 			specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
-			if runtimehandlerhooks.ShouldCPUQuotaBeDisabled(ctx, containerID, specgen.Config, sb, sb.Annotations()) {
-				specgen.SetLinuxResourcesCPUQuota(-1)
-			}
+			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
 
 			memoryLimit := resources.MemoryLimitInBytes
 			if memoryLimit != 0 {
