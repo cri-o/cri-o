@@ -1026,3 +1026,42 @@ function check_oci_annotation() {
 
 	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
 }
+
+@test "ctr log linking" {
+	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.LinkLogs
+	start_crio
+
+	# Create directories created by the kubelet needed for log linking to work
+	pod_uid=$(head -c 32 /proc/sys/kernel/random/uuid)
+	pod_name=$(jq -r '.metadata.name' "$TESTDATA/sandbox_config.json")
+	pod_namespace=$(jq -r '.metadata.namespace' "$TESTDATA/sandbox_config.json")
+	pod_log_dir="/var/log/pods/${pod_namespace}_${pod_name}_${pod_uid}"
+	mkdir -p "$pod_log_dir"
+	pod_empty_dir_volume_path="/var/lib/kubelet/pods/$pod_uid/volumes/kubernetes.io~empty-dir/logging-volume"
+	mkdir -p "$pod_empty_dir_volume_path"
+
+	# Add annotation for log linking in the pod
+	jq --arg pod_log_dir "$pod_log_dir" --arg pod_uid "$pod_uid" '.annotations["io.kubernetes.cri-o.LinkLogs"] = "logging-volume"
+	| .log_directory = $pod_log_dir | .metadata.uid = $pod_uid' \
+		"$TESTDATA/sandbox_config.json" > "$TESTDIR/sandbox_config.json"
+	pod_id=$(crictl runp "$TESTDIR"/sandbox_config.json)
+
+	# Touch the log file
+	mkdir -p "${pod_log_dir}/container1"
+	touch "${pod_log_dir}/container1/0.log"
+
+	# Create a new container.
+	jq '	  .command = ["sh", "-c", "echo Hello log linking"]
+	| .log_path = "container1/0.log"' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDIR/sandbox_config.json")
+	crictl start "$ctr_id"
+
+	# Check that the log is linked
+	ctr_log_path="$pod_log_dir/container1/0.log"
+	[ -f "$ctr_log_path" ]
+	linked_log_path="$pod_empty_dir_volume_path/logs/container1/0.log"
+	[ -f "$linked_log_path" ]
+
+	grep -E "Hello log linking" "$linked_log_path"
+}

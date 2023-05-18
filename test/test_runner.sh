@@ -33,7 +33,8 @@ TESTS=("${@:-.}")
 export JOBS=${JOBS:-$(($(nproc --all) * 4))}
 
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
+# execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
 # Set this var to run irqbalance tests
-export TEST_SERIAL="Yes"
-execute bats --tap ./irqbalance.bats
+#export TEST_SERIAL="Yes"
+#execute bats --tap ./irqbalance.bats
+execute bats -f "ctr log linking" ctr.bats

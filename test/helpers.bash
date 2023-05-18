@@ -154,7 +154,7 @@ function setup_test() {
     CRIO_CONFIG_DIR="$TESTDIR/crio.conf.d"
     mkdir "$CRIO_CONFIG_DIR"
     CRIO_CONFIG="$TESTDIR/crio.conf"
-    CRIO_CUSTOM_CONFIG="$CRIO_CONFIG_DIR/crio-custom.conf"
+    CRIO_CUSTOM_CONFIG="$CRIO_CONFIG_DIR/00-crio-custom.conf"
     CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
     CRIO_LOG="$TESTDIR/crio.log"
 
