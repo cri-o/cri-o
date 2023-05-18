@@ -621,6 +621,22 @@ function set_swap_fields_given_cgroup_version() {
     fi
 }
 
+function set_container_pod_cgroup_root() {
+    controller="$1"
+    ctr_id="$2"
+    CGROUP_ROOT="/sys/fs/cgroup"
+    if is_cgroup_v2; then
+        controller=""
+    fi
+
+    export POD_CGROUP="$CGROUP_ROOT"/"$controller"/pod_123.slice/pod_123-456.slice
+    export CTR_CGROUP="$POD_CGROUP"/crio-"$ctr_id".scope
+    if "$CONTAINER_CGROUP_MANAGER" != "systemd"; then
+        export POD_CGROUP="$CGROUP_ROOT"/"$controller"/pod_123-456
+        export CTR_CGROUP="$POD_CGROUP"/crio-"$ctr_id"
+    fi
+}
+
 function check_conmon_cpuset() {
     local ctr_id="$1"
     local cpuset="$2"
