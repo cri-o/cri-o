@@ -89,6 +89,9 @@ type Server struct {
 	seccompNotifierChan chan seccomp.Notification
 	seccompNotifiers    sync.Map
 
+	containerEventClients           sync.Map
+	containerEventStreamBroadcaster sync.Once
+
 	// NRI runtime interface
 	nri *nriAPI
 }
