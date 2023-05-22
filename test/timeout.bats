@@ -68,7 +68,6 @@ function wait_clean() {
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create
@@ -89,7 +88,6 @@ function wait_clean() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create
@@ -112,7 +110,6 @@ function wait_clean() {
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create
@@ -135,7 +132,6 @@ function wait_clean() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create
@@ -160,7 +156,6 @@ function wait_clean() {
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_clean
@@ -190,7 +185,6 @@ function wait_clean() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_clean
@@ -215,7 +209,6 @@ function wait_clean() {
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
 	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create
@@ -234,7 +227,6 @@ function wait_clean() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
 	[[ "$output" == *"context deadline exceeded"* ]]
 
 	wait_create

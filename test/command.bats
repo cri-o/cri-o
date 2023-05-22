@@ -9,11 +9,9 @@ load helpers
 
 @test "invalid ulimits" {
 	run ! "${CRIO_BINARY_PATH}" --default-ulimits doesntexist=2042
-	echo "$output"
 	[[ "$output" == *"invalid ulimit type: doesntexist"* ]]
 
 	run ! "${CRIO_BINARY_PATH}" --default-ulimits nproc=2042:42
-	echo "$output"
 	[[ "$output" == *"ulimit soft limit must be less than or equal to hard limit: 2042 > 42"* ]]
 	# can't cover everything here, ulimits parsing is tested in
 	# github.com/docker/go-units package
@@ -21,47 +19,38 @@ load helpers
 
 @test "invalid devices" {
 	run ! "${CRIO_BINARY_PATH}" --additional-devices /dev/null:/dev/foo:123
-	echo "$output"
 	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 
 	run ! "${CRIO_BINARY_PATH}" --additional-devices /dev/null:/dee/foo:rm
-	echo "$output"
 	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 
 	run ! "${CRIO_BINARY_PATH}" --additional-devices /dee/sda:rmw
-	echo "$output"
 	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]
 }
 
 @test "invalid metrics port" {
 	run ! "$CRIO_BINARY_PATH" --metrics-port foo --enable-metrics
-	echo "$output"
 	[[ "$output" == *'invalid value "foo" for flag'* ]]
 
 	run ! "$CRIO_BINARY_PATH" --metrics-port 18446744073709551616 --enable-metrics
-	echo "$output"
 	[[ "$output" == *"value out of range"* ]]
 }
 
 @test "invalid log max" {
 	run ! "$CRIO_BINARY_PATH" --log-size-max foo
-	echo "$output"
 	[[ "$output" == *'invalid value "foo" for flag'* ]]
 }
 
 @test "log max boundary testing" {
 	# log size max is special zero value
 	run ! "$CRIO_BINARY_PATH" --log-size-max 0
-	echo "$output"
 	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
 
 	# log size max is less than 8192 and more than 0
 	run ! "$CRIO_BINARY_PATH" --log-size-max 8191
-	echo "$output"
 	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
 
 	# log size max is out of the range of 64-bit signed integers
 	run ! "$CRIO_BINARY_PATH" --log-size-max 18446744073709551616
-	echo "$output"
 	[[ "$output" == *"value out of range"* ]]
 }
