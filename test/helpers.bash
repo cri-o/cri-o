@@ -454,12 +454,6 @@ function replace_config() {
     sed -i -e 's;\('"$1"' = "\).*\("\);\1'"$2"'\2;' "$CRIO_CUSTOM_CONFIG"
 }
 
-# Fails the current test, providing the error given.
-function fail() {
-    echo "FAIL [${BATS_TEST_NAME} ${BASH_SOURCE[0]##*/}:${BASH_LINENO[0]}] $*" >&2
-    exit 1
-}
-
 # tests whether the node is configured to use cgroupv2
 function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"

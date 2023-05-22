@@ -129,7 +129,7 @@ run_a_container_after_unloading_default_apparmor_profile() {
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor5.json)
 
-	crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json && fail
+	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json
 
 	cleanup_test
 }
