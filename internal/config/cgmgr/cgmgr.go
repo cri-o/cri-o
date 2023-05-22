@@ -12,6 +12,8 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
+	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -72,6 +74,9 @@ type CgroupManager interface {
 	// CreateSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
 	CreateSandboxCgroup(sbParent, containerID string) error
+	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
+	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container.
+	RemoveSandboxCgroup(sbParent, containerID string) error
 }
 
 // New creates a new CgroupManager with defaults
@@ -158,4 +163,42 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 		}
 	}
 	return nil
+}
+
+// createSandboxCgroup takes the path of the sandbox parent and the desired containerCgroup
+// It creates a cgroup through cgroupfs (as opposed to systemd) at the location cgroupRoot/sbParent/containerCgroup.
+func createSandboxCgroup(sbParent, containerCgroup string) error {
+	cg := &cgcfgs.Cgroup{
+		Name:   containerCgroup,
+		Parent: sbParent,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	mgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return err
+	}
+
+	return mgr.Apply(-1)
+}
+
+func removeSandboxCgroup(sbParent, containerCgroup string) error {
+	cg := &cgcfgs.Cgroup{
+		Name:   containerCgroup,
+		Parent: sbParent,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	mgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return err
+	}
+
+	return mgr.Destroy()
+}
+
+func containerCgroupPath(id string) string {
+	return crioPrefix + "-" + id
 }
