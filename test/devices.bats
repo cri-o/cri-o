@@ -60,8 +60,7 @@ function teardown() {
 	[[ "$output" == *"Operation not permitted"* ]]
 
 	# The write should be allowed by the devices cgroup policy
-	run crictl exec --timeout=$timeout --sync "$ctr_id" sh -c "echo woohoo | tee $device"
-	[ "$status" -eq 0 ]
+	run -0 crictl exec --timeout=$timeout --sync "$ctr_id" sh -c "echo woohoo | tee $device"
 	# check there's no error message of any kind from tee
 	[[ "$output" == "woohoo" ]]
 }

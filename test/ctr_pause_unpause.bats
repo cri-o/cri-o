@@ -106,6 +106,5 @@ function teardown() {
 		exit 1
 	fi
 
-	run crictl rm -f "$ctr_id"
-	[ "$status" -eq 0 ]
+	crictl rm -f "$ctr_id"
 }

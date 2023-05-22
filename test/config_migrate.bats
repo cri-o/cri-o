@@ -25,9 +25,8 @@ load helpers
 
 @test "config migrate should fail on invalid version" {
 	# when
-	run crio -c "" -d "" config -m 1.16
+	run -1 crio -c "" -d "" config -m 1.16
 
 	# then
 	[[ "$output" == *"unsupported migration version"* ]]
-	[ "$status" -eq 1 ]
 }

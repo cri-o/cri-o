@@ -119,8 +119,7 @@ function teardown() {
 
 	start_crio
 
-	run crictl stop "$ctr_id"
-	[ "$status" -eq 1 ]
+	run -1 crictl stop "$ctr_id"
 	[[ "${output}" == *"not found"* ]]
 }
 
