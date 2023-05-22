@@ -57,27 +57,27 @@ EOF
 
 function verify_injected_vendor0() {
 	# shellcheck disable=SC2016
-	run -0 crictl exec --sync "$1" sh -c 'echo $VENDOR0'
+	output=$(crictl exec --sync "$1" sh -c 'echo $VENDOR0')
 	[ "$output" = "injected" ]
 }
 
 function verify_injected_loop8() {
 	# shellcheck disable=SC2016
-	run -0 crictl exec --sync "$1" sh -c 'echo $LOOP8'
+	output=$(crictl exec --sync "$1" sh -c 'echo $LOOP8')
 	[ "$output" = "present" ]
-	run -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop8'
+	output=$(crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop8')
 	[ "$output" = "7.8" ]
-	run -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop8'
+	output=$(crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop8')
 	[ "$output" = "640" ]
 }
 
 function verify_injected_loop9() {
 	# shellcheck disable=SC2016
-	run -0 crictl exec --sync "$1" sh -c 'echo $LOOP9'
+	output=$(crictl exec --sync "$1" sh -c 'echo $LOOP9')
 	[ "$output" = "present" ]
-	run -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop9'
+	output=$(crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop9')
 	[ "$output" = "7.9" ]
-	run -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop9'
+	output=$(crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop9')
 	[ "$output" = "644" ]
 }
 
@@ -95,13 +95,28 @@ function prepare_ctr_without_cdidev {
 	cp "$TESTDATA/container_config.json" "$ctr_config"
 }
 
-function prepare_ctr_with_cdidev {
+function annotate_ctr_with_cdidev {
+	json_src="${1:-$TESTDATA/container_sleep.json}"
+	if [ "$json_src" = "$ctr_config" ]; then
+		json_src="$ctr_config.in"
+		cp "$ctr_config" "$json_src"
+	fi
 	jq ".annotations |= . + { \"cdi.k8s.io/test\": \"vendor0.com/device=loop8,vendor0.com/device=loop9\" }" \
+		"$json_src" > "$ctr_config"
+}
+
+function annotate_ctr_with_unknown_cdidev {
+	jq ".annotations |= . + { \"cdi.k8s.io/test\": \"vendor0.com/device=loop10\" }" \
+		"$TESTDATA/container_sleep.json" > "$ctr_config"
+}
+
+function prepare_ctr_with_cdidev {
+	jq ".CDI_Devices |= . + [ { \"Name\": \"vendor0.com/device=loop8\" }, { \"Name\": \"vendor0.com/device=loop9\" } ]" \
 		"$TESTDATA/container_sleep.json" > "$ctr_config"
 }
 
 function prepare_ctr_with_unknown_cdidev {
-	jq ".annotations |= . + { \"cdi.k8s.io/test\": \"vendor0.com/device=loop10\" }" \
+	jq ".CDI_Devices |= . + { \"Name\": \"vendor0.com/device=loop10\" }" \
 		"$TESTDATA/container_sleep.json" > "$ctr_config"
 }
 
@@ -139,6 +154,46 @@ function prepare_ctr_with_unknown_cdidev {
 	verify_injected_loop9 "$ctr_id"
 }
 
+@test "no CDI errors, create ctr with annotated CDI devices" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	write_cdi_spec
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	annotate_ctr_with_cdidev
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	crictl start "$ctr_id"
+
+	verify_injected_vendor0 "$ctr_id"
+	verify_injected_loop8 "$ctr_id"
+	verify_injected_loop9 "$ctr_id"
+}
+
+@test "no CDI errors, create ctr with duplicate annotated CDI devices" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	write_cdi_spec
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	prepare_ctr_with_cdidev
+	annotate_ctr_with_cdidev "$ctr_config"
+
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	crictl start "$ctr_id"
+
+	verify_injected_vendor0 "$ctr_id"
+	verify_injected_loop8 "$ctr_id"
+	verify_injected_loop9 "$ctr_id"
+
+	wait_for_log "Skipping duplicate annotated CDI device"
+}
+
 @test "no CDI errors, fail to create ctr with unresolvable CDI devices" {
 	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
 		skip "CDI tests for user namespace"
@@ -149,6 +204,19 @@ function prepare_ctr_with_unknown_cdidev {
 	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_unknown_cdidev
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+}
+
+@test "no CDI errors, fail to create ctr with unresolvable annotated CDI devices" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	write_cdi_spec
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	annotate_ctr_with_unknown_cdidev
 	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
 }
 
@@ -172,7 +240,52 @@ function prepare_ctr_with_unknown_cdidev {
 	verify_injected_loop9 "$ctr_id"
 }
 
+@test "CDI registry refresh, annotated CDI devices" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	annotate_ctr_with_cdidev
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+
+	write_cdi_spec
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	run -0 crictl start "$ctr_id"
+
+	verify_injected_vendor0 "$ctr_id"
+	verify_injected_loop8 "$ctr_id"
+	verify_injected_loop9 "$ctr_id"
+}
+
 @test "reload CRI-O CDI parameters" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	write_cdi_spec
+	set_cdi_dir "$cdidir.no-such-dir"
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	annotate_ctr_with_cdidev
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+
+	set_cdi_dir "$cdidir"
+	reload_crio
+	sleep 1
+
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	crictl start "$ctr_id"
+
+	verify_injected_vendor0 "$ctr_id"
+	verify_injected_loop8 "$ctr_id"
+	verify_injected_loop9 "$ctr_id"
+}
+
+@test "reload CRI-O CDI parameters, with annotated CDI devices" {
 	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
 		skip "CDI tests for user namespace"
 	fi
@@ -228,6 +341,26 @@ function prepare_ctr_with_unknown_cdidev {
 	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 	grep "CDI registry has errors" "$CRIO_LOG"
 	crictl start "$ctr_id"
+
+	verify_injected_vendor0 "$ctr_id"
+	verify_injected_loop8 "$ctr_id"
+	verify_injected_loop9 "$ctr_id"
+}
+
+@test "CDI with errors, create ctr with (unaffected) annotated CDI devices" {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+	write_cdi_spec
+	write_invalid_cdi_spec
+	start_crio
+
+	pod_id=$(crictl runp "$pod_config")
+
+	annotate_ctr_with_cdidev
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	run -0 grep "CDI registry has errors" "$CRIO_LOG"
+	run -0 crictl start "$ctr_id"
 
 	verify_injected_vendor0 "$ctr_id"
 	verify_injected_loop8 "$ctr_id"

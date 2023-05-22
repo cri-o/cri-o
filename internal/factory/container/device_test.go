@@ -210,6 +210,7 @@ var _ = t.Describe("Container", func() {
 		type testdata struct {
 			testDescription string
 			cdiSpecFiles    []string
+			cdiDevices      []*types.CDIDevice
 			annotations     map[string]string
 			expectError     bool
 			expectDevices   []rspec.LinuxDevice
@@ -217,6 +218,100 @@ var _ = t.Describe("Container", func() {
 		}
 
 		tests := []testdata{
+			// test CDI device injection by dedicated CRI CDIDevices field
+			{
+				testDescription: "Expect no CDI error for nil CDIDevices",
+			},
+			{
+				testDescription: "Expect no CDI error for empty CDIDevices",
+				cdiDevices:      []*types.CDIDevice{},
+			},
+			{
+				testDescription: "Expect CDI error for invalid CDI device reference in CDIDevices",
+				cdiDevices: []*types.CDIDevice{
+					{
+						Name: "foobar",
+					},
+				},
+				expectError: true,
+			},
+			{
+				testDescription: "Expect CDI error for unresolvable CDIDevices",
+				cdiDevices: []*types.CDIDevice{
+					{
+						Name: "vendor1.com/device=no-such-dev",
+					},
+				},
+				expectError: true,
+			},
+			{
+				testDescription: "Expect properly injected resolvable CDIDevices",
+				cdiSpecFiles: []string{
+					`
+cdiVersion: "0.3.0"
+kind: "vendor1.com/device"
+devices:
+  - name: foo
+    containerEdits:
+      deviceNodes:
+        - path: /dev/loop8
+          type: b
+          major: 7
+          minor: 8
+      env:
+        - FOO=injected
+containerEdits:
+  env:
+    - "VENDOR1=present"
+`,
+					`
+cdiVersion: "0.3.0"
+kind: "vendor2.com/device"
+devices:
+  - name: bar
+    containerEdits:
+      deviceNodes:
+        - path: /dev/loop9
+          type: b
+          major: 7
+          minor: 9
+      env:
+        - BAR=injected
+containerEdits:
+  env:
+    - "VENDOR2=present"
+`,
+				},
+				cdiDevices: []*types.CDIDevice{
+					{
+						Name: "vendor1.com/device=foo",
+					},
+					{
+						Name: "vendor2.com/device=bar",
+					},
+				},
+				expectDevices: []rspec.LinuxDevice{
+					{
+						Path:  "/dev/loop8",
+						Type:  "b",
+						Major: 7,
+						Minor: 8,
+					},
+					{
+						Path:  "/dev/loop9",
+						Type:  "b",
+						Major: 7,
+						Minor: 9,
+					},
+				},
+				expectEnv: []string{
+					"FOO=injected",
+					"VENDOR1=present",
+					"BAR=injected",
+					"VENDOR2=present",
+				},
+			},
+			// test CDI device injection by annotations
 			{
 				testDescription: "Expect no CDI error for nil annotations",
 			},
@@ -313,7 +408,8 @@ containerEdits:
 					Linux: &types.LinuxContainerConfig{
 						SecurityContext: &types.LinuxContainerSecurityContext{},
 					},
-					Devices: []*types.Device{},
+					Devices:    []*types.Device{},
+					CDIDevices: test.cdiDevices,
 				}
 				sboxConfig := &types.PodSandboxConfig{
 					Linux: &types.LinuxPodSandboxConfig{
