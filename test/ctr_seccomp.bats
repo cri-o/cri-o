@@ -38,8 +38,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -ne 0 ]
+	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
 # 3. test running with ctr runtime/default and profile empty
@@ -50,8 +49,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -ne 0 ]
+	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
 # 4. test running with ctr wrong profile name
@@ -59,8 +57,7 @@ function teardown() {
 	jq '	  .linux.security_context.seccomp_profile_path = "wontwork"' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	run crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json
-	[[ "$status" -ne 0 ]]
+	run ! crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json
 	[[ "$output" =~ "unknown seccomp profile " ]]
 	[[ "$output" =~ "wontwork" ]]
 }
@@ -72,8 +69,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -ne 0 ]
+	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
 # 6. test running with ctr docker/default
@@ -84,8 +80,7 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
-	run crictl exec --sync "$ctr_id" chmod 777 .
-	[ "$status" -ne 0 ]
+	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
 # 7. test running with ctr unconfined if seccomp_override_empty is false

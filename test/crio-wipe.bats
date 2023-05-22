@@ -180,10 +180,7 @@ function start_crio_with_stopped_pod() {
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
 
-	run "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
-	echo "$status"
-	echo "$output"
-	[ "$status" -ne 0 ]
+	run ! "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
 }
 
 @test "don't clear containers on a forced restart of crio" {

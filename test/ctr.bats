@@ -497,10 +497,9 @@ function check_oci_annotation() {
 	output=$(crictl exec --sync "$ctr_id" echo HELLO)
 	[ "$output" = "HELLO" ]
 
-	run crictl -D exec --sync --timeout 3 "$ctr_id" sleep 5
+	run ! crictl -D exec --sync --timeout 3 "$ctr_id" sleep 5
 	echo "$output"
 	[[ "$output" == *"command "*" timed out"* ]]
-	[ "$status" -ne 0 ]
 }
 
 @test "ctr execsync should not overwrite initial spec args" {
@@ -741,8 +740,7 @@ function check_oci_annotation() {
 
 	jq '	  .command = ["nonexistent"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not found"* ]]
 }
 
@@ -753,8 +751,7 @@ function check_oci_annotation() {
 	jq '	  .command = ["nonexistent"]
 		| .tty = true' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not found"* ]]
 }
 
@@ -835,8 +832,7 @@ function check_oci_annotation() {
 	jq '	  .working_dir = "/etc/passwd"
 		| .metadata.name = "container2"' \
 		< "$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not a directory"* ]]
 }
 

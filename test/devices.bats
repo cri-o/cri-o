@@ -56,8 +56,7 @@ function teardown() {
 
 	# Opening the device in read mode should fail because the device
 	# cgroup access only allows writes.
-	run crictl exec --timeout=$timeout --sync "$ctr_id" head -1 $device
-	[ "$status" -ne 0 ]
+	run ! crictl exec --timeout=$timeout --sync "$ctr_id" head -1 $device
 	[[ "$output" == *"Operation not permitted"* ]]
 
 	# The write should be allowed by the devices cgroup policy

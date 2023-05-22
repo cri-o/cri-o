@@ -38,10 +38,9 @@ function teardown() {
 	printf '[crio.runtime]\nlog_level = "wrong-level"\n' > "$CRIO_CONFIG_DIR"/00-default
 
 	# when
-	run "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
+	run ! "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
 
 	# then
-	[ "$status" -ne 0 ]
 	[[ "$output" == *"not a valid logrus"*"wrong-level"* ]]
 }
 
@@ -50,9 +49,7 @@ function teardown() {
 	printf '[crio.runtime]\nenable_pod_events = "on"\n' > "$CRIO_CONFIG_DIR"/00-default
 
 	# when
-	run "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
-	# then
-	[ "$status" -ne 0 ]
+	run ! "$CRIO_BINARY_PATH" -c "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR"
 }
 
 @test "choose different default runtime should succeed" {
