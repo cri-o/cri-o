@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 . common.sh
+bats_require_minimum_version 1.9.0
 
 function setup_test() {
     TESTDIR=$(mktemp -d)
