@@ -40,8 +40,7 @@ import (
 	"github.com/cri-o/ocicni/pkg/ocicni"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
-
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 )
 
 // Defaults if none are specified
