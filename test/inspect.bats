@@ -20,14 +20,8 @@ function teardown() {
 
 @test "ctr inspect" {
 	start_crio
-	run crictl runp "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	pod_id="$output"
-	run crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	echo "$output"
-	[ "$status" -eq 0 ]
-	ctr_id="$output"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)
 
 	out=$(echo -e "GET /containers/$ctr_id HTTP/1.1\r\nHost: crio\r\n" | socat - UNIX-CONNECT:"$CRIO_SOCKET")
 	[[ "$out" == *"\"sandbox\":\"$pod_id\""* ]]
