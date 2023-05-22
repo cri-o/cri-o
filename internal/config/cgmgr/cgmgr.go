@@ -11,8 +11,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/podman/v3/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/config/node"
-	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
+	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/pkg/errors"
@@ -147,22 +150,22 @@ func VerifyMemoryIsEnough(memoryLimit int64) error {
 // createSandboxCgroup takes the path of the sandbox parent and the desired containerCgroup
 // It creates a cgroup through cgroupfs (as opposed to systemd) at the location cgroupRoot/sbParent/containerCgroup.
 func createSandboxCgroup(sbParent, containerCgroup string) error {
-	cg := &cgcfgs.Cgroup{
-		Name:   containerCgroup,
-		Parent: sbParent,
-		Resources: &cgcfgs.Resources{
-			SkipDevices: true,
-		},
-	}
-	mgr, err := libctrCgMgr.New(cg)
+	mgr, err := libctrCgroupManager(sbParent, containerCgroup)
 	if err != nil {
 		return err
 	}
-
 	return mgr.Apply(-1)
 }
 
 func removeSandboxCgroup(sbParent, containerCgroup string) error {
+	mgr, err := libctrCgroupManager(sbParent, containerCgroup)
+	if err != nil {
+		return err
+	}
+	return mgr.Destroy()
+}
+
+func libctrCgroupManager(sbParent, containerCgroup string) (libctr.Manager, error) {
 	cg := &cgcfgs.Cgroup{
 		Name:   containerCgroup,
 		Parent: sbParent,
@@ -170,12 +173,10 @@ func removeSandboxCgroup(sbParent, containerCgroup string) error {
 			SkipDevices: true,
 		},
 	}
-	mgr, err := libctrCgMgr.New(cg)
-	if err != nil {
-		return err
+	if node.CgroupIsV2() {
+		return fs2.NewManager(cg, "", rootless.IsRootless())
 	}
-
-	return mgr.Destroy()
+	return fs.NewManager(cg, nil, rootless.IsRootless()), nil
 }
 
 func containerCgroupPath(id string) string {
