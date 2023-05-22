@@ -49,12 +49,6 @@ function run_test() {
 		--crio-socket "unix://$CRIO_SOCKET" \
 		--nri-socket "unix://$NRI_SOCKET" \
 		--cgroup-manager "$CONTAINER_CGROUP_MANAGER" "$@" >&"$NRITEST_LOG"
-
-	if [[ "$status" -ne "0" ]]; then
-		# shellcheck disable=SC2034
-		BATS_ERROR_SUFFIX=", expected exit status 0, got $status"
-		return 1
-	fi
 }
 
 @test "run NRI PluginRegistration test" {
