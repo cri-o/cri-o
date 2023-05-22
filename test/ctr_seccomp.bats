@@ -111,5 +111,5 @@ function teardown() {
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
 
 	ctr_id=$(crictl run "$TESTDIR"/seccomp.json "$TESTDATA"/sandbox_config.json)
-	! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
+	run ! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
 }

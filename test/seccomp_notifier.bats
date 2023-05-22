@@ -131,6 +131,6 @@ function teardown() {
 	[ "$status" -ne 0 ]
 
 	# Assert
-	! grep -q "Got seccomp notifier message for container ID: $CTR" "$CRIO_LOG"
+	run ! grep -q "Got seccomp notifier message for container ID: $CTR" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.status.state == "CONTAINER_RUNNING"'
 }

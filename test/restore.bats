@@ -194,7 +194,7 @@ function teardown() {
 
 	start_crio
 
-	! crictl inspect "$ctr_id"
+	run ! crictl inspect "$ctr_id"
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json)

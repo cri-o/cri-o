@@ -130,7 +130,7 @@ function wait_clean() {
 	wait_clean
 
 	# the old, timed out container should have been removed
-	! runtime list -q | grep "$created_ctr_id"
+	[[ "$(runtime list -q)" != *"$created_ctr_id"* ]]
 }
 
 @test "should clean up container after timeout if request changes" {
@@ -155,7 +155,7 @@ function wait_clean() {
 	wait_clean
 
 	# the old, timed out container should have been removed
-	! runtime list -q | grep "$created_ctr_id"
+	[[ "$(runtime list -q)" != *"$created_ctr_id"* ]]
 }
 
 @test "should clean up pod after timeout if not re-requested" {
@@ -206,7 +206,7 @@ function wait_clean() {
 	[[ -z "$ctrs" ]]
 
 	# container should have been cleaned up
-	! runtime list -q | grep -v "$pod_id"
+	[[ "$(runtime list -q)" != *"$pod_id"* ]]
 
 	# we should recreate the container and not reuse the old one
 	crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
@@ -231,9 +231,9 @@ function wait_clean() {
 	created_ctr_id=$(runtime list -q)
 	[ -n "$created_ctr_id" ]
 
-	! crictl create "$created_ctr_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
-	! crictl stopp "$created_ctr_id"
-	! crictl inspectp "$created_ctr_id"
+	run ! crictl create "$created_ctr_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	run ! crictl stopp "$created_ctr_id"
+	run ! crictl inspectp "$created_ctr_id"
 }
 
 @test "should not be able to operate on a timed out container" {
@@ -251,10 +251,10 @@ function wait_clean() {
 	created_ctr_id=$(runtime list -q | grep -v "$pod_id")
 	[ -n "$created_ctr_id" ]
 
-	! crictl start "$created_ctr_id"
-	! crictl exec "$created_ctr_id" ls
-	! crictl exec --sync "$created_ctr_id" ls
-	! crictl inspect "$created_ctr_id"
+	run ! crictl start "$created_ctr_id"
+	run ! crictl exec "$created_ctr_id" ls
+	run ! crictl exec --sync "$created_ctr_id" ls
+	run ! crictl inspect "$created_ctr_id"
 }
 
 @test "should not wait for actual duplicate container request" {

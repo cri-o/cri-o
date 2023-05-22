@@ -4,7 +4,7 @@ load helpers
 
 @test "crio commands" {
 	${CRIO_BINARY_PATH} -c /dev/null config > /dev/null
-	! ${CRIO_BINARY_PATH} badoption > /dev/null
+	run ! "${CRIO_BINARY_PATH}" badoption
 }
 
 @test "invalid ulimits" {
