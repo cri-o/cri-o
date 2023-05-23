@@ -11,6 +11,7 @@ build_crun: False
 build_kata: False
 cgroupv2: False
 use_conmonrs: '{{ USE_CONMONRS | default(False) | bool }}'
+evented_pleg_fg: '{{ EVENTED_PLEG | default(False) | bool }}'
 
 critest_mirror_repo: quay.io/crio
 cri_tools_git_version: "v1.27.0"

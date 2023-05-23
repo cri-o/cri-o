@@ -34,6 +34,17 @@
     enabled: yes
     daemon_reload: yes
 
+- name: update the evented pleg feature gate for the custom cluster
+  become: yes
+  lineinfile:
+    dest: /usr/local/bin/createcluster.sh
+    line: |
+        # Added by Ansible from e2e.yml
+        export FEATURE_GATES="EventedPLEG=true"
+    regexp: "^export FEATURE_GATES="
+    state: present
+  when: "evented_pleg_fg | default(False) | bool"
+
 - name: update the server address for the custom cluster
   become: yes
   lineinfile:
