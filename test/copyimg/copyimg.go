@@ -98,12 +98,10 @@ func main() {
 
 		if imageName != "" {
 			if rootDir == "" && runrootDir != "" {
-				log.Errorf(ctx, "Must set --root and --runroot, or neither")
-				os.Exit(1)
+				log.Fatalf(ctx, "Must set --root and --runroot, or neither")
 			}
 			if rootDir != "" && runrootDir == "" {
-				log.Errorf(ctx, "Must set --root and --runroot, or neither")
-				os.Exit(1)
+				log.Fatalf(ctx, "Must set --root and --runroot, or neither")
 			}
 			storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
 			if err != nil {
@@ -117,8 +115,7 @@ func main() {
 			}
 			store, err = sstorage.GetStore(storeOptions)
 			if err != nil {
-				log.Errorf(ctx, "Error opening storage: %v", err)
-				os.Exit(1)
+				log.Fatalf(ctx, "Error opening storage: %v", err)
 			}
 			defer func() {
 				_, err = store.Shutdown(false)
@@ -130,8 +127,7 @@ func main() {
 			storage.Transport.SetStore(store)
 			ref, err = storage.Transport.ParseStoreReference(store, imageName)
 			if err != nil {
-				log.Errorf(ctx, "Error parsing image name: %v", err)
-				os.Exit(1)
+				log.Fatalf(ctx, "Error parsing image name: %v", err)
 			}
 		}
 
@@ -140,13 +136,11 @@ func main() {
 		}
 		policy, err := signature.DefaultPolicy(&systemContext)
 		if err != nil {
-			log.Errorf(ctx, "Error loading signature policy: %v", err)
-			os.Exit(1)
+			log.Fatalf(ctx, "Error loading signature policy: %v", err)
 		}
 		policyContext, err := signature.NewPolicyContext(policy)
 		if err != nil {
-			log.Errorf(ctx, "Error loading signature policy: %v", err)
-			os.Exit(1)
+			log.Fatalf(ctx, "Error loading signature policy: %v", err)
 		}
 		defer func() {
 			err = policyContext.Destroy()
@@ -159,16 +153,14 @@ func main() {
 		if importFrom != "" {
 			importRef, err = alltransports.ParseImageName(importFrom)
 			if err != nil {
-				log.Errorf(ctx, "Error parsing image name %v: %v", importFrom, err)
-				os.Exit(1)
+				log.Fatalf(ctx, "Error parsing image name %v: %v", importFrom, err)
 			}
 		}
 
 		if exportTo != "" {
 			exportRef, err = alltransports.ParseImageName(exportTo)
 			if err != nil {
-				log.Errorf(ctx, "Error parsing image name %v: %v", exportTo, err)
-				os.Exit(1)
+				log.Fatalf(ctx, "Error parsing image name %v: %v", exportTo, err)
 			}
 		}
 
@@ -176,34 +168,29 @@ func main() {
 			if importFrom != "" {
 				_, err = copy.Image(ctx, policyContext, ref, importRef, options)
 				if err != nil {
-					log.Errorf(ctx, "Error importing %s: %v", importFrom, err)
-					os.Exit(1)
+					log.Fatalf(ctx, "Error importing %s: %v", importFrom, err)
 				}
 			}
 			if addName != "" {
 				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
 				if err1 != nil {
-					log.Errorf(ctx, "Error finding image: %v", err1)
-					os.Exit(1)
+					log.Fatalf(ctx, "Error finding image: %v", err1)
 				}
 				err = store.AddNames(destImage.ID, []string{imageName, addName})
 				if err != nil {
-					log.Errorf(ctx, "Error adding name to %s: %v", imageName, err)
-					os.Exit(1)
+					log.Fatalf(ctx, "Error adding name to %s: %v", imageName, err)
 				}
 			}
 			if exportTo != "" {
 				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
-					log.Errorf(ctx, "Error exporting %s: %v", exportTo, err)
-					os.Exit(1)
+					log.Fatalf(ctx, "Error exporting %s: %v", exportTo, err)
 				}
 			}
 		} else if importFrom != "" && exportTo != "" {
 			_, err = copy.Image(ctx, policyContext, exportRef, importRef, options)
 			if err != nil {
-				log.Errorf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
-				os.Exit(1)
+				log.Fatalf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
 			}
 		}
 		return nil
