@@ -1,8 +1,5 @@
-//go:build !linux
-// +build !linux
-
 /*
-Copyright 2017 The Kubernetes Authors.
+Copyright 2014 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -17,17 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Vendored from https://git.k8s.io/kubernetes/pkg/util/iptables/save_restore.go
+
 package iptables
 
 import (
 	"fmt"
-	"os"
 )
 
-func grabIptablesLocks(lock14filePath, lock16filePath string) (iptablesLocker, error) {
-	return nil, fmt.Errorf("iptables unsupported on this platform")
-}
-
-func grabIptablesFileLock(f *os.File) error {
-	return fmt.Errorf("iptables unsupported on this platform")
+// MakeChainLine return an iptables-save/restore formatted chain line given a Chain
+func MakeChainLine(chain Chain) string {
+	return fmt.Sprintf(":%s - [0:0]", chain)
 }

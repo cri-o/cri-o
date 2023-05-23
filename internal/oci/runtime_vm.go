@@ -39,7 +39,6 @@ import (
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kioutil "k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -324,8 +323,8 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	defer log.Debugf(ctx, "RuntimeVM.ExecSyncContainer() end")
 
 	var stdoutBuf, stderrBuf bytes.Buffer
-	stdout := &writeCloserWrapper{kioutil.LimitWriter(&stdoutBuf, maxExecSyncSize)}
-	stderr := &writeCloserWrapper{kioutil.LimitWriter(&stderrBuf, maxExecSyncSize)}
+	stdout := &writeCloserWrapper{limitWriter(&stdoutBuf, maxExecSyncSize)}
+	stderr := &writeCloserWrapper{limitWriter(&stderrBuf, maxExecSyncSize)}
 
 	exitCode, err := r.execContainerCommon(ctx, c, command, timeout, nil, stdout, stderr, c.terminal, nil)
 	if err != nil {
@@ -345,6 +344,39 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 		Stderr:   stderrBuf.Bytes(),
 		ExitCode: exitCode,
 	}, nil
+}
+
+// limitWriter is a copy of the standard library ioutils.LimitReader,
+// applied to the writer interface.
+// limitWriter returns a Writer that writes to w
+// but stops with EOF after n bytes.
+// The underlying implementation is a *LimitedWriter.
+func limitWriter(w io.Writer, n int64) io.Writer { return &limitedWriter{w, n} }
+
+// A limitedWriter writes to W but limits the amount of
+// data returned to just N bytes. Each call to Write
+// updates N to reflect the new amount remaining.
+// Write returns EOF when N <= 0 or when the underlying W returns EOF.
+type limitedWriter struct {
+	W io.Writer // underlying writer
+	N int64     // max bytes remaining
+}
+
+func (l *limitedWriter) Write(p []byte) (n int, err error) {
+	if l.N <= 0 {
+		return 0, io.ErrShortWrite
+	}
+	truncated := false
+	if int64(len(p)) > l.N {
+		p = p[0:l.N]
+		truncated = true
+	}
+	n, err = l.W.Write(p)
+	l.N -= int64(n)
+	if err == nil && truncated {
+		err = io.ErrShortWrite
+	}
+	return
 }
 
 func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {

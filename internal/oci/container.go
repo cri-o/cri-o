@@ -26,7 +26,7 @@ import (
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 const (

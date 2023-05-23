@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {

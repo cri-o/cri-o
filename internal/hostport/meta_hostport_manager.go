@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 )
