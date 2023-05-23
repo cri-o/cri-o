@@ -60,7 +60,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 1.8.4
+    version: 1.8.5
     refPaths:
     - path: scripts/versions
       match: crun
@@ -114,7 +114,7 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GO_MOD_OUTDATED_VERSION
-  
+
   - name: gosec
     version: 2.15.0
     refPaths:
