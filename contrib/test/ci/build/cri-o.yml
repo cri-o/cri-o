@@ -87,6 +87,14 @@
       runtime_root = "/run/crun"
   when: "use_conmonrs | default(False) | bool"
 
+- name: use evented-pleg
+  copy:
+    dest: /etc/crio/crio.conf.d/99-evented-pleg.conf
+    content: |
+      [crio.runtime]
+      enable_pod_events = true
+  when: "evented_pleg_fg | default(False) | bool"
+
 - name: use kata
   copy:
     dest: /etc/crio/crio.conf.d/50-kata.conf
