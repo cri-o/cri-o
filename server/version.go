@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/version"
+	"github.com/pkg/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
