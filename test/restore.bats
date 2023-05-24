@@ -204,7 +204,7 @@ function teardown() {
 }
 
 @test "crio restore first not managing then managing" {
-	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_DROP_INFRA_CTR=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")
 
@@ -221,7 +221,7 @@ function teardown() {
 
 	stop_crio
 
-	CONTAINER_MANAGE_NS_LIFECYCLE=true start_crio
+	start_crio
 	output=$(crictl pods --quiet)
 	[[ "${output}" == "${pod_id}" ]]
 
@@ -246,7 +246,7 @@ function teardown() {
 }
 
 @test "crio restore first managing then not managing" {
-	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_DROP_INFRA_CTR=true start_crio
+	CONTAINER_DROP_INFRA_CTR=true start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")
 
@@ -262,7 +262,7 @@ function teardown() {
 
 	stop_crio
 
-	CONTAINER_MANAGE_NS_LIFECYCLE=false CONTAINER_DROP_INFRA_CTR=false start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 	output=$(crictl pods --quiet)
 	[[ "${output}" == "${pod_id}" ]]
 
@@ -287,7 +287,7 @@ function teardown() {
 }
 
 @test "crio restore changing managing dir" {
-	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_NAMESPACE_DIR="$TESTDIR/ns1" start_crio
+	CONTAINER_NAMESPACE_DIR="$TESTDIR/ns1" start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	pod_list_info=$(crictl pods --quiet --id "$pod_id")
 
@@ -302,7 +302,7 @@ function teardown() {
 
 	stop_crio
 
-	CONTAINER_MANAGE_NS_LIFECYCLE=true CONTAINER_NAMESPACE_DIR="$TESTDIR/ns2" start_crio
+	CONTAINER_NAMESPACE_DIR="$TESTDIR/ns2" start_crio
 	output=$(crictl pods --quiet)
 	[[ "${output}" == "${pod_id}" ]]
 

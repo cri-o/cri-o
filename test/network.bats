@@ -119,9 +119,7 @@ function check_networking() {
 	CONMON_BINARY="$TESTDIR"/conmon
 	cp "$(command -v conmon)" "$CONMON_BINARY"
 	CNI_DEFAULT_NETWORK="crio-${TESTDIR: -10}"
-	CONTAINER_MANAGE_NS_LIFECYCLE=false \
-		CONTAINER_DROP_INFRA_CTR=false \
-		start_crio
+	CONTAINER_DROP_INFRA_CTR=false start_crio
 
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
