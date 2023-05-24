@@ -170,14 +170,6 @@ const (
 	// Enables SecretRef field in CSI NodeExpandVolume request.
 	CSINodeExpandSecret featuregate.Feature = "CSINodeExpandSecret"
 
-	// owner: @pohly
-	// alpha: v1.19
-	// beta: v1.21
-	// GA: v1.24
-	//
-	// Enables tracking of available storage capacity that CSI drivers provide.
-	CSIStorageCapacity featuregate.Feature = "CSIStorageCapacity"
-
 	// owner: @fengzixu
 	// alpha: v1.21
 	//
@@ -212,13 +204,14 @@ const (
 	// Enables support for time zones in CronJobs.
 	CronJobTimeZone featuregate.Feature = "CronJobTimeZone"
 
-	// owner: @jiayingz, @swatisehgal (for GA graduation)
-	// alpha: v1.8
-	// beta: v1.10
-	// GA: v1.26
+	// owner: @thockin
+	// deprecated: v1.28
 	//
-	// Enables support for Device Plugins
-	DevicePlugins featuregate.Feature = "DevicePlugins"
+	// Changes when the default value of PodSpec.containers[].ports[].hostPort
+	// is assigned.  The default is to only set a default value in Pods.
+	// Enabling this means a default will be assigned even to embeddedPodSpecs
+	// (e.g. in a Deployment), which is the historical default.
+	DefaultHostNetworkHostPortsInPodTemplates featuregate.Feature = "DefaultHostNetworkHostPortsInPodTemplates"
 
 	// owner: @andrewsykim
 	// alpha: v1.22
@@ -415,14 +408,6 @@ const (
 	// allow the Job controller to keep track of Pods that it didn't account for
 	// yet.
 	JobTrackingWithFinalizers featuregate.Feature = "JobTrackingWithFinalizers"
-
-	// owner: @andrewsykim @adisky @ndixita
-	// alpha: v1.20
-	// beta: v1.24
-	// GA: v1.26
-	//
-	// Enable kubelet exec plugins for image pull credentials.
-	KubeletCredentialProviders featuregate.Feature = "KubeletCredentialProviders"
 
 	// owner: @AkihiroSuda
 	// alpha: v1.22
@@ -895,8 +880,6 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	CSINodeExpandSecret: {Default: true, PreRelease: featuregate.Beta},
 
-	CSIStorageCapacity: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.26
-
 	CSIVolumeHealth: {Default: false, PreRelease: featuregate.Alpha},
 
 	SkipReadOnlyValidationGCE: {Default: false, PreRelease: featuregate.Alpha},
@@ -909,7 +892,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	CronJobTimeZone: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
 
-	DevicePlugins: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.28
+	DefaultHostNetworkHostPortsInPodTemplates: {Default: false, PreRelease: featuregate.Deprecated},
 
 	DisableCloudProviders: {Default: false, PreRelease: featuregate.Alpha},
 
@@ -963,8 +946,6 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	JobTrackingWithFinalizers: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.28
 
-	KubeletCredentialProviders: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.28
-
 	KubeletInUserNamespace: {Default: false, PreRelease: featuregate.Alpha},
 
 	KubeletPodResources: {Default: true, PreRelease: featuregate.Beta},
@@ -979,7 +960,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	LegacyServiceAccountTokenNoAutoGeneration: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.29
 
-	LegacyServiceAccountTokenTracking: {Default: true, PreRelease: featuregate.Beta},
+	LegacyServiceAccountTokenTracking: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.30
 
 	LocalStorageCapacityIsolationFSQuotaMonitoring: {Default: false, PreRelease: featuregate.Alpha},
 
@@ -995,7 +976,7 @@ var defaultKubernetesFeatureGates = map[featuregate.Feature]featuregate.FeatureS
 
 	MinDomainsInPodTopologySpread: {Default: true, PreRelease: featuregate.Beta},
 
-	MinimizeIPTablesRestore: {Default: true, PreRelease: featuregate.Beta},
+	MinimizeIPTablesRestore: {Default: true, PreRelease: featuregate.GA, LockToDefault: true}, // remove in 1.30
 
 	MultiCIDRRangeAllocator: {Default: false, PreRelease: featuregate.Alpha},
 

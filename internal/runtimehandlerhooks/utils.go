@@ -9,7 +9,7 @@ import (
 
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/sirupsen/logrus"
-	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
+	"k8s.io/utils/cpuset"
 )
 
 func isASCII(s string) bool {

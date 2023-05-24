@@ -96,13 +96,15 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 
 	if pullOp.err != nil {
+		wrap := func(e error) error { return fmt.Errorf("%v: %w", e, pullOp.err) }
+
 		if errors.Is(pullOp.err, syscall.ECONNREFUSED) {
-			return nil, crierrors.ErrRegistryUnavailable
+			return nil, wrap(crierrors.ErrRegistryUnavailable)
 		}
 
 		var policyErr signature.PolicyRequirementError
 		if errors.As(pullOp.err, &policyErr) {
-			return nil, crierrors.ErrSignatureValidationFailed
+			return nil, wrap(crierrors.ErrSignatureValidationFailed)
 		}
 
 		return nil, pullOp.err
