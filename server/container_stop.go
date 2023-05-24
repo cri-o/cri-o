@@ -79,6 +79,12 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 
+	if hooks != nil {
+		if err := hooks.PostStop(ctx, ctr, sb); err != nil {
+			return fmt.Errorf("failed to run post-stop hook for container %q: %w", ctr.ID(), err)
+		}
+	}
+
 	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
 		return err
 	}
