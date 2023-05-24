@@ -20,7 +20,7 @@ var _ = t.Describe("History", func() {
 		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
 			make(map[string]string), make(map[string]string), "", "",
 			&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-			[]*hostport.PortMapping{}, false, time.Now(), "")
+			[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
 		Expect(err).To(BeNil())
 		Expect(testSandbox).NotTo(BeNil())
 		sut = &sandbox.History{testSandbox, otherTestSandbox}

@@ -156,7 +156,7 @@ var beforeEach = func() {
 	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
 		make(map[string]string), make(map[string]string), "", "",
 		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "")
+		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
 	Expect(err).To(BeNil())
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",

@@ -64,6 +64,8 @@ type Sandbox struct {
 	hostNetwork        bool
 	usernsMode         string
 	containerEnvPath   string
+	podLinuxOverhead   *types.LinuxContainerResources
+	podLinuxResources  *types.LinuxContainerResources
 }
 
 // DefaultShmSize is the default shm size
@@ -75,7 +77,7 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string) (*Sandbox, error) {
+func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string, overhead, resources *types.LinuxContainerResources) (*Sandbox, error) {
 	sb := new(Sandbox)
 
 	sb.criSandbox = &types.PodSandbox{
@@ -101,6 +103,8 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	sb.portMappings = portMappings
 	sb.hostNetwork = hostNetwork
 	sb.usernsMode = usernsMode
+	sb.podLinuxOverhead = overhead
+	sb.podLinuxResources = resources
 
 	return sb, nil
 }
@@ -284,6 +288,16 @@ func (s *Sandbox) Hostname() string {
 // PortMappings returns a list of port mappings between the host and the sandbox
 func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 	return s.portMappings
+}
+
+// PodLinuxOverhead returns the overheads associated with this sandbox
+func (s *Sandbox) PodLinuxOverhead() *types.LinuxContainerResources {
+	return s.podLinuxOverhead
+}
+
+// PodLinuxResources returns the sum of container resources for this sandbox
+func (s *Sandbox) PodLinuxResources() *types.LinuxContainerResources {
+	return s.podLinuxResources
 }
 
 // AddContainer adds a container to the sandbox

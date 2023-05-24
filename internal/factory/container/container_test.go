@@ -93,7 +93,7 @@ var _ = t.Describe("Container", func() {
 			sb, err := sandbox.New("sandboxID", "", "", "", "test",
 				make(map[string]string), make(map[string]string), "", "",
 				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-				[]*hostport.PortMapping{}, false, currentTime, "")
+				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
 			Expect(err).To(BeNil())
 
 			image, err := sut.Image()
