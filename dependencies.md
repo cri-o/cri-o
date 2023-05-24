@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 23 May 2023 22:25:49 UTC for commit [603730d][0]._
+_Generated on Wed, 24 May 2023 00:42:28 UTC for commit [03ff4c1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/603730df204486b95f0ab5ef0c29d2fba9d6910e
+[0]: https://github.com/cri-o/cri-o/commit/03ff4c17925fc11a0daf184862cad29fb78d8d12
 
 ## Outdated Dependencies
 
@@ -667,7 +667,7 @@ _Generated on Tue, 23 May 2023 22:25:49 UTC for commit [603730d][0]._
 | github.com/ostreedev/ostree-go                                                          | v0.0.0-20210805093236-719684c64e4f                |                                    | false  | true             |
 | github.com/pascaldekloe/goe                                                             | v0.0.0-20180627143212-57f6aae5913c                | v0.1.1                             | false  | true             |
 | github.com/pelletier/go-toml                                                            | v1.9.5                                            |                                    | false  | true             |
-| github.com/pelletier/go-toml/v2                                                         | v2.0.6                                            | v2.0.7                             | false  | true             |
+| github.com/pelletier/go-toml/v2                                                         | v2.0.6                                            | v2.0.8                             | false  | true             |
 | github.com/peterbourgon/diskv                                                           | v2.0.1+incompatible                               |                                    | false  | true             |
 | github.com/philhofer/fwd                                                                | v1.1.1                                            | v1.1.2                             | false  | true             |
 | github.com/pierrec/lz4/v4                                                               | v4.1.2                                            | v4.1.17                            | false  | true             |
