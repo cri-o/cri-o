@@ -63,7 +63,7 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 	if sbParent != "" {
 		parent = sbParent
 	}
-	return parent + ":" + crioPrefix + ":" + containerID
+	return parent + ":" + CrioPrefix + ":" + containerID
 }
 
 // PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
@@ -161,7 +161,7 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 		return "", "", err
 	}
 
-	cgPath = cgParent + ":" + crioPrefix + ":" + sbID
+	cgPath = cgParent + ":" + CrioPrefix + ":" + sbID
 
 	return cgParent, cgPath, nil
 }
