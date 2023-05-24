@@ -298,6 +298,11 @@ func setCPUQuota(parentDir string, c *oci.Container) error {
 		return err
 	}
 	containerCgroup := filepath.Base(cgroupPath)
+	// A quirk of libcontainer's cgroup driver.
+	// See explanation in disableCPUQuotaForCgroup function.
+	if cgroupManager.IsSystemd() {
+		containerCgroup = c.ID()
+	}
 	containerCgroupParent := filepath.Dir(cgroupPath)
 	podCgroup := filepath.Base(containerCgroupParent)
 	podCgroupParent := filepath.Dir(containerCgroupParent)
@@ -309,6 +314,9 @@ func setCPUQuota(parentDir string, c *oci.Container) error {
 }
 
 func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
+	if systemd {
+		parent = filepath.Base(parent)
+	}
 	cg := &configs.Cgroup{
 		Name:   cgroup,
 		Parent: parent,
@@ -317,6 +325,12 @@ func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
 			CpuQuota:    -1,
 		},
 		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: cgmgr.CrioPrefix,
 	}
 	mgr, err := libCtrMgr.New(cg)
 	if err != nil {
