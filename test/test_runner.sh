@@ -18,8 +18,11 @@ if [[ -n "$TEST_USERNS" ]]; then
     fi
 fi
 
-# Load the helpers.
-. helpers.bash
+# Preload images.
+(
+    . common.sh
+    get_images
+)
 
 function execute() {
     echo >&2 ++ "$@"
