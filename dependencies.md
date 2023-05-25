@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 25 May 2023 19:22:17 UTC for commit [167196a][0]._
+_Generated on Thu, 25 May 2023 21:00:20 UTC for commit [395d322][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/167196a2a0809811f71572a24b4bd15b239b09b2
+[0]: https://github.com/cri-o/cri-o/commit/395d32218aa2173c6f9c0cfa940741c90c29d4c0
 
 ## Outdated Dependencies
 
@@ -582,7 +582,7 @@ _Generated on Thu, 25 May 2023 19:22:17 UTC for commit [167196a][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.1                                            | v1.0.2                             | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.25                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.0                                            | v1.0.1                             | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230524212327-6ea74d5be9a3 | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230525204342-33fc8c4b6f0b | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/libopenstorage/openstorage                                                   | v1.0.0                                            | v9.4.47+incompatible               | false  | true             |
