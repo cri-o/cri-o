@@ -102,16 +102,11 @@ function teardown() {
 	CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
 
 	# Wait for container to OOM
-	CNT=0
-	while [ $CNT -le 100 ]; do
-		CNT=$((CNT + 1))
-		OUTPUT=$(crictl inspect --output yaml "$CTR_ID")
-		if [[ "$OUTPUT" == *"OOMKilled"* ]]; then
-			break
-		fi
+	for _ in {1..100}; do
 		sleep 10
+		crictl inspect --output yaml "$CTR_ID" | grep OOMKilled && break
 	done
-	[[ "$OUTPUT" == *"OOMKilled"* ]]
+	crictl inspect --output yaml "$CTR_ID" | grep OOMKilled
 
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep '^container_runtime_crio_containers_oom_total')
 	[[ "$METRIC" == 'container_runtime_crio_containers_oom_total 1' ]]
