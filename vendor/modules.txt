@@ -349,7 +349,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.37.3 => github.com/saschagrunert/storage v1.33.3-0.20230523081633-54d278ef7fd2
+# github.com/containers/storage v1.37.3
 ## explicit
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1666,7 +1666,6 @@ sigs.k8s.io/zeitgeist/internal/github/internal
 sigs.k8s.io/zeitgeist/internal/release/regex
 sigs.k8s.io/zeitgeist/pkg/gitlab
 sigs.k8s.io/zeitgeist/upstreams
-# github.com/containers/storage => github.com/saschagrunert/storage v1.33.3-0.20230523081633-54d278ef7fd2
 # google.golang.org/genproto => google.golang.org/genproto v0.0.0-20200117163144-32f20d992d24
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20211207180839-ab69524f795c
 # k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20211207180839-ab69524f795c
