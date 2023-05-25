@@ -14,17 +14,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-build-
       - run: scripts/github-actions-packages
       - run: make
       - run: bin/crio version
@@ -197,14 +190,9 @@ jobs:
       - build-static-ppc64le
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/cache@v3
+      - uses: actions/setup-go@v4
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            /tmp/spdx # default bom cache directory
-          key: go-bundles-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-bundles-
+          go-version: ${{ env.GO_VERSION }}
       - uses: actions/download-artifact@v3
         with:
           name: build-static-amd64
@@ -224,9 +212,6 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: config
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
       - run: chmod -R +x bin
       - run: make bundles
       - uses: actions/upload-artifact@v3
@@ -346,17 +331,10 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-unit-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-unit-
       - run: scripts/github-actions-packages
       - run: |
           make mockgen -j $(nproc)
@@ -386,20 +364,13 @@ jobs:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v3
+      - uses: actions/setup-go@v4
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-build-
+          go-version: ${{ env.GO_VERSION }}
       - name: Set current branch
         run: |
           raw=$(git branch -r --contains ${{ github.ref }})
@@ -421,20 +392,13 @@ jobs:
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v3
+      - uses: actions/setup-go@v4
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-build-
+          go-version: ${{ env.GO_VERSION }}
       - run: make dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -449,20 +413,13 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v3
+      - uses: actions/setup-go@v4
         with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-build-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-build-
+          go-version: ${{ env.GO_VERSION }}
       - run: make release-branch-forward
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
