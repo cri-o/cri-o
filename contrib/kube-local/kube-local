@@ -1194,7 +1194,6 @@ function kubectl_retry() {
         if [[ ${tries} -le 0 ]]; then
             print_msg "FAIL" "kubectl [${cmd}] exceed the maximum number of attempts [${KUBECTL_ATTEMPTS}]! Exiting..."
             cleanup
-            exit 1
         fi
 
         sec="${KUBECTL_WAIT_SEC_FOR_NEXT_CMD}"
@@ -1299,7 +1298,6 @@ ${CONTAINER_ORCHESTRATION_NAME} [${CONTAINER_ORCHESTRATION_VERSION}]. The build 
             print_msg "OK" "Output generated: ${OUTPUT_FILENAME}"
         fi
         cleanup
-        exit 0
     fi
 
     print_msg "OK" "Cluster ready to go!"
@@ -1523,7 +1521,6 @@ else
             load_profile
             detect_system
             cleanup
-            exit 0
             ;;
         *)
             break
