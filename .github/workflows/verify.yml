@@ -62,11 +62,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: go-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-
       - run: make check-vendor
 
   log-capitalization:
@@ -76,11 +71,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: go-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-
       - run: make check-log-lines
 
   verify-config-template:
@@ -90,11 +80,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: go-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-
       - run: make check-config-template
 
   get-script:
@@ -113,13 +98,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-get-script-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-get-script-
       - uses: sigstore/cosign-installer@v3
       - run: |
           make get-script
@@ -137,11 +115,6 @@ jobs:
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/cache@v3
-        with:
-          path: ~/go/pkg/mod
-          key: go-verify-dependencies-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-verify-dependencies-
       - run: make verify-dependencies
 
   typos:

@@ -16,17 +16,10 @@ jobs:
   critest:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -38,17 +31,10 @@ jobs:
   critest-conmonrs:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - uses: sigstore/cosign-installer@v3
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
@@ -62,17 +48,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -83,17 +62,10 @@ jobs:
   test-cgroupfs:
     runs-on: ubuntu-20.04
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -107,17 +79,10 @@ jobs:
   test-userns:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
       - run: make all test-binaries
@@ -129,17 +94,10 @@ jobs:
   test-conmonrs:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v3
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v3
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-integration-v1-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-integration-v1-
       - uses: sigstore/cosign-installer@v3
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
