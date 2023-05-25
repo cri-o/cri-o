@@ -263,6 +263,6 @@ function wait_clean() {
 
 	crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	SECONDS=0
-	! crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
+	crictl create "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 	[[ "$SECONDS" -lt 240 ]]
 }
