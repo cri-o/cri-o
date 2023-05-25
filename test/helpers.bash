@@ -631,7 +631,7 @@ function set_container_pod_cgroup_root() {
 
     export POD_CGROUP="$CGROUP_ROOT"/"$controller"/pod_123.slice/pod_123-456.slice
     export CTR_CGROUP="$POD_CGROUP"/crio-"$ctr_id".scope
-    if "$CONTAINER_CGROUP_MANAGER" != "systemd"; then
+    if [ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]; then
         export POD_CGROUP="$CGROUP_ROOT"/"$controller"/pod_123-456
         export CTR_CGROUP="$POD_CGROUP"/crio-"$ctr_id"
     fi
