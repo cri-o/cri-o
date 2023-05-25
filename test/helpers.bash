@@ -429,7 +429,7 @@ function cleanup_network_conf() {
 }
 
 function reload_crio() {
-    kill -HUP $CRIO_PID
+    kill -HUP "$CRIO_PID"
 }
 
 function wait_for_log() {

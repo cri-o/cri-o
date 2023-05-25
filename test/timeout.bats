@@ -63,7 +63,7 @@ function wait_clean() {
 }
 
 @test "should not clean up pod after timeout" {
-	create_pinns $CANCEL_TIMEOUT
+	create_pinns "$CANCEL_TIMEOUT"
 
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
@@ -105,7 +105,7 @@ function wait_clean() {
 }
 
 @test "should clean up pod after timeout if request changes" {
-	create_pinns $CANCEL_TIMEOUT
+	create_pinns "$CANCEL_TIMEOUT"
 
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
@@ -151,7 +151,7 @@ function wait_clean() {
 }
 
 @test "should clean up pod after timeout if not re-requested" {
-	create_pinns $CANCEL_TIMEOUT
+	create_pinns "$CANCEL_TIMEOUT"
 
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
@@ -204,7 +204,7 @@ function wait_clean() {
 # operate on a pod that's not created, and that we don't mark
 # a timed out pod as created before it's re-requested
 @test "should not be able to operate on a timed out pod" {
-	create_pinns $CANCEL_TIMEOUT
+	create_pinns "$CANCEL_TIMEOUT"
 
 	# need infra container so runp can timeout in conmon
 	CONTAINER_DROP_INFRA_CTR=false start_crio
