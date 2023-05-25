@@ -96,8 +96,9 @@ function teardown() {
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
-	jq '.linux.resources.memory_limit_in_bytes = 15728640
-        | .command = ["sh", "-c", "dd if=/dev/zero of=/dev/null bs=20M"]' \
+	jq '	  .linux.resources.memory_limit_in_bytes = 15728640
+		| .linux.resources.memory_swap_limit_in_bytes = 15728640
+		| .command = ["sh", "-c", "for ((i=0; i<1000; i++)); do val=$(seq -w -s - $i $((i + 100000))); eval var$i=$val_$val_$val; done"]' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/config.json"
 	CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
 
