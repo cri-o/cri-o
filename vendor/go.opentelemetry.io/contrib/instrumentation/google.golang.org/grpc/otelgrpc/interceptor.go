@@ -64,7 +64,7 @@ func UnaryClientInterceptor(opts ...Option) grpc.UnaryClientInterceptor {
 	cfg := newConfig(opts)
 	tracer := cfg.TracerProvider.Tracer(
 		instrumentationName,
-		trace.WithInstrumentationVersion(SemVersion()),
+		trace.WithInstrumentationVersion(Version()),
 	)
 
 	return func(
@@ -239,7 +239,7 @@ func StreamClientInterceptor(opts ...Option) grpc.StreamClientInterceptor {
 	cfg := newConfig(opts)
 	tracer := cfg.TracerProvider.Tracer(
 		instrumentationName,
-		trace.WithInstrumentationVersion(SemVersion()),
+		trace.WithInstrumentationVersion(Version()),
 	)
 
 	return func(
@@ -303,7 +303,7 @@ func UnaryServerInterceptor(opts ...Option) grpc.UnaryServerInterceptor {
 	cfg := newConfig(opts)
 	tracer := cfg.TracerProvider.Tracer(
 		instrumentationName,
-		trace.WithInstrumentationVersion(SemVersion()),
+		trace.WithInstrumentationVersion(Version()),
 	)
 
 	return func(
@@ -405,7 +405,7 @@ func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor {
 	cfg := newConfig(opts)
 	tracer := cfg.TracerProvider.Tracer(
 		instrumentationName,
-		trace.WithInstrumentationVersion(SemVersion()),
+		trace.WithInstrumentationVersion(Version()),
 	)
 
 	return func(
