@@ -22,7 +22,7 @@ dependencies:
       match: GOLANGCI_LINT_VERSION
 
   - name: shellcheck
-    version: v0.8.0
+    version: v0.9.0
     refPaths:
     - path: Makefile
       match: SHELLCHECK_VERSION
