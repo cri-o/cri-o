@@ -278,22 +278,17 @@ function teardown() {
 }
 
 @test "kubernetes pod terminationGracePeriod passthru" {
-	[ -v CIRCLECI ] && skip "runc v1.0.0-rc11 required" # TODO remove this
-	# Make sure there is no XDG_RUNTIME_DIR set, otherwise the test might end up using the user instance.
 	# There is an assumption in the test to use the system instance of systemd (systemctl show).
-	CONTAINER_CGROUP_MANAGER="systemd" DBUS_SESSION_BUS_ADDRESS="" XDG_RUNTIME_DIR="" start_crio
-
-	# for systemd, cgroup_parent should not be set
-	jq '	  del(.linux.cgroup_parent)' \
-		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+	if [[ "$CONTAINER_CGROUP_MANAGER" != "systemd" ]]; then
+		skip "need systemd cgroup manager"
+	fi
+	# Make sure there is no XDG_RUNTIME_DIR set, otherwise the test might end up using the user instance.
+	DBUS_SESSION_BUS_ADDRESS="" XDG_RUNTIME_DIR="" start_crio
 
 	jq '	  .annotations += { "io.kubernetes.pod.terminationGracePeriod": "88" }' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/ctr.json
 
-	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
-	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/ctr.json "$TESTDIR"/sandbox.json)
-
-	crictl start "$ctr_id"
+	ctr_id=$(crictl run "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
 	output=$(systemctl show "crio-${ctr_id}.scope")
 	echo "$output" | grep 'TimeoutStopUSec=' || true      # show
