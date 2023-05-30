@@ -10,6 +10,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -57,6 +58,16 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 		}
 	}
 	return nil
+}
+
+func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id string, metadata *types.ContainerMetadata) error {
+	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	logFileMountPath := filepath.Join(emptyDirLoggingVolumePath, "logs")
+	// Symlink a relative path so the location is legitimate inside and outside the container.
+	from := fmt.Sprintf("%s/%d.log", metadata.Name, metadata.Attempt)
+	to := filepath.Join(logFileMountPath, id)
+	log.Infof(ctx, "Symlinking from %s to %s for linked logs", from, to)
+	return os.Symlink(from, to)
 }
 
 func podEmptyDirPath(podUID, emptyDirVolName string) string {
