@@ -3,6 +3,10 @@
 load helpers
 
 function setup() {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+
 	setup_test
 }
 
@@ -22,9 +26,6 @@ function teardown() {
 }
 
 @test "image volume bind" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	CONTAINER_IMAGE_VOLUMES="bind" start_crio
 
 	jq '	  .command = ["bin/sleep", "600"]' \
@@ -36,9 +37,6 @@ function teardown() {
 }
 
 @test "image volume user mkdir" {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "userNS enabled"
-	fi
 	CONTAINER_IMAGE_VOLUMES="mkdir" start_crio
 
 	jq '	  .command = ["bin/sleep", "600"]

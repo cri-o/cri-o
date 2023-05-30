@@ -4,6 +4,10 @@
 load helpers
 
 function setup() {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "not yet supported by conmonrs"
+	fi
+
 	setup_test
 	CONTAINER_CONMON_CGROUP="pod" CONTAINER_INFRA_CTR_CPUSET="0" CONTAINER_DROP_INFRA_CTR=false start_crio
 }
@@ -13,10 +17,6 @@ function teardown() {
 }
 
 @test "test infra ctr cpuset" {
-	if [[ $RUNTIME_TYPE == pod ]]; then
-		skip "not yet supported by conmonrs"
-	fi
-
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
 	output=$(crictl inspectp -o yaml "$pod_id")

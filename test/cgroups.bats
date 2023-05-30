@@ -3,12 +3,13 @@
 load helpers
 
 function setup() {
-	setup_test
-	newconfig="$TESTDIR/config.json"
-	sboxconfig="$TESTDIR/sandbox.json"
 	if [[ $RUNTIME_TYPE == vm ]]; then
 		skip "not applicable to vm runtime type"
 	fi
+
+	setup_test
+	newconfig="$TESTDIR/config.json"
+	sboxconfig="$TESTDIR/sandbox.json"
 }
 
 function teardown() {

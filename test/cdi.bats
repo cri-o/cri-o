@@ -3,11 +3,19 @@
 load helpers
 
 function setup() {
+	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
+		skip "CDI tests for user namespace"
+	fi
+
 	setup_test
 	pod_config="$TESTDATA/sandbox_config.json"
 	ctr_config="$TESTDIR/config.json"
 	cdidir=$TESTDIR/cdi
 	set_cdi_dir "$cdidir"
+}
+
+function teardown() {
+	cleanup_test
 }
 
 function set_cdi_dir() {
@@ -17,10 +25,6 @@ cdi_spec_dirs = [
     "$1",
 ]
 EOF
-}
-
-function teardown() {
-	cleanup_test
 }
 
 function write_cdi_spec() {
@@ -106,9 +110,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "no CDI errors, create ctr without CDI devices" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	start_crio
 
@@ -122,9 +123,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "no CDI errors, create ctr with CDI devices" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	start_crio
 
@@ -140,9 +138,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "no CDI errors, fail to create ctr with unresolvable CDI devices" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	start_crio
 
@@ -153,9 +148,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "CDI registry refresh" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	start_crio
 
 	pod_id=$(crictl runp "$pod_config")
@@ -173,9 +165,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "reload CRI-O CDI parameters" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	set_cdi_dir "$cdidir.no-such-dir"
 	start_crio
@@ -198,9 +187,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "CDI with errors, create ctr without CDI devices" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	write_invalid_cdi_spec
 	start_crio
@@ -215,9 +201,6 @@ function prepare_ctr_with_unknown_cdidev {
 }
 
 @test "CDI with errors, create ctr with (unaffected) CDI devices" {
-	if [[ -n "$CONTAINER_UID_MAPPINGS" ]]; then
-		skip "CDI tests for user namespace"
-	fi
 	write_cdi_spec
 	write_invalid_cdi_spec
 	start_crio

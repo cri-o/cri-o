@@ -3,11 +3,11 @@
 load helpers
 
 function setup() {
-	setup_test
-
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+
+	setup_test
 
 	MOUNT_PATH="$TESTDIR/secrets"
 	mkdir "$MOUNT_PATH"
