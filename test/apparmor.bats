@@ -2,31 +2,22 @@
 
 load helpers
 
+# bats file_tags=serial
+
+function setup() {
+	if ! is_apparmor_enabled; then
+		skip "apparmor not enabled"
+	fi
+	setup_test
+}
+
 function teardown() {
 	cleanup_test
 }
 
-# AppArmor tests have to run in sequence since they modify the system state
-# shellcheck disable=SC2030
-@test "apparmor tests (in sequence)" {
-	if ! is_apparmor_enabled; then
-		skip "apparmor not enabled"
-	fi
-
-	load_default_apparmor_profile_and_run_a_container_with_it
-	load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
-	load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile
-	run_a_container_with_wrong_apparmor_profile_name
-	run_a_container_after_unloading_default_apparmor_profile
-	run_a_container_with_invalid_localhost_apparmor_profile_name
-}
-
 # 1. test running with loading the default apparmor profile.
 # test that we can run with the default apparmor profile which will not block touching a file in `.`
-load_default_apparmor_profile_and_run_a_container_with_it() {
-	local output status
-
-	setup_test
+@test "load default apparmor profile and run a container with it" {
 	start_crio
 
 	jq '	  .linux.security_context.apparmor_profile = "runtime/default"' \
@@ -35,17 +26,11 @@ load_default_apparmor_profile_and_run_a_container_with_it() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/apparmor1.json)
 
 	crictl exec --sync "$ctr_id" touch test.txt
-
-	cleanup_test
 }
 
 # 2. test running with loading a specific apparmor profile as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.` as crio default apparmor profile.
-# shellcheck disable=SC2031
-load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it() {
-	local output status
-
-	setup_test
+@test "load a specific apparmor profile as default apparmor and run a container with it" {
 	load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 	start_crio "$APPARMOR_TEST_PROFILE_NAME"
 
@@ -61,16 +46,11 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
 	[[ "$output" == *"Permission denied"* ]]
 
 	remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
-	cleanup_test
 }
 
 # 3. test running with loading a specific apparmor profile but not as crio default apparmor profile.
 # test that we can run with a specific apparmor profile which will block touching a file in `.`
-# shellcheck disable=SC2031
-load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile() {
-	local output status
-
-	setup_test
+@test "load default apparmor profile and run a container with another apparmor profile" {
 	load_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
 	start_crio
 
@@ -86,15 +66,11 @@ load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile(
 	[[ "$output" == *"Permission denied"* ]]
 
 	remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
-	cleanup_test
 }
 
 # 4. test running with wrong apparmor profile name.
 # test that we will fail when running a ctr with wrong apparmor profile name.
-run_a_container_with_wrong_apparmor_profile_name() {
-	local output status
-
-	setup_test
+@test "run a container with wrong apparmor profile name" {
 	start_crio
 
 	jq '	  .linux.security_context.apparmor_profile = "not-exists"' \
@@ -106,17 +82,12 @@ run_a_container_with_wrong_apparmor_profile_name() {
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
 	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
-
-	cleanup_test
 }
 
 # 5. test running with default apparmor profile unloaded.
 # test that we will fail when running a ctr with wrong apparmor profile name.
-run_a_container_after_unloading_default_apparmor_profile() {
-	local output status
-
+@test "run a container after unloading default apparmor profile" {
 	load_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
-	setup_test
 	start_crio "$FAKE_CRIO_DEFAULT_PROFILE_NAME"
 	remove_apparmor_profile "$FAKE_CRIO_DEFAULT_PROFILE_PATH"
 
@@ -128,15 +99,10 @@ run_a_container_after_unloading_default_apparmor_profile() {
 	pod_id=$(crictl runp "$TESTDIR"/apparmor5.json)
 
 	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json
-
-	cleanup_test
 }
 
 # 6. test running with empty localhost profile name.
-run_a_container_with_invalid_localhost_apparmor_profile_name() {
-	local output status
-
-	setup_test
+@test "run a container with invalid localhost apparmor profile name" {
 	start_crio
 
 	jq '.linux.security_context.apparmor_profile = "localhost/"' \
@@ -148,6 +114,4 @@ run_a_container_with_invalid_localhost_apparmor_profile_name() {
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
 	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
-
-	cleanup_test
 }

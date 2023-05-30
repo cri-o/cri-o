@@ -33,10 +33,10 @@ function execute() {
 TESTS=("${@:-.}")
 
 # The number of parallel jobs to execute tests
-export JOBS=${JOBS:-$(nproc --all)}
+JOBS=${JOBS:-$(nproc --all)}
 
 # Run the tests.
-execute bats --jobs "$JOBS" --tap "${TESTS[@]}"
-# Set this var to run irqbalance tests
-export TEST_SERIAL="Yes"
-execute bats --tap ./irqbalance.bats
+execute bats --jobs "$JOBS" --tap --filter-tags \!serial "${TESTS[@]}"
+
+# Run tests which can't be run in parallel.
+execute bats --tap --filter-tags serial "${TESTS[@]}"
