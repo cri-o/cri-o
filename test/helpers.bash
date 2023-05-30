@@ -565,7 +565,7 @@ function has_criu() {
         skip "Checkpoint/Restore with pods only works in runc."
     fi
 
-    if [ ! -e "$(command -v criu)" ]; then
+    if ! command -v criu; then
         skip "CRIU binary not found"
     fi
 
@@ -575,7 +575,7 @@ function has_criu() {
 }
 
 function has_buildah() {
-    if [ ! -e "$(command -v buildah)" ]; then
+    if ! command -v buildah; then
         skip "buildah binary not found"
     fi
 }
