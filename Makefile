@@ -4,18 +4,7 @@ export GOPROXY=https://proxy.golang.org
 export GOSUMDB=https://sum.golang.org
 
 TRIMPATH ?= -trimpath
-GO_ARCH=$(shell $(GO) env GOARCH)
-GO_MAJOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
-GO_MINOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
-GO_GT_1_17 := $(shell [ $(GO_MAJOR_VERSION) -ge 1 -a $(GO_MINOR_VERSION) -ge 17 ] && echo true)
-GO_FLAGS ?=
-ifeq ($(GO_GT_1_17),true)
-ifeq ($(GO_ARCH),386)
-GO_FLAGS += -buildvcs=false
-endif
-endif
-
-GO_BUILD ?= $(GO) build $(GO_FLAGS) $(TRIMPATH)
+GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.3.16
 
