@@ -3,6 +3,9 @@
 load helpers
 
 function setup() {
+	if [[ $RUNTIME_TYPE == pod ]]; then
+		skip "test needs conmon, not conmon-rs"
+	fi
 	# do not use the crictl() wrapper function here: we need to test the crictl
 	# features with no additional arg.
 	if ! "$CRICTL_BINARY" runp -h | grep -q "cancel-timeout"; then
