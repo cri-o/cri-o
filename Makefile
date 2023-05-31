@@ -165,22 +165,22 @@ bin/pinns:
 	$(MAKE) -C pinns
 
 test/copyimg/copyimg: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/copyimg
 
 test/checkseccomp/checkseccomp: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 test/checkcriu/checkcriu: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkcriu
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
 
 test/nri/nri.test: $(wildcard test/nri/*.go)
-	$(GO) test --tags "test $(BUILDTAGS)" -c $(PROJECT)/test/nri -o $@
+	$(GO) test --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
 
 bin/crio: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./cmd/crio
 
 bin/crio-status: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./cmd/crio-status
 
 build-static:
 	$(CONTAINER_RUNTIME) run --rm --privileged -ti -v /:/mnt \
@@ -231,7 +231,7 @@ bin/crio.cross.%:  .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" ./cmd/crio
 
 nixpkgs:
 	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
@@ -535,7 +535,7 @@ bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
 		-tags netgo \
-		$(PROJECT)/contrib/metrics-exporter
+		./contrib/metrics-exporter
 
 metrics-exporter: bin/metrics-exporter
 	$(CONTAINER_RUNTIME) build . \
