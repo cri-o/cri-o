@@ -1,6 +1,6 @@
 ---
 - name: ensure directories exist as needed
-  become: yes 
+  become: yes
   file:
     path: "{{ item }}"
     state: directory

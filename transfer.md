@@ -1,6 +1,6 @@
 ## Introduction to CRI-O and Podman
 
-CRI-O is a lightweight runtime for Kubernetes that provides the CRI (Container Runtime Interface) socket 
+CRI-O is a lightweight runtime for Kubernetes that provides the CRI (Container Runtime Interface) socket
 required for automating the deployment, scaling, and management of containerized applications. It serves
 as an alternative to Docker within Kubernetes environments. However, it's important to note that CRI-O is
 not a drop-in replacement for Docker, and there are some differences in functionality and tooling.
@@ -14,16 +14,16 @@ Kubernetes to work seamlessly.
 
 ## CRI-O Operational Considerations
 
-When transitioning from Docker to CRI-O, it's crucial to understand that many traditional Docker commands and 
-tools may not directly apply to CRI-O. While some equivalents exist, such as `crictl` (a command-line utility that 
-serves as a client for the Container Runtime Interface (CRI)), they are primarily focused on fulfilling the 
+When transitioning from Docker to CRI-O, it's crucial to understand that many traditional Docker commands and
+tools may not directly apply to CRI-O. While some equivalents exist, such as `crictl` (a command-line utility that
+serves as a client for the Container Runtime Interface (CRI)), they are primarily focused on fulfilling the
 requirements of the Kubernetes CRI.
 
 For operational tasks and troubleshooting within a Kubernetes environment, it is recommended to leverage additional
 tools like [Podman](https://github.com/containers/podman). These tools offer a feature-rich set of commands that can
 address various operational needs. However, it's important to note that direct interaction with CRI-O containers using
-Podman commands is not possible. While images can be shared between Podman and CRI-O, containers themselves cannot 
-be directly managed or interacted with across these tools. To interact with CRI-O containers, you should use tools 
+Podman commands is not possible. While images can be shared between Podman and CRI-O, containers themselves cannot
+be directly managed or interacted with across these tools. To interact with CRI-O containers, you should use tools
 that interface with the CRI, such as `crictl`.
 
 ### System Tools
@@ -32,17 +32,17 @@ As well as some systemd helpers like `systemd-cgls` and `systemd-cgtop` are stil
 
 ## Podman as an Alternative for Debugging
 
-If you are primarily interested in debugging containers and require a tool that offers extensive command-line 
+If you are primarily interested in debugging containers and require a tool that offers extensive command-line
 capabilities, Podman is a viable alternative. Podman is a daemonless container engine that provides a command-line
 interface similar to Docker. It can run containers, manage container images, and perform various container-related
 operations.
 
-While Podman and CRI-O are separate projects with different purposes, Podman offers a more comprehensive set of 
-commands that can facilitate debugging and troubleshooting tasks within a containerized environment. You can use 
-Podman commands to perform actions like executing commands within a container (`podman exec`), inspecting container 
+While Podman and CRI-O are separate projects with different purposes, Podman offers a more comprehensive set of
+commands that can facilitate debugging and troubleshooting tasks within a containerized environment. You can use
+Podman commands to perform actions like executing commands within a container (`podman exec`), inspecting container
 metadata (`podman inspect`), viewing container logs (`podman logs`), and many others.
 
-It's important to note that Podman and CRI-O are not interchangeable. Podman is a standalone container engine that 
+It's important to note that Podman and CRI-O are not interchangeable. Podman is a standalone container engine that
 operates independently of Kubernetes, while CRI-O is specifically designed for Kubernetes environments. However, Podman
 can be a valuable tool when it comes to container debugging and development workflows.
 

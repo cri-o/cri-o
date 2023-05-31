@@ -33,7 +33,7 @@
       git:
         repo: "https://github.com/cpuguy83/go-md2man.git"
         dest: "{{ ansible_env.GOPATH }}/src/github.com/cpuguy83/go-md2man"
-        version: v2.0.2 
+        version: v2.0.2
 
     - name: build go-md2man
       make:

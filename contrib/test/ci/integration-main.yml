@@ -18,10 +18,10 @@
         state: started
         enabled: yes
         daemon_reload: yes
-   
+
     - name: run cri-o integration tests
       include: "integration.yml"
 
-    - name: changing permission of temp file 
-      become: yes 
+    - name: changing permission of temp file
+      become: yes
       file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes

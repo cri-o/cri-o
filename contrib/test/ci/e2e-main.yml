@@ -17,7 +17,7 @@
       file: dest=/tmp/artifacts owner=deadbeef group=deadbeef mode=0777 recurse=yes
 
 - hosts: localhost, all
-  become: yes 
+  become: yes
   environment:
     GOPATH: /usr/go
   vars_files:

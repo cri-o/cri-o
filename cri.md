@@ -2,7 +2,7 @@
 
 The target of this document is to outline corner cases and common pitfalls in
 conjunction with the Container Runtime Interface (CRI). This document outlines
-CRI-O's interpretation of certain aspects of the interface, which may not be 
+CRI-O's interpretation of certain aspects of the interface, which may not be
 completely formalized.
 
 The main documentation of the CRI can be found [in the corresponding protobuf
