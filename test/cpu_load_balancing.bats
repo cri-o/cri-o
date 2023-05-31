@@ -39,11 +39,19 @@ function check_sched_load_balance() {
 	local pid="$1"
 	local is_enabled="$2"
 
+	path=$(sched_load_balance_path "$pid")
+
+	[[ "$is_enabled" == $(cat "$path") ]]
+}
+
+function sched_load_balance_path() {
+	local pid="$1"
+
 	path="/sys/fs/cgroup/cpuset"
 	loadbalance_filename="cpuset.sched_load_balance"
 	cgroup=$(grep cpuset /proc/"$pid"/cgroup | tr ":" " " | awk '{ printf $3 }')
 
-	[[ "$is_enabled" == $(cat "$path$cgroup/$loadbalance_filename") ]]
+	echo "$path$cgroup/$loadbalance_filename"
 }
 
 @test "test cpu load balancing" {
@@ -77,5 +85,10 @@ function check_sched_load_balance() {
 	ctr_pid=$(crictl inspect "$ctr_id" | jq .info.pid)
 
 	# check for sched_load_balance
-	check_sched_load_balance "$ctr_pid" 1 # enabled
+	path=$(sched_load_balance_path "$ctr_pid")
+	[[ "1" == $(cat "$path") ]]
+
+	# check sched_load_balance is disabled after container stopped
+	crictl stop "$ctr_id"
+	[[ "0" == $(cat "$path") ]]
 }
