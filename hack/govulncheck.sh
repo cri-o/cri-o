@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Install dependencies
 sudo apt-get update
-sudo apt-get install -y pkg-config libgpgme-dev libbtrfs-dev libseccomp-dev libdevmapper-dev btrfs-progs
+sudo apt-get install -y pkg-config libgpgme-dev libbtrfs-dev libseccomp-dev btrfs-progs
 
 # Set environment variables
 export GO111MODULE=on

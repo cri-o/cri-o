@@ -9,7 +9,6 @@
       - atomic-registries
       - container-selinux
       - curl
-      - device-mapper-devel
       - expect
       - findutils
       - gcc

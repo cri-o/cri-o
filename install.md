@@ -199,7 +199,6 @@ Fedora, RHEL 7, CentOS and related distributions:
 ```bash
 yum install -y \
   containers-common \
-  device-mapper-devel \
   git \
   glib2-devel \
   glibc-devel \
@@ -247,7 +246,6 @@ Install dependencies:
 ```bash
 yum install -y \
   containers-common \
-  device-mapper-devel \
   git \
   make \
   glib2-devel \
@@ -290,7 +288,6 @@ apt install -y  \
   git \
   golang-go \
   libassuan-dev \
-  libdevmapper-dev \
   libglib2.0-dev \
   libc6-dev \
   libgpgme11-dev \
@@ -317,7 +314,6 @@ apt-get update -qq && apt-get install -y \
   git \
   golang-go \
   libassuan-dev \
-  libdevmapper-dev \
   libglib2.0-dev \
   libc6-dev \
   libgpgme-dev \
@@ -414,8 +410,6 @@ make BUILDTAGS='seccomp apparmor'
 | -------------------------------- | ----------------------------------------------- | ------------ |
 | exclude_graphdriver_btrfs        | exclude btrfs as a storage option               | <none>       |
 | btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
-| exclude_graphdriver_devicemapper | exclude devicemapper as a storage option        | <none>       |
-| libdm_no_deferred_remove         | don't compile deferred remove with devicemapper | devicemapper |
 | exclude_graphdriver_overlay      | exclude overlay as a storage option             | <none>       |
 | ostree                           | build storage using ostree                      | ostree       |
 
@@ -430,7 +424,6 @@ tested as well and support the following features:
 
 - apparmor
 - btrfs
-- device mapper
 - gpgme
 - seccomp
 - selinux

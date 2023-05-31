@@ -409,14 +409,6 @@ function restart_crio() {
     fi
 }
 
-function cleanup_lvm() {
-    if [ -n "${LVM_DEVICE+x}" ]; then
-        lvm lvremove -y storage/thinpool
-        lvm vgremove -y storage
-        lvm pvremove -y "$LVM_DEVICE"
-    fi
-}
-
 function cleanup_testdir() {
     # shellcheck disable=SC2013
     # Note: By using 'sort -r' we're ensuring longer paths go first, which
@@ -453,7 +445,6 @@ function cleanup_test() {
         cleanup_ctrs
         cleanup_pods
         stop_crio
-        cleanup_lvm
         cleanup_testdir
     else
         echo >&3 "* Failed \"$BATS_TEST_DESCRIPTION\", TESTDIR=$TESTDIR, LVM_DEVICE=${LVM_DEVICE:-}"
