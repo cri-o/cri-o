@@ -44,9 +44,9 @@
     k8s_github_fork: "kubernetes"
     crio_socket: "/run/crio/crio.sock"
 
-- name: clone build and install kubetest                                                                     
-  include: "build/kubetest.yml"                                                                              
-  vars:                                                                                                      
+- name: clone build and install kubetest
+  include: "build/kubetest.yml"
+  vars:
     force_clone: true
 
 - name: Ensures crio conf dir exists
@@ -74,5 +74,5 @@
       [crio.image]
       registries = [ "quay.io", "docker.io" ]
 
-- name: build parallel 
+- name: build parallel
   include: "build/parallel.yml"

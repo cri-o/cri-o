@@ -113,6 +113,6 @@
 - name: Update all packages RHEL 8, CentOS 8 and Fedora >= 30
   shell: sudo yum update -y
   when:
-    - supports_python3 is defined 
+    - supports_python3 is defined
     - supports_python3
     - (ansible_distribution in ['RedHat', 'CentOS', 'Fedora']  and ansible_distribution_major_version|int != 9)

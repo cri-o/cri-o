@@ -73,7 +73,7 @@
     content: |
       unqualified-search-registries = ["quay.io"]
 
-- name: create /var/lib/crio 
+- name: create /var/lib/crio
   file:
     path: /var/lib/crio
     state: directory

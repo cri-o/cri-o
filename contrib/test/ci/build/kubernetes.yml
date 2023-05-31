@@ -14,8 +14,8 @@
 
 - name: clear cache
   become: yes
-  file: 
-    state: absent 
+  file:
+    state: absent
     path: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/_output/local/go/cache"
 
 - name: build kubernetes
@@ -53,7 +53,7 @@
       export CONTAINER_RUNTIME=remote
       export CGROUP_DRIVER=systemd
       export CONTAINER_RUNTIME_ENDPOINT='{{ crio_socket }}'
-      export KUBECONFIG="/var/run/kubernetes/admin.kubeconfig" 
+      export KUBECONFIG="/var/run/kubernetes/admin.kubeconfig"
       export KUBERNETES_PROVIDER="local"
       export LOG_DIR=/tmp/artifacts
       export ALLOW_SECURITY_CONTEXT=","

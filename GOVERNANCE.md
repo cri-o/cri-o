@@ -39,7 +39,7 @@ The CRI-O project and its leadership embrace the following values:
 * Inclusivity: We innovate through different perspectives and skill sets, which can only be accomplished in a welcoming and respectful environment.
 * Participation: Responsibilities within the project are earned through
   participation, and there is a clear path up the contributor ladder into leadership positions.
- 
+
 ## Contribution Tiers
 
 CRI-O has five tiers of code contributors: community members, org members, reviewers, approvers and emeritus approvers.

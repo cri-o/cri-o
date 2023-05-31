@@ -1,2 +1,2 @@
-defaultTestContainerImage: "quay.io/promethius/busybox:latest" 
+defaultTestContainerImage: "quay.io/promethius/busybox:latest"
 webServerTestImage: "quay.io/jitesoft/nginx"

@@ -18,7 +18,7 @@ RUN microdnf install -y coreutils \
 # Needed to verify the `/etc` folder permission
 RUN groupadd -g 5000 test
 RUN useradd -m -d /home/test -s /bin/bash -g test -u 5000 test
- 
+
 RUN chown test:test /etc/ && \
     chgrp test /etc/ && \
     chmod 755 /etc/
@@ -29,7 +29,7 @@ RUN groupadd -r -g 998 redis && useradd -g redis -u 998 redis
 COPY docker-entrypoint.sh /usr/local/bin/
 ARG SU_EXEC_VERSION=0.2
 ARG SU_EXEC_URL="https://github.com/ncopa/su-exec/archive/v${SU_EXEC_VERSION}.tar.gz"
-RUN curl -sL "${SU_EXEC_URL}" | tar -C /tmp -zxf - \ 
+RUN curl -sL "${SU_EXEC_URL}" | tar -C /tmp -zxf - \
 && make -C "/tmp/su-exec-${SU_EXEC_VERSION}" \
 && cp "/tmp/su-exec-${SU_EXEC_VERSION}/su-exec" /usr/bin \
 && rm -fr "/tmp/su-exec-${SU_EXEC_VERSION}"

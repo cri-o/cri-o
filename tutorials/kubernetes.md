@@ -6,7 +6,7 @@ In standard docker kubernetes cluster, kubelet is running on each node as system
 It is responsible for starting microservices pods (such as `kube-proxy`, `kubedns`, etc. - they can be different for various ways of deploying k8s) and user pods.
 Configuration of kubelet determines which runtime is used and in what way.
 
-Kubelet itself is executed in docker container (as we can see in `kubelet.service`), but, what is important, **it's not** a kubernetes pod (at least for now), 
+Kubelet itself is executed in docker container (as we can see in `kubelet.service`), but, what is important, **it's not** a kubernetes pod (at least for now),
 so we can keep kubelet running inside container (as well as directly on the host), and regardless of this, run pods in chosen runtime.
 
 Below, you can find an instruction how to switch one or more nodes on running kubernetes cluster from docker to CRI-O.
@@ -36,16 +36,16 @@ If you'd like to change the way of starting kubelet (e.g. directly on host inste
 Kubelet parameters are stored in `/etc/kubernetes/kubelet.env` file.
 ```
 # cat /etc/kubernetes/kubelet.env | grep KUBELET_ARGS
-KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests 
---pod-infra-container-image=gcr.io/google_containers/pause-amd64:3.0 
---cluster_dns=10.233.0.3 --cluster_domain=cluster.local 
+KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests
+--pod-infra-container-image=gcr.io/google_containers/pause-amd64:3.0
+--cluster_dns=10.233.0.3 --cluster_domain=cluster.local
 --resolv-conf=/etc/resolv.conf --kubeconfig=/etc/kubernetes/node-kubeconfig.yaml
 --require-kubeconfig"
 ```
 
 You need to add following parameters to `KUBELET_ARGS`:
 * `--container-runtime-endpoint=unix:///var/run/crio/crio.sock` - Socket for remote runtime (default `crio` socket localization).
-* `--runtime-request-timeout=10m` - Optional but useful. Some requests, especially pulling huge images, may take longer than default (2 minutes) and will cause an error. 
+* `--runtime-request-timeout=10m` - Optional but useful. Some requests, especially pulling huge images, may take longer than default (2 minutes) and will cause an error.
 
 You may need to add following parameter to `KUBELET_ARGS` (prior to Kubernetes `v1.24.0-alpha.2`). This flag is deprecated since `v1.24.0-alpha.2`, and will no longer be available starting from `v1.27.0`:
 * `--container-runtime=remote` - Use remote runtime with provided socket.
