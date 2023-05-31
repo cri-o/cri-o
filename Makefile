@@ -107,8 +107,6 @@ else
 GCFLAGS = -gcflags '-N -l'
 endif
 
-DEFAULTS_PATH := ""
-
 DATE_FMT = +'%Y-%m-%dT%H:%M:%SZ'
 ifdef SOURCE_DATE_EPOCH
     BUILD_DATE ?= $(shell date -u -d "@$(SOURCE_DATE_EPOCH)" "$(DATE_FMT)" 2>/dev/null || date -u -r "$(SOURCE_DATE_EPOCH)" "$(DATE_FMT)" 2>/dev/null || date -u "$(DATE_FMT)")
@@ -117,7 +115,6 @@ else
 endif
 
 BASE_LDFLAGS = ${SHRINKFLAGS} \
-	-X ${PROJECT}/internal/pkg/criocli.DefaultsPath=${DEFAULTS_PATH} \
 	-X ${PROJECT}/internal/version.buildDate=${BUILD_DATE}
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
