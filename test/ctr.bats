@@ -11,18 +11,6 @@ function teardown() {
 	cleanup_test
 }
 
-# list_all_children lists children of a process recursively
-function list_all_children {
-	children=$(pgrep -P "$1")
-	for i in ${children}; do
-		if [ -z "$i" ]; then
-			exit
-		fi
-		echo -n "$i "
-		list_all_children "$i"
-	done
-}
-
 function check_oci_annotation() {
 	# check for OCI annotation in container's config.json
 	local ctr_id="$1"
@@ -997,7 +985,10 @@ function check_oci_annotation() {
 		"$TESTDATA"/container_config.json > "$newconfig"
 
 	ctr_id=$(crictl run "$newconfig" "$newsandbox")
-	processes=$(list_all_children "$(pidof conmon)")
+	set_container_pod_cgroup_root "devices" "$ctr_id"
+	processes=$(cat "$CTR_CGROUP/cgroup.procs")
+	# Sanity check -- there should be 2 processes.
+	echo "$processes" | wc -w | grep 2
 
 	pid=$(runtime list -f json | jq .[].pid)
 	[[ "$pid" -gt 0 ]]
@@ -1006,11 +997,18 @@ function check_oci_annotation() {
 	EXPECTED_EXIT_STATUS=137 wait_until_exit "$ctr_id"
 
 	# make sure crio syncs state
-	for process in ${processes}; do
-		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
-		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
-		# shellcheck disable=SC2143
-		[ -z "$(ps -p "$process" o pid=,stat= | grep -v ' Z')" ]
+	for pid in ${processes}; do
+		if kill -0 "$pid"; then
+			# The process is still there. If it's a zombie,
+			# ignore it -- the child reaper will get to it.
+			run grep '^State:\sZ' "/proc/$pid/status"
+			# Here, grep exit code can be:
+			#   0 if line was found (so it's a zombie)
+			#   1 if the line was not found (so it's not a zombie)
+			#   2 if the file can't be read (the process is gone)
+			# So, 0 or 2 is OK, 1 is not.
+			[ "$status" -ne 1 ]
+		fi
 	done
 }
 
