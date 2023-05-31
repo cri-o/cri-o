@@ -15,7 +15,6 @@ sudo apt install -y \
     libapparmor-dev \
     libbtrfs-dev \
     libcap-dev \
-    libdevmapper-dev \
     libfuse-dev \
     libgpgme11-dev \
     libnet1-dev \

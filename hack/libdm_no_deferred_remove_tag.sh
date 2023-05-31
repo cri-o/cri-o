@@ -1,15 +1,7 @@
 #!/usr/bin/env bash
-tmpdir="$PWD/tmp.$RANDOM"
-mkdir -p "$tmpdir"
-trap 'rm -fr "$tmpdir"' EXIT
-cc -o "$tmpdir"/libdm_tag -ldevmapper -x c - >/dev/null 2>/dev/null <<EOF
-#include <libdevmapper.h>
-int main() {
-	struct dm_task *task;
-	dm_task_deferred_remove(task);
-	return 0;
-}
+
+cat > /dev/stderr << EOF
+If you see this from a build, please modify it to not use
+this ($0) file, as it will be removed from the sources soon!
 EOF
-if test $? -ne 0; then
-    echo libdm_no_deferred_remove
-fi
+# Do nothing else here (see ./libdm_installed.sh).

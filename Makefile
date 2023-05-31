@@ -21,12 +21,13 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/apparmor_tag.sh) \
 			 $(shell hack/btrfs_installed_tag.sh) \
 			 $(shell hack/btrfs_tag.sh) \
-			 $(shell hack/libdm_installed.sh) \
-			 $(shell hack/libdm_no_deferred_remove_tag.sh) \
 			 $(shell hack/openpgp_tag.sh) \
 			 $(shell hack/seccomp_tag.sh) \
 			 $(shell hack/selinux_tag.sh) \
 			 $(shell hack/libsubid_tag.sh)
+# Device mapper is deprecated; keep this tag until the dm code
+# is removed from the c/storage vendored here.
+BUILDTAGS += exclude_graphdriver_devicemapper
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build
@@ -224,7 +225,7 @@ bin/crio.cross.%:  .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" ./cmd/crio
+	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion exclude_graphdriver_devicemapper" -o "$@" ./cmd/crio
 
 nixpkgs:
 	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
