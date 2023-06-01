@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-tools/generate"
-	k8sV1 "k8s.io/api/core/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -91,67 +90,6 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("Setup", func() {
-		It("should succeed with profile from file", func() {
-			// Given
-			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
-			file := writeProfileFile()
-
-			// When
-			_, err = sut.Setup(
-				context.Background(),
-				nil,
-				"",
-				nil,
-				&generator,
-				nil,
-				k8sV1.SeccompLocalhostProfileNamePrefix+file,
-			)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("should succeed with profile from file and runtime default", func() {
-			// Given
-			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
-
-			// When
-			_, err = sut.Setup(
-				context.Background(),
-				nil,
-				"",
-				nil,
-				&generator,
-				nil,
-				k8sV1.SeccompProfileRuntimeDefault,
-			)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("should fail with profile from file if wrong filename", func() {
-			// Given
-			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
-
-			// When
-			_, err = sut.Setup(
-				context.Background(),
-				nil,
-				"",
-				nil,
-				&generator,
-				nil,
-				"not-existing",
-			)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should succeed with custom profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
@@ -161,18 +99,18 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			_, err = sut.Setup(
+			_, ref, err := sut.Setup(
 				context.Background(),
 				nil,
 				"",
 				nil,
 				&generator,
 				field,
-				"",
 			)
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(ref).To(Equal(types.SecurityProfile_RuntimeDefault.String()))
 		})
 
 		It("should succeed with custom profile from field", func() {
@@ -186,18 +124,18 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			_, err = sut.Setup(
+			_, ref, err := sut.Setup(
 				context.Background(),
 				nil,
 				"",
 				nil,
 				&generator,
 				field,
-				"",
 			)
 
 			// Then
 			Expect(err).To(BeNil())
+			Expect(ref).To(Equal(file))
 		})
 
 		It("should fail with custom profile from field if not existing", func() {
@@ -210,14 +148,13 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			_, err = sut.Setup(
+			_, _, err = sut.Setup(
 				context.Background(),
 				nil,
 				"",
 				nil,
 				&generator,
 				field,
-				"",
 			)
 
 			// Then

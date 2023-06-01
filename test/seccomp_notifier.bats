@@ -22,7 +22,7 @@ function teardown() {
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
 	# Run with runtime/default
-	jq '.linux.security_context.seccomp_profile_path = "runtime/default"' \
+	jq '.linux.security_context.seccomp.profile_type = 0' \
 		"$TESTDATA"/container_redis.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
@@ -53,7 +53,7 @@ function teardown() {
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
 	# Run with runtime/default
-	jq '.linux.security_context.seccomp_profile_path = "runtime/default"' \
+	jq '.linux.security_context.seccomp.profile_type = 0' \
 		"$TESTDATA"/container_redis.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
@@ -83,7 +83,7 @@ function teardown() {
 		"$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/profile.json
 	sed -i 's;swapon;chmod;' "$TESTDIR"/profile.json
 
-	jq '.linux.security_context.seccomp_profile_path = "localhost/'"$TESTDIR"'/profile.json"' \
+	jq '.linux.security_context.seccomp.profile_type = 2 | .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/profile.json"' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox
@@ -115,7 +115,7 @@ function teardown() {
 		"$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/profile.json
 	sed -i 's;swapoff;chmod;' "$TESTDIR"/profile.json
 
-	jq '.linux.security_context.seccomp_profile_path = "localhost/'"$TESTDIR"'/profile.json"' \
+	jq '.linux.security_context.seccomp.profile_type = 2 | .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/profile.json"' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container.json
 
 	# Enable the annotation in the sandbox

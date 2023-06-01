@@ -48,10 +48,11 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: cri-tools
-    - path: contrib/test/integration/vars.yml
-      match: cri_tools_git_version
-    - path: contrib/test/ci/vars.yml
-      match: cri_tools_git_version
+    # Uncomment and pin once we have cri-tools v1.28.0
+    # - path: contrib/test/integration/vars.yml
+    #   match: cri_tools_git_version
+    # - path: contrib/test/ci/vars.yml
+    #   match: cri_tools_git_version
 
   - name: runc
     version: v1.1.7
