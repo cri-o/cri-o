@@ -56,13 +56,11 @@ function teardown() {
 
 	# Opening the device in read mode should fail because the device
 	# cgroup access only allows writes.
-	run crictl exec --timeout=$timeout --sync "$ctr_id" head -1 $device
-	[ "$status" -ne 0 ]
+	run ! crictl exec --timeout=$timeout --sync "$ctr_id" head -1 $device
 	[[ "$output" == *"Operation not permitted"* ]]
 
 	# The write should be allowed by the devices cgroup policy
-	run crictl exec --timeout=$timeout --sync "$ctr_id" sh -c "echo woohoo | tee $device"
-	[ "$status" -eq 0 ]
+	run -0 crictl exec --timeout=$timeout --sync "$ctr_id" sh -c "echo woohoo | tee $device"
 	# check there's no error message of any kind from tee
 	[[ "$output" == "woohoo" ]]
 }
@@ -94,7 +92,7 @@ function teardown() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	! crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo"
+	run ! crictl exec --sync "$ctr_id" sh -c "ls /dev/qifoo"
 }
 
 @test "annotation should override configured additional_devices" {
@@ -123,7 +121,7 @@ function teardown() {
 
 	pod_id=$(crictl runp "$newconfig")
 
-	! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "annotation should configure multiple devices" {
@@ -154,5 +152,5 @@ function teardown() {
 
 	pod_id=$(crictl runp "$newconfig")
 
-	! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 }

@@ -124,7 +124,7 @@ function check_networking() {
 	# make conmon non-executable to cause the sandbox setup to fail after
 	# networking has been configured
 	chmod 0644 "$CONMON_BINARY"
-	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
+	run ! crictl runp "$TESTDATA"/sandbox_config.json
 
 	check_networking
 }
@@ -136,7 +136,7 @@ function check_networking() {
 	start_crio_no_setup
 	check_images
 
-	crictl runp "$TESTDATA"/sandbox_config.json && fail "expected runp to fail"
+	run ! crictl runp "$TESTDATA"/sandbox_config.json
 
 	check_networking
 }

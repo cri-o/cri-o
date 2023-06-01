@@ -39,7 +39,7 @@ function teardown() {
 	jq '      .annotations."io.kubernetes.cri-o.userns-mode" = "auto:keep-id=true;map-to-root=true"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	! crictl runp "$sboxconfig"
+	run ! crictl runp "$sboxconfig"
 }
 
 @test "userns annotation auto should map host run_as_user" {

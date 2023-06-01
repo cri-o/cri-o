@@ -58,7 +58,6 @@ load_a_specific_apparmor_profile_as_default_apparmor_and_run_a_container_with_it
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/apparmor_container2.json "$TESTDIR"/apparmor2.json)
 
 	run crictl exec --sync "$ctr_id" touch test.txt
-	echo "$output"
 	[[ "$output" == *"Permission denied"* ]]
 
 	remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
@@ -84,7 +83,6 @@ load_default_apparmor_profile_and_run_a_container_with_another_apparmor_profile(
 	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/apparmor_container3.json "$TESTDIR"/apparmor3.json)
 
 	run crictl exec --sync "$ctr_id" touch test.txt
-	echo "$output"
 	[[ "$output" == *"Permission denied"* ]]
 
 	remove_apparmor_profile "$APPARMOR_TEST_PROFILE_PATH"
@@ -107,7 +105,7 @@ run_a_container_with_wrong_apparmor_profile_name() {
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
-	! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
+	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
 
 	cleanup_test
 }
@@ -129,7 +127,7 @@ run_a_container_after_unloading_default_apparmor_profile() {
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor5.json)
 
-	crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json && fail
+	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container5.json "$TESTDIR"/apparmor5.json
 
 	cleanup_test
 }
@@ -149,7 +147,7 @@ run_a_container_with_invalid_localhost_apparmor_profile_name() {
 
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
-	! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
+	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
 
 	cleanup_test
 }

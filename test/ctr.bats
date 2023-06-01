@@ -36,7 +36,7 @@ function check_oci_annotation() {
 
 @test "ctr not found correct error message" {
 	start_crio
-	! crictl inspect "container_not_exist"
+	run ! crictl inspect "container_not_exist"
 }
 
 @test "ctr termination reason Completed" {
@@ -203,7 +203,7 @@ function check_oci_annotation() {
 	# Create a new container.
 	jq '	  .command = ["invalid"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 
 	# CRI-O should cleanup the log if the container failed to create
 	for file in "$DEFAULT_LOG_PATH/$pod_id"/*; do
@@ -497,10 +497,8 @@ function check_oci_annotation() {
 	output=$(crictl exec --sync "$ctr_id" echo HELLO)
 	[ "$output" = "HELLO" ]
 
-	run crictl -D exec --sync --timeout 3 "$ctr_id" sleep 5
-	echo "$output"
+	run ! crictl -D exec --sync --timeout 3 "$ctr_id" sleep 5
 	[[ "$output" == *"command "*" timed out"* ]]
-	[ "$status" -ne 0 ]
 }
 
 @test "ctr execsync should not overwrite initial spec args" {
@@ -615,7 +613,7 @@ function check_oci_annotation() {
 		"$TESTDATA"/container_redis.json > "$newconfig"
 
 	# Error is "configured with a device container path that already exists on the host"
-	! crictl create "$pod_id" "$newconfig" "$sandbox_config"
+	run ! crictl create "$pod_id" "$newconfig" "$sandbox_config"
 }
 
 @test "ctr hostname env" {
@@ -632,7 +630,7 @@ function check_oci_annotation() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	! crictl exec --sync "$ctr_id" doesnotexist
+	run ! crictl exec --sync "$ctr_id" doesnotexist
 }
 
 @test "ctr execsync exit code" {
@@ -641,7 +639,7 @@ function check_oci_annotation() {
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 
-	! crictl exec --sync "$ctr_id" false
+	run ! crictl exec --sync "$ctr_id" false
 }
 
 @test "ctr execsync std{out,err}" {
@@ -741,8 +739,7 @@ function check_oci_annotation() {
 
 	jq '	  .command = ["nonexistent"]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not found"* ]]
 }
 
@@ -753,8 +750,7 @@ function check_oci_annotation() {
 	jq '	  .command = ["nonexistent"]
 		| .tty = true' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not found"* ]]
 }
 
@@ -835,8 +831,7 @@ function check_oci_annotation() {
 	jq '	  .working_dir = "/etc/passwd"
 		| .metadata.name = "container2"' \
 		< "$TESTDATA"/container_config.json > "$newconfig"
-	run crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
-	[ "$status" -ne 0 ]
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 	[[ "$output" == *"not a directory"* ]]
 }
 
@@ -896,7 +891,7 @@ function check_oci_annotation() {
 
 	jq '	  .linux.resources.memory_limit_in_bytes = 2000' \
 		"$TESTDATA"/container_config.json > "$newconfig"
-	! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
 @test "privileged ctr -- check for rw mounts" {
@@ -961,7 +956,7 @@ function check_oci_annotation() {
 	CONTAINER_ABSENT_MOUNT_SOURCES_TO_REJECT="$ABSENT_DIR" start_crio
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
+	run ! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr has containerenv" {
@@ -1014,8 +1009,8 @@ function check_oci_annotation() {
 	for process in ${processes}; do
 		# Ignore Z state (zombies) as the process has just been killed and reparented. Systemd will get to it.
 		# `pgrep` doesn't have a good mechanism for ignoring Z state, but including all others, so:
-		# shellcheck disable=SC2009
-		! ps -p "$process" o pid=,stat= | grep -v 'Z'
+		# shellcheck disable=SC2143
+		[ -z "$(ps -p "$process" o pid=,stat= | grep -v ' Z')" ]
 	done
 }
 
@@ -1024,5 +1019,5 @@ function check_oci_annotation() {
 	jq ' .envs = [{"key": "HOME=", "value": "/root:/sbin/nologin\\ntest::0:0::/:/bin/bash"}]' \
 		"$TESTDATA"/container_config.json > "$newconfig"
 
-	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
 }

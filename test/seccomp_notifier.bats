@@ -31,9 +31,8 @@ function teardown() {
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
 
-	for ((i = 0; i < 3; i++)); do
-		run crictl exec -s "$CTR" swapoff -a
-		[ "$status" -ne 0 ]
+	for _ in 1 2 3; do
+		run ! crictl exec -s "$CTR" swapoff -a
 		sleep 1
 	done
 
@@ -63,9 +62,8 @@ function teardown() {
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
 
-	for ((i = 0; i < 3; i++)); do
-		run crictl exec -s "$CTR" swapoff -a
-		[ "$status" -ne 0 ]
+	for _ in 1 2 3; do
+		run ! crictl exec -s "$CTR" swapoff -a
 		sleep 1
 	done
 
@@ -93,12 +91,10 @@ function teardown() {
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
-	for ((i = 0; i < 5; i++)); do
-		run crictl exec -s "$CTR" chmod 777 .
-		[ "$status" -ne 0 ]
+	for _ in 1 2 3 4 5; do
+		run ! crictl exec -s "$CTR" chmod 777 .
 
-		run crictl exec -s "$CTR" swapoff -a
-		[ "$status" -ne 0 ]
+		run ! crictl exec -s "$CTR" swapoff -a
 	done
 
 	sleep 6 # wait until the notifier stop the workload
@@ -127,10 +123,9 @@ function teardown() {
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
 	CTR=$(crictl run "$TESTDIR"/container.json "$TESTDIR"/sandbox.json)
-	run crictl exec -s "$CTR" chmod 777 .
-	[ "$status" -ne 0 ]
+	run ! crictl exec -s "$CTR" chmod 777 .
 
 	# Assert
-	! grep -q "Got seccomp notifier message for container ID: $CTR" "$CRIO_LOG"
+	run ! grep -q "Got seccomp notifier message for container ID: $CTR" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.status.state == "CONTAINER_RUNNING"'
 }

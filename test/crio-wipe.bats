@@ -163,7 +163,7 @@ function start_crio_with_stopped_pod() {
 
 	run_crio_wipe
 
-	! run_podman_with_args container exists test
+	run ! run_podman_with_args container exists test
 }
 
 @test "fail to clear podman containers when shutdown file not found but container still running" {
@@ -180,10 +180,7 @@ function start_crio_with_stopped_pod() {
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
 
-	run "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
-	echo "$status"
-	echo "$output"
-	[ "$status" -ne 0 ]
+	run ! "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
 }
 
 @test "don't clear containers on a forced restart of crio" {
@@ -321,5 +318,5 @@ function start_crio_with_stopped_pod() {
 	sleep 5s
 
 	# make sure network resources were cleaned up
-	! ls "$CNI_RESULTS_DIR"/*"$pod_id"*
+	run ! ls "$CNI_RESULTS_DIR"/*"$pod_id"*
 }

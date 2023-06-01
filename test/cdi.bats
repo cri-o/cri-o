@@ -23,35 +23,6 @@ function teardown() {
 	cleanup_test
 }
 
-function run_cmd() {
-	while [[ $1 == -* || $1 == '!' ]]; do
-		case "$1" in
-		'!')
-			expected_status=-1
-			;;
-		-[0-9]*)
-			expected_status=${1#-}
-			;;
-		esac
-		shift
-	done
-
-	run "$@"
-
-	if [[ -n "$expected_status" ]]; then
-		if [[ "$expected_status" = "-1" ]]; then
-			if [[ "$status" -eq 0 ]]; then
-				BATS_ERROR_SUFFIX=", expected nonzero exit code, got $status"
-				return 1
-			fi
-		elif [[ "$status" -ne "$expected_status" ]]; then
-			# shellcheck disable=SC2034
-			BATS_ERROR_SUFFIX=", expected exit status $expected_status, got $status"
-			return 1
-		fi
-	fi
-}
-
 function write_cdi_spec() {
 	mkdir -p "$cdidir"
 	cat << EOF > "$cdidir/vendor0.yaml"
@@ -86,27 +57,27 @@ EOF
 
 function verify_injected_vendor0() {
 	# shellcheck disable=SC2016
-	run_cmd -0 crictl exec --sync "$1" sh -c 'echo $VENDOR0'
+	run -0 crictl exec --sync "$1" sh -c 'echo $VENDOR0'
 	[ "$output" = "injected" ]
 }
 
 function verify_injected_loop8() {
 	# shellcheck disable=SC2016
-	run_cmd -0 crictl exec --sync "$1" sh -c 'echo $LOOP8'
+	run -0 crictl exec --sync "$1" sh -c 'echo $LOOP8'
 	[ "$output" = "present" ]
-	run_cmd -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop8'
+	run -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop8'
 	[ "$output" = "7.8" ]
-	run_cmd -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop8'
+	run -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop8'
 	[ "$output" = "640" ]
 }
 
 function verify_injected_loop9() {
 	# shellcheck disable=SC2016
-	run_cmd -0 crictl exec --sync "$1" sh -c 'echo $LOOP9'
+	run -0 crictl exec --sync "$1" sh -c 'echo $LOOP9'
 	[ "$output" = "present" ]
-	run_cmd -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop9'
+	run -0 crictl exec --sync "$1" sh -c 'stat -c %t.%T /dev/loop9'
 	[ "$output" = "7.9" ]
-	run_cmd -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop9'
+	run -0 crictl exec --sync "$1" sh -c 'stat -c %a /dev/loop9'
 	[ "$output" = "644" ]
 }
 
@@ -141,15 +112,13 @@ function prepare_ctr_with_unknown_cdidev {
 	write_cdi_spec
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_without_cdidev
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 
-	run_cmd -0 crictl start "$ctr_id"
-	run_cmd -0 wait_until_exit "$ctr_id"
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
 }
 
 @test "no CDI errors, create ctr with CDI devices" {
@@ -159,12 +128,10 @@ function prepare_ctr_with_unknown_cdidev {
 	write_cdi_spec
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_cdidev
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 	crictl start "$ctr_id"
 
 	verify_injected_vendor0 "$ctr_id"
@@ -179,11 +146,10 @@ function prepare_ctr_with_unknown_cdidev {
 	write_cdi_spec
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_unknown_cdidev
-	run_cmd ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
 }
 
 @test "CDI registry refresh" {
@@ -192,16 +158,14 @@ function prepare_ctr_with_unknown_cdidev {
 	fi
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_cdidev
-	run_cmd ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
 
 	write_cdi_spec
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
-	run_cmd -0 crictl start "$ctr_id"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	crictl start "$ctr_id"
 
 	verify_injected_vendor0 "$ctr_id"
 	verify_injected_loop8 "$ctr_id"
@@ -216,18 +180,16 @@ function prepare_ctr_with_unknown_cdidev {
 	set_cdi_dir "$cdidir.no-such-dir"
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_cdidev
-	run_cmd ! crictl create "$pod_id" "$ctr_config" "$pod_config"
+	run ! crictl create "$pod_id" "$ctr_config" "$pod_config"
 
 	set_cdi_dir "$cdidir"
 	reload_crio
 	sleep 1
 
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 	crictl start "$ctr_id"
 
 	verify_injected_vendor0 "$ctr_id"
@@ -243,15 +205,13 @@ function prepare_ctr_with_unknown_cdidev {
 	write_invalid_cdi_spec
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_without_cdidev
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
 
-	run_cmd -0 crictl start "$ctr_id"
-	run_cmd -0 wait_until_exit "$ctr_id"
+	crictl start "$ctr_id"
+	wait_until_exit "$ctr_id"
 }
 
 @test "CDI with errors, create ctr with (unaffected) CDI devices" {
@@ -262,14 +222,12 @@ function prepare_ctr_with_unknown_cdidev {
 	write_invalid_cdi_spec
 	start_crio
 
-	run_cmd -0 crictl runp "$pod_config"
-	pod_id="$output"
+	pod_id=$(crictl runp "$pod_config")
 
 	prepare_ctr_with_cdidev
-	run_cmd -0 crictl create "$pod_id" "$ctr_config" "$pod_config"
-	ctr_id="$output"
-	run_cmd -0 grep "CDI registry has errors" "$CRIO_LOG"
-	run_cmd -0 crictl start "$ctr_id"
+	ctr_id=$(crictl create "$pod_id" "$ctr_config" "$pod_config")
+	grep "CDI registry has errors" "$CRIO_LOG"
+	crictl start "$ctr_id"
 
 	verify_injected_vendor0 "$ctr_id"
 	verify_injected_loop8 "$ctr_id"

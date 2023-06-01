@@ -159,7 +159,7 @@ function teardown() {
 
 @test "fail to pass pod sysctls to runtime if invalid spaces" {
 	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward = 1" crio &
-	! wait_until_reachable
+	run ! wait_until_reachable
 }
 
 @test "fail to pass pod sysctl to runtime if invalid value" {
@@ -173,14 +173,14 @@ function teardown() {
 			"net.ipv4.ip_local_port_range": $sysctl,
 		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
-	! crictl runp "$TESTDIR"/sandbox.json
+	run ! crictl runp "$TESTDIR"/sandbox.json
 
 	jq --arg sysctl "net.ipv4.ip_local_port_range=1024 65000'+'net.ipv4.ip_forward" \
 		'.linux.sysctls = {
 			($sysctl): "0",
 		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
 
-	! crictl runp "$TESTDIR"/sandbox.json
+	run ! crictl runp "$TESTDIR"/sandbox.json
 }
 
 @test "skip pod sysctls to runtime if host" {
@@ -259,7 +259,7 @@ function teardown() {
 
 	# kubelet is technically responsible for creating this cgroup. it is created in cri-o if there's an infra container
 	CONTAINER_DROP_INFRA_CTR=false start_crio
-	! crictl runp "$TESTDIR"/sandbox.json
+	run ! crictl runp "$TESTDIR"/sandbox.json
 }
 
 @test "systemd cgroup_parent correctly set" {

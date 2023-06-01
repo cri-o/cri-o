@@ -11,51 +11,32 @@ function teardown() {
 	cleanup_test
 }
 
-function run_crio_status() {
-	run "${CRIO_BINARY_PATH}" "status" "$@"
-	echo "$output"
-}
-
 @test "status should fail if no subcommand is provided" {
-	# when
-	run_crio_status
-
-	# then
-	[ "$status" -eq 1 ]
+	run -1 "${CRIO_BINARY_PATH}" status
 }
 
 @test "status should succeed to retrieve the config" {
 	# when
-	run_crio_status --socket="${CRIO_SOCKET}" config
+	run -0 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" config
 
 	# then
-	[ "$status" -eq 0 ]
 	[[ "$output" == *"[crio]"* ]]
 }
 
 @test "status should fail to retrieve the config with invalid socket" {
-	# when
-	run_crio_status --socket wrong.sock c
-
-	# then
-	[ "$status" -eq 1 ]
+	run -1 "${CRIO_BINARY_PATH}" status --socket wrong.sock c
 }
 
 @test "status should succeed to retrieve the info" {
 	# when
-	run_crio_status --socket="${CRIO_SOCKET}" info
+	run -0 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" info
 
 	# then
-	[ "$status" -eq 0 ]
 	[[ "$output" == *"storage driver"* ]]
 }
 
 @test "status should fail to retrieve the info with invalid socket" {
-	# when
-	run_crio_status --socket wrong.sock i
-
-	# then
-	[ "$status" -eq 1 ]
+	run -1 "${CRIO_BINARY_PATH}" status --socket wrong.sock i
 }
 
 @test "succeed to retrieve the container info" {
@@ -65,25 +46,16 @@ function run_crio_status() {
 	crictl start "$ctr"
 
 	# when
-	run_crio_status --socket="${CRIO_SOCKET}" containers --id "$ctr"
+	run -0 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" containers --id "$ctr"
 
 	# then
-	[ "$status" -eq 0 ]
 	[[ "$output" == *"sandbox: $pod"* ]]
 }
 
 @test "should fail to retrieve the container info without ID" {
-	# when
-	run_crio_status --socket="${CRIO_SOCKET}" containers
-
-	# then
-	[ "$status" -eq 1 ]
+	run -1 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" containers
 }
 
 @test "should fail to retrieve the container with invalid socket" {
-	# when
-	run_crio_status --socket wrong.sock s
-
-	# then
-	[ "$status" -eq 1 ]
+	run -1 "${CRIO_BINARY_PATH}" status --socket wrong.sock s
 }

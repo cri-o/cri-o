@@ -31,8 +31,8 @@ function teardown() {
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
 	start_crio
 	# Ensure pod fails if /dev/shm size is negative
-	! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "-1"' "$TESTDATA"/sandbox_config.json)
+	run ! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "-1"' "$TESTDATA"/sandbox_config.json)
 
 	# Ensure pod fails if /dev/shm size is not a size
-	! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "notanumber"' "$TESTDATA"/sandbox_config.json)
+	run ! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "notanumber"' "$TESTDATA"/sandbox_config.json)
 }

@@ -91,7 +91,7 @@ EOF
 	ls "$cgroup_base"/"$parent"/crio-"$pod_id"*
 
 	crictl rmp -fa
-	! ls "$cgroup_base"/"$parent"/crio-"$pod_id"*
+	run ! ls "$cgroup_base"/"$parent"/crio-"$pod_id"*
 }
 
 @test "conmonrs custom cgroup with no infra container" {
@@ -143,7 +143,7 @@ EOF
 	    |     .linux.resources.memory_limit_in_bytes = 210763776' \
 		"$TESTDATA"/container_sleep.json > "$newconfig"
 
-	! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
+	run ! crictl run "$newconfig" "$TESTDATA"/sandbox_config.json
 }
 
 @test "ctr swap only configured if enabled" {

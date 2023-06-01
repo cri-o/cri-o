@@ -17,8 +17,7 @@ function teardown() {
 		"$TESTDATA"/container_config.json > "$TESTDIR"/container_image_volume.json
 
 	ctr_id=$(crictl run "$TESTDIR"/container_image_volume.json "$TESTDATA"/sandbox_config.json)
-	run crictl exec --sync "$ctr_id" ls /imagevolume
-	[ "$status" -ne 0 ]
+	run ! crictl exec --sync "$ctr_id" ls /imagevolume
 	[[ "$output" == *"ls: cannot access '/imagevolume': No such file or directory"* ]]
 }
 

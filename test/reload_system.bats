@@ -34,7 +34,7 @@ function expect_log_failure() {
 
 	# then
 	expect_log_success
-	! crictl pull "$TEST_IMAGE"
+	run ! crictl pull "$TEST_IMAGE"
 }
 
 @test "reload system registries should succeed with new registry" {
