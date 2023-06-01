@@ -29,18 +29,10 @@ applies to features which are independent from Kubernetes.
 For more information visit the [Kubernetes Version Skew
 Policy](https://kubernetes.io/releases/version-skew-policy/).
 
-| Version - Branch            | Kubernetes branch/version       | Maintenance status |
-| --------------------------- | ------------------------------- | ------------------ |
-| CRI-O HEAD - main           | Kubernetes master branch        | ✓                  |
-| CRI-O 1.24.x - release-1.24 | Kubernetes 1.24 branch, v1.24.x | =                  |
-| CRI-O 1.23.x - release-1.23 | Kubernetes 1.23 branch, v1.23.x | =                  |
-| CRI-O 1.22.x - release-1.22 | Kubernetes 1.22 branch, v1.22.x | =                  |
-| CRI-O 1.21.x - release-1.21 | Kubernetes 1.21 branch, v1.21.x | =                  |
-
-Key:
-
-- `✓` Changes in the main Kubernetes repo about CRI are actively implemented in CRI-O
-- `=` Maintenance is manual, only bugs will be patched.
+| CRI-O                           | Kubernetes                      | Maintenance status                                                    |
+| ------------------------------- | ------------------------------- | --------------------------------------------------------------------- |
+| `main` branch                   | `master` branch                 | Features from the main Kubernetes repository are actively implemented |
+| `release-1.x` branch (`v1.x.y`) | `release-1.x` branch (`v1.x.z`) | Maintenance is manual, only bugfixes will be backported.              |
 
 The release notes for CRI-O are hand-crafted and can be continuously retrieved
 from [our GitHub pages website](https://cri-o.github.io/cri-o).
