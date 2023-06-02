@@ -22,24 +22,8 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	sandbox := s.getSandbox(ctx, c.Sandbox())
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
-	}
-
-	if hooks != nil {
-		if err := hooks.PreStop(ctx, c, sandbox); err != nil {
-			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %w", c.ID(), err)
-		}
-	}
-
 	if err := s.stopContainer(ctx, c, req.Timeout); err != nil {
 		return nil, err
-	}
-
-	if err := s.nri.stopContainer(ctx, sandbox, c); err != nil {
-		log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 	}
 
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
@@ -50,6 +34,20 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout int64) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
+	sb := s.getSandbox(ctx, ctr.Sandbox())
+
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	if err != nil {
+		return fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
+	}
+
+	if hooks != nil {
+		if err := hooks.PreStop(ctx, ctr, sb); err != nil {
+			return fmt.Errorf("failed to run pre-stop hook for container %q: %w", ctr.ID(), err)
+		}
+	}
+
 	if ctr.StateNoLock().Status == oci.ContainerStatePaused {
 		if err := s.Runtime().UnpauseContainer(ctx, ctr); err != nil {
 			return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
@@ -79,6 +77,16 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
+
+	if hooks != nil {
+		if err := hooks.PostStop(ctx, ctr, sb); err != nil {
+			return fmt.Errorf("failed to run post-stop hook for container %q: %w", ctr.ID(), err)
+		}
+	}
+
+	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
+		return err
 	}
 
 	return nil
