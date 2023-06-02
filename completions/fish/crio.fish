@@ -178,6 +178,9 @@ by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l migrate-defaults -s m -r -d 'Migrate the default config from a specified version.
+
+    The migrate-defaults command has been deprecated and will be removed in the future.
+
     To run a config migration, just select the input config via the global
     \'--config,-c\' command line argument, for example:
     ```
