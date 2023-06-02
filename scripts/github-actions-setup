@@ -57,9 +57,9 @@ install_bats() {
 }
 
 install_conmon() {
-    git clone https://github.com/containers/conmon
+    git clone https://github.com/kolyshkin/conmon
     pushd conmon
-    git checkout "${VERSIONS["conmon"]}"
+    git checkout debugg
     sudo make PREFIX=/ all install
     popd
     sudo rm -rf conmon
