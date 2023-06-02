@@ -313,11 +313,11 @@ function cleanup_testdir() {
 function cleanup_test() {
     [ -z "$TESTDIR" ] && return
     # show crio log (only shown by bats in case of test failure)
-    if [ -f "$CRIO_LOG" ]; then
-        echo "# --- crio.log :: ---"
-        cat "$CRIO_LOG"
-        echo "# --- --- ---"
-    fi
+#    if [ -f "$CRIO_LOG" ]; then
+#        echo "# --- crio.log :: ---"
+#        cat "$CRIO_LOG"
+#        echo "# --- --- ---"
+#    fi
     if [[ $RUNTIME_TYPE == pod ]]; then
         echo "# --- conmonrs logs :: ---"
         CONMONRS_PID=$(sed -nr 's/.*Running conmonrs with PID: ([0-9]+).*/\1/p' "$CRIO_LOG")

@@ -96,18 +96,48 @@ function teardown() {
 	PORT=$(free_port)
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
+#		| .command = ["sh", "-c", "sleep 3; exit 137"]' \
+
 	jq '	  .linux.resources.memory_limit_in_bytes = 15728640
 		| .linux.resources.memory_swap_limit_in_bytes = 15728640
-		| .command = ["sh", "-c", "for ((i=0; i<1000; i++)); do val=$(seq -w -s - $i $((i + 100000))); eval var$i=$val_$val_$val; done"]' \
+		| .command = ["sh", "-c", "sleep 1; for ((i=0; i<1000; i++)); do val=$(seq -w -s - $i $((i + 100000))); eval var$i=$val_$val_$val; done"]' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/config.json"
-	CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
 
-	# Wait for container to OOM
-	for _ in {1..100}; do
-		sleep 10
-		crictl inspect --output yaml "$CTR_ID" | grep OOMKilled && break
+	for ((i = 0; i < 100; i++)); do
+		echo "iter $i" >&3
+
+		CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
+
+		# Wait for container to OOM.
+		EXPECTED_EXIT_STATUS=137 wait_until_exit "$CTR_ID"
+		if ! crictl inspect "$CTR_ID" | jq -e '.status.reason == "OOMKilled"'; then
+			# The container has exited but it was not OOM-killed.
+			echo "--- crlctl inspect :: ---"
+			crictl inspect --output yaml "$CTR_ID" | grep -A40 'status:'
+			echo "--- --- ---"
+			# Most probably it's a conmon bug.
+			if [ "$RUNTIME_TYPE" == "oci" ]; then
+				echo "--- conmon log :: ---"
+				journalctl -t conmon --grep "${CTR_ID::20}"
+				echo "--- --- ---"
+			fi
+			# Systemd should have caught the OOM event.
+			if [[ "$CONTAINER_CGROUP_MANAGER" == "systemd" ]]; then
+				echo "--- systemd log :: ---"
+				journalctl --unit "crio-${CTR_ID}.scope"
+				echo "--- --- ---"
+			fi
+			# Kernel definitely has the OOM event.
+			echo "--- dmesg :: ---"
+			dmesg -k --since "-60s" # -l info | grep oom-kill:
+			echo "--- --- ---"
+
+			# Alas, we have utterly failed.
+			false
+		fi
+		cleanup_ctrs
+		cleanup_pods
 	done
-	crictl inspect --output yaml "$CTR_ID" | grep OOMKilled
 
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep '^container_runtime_crio_containers_oom_total')
 	[[ "$METRIC" == 'container_runtime_crio_containers_oom_total 1' ]]
