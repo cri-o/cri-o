@@ -46,7 +46,7 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	if sbParent != "" {
 		parent = sbParent
 	}
-	return filepath.Join("/", parent, crioPrefix+"-"+containerID)
+	return filepath.Join("/", parent, containerCgroupPath(containerID))
 }
 
 // PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
@@ -77,7 +77,7 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 		return "", "", err
 	}
 
-	return sbParent, filepath.Join(sbParent, crioPrefix+"-"+sbID), nil
+	return sbParent, filepath.Join(sbParent, containerCgroupPath(sbID)), nil
 }
 
 // PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object

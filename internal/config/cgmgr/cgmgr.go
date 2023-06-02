@@ -20,7 +20,7 @@ import (
 )
 
 const (
-	crioPrefix = "crio"
+	CrioPrefix = "crio"
 	// minMemoryLimit is the minimum memory that must be set for a container.
 	// A lower value would result in the container failing to start.
 	// this value has been arrived at for runc on x86_64 hardware
@@ -216,5 +216,5 @@ func removeSandboxCgroup(sbParent, containerCgroup string) error {
 }
 
 func containerCgroupPath(id string) string {
-	return crioPrefix + "-" + id
+	return CrioPrefix + "-" + id
 }
