@@ -14,6 +14,7 @@ import (
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/metrics"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -151,13 +152,13 @@ func isContextError(err error) bool {
 }
 
 func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType string) (string, error) {
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
 	// In 99% of cases, we shouldn't hit this timeout. Instead, the context should be cancelled.
 	// This is really to catch an unlikely case where the kubelet doesn't cancel the context.
 	// Adding on top of the specified deadline ensures this deadline will be respected, regardless of
 	// how Kubelet's runtime-request-timeout changes.
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-
 	resourceCreationWaitTime := time.Minute * 4
 	if initialDeadline, ok := ctx.Deadline(); ok {
 		resourceCreationWaitTime += time.Until(initialDeadline)
@@ -172,6 +173,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		return "", fmt.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
 	}
 	log.Infof(ctx, "Creation of %s %s not yet finished. Currently at stage %v. Waiting up to %v for it to finish", resourceType, name, stage, resourceCreationWaitTime)
+	metrics.Instance().MetricResourcesStalledAtStage(stage)
 	var err error
 	select {
 	// We should wait as long as we can (within reason), thus stalling the kubelet's sync loop.

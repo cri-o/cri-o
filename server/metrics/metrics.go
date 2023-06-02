@@ -89,6 +89,7 @@ type Metrics struct {
 	metricImageLayerReuseTotal                *prometheus.CounterVec
 	metricContainersOOMCountTotal             *prometheus.CounterVec
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
+	metricResourcesStalledAtStage             *prometheus.CounterVec
 }
 
 var instance *Metrics
@@ -318,6 +319,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Number of forbidden syscalls by syscall and container name",
 			},
 			[]string{"name", "syscall"},
+		),
+		metricResourcesStalledAtStage: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ResourcesStalledAtStage.String(),
+				Help:      "Resource creation stage pod or container is stalled at.",
+			},
+			[]string{"stage"},
 		),
 	}
 	return Instance()
@@ -550,6 +559,15 @@ func (m *Metrics) MetricImagePullsByNameAdd(add float64, values ...string) {
 	c.Add(add)
 }
 
+func (m *Metrics) MetricResourcesStalledAtStage(stage string) {
+	c, err := m.metricResourcesStalledAtStage.GetMetricWithLabelValues(stage)
+	if err != nil {
+		logrus.Warnf("Unable to write resource stalled at stage metric: %v", err)
+		return
+	}
+	c.Inc()
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
@@ -579,6 +597,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ImageLayerReuseTotal:                m.metricImageLayerReuseTotal,
 		collectors.ContainersOOMCountTotal:             m.metricContainersOOMCountTotal,
 		collectors.ContainersSeccompNotifierCountTotal: m.metricContainersSeccompNotifierCountTotal,
+		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

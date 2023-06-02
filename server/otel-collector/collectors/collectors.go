@@ -101,6 +101,9 @@ const (
 
 	// ContainersSeccompNotifierCountTotal is the key for the CRI-O container seccomp notifier metrics per container name and syscalls.
 	ContainersSeccompNotifierCountTotal Collector = crioPrefix + "containers_seccomp_notifier_count_total"
+
+	// ResourcesStalledAtStage is the key for the resources stalled at different stages in container and pod creation.
+	ResourcesStalledAtStage Collector = crioPrefix + "resources_stalled_at_stage"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -148,6 +151,7 @@ func All() Collectors {
 		ImageLayerReuseTotal.Stripped(),
 		ContainersOOMCountTotal.Stripped(),
 		ContainersSeccompNotifierCountTotal.Stripped(),
+		ResourcesStalledAtStage.Stripped(),
 	}
 }
 
