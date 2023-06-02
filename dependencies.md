@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Jun 2023 23:58:32 UTC for commit [56a7e3a][0]._
+_Generated on Fri, 02 Jun 2023 09:57:25 UTC for commit [3c96998][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/56a7e3a1d3e537d294b972197199901fd20637c1
+[0]: https://github.com/cri-o/cri-o/commit/3c969988d3f545f09aaaf9ea2c348eb50df50677
 
 ## Outdated Dependencies
 
@@ -188,7 +188,7 @@ _Generated on Thu, 01 Jun 2023 23:58:32 UTC for commit [56a7e3a][0]._
 | github.com/Masterminds/semver/v3                                                        | v3.2.1                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.10.0-rc.8                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230531000951-4f8d26f7d627 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230602002426-8a094aee4469 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -490,7 +490,7 @@ _Generated on Thu, 01 Jun 2023 23:58:32 UTC for commit [56a7e3a][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                            |                                    | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                               |                                    | false  | true             |
 | github.com/google/martian/v3                                                            | v3.2.1                                            | v3.3.2                             | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20230323073829-e72429f035bd                | v0.0.0-20230510103437-eeec1cb781c3 | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20230323073829-e72429f035bd                | v0.0.0-20230602010524-ada837c32108 | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                            |                                    | true   | true             |
 | github.com/google/rpmpack                                                               | v0.0.0-20210518075352-dc539ef4f2ea                | v0.0.0-20221120200012-98b63d62fd77 | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.2                                            | v0.1.4                             | false  | true             |
