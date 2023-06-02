@@ -167,6 +167,8 @@ function setup_crio() {
         --apparmor-profile "$apparmor" \
         --cgroup-manager "$CONTAINER_CGROUP_MANAGER" \
         --conmon "$CONMON_BINARY" \
+        --container-attach-socket-dir "$CONTAINER_ATTACH_SOCKET_DIR" \
+        --container-exits-dir "$CONTAINER_EXITS_DIR" \
         --listen "$CRIO_SOCKET" \
         --registry "quay.io" \
         --registry "docker.io" \
@@ -181,15 +183,9 @@ function setup_crio() {
         -d "" \
         $OVERRIDE_OPTIONS \
         config >"$CRIO_CUSTOM_CONFIG"
-    sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i "$CRIO_CONFIG"
-    sed -r -e 's/^(#)?root =/root =/g' -e 's/^(#)?runroot =/runroot =/g' -e 's/^(#)?storage_driver =/storage_driver =/g' -e '/^(#)?storage_option = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?registries = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -e '/^(#)?default_ulimits = (\[)?[ \t]*$/,/^#?$/s/^(#)?//g' -i "$CRIO_CUSTOM_CONFIG"
     # make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CONFIG"
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CUSTOM_CONFIG"
-    sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'"$CONTAINER_EXITS_DIR"'";g' "$CRIO_CONFIG"
-    sed -i -e 's;\(container_exits_dir =\) \(.*\);\1 "'"$CONTAINER_EXITS_DIR"'";g' "$CRIO_CUSTOM_CONFIG"
-    sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'"$CONTAINER_ATTACH_SOCKET_DIR"'";g' "$CRIO_CONFIG"
-    sed -i -e 's;\(container_attach_socket_dir =\) \(.*\);\1 "'"$CONTAINER_ATTACH_SOCKET_DIR"'";g' "$CRIO_CUSTOM_CONFIG"
     prepare_network_conf
 }
 
