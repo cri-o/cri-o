@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 02 Jun 2023 23:31:16 UTC for commit [5eceaf5][0]._
+_Generated on Sat, 03 Jun 2023 07:41:51 UTC for commit [844b43b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5eceaf5ef88ef1eb165f0c73a4d2e9f049592198
+[0]: https://github.com/cri-o/cri-o/commit/844b43be4337b72a54b53518667451c975515d0b
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.1                                        | v1.7.2                             | true   | true             |
-| github.com/containers/podman/v4                                             | v4.5.0                                        | v4.5.1                             | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc2.0.20221005185240-3a7f492d3f1b      | v1.1.0-rc3                         | true   | true             |
 | github.com/stretchr/testify                                                 | v1.8.3                                        | v1.8.4                             | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.0                                        | v0.2.1                             | true   | true             |
@@ -189,7 +188,7 @@ _Generated on Fri, 02 Jun 2023 23:31:16 UTC for commit [5eceaf5][0]._
 | github.com/Masterminds/semver/v3                                                        | v3.2.1                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.10.0-rc.8                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230602194356-25b6855925d2 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230603003806-f5c5797f7889 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -328,7 +327,7 @@ _Generated on Fri, 02 Jun 2023 23:31:16 UTC for commit [5eceaf5][0]._
 | github.com/containers/libhvee                                                           | v0.0.2                                            | v0.0.5                             | false  | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                    | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.7                                            |                                    | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.5.0                                            | v4.5.1                             | true   | true             |
+| github.com/containers/podman/v4                                                         | v4.5.1                                            |                                    | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                    | false  | true             |
 | github.com/containers/storage                                                           | v1.46.1                                           |                                    | true   | true             |
 | github.com/coredns/caddy                                                                | v1.1.1                                            |                                    | false  | true             |
