@@ -212,9 +212,17 @@ type RuntimeHandler struct {
 
 	// MonitorExecCgroup indicates whether to move exec probes to the container's cgroup.
 	MonitorExecCgroup string `toml:"monitor_exec_cgroup,omitempty"`
+
+	// SeccompProfile is the seccomp.json profile path which is used as the
+	// default for the specific runtime.
+	// RuntimeHandler SeccompProfile will have precedence over RuntimeConfig SeccompProfile.
+	SeccompProfile string `toml:"seccomp_profile"`
+
+	// seccompConfig is the internal seccomp configuration
+	seccompConfig *seccomp.Config
 }
 
-// Multiple runtime Handlers in a map
+// Runtimes represent multiple runtime Handlers in a map
 type Runtimes map[string]*RuntimeHandler
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -1052,6 +1060,10 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return fmt.Errorf("runtime validation: %w", err)
 		}
 
+		if err := c.LoadRuntimeHandlerSeccompProfile(); err != nil {
+			return fmt.Errorf("load runtime handler seccomp profile: %w", err)
+		}
+
 		// Validate the system registries configuration
 		if _, err := sysregistriesv2.GetRegistries(systemContext); err != nil {
 			return fmt.Errorf("invalid registries: %w", err)
@@ -1171,6 +1183,24 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		},
 		MonitorCgroup: defaultMonitorCgroup,
 	}
+}
+
+// LoadRuntimeHandlerSeccompProfile checks if seccomp profile for RuntimeHandler exist and loads.
+func (c *RuntimeConfig) LoadRuntimeHandlerSeccompProfile() error {
+	for name := range c.Runtimes {
+		if _, err := os.Stat(c.Runtimes[name].SeccompProfile); err == nil {
+			c.Runtimes[name].seccompConfig = seccomp.New()
+			if err := c.Runtimes[name].seccompConfig.LoadProfile(c.Runtimes[name].SeccompProfile); err != nil {
+				if !errors.Is(err, os.ErrNotExist) {
+					logrus.Infof(
+						"Unable to load seccomp profile for RuntimeHandler %s", name)
+				}
+			}
+		} else {
+			logrus.Infof("Specified profile does not exist on disk for RuntimeHandler %s", name)
+		}
+	}
+	return nil
 }
 
 // ValidateRuntimes checks every runtime if its members are valid
