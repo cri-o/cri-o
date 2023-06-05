@@ -104,6 +104,7 @@ crio
 [--seccomp-use-default-when-empty]
 [--selinux]
 [--separate-pull-cgroup]=[value]
+[--signature-policy-dir]=[value]
 [--signature-policy]=[value]
 [--stats-collection-period]=[value]
 [--storage-driver|-s]=[value]
@@ -375,6 +376,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
 
 **--signature-policy**="": Path to signature policy JSON file.
+
+**--signature-policy-dir**="": Path to the root directory for namespaced signature policies. Must be an absolute path. (default: /etc/crio/policies)
 
 **--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
 
