@@ -144,6 +144,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l seccomp-use-default-when-e
 complete -c crio -n '__fish_crio_no_subcommand' -f -l selinux -d 'Enable selinux support.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l separate-pull-cgroup -r -d '[EXPERIMENTAL] Pull in new cgroup.'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'Path to signature policy JSON file.'
+complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy-dir -r -d 'Path to the root directory for namespaced signature policies. Must be an absolute path.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stats-collection-period -r -d 'The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'OCI storage driver.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'OCI storage driver option.'

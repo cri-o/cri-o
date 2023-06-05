@@ -491,6 +491,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SignaturePolicyPath, c.SignaturePolicyPath),
 		},
 		{
+			templateString: templateStringCrioImageSignaturePolicyDir,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.SignaturePolicyDir, c.SignaturePolicyDir),
+		},
+		{
 			templateString: templateStringCrioImageInsecureRegistries,
 			group:          crioImageConfig,
 			isDefaultValue: stringSliceEqual(dc.InsecureRegistries, c.InsecureRegistries),
@@ -1346,6 +1351,15 @@ const templateStringCrioImageSignaturePolicy = `# Path to the file which decides
 # policy (i.e., /etc/containers/policy.json) is most often preferred. Please
 # refer to containers-policy.json(5) for more details.
 {{ $.Comment }}signature_policy = "{{ .SignaturePolicyPath }}"
+
+`
+
+const templateStringCrioImageSignaturePolicyDir = `# Root path for pod namespace-separated signature policies.
+# The final policy to be used on image pull will be <SIGNATURE_POLICY_DIR>/<NAMESPACE>.json.
+# If no pod namespace is being provided on image pull (via the sandbox config),
+# or the concatenated path is non existent, then the signature_policy or system
+# wide policy will be used as fallback. Must be an absolute path.
+{{ $.Comment }}signature_policy_dir = "{{ .SignaturePolicyDir }}"
 
 `
 

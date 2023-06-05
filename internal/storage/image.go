@@ -668,7 +668,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 			return nil, err
 		}
 	} else {
-		policy, err := signature.DefaultPolicy(systemContext)
+		policy, err := signature.DefaultPolicy(inputOptions.SourceCtx)
 		if err != nil {
 			return nil, err
 		}

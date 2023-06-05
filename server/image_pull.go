@@ -5,6 +5,8 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 	"syscall"
 	"time"
@@ -35,14 +37,18 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 	log.Infof(ctx, "Pulling image: %s", image)
 
-	sandboxCgroup := ""
-	if req.SandboxConfig != nil && req.SandboxConfig.Linux != nil {
-		sandboxCgroup = req.SandboxConfig.Linux.CgroupParent
+	pullArgs := pullArguments{image: image}
+
+	sc := req.SandboxConfig
+	if sc != nil {
+		if sc.Linux != nil {
+			pullArgs.sandboxCgroup = sc.Linux.CgroupParent
+		}
+		if sc.Metadata != nil {
+			pullArgs.namespace = sc.Metadata.Namespace
+		}
 	}
-	pullArgs := pullArguments{
-		image:         image,
-		sandboxCgroup: sandboxCgroup,
-	}
+
 	if req.Auth != nil {
 		username := req.Auth.Username
 		password := req.Auth.Password
@@ -129,6 +135,16 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
+
+	if pullArgs.namespace != "" {
+		policyPath := filepath.Join(s.config.SignaturePolicyDir, pullArgs.namespace+".json")
+		if _, err := os.Stat(policyPath); err == nil {
+			sourceCtx.SignaturePolicyPath = policyPath
+		} else if !os.IsNotExist(err) {
+			return "", fmt.Errorf("read policy path %s: %w", policyPath, err)
+		}
+	}
+	log.Debugf(ctx, "Using pull policy path for image %s: %s", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
