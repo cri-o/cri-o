@@ -27,6 +27,9 @@ it later with **--config**. Global options will modify the output.`,
 			Aliases:     []string{"m"},
 			Destination: &from,
 			Usage: fmt.Sprintf(`Migrate the default config from a specified version.
+
+    The migrate-defaults command has been deprecated and will be removed in the future.
+
     To run a config migration, just select the input config via the global
     '--config,-c' command line argument, for example:
     `+"```"+`
@@ -61,6 +64,7 @@ it later with **--config**. Global options will modify the output.`,
 
 		if c.IsSet("migrate-defaults") {
 			logrus.Infof("Migrating config from %s", from)
+			logrus.Warn("Config migration has been deprecated and will be removed in the future.")
 			if err := migrate.Config(conf, from); err != nil {
 				return fmt.Errorf("migrate config: %w", err)
 			}

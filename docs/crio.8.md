@@ -441,6 +441,9 @@ it later with **--config**. Global options will modify the output.
 **--default**: Output the default configuration (without taking into account any configuration options).
 
 **--migrate-defaults, -m**="": Migrate the default config from a specified version.
+
+    The migrate-defaults command has been deprecated and will be removed in the future.
+
     To run a config migration, just select the input config via the global
     '--config,-c' command line argument, for example:
     ```
