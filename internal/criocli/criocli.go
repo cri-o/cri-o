@@ -3,7 +3,6 @@ package criocli
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -11,9 +10,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
-
-// DefaultsPath is the path to default configuration files set at build time
-var DefaultsPath string
 
 // DefaultCommands are the flags commands can be added to every binary
 var DefaultCommands = []*cli.Command{
@@ -48,16 +44,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		if err := config.UpdateFromFile(path); err != nil {
 			if ctx.IsSet("config") || !os.IsNotExist(err) {
 				return err
-			}
-
-			// Use the build-time-defined defaults path
-			if DefaultsPath != "" && os.IsNotExist(err) {
-				path = filepath.Join(DefaultsPath, "/crio.conf")
-				if err := config.UpdateFromFile(path); err != nil {
-					if ctx.IsSet("config") || !os.IsNotExist(err) {
-						return err
-					}
-				}
 			}
 		}
 	}
