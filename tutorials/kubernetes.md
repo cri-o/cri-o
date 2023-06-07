@@ -45,9 +45,9 @@ Kubelet parameters are stored in `/etc/kubernetes/kubelet.env` file.
 
 ```shell
 $ cat /etc/kubernetes/kubelet.env | grep KUBELET_ARGS
-KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests 
---pod-infra-container-image=gcr.io/google_containers/pause-amd64:3.0 
---cluster_dns=10.233.0.3 --cluster_domain=cluster.local 
+KUBELET_ARGS="--pod-manifest-path=/etc/kubernetes/manifests
+--pod-infra-container-image=gcr.io/google_containers/pause-amd64:3.0
+--cluster_dns=10.233.0.3 --cluster_domain=cluster.local
 --resolv-conf=/etc/resolv.conf --kubeconfig=/etc/kubernetes/node-kubeconfig.yaml
 --require-kubeconfig"
 ```
