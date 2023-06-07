@@ -26,7 +26,6 @@ import (
 	"github.com/containerd/fifo"
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
-	"github.com/containers/common/pkg/resize"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
@@ -38,6 +37,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	anypb "google.golang.org/protobuf/types/known/anypb"
+	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kioutil "k8s.io/kubernetes/pkg/kubelet/util/ioutils"
 	utilexec "k8s.io/utils/exec"
@@ -287,7 +287,7 @@ func (r *runtimeVM) StartContainer(ctx context.Context, c *Container) error {
 }
 
 // ExecContainer prepares a streaming endpoint to execute a command in the container.
-func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
+func (r *runtimeVM) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.ExecContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.ExecContainer() end")
 
@@ -347,7 +347,7 @@ func (r *runtimeVM) ExecSyncContainer(ctx context.Context, c *Container, command
 	}, nil
 }
 
-func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) (exitCode int32, retErr error) {
+func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd []string, timeout int64, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) (exitCode int32, retErr error) {
 	log.Debugf(ctx, "RuntimeVM.execContainerCommon() start")
 	defer log.Debugf(ctx, "RuntimeVM.execContainerCommon() end")
 
@@ -434,7 +434,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 
 	// Initialize terminal resizing if necessary
 	if resizeChan != nil {
-		resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
+		utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 			log.Debugf(ctx, "Got a resize event: %+v", size)
 
 			if err := r.resizePty(c.ID(), execID, size); err != nil {
@@ -942,12 +942,12 @@ func (r *runtimeVM) SignalContainer(ctx context.Context, c *Container, sig sysca
 }
 
 // AttachContainer attaches IO to a running container.
-func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
+func (r *runtimeVM) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	log.Debugf(ctx, "RuntimeVM.AttachContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.AttachContainer() end")
 
 	// Initialize terminal resizing
-	resize.HandleResizing(resizeChan, func(size resize.TerminalSize) {
+	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
 
 		if err := r.resizePty(c.ID(), "", size); err != nil {
@@ -1043,7 +1043,7 @@ func (r *runtimeVM) remove(ctrID, execID string) error {
 	return nil
 }
 
-func (r *runtimeVM) resizePty(ctrID, execID string, size resize.TerminalSize) error {
+func (r *runtimeVM) resizePty(ctrID, execID string, size remotecommand.TerminalSize) error {
 	_, err := r.task.ResizePty(r.ctx, &task.ResizePtyRequest{
 		ID:     ctrID,
 		ExecID: execID,

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/containers/common/pkg/resize"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -24,7 +24,7 @@ func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.A
 }
 
 // Attach endpoint for streaming.Runtime
-func (s StreamService) Attach(ctx context.Context, containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan resize.TerminalSize) error {
+func (s StreamService) Attach(ctx context.Context, containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)

@@ -6,8 +6,8 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/containers/common/pkg/resize"
 	"golang.org/x/sys/windows"
+	"k8s.io/client-go/tools/remotecommand"
 )
 
 func kill(pid int) error {
@@ -27,6 +27,6 @@ func getExitCode(err error) int32 {
 	return -1
 }
 
-func ttyCmd(cmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan resize.TerminalSize) error {
+func ttyCmd(cmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan remotecommand.TerminalSize) error {
 	return fmt.Errorf("unsupported")
 }

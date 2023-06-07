@@ -19,6 +19,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
+	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -377,4 +378,26 @@ func Syncfs(path string) error {
 		return err
 	}
 	return nil
+}
+
+// HandleResizing spawns a goroutine that processes the resize channel, calling
+// resizeFunc for each TerminalSize received from the channel. The resize
+// channel must be closed elsewhere to stop the goroutine.
+func HandleResizing(resize <-chan remotecommand.TerminalSize, resizeFunc func(size remotecommand.TerminalSize)) {
+	if resize == nil {
+		return
+	}
+
+	go func() {
+		for {
+			size, ok := <-resize
+			if !ok {
+				return
+			}
+			if size.Height < 1 || size.Width < 1 {
+				continue
+			}
+			resizeFunc(size)
+		}
+	}()
 }
