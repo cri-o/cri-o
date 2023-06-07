@@ -134,8 +134,7 @@ It's now possible to start CRI-O with enabled tracing:
 sudo crio --enable-tracing --tracing-sampling-rate-per-million 1000000
 ```
 
-And when now running a CRI API call, for example by using [`crictl`][crictl]:
-[crictl]: https://github.com/kubernetes-sigs/cri-tools
+And when now running a CRI API call, for example by using[`crictl`](https://github.com/kubernetes-sigs/cri-tools):
 
 ```bash
 sudo crictl ps

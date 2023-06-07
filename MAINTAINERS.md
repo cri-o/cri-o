@@ -1,6 +1,7 @@
 # CRI-O Maintainers
 
-[GOVERNANCE.md](https://github.com/cri-o/cri-o/blob/master/community/GOVERNANCE.md) describes the CRI-O governance.
+[GOVERNANCE.md](https://github.com/cri-o/cri-o/blob/main/GOVERNANCE.md)
+describes the CRI-O governance.
 
 ## Maintainers
 
@@ -29,4 +30,5 @@
 | Valentin Rothberg | [vrothberg](https://github.com/vrothberg) | Approver | [Red Hat](https://github.com/redhat) |
 
 ## Credits
+
 The structure of this document was based off of the equivalent one in the [Argo Project](https://github.com/argoproj/argoproj/blob/master/MAINTAINERS.md).

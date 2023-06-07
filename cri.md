@@ -26,8 +26,8 @@ Both tags and digests will be used by:
 
 - The kubelet, which displays them in the node status as a flat list, for example:
 
-  ```
-  > kubectl get node 127.0.0.1 -o json | jq .status.images
+  ```shell
+  kubectl get node 127.0.0.1 -o json | jq .status.images
   ```
 
   ```json
@@ -48,8 +48,9 @@ Both tags and digests will be used by:
   score nodes based on the information if a container image already exists.
 
 - crictl, which is able to output the image list in a human readable way:
-  ```
-  > sudo crictl images --digests
+
+  ```shell
+  sudo crictl images --digests
   IMAGE                 TAG       DIGEST           IMAGE ID         SIZE
   registry.k8s.io/pause      3.2       4a1c4b21597c1    80d28bedfe5de    688kB
   ```
@@ -87,8 +88,11 @@ repoDigests = []string{from.PreviousName + "@" + string(from.Digest)}
 This allows tools like `crictl` to output the image name by adding a `<none>`
 placeholder for the tag:
 
+```shell
+sudo crictl images --digests
 ```
-> sudo crictl images --digests
+
+```text
 IMAGE                               TAG       DIGEST           IMAGE ID         SIZE
 quay.io/saschagrunert/hello-world   <none>    2403474085c1e    14c28051b743c    5.88MB
 quay.io/saschagrunert/hello-world   latest    ca810c5740f66    d1165f2212346    17.7kB
@@ -97,8 +101,8 @@ quay.io/saschagrunert/hello-world   latest    ca810c5740f66    d1165f2212346    
 The `kubelet` is still able to list the image by its digest, which could be
 referenced by a Kubernetes container:
 
-```
-> kubectl get node 127.0.0.1 -o json | jq .status.images
+```shell
+kubectl get node 127.0.0.1 -o json | jq .status.images
 ```
 
 ```json
@@ -114,8 +118,8 @@ referenced by a Kubernetes container:
 
 We assume that we consecutively build a container image locally like this:
 
-```
-> sudo podman build --no-cache -t test .
+```shell
+sudo podman build --no-cache -t test .
 ```
 
 The previous image tag gets removed by Podman and applied to the current build.
@@ -126,8 +130,8 @@ the use-case above.
 
 If we pull a container image by its digest like this:
 
-```
-> sudo crictl pull docker.io/alpine@sha256:2a8831c57b2e2cb2cda0f3a7c260d3b6c51ad04daea0b3bfc5b55f489ebafd71
+```shell
+sudo crictl pull docker.io/alpine@sha256:2a8831c57b2e2cb2cda0f3a7c260d3b6c51ad04daea0b3bfc5b55f489ebafd71
 ```
 
 Then CRI-O will not be able to provide a `RepoTags` result, but a single entry
