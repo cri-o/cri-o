@@ -82,7 +82,8 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	if hooks != nil {
 		if err := hooks.PostStop(ctx, ctr, sb); err != nil {
-			return fmt.Errorf("failed to run post-stop hook for container %q: %w", ctr.ID(), err)
+			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", ctr.ID(), err)
+			// The hook failure MUST NOT prevent the Pod termination
 		}
 	}
 
