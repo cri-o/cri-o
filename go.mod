@@ -3,7 +3,7 @@ go 1.20
 module github.com/cri-o/cri-o
 
 require (
-	github.com/BurntSushi/toml v1.3.1
+	github.com/BurntSushi/toml v1.3.2
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/blang/semver/v4 v4.0.0
