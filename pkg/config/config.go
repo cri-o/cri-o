@@ -479,6 +479,14 @@ type ImageConfig struct {
 	// that this be left unspecified so that the default system-wide policy
 	// will be used.
 	SignaturePolicyPath string `toml:"signature_policy"`
+	// SignaturePolicyDir is the root path for pod namespace-separated
+	// signature policies. The final policy to be used on image pull will be
+	// <SIGNATURE_POLICY_DIR>/<NAMESPACE>.json.
+	// If no pod namespace is being provided on image pull (via the sandbox
+	// config), or the concatenated path is non existent, then the
+	// SignaturePolicyPath or system wide policy will be used as fallback.
+	// Must be an absolute path.
+	SignaturePolicyDir string `toml:"signature_policy_dir"`
 	// InsecureRegistries is a list of registries that must be contacted w/o
 	// TLS verification.
 	InsecureRegistries []string `toml:"insecure_registries"`
@@ -840,10 +848,11 @@ func DefaultConfig() (*Config, error) {
 			HostNetworkDisableSELinux:   true,
 		},
 		ImageConfig: ImageConfig{
-			DefaultTransport: "docker://",
-			PauseImage:       DefaultPauseImage,
-			PauseCommand:     "/pause",
-			ImageVolumes:     ImageVolumesMkdir,
+			DefaultTransport:   "docker://",
+			PauseImage:         DefaultPauseImage,
+			PauseCommand:       "/pause",
+			ImageVolumes:       ImageVolumesMkdir,
+			SignaturePolicyDir: "/etc/crio/policies",
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
@@ -892,6 +901,10 @@ func (c *Config) Validate(onExecution bool) error {
 	c.RuntimeConfig.seccompConfig.SetNotifierPath(
 		filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 	)
+
+	if err := c.ImageConfig.Validate(onExecution); err != nil {
+		return fmt.Errorf("validating image config: %w", err)
+	}
 
 	if err := c.NetworkConfig.Validate(onExecution); err != nil {
 		return fmt.Errorf("validating network config: %w", err)
@@ -1334,6 +1347,20 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 	}
 	logrus.Infof("Using %s executable: %s", executable, currentPath)
 	return currentPath, nil
+}
+
+// Validate is the main entry point for image configuration validation.
+// It returns an error on validation failure, otherwise nil.
+func (c *ImageConfig) Validate(onExecution bool) error {
+	if !filepath.IsAbs(c.SignaturePolicyDir) {
+		return fmt.Errorf("signature policy dir %q is not absolute", c.SignaturePolicyDir)
+	}
+	if onExecution {
+		if err := os.MkdirAll(c.SignaturePolicyDir, 0o755); err != nil {
+			return fmt.Errorf("cannot create signature policy dir: %w", err)
+		}
+	}
+	return nil
 }
 
 // Validate is the main entry point for network configuration validation.

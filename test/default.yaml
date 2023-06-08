@@ -1,0 +1,2 @@
+default-docker:
+  use-sigstore-attachments: true

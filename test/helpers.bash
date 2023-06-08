@@ -170,6 +170,8 @@ function setup_crio() {
         --container-attach-socket-dir "$CONTAINER_ATTACH_SOCKET_DIR" \
         --container-exits-dir "$CONTAINER_EXITS_DIR" \
         --listen "$CRIO_SOCKET" \
+        --signature-policy "$SIGNATURE_POLICY" \
+        --signature-policy-dir "$SIGNATURE_POLICY_DIR" \
         --registry "quay.io" \
         --registry "docker.io" \
         -r "$TESTDIR/crio" \
