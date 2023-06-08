@@ -54,3 +54,8 @@ load helpers
 	run ! "$CRIO_BINARY_PATH" --log-size-max 18446744073709551616
 	[[ "$output" == *"value out of range"* ]]
 }
+
+@test "devicemapper is deprecated" {
+	run "$CRIO_BINARY_PATH" -s devicemapper
+	[[ "$output" == *"devicemapper storage driver is deprecated"* ]]
+}

@@ -964,6 +964,10 @@ func (c *RootConfig) Validate(onExecution bool) error {
 		if err := os.MkdirAll(c.LogDir, 0o700); err != nil {
 			return fmt.Errorf("invalid log_dir: %w", err)
 		}
+		if c.Storage == "devicemapper" {
+			// TODO: return error.
+			logrus.Warn("devicemapper storage driver is deprecated and will be removed in cri-o v1.28")
+		}
 		store, err := c.GetStore()
 		if err != nil {
 			return fmt.Errorf("failed to get store to set defaults: %w", err)
