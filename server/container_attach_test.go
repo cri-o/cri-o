@@ -3,9 +3,9 @@ package server_test
 import (
 	"context"
 
-	"github.com/containers/common/pkg/resize"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -51,7 +51,7 @@ var _ = t.Describe("ContainerAttach", func() {
 			// Given
 			// When
 			err := testStreamService.Attach(context.Background(), testContainer.ID(),
-				nil, nil, nil, false, make(chan resize.TerminalSize))
+				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then
 			Expect(err).NotTo(BeNil())

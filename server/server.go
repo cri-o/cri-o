@@ -37,13 +37,13 @@ import (
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/server/streaming"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/kubelet/pkg/cri/streaming"
 
 	nriIf "github.com/cri-o/cri-o/internal/nri"
 )
@@ -521,7 +521,7 @@ func New(
 	}
 	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
-	s.stream.streamServer, err = streaming.NewServer(ctx, &streamServerConfig, s.stream)
+	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create streaming server")
 	}
