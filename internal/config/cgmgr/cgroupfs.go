@@ -180,18 +180,18 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) error {
 	return mgr.Set(cg.Resources)
 }
 
-// createSandboxCgroup takes the sandbox parent, and sandbox ID.
-// It creates a new cgroup for that sandbox, which is useful when spoofing an infra container.
-func createSandboxCgroup(sbParent, containerID string, mgr CgroupManager) error {
-	cgroupAbsolutePath, err := mgr.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	_, err = cgroups.New(cgroupAbsolutePath, &rspec.LinuxResources{})
-	return err
-}
-
 // CreateSandboxCgroup calls the helper function createSandboxCgroup for this manager.
 func (m *CgroupfsManager) CreateSandboxCgroup(sbParent, containerID string) error {
-	return createSandboxCgroup(sbParent, containerID, m)
+	// prepend "/" to sbParent so the fs driver interprets it as an absolute path
+	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
+	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
+	return createSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
+}
+
+// RemoveSandboxCgroup calls the helper function removeSandboxCgroup for this manager.
+func (m *CgroupfsManager) RemoveSandboxCgroup(sbParent, containerID string) error {
+	// prepend "/" to sbParent so the fs driver interprets it as an absolute path
+	// and the cgroup isn't created as a relative path to the cgroups of the CRI-O process.
+	// https://github.com/opencontainers/runc/blob/fd5debf3aa/libcontainer/cgroups/fs/paths.go#L156
+	return removeSandboxCgroup(filepath.Join("/", sbParent), containerCgroupPath(containerID))
 }
