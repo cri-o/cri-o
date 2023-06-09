@@ -99,8 +99,10 @@ function wait_clean() {
 
 	run ! crictl runp -T "$CANCEL_TIMEOUT" "$TESTDATA"/sandbox_config.json
 
+	# allow metric to be populated
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep 'crio_resources_stalled_at_stage{')
-	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="sandbox container runtime creation"} 1' ]]
+	# the test races against itself, so we don't know the exact stage that will be registered. It should be one of them.
+	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="sandbox '* ]]
 }
 
 @test "should not clean up container after timeout" {
@@ -232,8 +234,10 @@ function wait_clean() {
 
 	run ! crictl create -T "$CANCEL_TIMEOUT" "$pod_id" "$TESTDATA"/container_config.json "$TESTDATA"/sandbox_config.json
 
+	# allow metric to be populated
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep 'crio_resources_stalled_at_stage{')
-	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="container runtime creation"} 1' ]]
+	# the test races against itself, so we don't know the exact stage that will be registered. It should be one of them.
+	[[ "$METRIC" == 'container_runtime_crio_resources_stalled_at_stage{stage="container '* ]]
 }
 
 # this test case is paranoid, but mostly checks that we can't
