@@ -19,10 +19,10 @@ import (
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/sirupsen/logrus"
 	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/kubernetes/pkg/kubelet/cm/cpuset"
 )

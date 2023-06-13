@@ -22,6 +22,7 @@ import (
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
 	"github.com/cri-o/cri-o/internal/lib"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
@@ -345,12 +346,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	pathsToChown := []string{}
 
-	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
-
 	kubeName := sbox.Config().Metadata.Name
+	kubePodUID := sbox.Config().Metadata.Uid
 	namespace := sbox.Config().Metadata.Namespace
 	attempt := sbox.Config().Metadata.Attempt
+
+	// These fields are populated by the Kubelet, but not crictl. Populate if needed.
+	sbox.Config().Labels = populateSandboxLabels(sbox.Config().Labels, kubeName, kubePodUID, namespace)
+	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
+	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
 
 	if err := sbox.SetNameAndID(); err != nil {
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
@@ -570,6 +574,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			return nil
 		})
+	}
+
+	// Link logs if requested
+	if emptyDirVolName, ok := kubeAnnotations[ann.LinkLogsAnnotation]; ok {
+		if err = linklogs.MountPodLogs(ctx, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel); err != nil {
+			log.Warnf(ctx, "Failed to link logs: %v", err)
+		}
 	}
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox spec configuration")
@@ -1003,6 +1014,25 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
 	resp = &types.RunPodSandboxResponse{PodSandboxId: sbox.ID()}
 	return resp, nil
+}
+
+// populateSandboxLabels adds some fields that Kubelet specifies by default, but other clients (crictl) does not.
+// While CRI-O typically only cares about the kubelet, the cost here is low. Adding this code prevents issues
+// with the LogLink feature, as the unmounting relies on the existence of the UID in the sandbox labels.
+func populateSandboxLabels(labels map[string]string, kubeName, kubePodUID, namespace string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	if _, ok := labels[kubeletTypes.KubernetesPodNameLabel]; !ok {
+		labels[kubeletTypes.KubernetesPodNameLabel] = kubeName
+	}
+	if _, ok := labels[kubeletTypes.KubernetesPodNamespaceLabel]; !ok {
+		labels[kubeletTypes.KubernetesPodNamespaceLabel] = namespace
+	}
+	if _, ok := labels[kubeletTypes.KubernetesPodUIDLabel]; !ok {
+		labels[kubeletTypes.KubernetesPodUIDLabel] = kubePodUID
+	}
+	return labels
 }
 
 func setupShm(ctx context.Context, podSandboxRunDir, mountLabel string, shmSize int64) (shmPath string, _ error) {
