@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -124,8 +125,11 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container is stopped", func() {
-			ctx := context.TODO()
 			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().IsRunningImageAllowed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
+			ctx := context.TODO()
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
 
@@ -143,8 +147,11 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container checkpoint archive is empty", func() {
-			ctx := context.TODO()
 			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().IsRunningImageAllowed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
+			ctx := context.TODO()
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
 
@@ -175,6 +182,9 @@ var _ = t.Describe("ContainerCreate", func() {
 
 		It("should fail when sandbox not found", func() {
 			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().IsRunningImageAllowed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
 			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
 
 			// When
@@ -192,6 +202,10 @@ var _ = t.Describe("ContainerCreate", func() {
 
 		It("should fail on invalid pod sandbox ID", func() {
 			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().IsRunningImageAllowed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
+
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{
@@ -207,6 +221,10 @@ var _ = t.Describe("ContainerCreate", func() {
 
 		It("should fail on empty pod sandbox ID", func() {
 			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().IsRunningImageAllowed(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
+
 			// When
 			response, err := sut.CreateContainer(context.Background(),
 				&types.CreateContainerRequest{

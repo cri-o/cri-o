@@ -190,7 +190,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, image, &ImageCopyOptions{
+		ref, _, err = r.storageImageServer.PullImage(systemContext, image, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})

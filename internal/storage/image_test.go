@@ -716,7 +716,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on invalid image name", func() {
 			// Given
 			// When
-			res, err := sut.PullImage(&types.SystemContext{}, "",
+			res, _, err := sut.PullImage(&types.SystemContext{}, "",
 				&storage.ImageCopyOptions{})
 
 			// Then
@@ -727,7 +727,7 @@ var _ = t.Describe("Image", func() {
 		It("should fail on invalid policy path", func() {
 			// Given
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
+			res, _, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "/not-existing",
 			}, "", &storage.ImageCopyOptions{})
 
@@ -742,7 +742,7 @@ var _ = t.Describe("Image", func() {
 			mockParseStoreReference(storeMock, "localhost/busybox:latest")
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
+			res, _, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
 			}, imageName, &storage.ImageCopyOptions{})
 
@@ -757,7 +757,7 @@ var _ = t.Describe("Image", func() {
 			mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256)
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
+			res, _, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
 			}, imageName, &storage.ImageCopyOptions{})
 

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,10 +17,13 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/copy"
-	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/docker"
+	cimage "github.com/containers/image/v5/image"
+	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -29,13 +33,17 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
+	"github.com/docker/distribution/reference"
+	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/godbus/dbus/v5"
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+	crierrors "k8s.io/cri-api/pkg/errors"
 )
 
 const (
@@ -134,7 +142,7 @@ type ImageServer interface {
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName string) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
-	PullImage(systemContext *types.SystemContext, imageName string, options *ImageCopyOptions) (types.ImageReference, error)
+	PullImage(systemContext *types.SystemContext, imageName string, options *ImageCopyOptions) (types.ImageReference, string, error)
 	// UntagImage removes a name from the specified image, and if it was
 	// the only name the image had, removes the image.
 	UntagImage(systemContext *types.SystemContext, imageName string) error
@@ -145,6 +153,10 @@ type ImageServer interface {
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
 	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
+	// PullLocalManifestDigest pull the manifest digest and assembles the image ref from it.
+	PullLocalManifestDigest(ctx context.Context, systemContext *types.SystemContext, image string) (string, error)
+	// IsRunningImageAllowed verifies if running of the container image is allowed.
+	IsRunningImageAllowed(context.Context, *types.SystemContext, string, string) error
 }
 
 func (svc *imageService) getRef(name string) (types.ImageReference, error) {
@@ -396,6 +408,205 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 
 	result := svc.buildImageResult(image, cacheItem)
 	return &result, nil
+}
+
+// nolint:staticcheck
+func (svc *imageService) PullLocalManifestDigest(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage string) (string, error) {
+	imageParsed, err := reference.ParseNormalizedNamed(userSpecifiedImage)
+	if err != nil {
+		return "", fmt.Errorf("parsing user specified image: %w", err)
+	}
+	imageParsed = reference.TagNameOnly(imageParsed)
+
+	policy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return "", fmt.Errorf("get default policy: %w", err)
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return "", fmt.Errorf("create policy context: %w", err)
+	}
+	defer policyContext.Destroy() //nolint:errcheck
+
+	localManifestDigest, err := svc.pullLocalManifestDigest(ctx, systemContext, policyContext, imageParsed)
+	if err != nil {
+		return "", fmt.Errorf("pull local manifest digest: %w", err)
+	}
+	log.Debugf(ctx, "Local manifest digest for image %q is: %s", imageParsed, localManifestDigest)
+
+	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageParsed), localManifestDigest)
+	if err != nil {
+		return "", fmt.Errorf("create canonical reference: %w", err)
+	}
+
+	return canonicalRef.String(), nil
+}
+
+func (svc *imageService) pullLocalManifestDigest(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageParsed reference.Named) (digest.Digest, error) {
+	srcRef, err := docker.NewReference(imageParsed)
+	if err != nil {
+		return "", fmt.Errorf("creating docker:// reference for %q: %w", imageParsed.String(), err)
+	}
+
+	destRef, err := istorage.Transport.NewStoreReference(svc.store, imageParsed, "")
+	if err != nil {
+		return "", fmt.Errorf("creating containers-storage: reference for %q: %w", imageParsed.String(), err)
+	}
+
+	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+		SourceCtx:      sys,
+		DestinationCtx: sys,
+	})
+	if err != nil {
+		var e errcode.Error
+		if as := errors.As(err, &e); as && e.ErrorCode().Descriptor().HTTPStatusCode == http.StatusUnauthorized {
+			// We cannot support private registries right now, but may with future support from the CRI.
+			log.Errorf(ctx, "Verifying policies against private registries it not supported yet: %v", err)
+			return "", nil
+		}
+
+		var policyErr signature.PolicyRequirementError
+		if errors.As(err, &policyErr) {
+			return "", fmt.Errorf("%v: %w", crierrors.ErrSignatureValidationFailed, err)
+		}
+
+		return "", fmt.Errorf("pulling %q to %q: %w", transports.ImageName(srcRef), transports.ImageName(destRef), err)
+	}
+	return digest.FromBytes(manifestBytes), nil
+}
+
+// nolint:staticcheck
+func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, configImage, userSpecifiedImage string) error {
+	policy, err := signature.DefaultPolicy(systemContext)
+	if err != nil {
+		return fmt.Errorf("get default policy: %w", err)
+	}
+
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return fmt.Errorf("create policy context: %w", err)
+	}
+	defer policyContext.Destroy() //nolint:errcheck
+
+	imageParsed, err := reference.ParseNormalizedNamed(userSpecifiedImage)
+	if err != nil {
+		return fmt.Errorf("parsing config image: %w", err)
+	}
+	imageParsed = reference.TagNameOnly(imageParsed)
+
+	var localManifestDigest digest.Digest
+	// On fresh pulls retrieve the full image and digest as configImage
+	if parsedConfigImage, err := reference.Parse(configImage); err == nil {
+		if canonical, isDigested := parsedConfigImage.(reference.Canonical); isDigested {
+			localManifestDigest = canonical.Digest()
+		}
+	}
+
+	// Check if the configImage is a local image ID if the image is already pulled
+	if localManifestDigest.String() == "" {
+		if ref, err := istorage.Transport.NewStoreReference(svc.store, imageParsed, configImage); err == nil {
+			storeImage, err := istorage.Transport.GetStoreImage(svc.store, ref)
+			if err != nil {
+				return fmt.Errorf("get store image: %w", err)
+			}
+			localManifestDigest = storeImage.Digest
+		}
+	}
+
+	// Tagged references are mainly used by tools like crictl or critest
+	if localManifestDigest.String() == "" {
+		if parsedRef, err := reference.ParseNormalizedNamed(configImage); err == nil {
+			ref, err := svc.pullLocalManifestDigest(ctx, systemContext, policyContext, reference.TagNameOnly(parsedRef))
+			if err != nil {
+				return fmt.Errorf("pull local manifest digest: %w", err)
+			}
+			localManifestDigest = ref
+		}
+	}
+
+	if localManifestDigest.String() == "" {
+		return fmt.Errorf("not interpretable config image: %q", configImage)
+	}
+
+	if err := svc.checkSignature(ctx, systemContext, policyContext, imageParsed, localManifestDigest); err != nil {
+		return fmt.Errorf("checking signature of %q: %w", imageParsed.String(), err)
+	}
+
+	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", userSpecifiedImage, systemContext.SignaturePolicyPath)
+
+	return nil
+}
+
+func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageParsed reference.Named, localManifestDigest digest.Digest) error {
+	userIdentityRef, err := docker.NewReference(imageParsed)
+	if err != nil {
+		return fmt.Errorf("creating docker:// reference for %q: %w", imageParsed.String(), err)
+	}
+
+	storeNamedReference, err := reference.WithDigest(reference.TrimNamed(imageParsed), localManifestDigest)
+	if err != nil {
+		return fmt.Errorf("creating a digested storage reference for %q + %q: %w", imageParsed, localManifestDigest, err)
+	}
+	storageRefWithoutID, err := istorage.Transport.NewStoreReference(svc.store, storeNamedReference, "")
+	if err != nil {
+		return fmt.Errorf("creating containers-storage: reference for %q: %w", storeNamedReference.String(), err)
+	}
+	log.Debugf(ctx, "Created storageRefWithoutID = %q", transports.ImageName(storageRefWithoutID))
+
+	// storageRefWithoutID should be good enough, but just to show the workflow with a known local image ID:
+	localImage, err := istorage.Transport.GetStoreImage(svc.store, storageRefWithoutID)
+	if err != nil {
+		return fmt.Errorf("looking up a local image for %q: %w", transports.ImageName(storageRefWithoutID), err)
+	}
+	storageRef, err := istorage.Transport.NewStoreReference(svc.store, storeNamedReference, localImage.ID)
+	if err != nil {
+		return fmt.Errorf("creating containers-storage: reference for %q + %q: %w", storeNamedReference.String(), localImage.ID, err)
+	}
+	log.Debugf(ctx, "Created storageRef = %q", transports.ImageName(storageRef))
+
+	storageSource, err := storageRef.NewImageSource(ctx, sys)
+	if err != nil {
+		return fmt.Errorf("creating image source for local store image: %w", err)
+	}
+	defer storageSource.Close()
+
+	unparsedToplevel := cimage.UnparsedInstance(storageSource, nil)
+	topManifest, topMIMEType, err := unparsedToplevel.Manifest(ctx)
+	if err != nil {
+		return fmt.Errorf("get top level manifest: %w", err)
+	}
+
+	unparsedInstance := unparsedToplevel
+	if manifest.MIMETypeIsMultiImage(topMIMEType) {
+		manifestList, err := manifest.ListFromBlob(topManifest, topMIMEType)
+		if err != nil {
+			return fmt.Errorf("parsing list manifest: %w", err)
+		}
+
+		instanceDigest, err := manifestList.ChooseInstance(sys)
+		if err != nil {
+			return fmt.Errorf("choosing instance: %w", err)
+		}
+
+		unparsedInstance = cimage.UnparsedInstance(storageSource, &instanceDigest)
+	}
+
+	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userIdentityRef)
+
+	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
+	if err != nil {
+		var policyErr signature.PolicyRequirementError
+		if errors.As(err, &policyErr) {
+			return fmt.Errorf("%v: %w", crierrors.ErrSignatureValidationFailed, err)
+		}
+		return fmt.Errorf("verifying signatures: %w", err)
+	}
+	if !allowed {
+		return errors.New("internal inconsistency: !allowed and no error")
+	}
+
+	return nil
 }
 
 func imageSize(img types.Image) *uint64 {
@@ -654,36 +865,47 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 	return nil
 }
 
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
+func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName string, inputOptions *ImageCopyOptions) (imageRef types.ImageReference, ref string, err error) {
 	options := *inputOptions // A shallow copy
 
 	srcSystemContext, srcRef, destRef, err := svc.lookup.getReferences(options.SourceCtx, svc.store, imageName)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	options.SourceCtx = srcSystemContext
 
 	if inputOptions.CgroupPull.UseNewCgroup {
 		if err := svc.copyImage(systemContext, imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
-			return nil, err
+			return nil, "", err
 		}
 	} else {
 		policy, err := signature.DefaultPolicy(inputOptions.SourceCtx)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		policyContext, err := signature.NewPolicyContext(policy)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 
 		copyOptions := toCopyOptions(&options, inputOptions.Progress)
 
-		if _, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
-			return nil, err
+		manifestBytes, err := copy.Image(svc.ctx, policyContext, destRef, srcRef, copyOptions)
+		if err != nil {
+			return nil, "", err
 		}
+
+		imageParsed, err := reference.ParseNormalizedNamed(imageName)
+		if err != nil {
+			return nil, "", fmt.Errorf("parse image name: %w", err)
+		}
+		canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageParsed), digest.FromBytes(manifestBytes))
+		if err != nil {
+			return nil, "", fmt.Errorf("create canonical reference: %w", err)
+		}
+		ref = canonicalRef.String()
 	}
-	return destRef, nil
+	return destRef, ref, nil
 }
 
 func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName string) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {

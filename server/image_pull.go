@@ -122,6 +122,23 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}, nil
 }
 
+// contextForNamespace takes the provided namespace and returns a modifiable
+// copy of the servers system context.
+func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext, error) {
+	ctx := *s.config.SystemContext // A shallow copy we can modify
+
+	if namespace != "" {
+		policyPath := filepath.Join(s.config.SignaturePolicyDir, namespace+".json")
+		if _, err := os.Stat(policyPath); err == nil {
+			ctx.SignaturePolicyPath = policyPath
+		} else if !os.IsNotExist(err) {
+			return ctx, fmt.Errorf("read policy path %s: %w", policyPath, err)
+		}
+	}
+
+	return ctx, nil
+}
+
 // pullImage performs the actual pull operation of PullImage. Used to separate
 // the pull implementation from the pullCache logic in PullImage and improve
 // readability and maintainability.
@@ -130,21 +147,16 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sourceCtx := *s.config.SystemContext   // A shallow copy we can modify
+	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
+	if err != nil {
+		return "", fmt.Errorf("get context for namespace: %w", err)
+	}
+	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
+
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
 	}
-
-	if pullArgs.namespace != "" {
-		policyPath := filepath.Join(s.config.SignaturePolicyDir, pullArgs.namespace+".json")
-		if _, err := os.Stat(policyPath); err == nil {
-			sourceCtx.SignaturePolicyPath = policyPath
-		} else if !os.IsNotExist(err) {
-			return "", fmt.Errorf("read policy path %s: %w", policyPath, err)
-		}
-	}
-	log.Debugf(ctx, "Using pull policy path for image %s: %s", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
@@ -152,8 +164,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	}
 
 	var (
-		images []string
-		pulled string
+		images   []string
+		pulled   string
+		imageRef string
 	)
 	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
 	if err != nil {
@@ -192,6 +205,11 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
 				log.Debugf(ctx, "Image %s already in store, skipping pull", img)
 				pulled = img
+
+				imageRef, err = s.StorageImageServer().PullLocalManifestDigest(ctx, &sourceCtx, pulled)
+				if err != nil {
+					return "", fmt.Errorf("pull local manifest digest: %w", err)
+				}
 
 				// Skipped digests metrics
 				tryRecordSkippedMetric(ctx, img, tmpImgConfigDigest.String())
@@ -271,7 +289,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			}
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
+		_, imageRef, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,
@@ -298,13 +316,15 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	// Update metric for successful image pulls
 	metrics.Instance().MetricImagePullsSuccessesInc(pulled)
 
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
-	if err != nil {
-		return "", err
-	}
-	imageRef := status.ID
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
+	if imageRef == "" {
+		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
+		if err != nil {
+			return "", err
+		}
+		imageRef = status.ID
+		if len(status.RepoDigests) > 0 {
+			imageRef = status.RepoDigests[0]
+		}
 	}
 
 	return imageRef, nil

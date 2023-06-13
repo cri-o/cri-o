@@ -359,6 +359,15 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}, nil
 	}
 
+	systemCtx, err := s.contextForNamespace(req.SandboxConfig.Metadata.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, req.Config.Image.Image, req.Config.Image.UserSpecifiedImage); err != nil {
+		return nil, err
+	}
+
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if err == sandbox.ErrIDEmpty {

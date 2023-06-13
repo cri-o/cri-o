@@ -29,6 +29,11 @@ systemctl start crio
 systemctl is-active --quiet crio && echo CRI-O is running
 
 # Run a workload
+# TODO: remove once we released cri-tools v1.28.0
+git clone https://github.com/kubernetes-sigs/cri-tools
+make -C cri-tools BINDIR=/usr/local/bin install
+rm -rf cri-tools
+
 crictl version
 crictl run \
     "$GIT_ROOT/test/testdata/container_redis.json" \
