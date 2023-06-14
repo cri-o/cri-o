@@ -57,16 +57,15 @@ kata_int_test_env:
     PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
 
 kata_skip_ctr_tests:
-  - 'test "ctr lifecycle"'
   - 'test "ctr logging"'
   - 'test "ctr journald logging"'
+  - 'test "ctr logging \[tty=true\]"'
   - 'test "ctr log max"'
   - 'test "ctr log max with minimum value"'
   - 'test "ctr partial line logging"'
-  - 'test "ctr execsync"'
   - 'test "ctr execsync should not overwrite initial spec args"'
-  - 'test "privileged ctr device add"'
   - 'test "ctr execsync std{out,err}"'
+  - 'test "ctr \/etc\/resolv.conf rw\/ro mode"'
   - 'test "ctr create with non-existent command"'
   - 'test "ctr create with non-existent command \[tty\]"'
   - 'test "ctr update resources"'
