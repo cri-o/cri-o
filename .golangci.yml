@@ -21,7 +21,6 @@ linters:
     - bidichk
     - bodyclose
     - decorder
-    - depguard
     - dogsled
     - dupl
     - dupword
@@ -42,12 +41,14 @@ linters:
     - goimports
     - goprintffuncname
     - gosimple
+    - gosmopolitan
     - govet
     - grouper
     - importas
     - ineffassign
     - logrlint
     - makezero
+    - mirror
     - misspell
     - musttag
     - nakedret
@@ -58,6 +59,7 @@ linters:
     - sqlclosecheck
     - staticcheck
     - stylecheck
+    - tagalign
     - tenv
     - testableexamples
     - tparallel
@@ -67,9 +69,11 @@ linters:
     - unused
     - usestdlibvars
     - whitespace
+    - zerologlint
     # - containedctx
     # - contextcheck
     # - cyclop
+    # - depguard
     # - errname
     # - errorlint
     # - exhaustive
