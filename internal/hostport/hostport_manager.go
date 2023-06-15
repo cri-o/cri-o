@@ -550,26 +550,6 @@ func (hp *hostport) String() string {
 	return fmt.Sprintf("%s:%d", hp.protocol, hp.port)
 }
 
-// deleteConntrackEntriesForDstPort delete the conntrack entries for the connections specified
-// by the given destination port, protocol and IP family
-func deleteConntrackEntriesForDstPort(port uint16, protocol uint8, family netlink.InetFamily) error {
-	filter := &netlink.ConntrackFilter{}
-	err := filter.AddProtocol(protocol)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-	err = filter.AddPort(netlink.ConntrackOrigDstPort, port)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-
-	_, err = netlink.ConntrackDeleteFilter(netlink.ConntrackTable, family, filter)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-	return nil
-}
-
 func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {
 	if isIPv6 {
 		return unix.AF_INET6
