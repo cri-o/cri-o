@@ -1,8 +1,10 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
@@ -57,16 +59,29 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		}
 	}
 
-	if err := s.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
+	if err := s.Runtime().StopContainer(ctx, ctr, timeout); err != nil && !errors.Is(err, oci.ErrContainerStopped) {
+		// only fatally error if the error is not that the container was already stopped
+		// we still want to write container state to disk if the container has already
+		// been stopped
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
 
-	if err := s.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
-		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
+	// The remaining post stop container operations will be taken care of by server/server.go:handleExit
+	return nil
+}
+
+// postStopContainer does the tasks needed after a container stops.
+func (s *Server) postStopContainer(ctx context.Context, ctr *oci.Container, sb *sandbox.Sandbox, hooks runtimehandlerhooks.RuntimeHandlerHooks) error {
+	if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
+		return fmt.Errorf("failed to update container status %s: %w", ctr.ID(), err)
 	}
 
 	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	}
+
+	if err := s.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
+		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 	}
 
 	if hooks != nil {
@@ -79,6 +94,8 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	if err := s.nri.stopContainer(ctx, sb, ctr); err != nil {
 		return err
 	}
+
+	s.generateCRIEvent(ctx, ctr, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
 
 	return nil
 }
