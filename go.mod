@@ -11,7 +11,7 @@ require (
 	github.com/checkpoint-restore/go-criu/v6 v6.3.0
 	github.com/container-orchestrated-devices/container-device-interface v0.5.4
 	github.com/containerd/cgroups v1.1.0
-	github.com/containerd/containerd v1.7.1
+	github.com/containerd/containerd v1.7.2
 	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.3.1-0.20230504231226-94185418e253
