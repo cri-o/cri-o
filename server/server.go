@@ -10,6 +10,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"runtime/debug"
 	"strconv"
@@ -33,6 +34,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
+	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -536,8 +538,7 @@ func New(
 
 	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
 
-	// Start a configuration watcher for the default config
-	s.config.StartWatcher()
+	s.startReloadWatcher(ctx)
 
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
@@ -568,6 +569,26 @@ func New(
 	}
 
 	return s, nil
+}
+
+// startReloadWatcher starts a new SIGHUP go routine.
+func (s *Server) startReloadWatcher(ctx context.Context) {
+	// Setup the signal notifier
+	ch := make(chan os.Signal, 1)
+	signal.Notify(ch, signals.Hup)
+
+	go func() {
+		for {
+			// Block until the signal is received
+			<-ch
+			if err := s.config.Reload(); err != nil {
+				logrus.Errorf("Unable to reload configuration: %v", err)
+				continue
+			}
+		}
+	}()
+
+	log.Infof(ctx, "Registered SIGHUP reload watcher")
 }
 
 func useDefaultUmask() {
