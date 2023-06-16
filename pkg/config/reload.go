@@ -4,34 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/signal"
 
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/sirupsen/logrus"
 )
-
-// StartWatcher starts a new SIGHUP go routine for the current config.
-func (c *Config) StartWatcher() {
-	// Setup the signal notifier
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, signals.Hup)
-
-	go func() {
-		for {
-			// Block until the signal is received
-			<-ch
-			if err := c.Reload(); err != nil {
-				logrus.Errorf("Unable to reload configuration: %v", err)
-				continue
-			}
-		}
-	}()
-
-	logrus.Debugf("Registered SIGHUP watcher for config")
-}
 
 // Reload reloads the configuration for the single crio.conf and the drop-in
 // configuration directory.
