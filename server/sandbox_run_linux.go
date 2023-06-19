@@ -882,22 +882,23 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	sb.SetNamespaceOptions(securityContext.NamespaceOptions)
 
-	seccompProfilePath := securityContext.SeccompProfilePath
-	g.AddAnnotation(annotations.SeccompProfilePath, seccompProfilePath)
-	sb.SetSeccompProfilePath(seccompProfilePath)
+	seccompRef := types.SecurityProfile_Unconfined.String()
 	if !privileged {
-		if _, err := s.config.Seccomp().Setup(
+		_, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			nil,
 			"",
 			nil,
 			g,
 			securityContext.Seccomp,
-			seccompProfilePath,
-		); err != nil {
+		)
+		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
 		}
+		seccompRef = ref
 	}
+	sb.SetSeccompProfilePath(seccompRef)
+	g.AddAnnotation(annotations.SeccompProfilePath, seccompRef)
 
 	runtimeType, err := s.Runtime().RuntimeType(runtimeHandler)
 	if err != nil {

@@ -623,15 +623,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
 	created := time.Now()
+	seccompRef := types.SecurityProfile_Unconfined.String()
 	if !ctr.Privileged() {
-		notifier, err := s.config.Seccomp().Setup(
+		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.seccompNotifierChan,
 			containerID,
 			sb.Annotations(),
 			specgen,
 			securityContext.Seccomp,
-			containerConfig.Linux.SecurityContext.SeccompProfilePath,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
@@ -639,6 +639,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if notifier != nil {
 			s.seccompNotifiers.Store(containerID, notifier)
 		}
+		seccompRef = ref
 	}
 
 	// Get RDT class
@@ -652,7 +653,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.Config.Linux.IntelRdt = &rspec.LinuxIntelRdt{ClosID: rdt.ResctrlPrefix + rdtClass}
 	}
 
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode())
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode(), seccompRef)
 	if err != nil {
 		return nil, err
 	}
@@ -865,7 +866,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	ociContainer.SetSpec(specgen.Config)
 	ociContainer.SetMountPoint(mountPoint)
-	ociContainer.SetSeccompProfilePath(containerConfig.Linux.SecurityContext.SeccompProfilePath)
+	ociContainer.SetSeccompProfilePath(seccompRef)
 
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
