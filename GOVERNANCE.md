@@ -268,9 +268,12 @@ In the case of abstention, an approver will not be included in the voting approv
 group when deciding the majority. In the case of a tie, the issue will not be considered
 to have passed.
 
-Most votes require a simple majority of all voting approvers to succeed. Approvers
-can be removed by a 2/3 majority vote of all voting approvers, and changes to this
-Governance require a 2/3 vote of all approvers.
+Most votes require a simple majority of all voting approvers to succeed.
+Approvers can be removed by a 2/3 majority vote of all voting approvers,
+and changes to this Governance require a 2/3 vote of all approvers. The
+approvers will make every reasonable effort to make sure that any removal
+or amendment to the Governance be affirmed with votes by employees of
+more than one organization.
 
 ## Miscellaneous Administrivia
 
