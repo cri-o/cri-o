@@ -324,7 +324,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -914,7 +914,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -969,6 +969,12 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		if m.HostPath == "/" && dest == "/" {
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
+
+		if isSubDirectoryOf(storageRoot, m.HostPath) {
+			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
+			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
+		}
+
 		src := filepath.Join(bindMountPrefix, m.HostPath)
 
 		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
@@ -1191,4 +1197,29 @@ func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
 		Seccomp:          &types.SecurityProfile{},
 		Apparmor:         &types.SecurityProfile{},
 	}
+}
+
+// isSubDirectoryOf checks if the base path contains the target path.
+// It assumes that paths are Unix-style with forward slashes ("/").
+// It ensures that both paths end with a "/" before comparing, so that "/var/lib" will not incorrectly match "/var/libs".
+
+// The function returns true if the base path starts with the target path, providing a way to check if one directory is a subdirectory of another.
+
+// Examples:
+
+// isSubDirectoryOf("/var/lib/containers/storage", "/") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage/extra") returns false
+// isSubDirectoryOf("/var/lib/containers/storage", "/va") returns false
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/tmp/containers") returns false
+func isSubDirectoryOf(base, target string) bool {
+	if !strings.HasSuffix(target, "/") {
+		target += "/"
+	}
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	return strings.HasPrefix(base, target)
 }
