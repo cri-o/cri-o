@@ -11,7 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	cimage "github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/signature"
+	istorage "github.com/containers/image/v5/storage"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -201,6 +203,28 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), img)
 					// Metrics for image pull skipped bytes
 					metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
+				}
+
+				// Validate the policy for already pulled images
+				policy, err := signature.DefaultPolicy(&sourceCtx)
+				if err != nil {
+					return "", fmt.Errorf("get policy: %w", err)
+				}
+				policyContext, err := signature.NewPolicyContext(policy)
+				if err != nil {
+					return "", fmt.Errorf("create policy context: %w", err)
+				}
+				imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), img)
+				if err != nil {
+					return "", fmt.Errorf("parse store reference: %w", err)
+				}
+				configImageSrc, err := imageRef.NewImageSource(ctx, &sourceCtx)
+				if err != nil {
+					return "", fmt.Errorf("create image source: %w", err)
+				}
+				unparsedImage := cimage.UnparsedInstance(configImageSrc, &storedImage.Digest)
+				if _, err := policyContext.IsRunningImageAllowed(ctx, unparsedImage); err != nil {
+					return "", fmt.Errorf("check if policy is allowed: %w", err)
 				}
 
 				break

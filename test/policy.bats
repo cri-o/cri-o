@@ -40,6 +40,18 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	assert_log "$RESTRICTIVE_POLICY"
 }
 
+@test "deny unsigned image with restrictive policy if already pulled" {
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	run ! crictl pull "$UNSIGNED_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$RESTRICTIVE_POLICY"
+}
+
 @test "accept signed image with default policy" {
 	start_crio
 

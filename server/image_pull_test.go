@@ -4,6 +4,7 @@ import (
 	"context"
 
 	imageTypes "github.com/containers/image/v5/types"
+	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -74,6 +75,22 @@ var _ = t.Describe("ImagePull", func() {
 					}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("digest")}),
+
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{}, nil),
+				storeMock.EXPECT().GraphOptions().Return([]string{}),
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().RunRoot().Return(""),
+
+				storeMock.EXPECT().Image(gomock.Any()).Return(&cs.Image{
+					ID:    "e5ba91fc310d476e7136a29286b86513a007501ba379d13de3793ceeaec3b4e3",
+					Names: []string{"docker.io/library/image:latest"},
+				}, nil),
+
+				storeMock.EXPECT().GraphDriverName().Return(""),
+				storeMock.EXPECT().GraphRoot().Return(""),
+
 				imageServerMock.EXPECT().ImageStatus(
 					gomock.Any(), gomock.Any()).
 					Return(&storage.ImageResult{
