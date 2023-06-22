@@ -1090,6 +1090,12 @@ message ContainerConfig {
 
     // CDI devices for the container.
     repeated CDIDevice CDI_devices = 17;
+
+    // The container image reference specified by the user within the container manifest.
+    string user_specified_image = 18;
+
+    // The container image auth configurations specified on image pull.
+    repeated AuthConfig user_specified_image_auth = 19;
 }
 
 message CreateContainerRequest {

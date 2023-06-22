@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -297,7 +298,63 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
+	if req.Config == nil {
+		return nil, errors.New("config is nil")
+	}
+	if req.Config.Image == nil {
+		return nil, errors.New("config image is nil")
+	}
+	if req.SandboxConfig == nil {
+		return nil, errors.New("sandbox config is nil")
+	}
+	if req.SandboxConfig.Metadata == nil {
+		return nil, errors.New("sandbox config metadata is nil")
+	}
+
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
+
+	systemCtx, err := s.contextForNamespace(req.SandboxConfig.Metadata.Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+	policyPath := systemCtx.SignaturePolicyPath
+
+	_, err = os.Stat(policyPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, fmt.Errorf("unable to read policy path %s: %w", policyPath, err)
+	}
+
+	// TODO: remove check for req.Config.UserSpecifiedImage != "" if
+	// https://github.com/kubernetes/kubernetes/pull/118652 got merged
+	if err == nil && req.Config.UserSpecifiedImage != "" {
+		image := &types.ImageSpec{Image: req.Config.UserSpecifiedImage}
+		pullResp := &types.PullImageResponse{}
+
+		// Add a nil auth to be able to pull without authentication
+		if len(req.Config.UserSpecifiedImageAuth) == 0 {
+			req.Config.UserSpecifiedImageAuth = append(req.Config.UserSpecifiedImageAuth, nil)
+		}
+
+		for _, auth := range req.Config.UserSpecifiedImageAuth {
+			pullResp, err = s.PullImage(ctx, &types.PullImageRequest{Image: image, Auth: auth})
+			if err == nil {
+				break
+			}
+			log.Warnf(ctx, "Unable to pull image %s, trying next auth method", image.Image)
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("pull image: %w", err)
+		}
+
+		log.Infof(ctx, "Pulled image ref from user specified image %s: %s", image.Image, pullResp.ImageRef)
+		req.Config.Image.Image = pullResp.ImageRef
+	} else {
+		log.Debugf(ctx,
+			"Skipping container image policy verification. UserSpecifiedImage=%s, SignaturePolicyPath=%s",
+			req.Config.UserSpecifiedImage, policyPath,
+		)
+	}
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
 	checkpointImage, err := func() (bool, error) {
