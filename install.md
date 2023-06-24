@@ -65,6 +65,7 @@ CRI-O also attempts to package for the following operating systems:
 ```text
 Fedora 31+
 openSUSE
+CentOS 9 Stream
 CentOS 8
 CentOS 8 Stream
 CentOS 7
@@ -73,6 +74,7 @@ Debian Testing
 Debian 10
 Debian 11
 Rasbian 10
+Rasbian 11
 xUbuntu 22.04
 xUbuntu 21.10
 xUbuntu 20.04
@@ -123,6 +125,7 @@ to the appropriate value from the following table:
 
 | Operating system | $OS               |
 | ---------------- | ----------------- |
+| Centos 9 Stream  | `CentOS_9_Stream` |
 | Centos 8         | `CentOS_8`        |
 | Centos 8 Stream  | `CentOS_8_Stream` |
 | Centos 7         | `CentOS_7`        |
@@ -154,19 +157,20 @@ Note: this tutorial assumes you have curl and gnupg installed
 To install on the following operating systems, set the environment variable ```$OS```
 to the appropriate value from the following table:
 
-| Operating system | $OS               |
-| ---------------- | ----------------- |
-| Debian Unstable  | `Debian_Unstable` |
-| Debian Testing   | `Debian_Testing`  |
-| Debian 11        | `Debian_11`       |
-| Debian 10        | `Debian_10`       |
-| Raspberry Pi OS  | `Raspbian_10`     |
-| Ubuntu 22.04     | `xUbuntu_22.04`   |
-| Ubuntu 21.10     | `xUbuntu_21.10`   |
-| Ubuntu 21.04     | `xUbuntu_21.04`   |
-| Ubuntu 20.10     | `xUbuntu_20.10`   |
-| Ubuntu 20.04     | `xUbuntu_20.04`   |
-| Ubuntu 18.04     | `xUbuntu_18.04`   |
+| Operating system   | $OS               |
+| ------------------ | ----------------- |
+| Debian Unstable    | `Debian_Unstable` |
+| Debian Testing     | `Debian_Testing`  |
+| Debian 11          | `Debian_11`       |
+| Debian 10          | `Debian_10`       |
+| Raspberry Pi OS 11 | `Raspbian_11`     |
+| Raspberry Pi OS 10 | `Raspbian_10`     |
+| Ubuntu 22.04       | `xUbuntu_22.04`   |
+| Ubuntu 21.10       | `xUbuntu_21.10`   |
+| Ubuntu 21.04       | `xUbuntu_21.04`   |
+| Ubuntu 20.10       | `xUbuntu_20.10`   |
+| Ubuntu 20.04       | `xUbuntu_20.04`   |
+| Ubuntu 18.04       | `xUbuntu_18.04`   |
 
 If installing cri-o-runc (recommended), you'll need to install libseccomp >= 2.4.1.
 **NOTE: This is not available in distros based on Debian 10(buster) or below,
