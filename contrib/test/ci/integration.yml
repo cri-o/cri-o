@@ -44,16 +44,30 @@
     - name: configure integration test suite for kata
       set_fact:
         int_test_env: '{{ int_test_env | combine(kata_int_test_env) }}'
-        int_test_timeout: '{{60 * 60}}' # seconds
         userns_int_test_skip: True
 
     - name: skip tests not working in kata
       lineinfile:
-        dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/ctr.bats"
-        insertafter: "{{ item }}"
-        line: "skip \"{{ item  | regex_replace('\"', \"'\") }} not working in kata\""
+        dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/{{ item.0 }}"
+        insertafter: "{{ item.1 }}"
+        line: "skip \"{{ item.1  | regex_replace('\"', \"'\") }} not working in kata\""
         state: present
-      with_items: "{{ kata_skip_ctr_tests }}"
+      loop: "{{ ['cgroups.bats'] | product(kata_skip_cgroups_tests) \
+        + ['command.bats'] | product(kata_skip_command_tests) \
+        + ['config.bats'] | product(kata_skip_config_tests) \
+        + ['config_migrate.bats'] | product(kata_skip_config_migrate_tests) \
+        + ['crio-wipe.bats'] | product(kata_skip_crio_wipe_tests) \
+        + ['ctr.bats'] | product(kata_skip_ctr_tests) \
+        + ['devices.bats'] | product(kata_skip_devices_tests) \
+        + ['image.bats'] | product(kata_skip_image_tests) \
+        + ['namespaces.bats'] | product(kata_skip_namespaces_tests) \
+        + ['network.bats'] | product(kata_skip_network_tests) \
+        + ['pod.bats'] | product(kata_skip_pod_tests) \
+        | list }}"
+
+    - name: Disable SELinux
+      ansible.posix.selinux:
+        state: disabled
 
   when: "build_kata | bool"
 

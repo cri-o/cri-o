@@ -57,96 +57,10 @@
           # You will find "Y" in Fedora and "1" in CentOS 8
           when: result.stdout != "Y" and result.stdout != "1"
 
-# Fedora ships kata containers packages starting from version 31: for older
-# Fedora versions and CentOS we need an external repo.
-- name:  add Kata Containers repo for older versions of Fedora and CentOS
+- name: Install Kata Containers
   block:
-    - name: add Fedora < 31 and CentOS 7 repo from opensuse
-      block:
-      - name: install dnf-plugins-core
-        yum:
-          state: present
-          name: dnf-plugins-core
-
-      - name: add Kata Containers repo
-        yum_repository:
-          name: kata
-          description: Branch project for Kata Containers branch stable-1.11
-          baseurl: https://download.opensuse.org/repositories/home:/katacontainers:/releases:/{{ ansible_architecture }}:/stable-1.11/{{ ansible_distribution }}_{{ ansible_distribution_major_version }}
-          gpgkey: https://download.opensuse.org/repositories/home:/katacontainers:/releases:/{{ ansible_architecture }}:/stable-1.11/{{ ansible_distribution }}_{{ ansible_distribution_major_version }}/repodata/repomd.xml.key
-          gpgcheck: yes
-          state: present
-
-      when: >
-        (ansible_distribution == "Fedora" and ansible_distribution_major_version|int == 30) or
-        (ansible_distribution == "CentOS" and ansible_distribution_major_version|int == 7)
-
-    - name: add CentOS 8 repos
-      block:
-      - name: add Advanced Virtualization repo
-        yum_repository:
-          name: advanced-virt
-          description: Advanced Virtualization
-          baseurl: http://mirror.centos.org/$contentdir/$releasever/virt/$basearch/advanced-virtualization
-          gpgkey: https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-Virtualization
-          gpgcheck: yes
-          skip_if_unavailable: yes
-
-      # We need to enable the module_hotfixes option to provide an updated qemu-kvm-common package:
-      # qemu-kiwi needs a more recent version than the one shipped by default.
-      - name: add the module_hotfixes option to the Advanced Virtualization repo
-        lineinfile:
-          path: /etc/yum.repos.d/advanced-virt.repo
-          line: module_hotfixes = 1
-
-      - name: add Kata Containers repo
-        yum_repository:
-          name: kata-containers
-          description: Kata Containers
-          baseurl: http://mirror.centos.org/$contentdir/$releasever/virt/$basearch/kata-containers
-          gpgkey: https://www.centos.org/keys/RPM-GPG-KEY-CentOS-SIG-Virtualization
-          gpgcheck: yes
-          skip_if_unavailable: yes
-
-      when: ansible_distribution == "CentOS" and ansible_distribution_major_version|int >= 8
-
-- name: install Kata Containers
-  block:
-    - name: install Kata Containers (old Fedora/CentOS versions)
-      yum:
-        state: present
-        name:
-          - kata-runtime
-          - kata-shim
-      when: >
-        (ansible_distribution == "Fedora" and ansible_distribution_major_version|int <= 33) or
-        (ansible_distribution == "CentOS" and ansible_distribution_major_version|int == 7)
-
-    - name: install Kata Containers
-      yum:
-        state: present
-        name:
-          - kata-containers
-      when: >
-        (ansible_distribution == "Fedora" and ansible_distribution_major_version|int >= 34) or
-        (ansible_distribution == "CentOS" and ansible_distribution_major_version|int >= 8)
-
-# Kata package in CentOS 8 comes with a wrong configuration file.
-- name: fix CentOS 8 Kata Containers configuration file
-  block:
-  - name: fix qemu binary in Kata Containers configuration file
-    replace:
-      path: /usr/share/kata-containers/defaults/configuration.toml
-      regexp: 'qemu-kvm'
-      replace: 'qemu-kiwi'
-
-    # this may be needed for F34 too.
-  - name: allow as many core as available to Qemu VM
-    lineinfile:
-      dest: /usr/share/kata-containers/defaults/configuration.toml
-      line: 'default_vcpus = -1'
-      regexp: '^default_vcpus'
-      state: present
-
-  when: ansible_distribution == "CentOS" and ansible_distribution_major_version|int >= 8
-
+    - name: Get and extract kata tarball from upstream release
+      unarchive:
+        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-x86_64.tar.xz"
+        dest: "/"
+        remote_src: yes

@@ -95,18 +95,6 @@
       enable_pod_events = true
   when: "evented_pleg_fg | default(False) | bool"
 
-- name: use kata
-  copy:
-    dest: /etc/crio/crio.conf.d/50-kata.conf
-    content: |
-      [crio.runtime]
-      default_runtime = "kata"
-      [crio.runtime.runtimes.kata]
-      runtime_path = "/usr/bin/containerd-shim-kata-v2"
-      runtime_type = "vm"
-      runtime_root = "/run/vc"
-  when: "build_kata | default(False) | bool"
-
 - name: install configs
   copy:
     src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/{{ item.src }}"
