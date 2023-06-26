@@ -1034,8 +1034,8 @@ github.com/prometheus/client_golang/prometheus
 github.com/prometheus/client_golang/prometheus/collectors
 github.com/prometheus/client_golang/prometheus/internal
 github.com/prometheus/client_golang/prometheus/promhttp
-# github.com/prometheus/client_model v0.3.0
-## explicit; go 1.9
+# github.com/prometheus/client_model v0.4.0
+## explicit; go 1.18
 github.com/prometheus/client_model/go
 # github.com/prometheus/common v0.42.0
 ## explicit; go 1.18
@@ -1065,10 +1065,10 @@ github.com/sergi/go-diff/diffmatchpatch
 # github.com/sigstore/fulcio v1.2.0
 ## explicit; go 1.20
 github.com/sigstore/fulcio/pkg/certificate
-# github.com/sigstore/rekor v1.1.1
+# github.com/sigstore/rekor v1.2.1
 ## explicit; go 1.19
 github.com/sigstore/rekor/pkg/generated/models
-# github.com/sigstore/sigstore v1.6.3
+# github.com/sigstore/sigstore v1.6.4
 ## explicit; go 1.18
 github.com/sigstore/sigstore/pkg/cryptoutils
 github.com/sigstore/sigstore/pkg/signature
@@ -1226,7 +1226,7 @@ go.opentelemetry.io/proto/otlp/collector/trace/v1
 go.opentelemetry.io/proto/otlp/common/v1
 go.opentelemetry.io/proto/otlp/resource/v1
 go.opentelemetry.io/proto/otlp/trace/v1
-# golang.org/x/crypto v0.8.0
+# golang.org/x/crypto v0.9.0
 ## explicit; go 1.17
 golang.org/x/crypto/blowfish
 golang.org/x/crypto/cast5
