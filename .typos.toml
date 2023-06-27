@@ -22,6 +22,7 @@ extend-ignore-identifiers-re = []
 extend-ignore-re = [
     "ClosID",
     "stopp",
+    "WRONLY",
 ]
 
 [type.sh]
