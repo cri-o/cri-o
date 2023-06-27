@@ -72,6 +72,8 @@
       dest: /etc/cni/net.d/99-loopback.conflist
     - src: test/redhat_sigstore.yaml
       dest: /etc/containers/registries.d/registry.access.redhat.com.yaml
+    - src: test/default.yaml
+      dest: /etc/containers/registries.d/default.yaml
 
 - name: run with overlay
   copy:
@@ -86,4 +88,3 @@
     content: |
       [crio.image]
       registries = [ "quay.io", "docker.io" ]
-

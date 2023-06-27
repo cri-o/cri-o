@@ -125,6 +125,7 @@ install_files() {
     sudo cp "$REPO_ROOT"/test/policy.json /etc/containers
     sudo cp "$REPO_ROOT"/test/redhat_sigstore.yaml \
         /etc/containers/registries.d/registry.access.redhat.com.yaml
+    sudo cp "$REPO_ROOT"/test/default.yaml /etc/containers/registries.d/default.yaml
     sudo cp "$REPO_ROOT"/test/registries.conf /etc/containers/registries.conf
     sudo rm -rf /usr/share/containers/containers.conf
     sudo rm -rf /etc/containers/storage.conf

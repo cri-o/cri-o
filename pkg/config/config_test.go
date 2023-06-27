@@ -686,6 +686,39 @@ var _ = t.Describe("Config", func() {
 		})
 	})
 
+	t.Describe("ValidateImageConfig", func() {
+		It("should succeed with default config", func() {
+			// Given
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should succeed on execution and writing permissions", func() {
+			// Given
+			sut.ImageConfig.SignaturePolicyDir = os.TempDir()
+
+			// When
+			err := sut.ImageConfig.Validate(true)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail when SignaturePolicyDir is not absolute", func() {
+			// Given
+			sut.ImageConfig.SignaturePolicyDir = "./wrong/path"
+
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
 	t.Describe("ValidateNetworkConfig", func() {
 		It("should succeed with default config", func() {
 			// Given

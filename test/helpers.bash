@@ -81,6 +81,10 @@ CONTAINER_LOG_SIZE_MAX=${CONTAINER_LOG_SIZE_MAX:--1}
 STREAM_PORT=${STREAM_PORT:-10010}
 # Metrics Port
 CONTAINER_METRICS_PORT=${CONTAINER_METRICS_PORT:-9090}
+# The default signature policy to be used
+SIGNATURE_POLICY=${SIGNATURE_POLICY:-${INTEGRATION_ROOT}/policy.json}
+# The default signature policy namespace root to be used
+SIGNATURE_POLICY_DIR=${SIGNATURE_POLICY_DIR:-${TESTDATA}/policies}
 
 POD_IPV4_CIDR="10.88.0.0/16"
 # shellcheck disable=SC2034
@@ -294,6 +298,8 @@ function setup_crio() {
         --cgroup-manager "$CONTAINER_CGROUP_MANAGER" \
         --conmon "$CONMON_BINARY" \
         --listen "$CRIO_SOCKET" \
+        --signature-policy "$SIGNATURE_POLICY" \
+        --signature-policy-dir "$SIGNATURE_POLICY_DIR" \
         --registry "quay.io" \
         --registry "docker.io" \
         -r "$TESTDIR/crio" \

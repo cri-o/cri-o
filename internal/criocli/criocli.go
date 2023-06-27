@@ -92,6 +92,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("signature-policy") {
 		config.SignaturePolicyPath = ctx.String("signature-policy")
 	}
+	if ctx.IsSet("signature-policy-dir") {
+		config.SignaturePolicyDir = ctx.String("signature-policy-dir")
+	}
 	if ctx.IsSet("root") {
 		config.Root = ctx.String("root")
 	}
@@ -544,6 +547,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:      "signature-policy",
 			Usage:     "Path to signature policy JSON file.",
 			EnvVars:   []string{"CONTAINER_SIGNATURE_POLICY"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "signature-policy-dir",
+			Usage:     "Path to the root directory for namespaced signature policies. Must be an absolute path.",
+			Value:     defConf.SignaturePolicyDir,
+			EnvVars:   []string{"CONTAINER_SIGNATURE_POLICY_DIR"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
