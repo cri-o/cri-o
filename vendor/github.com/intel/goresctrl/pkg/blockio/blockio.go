@@ -23,79 +23,81 @@ limitations under the License.
 // Outputs:
 // Option 1: Write blockio parameters of a class to a cgroup directory.
 // Option 2: Return blockio parameters of a class in a OCI LinuxBlockIO
-//           structure, that can be passed to OCI-compliant container
-//           runtime.
+//
+//	structure, that can be passed to OCI-compliant container
+//	runtime.
 //
 // Notes:
-// - Using Weight requires bfq or cfq I/O scheduler to be
-//   effective for the block devices where Weight is used.
+//   - Using Weight requires bfq or cfq I/O scheduler to be
+//     effective for the block devices where Weight is used.
 //
 // Configuration example:
 //
-//   Classes:
+//	Classes:
 //
-//     # Define a blockio class "LowPrioThrottled".
-//     # Containers in this class will be throttled and handled as
-//     # low priority in the I/O scheduler.
+//	  # Define a blockio class "LowPrioThrottled".
+//	  # Containers in this class will be throttled and handled as
+//	  # low priority in the I/O scheduler.
 //
-//     LowPrioThrottled:
+//	  LowPrioThrottled:
 //
-//       # Weight without a Devices list specifies the default
-//       # I/O scheduler weight for all devices
-//       # that are not explicitly mentioned in following items.
-//       # This will be written to cgroups(.bfq).weight.
-//       # Weights range from 10 to 1000, the default is 100.
+//	    # Weight without a Devices list specifies the default
+//	    # I/O scheduler weight for all devices
+//	    # that are not explicitly mentioned in following items.
+//	    # This will be written to cgroups(.bfq).weight.
+//	    # Weights range from 10 to 1000, the default is 100.
 //
-//       - Weight: 80
+//	    - Weight: 80
 //
-//       # Set all parameters for all /dev/sd* and /dev/vd* block
-//       # devices.
+//	    # Set all parameters for all /dev/sd* and /dev/vd* block
+//	    # devices.
 //
-//       - Devices:
-//           - /dev/sd[a-z]
-//           - /dev/vd[a-z]
-//         ThrottleReadBps: 50M   # max read bytes per second
-//         ThrottleWriteBps: 10M  # max write bytes per second
-//         ThrottleReadIOPS: 10k  # max read io operations per second
-//         ThrottleWriteIOPS: 5k  # max write io operations per second
-//         Weight: 50             # I/O scheduler (cfq/bfq) weight for
-//                                # these devices will be written to
-//                                # cgroups(.bfq).weight_device
+//	    - Devices:
+//	        - /dev/sd[a-z]
+//	        - /dev/vd[a-z]
+//	      ThrottleReadBps: 50M   # max read bytes per second
+//	      ThrottleWriteBps: 10M  # max write bytes per second
+//	      ThrottleReadIOPS: 10k  # max read io operations per second
+//	      ThrottleWriteIOPS: 5k  # max write io operations per second
+//	      Weight: 50             # I/O scheduler (cfq/bfq) weight for
+//	                             # these devices will be written to
+//	                             # cgroups(.bfq).weight_device
 //
-//       # Set parameters particularly for SSD devices.
-//       # This configuration overrides above configurations for those
-//       # /dev/sd* and /dev/vd* devices whose disk id contains "SSD".
+//	    # Set parameters particularly for SSD devices.
+//	    # This configuration overrides above configurations for those
+//	    # /dev/sd* and /dev/vd* devices whose disk id contains "SSD".
 //
-//       - Devices:
-//           - /dev/disk/by-id/*SSD*
-//         ThrottleReadBps: 100M
-//         ThrottleWriteBps: 40M
-//         # Not mentioning Throttle*IOPS means no I/O operations
-//         # throttling on matching devices.
-//         Weight: 50
+//	    - Devices:
+//	        - /dev/disk/by-id/*SSD*
+//	      ThrottleReadBps: 100M
+//	      ThrottleWriteBps: 40M
+//	      # Not mentioning Throttle*IOPS means no I/O operations
+//	      # throttling on matching devices.
+//	      Weight: 50
 //
-//     # Define a blockio class "HighPrioFullSpeed".
-//     # There is no throttling on these containers, and
-//     # they will be prioritized by the I/O scheduler.
+//	  # Define a blockio class "HighPrioFullSpeed".
+//	  # There is no throttling on these containers, and
+//	  # they will be prioritized by the I/O scheduler.
 //
-//     HighPrioFullSpeed:
-//       - Weight: 400
+//	  HighPrioFullSpeed:
+//	    - Weight: 400
 //
 // Usage example:
-//   blockio.SetLogger(logrus.New())
-//   if err := blockio.SetConfigFromFile("/etc/containers/blockio.yaml", false); err != nil {
-//       return err
-//   }
-//   // Output option 1: write directly to cgroup "/mytestgroup"
-//   if err := blockio.SetCgroupClass("/mytestgroup", "LowPrioThrottled"); err != nil {
-//       return err
-//   }
-//   // Output option 2: OCI LinuxBlockIO of a blockio class
-//   if lbio, err := blockio.OciLinuxBlockIO("LowPrioThrottled"); err != nil {
-//       return err
-//   } else {
-//       fmt.Printf("OCI LinuxBlockIO for LowPrioThrottled:\n%+v\n", lbio)
-//   }
+//
+//	blockio.SetLogger(logrus.New())
+//	if err := blockio.SetConfigFromFile("/etc/containers/blockio.yaml", false); err != nil {
+//	    return err
+//	}
+//	// Output option 1: write directly to cgroup "/mytestgroup"
+//	if err := blockio.SetCgroupClass("/mytestgroup", "LowPrioThrottled"); err != nil {
+//	    return err
+//	}
+//	// Output option 2: OCI LinuxBlockIO of a blockio class
+//	if lbio, err := blockio.OciLinuxBlockIO("LowPrioThrottled"); err != nil {
+//	    return err
+//	} else {
+//	    fmt.Printf("OCI LinuxBlockIO for LowPrioThrottled:\n%+v\n", lbio)
+//	}
 package blockio
 
 import (
@@ -117,6 +119,7 @@ import (
 
 	"github.com/intel/goresctrl/pkg/cgroups"
 	grclog "github.com/intel/goresctrl/pkg/log"
+	goresctrlpath "github.com/intel/goresctrl/pkg/path"
 )
 
 const (
@@ -146,11 +149,12 @@ var classBlockIO = map[string]cgroups.BlockIOParameters{}
 
 // SetLogger sets the logger instance to be used by the package.
 // Examples:
-//   // Log to standard logger:
-//   stdlog := log.New(os.Stderr, "blockio:", 0)
-//   blockio.SetLogger(goresctrllog.NewLoggerWrapper(stdlog))
-//   // Log to logrus:
-//   blockio.SetLogger(logrus.New())
+//
+//	// Log to standard logger:
+//	stdlog := log.New(os.Stderr, "blockio:", 0)
+//	blockio.SetLogger(goresctrllog.NewLoggerWrapper(stdlog))
+//	// Log to logrus:
+//	blockio.SetLogger(logrus.New())
 func SetLogger(l grclog.Logger) {
 	log = l
 }
@@ -237,9 +241,10 @@ func SetCgroupClass(group string, class string) error {
 // Returns schedulers in a map: {"/dev/sda": "bfq"}
 func getCurrentIOSchedulers() (map[string]string, error) {
 	var ios = map[string]string{}
-	schedulerFiles, err := filepath.Glob(sysfsBlockDeviceIOSchedulerPaths)
+	glob := goresctrlpath.Path(sysfsBlockDeviceIOSchedulerPaths)
+	schedulerFiles, err := filepath.Glob(glob)
 	if err != nil {
-		return ios, fmt.Errorf("error in I/O scheduler wildcards %#v: %w", sysfsBlockDeviceIOSchedulerPaths, err)
+		return ios, fmt.Errorf("error in I/O scheduler wildcards %#v: %w", glob, err)
 	}
 	for _, schedulerFile := range schedulerFiles {
 		devName := strings.SplitN(schedulerFile, "/", 5)[3]
@@ -439,10 +444,6 @@ func (dpm defaultPlatform) configurableBlockDevices(devWildcards []string) ([]tB
 		minor := unix.Minor(uint64(sys.Rdev))
 		if !ok {
 			errors = multierror.Append(errors, fmt.Errorf("cannot get syscall stat_t from %#v: %w%s", devRealpath, err, origin))
-			continue
-		}
-		if minor&0xf != 0 {
-			errors = multierror.Append(errors, fmt.Errorf("skipping %#v: cannot weight/throttle partitions%s", devRealpath, origin))
 			continue
 		}
 		blockDevices = append(blockDevices, tBlockDeviceInfo{
