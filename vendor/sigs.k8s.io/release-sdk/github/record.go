@@ -212,13 +212,13 @@ func (c *githubNotesRecordClient) ListTags(
 }
 
 func (c *githubNotesRecordClient) CreatePullRequest(
-	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string,
+	_ context.Context, owner, repo, baseBranchName, headBranchName, title, body string, //nolint: revive
 ) (*github.PullRequest, error) {
 	return &github.PullRequest{}, nil
 }
 
 func (c *githubNotesRecordClient) CreateIssue(
-	ctx context.Context, owner, repo string, req *github.IssueRequest,
+	_ context.Context, owner, repo string, req *github.IssueRequest, //nolint: revive
 ) (*github.Issue, error) {
 	return &github.Issue{}, nil
 }
@@ -255,7 +255,7 @@ func (c *githubNotesRecordClient) ListBranches(
 
 // UpdateReleasePage modifies a release, not recorded
 func (c *githubNotesRecordClient) UpdateReleasePage(
-	ctx context.Context, owner, repo string, releaseID int64, releaseData *github.RepositoryRelease,
+	_ context.Context, owner, repo string, releaseID int64, releaseData *github.RepositoryRelease, //nolint: revive
 ) (*github.RepositoryRelease, error) {
 	return &github.RepositoryRelease{}, nil
 }
@@ -269,7 +269,7 @@ func (c *githubNotesRecordClient) UploadReleaseAsset(
 
 // DeleteReleaseAsset removes an asset from a page, note recorded
 func (c *githubNotesRecordClient) DeleteReleaseAsset(
-	ctx context.Context, owner, repo string, assetID int64,
+	_ context.Context, owner, repo string, assetID int64, //nolint: revive
 ) error {
 	return nil
 }

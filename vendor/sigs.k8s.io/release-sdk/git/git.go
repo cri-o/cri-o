@@ -381,9 +381,9 @@ func CloneOrOpenGitHubRepo(repoPath, owner, repo string, useSSH bool) (*Repo, er
 //
 // The function returns the repository if cloning or updating of the repository
 // was successful, otherwise an error.
-func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
+func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) { //nolint: revive
 	logrus.Debugf("Using repository url %q", repoURL)
-	targetDir := ""
+	var targetDir string
 	if repoPath != "" {
 		logrus.Debugf("Using existing repository path %q", repoPath)
 		_, err := os.Stat(repoPath)
@@ -1240,7 +1240,7 @@ func (r *Repo) AddRemote(name, owner, repo string) error {
 		RunSilentSuccess()
 }
 
-// PushToRemote push the current branch to a spcified remote, but only if the
+// PushToRemote push the current branch to a specified remote, but only if the
 // repository is not in dry run mode
 func (r *Repo) PushToRemote(remote, remoteBranch string) error {
 	args := []string{"push", "--set-upstream"}

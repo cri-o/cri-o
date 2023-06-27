@@ -38,7 +38,7 @@ import (
 )
 
 const (
-	// TokenEnvKey is the default GitHub token environemt variable key
+	// TokenEnvKey is the default GitHub token environment variable key
 	TokenEnvKey = "GITHUB_TOKEN"
 	// GitHubURL Prefix for github URLs
 	GitHubURL = "https://github.com/"
@@ -825,7 +825,7 @@ func (g *GitHub) CreateIssue(
 	issueRequest.Title = &title
 	issueRequest.Body = &body
 
-	// Create the issue using the cliente
+	// Create the issue using the client
 	return g.Client().CreateIssue(context.Background(), owner, repo, issueRequest)
 }
 
