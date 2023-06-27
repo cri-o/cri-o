@@ -818,12 +818,13 @@ github.com/imdario/mergo
 # github.com/inconshreveable/mousetrap v1.1.0
 ## explicit; go 1.18
 github.com/inconshreveable/mousetrap
-# github.com/intel/goresctrl v0.3.0
+# github.com/intel/goresctrl v0.4.0
 ## explicit; go 1.18
 github.com/intel/goresctrl/pkg/blockio
 github.com/intel/goresctrl/pkg/cgroups
 github.com/intel/goresctrl/pkg/kubernetes
 github.com/intel/goresctrl/pkg/log
+github.com/intel/goresctrl/pkg/path
 github.com/intel/goresctrl/pkg/rdt
 github.com/intel/goresctrl/pkg/utils
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
@@ -1535,7 +1536,7 @@ k8s.io/api/scheduling/v1beta1
 k8s.io/api/storage/v1
 k8s.io/api/storage/v1alpha1
 k8s.io/api/storage/v1beta1
-# k8s.io/apimachinery v0.27.0 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20230607070612-4c40d749006a
+# k8s.io/apimachinery v0.27.3 => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20230607070612-4c40d749006a
 ## explicit; go 1.20
 k8s.io/apimachinery/pkg/api/equality
 k8s.io/apimachinery/pkg/api/errors

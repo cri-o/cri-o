@@ -45,7 +45,7 @@ require (
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
-	github.com/intel/goresctrl v0.3.0
+	github.com/intel/goresctrl v0.4.0
 	github.com/json-iterator/go v1.1.12
 	github.com/onsi/ginkgo/v2 v2.11.0
 	github.com/onsi/gomega v1.27.8
@@ -75,7 +75,7 @@ require (
 	google.golang.org/grpc v1.55.0
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.27.0
-	k8s.io/apimachinery v0.27.0
+	k8s.io/apimachinery v0.27.3
 	k8s.io/client-go v0.27.0
 	k8s.io/cri-api v0.27.1
 	k8s.io/klog/v2 v2.100.1
