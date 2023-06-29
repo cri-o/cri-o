@@ -113,6 +113,21 @@ func (mr *MockStoreMockRecorder) Changes(arg0, arg1 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Changes", reflect.TypeOf((*MockStore)(nil).Changes), arg0, arg1)
 }
 
+// Check mocks base method.
+func (m *MockStore) Check(arg0 *storage.CheckOptions) (storage.CheckReport, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Check", arg0)
+	ret0, _ := ret[0].(storage.CheckReport)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Check indicates an expected call of Check.
+func (mr *MockStoreMockRecorder) Check(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockStore)(nil).Check), arg0)
+}
+
 // CleanupStagingDirectory mocks base method.
 func (m *MockStore) CleanupStagingDirectory(arg0 string) error {
 	m.ctrl.T.Helper()
@@ -999,6 +1014,20 @@ func (m *MockStore) RemoveNames(arg0 string, arg1 []string) error {
 func (mr *MockStoreMockRecorder) RemoveNames(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNames", reflect.TypeOf((*MockStore)(nil).RemoveNames), arg0, arg1)
+}
+
+// Repair mocks base method.
+func (m *MockStore) Repair(arg0 storage.CheckReport, arg1 *storage.RepairOptions) []error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Repair", arg0, arg1)
+	ret0, _ := ret[0].([]error)
+	return ret0
+}
+
+// Repair indicates an expected call of Repair.
+func (mr *MockStoreMockRecorder) Repair(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockStore)(nil).Repair), arg0, arg1)
 }
 
 // RunRoot mocks base method.
