@@ -72,7 +72,7 @@ require (
 	golang.org/x/net v0.11.0
 	golang.org/x/sync v0.3.0
 	golang.org/x/sys v0.9.0
-	google.golang.org/grpc v1.55.0
+	google.golang.org/grpc v1.56.1
 	google.golang.org/protobuf v1.31.0
 	k8s.io/api v0.27.0
 	k8s.io/apimachinery v0.27.0
@@ -82,7 +82,7 @@ require (
 	k8s.io/kubelet v0.0.0
 	k8s.io/kubernetes v1.27.0
 	k8s.io/utils v0.0.0-20230406110748-d93618cff8a2
-	sigs.k8s.io/release-sdk v0.10.0
+	sigs.k8s.io/release-sdk v0.7.0
 	sigs.k8s.io/release-utils v0.7.4
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -141,6 +141,7 @@ require (
 	github.com/google/gnostic-models v0.6.8 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/go-containerregistry v0.14.0 // indirect
+	github.com/google/go-github/v39 v39.1.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/gofuzz v1.2.0 // indirect
