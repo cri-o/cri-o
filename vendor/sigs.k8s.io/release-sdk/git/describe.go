@@ -17,8 +17,9 @@ limitations under the License.
 package git
 
 import (
-	"errors"
 	"fmt"
+
+	"github.com/pkg/errors"
 
 	"sigs.k8s.io/release-utils/command"
 )

@@ -770,6 +770,9 @@ github.com/google/go-cmp/cmp/internal/value
 # github.com/google/go-containerregistry v0.15.2
 ## explicit; go 1.18
 github.com/google/go-containerregistry/pkg/name
+# github.com/google/go-github/v39 v39.1.0
+## explicit; go 1.16
+github.com/google/go-github/v39/github
 # github.com/google/go-github/v50 v50.2.0
 ## explicit; go 1.17
 github.com/google/go-github/v50/github
@@ -1778,8 +1781,8 @@ k8s.io/utils/trace
 ## explicit; go 1.18
 sigs.k8s.io/json
 sigs.k8s.io/json/internal/golang/encoding/json
-# sigs.k8s.io/release-sdk v0.10.0
-## explicit; go 1.19
+# sigs.k8s.io/release-sdk v0.7.0
+## explicit; go 1.17
 sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal
