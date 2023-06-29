@@ -19,6 +19,7 @@ package git
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -30,13 +31,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
+	"github.com/blang/semver/v4"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/config"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/object"
 	"github.com/go-git/go-git/v5/plumbing/storer"
-	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/regex"
@@ -65,21 +65,31 @@ const (
 	// DefaultBranch is the default branch name
 	DefaultBranch = "master"
 
+	// DefaultGitUser is the default user name used for commits.
+	DefaultGitUser = "Kubernetes Release Robot"
+
+	// DefaultGitEmail is the default email used for commits.
+	DefaultGitEmail = "k8s-release-robot@users.noreply.github.com"
+
 	defaultGithubAuthRoot = "git@github.com:"
-	defaultGitUser        = "Kubernetes Release Robot"
-	defaultGitEmail       = "k8s-release-robot@users.noreply.github.com"
 	gitExecutable         = "git"
 	releaseBranchPrefix   = "release-"
 )
 
 // setVerboseTrace enables maximum verbosity output.
 func setVerboseTrace() error {
-	return errors.Wrap(setVerbose(5, 2, 2, 2, 2, 2, 2, 2), "set verbose")
+	if err := setVerbose(5, 2, 2, 2, 2, 2, 2, 2); err != nil {
+		return fmt.Errorf("set verbose: %w", err)
+	}
+	return nil
 }
 
 // setVerboseDebug enables a higher verbosity output for git.
 func setVerboseDebug() error {
-	return errors.Wrap(setVerbose(2, 2, 2, 0, 0, 0, 2, 0), "set verbose")
+	if err := setVerbose(2, 2, 2, 0, 0, 0, 2, 0); err != nil {
+		return fmt.Errorf("set verbose: %w", err)
+	}
+	return nil
 }
 
 // setVerbose changes the git verbosity output.
@@ -136,7 +146,7 @@ func setVerbose(
 		"GIT_TRACE_SHALLOW": fmt.Sprint(traceShallow),
 	} {
 		if err := os.Setenv(key, value); err != nil {
-			return errors.Wrapf(err, "unable to set %s=%s", key, value)
+			return fmt.Errorf("unable to set %s=%s: %w", key, value, err)
 		}
 	}
 	return nil
@@ -186,15 +196,15 @@ func GetRepoURL(org, repo string, useSSH bool) (repoURL string) {
 // user and email.
 func ConfigureGlobalDefaultUserAndEmail() error {
 	if err := filterCommand(
-		"", "config", "--global", "user.name", defaultGitUser,
+		"", "config", "--global", "user.name", DefaultGitUser,
 	).RunSuccess(); err != nil {
-		return errors.Wrap(err, "configure user name")
+		return fmt.Errorf("configure user name: %w", err)
 	}
 
 	if err := filterCommand(
-		"", "config", "--global", "user.email", defaultGitEmail,
+		"", "config", "--global", "user.email", DefaultGitEmail,
 	).RunSuccess(); err != nil {
-		return errors.Wrap(err, "configure user email")
+		return fmt.Errorf("configure user email: %w", err)
 	}
 
 	return nil
@@ -274,6 +284,7 @@ type Repo struct {
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt gitfakes/fake_worktree.go > gitfakes/_fake_worktree.go && mv gitfakes/_fake_worktree.go gitfakes/fake_worktree.go"
 
 // Repository is the main interface to the git.Repository functionality
+//
 //counterfeiter:generate . Repository
 type Repository interface {
 	CreateTag(string, plumbing.Hash, *git.CreateTagOptions) (*plumbing.Reference, error)
@@ -289,6 +300,7 @@ type Repository interface {
 }
 
 // Worktree is the main interface to the git.Worktree functionality
+//
 //counterfeiter:generate . Worktree
 type Worktree interface {
 	Add(string) (plumbing.Hash, error)
@@ -326,11 +338,11 @@ func (r *Repo) SetMaxRetries(numRetries int) {
 }
 
 func LSRemoteExec(repoURL string, args ...string) (string, error) {
-	cmdArgs := append([]string{"ls-remote", repoURL}, args...)
+	cmdArgs := append([]string{"ls-remote", "--", repoURL}, args...)
 	cmdStatus, err := filterCommand("", cmdArgs...).
 		RunSilentSuccessOutput()
 	if err != nil {
-		return "", errors.Wrap(err, "failed to execute the ls-remote command")
+		return "", fmt.Errorf("failed to execute the ls-remote command: %w", err)
 	}
 
 	return strings.TrimSpace(cmdStatus.Output()), nil
@@ -369,9 +381,9 @@ func CloneOrOpenGitHubRepo(repoPath, owner, repo string, useSSH bool) (*Repo, er
 //
 // The function returns the repository if cloning or updating of the repository
 // was successful, otherwise an error.
-func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
+func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) { //nolint: revive
 	logrus.Debugf("Using repository url %q", repoURL)
-	targetDir := ""
+	var targetDir string
 	if repoPath != "" {
 		logrus.Debugf("Using existing repository path %q", repoPath)
 		_, err := os.Stat(repoPath)
@@ -385,13 +397,13 @@ func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
 			targetDir = repoPath
 		default:
 			// Something else bad happened
-			return nil, errors.Wrap(err, "unable to update repo")
+			return nil, fmt.Errorf("unable to update repo: %w", err)
 		}
 	} else {
 		// No repoPath given, use a random temp dir instead
 		t, err := os.MkdirTemp("", "k8s-")
 		if err != nil {
-			return nil, errors.Wrap(err, "unable to create temp dir")
+			return nil, fmt.Errorf("unable to create temp dir: %w", err)
 		}
 		targetDir = t
 	}
@@ -417,7 +429,7 @@ func CloneOrOpenRepo(repoPath, repoURL string, useSSH bool) (*Repo, error) {
 				progressBuffer.String(),
 			)
 		}
-		return nil, errors.Wrap(err, "unable to clone repo")
+		return nil, fmt.Errorf("unable to clone repo: %w", err)
 	}
 	return updateRepo(targetDir)
 }
@@ -434,7 +446,7 @@ func updateRepo(repoPath string) (*Repo, error) {
 	if err := filterCommand(
 		r.Dir(), "pull", "--rebase",
 	).RunSilentSuccess(); err != nil {
-		return nil, errors.Wrap(err, "unable to pull from remote")
+		return nil, fmt.Errorf("unable to pull from remote: %w", err)
 	}
 
 	return r, nil
@@ -443,7 +455,7 @@ func updateRepo(repoPath string) (*Repo, error) {
 // OpenRepo tries to open the provided repoPath
 func OpenRepo(repoPath string) (*Repo, error) {
 	if !command.Available(gitExecutable) {
-		return nil, errors.Errorf(
+		return nil, fmt.Errorf(
 			"%s executable is not available in $PATH", gitExecutable,
 		)
 	}
@@ -451,12 +463,12 @@ func OpenRepo(repoPath string) (*Repo, error) {
 	if logLevel == logrus.DebugLevel {
 		logrus.Info("Setting verbose git output (debug)")
 		if err := setVerboseDebug(); err != nil {
-			return nil, errors.Wrap(err, "set debug output")
+			return nil, fmt.Errorf("set debug output: %w", err)
 		}
 	} else if logLevel == logrus.TraceLevel {
 		logrus.Info("Setting verbose git output (trace)")
 		if err := setVerboseTrace(); err != nil {
-			return nil, errors.Wrap(err, "set trace output")
+			return nil, fmt.Errorf("set trace output: %w", err)
 		}
 	}
 
@@ -469,12 +481,12 @@ func OpenRepo(repoPath string) (*Repo, error) {
 		repoPath, &git.PlainOpenOptions{DetectDotGit: true},
 	)
 	if err != nil {
-		return nil, errors.Wrap(err, "opening repo")
+		return nil, fmt.Errorf("opening repo: %w", err)
 	}
 
 	worktree, err := r.Worktree()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting repository worktree")
+		return nil, fmt.Errorf("getting repository worktree: %w", err)
 	}
 
 	return &Repo{
@@ -624,7 +636,7 @@ func (r *Repo) latestNonPatchFinalVersions() ([]semver.Version, error) {
 		return nil, err
 	}
 
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		ver, err := util.TagStringToSemver(t.Name().Short())
 
 		if err == nil {
@@ -666,7 +678,7 @@ func (r *Repo) HasBranch(branch string) (branchExists bool, err error) {
 
 	branches, err := r.inner.Branches()
 	if err != nil {
-		return branchExists, errors.Wrap(err, "getting branches from repository")
+		return branchExists, fmt.Errorf("getting branches from repository: %w", err)
 	}
 
 	branchExists = false
@@ -677,7 +689,7 @@ func (r *Repo) HasBranch(branch string) (branchExists bool, err error) {
 		}
 		return nil
 	}); err != nil {
-		return branchExists, errors.Wrap(err, "iterating branches to check for existence")
+		return branchExists, fmt.Errorf("iterating branches to check for existence: %w", err)
 	}
 	return branchExists, nil
 }
@@ -689,7 +701,7 @@ func (r *Repo) HasRemoteBranch(branch string) (branchExists bool, err error) {
 
 	branches, err := r.RemoteBranches()
 	if err != nil {
-		return false, errors.Wrap(err, "get remote branches")
+		return false, fmt.Errorf("get remote branches: %w", err)
 	}
 
 	for _, remoteBranch := range branches {
@@ -789,7 +801,7 @@ func (r *Repo) MergeBase(from, to string) (string, error) {
 	}
 
 	if len(res) == 0 {
-		return "", errors.Errorf("could not find a merge base between %s and %s", from, to)
+		return "", fmt.Errorf("could not find a merge base between %s and %s", from, to)
 	}
 
 	mergeBase := res[0].Hash.String()
@@ -809,9 +821,12 @@ func Remotify(name string) string {
 
 // Merge does a git merge into the current branch from the provided one
 func (r *Repo) Merge(from string) error {
-	return errors.Wrap(filterCommand(
+	if err := filterCommand(
 		r.Dir(), "merge", "-X", "ours", from,
-	).RunSilentSuccess(), "run git merge")
+	).RunSilentSuccess(); err != nil {
+		return fmt.Errorf("run git merge: %w", err)
+	}
+	return nil
 }
 
 // Push does push the specified branch to the default remote, but only if the
@@ -840,7 +855,7 @@ func (r *Repo) Push(remoteBranch string) (err error) {
 		)
 		time.Sleep(time.Duration(waitTime) * time.Second)
 	}
-	return errors.Wrapf(err, "trying to push %s %d times", remoteBranch, r.maxRetries)
+	return fmt.Errorf("trying to push %s %d times: %w", remoteBranch, r.maxRetries, err)
 }
 
 // Head retrieves the current repository HEAD as a string
@@ -867,7 +882,7 @@ func (r *Repo) LatestPatchToPatch(branch string) (DiscoverResult, error) {
 	}
 
 	if latestTag.Patch == 0 {
-		return DiscoverResult{}, errors.Errorf(
+		return DiscoverResult{}, fmt.Errorf(
 			"found non-patch version %v as latest tag on branch %s",
 			latestTag, branch,
 		)
@@ -883,14 +898,14 @@ func (r *Repo) LatestPatchToPatch(branch string) (DiscoverResult, error) {
 	latestVersionTag := util.SemverToTagString(latestTag)
 	end, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
-		return DiscoverResult{}, errors.Wrapf(err, "parsing version %v", latestTag)
+		return DiscoverResult{}, fmt.Errorf("parsing version %v: %w", latestTag, err)
 	}
 
 	logrus.Debugf("Parsing previous tag %s%v", util.TagPrefix, prevTag)
 	previousVersionTag := util.SemverToTagString(prevTag)
 	start, err := r.RevParseTag(previousVersionTag)
 	if err != nil {
-		return DiscoverResult{}, errors.Wrapf(err, "parsing previous version %v", prevTag)
+		return DiscoverResult{}, fmt.Errorf("parsing previous version %v: %w", prevTag, err)
 	}
 
 	return DiscoverResult{
@@ -919,14 +934,14 @@ func (r *Repo) LatestPatchToLatest(branch string) (DiscoverResult, error) {
 	latestVersionTag := util.SemverToTagString(latestTag)
 	start, err := r.RevParseTag(latestVersionTag)
 	if err != nil {
-		return DiscoverResult{}, errors.Wrapf(err, "parsing version %v", latestTag)
+		return DiscoverResult{}, fmt.Errorf("parsing version %v: %w", latestTag, err)
 	}
 
 	// If a release branch exists for the latest version, we use it. Otherwise we
 	// fallback to the DefaultBranch.
 	end, branch, err := r.releaseBranchOrMainRef(latestTag.Major, latestTag.Minor)
 	if err != nil {
-		return DiscoverResult{}, errors.Wrapf(err, "getting release branch for %v", latestTag)
+		return DiscoverResult{}, fmt.Errorf("getting release branch for %v: %w", latestTag, err)
 	}
 
 	return DiscoverResult{
@@ -985,10 +1000,10 @@ func (r *Repo) PreviousTag(tag, branch string) (string, error) {
 func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
 	previousBranch, err := r.CurrentBranch()
 	if err != nil {
-		return nil, errors.Wrap(err, "retrieving current branch")
+		return nil, fmt.Errorf("retrieving current branch: %w", err)
 	}
 	if err := r.Checkout(branch); err != nil {
-		return nil, errors.Wrapf(err, "checking out %s", branch)
+		return nil, fmt.Errorf("checking out %s: %w", branch, err)
 	}
 	defer func() { err = r.Checkout(previousBranch) }()
 
@@ -996,7 +1011,7 @@ func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
 		r.Dir(), "tag", "--sort=creatordate", "--merged",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return nil, errors.Wrapf(err, "retrieving merged tags for branch %s", branch)
+		return nil, fmt.Errorf("retrieving merged tags for branch %s: %w", branch, err)
 	}
 
 	tags := strings.Fields(status.Output())
@@ -1009,9 +1024,9 @@ func (r *Repo) TagsForBranch(branch string) (res []string, err error) {
 func (r *Repo) Tags() (res []string, err error) {
 	tags, err := r.inner.Tags()
 	if err != nil {
-		return nil, errors.Wrap(err, "get tags")
+		return nil, fmt.Errorf("get tags: %w", err)
 	}
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		res = append(res, t.Name().Short())
 		return nil
 	})
@@ -1020,12 +1035,12 @@ func (r *Repo) Tags() (res []string, err error) {
 
 // Add adds a file to the staging area of the repo
 func (r *Repo) Add(filename string) error {
-	return errors.Wrapf(
-		filterCommand(
-			r.Dir(), "add", filename,
-		).RunSilentSuccess(),
-		"adding file %s to repository", filename,
-	)
+	if err := filterCommand(
+		r.Dir(), "add", filename,
+	).RunSilentSuccess(); err != nil {
+		return fmt.Errorf("adding file %s to repository: %w", filename, err)
+	}
+	return nil
 }
 
 // GetUserName Reads the local user's name from the git configuration
@@ -1035,7 +1050,7 @@ func GetUserName() (string, error) {
 		"", "config", "--get", "user.name",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return "", errors.Wrap(err, "reading the user name from git")
+		return "", fmt.Errorf("reading the user name from git: %w", err)
 	}
 	return userName.OutputTrimNL(), nil
 }
@@ -1046,7 +1061,7 @@ func GetUserEmail() (string, error) {
 		"", "config", "--get", "user.email",
 	).RunSilentSuccessOutput()
 	if err != nil {
-		return "", errors.Wrap(err, "reading the user's email from git")
+		return "", fmt.Errorf("reading the user's email from git: %w", err)
 	}
 	return userEmail.OutputTrimNL(), nil
 }
@@ -1057,12 +1072,12 @@ func (r *Repo) UserCommit(msg string) error {
 	// Retrieve username and mail
 	userName, err := GetUserName()
 	if err != nil {
-		return errors.Wrap(err, "getting the user's name")
+		return fmt.Errorf("getting the user's name: %w", err)
 	}
 
 	userEmail, err := GetUserEmail()
 	if err != nil {
-		return errors.Wrap(err, "getting the user's email")
+		return fmt.Errorf("getting the user's email: %w", err)
 	}
 
 	// Add signed-off-by line
@@ -1075,7 +1090,7 @@ func (r *Repo) UserCommit(msg string) error {
 			When:  time.Now(),
 		},
 	}); err != nil {
-		return errors.Wrap(err, "commit changes")
+		return fmt.Errorf("commit changes: %w", err)
 	}
 
 	return nil
@@ -1087,8 +1102,8 @@ func (r *Repo) Commit(msg string) error {
 		msg,
 		&git.CommitOptions{
 			Author: &object.Signature{
-				Name:  defaultGitUser,
-				Email: defaultGitEmail,
+				Name:  DefaultGitUser,
+				Email: DefaultGitEmail,
 				When:  time.Now(),
 			},
 		},
@@ -1123,8 +1138,8 @@ func (r *Repo) Tag(name, message string) error {
 		head.Hash(),
 		&git.CreateTagOptions{
 			Tagger: &object.Signature{
-				Name:  defaultGitUser,
-				Email: defaultGitEmail,
+				Name:  DefaultGitUser,
+				Email: DefaultGitEmail,
 				When:  time.Now(),
 			},
 			Message: message,
@@ -1178,7 +1193,7 @@ func (r *Repo) Rm(force bool, files ...string) error {
 func (r *Repo) Remotes() (res []*Remote, err error) {
 	remotes, err := r.inner.Remotes()
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to list remotes")
+		return nil, fmt.Errorf("unable to list remotes: %w", err)
 	}
 
 	// Sort the remotes by their name which is not always the case
@@ -1225,7 +1240,7 @@ func (r *Repo) AddRemote(name, owner, repo string) error {
 		RunSilentSuccess()
 }
 
-// PushToRemote push the current branch to a spcified remote, but only if the
+// PushToRemote push the current branch to a specified remote, but only if the
 // repository is not in dry run mode
 func (r *Repo) PushToRemote(remote, remoteBranch string) error {
 	args := []string{"push", "--set-upstream"}
@@ -1242,7 +1257,10 @@ func (r *Repo) PushToRemote(remote, remoteBranch string) error {
 // repository
 func (r *Repo) LsRemote(args ...string) (output string, err error) {
 	for i := r.maxRetries + 1; i > 0; i-- {
-		output, err = r.runGitCmd("ls-remote", args...)
+		params := []string{}
+		params = append(params, "--")
+		params = append(params, args...)
+		output, err = r.runGitCmd("ls-remote", params...)
 		if err == nil {
 			return output, nil
 		}
@@ -1274,7 +1292,7 @@ func (r *Repo) runGitCmd(cmd string, args ...string) (string, error) {
 	cmdArgs := append([]string{cmd}, args...)
 	res, err := filterCommand(r.Dir(), cmdArgs...).RunSilentSuccessOutput()
 	if err != nil {
-		return "", errors.Wrapf(err, "running git %s", cmd)
+		return "", fmt.Errorf("running git %s: %w", cmd, err)
 	}
 	return res.OutputTrimNL(), nil
 }
@@ -1284,7 +1302,7 @@ func (r *Repo) runGitCmd(cmd string, args ...string) (string, error) {
 func (r *Repo) IsDirty() (bool, error) {
 	status, err := r.Status()
 	if err != nil {
-		return false, errors.Wrap(err, "retrieving worktree status")
+		return false, fmt.Errorf("retrieving worktree status: %w", err)
 	}
 	return !status.IsClean(), nil
 }
@@ -1292,9 +1310,9 @@ func (r *Repo) IsDirty() (bool, error) {
 // RemoteTags return the tags that currently exist in the
 func (r *Repo) RemoteTags() (tags []string, err error) {
 	logrus.Debug("Listing remote tags with ls-remote")
-	output, err := r.LsRemote("--tags", DefaultRemote)
+	output, err := r.LsRemote(DefaultRemote)
 	if err != nil {
-		return tags, errors.Wrap(err, "while listing tags using ls-remote")
+		return tags, fmt.Errorf("while listing tags using ls-remote: %w", err)
 	}
 	const gitTagPreRef = "refs/tags/"
 	tags = make([]string, 0)
@@ -1313,7 +1331,7 @@ func (r *Repo) RemoteTags() (tags []string, err error) {
 func (r *Repo) HasRemoteTag(tag string) (hasTag bool, err error) {
 	remoteTags, err := r.RemoteTags()
 	if err != nil {
-		return hasTag, errors.Wrap(err, "getting tags to check if tag exists")
+		return hasTag, fmt.Errorf("getting tags to check if tag exists: %w", err)
 	}
 	for _, remoteTag := range remoteTags {
 		if tag == remoteTag {
@@ -1327,13 +1345,13 @@ func (r *Repo) HasRemoteTag(tag string) (hasTag bool, err error) {
 // SetURL can be used to overwrite the URL for a remote
 func (r *Repo) SetURL(remote, newURL string) error {
 	if err := r.inner.DeleteRemote(remote); err != nil {
-		return errors.Wrap(err, "delete remote")
+		return fmt.Errorf("delete remote: %w", err)
 	}
 	if _, err := r.inner.CreateRemote(&config.RemoteConfig{
 		Name: remote,
 		URLs: []string{newURL},
 	}); err != nil {
-		return errors.Wrap(err, "create remote")
+		return fmt.Errorf("create remote: %w", err)
 	}
 	return nil
 }
@@ -1342,7 +1360,7 @@ func (r *Repo) SetURL(remote, newURL string) error {
 func (r *Repo) Status() (*git.Status, error) {
 	status, err := r.worktree.Status()
 	if err != nil {
-		return nil, errors.Wrap(err, "getting the repository status")
+		return nil, fmt.Errorf("getting the repository status: %w", err)
 	}
 	return &status, nil
 }
@@ -1352,7 +1370,7 @@ func (r *Repo) Status() (*git.Status, error) {
 func (r *Repo) ShowLastCommit() (logData string, err error) {
 	logData, err = r.runGitCmd("show")
 	if err != nil {
-		return logData, errors.Wrap(err, "getting last commit log")
+		return logData, fmt.Errorf("getting last commit log: %w", err)
 	}
 	return logData, nil
 }
@@ -1361,7 +1379,7 @@ func (r *Repo) ShowLastCommit() (logData string, err error) {
 func (r *Repo) LastCommitSha() (string, error) {
 	shaval, err := r.runGitCmd("log", "--pretty=format:'%H'", "-n1")
 	if err != nil {
-		return "", errors.Wrap(err, "trying to retrieve the last commit sha")
+		return "", fmt.Errorf("trying to retrieve the last commit sha: %w", err)
 	}
 	return shaval, nil
 }
@@ -1375,7 +1393,7 @@ func (r *Repo) FetchRemote(remoteName string) (bool, error) {
 	// Verify the remote exists
 	remotes, err := r.Remotes()
 	if err != nil {
-		return false, errors.Wrap(err, "getting repository remotes")
+		return false, fmt.Errorf("getting repository remotes: %w", err)
 	}
 
 	remoteExists := false
@@ -1391,7 +1409,7 @@ func (r *Repo) FetchRemote(remoteName string) (bool, error) {
 
 	res, err := filterCommand(r.Dir(), "fetch", remoteName).RunSilentSuccessOutput()
 	if err != nil {
-		return false, errors.Wrapf(err, "fetching objects from %s", remoteName)
+		return false, fmt.Errorf("fetching objects from %s: %w", remoteName, err)
 	}
 	// git fetch outputs on stderr
 	output := strings.TrimSpace(res.Error())
@@ -1408,7 +1426,7 @@ func (r *Repo) Rebase(branch string) error {
 	_, err := r.runGitCmd("rebase", branch)
 	// If we get an error, try to interpret it to make more sense
 	if err != nil {
-		return errors.Wrap(err, "rebasing repository")
+		return fmt.Errorf("rebasing repository: %w", err)
 	}
 	return nil
 }
@@ -1417,7 +1435,7 @@ func (r *Repo) Rebase(branch string) error {
 func ParseRepoSlug(repoSlug string) (org, repo string, err error) {
 	match, err := regexp.MatchString(`(?i)^[a-z0-9-/]+$`, repoSlug)
 	if err != nil {
-		return "", "", errors.Wrap(err, "checking repository slug")
+		return "", "", fmt.Errorf("checking repository slug: %w", err)
 	}
 	if !match {
 		return "", "", errors.New("repository slug contains invalid characters")
@@ -1470,7 +1488,7 @@ func (e NetworkError) CanRetry() bool {
 func (r *Repo) LatestReleaseBranch() (string, error) {
 	branches, err := r.RemoteBranches()
 	if err != nil {
-		return "", errors.Wrap(err, "get remote branches")
+		return "", fmt.Errorf("get remote branches: %w", err)
 	}
 
 	var latest semver.Version

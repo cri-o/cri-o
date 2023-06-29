@@ -17,7 +17,8 @@ limitations under the License.
 package github
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -38,7 +39,7 @@ func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string) (r
 		upstreamOrg, upstreamRepo, false,
 	)
 	if err != nil {
-		return nil, errors.Wrapf(err, "cloning %s/%s", upstreamOrg, upstreamRepo)
+		return nil, fmt.Errorf("cloning %s/%s: %w", upstreamOrg, upstreamRepo, err)
 	}
 
 	// test if the fork remote is already existing
@@ -52,14 +53,14 @@ func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string) (r
 		// add the user's fork as a remote
 		err = repo.AddRemote(UserForkName, myOrg, myRepo)
 		if err != nil {
-			return nil, errors.Wrap(err, "adding user's fork as remote repository")
+			return nil, fmt.Errorf("adding user's fork as remote repository: %w", err)
 		}
 	}
 
 	// checkout the new branch
 	err = repo.Checkout("-B", branchName)
 	if err != nil {
-		return nil, errors.Wrapf(err, "creating new branch %s", branchName)
+		return nil, fmt.Errorf("creating new branch %s: %w", branchName, err)
 	}
 
 	return repo, nil
@@ -75,16 +76,16 @@ func VerifyFork(branchName, forkOwner, forkRepo, parentOwner, parentRepo string)
 		forkOwner, forkRepo, parentOwner, parentRepo,
 	)
 	if err != nil {
-		return errors.Wrapf(
-			err, "while checking if repository is a fork of %s/%s",
-			parentOwner, parentRepo,
+		return fmt.Errorf(
+			"while checking if repository is a fork of %s/%s: %w",
+			parentOwner, parentRepo, err,
 		)
 	}
 
 	if !isRepo {
-		return errors.Errorf(
-			"cannot create PR, %s/%s is not a fork of %s/%s",
-			forkOwner, forkRepo, parentOwner, parentRepo,
+		return fmt.Errorf(
+			"cannot create PR, %s/%s is not a fork of %s/%s: %w",
+			forkOwner, forkRepo, parentOwner, parentRepo, err,
 		)
 	}
 
@@ -93,11 +94,11 @@ func VerifyFork(branchName, forkOwner, forkRepo, parentOwner, parentRepo string)
 		forkOwner, forkRepo, branchName,
 	)
 	if err != nil {
-		return errors.Wrap(err, "while checking if branch can be created")
+		return fmt.Errorf("while checking if branch can be created: %w", err)
 	}
 
 	if branchExists {
-		return errors.Errorf(
+		return fmt.Errorf(
 			"a branch named %s already exists in %s/%s",
 			branchName, forkOwner, forkRepo,
 		)
