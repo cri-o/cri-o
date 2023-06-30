@@ -25,22 +25,23 @@ limitations under the License.
 // Monitoring (MBM).
 //
 // Basic usage example:
-//   rdt.SetLogger(logrus.New())
 //
-//   if err := rdt.Initialize(""); err != nil {
-//   	return fmt.Errorf("RDT not supported: %v", err)
-//   }
+//	rdt.SetLogger(logrus.New())
 //
-//   if err := rdt.SetConfigFromFile("/path/to/rdt.conf.yaml", false); err != nil {
-//   	return fmt.Errorf("RDT configuration failed: %v", err)
-//   }
+//	if err := rdt.Initialize(""); err != nil {
+//		return fmt.Errorf("RDT not supported: %v", err)
+//	}
 //
-//   if cls, ok := rdt.GetClass("my-class"); ok {
-//      //  Set PIDs 12345 and 12346 to class "my-class"
-//   	if err := cls.AddPids("12345", "12346"); err != nil {
-//   		return fmt.Errorf("failed to add PIDs to RDT class: %v", err)
-//   	}
-//   }
+//	if err := rdt.SetConfigFromFile("/path/to/rdt.conf.yaml", false); err != nil {
+//		return fmt.Errorf("RDT configuration failed: %v", err)
+//	}
+//
+//	if cls, ok := rdt.GetClass("my-class"); ok {
+//	   //  Set PIDs 12345 and 12346 to class "my-class"
+//		if err := cls.AddPids("12345", "12346"); err != nil {
+//			return fmt.Errorf("failed to add PIDs to RDT class: %v", err)
+//		}
+//	}
 package rdt
 
 import (

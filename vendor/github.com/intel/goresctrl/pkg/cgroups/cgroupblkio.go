@@ -35,9 +35,10 @@ var blkioThrottleWriteIOPSFiles = []string{"blkio.throttle.write_iops_device"}
 // Effects of Weight and Rate values in SetBlkioParameters():
 // Value  |  Effect
 // -------+-------------------------------------------------------------------
-//    -1  |  Do not write to cgroups, value is missing.
-//     0  |  Write to cgroups, will clear the setting as specified in cgroups blkio interface.
-//  other |  Write to cgroups, sets the value.
+//
+//	  -1  |  Do not write to cgroups, value is missing.
+//	   0  |  Write to cgroups, will clear the setting as specified in cgroups blkio interface.
+//	other |  Write to cgroups, sets the value.
 type BlockIOParameters struct {
 	Weight                  int64
 	WeightDevice            DeviceWeights

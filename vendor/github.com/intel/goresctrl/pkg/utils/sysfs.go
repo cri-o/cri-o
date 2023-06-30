@@ -22,22 +22,22 @@ import (
 	"os"
 	"strconv"
 	"strings"
+
+	goresctrlpath "github.com/intel/goresctrl/pkg/path"
 )
 
 const (
-	SysfsUncoreBasepath = "/sys/devices/system/cpu/intel_uncore_frequency/"
+	SysfsUncoreBasepath = "sys/devices/system/cpu/intel_uncore_frequency"
+	SysfsCpuBasepath    = "sys/devices/system/cpu"
 )
 
 func setCPUFreqValue(cpu ID, setting string, value int) error {
-	path := fmt.Sprintf("/sys/devices/system/cpu/cpu%d/cpufreq/%s", cpu, setting)
-	return writeFileInt(path, value)
+	return writeFileInt(cpuFreqPath(cpu, setting), value)
 }
 
 // GetCPUFreqValue returns information of the currently used CPU frequency
 func GetCPUFreqValue(cpu ID, setting string) (int, error) {
-	str := fmt.Sprintf("/sys/devices/system/cpu/cpu%d/cpufreq/%s", cpu, setting)
-
-	raw, err := ioutil.ReadFile(str)
+	raw, err := ioutil.ReadFile(cpuFreqPath(cpu, setting))
 	if err != nil {
 		return 0, err
 	}
@@ -48,6 +48,10 @@ func GetCPUFreqValue(cpu ID, setting string) (int, error) {
 	}
 
 	return value, nil
+}
+
+func cpuFreqPath(cpu ID, setting string) string {
+	return goresctrlpath.Path(SysfsCpuBasepath, fmt.Sprintf("cpu%d", cpu), "cpufreq", setting)
 }
 
 // SetCPUScalingMinFreq sets the scaling_min_freq value of a given CPU
@@ -84,7 +88,7 @@ func SetCPUsScalingMaxFreq(cpus []ID, freq int) error {
 
 // UncoreFreqAvailable returns true if the uncore frequency control functions are available.
 func UncoreFreqAvailable() bool {
-	_, err := os.Stat(SysfsUncoreBasepath)
+	_, err := os.Stat(goresctrlpath.Path(SysfsUncoreBasepath))
 	return err == nil
 }
 
@@ -99,7 +103,7 @@ func SetUncoreMaxFreq(pkg, die ID, freqKhz int) error {
 }
 
 func uncoreFreqPath(pkg, die ID, attribute string) string {
-	return fmt.Sprintf(SysfsUncoreBasepath+"package_%02d_die_%02d/%s", pkg, die, attribute)
+	return goresctrlpath.Path(SysfsUncoreBasepath, fmt.Sprintf("package_%02d_die_%02d", pkg, die), attribute)
 }
 
 func getUncoreFreqValue(pkg, die ID, attribute string) (int, error) {

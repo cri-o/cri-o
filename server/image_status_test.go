@@ -63,8 +63,10 @@ var _ = t.Describe("ImageStatus", func() {
 						User: "10",
 						Size: &size,
 						OCIConfig: &specs.Image{
-							Architecture: "arch",
-							OS:           "os",
+							Platform: specs.Platform{
+								Architecture: "arch",
+								OS:           "os",
+							},
 						},
 					},
 					nil,
