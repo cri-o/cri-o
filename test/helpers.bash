@@ -170,6 +170,8 @@ function setup_crio() {
         --container-attach-socket-dir "$CONTAINER_ATTACH_SOCKET_DIR" \
         --container-exits-dir "$CONTAINER_EXITS_DIR" \
         --listen "$CRIO_SOCKET" \
+        --irqbalance-config-file "$IRQBALANCE_CONFIG_FILE" \
+        --irqbalance-config-restore-file "$IRQBALANCE_CONFIG_RESTORE_FILE" \
         --signature-policy "$SIGNATURE_POLICY" \
         --signature-policy-dir "$SIGNATURE_POLICY_DIR" \
         --registry "quay.io" \
