@@ -69,8 +69,6 @@ CentOS 9 Stream
 CentOS 8
 CentOS 8 Stream
 CentOS 7
-Debian Unstable
-Debian Testing
 Debian 10
 Debian 11
 Rasbian 10
@@ -159,8 +157,6 @@ to the appropriate value from the following table:
 
 | Operating system   | $OS               |
 | ------------------ | ----------------- |
-| Debian Unstable    | `Debian_Unstable` |
-| Debian Testing     | `Debian_Testing`  |
 | Debian 11          | `Debian_11`       |
 | Debian 10          | `Debian_10`       |
 | Raspberry Pi OS 11 | `Raspbian_11`     |
