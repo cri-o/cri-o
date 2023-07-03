@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -297,6 +298,19 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 
 // CreateContainer creates a new container in specified PodSandbox
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
+	if req.Config == nil {
+		return nil, errors.New("config is nil")
+	}
+	if req.Config.Image == nil {
+		return nil, errors.New("config image is nil")
+	}
+	if req.SandboxConfig == nil {
+		return nil, errors.New("sandbox config is nil")
+	}
+	if req.SandboxConfig.Metadata == nil {
+		return nil, errors.New("sandbox config metadata is nil")
+	}
+
 	log.Infof(ctx, "Creating container: %s", translateLabelsToDescription(req.GetConfig().GetLabels()))
 
 	// Check if image is a file. If it is a file it might be a checkpoint archive.
@@ -304,12 +318,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if !s.config.CheckpointRestore() {
 			// If CRIU support is not enabled return from
 			// this check as early as possible.
-			return false, nil
-		}
-		if req.Config == nil ||
-			req.Config.Image == nil ||
-			req.SandboxConfig == nil ||
-			req.SandboxConfig.Metadata == nil {
 			return false, nil
 		}
 		if _, err := os.Stat(req.Config.Image.Image); err == nil {
