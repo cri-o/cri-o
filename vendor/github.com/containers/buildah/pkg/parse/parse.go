@@ -17,6 +17,7 @@ import (
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/buildah/define"
 	internalParse "github.com/containers/buildah/internal/parse"
+	internalUtil "github.com/containers/buildah/internal/util"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/parse"
@@ -154,9 +155,6 @@ func CommonBuildOptionsFromFlagSet(flags *pflag.FlagSet, findFlagFunc func(name 
 		return nil, fmt.Errorf("invalid --shm-size: %w", err)
 	}
 	volumes, _ := flags.GetStringArray("volume")
-	if err := Volumes(volumes); err != nil {
-		return nil, err
-	}
 	cpuPeriod, _ := flags.GetUint64("cpu-period")
 	cpuQuota, _ := flags.GetInt64("cpu-quota")
 	cpuShares, _ := flags.GetUint64("cpu-shares")
@@ -510,8 +508,6 @@ func PlatformsFromOptions(c *cobra.Command) (platforms []struct{ OS, Arch, Varia
 	return platforms, nil
 }
 
-const platformSep = "/"
-
 // DefaultPlatform returns the standard platform for the current system
 func DefaultPlatform() string {
 	return platforms.DefaultString()
@@ -520,21 +516,19 @@ func DefaultPlatform() string {
 // Platform separates the platform string into os, arch and variant,
 // accepting any of $arch, $os/$arch, or $os/$arch/$variant.
 func Platform(platform string) (os, arch, variant string, err error) {
-	split := strings.Split(platform, platformSep)
-	switch len(split) {
-	case 3:
-		variant = split[2]
-		fallthrough
-	case 2:
-		arch = split[1]
-		os = split[0]
-		return
-	case 1:
-		if platform == "local" {
-			return Platform(DefaultPlatform())
-		}
+	if platform == "local" || platform == "" || platform == "/" {
+		return Platform(DefaultPlatform())
 	}
-	return "", "", "", fmt.Errorf("invalid platform syntax for %q (use OS/ARCH[/VARIANT][,...])", platform)
+	if platform[len(platform)-1] == '/' || platform[0] == '/' {
+		// If --platform string has format as `some/plat/string/`
+		// or `/some/plat/string` make it `some/plat/string`
+		platform = strings.Trim(platform, "/")
+	}
+	platformSpec, err := platforms.Parse(platform)
+	if err != nil {
+		return "", "", "", fmt.Errorf("invalid platform syntax for --platform=%q: %w", platform, err)
+	}
+	return platformSpec.OS, platformSpec.Architecture, platformSpec.Variant, nil
 }
 
 func parseCreds(creds string) (string, string) {
@@ -1003,10 +997,7 @@ func isValidDeviceMode(mode string) bool {
 }
 
 func GetTempDir() string {
-	if tmpdir, ok := os.LookupEnv("TMPDIR"); ok {
-		return tmpdir
-	}
-	return "/var/tmp"
+	return internalUtil.GetTempDir()
 }
 
 // Secrets parses the --secret flag
