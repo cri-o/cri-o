@@ -73,6 +73,8 @@ dependencies:
       match: bats
     - path: contrib/test/integration/build/bats.yml
       match: version
+    - path: contrib/test/ci/build/bats.yml
+      match: version
 
   - name: zeitgeist
     version: 0.4.1
