@@ -59,7 +59,6 @@ kata_skip_files:
   - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
   - "infra_ctr_cpuset.bats"
   - "inspect.bats"
-  - "irqbalance.bats"   # run separately by test_runner.sh
   - "metrics.bats"
   - "network_ping.bats"
   - "nri.bats"

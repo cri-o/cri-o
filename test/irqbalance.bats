@@ -33,7 +33,7 @@ function setup_file() {
 	export BATS_NO_PARALLELIZE_WITHIN_FILE=true
 }
 
-function setup() {
+function setup_serial_test() {
 	setup_test
 	stop_crio
 	# we don't unconditionally restore because the irqbalance package may be missing
@@ -55,7 +55,7 @@ function setup() {
 	fi
 }
 
-function teardown() {
+function teardown_serial_test() {
 	cleanup_test
 	stop_crio
 	# see setup about why we have these conditionals
@@ -74,6 +74,15 @@ function teardown() {
 	fi
 }
 
+# irqbalance tests have to run in sequence
+@test "irqbalance tests (in sequence)" {
+	irqbalance_cpu_ban_list_save
+	irqbalance_cpu_ban_list_restore_default
+	irqbalance_cpu_ban_list_restore_disable_and_file_missing
+	irqbalance_cpu_ban_list_restore_disable
+	irqbalance_cpu_ban_list_restore_explicit_file
+}
+
 # given
 #	there is no previous status of banned cpus
 # when
@@ -83,10 +92,8 @@ function teardown() {
 # 	pointed by the "$BANNEDCPUS_CONF" env var
 #	and the mask must have value stated in "IRQBALANCE_BANNED_CPUS" field
 #   from irqbalance service configuration file.
-@test "irqbalance cpu ban list save" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
+irqbalance_cpu_ban_list_save() {
+	setup_serial_test
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -99,7 +106,7 @@ function teardown() {
 	expected_banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	# when
-	OVERRIDE_OPTIONS="--irqbalance-config-file ${IRQBALANCE_CONF}" start_crio
+	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="$BANNEDCPUS_CONF" start_crio
 
 	# then
 	if [ ! -f "$BANNEDCPUS_CONF" ]; then
@@ -111,6 +118,8 @@ function teardown() {
 	banned_cpus=$(cat "$BANNEDCPUS_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ]
+
+	teardown_serial_test
 }
 
 # given
@@ -122,10 +131,8 @@ function teardown() {
 # 	pointed by the "$BANNEDCPUS_CONF" env var
 #	and save the mask value in "IRQBALANCE_BANNED_CPUS" field
 #   of irqbalance service configuration file.
-@test "irqbalance cpu ban list restore - default" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
+irqbalance_cpu_ban_list_restore_default() {
+	setup_serial_test
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -139,13 +146,15 @@ function teardown() {
 	echo "$banned_cpus_for_conf" > "$BANNEDCPUS_CONF"
 
 	# when
-	OVERRIDE_OPTIONS="--irqbalance-config-file ${IRQBALANCE_CONF}" start_crio
+	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="$BANNEDCPUS_CONF" start_crio
 
 	# then
 	local banned_cpus
 	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$banned_cpus_for_conf" == "$banned_cpus" ]
+
+	teardown_serial_test
 }
 
 # restore option disabled. Check it does not disturb previous behaviour.
@@ -158,10 +167,8 @@ function teardown() {
 #	restore option does not disturb cri-o behaviour
 #	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
-@test "irqbalance cpu ban list restore - disable and file missing" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
+irqbalance_cpu_ban_list_restore_disable_and_file_missing() {
+	setup_serial_test
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -174,13 +181,15 @@ function teardown() {
 	[ -f "$BANNEDCPUS_CONF" ] && rm -f "$BANNEDCPUS_CONF"
 
 	# when
-	OVERRIDE_OPTIONS="--irqbalance-config-file ${IRQBALANCE_CONF} --irqbalance-config-restore-file disable" start_crio
+	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" start_crio
 
 	# then
 	local banned_cpus
 	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ] && [ ! -f "$BANNEDCPUS_CONF" ]
+
+	teardown_serial_test
 }
 
 # restore option disabled. Check it does not disturb previous behaviour.
@@ -194,10 +203,8 @@ function teardown() {
 #	restore option does not disturb cri-o behaviour
 #	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
-@test "irqbalance cpu ban list restore - disable" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
+irqbalance_cpu_ban_list_restore_disable() {
+	setup_serial_test
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -212,13 +219,15 @@ function teardown() {
 	echo "$banned_cpus_for_conf" > "$BANNEDCPUS_CONF"
 
 	# when
-	OVERRIDE_OPTIONS="--irqbalance-config-file ${IRQBALANCE_CONF} --irqbalance-config-restore-file disable" start_crio
+	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" start_crio
 
 	# then
 	local banned_cpus
 	banned_cpus=$(sed -n 's/^IRQBALANCE_BANNED_CPUS=\"\?\([^\"]*\)\"\?/\1/p' "$IRQBALANCE_CONF")
 
 	[ "$expected_banned_cpus" == "$banned_cpus" ]
+
+	teardown_serial_test
 }
 
 # explicit restore file. Check it uses it instead of any other file.
@@ -230,10 +239,8 @@ function teardown() {
 # then
 #	cri-o should read banned cpus mask from restore file
 #	and save it in "IRQBALANCE_BANNED_CPUS" field.
-@test "irqbalance cpu ban list restore - explicit file" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
+irqbalance_cpu_ban_list_restore_explicit_file() {
+	setup_serial_test
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -253,7 +260,7 @@ function teardown() {
 	banned_cpus_for_restore=$(cat "$irqbalance_restore_file")
 
 	# when
-	OVERRIDE_OPTIONS="--irqbalance-config-file ${IRQBALANCE_CONF} --irqbalance-config-restore-file ${irqbalance_restore_file}" start_crio
+	IRQBALANCE_CONFIG_FILE="${IRQBALANCE_CONF}" IRQBALANCE_CONFIG_RESTORE_FILE="${irqbalance_restore_file}" start_crio
 
 	# then
 	local banned_cpus
@@ -262,4 +269,6 @@ function teardown() {
 	# when a explicit file is used to restore default one is completely ignored,
 	# and so, it should not be created.( as it did not existed before)
 	[ "$banned_cpus_for_restore" == "$banned_cpus" ] && [ ! -f "$BANNEDCPUS_CONF" ]
+
+	teardown_serial_test
 }
