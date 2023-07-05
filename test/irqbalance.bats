@@ -84,9 +84,6 @@ function teardown() {
 #	and the mask must have value stated in "IRQBALANCE_BANNED_CPUS" field
 #   from irqbalance service configuration file.
 @test "irqbalance cpu ban list save" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -123,9 +120,6 @@ function teardown() {
 #	and save the mask value in "IRQBALANCE_BANNED_CPUS" field
 #   of irqbalance service configuration file.
 @test "irqbalance cpu ban list restore - default" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -159,9 +153,6 @@ function teardown() {
 #	so it reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 @test "irqbalance cpu ban list restore - disable and file missing" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -195,9 +186,6 @@ function teardown() {
 #	so cri-o reads banned cpus mask from "IRQBALANCE_BANNED_CPUS" field
 #   and save it in a file pointer by "BANNEDCPUS_CONF"  env var
 @test "irqbalance cpu ban list restore - disable" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
@@ -231,9 +219,6 @@ function teardown() {
 #	cri-o should read banned cpus mask from restore file
 #	and save it in "IRQBALANCE_BANNED_CPUS" field.
 @test "irqbalance cpu ban list restore - explicit file" {
-	if [[ -z "$TEST_SERIAL" ]]; then
-		skip "test must be run serially"
-	fi
 	# given
 	if ! grep -Eq '^[1,3,7,f]{1,}$' /proc/irq/default_smp_affinity; then
 		skip "requires default IRQ smp affinity (not banned CPUs)"
