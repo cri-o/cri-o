@@ -115,18 +115,24 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 
 	if resources != nil && resources.CPU != nil {
 		if resources.CPU.Cpus != "" {
+			bits, err := systemd.RangeToBits(resources.CPU.Cpus)
+			if err != nil {
+				return "", fmt.Errorf("cpuset conversion error: %w", err)
+			}
 			if !node.SystemdHasAllowedCPUs() {
 				logrus.Errorf("Systemd does not support AllowedCPUs; skipping setting for workload")
 			} else {
-				bits, err := systemd.RangeToBits(resources.CPU.Cpus)
-				if err != nil {
-					return "", fmt.Errorf("cpuset conversion error: %w", err)
-				}
 				props = append(props, systemdDbus.Property{
 					Name:  "AllowedCPUs",
 					Value: dbus.MakeVariant(bits),
 				})
 			}
+			// We must also set CPUAffinity so the container doesn't inherit it from conmon
+			// which inherits it from systemd.
+			props = append(props, systemdDbus.Property{
+				Name:  "CPUAffinity",
+				Value: dbus.MakeVariant(bits),
+			})
 		}
 		if resources.CPU.Shares != nil {
 			props = append(props, systemdDbus.Property{
