@@ -26,7 +26,7 @@ require (
 	github.com/containers/image/v5 v5.25.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.7
-	github.com/containers/podman/v4 v4.5.0
+	github.com/containers/podman/v4 v4.5.2-0.20230706090613-813f1b53bf39
 	github.com/containers/storage v1.46.1
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -101,6 +101,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
+	github.com/cilium/ebpf v0.9.1 // indirect
 	github.com/cloudflare/circl v1.1.0 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/go-runc v1.0.0 // indirect
@@ -246,9 +247,6 @@ require (
 )
 
 replace (
-	// TODO: Remove me when Podman uses a pinned runc version:
-	// https://github.com/containers/podman/blob/74aa681e59352257eb5f25f089dffa66d6345a3a/go.mod#L78
-	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20230411170423-1b4df30b3cdf
 	k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20230411170423-1b4df30b3cdf
 	k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20230411170423-1b4df30b3cdf
