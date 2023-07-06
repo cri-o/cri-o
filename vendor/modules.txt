@@ -117,6 +117,15 @@ github.com/checkpoint-restore/go-criu/v6/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
+# github.com/cilium/ebpf v0.9.1
+## explicit; go 1.17
+github.com/cilium/ebpf
+github.com/cilium/ebpf/asm
+github.com/cilium/ebpf/btf
+github.com/cilium/ebpf/internal
+github.com/cilium/ebpf/internal/sys
+github.com/cilium/ebpf/internal/unix
+github.com/cilium/ebpf/link
 # github.com/cloudflare/circl v1.1.0
 ## explicit; go 1.15
 github.com/cloudflare/circl/dh/x25519
@@ -387,7 +396,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/podman/v4 v4.5.0
+# github.com/containers/podman/v4 v4.5.2-0.20230706090613-813f1b53bf39
 ## explicit; go 1.18
 github.com/containers/podman/v4/cmd/podman/parse
 github.com/containers/podman/v4/libpod
@@ -975,10 +984,13 @@ github.com/opencontainers/go-digest
 ## explicit; go 1.17
 github.com/opencontainers/image-spec/specs-go
 github.com/opencontainers/image-spec/specs-go/v1
-# github.com/opencontainers/runc v1.1.5 => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
+# github.com/opencontainers/runc v1.1.6
 ## explicit; go 1.17
 github.com/opencontainers/runc/libcontainer/apparmor
 github.com/opencontainers/runc/libcontainer/cgroups
+github.com/opencontainers/runc/libcontainer/cgroups/devices
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf
+github.com/opencontainers/runc/libcontainer/cgroups/ebpf/devicefilter
 github.com/opencontainers/runc/libcontainer/cgroups/fs
 github.com/opencontainers/runc/libcontainer/cgroups/fs2
 github.com/opencontainers/runc/libcontainer/cgroups/fscommon
@@ -1783,7 +1795,6 @@ sigs.k8s.io/structured-merge-diff/v4/value
 # sigs.k8s.io/yaml v1.3.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
-# github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 # k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20230411170423-1b4df30b3cdf
 # k8s.io/apiextensions-apiserver => k8s.io/kubernetes/staging/src/k8s.io/apiextensions-apiserver v0.0.0-20230411170423-1b4df30b3cdf
 # k8s.io/apimachinery => k8s.io/kubernetes/staging/src/k8s.io/apimachinery v0.0.0-20230411170423-1b4df30b3cdf
