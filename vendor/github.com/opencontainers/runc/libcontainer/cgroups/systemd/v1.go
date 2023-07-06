@@ -4,10 +4,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
 
 	"github.com/opencontainers/runc/libcontainer/cgroups"
@@ -69,12 +71,13 @@ var legacySubsystems = []subsystem{
 	&fs.NetClsGroup{},
 	&fs.NameGroup{GroupName: "name=systemd"},
 	&fs.RdmaGroup{},
+	&fs.NameGroup{GroupName: "misc"},
 }
 
 func genV1ResourcesProperties(r *configs.Resources, cm *dbusConnManager) ([]systemdDbus.Property, error) {
 	var properties []systemdDbus.Property
 
-	deviceProperties, err := generateDeviceProperties(r)
+	deviceProperties, err := generateDeviceProperties(r, systemdVersion(cm))
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +207,7 @@ func (m *legacyManager) Apply(pid int) error {
 
 	properties = append(properties, c.SystemdProps...)
 
-	if err := startUnit(m.dbus, unitName, properties); err != nil {
+	if err := startUnit(m.dbus, unitName, properties, pid == -1); err != nil {
 		return err
 	}
 
@@ -271,14 +274,7 @@ func getSubsystemPath(slice, unit, subsystem string) (string, error) {
 		return "", err
 	}
 
-	initPath, err := cgroups.GetInitCgroup(subsystem)
-	if err != nil {
-		return "", err
-	}
-	// if pid 1 is systemd 226 or later, it will be in init.scope, not the root
-	initPath = strings.TrimSuffix(filepath.Clean(initPath), "init.scope")
-
-	return filepath.Join(mountpoint, initPath, slice, unit), nil
+	return filepath.Join(mountpoint, slice, unit), nil
 }
 
 func (m *legacyManager) Freeze(state configs.FreezerState) error {
@@ -332,6 +328,71 @@ func (m *legacyManager) GetStats() (*cgroups.Stats, error) {
 	}
 
 	return stats, nil
+}
+
+// freezeBeforeSet answers whether there is a need to freeze the cgroup before
+// applying its systemd unit properties, and thaw after, while avoiding
+// unnecessary freezer state changes.
+//
+// The reason why we have to freeze is that systemd's application of device
+// rules is done disruptively, resulting in spurious errors to common devices
+// (unlike our fs driver, they will happily write deny-all rules to running
+// containers). So we have to freeze the container to avoid the container get
+// an occasional "permission denied" error.
+func (m *legacyManager) freezeBeforeSet(unitName string, r *configs.Resources) (needsFreeze, needsThaw bool, err error) {
+	// Special case for SkipDevices, as used by Kubernetes to create pod
+	// cgroups with allow-all device policy).
+	if r.SkipDevices {
+		if r.SkipFreezeOnSet {
+			// Both needsFreeze and needsThaw are false.
+			return
+		}
+
+		// No need to freeze if SkipDevices is set, and either
+		// (1) systemd unit does not (yet) exist, or
+		// (2) it has DevicePolicy=auto and empty DeviceAllow list.
+		//
+		// Interestingly, (1) and (2) are the same here because
+		// a non-existent unit returns default properties,
+		// and settings in (2) are the defaults.
+		//
+		// Do not return errors from getUnitTypeProperty, as they alone
+		// should not prevent Set from working.
+
+		unitType := getUnitType(unitName)
+
+		devPolicy, e := getUnitTypeProperty(m.dbus, unitName, unitType, "DevicePolicy")
+		if e == nil && devPolicy.Value == dbus.MakeVariant("auto") {
+			devAllow, e := getUnitTypeProperty(m.dbus, unitName, unitType, "DeviceAllow")
+			if e == nil {
+				if rv := reflect.ValueOf(devAllow.Value.Value()); rv.Kind() == reflect.Slice && rv.Len() == 0 {
+					needsFreeze = false
+					needsThaw = false
+					return
+				}
+			}
+		}
+	}
+
+	needsFreeze = true
+	needsThaw = true
+
+	// Check the current freezer state.
+	freezerState, err := m.GetFreezerState()
+	if err != nil {
+		return
+	}
+	if freezerState == configs.Frozen {
+		// Already frozen, and should stay frozen.
+		needsFreeze = false
+		needsThaw = false
+	}
+
+	if r.Freezer == configs.Frozen {
+		// Will be frozen anyway -- no need to thaw.
+		needsThaw = false
+	}
+	return
 }
 
 func (m *legacyManager) Set(r *configs.Resources) error {
