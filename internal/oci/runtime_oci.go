@@ -883,12 +883,15 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		c.SetAsNotStopping()
 	}()
 
-	c.opLock.Lock()
-	defer c.opLock.Unlock()
-
 	if err := c.ShouldBeStopped(); err != nil {
+		if errors.Is(err, ErrContainerStopped) {
+			err = nil
+		}
 		return err
 	}
+
+	c.opLock.Lock()
+	defer c.opLock.Unlock()
 
 	if c.Spoofed() {
 		c.state.Status = ContainerStateStopped
