@@ -11,9 +11,12 @@ import (
 
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
+	"github.com/containers/common/libnetwork/pasta"
+	"github.com/containers/common/libnetwork/slirp4netns"
 	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/namespaces"
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/specgen"
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
@@ -79,7 +82,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	compatibleOptions := &libpod.InfraInherit{}
 	var infraSpec *specs.Spec
 	if infra != nil {
-		options, infraSpec, compatibleOptions, err = Inherit(*infra, s, rt)
+		options, infraSpec, compatibleOptions, err = Inherit(infra, s, rt)
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -181,9 +184,33 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 
 	_, err = rt.LookupPod(s.Hostname)
 	if len(s.Hostname) > 0 && !s.UtsNS.IsPrivate() && err == nil {
-		// ok, we are incorrectly setting the pod as the hostname, lets undo that before validation
+		// ok, we are incorrectly setting the pod as the hostname, let's undo that before validation
 		s.Hostname = ""
 	}
+
+	// Set defaults if network info is not provided
+	if s.NetNS.IsPrivate() || s.NetNS.IsDefault() {
+		if rootless.IsRootless() {
+			// when we are rootless we default to default_rootless_network_cmd from containers.conf
+			conf, err := rt.GetConfigNoCopy()
+			if err != nil {
+				return nil, nil, nil, err
+			}
+			switch conf.Network.DefaultRootlessNetworkCmd {
+			case slirp4netns.BinaryName, "":
+				s.NetNS.NSMode = specgen.Slirp
+			case pasta.BinaryName:
+				s.NetNS.NSMode = specgen.Pasta
+			default:
+				return nil, nil, nil, fmt.Errorf("invalid default_rootless_network_cmd option %q",
+					conf.Network.DefaultRootlessNetworkCmd)
+			}
+		} else {
+			// as root default to bridge
+			s.NetNS.NSMode = specgen.Bridge
+		}
+	}
+
 	if err := s.Validate(); err != nil {
 		return nil, nil, nil, fmt.Errorf("invalid config provided: %w", err)
 	}
@@ -555,12 +582,24 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	// Default used if not overridden on command line
 
-	if s.RestartPolicy != "" {
-		if s.RestartRetries != nil {
-			options = append(options, libpod.WithRestartRetries(*s.RestartRetries))
+	var (
+		restartPolicy string
+		retries       uint
+	)
+	// If the container is running in a pod, use the pod's restart policy for all the containers
+	if pod != nil && !s.IsInitContainer() {
+		podConfig := pod.ConfigNoCopy()
+		if podConfig.RestartRetries != nil {
+			retries = *podConfig.RestartRetries
 		}
-		options = append(options, libpod.WithRestartPolicy(s.RestartPolicy))
+		restartPolicy = podConfig.RestartPolicy
+	} else if s.RestartPolicy != "" {
+		if s.RestartRetries != nil {
+			retries = *s.RestartRetries
+		}
+		restartPolicy = s.RestartPolicy
 	}
+	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
@@ -624,7 +663,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	return options, nil
 }
 
-func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *specs.Spec, compat *libpod.InfraInherit, err error) {
+func Inherit(infra *libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtime) (opts []libpod.CtrCreateOption, infraS *specs.Spec, compat *libpod.InfraInherit, err error) {
 	inheritSpec := &specgen.SpecGenerator{}
 	_, compatibleOptions, err := ConfigToSpec(rt, inheritSpec, infra.ID())
 	if err != nil {

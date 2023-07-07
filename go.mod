@@ -26,7 +26,7 @@ require (
 	github.com/containers/image/v5 v5.26.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.7
-	github.com/containers/podman/v4 v4.5.2-0.20230706090613-813f1b53bf39
+	github.com/containers/podman/v4 v4.6.0-rc1
 	github.com/containers/storage v1.48.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -38,7 +38,7 @@ require (
 	github.com/fsnotify/fsnotify v1.6.0
 	github.com/go-chi/chi/v5 v5.0.8
 	github.com/go-logr/logr v1.2.4
-	github.com/godbus/dbus/v5 v5.1.1-0.20221029134443-4b691ce883d5
+	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v50 v50.2.0
@@ -166,7 +166,7 @@ require (
 	github.com/manifoldco/promptui v0.9.0 // indirect
 	github.com/mattn/go-runewidth v0.0.14 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
-	github.com/mattn/go-sqlite3 v1.14.16 // indirect
+	github.com/mattn/go-sqlite3 v1.14.17 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.4 // indirect
 	github.com/miekg/pkcs11 v1.1.1 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect

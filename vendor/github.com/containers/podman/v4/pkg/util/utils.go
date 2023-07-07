@@ -3,7 +3,6 @@ package util
 import (
 	"errors"
 	"fmt"
-	"io/fs"
 	"math"
 	"os"
 	"os/user"
@@ -19,12 +18,13 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/image/v5/types"
-	encconfig "github.com/containers/ocicrypt/config"
-	enchelpers "github.com/containers/ocicrypt/helpers"
+	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/namespaces"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/signal"
+	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -93,6 +93,7 @@ func ParseDockerignore(containerfiles []string, root string) ([]string, string, 
 		// so remote must support parsing that.
 		if dockerIgnoreErr != nil {
 			for _, containerfile := range containerfiles {
+				containerfile = strings.TrimPrefix(containerfile, root)
 				if _, err := os.Stat(filepath.Join(root, containerfile+".containerignore")); err == nil {
 					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".containerignore")
 					if symlinkErr == nil {
@@ -194,7 +195,7 @@ func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOp
 		if err != nil {
 			return nil, 0, 0, err
 		}
-		gids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		gids, err := rootless.ReadMappingsProc("/proc/self/gid_map")
 		if err != nil {
 			return nil, 0, 0, err
 		}
@@ -471,17 +472,8 @@ func ExitCode(err error) int {
 	return 126
 }
 
-// HomeDir returns the home directory for the current user.
-func HomeDir() (string, error) {
-	home := os.Getenv("HOME")
-	if home == "" {
-		usr, err := user.LookupId(fmt.Sprintf("%d", rootless.GetRootlessUID()))
-		if err != nil {
-			return "", fmt.Errorf("unable to resolve HOME directory: %w", err)
-		}
-		home = usr.HomeDir
-	}
-	return home, nil
+func GetIdentityPath(name string) string {
+	return filepath.Join(homedir.Get(), ".ssh", name)
 }
 
 func Tmpdir() string {
@@ -617,51 +609,42 @@ func LookupUser(name string) (*user.User, error) {
 
 // SizeOfPath determines the file usage of a given path. it was called volumeSize in v1
 // and now is made to be generic and take a path instead of a libpod volume
+// Deprecated: use github.com/containers/storage/pkg/directory.Size() instead.
 func SizeOfPath(path string) (uint64, error) {
-	var size uint64
-	err := filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
-		if err == nil && !d.IsDir() {
-			info, err := d.Info()
-			if err != nil {
-				return err
-			}
-			size += uint64(info.Size())
-		}
-		return err
-	})
-	return size, err
+	size, err := directory.Size(path)
+	return uint64(size), err
 }
 
-// EncryptConfig translates encryptionKeys into a EncriptionsConfig structure
-func EncryptConfig(encryptionKeys []string, encryptLayers []int) (*encconfig.EncryptConfig, *[]int, error) {
-	var encLayers *[]int
-	var encConfig *encconfig.EncryptConfig
-
-	if len(encryptionKeys) > 0 {
-		// encryption
-		encLayers = &encryptLayers
-		ecc, err := enchelpers.CreateCryptoConfig(encryptionKeys, []string{})
-		if err != nil {
-			return nil, nil, fmt.Errorf("invalid encryption keys: %w", err)
+// ParseRestartPolicy parses the value given to the --restart flag and returns the policy
+// and restart retries value
+func ParseRestartPolicy(policy string) (string, uint, error) {
+	var (
+		retriesUint uint
+		policyType  string
+	)
+	splitRestart := strings.Split(policy, ":")
+	switch len(splitRestart) {
+	case 1:
+		// No retries specified
+		policyType = splitRestart[0]
+		if strings.ToLower(splitRestart[0]) == "never" {
+			policyType = define.RestartPolicyNo
 		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{ecc})
-		encConfig = cc.EncryptConfig
-	}
-	return encConfig, encLayers, nil
-}
-
-// DecryptConfig translates decryptionKeys into a DescriptionConfig structure
-func DecryptConfig(decryptionKeys []string) (*encconfig.DecryptConfig, error) {
-	var decryptConfig *encconfig.DecryptConfig
-	if len(decryptionKeys) > 0 {
-		// decryption
-		dcc, err := enchelpers.CreateCryptoConfig([]string{}, decryptionKeys)
-		if err != nil {
-			return nil, fmt.Errorf("invalid decryption keys: %w", err)
+	case 2:
+		if strings.ToLower(splitRestart[0]) != "on-failure" {
+			return "", 0, errors.New("restart policy retries can only be specified with on-failure restart policy")
 		}
-		cc := encconfig.CombineCryptoConfigs([]encconfig.CryptoConfig{dcc})
-		decryptConfig = cc.DecryptConfig
+		retries, err := strconv.Atoi(splitRestart[1])
+		if err != nil {
+			return "", 0, fmt.Errorf("parsing restart policy retry count: %w", err)
+		}
+		if retries < 0 {
+			return "", 0, errors.New("must specify restart policy retry count as a number greater than 0")
+		}
+		retriesUint = uint(retries)
+		policyType = splitRestart[0]
+	default:
+		return "", 0, errors.New("invalid restart policy: may specify retries at most once")
 	}
-
-	return decryptConfig, nil
+	return policyType, retriesUint, nil
 }
