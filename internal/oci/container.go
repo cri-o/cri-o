@@ -476,9 +476,9 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
-// IsAlive is a function that checks if a container's init PID exists.
+// Living is a function that checks if a container's init PID exists.
 // It is used to check a container state when we don't want a `$runtime state` call
-func (c *Container) IsAlive() error {
+func (c *Container) Living() error {
 	if _, err := c.pid(); err != nil {
 		return fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
 	}
