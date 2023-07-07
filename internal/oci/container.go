@@ -580,7 +580,7 @@ func GetPidStartTimeFromFile(file string) (string, error) {
 // a container is not stoppable if it's paused or stopped
 // if it's paused, that's an error, and is reported as such
 func (c *Container) ShouldBeStopped() error {
-	switch c.state.Status {
+	switch c.State().Status {
 	case ContainerStateStopped: // no-op
 		return ErrContainerStopped
 	case ContainerStatePaused:
