@@ -19,7 +19,7 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/syndtr/gocapability/capability"
+	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 )
@@ -582,7 +582,9 @@ var _ = t.Describe("Container", func() {
 			serverCaps := []string{}
 
 			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
-			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(capability.List())-1)
+			// `int(validate.LastCap())+1` represents the total number of `ALL` capabilities
+			// in the current environment, while `-1` indicates the removal of `CHOWN` from `ALL`.
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, int(validate.LastCap())+1-1)
 		})
 		It("AddCapabilities one DropCapabilities ALL should add that one", func() {
 			caps := &types.Capability{
