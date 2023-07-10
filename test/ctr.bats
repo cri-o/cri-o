@@ -980,9 +980,6 @@ function check_oci_annotation() {
 }
 
 @test "ctr with node level pid namespace should not leak children" {
-	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
-		skip "not applicable to vm runtime type"
-	fi
 	if [[ -n "$TEST_USERNS" ]]; then
 		skip "test fails in a user namespace"
 	fi
