@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net"
-	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,10 +56,13 @@ type BoltState struct {
 //   operations.
 // - execBkt: Map of exec session ID to container ID - used for resolving
 //   exec session IDs to the containers that hold the exec session.
-// - aliasesBkt - Contains a bucket for each CNI network, which contain a map of
-//   network alias (an extra name for containers in DNS) to the ID of the
-//   container holding the alias. Aliases must be unique per-network, and cannot
-//   conflict with names registered in nameRegistryBkt.
+// - networksBkt: Contains all network names as key with their options json
+//   encoded as value.
+// - aliasesBkt - Deprecated, use the networksBkt. Used to contain a bucket
+//   for each CNI network which contain a map of network alias (an extra name
+//   for containers in DNS) to the ID of the container holding the alias.
+//   Aliases must be unique per-network, and cannot conflict with names
+//   registered in nameRegistryBkt.
 // - runtimeConfigBkt: Contains configuration of the libpod instance that
 //   initially created the database. This must match for any further instances
 //   that access the database, to ensure that state mismatches with
@@ -596,7 +598,7 @@ func (s *BoltState) Container(id string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(ctrID, ctr, ctrBucket)
+		return s.getContainerFromDB(ctrID, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -701,7 +703,7 @@ func (s *BoltState) LookupContainer(idOrName string) (*Container, error) {
 			return err
 		}
 
-		return s.getContainerFromDB(id, ctr, ctrBucket)
+		return s.getContainerFromDB(id, ctr, ctrBucket, false)
 	})
 	if err != nil {
 		return nil, err
@@ -813,9 +815,6 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 		return fmt.Errorf("container %s is in namespace %q, does not match our namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 	}
 
-	newState := new(ContainerState)
-	netNSPath := ""
-
 	ctrID := []byte(ctr.ID())
 
 	db, err := s.getDBCon()
@@ -824,51 +823,13 @@ func (s *BoltState) UpdateContainer(ctr *Container) error {
 	}
 	defer s.deferredCloseDBCon(db)
 
-	err = db.View(func(tx *bolt.Tx) error {
+	return db.View(func(tx *bolt.Tx) error {
 		ctrBucket, err := getCtrBucket(tx)
 		if err != nil {
 			return err
 		}
-
-		ctrToUpdate := ctrBucket.Bucket(ctrID)
-		if ctrToUpdate == nil {
-			ctr.valid = false
-			return fmt.Errorf("container %s does not exist in database: %w", ctr.ID(), define.ErrNoSuchCtr)
-		}
-
-		newStateBytes := ctrToUpdate.Get(stateKey)
-		if newStateBytes == nil {
-			return fmt.Errorf("container %s does not have a state key in DB: %w", ctr.ID(), define.ErrInternal)
-		}
-
-		if err := json.Unmarshal(newStateBytes, newState); err != nil {
-			return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
-		}
-
-		netNSBytes := ctrToUpdate.Get(netNSKey)
-		if netNSBytes != nil {
-			netNSPath = string(netNSBytes)
-		}
-
-		return nil
+		return s.getContainerStateDB(ctrID, ctr, ctrBucket)
 	})
-	if err != nil {
-		return err
-	}
-
-	// Handle network namespace.
-	if os.Geteuid() == 0 {
-		// Do it only when root, either on the host or as root in the
-		// user namespace.
-		if err := replaceNetNS(netNSPath, ctr, newState); err != nil {
-			return err
-		}
-	}
-
-	// New state compiled successfully, swap it into the current state
-	ctr.state = newState
-
-	return nil
 }
 
 // SaveContainer saves a container's current state in the database
@@ -889,7 +850,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 	if err != nil {
 		return fmt.Errorf("marshalling container %s state to JSON: %w", ctr.ID(), err)
 	}
-	netNSPath := getNetNSPath(ctr)
+	netNSPath := ctr.state.NetNS
 
 	ctrID := []byte(ctr.ID())
 
@@ -916,11 +877,7 @@ func (s *BoltState) SaveContainer(ctr *Container) error {
 			return fmt.Errorf("updating container %s state in DB: %w", ctr.ID(), err)
 		}
 
-		if netNSPath != "" {
-			if err := ctrToSave.Put(netNSKey, []byte(netNSPath)); err != nil {
-				return fmt.Errorf("updating network namespace path for container %s in DB: %w", ctr.ID(), err)
-			}
-		} else {
+		if netNSPath == "" {
 			// Delete the existing network namespace
 			if err := ctrToSave.Delete(netNSKey); err != nil {
 				return fmt.Errorf("removing network namespace path for container %s in DB: %w", ctr.ID(), err)
@@ -993,7 +950,8 @@ func (s *BoltState) ContainerInUse(ctr *Container) ([]string, error) {
 }
 
 // AllContainers retrieves all the containers in the database
-func (s *BoltState) AllContainers() ([]*Container, error) {
+// If `loadState` is set, the containers' state will be loaded as well.
+func (s *BoltState) AllContainers(loadState bool) ([]*Container, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
 	}
@@ -1030,7 +988,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 			ctr.config = new(ContainerConfig)
 			ctr.state = new(ContainerState)
 
-			if err := s.getContainerFromDB(id, ctr, ctrBucket); err != nil {
+			if err := s.getContainerFromDB(id, ctr, ctrBucket, loadState); err != nil {
 				// If the error is a namespace mismatch, we can
 				// ignore it safely.
 				// We just won't include the container in the
@@ -1056,7 +1014,7 @@ func (s *BoltState) AllContainers() ([]*Container, error) {
 	return ctrs, nil
 }
 
-// GetNetworks returns the CNI networks this container is a part of.
+// GetNetworks returns the networks this container is a part of.
 func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error) {
 	if !s.valid {
 		return nil, define.ErrDBClosed
@@ -1232,6 +1190,16 @@ func (s *BoltState) GetNetworks(ctr *Container) (map[string]types.PerNetworkOpti
 // NetworkConnect adds the given container to the given network. If aliases are
 // specified, those will be added to the given network.
 func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error {
+	return s.networkModify(ctr, network, opts, true)
+}
+
+// NetworkModify will allow you to set new options on an existing connected network
+func (s *BoltState) NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error {
+	return s.networkModify(ctr, network, opts, false)
+}
+
+// networkModify allows you to modify or add a new network, to add a new network use the new bool
+func (s *BoltState) networkModify(ctr *Container, network string, opts types.PerNetworkOptions, new bool) error {
 	if !s.valid {
 		return define.ErrDBClosed
 	}
@@ -1278,11 +1246,14 @@ func (s *BoltState) NetworkConnect(ctr *Container, network string, opts types.Pe
 			return fmt.Errorf("container %s does not have a network bucket: %w", ctr.ID(), define.ErrNoSuchNetwork)
 		}
 		netConnected := ctrNetworksBkt.Get([]byte(network))
-		if netConnected != nil {
+
+		if new && netConnected != nil {
 			return fmt.Errorf("container %s is already connected to network %q: %w", ctr.ID(), network, define.ErrNetworkConnected)
+		} else if !new && netConnected == nil {
+			return fmt.Errorf("container %s is not connected to network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
 		}
 
-		// Add the network
+		// Modify/Add the network
 		if err := ctrNetworksBkt.Put([]byte(network), optBytes); err != nil {
 			return fmt.Errorf("adding container %s to network %s in DB: %w", ctr.ID(), network, err)
 		}
@@ -1333,11 +1304,11 @@ func (s *BoltState) NetworkDisconnect(ctr *Container, network string) error {
 		ctrAliasesBkt := dbCtr.Bucket(aliasesBkt)
 		ctrNetworksBkt := dbCtr.Bucket(networksBkt)
 		if ctrNetworksBkt == nil {
-			return fmt.Errorf("container %s is not connected to any CNI networks, so cannot disconnect: %w", ctr.ID(), define.ErrNoSuchNetwork)
+			return fmt.Errorf("container %s is not connected to any networks, so cannot disconnect: %w", ctr.ID(), define.ErrNoSuchNetwork)
 		}
 		netConnected := ctrNetworksBkt.Get([]byte(network))
 		if netConnected == nil {
-			return fmt.Errorf("container %s is not connected to CNI network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
+			return fmt.Errorf("container %s is not connected to network %q: %w", ctr.ID(), network, define.ErrNoSuchNetwork)
 		}
 
 		if err := ctrNetworksBkt.Delete([]byte(network)); err != nil {
@@ -2493,7 +2464,7 @@ func (s *BoltState) PodContainers(pod *Pod) ([]*Container, error) {
 			newCtr.state = new(ContainerState)
 			ctrs = append(ctrs, newCtr)
 
-			return s.getContainerFromDB(id, newCtr, ctrBkt)
+			return s.getContainerFromDB(id, newCtr, ctrBkt, false)
 		})
 		if err != nil {
 			return err
@@ -3451,7 +3422,7 @@ func (s *BoltState) RemoveContainerFromPod(pod *Pod, ctr *Container) error {
 			return fmt.Errorf("pod %s is in namespace %q but we are in namespace %q: %w", pod.ID(), pod.config.Namespace, s.namespace, define.ErrNSMismatch)
 		}
 		if s.namespace != ctr.config.Namespace {
-			return fmt.Errorf("container %s in in namespace %q but we are in namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
+			return fmt.Errorf("container %s in namespace %q but we are in namespace %q: %w", ctr.ID(), ctr.config.Namespace, s.namespace, define.ErrNSMismatch)
 		}
 	}
 
