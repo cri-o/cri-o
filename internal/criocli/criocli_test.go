@@ -133,4 +133,30 @@ var _ = t.Describe("CLI Flags", func() {
 		// Then
 		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(Equal(setFlag.Value))
 	})
+
+	It("Flag test disable-hostport-mapping", func() {
+		// Default Config
+		app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
+		Expect(err).To(BeNil())
+		config, err := criocli.GetConfigFromContext(ctx)
+		Expect(err).To(BeNil())
+
+		// Then
+		Expect(config.RuntimeConfig.DisableHostPortMapping).To(Equal(false))
+
+		// Set Config & Merge
+		setFlag := &cli.BoolFlag{
+			Name:       "disable-hostport-mapping",
+			Value:      true,
+			HasBeenSet: true,
+		}
+		err = setFlag.Apply(flagSet)
+		Expect(err).To(BeNil())
+		ctx.Command.Flags = append(commandFlags, setFlag)
+		config, err = criocli.GetAndMergeConfigFromContext(ctx)
+		Expect(err).To(BeNil())
+
+		// Then
+		Expect(config.RuntimeConfig.DisableHostPortMapping).To(Equal(true))
+	})
 })

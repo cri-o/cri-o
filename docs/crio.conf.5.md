@@ -300,6 +300,9 @@ Enable CRI-O to generate the container pod-level events in order to optimize the
 **hostnetwork_disable_selinux**=true
  Determines whether SELinux should be disabled within a pod when it is running in the host network namespace.
 
+**disable_hostport_mapping**=false
+ Enable/Disable the container hostport mapping in CRI-O. Default value is set to 'false'.
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload. This option supports live configuration reload. This option supports live configuration reload.
 

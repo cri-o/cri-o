@@ -448,6 +448,10 @@ type RuntimeConfig struct {
 	// when it is running in the host network namespace
 	// https://github.com/cri-o/cri-o/issues/5501
 	HostNetworkDisableSELinux bool `toml:"hostnetwork_disable_selinux"`
+
+	// Option to disable hostport mapping in CRI-O
+	// Default value is 'false'
+	DisableHostPortMapping bool `toml:"disable_hostport_mapping"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -847,6 +851,7 @@ func DefaultConfig() (*Config, error) {
 			rdtConfig:                   rdt.New(),
 			ulimitsConfig:               ulimits.New(),
 			HostNetworkDisableSELinux:   true,
+			DisableHostPortMapping:      false,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:   "docker://",

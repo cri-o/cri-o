@@ -434,7 +434,13 @@ func New(
 		}
 	}
 
-	hostportManager := hostport.NewMetaHostportManager()
+	// Check for hostport mapping
+	var hostportManager hostport.HostPortManager
+	if config.RuntimeConfig.DisableHostPortMapping {
+		hostportManager = hostport.NewNoopHostportManager()
+	} else {
+		hostportManager = hostport.NewMetaHostportManager()
+	}
 
 	idMappings, err := getIDMappings(config)
 	if err != nil {

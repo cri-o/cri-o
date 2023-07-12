@@ -42,6 +42,7 @@ crio
 [--default-transport]=[value]
 [--default-ulimits]=[value]
 [--device-ownership-from-security-context]
+[--disable-hostport-mapping]
 [--drop-infra-ctr]
 [--enable-criu-support]
 [--enable-metrics]
@@ -219,6 +220,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--default-ulimits**="": Ulimits to apply to containers by default (name=soft:hard).
 
 **--device-ownership-from-security-context**: Set devices' uid/gid ownership from runAsUser/runAsGroup.
+
+**--disable-hostport-mapping**: If true, CRI-O would disable the hostport mapping.
 
 **--drop-infra-ctr**: Determines whether pods are created without an infra container, when the pod is not using a pod level PID namespace.
 

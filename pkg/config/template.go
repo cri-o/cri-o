@@ -456,6 +456,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.HostNetworkDisableSELinux, c.HostNetworkDisableSELinux),
 		},
 		{
+			templateString: templateStringCrioRuntimeDisableHostPortMapping,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DisableHostPortMapping, c.DisableHostPortMapping),
+		},
+		{
 			templateString: templateStringCrioImageDefaultTransport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
@@ -1288,6 +1293,13 @@ const templateStringCrioRuntimeHostNetworkDisableSELinux = `# hostnetwork_disabl
 # SELinux should be disabled within a pod when it is running in the host network namespace
 # Default value is set to true
 {{ $.Comment }}hostnetwork_disable_selinux = {{ .HostNetworkDisableSELinux }}
+
+`
+
+const templateStringCrioRuntimeDisableHostPortMapping = `# disable_hostport_mapping determines whether to enable/disable
+# the container hostport mapping in CRI-O.
+# Default value is set to 'false'
+{{ $.Comment }}disable_hostport_mapping = {{ .DisableHostPortMapping }}
 
 `
 

@@ -223,6 +223,14 @@ var _ = t.Describe("Server", func() {
 			Expect(err).To(BeNil())
 			Expect(server).ToNot(BeNil())
 		})
+		It("should succeed with hostport mapping disabled", func() {
+			mockNewServer()
+			serverConfig.RuntimeConfig.DisableHostPortMapping = true
+
+			server, err := server.New(context.Background(), libMock)
+			Expect(err).To(BeNil())
+			Expect(server).ToNot(BeNil())
+		})
 	})
 
 	t.Describe("StartExitMonitor", func() {
