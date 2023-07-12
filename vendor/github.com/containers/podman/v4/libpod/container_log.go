@@ -10,6 +10,7 @@ import (
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/podman/v4/libpod/logs"
+	systemdDefine "github.com/containers/podman/v4/pkg/systemd/define"
 	"github.com/nxadm/tail"
 	"github.com/nxadm/tail/watch"
 	"github.com/sirupsen/logrus"
@@ -36,11 +37,15 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
+		// if running under systemd fallback to a more native journald reading
+		if unitName, ok := c.config.Labels[systemdDefine.EnvVariable]; ok {
+			return c.readFromJournal(ctx, options, logChannel, colorID, unitName)
+		}
 		return fmt.Errorf("this container is using the 'passthrough' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.NoLogging:
 		return fmt.Errorf("this container is using the 'none' log driver, cannot read logs: %w", define.ErrNoLogs)
 	case define.JournaldLogging:
-		return c.readFromJournal(ctx, options, logChannel, colorID)
+		return c.readFromJournal(ctx, options, logChannel, colorID, "")
 	case define.JSONLogging:
 		// TODO provide a separate implementation of this when Conmon
 		// has support.
@@ -72,6 +77,14 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			}
 		}
 	}
+	go func() {
+		if options.Until.After(time.Now()) {
+			time.Sleep(time.Until(options.Until))
+			if err := t.Stop(); err != nil {
+				logrus.Errorf("Stopping logger: %v", err)
+			}
+		}
+	}()
 
 	go func() {
 		defer options.WaitGroup.Done()

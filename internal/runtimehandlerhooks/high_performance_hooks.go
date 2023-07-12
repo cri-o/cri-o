@@ -155,6 +155,15 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 	return nil
 }
 
+// If CPU load balancing is enabled, then *all* containers must run this PostStop hook.
+func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
+	// We could check if `!cpuLoadBalancingAllowed()` here, but it requires access to the config, which would be
+	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
+	// annotation allowed.
+	h := &DefaultCPULoadBalanceHooks{}
+	return h.PostStop(ctx, c, s)
+}
+
 func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
 	if annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue {
 		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
@@ -282,6 +291,20 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 }
 
 func setCPUQuota(parentDir string, c *oci.Container) error {
+	containerCgroup, containerCgroupParent, systemd, err := containerCgroupAndParent(parentDir, c)
+	if err != nil {
+		return err
+	}
+	podCgroup := filepath.Base(containerCgroupParent)
+	podCgroupParent := filepath.Dir(containerCgroupParent)
+
+	if err := disableCPUQuotaForCgroup(podCgroup, podCgroupParent, systemd); err != nil {
+		return err
+	}
+	return disableCPUQuotaForCgroup(containerCgroup, containerCgroupParent, systemd)
+}
+
+func containerCgroupAndParent(parentDir string, c *oci.Container) (ctrCgroup, parentCgroup string, systemd bool, _ error) {
 	var (
 		cgroupManager cgmgr.CgroupManager
 		err           error
@@ -298,35 +321,48 @@ func setCPUQuota(parentDir string, c *oci.Container) error {
 	}
 	cgroupPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
 	if err != nil {
-		return err
+		return "", "", false, err
 	}
 	containerCgroup := filepath.Base(cgroupPath)
-	containerCgroupParent := filepath.Dir(cgroupPath)
-	podCgroup := filepath.Base(containerCgroupParent)
-	podCgroupParent := filepath.Dir(containerCgroupParent)
-
-	if err := disableCPUQuotaForCgroup(podCgroup, podCgroupParent, cgroupManager.IsSystemd()); err != nil {
-		return err
+	// A quirk of libcontainer's cgroup driver.
+	// See explanation in disableCPUQuotaForCgroup function.
+	if cgroupManager.IsSystemd() {
+		containerCgroup = c.ID()
 	}
-	return disableCPUQuotaForCgroup(containerCgroup, containerCgroupParent, cgroupManager.IsSystemd())
+	return containerCgroup, filepath.Dir(cgroupPath), cgroupManager.IsSystemd(), nil
 }
 
 func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
+	mgr, err := libctrManager(cgroup, parent, systemd)
+	if err != nil {
+		return err
+	}
+
+	return mgr.Set(&configs.Resources{
+		SkipDevices: true,
+		CpuQuota:    -1,
+	})
+}
+
+func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error) {
+	if systemd {
+		parent = filepath.Base(parent)
+	}
 	cg := &configs.Cgroup{
 		Name:   cgroup,
 		Parent: parent,
 		Resources: &configs.Resources{
 			SkipDevices: true,
-			CpuQuota:    -1,
 		},
 		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: cgmgr.CrioPrefix,
 	}
-	mgr, err := libCtrMgr.New(cg)
-	if err != nil {
-		return err
-	}
-
-	return mgr.Set(cg.Resources)
+	return libCtrMgr.New(cg)
 }
 
 // setCPUPMQOSResumeLatency sets the pm_qos_resume_latency_us for a cpu and stores the original

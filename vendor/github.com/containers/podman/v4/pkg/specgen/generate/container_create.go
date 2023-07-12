@@ -88,8 +88,11 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			return nil, nil, nil, err
 		}
 		s.UserNS = defaultNS
-
-		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(s.UserNS.NSMode), nil, nil, "", "")
+		value := string(s.UserNS.NSMode)
+		if s.UserNS.Value != "" {
+			value = value + ":" + s.UserNS.Value
+		}
+		mappings, err := util.ParseIDMapping(namespaces.UsernsMode(value), nil, nil, "", "")
 		if err != nil {
 			return nil, nil, nil, err
 		}
@@ -122,6 +125,16 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 	if err != nil {
 		return nil, nil, nil, err
 	}
+
+	if imageData != nil {
+		ociRuntimeVariant := rtc.Engine.ImagePlatformToRuntime(imageData.Os, imageData.Architecture)
+		// Don't unnecessarily set and invoke additional libpod
+		// option if OCI runtime is still default.
+		if ociRuntimeVariant != rtc.Engine.OCIRuntime {
+			options = append(options, libpod.WithCtrOCIRuntime(ociRuntimeVariant))
+		}
+	}
+
 	if newImage != nil {
 		// If the input name changed, we could properly resolve the
 		// image. Otherwise, it must have been an ID where we're
@@ -191,7 +204,7 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 			}
 			resources := runtimeSpec.Linux.Resources
 
-			// resources get overwrritten similarly to pod inheritance, manually assign here if there is a new value
+			// resources get overwritten similarly to pod inheritance, manually assign here if there is a new value
 			marshalRes, err := json.Marshal(resources)
 			if err != nil {
 				return nil, nil, nil, err
@@ -391,6 +404,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 				Dest:        v.Dest,
 				Options:     v.Options,
 				IsAnonymous: v.IsAnonymous,
+				SubPath:     v.SubPath,
 			})
 		}
 		options = append(options, libpod.WithNamedVolumes(vols))
@@ -514,6 +528,9 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
 	}
+	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
+		options = append(options, libpod.WithStartupHealthcheck(s.ContainerHealthCheckConfig.StartupHealthConfig))
+	}
 
 	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
 		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
@@ -598,8 +615,13 @@ func Inherit(infra libpod.Container, s *specgen.SpecGenerator, rt *libpod.Runtim
 		return nil, nil, nil, err
 	}
 
+	// podman pod container can override pod ipc NS
+	if !s.IpcNS.IsDefault() {
+		inheritSpec.IpcNS = s.IpcNS
+	}
+
 	// this causes errors when shmSize is the default value, it will still get passed down unless we manually override.
-	if s.IpcNS.NSMode == specgen.Host && (compatibleOptions.ShmSize != nil && compatibleOptions.IsDefaultShmSize()) {
+	if inheritSpec.IpcNS.NSMode == specgen.Host && (compatibleOptions.ShmSize != nil && compatibleOptions.IsDefaultShmSize()) {
 		s.ShmSize = nil
 	}
 	return options, infraSpec, compatibleOptions, nil
