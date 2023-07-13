@@ -6,8 +6,8 @@ import (
 
 	cstorage "github.com/containers/storage"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
+	"go.uber.org/mock/gomock"
 )
 
 type mockSequence struct {

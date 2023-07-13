@@ -11,8 +11,8 @@ import (
 	syscall "syscall"
 
 	oci "github.com/cri-o/cri-o/internal/oci"
-	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	gomock "go.uber.org/mock/gomock"
 	remotecommand "k8s.io/client-go/tools/remotecommand"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )

@@ -9,7 +9,7 @@ import (
 	reflect "reflect"
 
 	ocicni "github.com/cri-o/ocicni/pkg/ocicni"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockCNIPlugin is a mock of CNIPlugin interface.
