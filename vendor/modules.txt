@@ -145,10 +145,13 @@ github.com/cloudflare/circl/math/mlsbset
 github.com/cloudflare/circl/sign
 github.com/cloudflare/circl/sign/ed25519
 github.com/cloudflare/circl/sign/ed448
-# github.com/container-orchestrated-devices/container-device-interface v0.5.4
+# github.com/container-orchestrated-devices/container-device-interface v0.6.0
 ## explicit; go 1.17
 github.com/container-orchestrated-devices/container-device-interface/internal/multierror
+github.com/container-orchestrated-devices/container-device-interface/internal/validation
+github.com/container-orchestrated-devices/container-device-interface/internal/validation/k8s
 github.com/container-orchestrated-devices/container-device-interface/pkg/cdi
+github.com/container-orchestrated-devices/container-device-interface/pkg/parser
 github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.1.0
 ## explicit; go 1.17
