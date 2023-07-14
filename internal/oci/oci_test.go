@@ -178,8 +178,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(privileged).To(Equal(false))
 		})
 		It("CheckpointContainer should succeed", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip("Check CRIU: " + err.Error())
 			}
 			// Given
 			beforeEach()
@@ -204,8 +204,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(err).To(BeNil())
 		})
 		It("CheckpointContainer should fail", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip("Check CRIU: " + err.Error())
 			}
 			// Given
 			defer os.RemoveAll("dump.log")
@@ -231,8 +231,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(err.Error()).To(Equal("configured runtime does not support checkpoint/restore"))
 		})
 		It("RestoreContainer should fail with destination sandbox detection", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip("Check CRIU: " + err.Error())
 			}
 			// Given
 			beforeEach()
@@ -268,8 +268,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip("Check CRIU: " + err.Error())
 			}
 			// Given
 			beforeEach()
@@ -320,8 +320,8 @@ var _ = t.Describe("Oci", func() {
 			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail with missing inventory", func() {
-			if !criu.CheckForCriu(criu.PodCriuVersion) {
-				Skip("CRIU is missing or too old.")
+			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+				Skip("Check CRIU: " + err.Error())
 			}
 			// Given
 			beforeEach()

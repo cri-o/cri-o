@@ -1595,8 +1595,8 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 }
 
 func (r *runtimeOCI) checkpointRestoreSupported() error {
-	if !criu.CheckForCriu(criu.PodCriuVersion) {
-		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", criu.PodCriuVersion)
+	if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+		return fmt.Errorf("check for CRIU %w", err)
 	}
 	if !crutils.CRRuntimeSupportsCheckpointRestore(r.handler.RuntimePath) {
 		return fmt.Errorf("configured runtime does not support checkpoint/restore")

@@ -5,7 +5,6 @@ package libpod
 
 import (
 	"fmt"
-	"math"
 	"strings"
 	"syscall"
 	"time"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
+	"golang.org/x/sys/unix"
 )
 
 // getPlatformContainerStats gets the platform-specific running stats
@@ -59,7 +59,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 	// calc the average cpu usage for the time the container is running
 	stats.AvgCPU = calculateCPUPercent(cgroupStats, 0, now, uint64(c.state.StartedTime.UnixNano()))
 	stats.MemUsage = cgroupStats.MemoryStats.Usage.Usage
-	stats.MemLimit = c.getMemLimit()
+	stats.MemLimit = c.getMemLimit(cgroupStats.MemoryStats.Usage.Limit)
 	stats.MemPerc = (float64(stats.MemUsage) / float64(stats.MemLimit)) * 100
 	stats.PIDs = 0
 	if conState == define.ContainerStateRunning || conState == define.ContainerStatePaused {
@@ -83,14 +83,7 @@ func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, prev
 }
 
 // getMemory limit returns the memory limit for a container
-func (c *Container) getMemLimit() uint64 {
-	memLimit := uint64(math.MaxUint64)
-
-	resources := c.LinuxResources()
-	if resources != nil && resources.Memory != nil && resources.Memory.Limit != nil {
-		memLimit = uint64(*resources.Memory.Limit)
-	}
-
+func (c *Container) getMemLimit(memLimit uint64) uint64 {
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)
 	if err != nil {
@@ -136,4 +129,19 @@ func calculateBlockIO(stats *runccgroup.Stats) (read uint64, write uint64) {
 		}
 	}
 	return
+}
+
+func getOnlineCPUs(container *Container) (int, error) {
+	ctrPID, err := container.PID()
+	if err != nil {
+		return -1, fmt.Errorf("failed to obtain Container %s PID: %w", container.Name(), err)
+	}
+	if ctrPID == 0 {
+		return ctrPID, define.ErrCtrStopped
+	}
+	var cpuSet unix.CPUSet
+	if err := unix.SchedGetaffinity(ctrPID, &cpuSet); err != nil {
+		return -1, fmt.Errorf("failed to obtain Container %s online cpus: %w", container.Name(), err)
+	}
+	return cpuSet.Count(), nil
 }

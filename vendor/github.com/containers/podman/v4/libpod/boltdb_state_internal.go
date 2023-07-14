@@ -401,7 +401,7 @@ func (s *BoltState) getContainerConfigFromDB(id []byte, config *ContainerConfig,
 		config.ContainerNetworkConfig.PortMappings = ocicniPortsToNetTypesPorts(config.ContainerNetworkConfig.OldPortMappings)
 		// keep the OldPortMappings in case an user has to downgrade podman
 
-		// indicate the the config was modified and should be written back to the db when possible
+		// indicate that the config was modified and should be written back to the db when possible
 		config.rewrite = true
 	}
 
@@ -425,7 +425,7 @@ func (s *BoltState) getContainerStateDB(id []byte, ctr *Container, ctrsBkt *bolt
 		return fmt.Errorf("unmarshalling container %s state: %w", ctr.ID(), err)
 	}
 
-	// backwards compat, previously we used a extra bucket for the netns so try to get it from there
+	// backwards compat, previously we used an extra bucket for the netns so try to get it from there
 	netNSBytes := ctrToUpdate.Get(netNSKey)
 	if netNSBytes != nil && newState.NetNS == "" {
 		newState.NetNS = string(netNSBytes)
@@ -607,8 +607,6 @@ func (s *BoltState) addContainer(ctr *Container, pod *Pod) error {
 		if opts.InterfaceName == "" {
 			return fmt.Errorf("network interface name cannot be an empty string: %w", define.ErrInvalidArg)
 		}
-		// always add the short id as alias for docker compat
-		opts.Aliases = append(opts.Aliases, ctr.config.ID[:12])
 		optBytes, err := json.Marshal(opts)
 		if err != nil {
 			return fmt.Errorf("marshalling network options JSON for container %s: %w", ctr.ID(), err)

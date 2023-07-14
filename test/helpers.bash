@@ -565,12 +565,8 @@ function has_criu() {
         skip "Checkpoint/Restore with pods only works in runc."
     fi
 
-    if [ ! -e "$(command -v criu)" ]; then
-        skip "CRIU binary not found"
-    fi
-
     if ! "$CHECKCRIU_BINARY"; then
-        skip "CRIU too old. At least 3.16 needed."
+        skip "CRIU check failed"
     fi
 }
 

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/resize"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/events"
 	"github.com/containers/storage/pkg/stringid"
@@ -20,7 +21,7 @@ import (
 
 // ExecConfig contains the configuration of an exec session
 type ExecConfig struct {
-	// Command the the command that will be invoked in the exec session.
+	// Command is the command that will be invoked in the exec session.
 	// Must not be empty.
 	Command []string `json:"command"`
 	// Terminal is whether the exec session will allocate a pseudoterminal.
@@ -923,7 +924,7 @@ func (c *Container) readExecExitCode(sessionID string) (int, error) {
 	chWait := make(chan error)
 	defer close(chWait)
 
-	_, err := WaitForFile(exitFile, chWait, time.Second*5)
+	_, err := util.WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		return -1, err
 	}

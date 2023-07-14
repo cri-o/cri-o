@@ -61,7 +61,7 @@ func (c *Container) getNetworkOptions(networkOpts map[string]types.PerNetworkOpt
 	return opts
 }
 
-// setUpNetwork will set up the the networks, on error it will also tear down the cni
+// setUpNetwork will set up the networks, on error it will also tear down the cni
 // networks. If rootless it will join/create the rootless network namespace.
 func (r *Runtime) setUpNetwork(ns string, opts types.NetworkOptions) (map[string]types.StatusBlock, error) {
 	rootlessNetNS, err := r.GetRootlessNetNs(true)
@@ -385,7 +385,7 @@ func (c *Container) NetworkDisconnect(nameOrID, netName string, force bool) erro
 		return err
 	}
 
-	// check if network exists and if the input is a ID we get the name
+	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
 	netName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
@@ -499,7 +499,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		return err
 	}
 
-	// check if network exists and if the input is a ID we get the name
+	// check if network exists and if the input is an ID we get the name
 	// CNI and netavark and the libpod db only uses names so it is important that we only use the name
 	netName, err = c.runtime.normalizeNetworkName(netName)
 	if err != nil {
@@ -513,8 +513,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 	// get network status before we connect
 	networkStatus := c.getNetworkStatus()
 
-	// always add the short id as alias for docker compat
-	netOpts.Aliases = append(netOpts.Aliases, c.config.ID[:12])
+	netOpts.Aliases = append(netOpts.Aliases, getExtraNetworkAliases(c)...)
 
 	if netOpts.InterfaceName == "" {
 		netOpts.InterfaceName = getFreeInterfaceName(networks)
@@ -583,10 +582,7 @@ func (c *Container) NetworkConnect(nameOrID, netName string, netOpts types.PerNe
 		}
 	}
 
-	ipv6, err := c.checkForIPv6(networkStatus)
-	if err != nil {
-		return err
-	}
+	ipv6 := c.checkForIPv6(networkStatus)
 
 	// Update resolv.conf if required
 	stringIPs := make([]string, 0, len(results[netName].DNSServerIPs))
@@ -640,6 +636,16 @@ func getFreeInterfaceName(networks map[string]types.PerNetworkOptions) string {
 		}
 	}
 	return ""
+}
+
+func getExtraNetworkAliases(c *Container) []string {
+	// always add the short id as alias for docker compat
+	alias := []string{c.config.ID[:12]}
+	// if an explicit hostname was set add it as well
+	if c.config.Spec.Hostname != "" {
+		alias = append(alias, c.config.Spec.Hostname)
+	}
+	return alias
 }
 
 // DisconnectContainerFromNetwork removes a container from its network
