@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -17,7 +18,6 @@ import (
 	"github.com/containers/buildah/pkg/overlay"
 	butil "github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/etchosts"
-	"github.com/containers/common/libnetwork/resolvconf"
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/chown"
 	"github.com/containers/common/pkg/config"
@@ -55,10 +55,11 @@ const (
 	preCheckpointDir  = "pre-checkpoint"
 )
 
-// rootFsSize gets the size of the container's root filesystem
-// A container FS is split into two parts.  The first is the top layer, a
-// mutable layer, and the rest is the RootFS: the set of immutable layers
-// that make up the image on which the container is based.
+// rootFsSize gets the size of the container, which can be divided notionally
+// into two parts.  The first is the part of its size that can be directly
+// attributed to its base image, if it has one.  The second is the set of
+// changes that the container has had made relative to that base image.  Both
+// parts include some ancillary data, and we count that, too.
 func (c *Container) rootFsSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		return 0, nil
@@ -72,58 +73,33 @@ func (c *Container) rootFsSize() (int64, error) {
 		return 0, err
 	}
 
-	// Ignore the size of the top layer.   The top layer is a mutable RW layer
-	// and is not considered a part of the rootfs
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-	layer, err := c.runtime.store.Layer(rwLayer.Parent)
-	if err != nil {
-		return 0, err
-	}
-
 	size := int64(0)
-	for layer.Parent != "" {
-		layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
-		if err != nil {
-			return size, fmt.Errorf("getting diffsize of layer %q and its parent %q: %w", layer.ID, layer.Parent, err)
-		}
-		size += layerSize
-		layer, err = c.runtime.store.Layer(layer.Parent)
+	if container.ImageID != "" {
+		size, err = c.runtime.store.ImageSize(container.ImageID)
 		if err != nil {
 			return 0, err
 		}
 	}
-	// Get the size of the last layer.  Has to be outside of the loop
-	// because the parent of the last layer is "", and lstore.Get("")
-	// will return an error.
-	layerSize, err := c.runtime.store.DiffSize(layer.Parent, layer.ID)
+
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
+
 	return size + layerSize, err
 }
 
-// rwSize gets the size of the mutable top layer of the container.
+// rwSize gets the combined size of the writeable layer and any ancillary data
+// for a given container.
 func (c *Container) rwSize() (int64, error) {
 	if c.config.Rootfs != "" {
 		size, err := util.SizeOfPath(c.config.Rootfs)
 		return int64(size), err
 	}
 
-	container, err := c.runtime.store.Container(c.ID())
+	layerSize, err := c.runtime.store.ContainerSize(c.ID())
 	if err != nil {
 		return 0, err
 	}
 
-	// The top layer of a container is
-	// the only readable/writeable layer, all others are immutable.
-	rwLayer, err := c.runtime.store.Layer(container.LayerID)
-	if err != nil {
-		return 0, err
-	}
-
-	// Get the size of the top layer by calculating the size of the diff
-	// between the layer and its parent.
-	return c.runtime.store.DiffSize(rwLayer.Parent, rwLayer.ID)
+	return layerSize, nil
 }
 
 // bundlePath returns the path to the container's root filesystem - where the OCI spec will be
@@ -177,7 +153,7 @@ func (c *Container) waitForExitFileAndSync() error {
 	chWait := make(chan error)
 	defer close(chWait)
 
-	_, err = WaitForFile(exitFile, chWait, time.Second*5)
+	_, err = cutil.WaitForFile(exitFile, chWait, time.Second*5)
 	if err != nil {
 		// Exit file did not appear
 		// Reset our state
@@ -984,51 +960,34 @@ func (c *Container) checkDependenciesRunning() ([]string, error) {
 }
 
 func (c *Container) completeNetworkSetup() error {
-	var nameservers []string
 	netDisabled, err := c.NetworkDisabled()
 	if err != nil {
 		return err
 	}
-	if !c.config.PostConfigureNetNS || netDisabled {
+	if netDisabled {
+		// with net=none we still want to set up /etc/hosts
+		return c.addHosts()
+	}
+	if c.config.NetNsCtr != "" {
 		return nil
 	}
-	if err := c.syncContainer(); err != nil {
-		return err
-	}
-	if err := c.runtime.setupNetNS(c); err != nil {
-		return err
-	}
-	if err := c.save(); err != nil {
-		return err
-	}
-	state := c.state
-	// collect any dns servers that the network backend tells us to use
-	for _, status := range c.getNetworkStatus() {
-		for _, server := range status.DNSServerIPs {
-			nameservers = append(nameservers, server.String())
-		}
-	}
-	nameservers = c.addSlirp4netnsDNS(nameservers)
-
-	// check if we have a bindmount for /etc/hosts
-	if hostsBindMount, ok := state.BindMounts[config.DefaultHostsFile]; ok {
-		entries, err := c.getHostsEntries()
-		if err != nil {
+	if c.config.PostConfigureNetNS {
+		if err := c.syncContainer(); err != nil {
 			return err
 		}
-		// add new container ips to the hosts file
-		if err := etchosts.Add(hostsBindMount, entries); err != nil {
+		if err := c.runtime.setupNetNS(c); err != nil {
+			return err
+		}
+		if err := c.save(); err != nil {
 			return err
 		}
 	}
-
-	// check if we have a bindmount for resolv.conf
-	resolvBindMount := state.BindMounts[resolvconf.DefaultResolvConf]
-	if len(nameservers) < 1 || resolvBindMount == "" || len(c.config.NetNsCtr) > 0 {
-		return nil
+	// add /etc/hosts entries
+	if err := c.addHosts(); err != nil {
+		return err
 	}
-	// write and return
-	return resolvconf.Add(resolvBindMount, nameservers)
+
+	return c.addResolvConf()
 }
 
 // Initialize a container, creating it in the runtime
@@ -1679,17 +1638,49 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	}
 	defer unix.Close(etcInTheContainerFd)
 
-	// If /etc/mtab does not exist in container image, then we need to
-	// create it, so that mount command within the container will work.
-	err = unix.Symlinkat("/proc/mounts", etcInTheContainerFd, "mtab")
-	if err != nil && !os.IsExist(err) {
-		return "", fmt.Errorf("creating /etc/mtab symlink: %w", err)
+	if err := c.makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID); err != nil {
+		return "", err
 	}
-	// If the symlink was created, then also chown it to root in the container
-	if err == nil && (rootUID != 0 || rootGID != 0) {
-		err = unix.Fchownat(etcInTheContainerFd, "mtab", rootUID, rootGID, unix.AT_SYMLINK_NOFOLLOW)
+
+	tz := c.Timezone()
+	if tz != "" {
+		timezonePath := filepath.Join("/usr/share/zoneinfo", tz)
+		if tz == "local" {
+			timezonePath, err = filepath.EvalSymlinks("/etc/localtime")
+			if err != nil {
+				return "", fmt.Errorf("finding local timezone for container %s: %w", c.ID(), err)
+			}
+		}
+		// make sure to remove any existing localtime file in the container to not create invalid links
+		err = unix.Unlinkat(etcInTheContainerFd, "localtime", 0)
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return "", fmt.Errorf("removing /etc/localtime: %w", err)
+		}
+
+		hostPath, err := securejoin.SecureJoin(mountPoint, timezonePath)
 		if err != nil {
-			return "", fmt.Errorf("chown /etc/mtab: %w", err)
+			return "", fmt.Errorf("resolve zoneinfo path in the container: %w", err)
+		}
+
+		_, err = os.Stat(hostPath)
+		if err != nil {
+			// file does not exists which means tzdata is not installed in the container, just create /etc/locatime which a copy from the host
+			logrus.Debugf("Timezone %s does not exist in the container, create our own copy from the host", timezonePath)
+			localtimePath, err := c.copyTimezoneFile(timezonePath)
+			if err != nil {
+				return "", fmt.Errorf("setting timezone for container %s: %w", c.ID(), err)
+			}
+			if c.state.BindMounts == nil {
+				c.state.BindMounts = make(map[string]string)
+			}
+			c.state.BindMounts["/etc/localtime"] = localtimePath
+		} else {
+			// file exists lets just symlink according to localtime(5)
+			logrus.Debugf("Create locatime symlink for %s", timezonePath)
+			err = unix.Symlinkat(".."+timezonePath, etcInTheContainerFd, "localtime")
+			if err != nil {
+				return "", fmt.Errorf("creating /etc/localtime symlink: %w", err)
+			}
 		}
 	}
 
@@ -1840,6 +1831,14 @@ func (c *Container) cleanupStorage() error {
 	}
 
 	var cleanupErr error
+	reportErrorf := func(msg string, args ...any) {
+		err := fmt.Errorf(msg, args...) // Always use fmt.Errorf instead of just logrus.Errorf(…) because the format string probably contains %w
+		if cleanupErr == nil {
+			cleanupErr = err
+		} else {
+			logrus.Errorf("%s", err.Error())
+		}
+	}
 
 	markUnmounted := func() {
 		c.state.Mountpoint = ""
@@ -1847,10 +1846,7 @@ func (c *Container) cleanupStorage() error {
 
 		if c.valid {
 			if err := c.save(); err != nil {
-				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
-				}
-				cleanupErr = err
+				reportErrorf("unmounting container %s: %w", c.ID(), err)
 			}
 		}
 	}
@@ -1859,31 +1855,24 @@ func (c *Container) cleanupStorage() error {
 	if c.config.RootfsOverlay {
 		overlayBasePath := filepath.Dir(c.state.Mountpoint)
 		if err := overlay.Unmount(overlayBasePath); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-			}
-			cleanupErr = err
+			reportErrorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 		}
 	}
 	if c.config.RootfsMapping != nil {
-		if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
-			logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+		if err := unix.Unmount(c.config.Rootfs, 0); err != nil && err != unix.EINVAL {
+			reportErrorf("unmounting idmapped rootfs for container %s after mount error: %w", c.ID(), err)
 		}
 	}
 
 	for _, containerMount := range c.config.Mounts {
 		if err := c.unmountSHM(containerMount); err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
-			}
-			cleanupErr = err
+			reportErrorf("unmounting container %s: %w", c.ID(), err)
 		}
 	}
 
 	if err := c.cleanupOverlayMounts(); err != nil {
 		// If the container can't remove content report the error
-		logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
-		cleanupErr = err
+		reportErrorf("failed to clean up overlay mounts for %s: %w", c.ID(), err)
 	}
 
 	if c.config.Rootfs != "" {
@@ -1899,10 +1888,7 @@ func (c *Container) cleanupStorage() error {
 		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) || errors.Is(err, storage.ErrLayerNotMounted) {
 			logrus.Errorf("Storage for container %s has been removed", c.ID())
 		} else {
-			if cleanupErr != nil {
-				logrus.Errorf("Cleaning up container %s storage: %v", c.ID(), cleanupErr)
-			}
-			cleanupErr = err
+			reportErrorf("cleaning up container %s storage: %w", c.ID(), err)
 		}
 	}
 
@@ -1910,10 +1896,7 @@ func (c *Container) cleanupStorage() error {
 	for _, v := range c.config.NamedVolumes {
 		vol, err := c.runtime.state.Volume(v.Name)
 		if err != nil {
-			if cleanupErr != nil {
-				logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
-			}
-			cleanupErr = fmt.Errorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
+			reportErrorf("retrieving named volume %s for container %s: %w", v.Name, c.ID(), err)
 
 			// We need to try and unmount every volume, so continue
 			// if they fail.
@@ -1923,10 +1906,7 @@ func (c *Container) cleanupStorage() error {
 		if vol.needsMount() {
 			vol.lock.Lock()
 			if err := vol.unmount(false); err != nil {
-				if cleanupErr != nil {
-					logrus.Errorf("Unmounting container %s: %v", c.ID(), cleanupErr)
-				}
-				cleanupErr = fmt.Errorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
+				reportErrorf("unmounting volume %s for container %s: %w", vol.Name(), c.ID(), err)
 			}
 			vol.lock.Unlock()
 		}
@@ -2104,7 +2084,17 @@ func (c *Container) postDeleteHooks(ctx context.Context) error {
 				hook := hook
 				logrus.Debugf("container %s: invoke poststop hook %d, path %s", c.ID(), i, hook.Path)
 				var stderr, stdout bytes.Buffer
-				hookErr, err := exec.Run(ctx, &hook, state, &stdout, &stderr, exec.DefaultPostKillTimeout)
+				hookErr, err := exec.RunWithOptions(
+					ctx,
+					exec.RunOptions{
+						Hook:            &hook,
+						Dir:             c.bundlePath(),
+						State:           state,
+						Stdout:          &stdout,
+						Stderr:          &stderr,
+						PostKillTimeout: exec.DefaultPostKillTimeout,
+					},
+				)
 				if err != nil {
 					logrus.Warnf("Container %s: poststop hook %d: %v", c.ID(), i, err)
 					if hookErr != err {
@@ -2233,7 +2223,15 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 		}
 	}
 
-	hookErr, err := exec.RuntimeConfigFilter(ctx, allHooks["precreate"], config, exec.DefaultPostKillTimeout)
+	hookErr, err := exec.RuntimeConfigFilterWithOptions(
+		ctx,
+		exec.RuntimeConfigFilterOptions{
+			Hooks:           allHooks["precreate"],
+			Dir:             c.bundlePath(),
+			Config:          config,
+			PostKillTimeout: exec.DefaultPostKillTimeout,
+		},
+	)
 	if err != nil {
 		logrus.Warnf("Container %s: precreate hook: %v", c.ID(), err)
 		if hookErr != nil && hookErr != err {

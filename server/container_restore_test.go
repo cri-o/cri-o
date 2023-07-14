@@ -24,8 +24,8 @@ import (
 var _ = t.Describe("ContainerRestore", func() {
 	// Prepare the sut
 	BeforeEach(func() {
-		if !criu.CheckForCriu(criu.PodCriuVersion) {
-			Skip("CRIU is missing or too old.")
+		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
+			Skip("Check CRIU: " + err.Error())
 		}
 		beforeEach()
 		createDummyConfig()
