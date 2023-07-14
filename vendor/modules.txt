@@ -630,7 +630,7 @@ github.com/fsnotify/fsnotify
 # github.com/fsouza/go-dockerclient v1.9.7
 ## explicit; go 1.19
 github.com/fsouza/go-dockerclient
-# github.com/go-chi/chi/v5 v5.0.8
+# github.com/go-chi/chi/v5 v5.0.10
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
 # github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376
