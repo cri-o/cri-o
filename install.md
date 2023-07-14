@@ -71,6 +71,7 @@ CentOS 8 Stream
 CentOS 7
 Debian 10
 Debian 11
+Debian 12
 Rasbian 10
 Rasbian 11
 xUbuntu 22.04
@@ -157,6 +158,7 @@ to the appropriate value from the following table:
 
 | Operating system   | $OS               |
 | ------------------ | ----------------- |
+| Debian 12          | `Debian_12`       |
 | Debian 11          | `Debian_11`       |
 | Debian 10          | `Debian_10`       |
 | Raspberry Pi OS 11 | `Raspbian_11`     |
