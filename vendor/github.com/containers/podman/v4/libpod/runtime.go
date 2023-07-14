@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -116,13 +115,6 @@ type Runtime struct {
 	noStore bool
 	// secretsManager manages secrets
 	secretsManager *secrets.SecretsManager
-}
-
-func init() {
-	// generateName calls namesgenerator.GetRandomName which the
-	// global RNG from math/rand. Seed it here to make sure we
-	// don't get the same name every time.
-	rand.Seed(time.Now().UnixNano())
 }
 
 // SetXdgDirs ensures the XDG_RUNTIME_DIR env and XDG_CONFIG_HOME variables are set.
@@ -1195,4 +1187,69 @@ func (r *Runtime) RemoteURI() string {
 // SetRemoteURI records the API server URI
 func (r *Runtime) SetRemoteURI(uri string) {
 	r.config.Engine.RemoteURI = uri
+}
+
+// Get information on potential lock conflicts.
+// Returns a map of lock number to object(s) using the lock, formatted as
+// "container <id>" or "volume <id>" or "pod <id>", and an array of locks that
+// are currently being held, formatted as []uint32.
+// If the map returned is not empty, you should immediately renumber locks on
+// the runtime, because you have a deadlock waiting to happen.
+func (r *Runtime) LockConflicts() (map[uint32][]string, []uint32, error) {
+	// Make an internal map to store what lock is associated with what
+	locksInUse := make(map[uint32][]string)
+
+	ctrs, err := r.state.AllContainers(false)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, ctr := range ctrs {
+		lockNum := ctr.lock.ID()
+		ctrString := fmt.Sprintf("container %s", ctr.ID())
+		locksInUse[lockNum] = append(locksInUse[lockNum], ctrString)
+	}
+
+	pods, err := r.state.AllPods()
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, pod := range pods {
+		lockNum := pod.lock.ID()
+		podString := fmt.Sprintf("pod %s", pod.ID())
+		locksInUse[lockNum] = append(locksInUse[lockNum], podString)
+	}
+
+	volumes, err := r.state.AllVolumes()
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, vol := range volumes {
+		lockNum := vol.lock.ID()
+		volString := fmt.Sprintf("volume %s", vol.Name())
+		locksInUse[lockNum] = append(locksInUse[lockNum], volString)
+	}
+
+	// Now go through and find any entries with >1 item associated
+	toReturn := make(map[uint32][]string)
+	for lockNum, objects := range locksInUse {
+		// If debug logging is requested, just spit out *every* lock in
+		// use.
+		logrus.Debugf("Lock number %d is in use by %v", lockNum, objects)
+
+		if len(objects) > 1 {
+			toReturn[lockNum] = objects
+		}
+	}
+
+	locksHeld, err := r.lockManager.LocksHeld()
+	if err != nil {
+		if errors.Is(err, define.ErrNotImplemented) {
+			logrus.Warnf("Could not retrieve currently taken locks as the lock backend does not support this operation")
+			return toReturn, []uint32{}, nil
+		}
+
+		return nil, nil, err
+	}
+
+	return toReturn, locksHeld, nil
 }
