@@ -115,12 +115,13 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 		// if there was no error, return the device
 		if err == nil {
 			rd := rspec.LinuxDevice{
-				Path:  device.ContainerPath,
-				Type:  string(dev.Type),
-				Major: dev.Major,
-				Minor: dev.Minor,
-				UID:   getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsUser, dev.Uid, enableDeviceOwnershipFromSecurityContext),
-				GID:   getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsGroup, dev.Gid, enableDeviceOwnershipFromSecurityContext),
+				Path:     device.ContainerPath,
+				Type:     string(dev.Type),
+				Major:    dev.Major,
+				Minor:    dev.Minor,
+				FileMode: &dev.FileMode,
+				UID:      getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsUser, dev.Uid, enableDeviceOwnershipFromSecurityContext),
+				GID:      getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsGroup, dev.Gid, enableDeviceOwnershipFromSecurityContext),
 			}
 			c.Spec().AddDevice(rd)
 			sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
@@ -151,12 +152,13 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 					}
 					cPath := strings.Replace(dpath, path, device.ContainerPath, 1)
 					rd := rspec.LinuxDevice{
-						Path:  cPath,
-						Type:  string(childDevice.Type),
-						Major: childDevice.Major,
-						Minor: childDevice.Minor,
-						UID:   &childDevice.Uid,
-						GID:   &childDevice.Gid,
+						Path:     cPath,
+						Type:     string(childDevice.Type),
+						Major:    childDevice.Major,
+						Minor:    childDevice.Minor,
+						FileMode: &childDevice.FileMode,
+						UID:      &childDevice.Uid,
+						GID:      &childDevice.Gid,
 					}
 					c.Spec().AddDevice(rd)
 					sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
