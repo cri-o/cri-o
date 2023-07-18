@@ -67,7 +67,7 @@ dependencies:
       match: crun
 
   - name: bats
-    version: v1.9.0
+    version: v1.10.0
     refPaths:
     - path: scripts/versions
       match: bats
