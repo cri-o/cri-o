@@ -42,3 +42,6 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
   self-managed Kubernetes clusters since 2021. CRI-O was chosen for its clean and
   easy to reason about codebase, its good observability, and its ability to allow
   for transparently rewriting image registries for mirroring.
+- [Adobe](https://www.adobe.com/) uses CRI-O as the primary container runtime for
+  our Kubernetes clusters. We chose CRI-O because it's stable at scale and has
+  fantastic support from its maintainers and community.
