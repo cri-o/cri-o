@@ -12,16 +12,11 @@ import (
 // Specifically, it is an interface for how the server is creating namespaces,
 // and can be requested to create namespaces for a pod.
 type NamespaceManager struct {
-	namespacesDir string
-	pinnsPath     string
 }
 
 // New creates a new NamespaceManager.
 func New(namespacesDir, pinnsPath string) *NamespaceManager {
-	return &NamespaceManager{
-		namespacesDir: namespacesDir,
-		pinnsPath:     pinnsPath,
-	}
+	return &NamespaceManager{}
 }
 
 func (mgr *NamespaceManager) Initialize() error {
@@ -30,7 +25,7 @@ func (mgr *NamespaceManager) Initialize() error {
 
 // GetNamespace takes a path and type, checks if it is a namespace, and if so
 // returns an instance of the Namespace interface.
-func GetNamespace(nsPath string, nsType NSType) (Namespace, error) {
+func GetNamespace(_, _ string) (Namespace, error) {
 	return nil, fmt.Errorf("GetNamespace not supported on %s", runtime.GOOS)
 }
 
