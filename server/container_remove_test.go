@@ -35,6 +35,9 @@ var _ = t.Describe("ContainerRemove", func() {
 				runtimeServerMock.EXPECT().DeleteContainer(gomock.Any(), gomock.Any()).
 					Return(nil),
 			)
+			// This allows us to skip stopContainer() which fails because we don't
+			// spoof the `runtime state` call in `UpdateContainerStatus`
+			testSandbox.SetStopped(context.Background(), false)
 
 			// When
 			_, err := sut.RemoveContainer(context.Background(),
