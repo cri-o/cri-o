@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -27,6 +28,10 @@ var _ = t.Describe("ContainerStop", func() {
 			testContainer.SetState(&oci.ContainerState{
 				State: specs.State{Status: oci.ContainerStateStopped},
 			})
+			gomock.InOrder(
+				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
+					Return(nil),
+			)
 
 			// When
 			_, err := sut.StopContainer(context.Background(),
