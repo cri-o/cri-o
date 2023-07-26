@@ -97,21 +97,34 @@ function teardown() {
 	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
 
 	jq '.linux.resources.memory_limit_in_bytes = 15728640
-        | .command = ["sh", "-c", "dd if=/dev/zero of=/dev/null bs=20M"]' \
+        | .command = ["sh", "-c", "sleep 5; dd if=/dev/zero of=/dev/null bs=20M"]' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/config.json"
 	CTR_ID=$(crictl run "$TESTDIR/config.json" "$TESTDATA/sandbox_config.json")
 
-	# Wait for container to OOM
-	CNT=0
-	while [ $CNT -le 100 ]; do
-		CNT=$((CNT + 1))
-		OUTPUT=$(crictl inspect --output yaml "$CTR_ID")
-		if [[ "$OUTPUT" == *"OOMKilled"* ]]; then
-			break
+	# Wait for container to OOM.
+	EXPECTED_EXIT_STATUS=137 wait_until_exit "$CTR_ID"
+	if ! crictl inspect "$CTR_ID" | jq -e '.status.reason == "OOMKilled"'; then
+		# The container has exited but it was not OOM-killed.
+		# Provide some details to debug the issue.
+		echo "--- crictl inspect :: ---"
+		crictl inspect --output yaml "$CTR_ID" | grep -A40 'status:'
+		echo "--- --- ---"
+		# Most probably it's a conmon bug.
+		if [ "$RUNTIME_TYPE" == "oci" ]; then
+			echo "--- conmon log :: ---"
+			journalctl -t conmon --grep "${CTR_ID::20}"
+			echo "--- --- ---"
 		fi
-		sleep 10
-	done
-	[[ "$OUTPUT" == *"OOMKilled"* ]]
+		# Systemd should have caught the OOM event.
+		if [[ "$CONTAINER_CGROUP_MANAGER" == "systemd" ]]; then
+			echo "--- systemd log :: ---"
+			journalctl --unit "crio-${CTR_ID}.scope"
+			echo "--- --- ---"
+		fi
+
+		# Alas, we have utterly failed.
+		false
+	fi
 
 	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep '^container_runtime_crio_containers_oom_total')
 	[[ "$METRIC" == 'container_runtime_crio_containers_oom_total 1' ]]
