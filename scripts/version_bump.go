@@ -1,23 +1,25 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
 	"strconv"
+	"strings"
 )
-
-const versionFile = "../internal/version/version.go"
 
 func main() {
 	var bumpType string
-	if len(os.Args) > 1 {
-		bumpType = os.Args[1]
-	}
+	var versionFile string
+
+	// Define command-line flags for bump type and version file
+	flag.StringVar(&bumpType, "bump", "", "Version bump type: major, minor, or patch")
+	flag.StringVar(&versionFile, "f", "../internal/version/version.go", "Path to the version file")
+	flag.Parse()
 
 	// Read the current version from the version.go file
-	currentVersion, err := getCurrentVersion()
+	currentVersion, err := getCurrentVersion(versionFile)
 	if err != nil {
 		fmt.Printf("Error reading current version: %s\n", err)
 		os.Exit(1)
@@ -27,7 +29,7 @@ func main() {
 	newVersion := bumpVersion(currentVersion, bumpType)
 
 	// Update the version in the version.go file
-	if err := updateVersion(newVersion); err != nil {
+	if err := updateVersion(versionFile, newVersion); err != nil {
 		fmt.Printf("Error updating version: %s\n", err)
 		os.Exit(1)
 	}
@@ -35,10 +37,10 @@ func main() {
 	fmt.Printf("Version bumped from %s to %s\n", currentVersion, newVersion)
 }
 
-func getCurrentVersion() (string, error) {
+func getCurrentVersion(versionFile string) (string, error) {
 	versionPattern := `const\s+Version\s+=\s+"(.+)"`
 
-	// Read the content of the version.go file
+	// Read the content of the version file
 	content, err := os.ReadFile(versionFile)
 	if err != nil {
 		return "", err
@@ -84,10 +86,10 @@ func incrementVersionPart(part string) string {
 	return strconv.Itoa(num)
 }
 
-func updateVersion(newVersion string) error {
+func updateVersion(versionFile string, newVersion string) error {
 	versionPattern := `const\s+Version\s+=\s+".+"`
 
-	// Read the content of the version.go file
+	// Read the content of the version file
 	content, err := os.ReadFile(versionFile)
 	if err != nil {
 		return err
@@ -97,7 +99,7 @@ func updateVersion(newVersion string) error {
 	re := regexp.MustCompile(versionPattern)
 	newContent := re.ReplaceAll(content, []byte(fmt.Sprintf(`const Version = "%s"`, newVersion)))
 
-	// Write the updated content back to the version.go file
+	// Write the updated content back to the version file
 	if err := os.WriteFile(versionFile, newContent, 0644); err != nil {
 		return err
 	}
