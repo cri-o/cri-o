@@ -21,7 +21,7 @@ func main() {
 	// Read the current version from the version.go file
 	currentVersion, err := getCurrentVersion(versionFile)
 	if err != nil {
-		fmt.Printf("Error reading current version: %s\n", err)
+		fmt.Printf("Error reading current version: %q\n", err)
 		os.Exit(1)
 	}
 
@@ -30,11 +30,11 @@ func main() {
 
 	// Update the version in the version.go file
 	if err := updateVersion(versionFile, newVersion); err != nil {
-		fmt.Printf("Error updating version: %s\n", err)
+		fmt.Printf("Error updating version: %q\n", err)
 		os.Exit(1)
 	}
 
-	fmt.Printf("Version bumped from %s to %s\n", currentVersion, newVersion)
+	fmt.Printf("Version bumped from %q to %q\n", currentVersion, newVersion)
 }
 
 func getCurrentVersion(versionFile string) (string, error) {
@@ -50,13 +50,13 @@ func getCurrentVersion(versionFile string) (string, error) {
 	re := regexp.MustCompile(versionPattern)
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
-		return "", fmt.Errorf("unable to find version in %s", versionFile)
+		return "", fmt.Errorf("unable to find version in %q", versionFile)
 	}
 
 	return matches[1], nil
 }
 
-func bumpVersion(version string, bumpType string) string {
+func bumpVersion(version, bumpType string) string {
 	parts := strings.Split(version, ".")
 
 	switch bumpType {
@@ -86,7 +86,7 @@ func incrementVersionPart(part string) string {
 	return strconv.Itoa(num)
 }
 
-func updateVersion(versionFile string, newVersion string) error {
+func updateVersion(versionFile, newVersion string) error {
 	versionPattern := `const\s+Version\s+=\s+".+"`
 
 	// Read the content of the version file
@@ -97,10 +97,10 @@ func updateVersion(versionFile string, newVersion string) error {
 
 	// Replace the version string with the new version using regex
 	re := regexp.MustCompile(versionPattern)
-	newContent := re.ReplaceAll(content, []byte(fmt.Sprintf(`const Version = "%s"`, newVersion)))
+	newContent := re.ReplaceAll(content, []byte(fmt.Sprintf(`const Version = %q`, newVersion)))
 
 	// Write the updated content back to the version file
-	if err := os.WriteFile(versionFile, newContent, 0644); err != nil {
+	if err := os.WriteFile(versionFile, newContent, 0o644); err != nil {
 		return err
 	}
 
