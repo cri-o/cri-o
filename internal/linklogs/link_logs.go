@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/utils"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -40,6 +41,10 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, logDirMountPath)
 	if err := unix.Mount(podLogsPath, logDirMountPath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
 		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, logDirMountPath, err)
+	}
+
+	if err := utils.MakeAccessible(logDirMountPath, -1, -1, false); err != nil {
+		return fmt.Errorf("failed to chmod: %w", err)
 	}
 	if err := label.SetFileLabel(logDirMountPath, mountLabel); err != nil {
 		return fmt.Errorf("failed to set selinux label: %w", err)

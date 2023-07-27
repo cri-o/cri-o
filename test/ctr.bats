@@ -1056,6 +1056,8 @@ function check_oci_annotation() {
 	jq --arg host_path "$pod_empty_dir_volume_path" --arg ctr_path "$ctr_path" --arg log_path "$ctr_name/$ctr_attempt.log" \
 		'	  .command = ["sh", "-c", "echo Hello log linking && sleep 1000"]
 		| .log_path = $log_path
+		| .linux.security_context.run_as_user.value = 1000
+		| .linux.security_context.run_as_group.value = 1000
 		| .mounts = [ {
 				host_path: $host_path,
 				container_path: $ctr_path
