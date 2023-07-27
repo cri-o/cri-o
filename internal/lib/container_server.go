@@ -439,6 +439,11 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		imgRef = ""
 	}
 
+	platformRuntimePath, ok := m.Annotations[crioann.PlatformRuntimePath]
+	if !ok {
+		platformRuntimePath = ""
+	}
+
 	kubeAnnotations := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
 		return err
@@ -468,6 +473,8 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return fmt.Errorf("failed to write container state to disk %q: %w", ctr.ID(), err)
 	}
 	ctr.SetCreated()
+
+	ctr.SetRuntimePathForPlatform(platformRuntimePath)
 
 	c.AddContainer(ctx, ctr)
 

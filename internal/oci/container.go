@@ -79,6 +79,7 @@ type Container struct {
 	restoreArchive     string
 	restoreIsOCIImage  bool
 	resources          *types.ContainerResources
+	runtimePath        string // runtime path for a given platform
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -754,4 +755,17 @@ func (c *Container) SetResources(s *specs.Spec) {
 // GetResources returns a copy of the Linux resources from Container
 func (c *Container) GetResources() *types.ContainerResources {
 	return c.resources
+}
+
+// SetRuntimePathForPlatform sets the runtime path for a given platform.
+func (c *Container) SetRuntimePathForPlatform(runtimePath string) {
+	c.runtimePath = runtimePath
+}
+
+// RuntimePathForPlatform returns the runtime path for a given platform.
+func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
+	if c.runtimePath == "" {
+		return r.handler.RuntimePath
+	}
+	return c.runtimePath
 }

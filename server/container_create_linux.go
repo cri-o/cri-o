@@ -652,8 +652,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		// TODO: patch runtime-tools to support setting ClosID via a helper func similar to SetLinuxIntelRdtL3CacheSchema()
 		specgen.Config.Linux.IntelRdt = &rspec.LinuxIntelRdt{ClosID: rdt.ResctrlPrefix + rdtClass}
 	}
-
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode(), seccompRef)
+	// compute the runtime path for a given container
+	platform := containerInfo.Config.Platform.OS + "/" + containerInfo.Config.Platform.Architecture
+	runtimePath, err := s.Runtime().PlatformRuntimePath(sb.RuntimeHandler(), platform)
+	if err != nil {
+		return nil, err
+	}
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
 	}
@@ -867,6 +872,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.SetSpec(specgen.Config)
 	ociContainer.SetMountPoint(mountPoint)
 	ociContainer.SetSeccompProfilePath(seccompRef)
+	if runtimePath != "" {
+		ociContainer.SetRuntimePathForPlatform(runtimePath)
+	}
 
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
