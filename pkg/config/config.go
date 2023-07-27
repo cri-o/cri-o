@@ -214,6 +214,10 @@ type RuntimeHandler struct {
 
 	// MonitorExecCgroup indicates whether to move exec probes to the container's cgroup.
 	MonitorExecCgroup string `toml:"monitor_exec_cgroup,omitempty"`
+
+	// PlatformRuntimePaths defines a configuration option that specifies
+	// the runtime paths for different platforms.
+	PlatformRuntimePaths map[string]string `toml:"platform_runtime_paths,omitempty"`
 }
 
 // Multiple runtime Handlers in a map

@@ -57,6 +57,9 @@ const (
 	// LinkLogsAnnotations indicates that CRI-O should link the pod containers logs into the specified
 	// emptyDir volume
 	LinkLogsAnnotation = "io.kubernetes.cri-o.LinkLogs"
+
+	// PlatformRuntimePath indicates the runtime path that CRI-O should use for a specific platform.
+	PlatformRuntimePath = "io.kubernetes.cri-o.PlatformRuntimePath"
 )
 
 var AllAllowedAnnotations = []string{
