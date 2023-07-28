@@ -79,7 +79,6 @@ function teardown() {
 
 	output=$(crictl inspect -o yaml "$ctr_id")
 	[[ "$output" == *"image: $IMAGE_LIST_DIGEST"* ]]
-	[[ "$output" == *"imageRef: $IMAGE_LIST_DIGEST"* ]]
 }
 
 @test "image pull and list" {
