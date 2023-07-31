@@ -65,7 +65,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		isInfra = true
 	}
 	// TODO(mrunalp): should we call UpdateStatus()?
-	ctrState := ctr.State()
+	ctrState := ctr.StateNoLock()
 	if ctrState == nil {
 		return types.ContainerInfo{}, errCtrStateNil
 	}
@@ -75,7 +75,7 @@ func (s *Server) getContainerInfo(id string, getContainerFunc, getInfraContainer
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 
-	pidToReturn := ctrState.Pid
+	pidToReturn := ctrState.InitPid
 	if isInfra && pidToReturn == 0 {
 		// It is possible the infra container doesn't report a PID.
 		// That can either happen if we're using a vm based runtime,
