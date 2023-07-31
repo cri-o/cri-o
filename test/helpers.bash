@@ -105,6 +105,7 @@ IMAGES=(
     quay.io/crio/redis:alpine
     quay.io/crio/stderr-test:latest
     quay.io/crio/etc-permission:latest
+    quay.io/crio/hello-wasm:latest
 )
 
 function img2dir() {
