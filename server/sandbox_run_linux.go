@@ -965,7 +965,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if sandboxIDMappings != nil {
 		rootPair := sandboxIDMappings.RootPair()
 		for _, path := range pathsToChown {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
+			if err := utils.MakeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
 				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
 		}

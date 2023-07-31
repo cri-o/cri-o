@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/dbusmgr"
@@ -70,6 +71,35 @@ func Syncfs(path string) error {
 
 	if err := unix.Syncfs(int(f.Fd())); err != nil {
 		return err
+	}
+	return nil
+}
+
+// MakeAccessible changes the path permission and each parent directory to have --x--x--x
+func MakeAccessible(path string, uid, gid int, doChown bool) error {
+	if doChown {
+		if err := os.Chown(path, uid, gid); err != nil {
+			return fmt.Errorf("cannot chown %s to %d:%d: %w", path, uid, gid, err)
+		}
+	}
+	for ; path != "/"; path = filepath.Dir(path) {
+		var st unix.Stat_t
+		err := unix.Stat(path, &st)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if int(st.Uid) == uid && int(st.Gid) == gid {
+			continue
+		}
+		perm := os.FileMode(st.Mode) & os.ModePerm
+		if perm&0o111 != 0o111 {
+			if err := os.Chmod(path, perm|0o111); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

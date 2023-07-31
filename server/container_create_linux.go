@@ -28,11 +28,11 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
 
@@ -51,7 +51,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
+			if err := utils.MakeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
 				return fmt.Errorf("cannot make %s accessible to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
 		}
@@ -62,40 +62,11 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
-// makeAccessible changes the path permission and each parent directory to have --x--x--x
-func makeAccessible(path string, uid, gid int, doChown bool) error {
-	if doChown {
-		if err := os.Chown(path, uid, gid); err != nil {
-			return fmt.Errorf("cannot chown %s to %d:%d: %w", path, uid, gid, err)
-		}
-	}
-	for ; path != "/"; path = filepath.Dir(path) {
-		var st unix.Stat_t
-		err := unix.Stat(path, &st)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
-		}
-		if int(st.Uid) == uid && int(st.Gid) == gid {
-			continue
-		}
-		perm := os.FileMode(st.Mode) & os.ModePerm
-		if perm&0o111 != 0o111 {
-			if err := os.Chmod(path, perm|0o111); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
 // makeMountsAccessible makes sure all the mounts are accessible from the user namespace
 func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
 	for _, m := range mounts {
 		if m.Type == "bind" || util.StringInSlice("bind", m.Options) {
-			if err := makeAccessible(m.Source, uid, gid, false); err != nil {
+			if err := utils.MakeAccessible(m.Source, uid, gid, false); err != nil {
 				return err
 			}
 		}
@@ -798,7 +769,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			pathsToChown = append(pathsToChown, m.Source)
 		}
 		for _, path := range pathsToChown {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
+			if err := utils.MakeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
 				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
 		}
