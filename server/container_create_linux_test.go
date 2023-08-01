@@ -31,7 +31,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +75,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,7 +107,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true)
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,7 +141,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		t.Error(err)
 	}
 	var hasCgroupRO bool
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false)
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,5 +156,30 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}
 	if !hasCgroupRO {
 		t.Error("Cgroup mount not added with RO.")
+	}
+}
+
+func TestIsSubDirectoryOf(t *testing.T) {
+	tests := []struct {
+		base, target string
+		want         bool
+	}{
+		{"/var/lib/containers/storage", "/", true},
+		{"/var/lib/containers/storage", "/var/lib", true},
+		{"/var/lib/containers/storage", "/var/lib/containers", true},
+		{"/var/lib/containers/storage", "/var/lib/containers/storage", true},
+		{"/var/lib/containers/storage", "/var/lib/containers/storage/extra", false},
+		{"/var/lib/containers/storage", "/va", false},
+		{"/var/lib/containers/storage", "/var/tmp/containers", false},
+	}
+
+	for _, tt := range tests {
+		testname := tt.base + " " + tt.target
+		t.Run(testname, func(t *testing.T) {
+			ans := isSubDirectoryOf(tt.base, tt.target)
+			if ans != tt.want {
+				t.Errorf("got %v, want %v", ans, tt.want)
+			}
+		})
 	}
 }
