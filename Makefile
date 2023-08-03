@@ -191,9 +191,9 @@ bin/crio-status: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
 
 build-static:
-	$(CONTAINER_RUNTIME) run --rm --privileged -ti -v /:/mnt \
+	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
-	$(CONTAINER_RUNTIME) run --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
+	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
 		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
 	mkdir -p bin
 	cp -r result/bin bin/static
