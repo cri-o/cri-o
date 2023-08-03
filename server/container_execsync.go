@@ -19,7 +19,7 @@ func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*typ
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
-	if err := c.IsAlive(); err != nil {
+	if err := c.Living(); err != nil {
 		return nil, status.Errorf(codes.NotFound, "container is not created or running: %v", err)
 	}
 

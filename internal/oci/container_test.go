@@ -349,14 +349,14 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(BeNil())
 		})
 	})
-	t.Describe("IsAlive", func() {
-		It("should be false if pid unintialized", func() {
+	t.Describe("Living", func() {
+		It("should be false if pid uninitialized", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = 0
 			sut.SetState(state)
 			// When
-			err := sut.IsAlive()
+			err := sut.Living()
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -368,7 +368,7 @@ var _ = t.Describe("Container", func() {
 			Expect(state.SetInitPid(state.Pid)).To(BeNil())
 			sut.SetState(state)
 			// When
-			err := sut.IsAlive()
+			err := sut.Living()
 
 			// Then
 			Expect(err).To(BeNil())
@@ -381,7 +381,7 @@ var _ = t.Describe("Container", func() {
 			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
 			sut.SetState(state)
 			// When
-			err := sut.IsAlive()
+			err := sut.Living()
 
 			// Then
 			Expect(err).NotTo(BeNil())
