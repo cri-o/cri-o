@@ -38,9 +38,8 @@ func (c *Config) Setup(
 	annotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
-	profilePath string,
-) (notifier *Notifier, err error) {
-	return nil, nil
+) (*Notifier, string, error) {
+	return nil, "", nil
 }
 
 // SetUseDefaultWhenEmpty uses the default seccomp profile if true is passed as
