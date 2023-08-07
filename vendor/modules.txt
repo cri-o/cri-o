@@ -317,7 +317,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.26.1
+# github.com/containers/image/v5 v5.27.0
 ## explicit; go 1.18
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
