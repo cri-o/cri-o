@@ -409,12 +409,13 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
-	execCmd := cmdrunner.Command(c.RuntimePathForPlatform(r), args...) // nolint: gosec
+	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
 	var cmdErr, copyError error
 	if tty {
+		execCmd.WaitDelay = 30 * time.Second
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resizeChan)
 	} else {
 		var r, w *os.File
