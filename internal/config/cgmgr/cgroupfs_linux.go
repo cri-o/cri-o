@@ -16,7 +16,6 @@ import (
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // CgroupfsManager defines functionality whrn **** TODO: Update this
@@ -49,15 +48,14 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	return filepath.Join("/", parent, containerCgroupPath(containerID))
 }
 
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *CgroupfsManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
+// ContainerCgroupStats returns a stats object with information from the cgroup found
+// given a cgroup parent and container ID.
+func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
 	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
+	return cgroupStatsFromPath(cgPath)
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
@@ -80,14 +78,14 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 	return sbParent, filepath.Join(sbParent, containerCgroupPath(sbID)), nil
 }
 
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
+// SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
+// It returns an object with information from the cgroup found given that parent.
+func (m *CgroupfsManager) SandboxCgroupStats(sbParent string) (*CgroupStats, error) {
 	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
+	return cgroupStatsFromPath(cgPath)
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
