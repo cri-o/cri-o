@@ -146,6 +146,19 @@ func (r *Runtime) PrivilegedWithoutHostDevices(handler string) (bool, error) {
 	return rh.PrivilegedWithoutHostDevices, nil
 }
 
+// PlatformRuntimePath returns the runtime path for a given platform.
+func (r *Runtime) PlatformRuntimePath(handler, platform string) (string, error) {
+	rh, err := r.getRuntimeHandler(handler)
+	if err != nil {
+		return "", err
+	}
+	if runtimePath, ok := rh.PlatformRuntimePaths[platform]; ok {
+		return runtimePath, nil
+	}
+
+	return "", nil
+}
+
 // AllowedAnnotations returns the allowed annotations for this runtime.
 func (r *Runtime) AllowedAnnotations(handler string) ([]string, error) {
 	rh, err := r.getRuntimeHandler(handler)

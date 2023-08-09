@@ -112,7 +112,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"-P", c.conmonPidFilePath(),
 		"-p", filepath.Join(c.bundlePath, "pidfile"),
 		"--persist-dir", c.dir,
-		"-r", r.handler.RuntimePath,
+		"-r", c.RuntimePathForPlatform(r),
 		"--runtime-arg", fmt.Sprintf("%s=%s", rootFlag, r.root),
 		"--socket-dir-path", r.config.ContainerAttachSocketDir,
 		"--syslog",
@@ -409,7 +409,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
-	execCmd := cmdrunner.Command(r.handler.RuntimePath, args...) // nolint: gosec
+	execCmd := cmdrunner.Command(c.RuntimePathForPlatform(r), args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
 	}
@@ -525,7 +525,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	args := []string{
 		"-c", c.ID(),
 		"-n", c.name,
-		"-r", r.handler.RuntimePath,
+		"-r", c.RuntimePathForPlatform(r),
 		"-p", pidFile,
 		"-e",
 		"-l", logPath,
@@ -764,7 +764,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := cmdrunner.Command(r.handler.RuntimePath, rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
+	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -1439,8 +1439,8 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-
-	if err := r.checkpointRestoreSupported(); err != nil {
+	runtimePath := c.RuntimePathForPlatform(r)
+	if err := r.checkpointRestoreSupported(runtimePath); err != nil {
 		return err
 	}
 
@@ -1481,7 +1481,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 
 	_, err := r.runtimeCmd(args...)
 	if err != nil {
-		return fmt.Errorf("running %q %q failed: %w", r.handler.RuntimePath, args, err)
+		return fmt.Errorf("running %q %q failed: %w", runtimePath, args, err)
 	}
 
 	c.SetCheckpointedAt(time.Now())
@@ -1496,7 +1496,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 
 // RestoreContainer restores a container.
 func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
-	if err := r.checkpointRestoreSupported(); err != nil {
+	if err := r.checkpointRestoreSupported(c.RuntimePathForPlatform(r)); err != nil {
 		return err
 	}
 
@@ -1560,11 +1560,11 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 	return nil
 }
 
-func (r *runtimeOCI) checkpointRestoreSupported() error {
+func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 	if !criu.CheckForCriu(criu.PodCriuVersion) {
 		return fmt.Errorf("checkpoint/restore requires at least CRIU %d", criu.PodCriuVersion)
 	}
-	if !crutils.CRRuntimeSupportsCheckpointRestore(r.handler.RuntimePath) {
+	if !crutils.CRRuntimeSupportsCheckpointRestore(runtimePath) {
 		return fmt.Errorf("configured runtime does not support checkpoint/restore")
 	}
 	return nil

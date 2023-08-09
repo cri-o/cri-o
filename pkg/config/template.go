@@ -1168,6 +1168,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # monitor_env = []
 # privileged_without_host_devices = false
 # allowed_annotations = []
+# platform_runtime_paths = { "os/arch" = "/path/to/binary" }
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1200,6 +1201,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   should be moved to the container's cgroup
 # - monitor_env (optional, array of strings): Environment variables to pass to the montior.
 #   Replaces deprecated option "conmon_env".
+# - platform_runtime_paths (optional, map): A mapping of platforms to the corresponding
+#   runtime executable paths for the runtime handler.
 #
 # Using the seccomp notifier feature:
 #
@@ -1242,6 +1245,10 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ if $runtime_handler.AllowedAnnotations }}{{ $.Comment }}allowed_annotations = [
 {{ range $opt := $runtime_handler.AllowedAnnotations }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]{{ end }}
 {{ $.Comment }}privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
+{{ if $runtime_handler.PlatformRuntimePaths }}platform_runtime_paths = {
+{{- $first := true }}{{- range $key, $value := $runtime_handler.PlatformRuntimePaths }}
+{{- if not $first }},{{ end }}{{- printf "%q = %q" $key $value }}{{- $first = false }}{{- end }}}
+{{ end }}
 {{ end }}
 `
 
