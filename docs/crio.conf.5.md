@@ -331,6 +331,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 
+**platform_runtime_paths**={}
+  A mapping of platforms to the corresponding runtime executable paths for the runtime handler.
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
 A workload is chosen for a pod based on whether the workload's **activation_annotation** is an annotation on the pod.

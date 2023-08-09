@@ -1,6 +1,7 @@
 #!/usr/bin/env bats
 
 load helpers
+CRUN_WASM_BINARY=${CRUN_WASM_BINARY:-$(command -v crun-wasm || true)}
 
 IMAGE=quay.io/crio/pause
 SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
@@ -291,4 +292,29 @@ function teardown() {
 	[ "$output" = "" ]
 
 	cleanup_images
+}
+
+@test "run container in pod with crun-wasm enabled" {
+	if [ -z "$CRUN_WASM_BINARY" ] || [[ "$RUNTIME_TYPE" == "vm" ]]; then
+		skip "crun-wasm not installed or runtime type is VM"
+	fi
+	cat << EOF > "$CRIO_CONFIG_DIR/99-crun-wasm.conf"
+[crio.runtime]
+default_runtime = "crun-wasm"
+
+[crio.runtime.runtimes.crun-wasm]
+runtime_path = "/usr/bin/crun"
+
+platform_runtime_paths = {"wasi/wasm32" = "/usr/bin/crun-wasm", "abc/def" = "/usr/bin/acme"}
+EOF
+	start_crio
+
+	jq '.metadata.name = "podsandbox-wasm"
+		|.image.image = "quay.io/crio/hello-wasm:latest"
+		| del(.command, .args, .linux.resources)' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/wasm.json"
+
+	ctr_id=$(crictl run "$TESTDIR/wasm.json" "$TESTDATA/sandbox_config.json")
+	output=$(crictl logs "$ctr_id")
+	[[ "$output" == *"Hello, world!"* ]]
 }

@@ -106,6 +106,7 @@ POD_IPV6_DEF_ROUTE="1100:200::1/24"
 IMAGES=(
     registry.k8s.io/pause:3.9
     quay.io/crio/fedora-crio-ci:latest
+    quay.io/crio/hello-wasm:latest
 )
 
 function img2dir() {
