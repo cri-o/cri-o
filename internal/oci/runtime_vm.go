@@ -32,6 +32,7 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
+	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -854,7 +855,7 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*types.ContainerStats, error) {
+func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*cgmgr.CgroupStats, error) {
 	log.Debugf(ctx, "RuntimeVM.ContainerStats() start")
 	defer log.Debugf(ctx, "RuntimeVM.ContainerStats() end")
 
@@ -885,7 +886,7 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	return metricsToCtrStats(ctx, c, m), nil
 }
 
-func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *types.ContainerStats {
+func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *cgmgr.CgroupStats {
 	var (
 		cpuNano         uint64
 		memLimit        uint64
@@ -915,20 +916,22 @@ func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *t
 		majorPageFaults = m.Memory.PgMajFault
 	}
 
-	return &types.ContainerStats{
-		Attributes: c.CRIAttributes(),
-		Cpu: &types.CpuUsage{
-			Timestamp:            systemNano,
-			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
+	return &cgmgr.CgroupStats{
+		MostStats: &libctrcgroups.Stats{
+			CpuStats: libctrcgroups.CpuStats{
+				CpuUsage: libctrcgroups.CpuUsage{
+					TotalUsage: cpuNano,
+				},
+			},
 		},
-		Memory: &types.MemoryUsage{
-			Timestamp:       systemNano,
-			WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
-			PageFaults:      &types.UInt64Value{Value: pageFaults},
-			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
-			RssBytes:        &types.UInt64Value{Value: rssBytes},
-			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
+		OtherMemStats: &cgmgr.CgroupMemoryStats{
+			WorkingSet:     workingSetBytes,
+			PgFault:        pageFaults,
+			PgMajFault:     majorPageFaults,
+			Rss:            rssBytes,
+			AvailableBytes: memUsage - memLimit,
 		},
+		SystemNano: systemNano,
 	}
 }
 

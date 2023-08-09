@@ -3,14 +3,12 @@ package oci
 import (
 	"os"
 	"syscall"
-	"time"
 
 	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const InfraContainerName = "POD"
@@ -61,36 +59,4 @@ func newPipe() (parent, child *os.File, _ error) {
 		return nil, nil, err
 	}
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
-}
-
-func (r *runtimeOCI) containerStats(ctr *Container, cgroup string) (*types.ContainerStats, error) {
-	stats := &types.ContainerStats{
-		Attributes: ctr.CRIAttributes(),
-	}
-
-	if ctr.Spoofed() {
-		return stats, nil
-	}
-
-	// technically, the CRI does not mandate a CgroupParent is given to a pod
-	// this situation should never happen in production, but some test suites
-	// (such as critest) assume we can call stats on a cgroupless container
-	if cgroup == "" {
-		systemNano := time.Now().UnixNano()
-		stats.Cpu = &types.CpuUsage{
-			Timestamp: systemNano,
-		}
-		stats.Memory = &types.MemoryUsage{
-			Timestamp: systemNano,
-		}
-		stats.WritableLayer = &types.FilesystemUsage{
-			Timestamp: systemNano,
-		}
-		return stats, nil
-	}
-	// update the stats object with information from the cgroup
-	if err := r.config.CgroupManager().PopulateContainerCgroupStats(cgroup, ctr.ID(), stats); err != nil {
-		return nil, err
-	}
-	return stats, nil
 }
