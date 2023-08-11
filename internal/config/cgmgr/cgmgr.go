@@ -180,23 +180,28 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 		return err
 	}
 
-	if err := mgr.Apply(-1); err != nil {
-		return err
-	}
-
 	// The reasoning for this code is slightly obscure. In situation where CPU load balancing is desired,
 	// all cgroups must either have cpuset.sched_load_balance=0 or they should not have an intersecting cpuset
 	// with the set that load balancing should be disabled on.
 	// When this cgroup is created, it is easiest to set sched_load_balance to 0, especially because there will
 	// not be any processes in this cgroup (or else we wouldn't need to call this).
+	// Note: this should be done before Apply(-1) below, as Apply contains cpusetCopyIfNeeded(), which will
+	// populate the cpuset with the parent's cpuset. However, it will be initialized to sched_load_balance=1
+	// which will cause the kernel to move all cpusets out of their isolated sched_domain, causing unnecessary churn.
 	if !node.CgroupIsV2() {
 		path := mgr.Path("cpuset")
 		if path == "" {
 			return fmt.Errorf("failed to find cpuset for newly created cgroup")
 		}
-		return libctr.WriteFile(path, "cpuset.sched_load_balance", "0")
+		if err := os.Mkdir(path, 0o755); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
+		}
+		if err := libctr.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
+			return fmt.Errorf("failed to set sched_load_balance cpuset for newly created cgroup: %w", err)
+		}
 	}
-	return nil
+
+	return mgr.Apply(-1)
 }
 
 func removeSandboxCgroup(sbParent, containerCgroup string) error {
