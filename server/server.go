@@ -1047,6 +1047,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 		log.Debugf(ctx, "Container event %s generated for %s", eventType, container.ID())
 	default:
 		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())
+		metrics.Instance().MetricContainersEventsDroppedInc()
 		return
 	}
 }

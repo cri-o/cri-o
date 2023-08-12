@@ -75,6 +75,7 @@ type Metrics struct {
 	metricImagePullsSuccesses                 *prometheus.CounterVec // Deprecated: in favour of metricImagePullsSuccessTotal
 	metricImagePullsLayerSize                 prometheus.Histogram
 	metricImageLayerReuse                     *prometheus.CounterVec // Deprecated: in favour of metricImageLayerReuseTotal
+	metricContainersEventsDropped             prometheus.Counter
 	metricContainersOOMTotal                  prometheus.Counter
 	metricContainersOOM                       *prometheus.CounterVec // Deprecated: in favour of metricContainersOOMCountTotal
 	metricProcessesDefunct                    prometheus.GaugeFunc
@@ -198,6 +199,13 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "[DEPRECATED: in favour of `image_layer_reuse_total`] Reused (not pulled) local image layer count by name",
 			},
 			[]string{"name"},
+		),
+		metricContainersEventsDropped: prometheus.NewCounter(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersEventsDropped.String(),
+				Help:      "Amount of container events dropped",
+			},
 		),
 		metricContainersOOMTotal: prometheus.NewCounter(
 			prometheus.CounterOpts{
@@ -454,6 +462,10 @@ func (m *Metrics) MetricContainersOOMCountTotalInc(name string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricContainersEventsDroppedInc() {
+	m.metricContainersEventsDropped.Inc()
+}
+
 func (m *Metrics) MetricContainersOOMTotalInc() {
 	m.metricContainersOOMTotal.Inc()
 }
@@ -582,6 +594,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.ImagePullsSuccesses:     m.metricImagePullsSuccesses,
 		collectors.ImagePullsLayerSize:     m.metricImagePullsLayerSize,
 		collectors.ImageLayerReuse:         m.metricImageLayerReuse,
+		collectors.ContainersEventsDropped: m.metricContainersEventsDropped,
 		collectors.ContainersOOMTotal:      m.metricContainersOOMTotal,
 		collectors.ContainersOOM:           m.metricContainersOOM,
 		collectors.ProcessesDefunct:        m.metricProcessesDefunct,

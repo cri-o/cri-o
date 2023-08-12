@@ -455,7 +455,7 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 **enable_metrics**=false
   Globally enable or disable metrics support.
 
-**metrics_collectors**=["operations", "operations_latency_microseconds_total", "operations_latency_microseconds", "operations_errors", "image_pulls_by_digest", "image_pulls_by_name", "image_pulls_by_name_skipped", "image_pulls_failures", "image_pulls_successes", "image_pulls_layer_size", "image_layer_reuse", "containers_oom_total", "containers_oom", "processes_defunct"]
+**metrics_collectors**=["operations", "operations_latency_microseconds_total", "operations_latency_microseconds", "operations_errors", "image_pulls_by_digest", "image_pulls_by_name", "image_pulls_by_name_skipped", "image_pulls_failures", "image_pulls_successes", "image_pulls_layer_size", "image_layer_reuse", "containers_events_dropped_total", "containers_oom_total", "containers_oom", "processes_defunct"]
   Enabled metrics collectors
 
 **metrics_port**=9090

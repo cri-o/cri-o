@@ -47,6 +47,7 @@ var _ = t.Describe("Collectors", func() {
 				collectors.ImagePullsSuccesses,     // Deprecated:  in favour of ImagePullsSuccessTotal
 				collectors.ImagePullsLayerSize,
 				collectors.ImageLayerReuse, // Deprecated: in favour of ImageLayerReuseTotal
+				collectors.ContainersEventsDropped,
 				collectors.ContainersOOMTotal,
 				collectors.ContainersOOM, // Deprecated: in favour of ContainersOOMCountTotal
 				collectors.ProcessesDefunct,
@@ -66,7 +67,7 @@ var _ = t.Describe("Collectors", func() {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(26))
+			Expect(all).To(HaveLen(27))
 		})
 	})
 
