@@ -8,9 +8,9 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

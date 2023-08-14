@@ -11,10 +11,10 @@ import (
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"go.uber.org/mock/gomock"
 )
 
 // The actual test suite

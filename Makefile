@@ -58,7 +58,6 @@ SOURCE_DATE_EPOCH ?= $(shell date +%s)
 GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
-MOCKGEN_VERSION := 1.6.0
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GOLANGCI_LINT_VERSION := v1.53.2
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
@@ -277,8 +276,7 @@ $(BOM): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux,$(BUILD_BIN_PATH)/bom)
 
 $(MOCKGEN): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
-	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
+	$(call go-build,./vendor/go.uber.org/mock/mockgen)
 
 $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_x86_64.tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
@@ -338,6 +336,7 @@ testunit-bin:
 
 mockgen: \
 	mock-cmdrunner \
+	mock-containereventserver \
 	mock-containerstorage \
 	mock-criostorage \
 	mock-lib-config \

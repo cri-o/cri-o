@@ -15,10 +15,10 @@ import (
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	libmock "github.com/cri-o/cri-o/test/mocks/lib"
 	ocimock "github.com/cri-o/cri-o/test/mocks/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

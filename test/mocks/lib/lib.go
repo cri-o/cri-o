@@ -9,7 +9,7 @@ import (
 
 	storage "github.com/containers/storage"
 	config "github.com/cri-o/cri-o/pkg/config"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockIface is a mock of Iface interface.

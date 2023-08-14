@@ -8,7 +8,7 @@ import (
 	exec "os/exec"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockCommandRunner is a mock of CommandRunner interface.

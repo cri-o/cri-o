@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	. "github.com/cri-o/cri-o/test/framework"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
 
 // TestLib runs the created specs

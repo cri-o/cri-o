@@ -13,8 +13,8 @@ import (
 	archive "github.com/containers/storage/pkg/archive"
 	idtools "github.com/containers/storage/pkg/idtools"
 	lockfile "github.com/containers/storage/pkg/lockfile"
-	gomock "github.com/golang/mock/gomock"
 	digest "github.com/opencontainers/go-digest"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockStore is a mock of Store interface.

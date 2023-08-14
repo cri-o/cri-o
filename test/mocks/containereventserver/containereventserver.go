@@ -8,7 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 	metadata "google.golang.org/grpc/metadata"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
 )

@@ -12,7 +12,7 @@ import (
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
-	gomock "github.com/golang/mock/gomock"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockImageServer is a mock of ImageServer interface.

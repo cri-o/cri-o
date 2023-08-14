@@ -8,9 +8,9 @@ import (
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/server"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
 
 // The actual test suite

@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

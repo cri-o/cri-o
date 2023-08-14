@@ -10,8 +10,8 @@ import (
 
 	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
-	gomock "github.com/golang/mock/gomock"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	gomock "go.uber.org/mock/gomock"
 )
 
 // MockImageCloser is a mock of ImageCloser interface.
