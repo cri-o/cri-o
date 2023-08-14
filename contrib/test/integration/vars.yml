@@ -12,7 +12,7 @@ build_kata: False
 cgroupv2: False
 
 critest_mirror_repo: quay.io/crio
-cri_tools_git_version: master
+cri_tools_git_version: v1.28.0
 golang_version: "1.20"
 
 # For results.yml Paths use rsync 'source' conventions
