@@ -332,7 +332,7 @@ function start_crio_with_stopped_pod() {
 	# Since the clean shutdown supported file is created,
 	# but the clean shutdown file is absent, we will do the
 	# c/storage check/repair.
-	start_crio_no_setup
+	CONTAINER_INTERNAL_REPAIR=true start_crio_no_setup
 
 	# Since one of the layers was removed, the image would be corrupted, so we expect
 	# one to have been removed.

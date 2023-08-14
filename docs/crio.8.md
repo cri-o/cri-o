@@ -60,6 +60,7 @@ crio
 [--image-volumes]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
+[--internal-repair]
 [--internal-wipe]
 [--irqbalance-config-file]=[value]
 [--irqbalance-config-restore-file]=[value]
@@ -288,6 +289,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        be enabled for testing purposes**. For increased security, users should add
        their CA to their system's list of trusted CAs instead of using
        '--insecure-registry'.
+
+**--internal-repair**: If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.
 
 **--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.
 

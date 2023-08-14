@@ -146,6 +146,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.InternalWipe, c.InternalWipe),
 		},
 		{
+			templateString: templateStringCrioInternalRepair,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.InternalRepair, c.InternalRepair),
+		},
+		{
 			templateString: templateStringCrioCleanShutdownFile,
 			group:          crioRootConfig,
 			isDefaultValue: simpleEqual(dc.CleanShutdownFile, c.CleanShutdownFile),
@@ -761,6 +766,12 @@ const templateStringCrioCleanShutdownFile = `# Location for CRI-O to lay down th
 const templateStringCrioInternalWipe = `# InternalWipe is whether CRI-O should wipe containers and images after a reboot when the server starts.
 # If set to false, one must use the external command 'crio wipe' to wipe the containers and images in these situations.
 {{ $.Comment }}internal_wipe = {{ .InternalWipe }}
+
+`
+
+const templateStringCrioInternalRepair = `# InternalRepair is whether CRI-O should check if the container and image storage was corrupted after a sudden restart.
+# If it was, CRI-O also attempts to repair the storage.
+{{ $.Comment }}internal_repair = {{ .InternalRepair }}
 
 `
 

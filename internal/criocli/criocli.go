@@ -327,6 +327,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("internal-wipe") {
 		config.InternalWipe = ctx.Bool("internal-wipe")
 	}
+	if ctx.IsSet("internal-repair") {
+		config.InternalRepair = ctx.Bool("internal-repair")
+	}
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -1077,6 +1080,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.",
 			Value:   defConf.InternalWipe,
 			EnvVars: []string{"CONTAINER_INTERNAL_WIPE"},
+		},
+		&cli.BoolFlag{
+			Name:    "internal-repair",
+			Usage:   "If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.",
+			EnvVars: []string{"CONTAINER_INTERNAL_REPAIR"},
+			Value:   defConf.InternalRepair,
 		},
 		&cli.StringFlag{
 			Name:    "infra-ctr-cpuset",

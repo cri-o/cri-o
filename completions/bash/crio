@@ -62,6 +62,7 @@ h
 --image-volumes
 --infra-ctr-cpuset
 --insecure-registry
+--internal-repair
 --internal-wipe
 --irqbalance-config-file
 --irqbalance-config-restore-file

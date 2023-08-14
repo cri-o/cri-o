@@ -103,7 +103,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		return nil, fmt.Errorf("cannot create container server: interface is nil")
 	}
 
-	if ShutdownWasUnclean(config) {
+	if config.InternalRepair && ShutdownWasUnclean(config) {
 		checkOptions := cstorage.CheckEverything()
 		report, err := store.Check(checkOptions)
 		if err != nil {
