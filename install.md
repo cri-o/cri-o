@@ -37,14 +37,14 @@ It is assumed you are running a Linux machine.
     - [Static builds](#static-builds)
       - [Creating a release archive](#creating-a-release-archive)
     - [Download conmon](#download-conmon)
-    - [Setup CNI networking](#setup-cni-networking)
-    - [CRI-O configuration](#cri-o-configuration)
+  - [Setup CNI networking](#setup-cni-networking)
+  - [CRI-O configuration](#cri-o-configuration)
     - [Validate registries in registries.conf](#validate-registries-in-registriesconf)
-      - [Optional - Modify verbosity of logs](#optional---modify-verbosity-of-logs)
-      - [Optional - Modify capabilities and sysctls](#optional---modify-capabilities-and-sysctls)
-    - [Starting CRI-O](#starting-cri-o)
-    - [Using CRI-O](#using-cri-o)
-    - [Updating CRI-O](#updating-cri-o)
+    - [Optional - Modify verbosity of logs](#optional---modify-verbosity-of-logs)
+    - [Optional - Modify capabilities and sysctls](#optional---modify-capabilities-and-sysctls)
+  - [Starting CRI-O](#starting-cri-o)
+  - [Using CRI-O](#using-cri-o)
+  - [Updating CRI-O](#updating-cri-o)
     - [openSUSE](#opensuse-1)
     - [Fedora 31 or later](#fedora-31-or-later-1)
     - [Other yum based operating systems](#other-yum-based-operating-systems-1)
@@ -550,14 +550,14 @@ sudo make install
 
 will download conmon to your $PATH.
 
-### Setup CNI networking
+## Setup CNI networking
 
 A proper description of setting up CNI networking is given in the
 [`contrib/cni` README](/contrib/cni/README.md). But the gist is that you need to
 have some basic network configurations enabled and CNI plugins installed on
 your system.
 
-### CRI-O configuration
+## CRI-O configuration
 
 If you are installing for the first time, generate and install
 configuration files with:
@@ -586,7 +586,7 @@ registries = []
 
 For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md).
 
-#### Optional - Modify verbosity of logs
+### Optional - Modify verbosity of logs
 
 Users can modify the `log_level` by specifying an overwrite like
 `/etc/crio/crio.conf.d/01-log-level.conf` to change the verbosity of
@@ -598,7 +598,7 @@ trace.
 log_level = "info"
 ```
 
-#### Optional - Modify capabilities and sysctls
+### Optional - Modify capabilities and sysctls
 
 By default, `CRI-O` uses the following capabilities:
 
@@ -625,7 +625,7 @@ default_sysctls = [
 
 Users can change either default by adding overwrites to `/etc/crio/crio.conf.d`.
 
-### Starting CRI-O
+## Starting CRI-O
 
 Running make install will download CRI-O into the folder
 
@@ -647,14 +647,14 @@ sudo systemctl enable crio
 sudo systemctl start crio
 ```
 
-### Using CRI-O
+## Using CRI-O
 
 - Follow this [tutorial](tutorials/crictl.md) to quickly get started running
   simple pods and containers.
 - To run a full cluster, see [the instructions](tutorials/kubernetes.md).
 - To run with kubeadm, see [kubeadm instructions](tutorials/kubeadm.md).
 
-### Updating CRI-O
+## Updating CRI-O
 
 <!-- markdownlint-disable MD024 -->
 ### openSUSE
