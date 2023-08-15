@@ -229,6 +229,20 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 		}
 	}
 
+	var portMappings []ocicni.PortMapping
+	if s.config.DisableHostPortMapping {
+		for _, portMap := range sb.PortMappings() {
+			if portMap.ContainerPort == 0 {
+				continue
+			}
+			portMappings = append(portMappings, ocicni.PortMapping{
+				HostPort:      portMap.HostPort,
+				ContainerPort: portMap.ContainerPort,
+				Protocol:      string(portMap.Protocol),
+			})
+		}
+	}
+
 	network := s.config.CNIPlugin().GetDefaultNetworkName()
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
@@ -239,8 +253,9 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 		NetNS:     sb.NetNsPath(),
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
 			network: {
-				Bandwidth:  bwConfig,
-				CgroupPath: sb.CgroupParent(),
+				Bandwidth:    bwConfig,
+				CgroupPath:   sb.CgroupParent(),
+				PortMappings: portMappings,
 			},
 		},
 	}, nil
