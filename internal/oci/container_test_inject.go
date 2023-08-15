@@ -6,6 +6,10 @@
 
 package oci
 
+import (
+	"github.com/cri-o/cri-o/pkg/config"
+)
+
 // SetState sets the container state
 func (c *Container) SetState(state *ContainerState) {
 	c.state = state
@@ -23,4 +27,18 @@ func (c *Container) SetStateAndSpoofPid(state *ContainerState) {
 		state.SetInitPid(state.Pid) // nolint:errcheck
 	}
 	c.state = state
+}
+
+type RuntimeOCI struct {
+	*runtimeOCI
+}
+
+func NewRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeOCI {
+	return RuntimeOCI{
+		runtimeOCI: &runtimeOCI{
+			Runtime: r,
+			root:    handler.RuntimeRoot,
+			handler: handler,
+		},
+	}
 }

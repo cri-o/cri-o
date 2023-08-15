@@ -38,7 +38,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
 	if !sb.Stopped() {
 		if err := s.stopContainer(ctx, c, int64(10)); err != nil {
-			return fmt.Errorf("failed to stop container for removal")
+			return fmt.Errorf("failed to stop container for removal %w", err)
 		}
 	}
 

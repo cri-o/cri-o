@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -69,10 +70,9 @@ type Container struct {
 	created            bool
 	spoofed            bool
 	stopping           bool
-	stopTimeoutChan    chan time.Duration
-	stoppedChan        chan struct{}
-	stopStoppingChan   chan struct{}
 	stopLock           sync.Mutex
+	stopTimeoutChan    chan int64
+	stopWatchers       []chan struct{}
 	pidns              nsmgr.Namespace
 	restore            bool
 	restoreArchive     string
@@ -129,21 +129,20 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			},
 			ImageRef: imageRef,
 		},
-		name:             name,
-		bundlePath:       bundlePath,
-		logPath:          logPath,
-		terminal:         terminal,
-		stdin:            stdin,
-		stdinOnce:        stdinOnce,
-		runtimeHandler:   runtimeHandler,
-		crioAnnotations:  crioAnnotations,
-		imageName:        imageName,
-		dir:              dir,
-		state:            state,
-		stopSignal:       stopSignal,
-		stopTimeoutChan:  make(chan time.Duration, 1),
-		stoppedChan:      make(chan struct{}, 1),
-		stopStoppingChan: make(chan struct{}, 1),
+		name:            name,
+		bundlePath:      bundlePath,
+		logPath:         logPath,
+		terminal:        terminal,
+		stdin:           stdin,
+		stdinOnce:       stdinOnce,
+		runtimeHandler:  runtimeHandler,
+		crioAnnotations: crioAnnotations,
+		imageName:       imageName,
+		dir:             dir,
+		state:           state,
+		stopSignal:      stopSignal,
+		stopTimeoutChan: make(chan int64, 10),
+		stopWatchers:    []chan struct{}{},
 	}
 	return c, nil
 }
@@ -476,9 +475,9 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
-// IsAlive is a function that checks if a container's init PID exists.
+// Living is a function that checks if a container's init PID exists.
 // It is used to check a container state when we don't want a `$runtime state` call
-func (c *Container) IsAlive() error {
+func (c *Container) Living() error {
 	if _, err := c.pid(); err != nil {
 		return fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
 	}
@@ -580,7 +579,7 @@ func GetPidStartTimeFromFile(file string) (string, error) {
 // a container is not stoppable if it's paused or stopped
 // if it's paused, that's an error, and is reported as such
 func (c *Container) ShouldBeStopped() error {
-	switch c.state.Status {
+	switch c.State().Status {
 	case ContainerStateStopped: // no-op
 		return ErrContainerStopped
 	case ContainerStatePaused:
@@ -598,41 +597,34 @@ func (c *Container) Spoofed() bool {
 }
 
 // SetAsStopping marks a container as being stopped.
-// If a stop is currently happening, it also sends the new timeout
-// along the stopTimeoutChan, allowing the in-progress stop
-// to stop faster, or ignore the new stop timeout.
-// In this case, it also returns true, signifying the caller doesn't have to
-// Do any stop related cleanup, as the original caller (alreadyStopping=false)
-// will do said cleanup.
-func (c *Container) SetAsStopping(timeout int64) (alreadyStopping bool) {
-	// First, need to check if the container is already stopping
+// Returns true if the container was not set as stopping before, and false otherwise (i.e. on subsequent calls)."
+func (c *Container) SetAsStopping() (setToStopping bool) {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
-	if c.stopping {
-		// If so, we shouldn't wait forever on the opLock.
-		// This can cause issues where the container stop gets DOSed by a very long
-		// timeout, followed a shorter one coming in.
-		// Instead, interrupt the other stop with this new one.
-		select {
-		case c.stopTimeoutChan <- time.Duration(timeout) * time.Second:
-		case <-c.stoppedChan: // This case is to avoid waiting forever once another routine has finished.
-		case <-c.stopStoppingChan: // This case is to avoid deadlocking with SetAsNotStopping.
-		}
+	if !c.stopping {
+		c.stopping = true
 		return true
 	}
-	// Regardless, set the container as actively stopping.
-	c.stopping = true
-	// And reset the stopStoppingChan
-	c.stopStoppingChan = make(chan struct{}, 1)
 	return false
 }
 
-// SetAsNotStopping unsets the stopping field indicating to new callers that the container
-// is no longer actively stopping.
-func (c *Container) SetAsNotStopping() {
+func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
-	c.stopping = false
+	if !c.stopping {
+		c.stopLock.Unlock()
+		return
+	}
+
+	c.stopTimeoutChan <- timeout
+
+	watcher := make(chan struct{}, 1)
+	c.stopWatchers = append(c.stopWatchers, watcher)
 	c.stopLock.Unlock()
+
+	select {
+	case <-ctx.Done():
+	case <-watcher:
+	}
 }
 
 func (c *Container) AddManagedPIDNamespace(ns nsmgr.Namespace) {
