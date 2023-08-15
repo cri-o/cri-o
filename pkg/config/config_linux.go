@@ -17,3 +17,10 @@ const (
 func selinuxEnabled() bool {
 	return selinux.GetEnabled()
 }
+
+func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
+	var err error
+	c.PinnsPath, err = validateExecutablePath(executable, c.PinnsPath)
+
+	return err
+}
