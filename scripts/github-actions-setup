@@ -75,8 +75,7 @@ install_critools() {
 
     git clone $URL
     pushd cri-tools
-    # TODO: uncomment once we released cri-tools v1.28.0
-    # git checkout "${VERSIONS["cri-tools"]}"
+    git checkout "${VERSIONS["cri-tools"]}"
     sudo -E PATH="$PATH" make BINDIR=/usr/bin install
     popd
     sudo rm -rf cri-tools
