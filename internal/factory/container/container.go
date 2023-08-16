@@ -27,7 +27,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/runtime-tools/validate"
+	validateCaps "github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
@@ -745,7 +745,7 @@ func inStringSlice(ss []string, str string) bool {
 func getOCICapabilitiesList() []string {
 	caps := make([]string, 0, len(capability.List()))
 	for _, cap := range capability.List() {
-		if cap > validate.LastCap() {
+		if cap > validateCaps.LastCap() {
 			continue
 		}
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
