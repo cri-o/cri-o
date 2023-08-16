@@ -684,7 +684,7 @@ If updating to a patch version (for example, ``VERSION=1.8.3``
   ), run
 
 ```shell
-apt update cri-o cri-o-runc
+apt upgrade cri-o cri-o-runc
 ```
 <!-- markdownlint-enable MD024 -->
 
