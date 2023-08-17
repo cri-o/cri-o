@@ -22,11 +22,12 @@ import (
 // If collectionPeriod is > 0, it maintains this list by updating the stats on collectionPeriod frequency.
 // Otherwise, it only updates the stats as they're requested.
 type StatsServer struct {
-	shutdown         chan struct{}
-	alreadyShutdown  bool
-	collectionPeriod time.Duration
-	sboxStats        map[string]*types.PodSandboxStats
-	ctrStats         map[string]*types.ContainerStats
+	shutdown             chan struct{}
+	alreadyShutdown      bool
+	collectionPeriod     time.Duration
+	sboxStats            map[string]*types.PodSandboxStats
+	ctrStats             map[string]*types.ContainerStats
+	customSandboxMetrics map[string]*SandboxMetrics
 	parentServerIface
 	mutex sync.Mutex
 }
@@ -42,15 +43,20 @@ type parentServerIface interface {
 	Config() *config.Config
 }
 
+type SandboxMetricsInterface interface {
+	AddMetricToSandbox(m *types.Metric)
+}
+
 // New returns a new StatsServer, deriving the needed information from the provided parentServerIface.
 func New(cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
-		shutdown:          make(chan struct{}, 1),
-		alreadyShutdown:   false,
-		collectionPeriod:  time.Duration(cs.Config().StatsCollectionPeriod) * time.Second,
-		sboxStats:         make(map[string]*types.PodSandboxStats),
-		ctrStats:          make(map[string]*types.ContainerStats),
-		parentServerIface: cs,
+		shutdown:             make(chan struct{}, 1),
+		alreadyShutdown:      false,
+		collectionPeriod:     time.Duration(cs.Config().StatsCollectionPeriod) * time.Second,
+		sboxStats:            make(map[string]*types.PodSandboxStats),
+		ctrStats:             make(map[string]*types.ContainerStats),
+		customSandboxMetrics: make(map[string]*SandboxMetrics),
+		parentServerIface:    cs,
 	}
 	go ss.updateLoop()
 	return ss
@@ -82,6 +88,7 @@ func (ss *StatsServer) update() {
 
 	for _, sb := range ss.ListSandboxes() {
 		ss.updateSandbox(sb)
+		ss.updateSandboxMetrics(sb)
 	}
 }
 
@@ -125,6 +132,30 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 	ss.sboxStats[sb.ID()] = sandboxStats
 	return sandboxStats
+}
+
+func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+	if sb == nil {
+		return nil
+	}
+	sm, exists := ss.customSandboxMetrics[sb.ID()]
+	if !exists {
+		sm = NewSandboxMetrics(sb)
+		ss.customSandboxMetrics[sb.ID()] = sm
+		return sm
+	}
+
+	// Reset metrics for the next iteration
+	sm.ResetMetricsForSandbox()
+
+	includedMetrics := []string{"cpu", "memory", "network"} // Hardcoded for now
+	allMetrics := GenerateAllSandboxMetrics(sb, includedMetrics, sm)
+	for _, m := range allMetrics {
+		sm.AddMetricToSandbox(m)
+	}
+	sm.current, sm.next = sm.next, sm.current
+	ss.customSandboxMetrics[sb.ID()] = sm // Update the entry in the map
+	return sm
 }
 
 func cgmgrStatsToCRISandbox(cgroupStats *cgmgr.CgroupStats, sb *sandbox.Sandbox) *types.PodSandboxStats {
@@ -338,6 +369,48 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	delete(ss.sboxStats, sb.ID())
+}
+
+// StatsForSandboxMetrics returns the metrics for the given sandbox
+func (ss *StatsServer) StatsForSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	return ss.statsForSandboxMetrics(sb)
+}
+
+// StatsForSandboxMetricsList returns the metrics for the given list of sandboxes
+func (ss *StatsServer) StatsForSandboxMetricsList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	metricsList := make([]*SandboxMetrics, 0, len(sboxes))
+	for _, sb := range sboxes {
+		if metrics := ss.statsForSandboxMetrics(sb); metrics != nil {
+			metricsList = append(metricsList, metrics)
+		}
+	}
+	return metricsList
+}
+
+// statsForSandboxMetrics is an internal, non-locking version of StatsForSandboxMetrics
+// that returns (and occasionally gathers) the metrics for the given sandbox.
+func (ss *StatsServer) statsForSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+	if ss.collectionPeriod == 0 {
+		return ss.updateSandboxMetrics(sb)
+	}
+	sboxMetrics, ok := ss.customSandboxMetrics[sb.ID()]
+	if ok {
+		return sboxMetrics
+	}
+	// Cache miss, try again
+	return ss.updateSandboxMetrics(sb)
+}
+
+// RemoveMetricsForSandboxMetrics removes the saved entry for the specified sandbox
+// to prevent the map from always growing.
+func (ss *StatsServer) RemoveMetricsForSandboxMetrics(sb *sandbox.Sandbox) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	delete(ss.customSandboxMetrics, sb.ID())
 }
 
 // StatsForContainer returns the stats for the given container
