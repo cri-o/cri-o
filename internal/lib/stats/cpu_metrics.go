@@ -109,7 +109,6 @@ var (
 	}
 )
 
-func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
-	var c *cgroups.CpuStats
+func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *cgroups.CpuStats, sm *SandboxMetrics) []*types.Metric {
 	return ComputeSandboxMetrics(sb, c, cpuMetrics, "cpu", sm)
 }

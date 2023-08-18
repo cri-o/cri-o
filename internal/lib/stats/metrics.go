@@ -58,10 +58,6 @@ func (sm *SandboxMetrics) AddMetricToSandbox(m *types.Metric) {
 	sm.next.Metrics = append(sm.next.Metrics, m)
 }
 
-type metricsServer struct {
-	includedMetrics []string
-}
-
 // store metricdescriptors statically at startup, populate the list
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
 	// TODO: add default container labels
@@ -279,6 +275,11 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, stats interface{}, container []C
 	metrics := make([]*types.Metric, 0, len(container))
 	for _, m := range container {
 		metricValues := m.valueFunc(stats)
+		if len(metricValues) == 0 {
+			// No metrics to process for this ContainerStats, move to the next one
+			continue
+		}
+
 		for _, v := range metricValues {
 			// Check if a metric with the same label values already exists in SandboxMetrics
 			existingMetric := findExistingMetric(sm.GetCurrent().Metrics, m.desc.Name, values, v.labels)
@@ -295,24 +296,6 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, stats interface{}, container []C
 				}
 				metrics = append(metrics, metric)
 			}
-		}
-	}
-	return metrics
-}
-
-func GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMetrics []string, sm *SandboxMetrics) []*types.Metric {
-	metrics := make([]*types.Metric, 0)
-	for _, metric := range includedMetrics {
-		switch metric {
-		case "CPU":
-			cpuMetrics := GenerateSandboxCPUMetrics(sb, sm)
-			metrics = append(metrics, cpuMetrics...)
-		case "memory":
-			memoryMetrics := GenerateSandboxMemoryMetrics(sb, sm)
-			metrics = append(metrics, memoryMetrics...)
-		case "network":
-			networkMetrics := GenerateSandboxNetworkMetrics(sb, sm)
-			metrics = append(metrics, networkMetrics...)
 		}
 	}
 	return metrics
