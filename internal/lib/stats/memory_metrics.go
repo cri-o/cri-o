@@ -187,7 +187,6 @@ var (
 	}
 )
 
-func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
-	var c *cgroups.MemoryStats
+func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *cgroups.MemoryStats, sm *SandboxMetrics) []*types.Metric {
 	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory", sm)
 }

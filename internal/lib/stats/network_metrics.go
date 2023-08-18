@@ -116,7 +116,6 @@ var (
 	}
 )
 
-func GenerateSandboxNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
-	var c *netlink.LinkAttrs
+func GenerateSandboxNetworkMetrics(sb *sandbox.Sandbox, c *netlink.LinkAttrs, sm *SandboxMetrics) []*types.Metric {
 	return ComputeSandboxMetrics(sb, c, networkMetrics, "network", sm)
 }

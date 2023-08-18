@@ -43,10 +43,6 @@ type parentServerIface interface {
 	Config() *config.Config
 }
 
-type SandboxMetricsInterface interface {
-	AddMetricToSandbox(m *types.Metric)
-}
-
 // New returns a new StatsServer, deriving the needed information from the provided parentServerIface.
 func New(cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
@@ -92,6 +88,14 @@ func (ss *StatsServer) update() {
 	}
 }
 
+func (ss *StatsServer) GetSandboxCgroupStats(sb *sandbox.Sandbox) (*cgmgr.CgroupStats, error) {
+	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent())
+	if err != nil {
+		return nil, err
+	}
+	return sbCgroupStats, nil
+}
+
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
 // It first populates the stats from the CgroupParent, then calculates network usage, updates
 // each of its children container stats by calling into the runtime, and finally calculates the CPUNanoCores.
@@ -99,7 +103,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if sb == nil {
 		return nil
 	}
-	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent())
+	sbCgroupStats, err := ss.GetSandboxCgroupStats(sb)
 	if err != nil {
 		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
 	}
@@ -134,6 +138,58 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	return sandboxStats
 }
 
+// GenerateAllSandboxMetrics generates a list of metrics for the specified sandbox
+// by collecting metrics from different sources based on the includedMetrics.
+func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMetrics []string, sm *SandboxMetrics) []*types.Metric {
+	var metrics []*types.Metric
+
+	var sbCgroupStats *cgmgr.CgroupStats
+	var links []netlink.Link
+	var err error
+
+	for _, metric := range includedMetrics {
+		switch metric {
+		case "cpu":
+			if sbCgroupStats == nil {
+				sbCgroupStats, err = ss.GetSandboxCgroupStats(sb)
+				if err != nil {
+					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+					return nil
+				}
+			}
+			cpuMetrics := GenerateSandboxCPUMetrics(sb, &sbCgroupStats.MostStats.CpuStats, sm)
+			metrics = append(metrics, cpuMetrics...)
+		case "memory":
+			if sbCgroupStats == nil {
+				sbCgroupStats, err = ss.GetSandboxCgroupStats(sb)
+				if err != nil {
+					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+					return nil
+				}
+			}
+			memoryMetrics := GenerateSandboxMemoryMetrics(sb, &sbCgroupStats.MostStats.MemoryStats, sm)
+			metrics = append(metrics, memoryMetrics...)
+		case "network":
+			if links == nil {
+				links, err = netlink.LinkList()
+				if err != nil {
+					logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
+					return nil
+				}
+			}
+			for i := range links {
+				attrs := links[i].Attrs()
+				if attrs != nil {
+					networkMetrics := GenerateSandboxNetworkMetrics(sb, attrs, sm)
+					metrics = append(metrics, networkMetrics...)
+				}
+			}
+		}
+	}
+
+	return metrics
+}
+
 func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	if sb == nil {
 		return nil
@@ -149,7 +205,7 @@ func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics
 	sm.ResetMetricsForSandbox()
 
 	includedMetrics := []string{"cpu", "memory", "network"} // Hardcoded for now
-	allMetrics := GenerateAllSandboxMetrics(sb, includedMetrics, sm)
+	allMetrics := ss.GenerateAllSandboxMetrics(sb, includedMetrics, sm)
 	for _, m := range allMetrics {
 		sm.AddMetricToSandbox(m)
 	}
