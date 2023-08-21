@@ -113,12 +113,9 @@ curl_to() {
 TMP_BIN=$TMPDIR/bin
 
 # conmon
-# TODO: remove when conmon ppc64le releases exists
-if [[ $ARCH != "$ARCH_PPC64LE" ]]; then
-    curl_to "$TMP_BIN/conmon" \
-        "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
-    chmod +x "$TMP_BIN/conmon"
-fi
+curl_to "$TMP_BIN/conmon" \
+    "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
+chmod +x "$TMP_BIN/conmon"
 
 # runc
 curl_to "$TMP_BIN/runc" \
@@ -188,11 +185,6 @@ export DESTDIR=test/
 EXP_CNT=66
 if ! command -v runc; then
     EXP_CNT=$((EXP_CNT + 1))
-fi
-
-# TODO: remove when conmon ppc64le releases exists
-if [[ $ARCH == "$ARCH_PPC64LE" ]]; then
-    EXP_CNT=$((EXP_CNT - 1))
 fi
 
 ACT_CNT=$(find test | wc -l)
