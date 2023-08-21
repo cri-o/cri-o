@@ -176,12 +176,53 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 }
 
 func (c *container) specInjectCDIDevices() error {
-	// TODO: Once CRI is extended with native CDI support this will need to be updated...
-	_, names, err := cdi.ParseAnnotations(c.Config().GetAnnotations())
+	var (
+		cdiDevices = c.Config().CDIDevices
+		fromCRI    = map[string]struct{}{}
+		requested  = make([]string, 0, len(cdiDevices))
+		annotated  []string
+		err        error
+	)
+
+	// Take CDI devices from the dedicated CDIDevices CRI field.
+	for _, dev := range cdiDevices {
+		requested = append(requested, dev.Name)
+		fromCRI[dev.Name] = struct{}{}
+	}
+
+	// Extract CDI devices from annotations which is still supported as a means
+	// of injecting CDI devices to give people time to update their DRA drivers.
+	// TODO(klihub): Change the log message to a warning once annotations are
+	// deprecated, and to an error once support is removed altogether.
+	_, annotated, err = cdi.ParseAnnotations(c.Config().GetAnnotations())
 	if err != nil {
 		return fmt.Errorf("failed to parse CDI device annotations: %w", err)
 	}
-	if names == nil {
+
+	// Allow injecting the same device using both a dedicated field and an
+	// annotation. This helps the transition from annotations to dedicated
+	// CDI fields. DRA drivers can be updated to first inject devices using
+	// both. This allows updated drivers to be used in clusters that still
+	// talk old, pre-CDIDevices CRI. Then once annotations are deprecated
+	// drivers can be updated to stop using annotations. This also mirrors
+	// the behavior implemented in containerd.
+	if len(annotated) > 0 {
+		for _, name := range annotated {
+			if _, ok := fromCRI[name]; ok {
+				// TODO(klihub): change to a warning once annotations are deprecated
+				log.Infof(context.TODO(),
+					"Skipping duplicate annotated CDI device %s", name)
+				continue
+			}
+			requested = append(requested, name)
+		}
+		// TODO(klihub): change to a warning once annotations are deprecated
+		log.Infof(context.TODO(),
+			"Passing CDI devices as annotations will be deprecated soon "+
+				"please use the CDIDevices CRI field instead")
+	}
+
+	if len(requested) == 0 {
 		return nil
 	}
 
@@ -196,7 +237,7 @@ func (c *container) specInjectCDIDevices() error {
 		log.Warnf(context.TODO(), "CDI registry has errors: %v", err)
 	}
 
-	if _, err := registry.InjectDevices(c.Spec().Config, names...); err != nil {
+	if _, err := registry.InjectDevices(c.Spec().Config, requested...); err != nil {
 		return fmt.Errorf("CDI device injection failed: %w", err)
 	}
 
