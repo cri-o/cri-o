@@ -150,7 +150,7 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           pushFilter: cri-o
       - run: nix-build nix/default-arm64.nix
-      - run: file result/bin/crio
+      - run: file result/bin/crio | grep aarch64
       - uses: actions/upload-artifact@v3
         with:
           name: build-static-arm64
@@ -172,7 +172,7 @@ jobs:
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           pushFilter: cri-o
       - run: nix-build nix/default-ppc64le.nix
-      - run: file result/bin/crio
+      - run: file result/bin/crio | grep PowerPC
       - uses: actions/upload-artifact@v3
         with:
           name: build-static-ppc64le
@@ -257,6 +257,22 @@ jobs:
           name: bundle
           path: build/bundle
       - run: make bundle-test-e2e-conmonrs
+
+  bundle-test-kubernetes:
+    runs-on: macos-12
+    needs: bundles
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.vagrant.d/boxes
+          key: e2e-fedora-${{ hashFiles('hack/ci/Vagrantfile-fedora') }}
+      - uses: actions/download-artifact@v3
+        with:
+          name: bundle
+          path: build/bundle
+      - run: make bundle-test-kubernetes
 
   sign-artifacts:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
