@@ -98,6 +98,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'E
        be enabled for testing purposes**. For increased security, users should add
        their CA to their system\'s list of trusted CAs instead of using
        \'--insecure-registry\'.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l internal-repair -d 'If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l internal-wipe -d 'Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l irqbalance-config-file -r -d 'The irqbalance service config file which is used by CRI-O.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l irqbalance-config-restore-file -r -d 'Determines if CRI-O should attempt to restore the irqbalance config at startup with the mask in this file. Use the \'disable\' value to disable the restore flow entirely.'

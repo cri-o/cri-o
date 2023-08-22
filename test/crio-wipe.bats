@@ -320,3 +320,26 @@ function start_crio_with_stopped_pod() {
 	# make sure network resources were cleaned up
 	run ! ls "$CNI_RESULTS_DIR"/*"$pod_id"*
 }
+
+@test "clean up image if corrupted on server restore" {
+	setup_crio
+	touch "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
+
+	# Remove a random layer
+	layer=$(find "$TESTDIR/crio/overlay" -maxdepth 1 -regextype sed -regex '.*/[a-f0-9\-]\{64\}.*' | sort -R | head -n 1)
+	rm -fr "$layer"
+
+	# Since the clean shutdown supported file is created,
+	# but the clean shutdown file is absent, we will do the
+	# c/storage check/repair.
+	CONTAINER_INTERNAL_REPAIR=true start_crio_no_setup
+
+	# Since one of the layers was removed, the image would be corrupted, so we expect
+	# one to have been removed.
+	num_images=${#IMAGES[@]}
+
+	# We start with $num_images images, and remove one with the layer removal above.
+	# `crictl images` adds one additional row for the table header.
+	# Thus, this is really $(crictl images | wc -l) - 1 (for the removed image) + 1 (for the header).
+	[[ $(crictl images | wc -l) == "$num_images" ]]
+}

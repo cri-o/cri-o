@@ -168,6 +168,9 @@ type RootConfig struct {
 	// If set to false, one must use the external command `crio wipe` to wipe the containers and images in these situations.
 	// The option InternalWipe is deprecated, and will be removed in a future release.
 	InternalWipe bool `toml:"internal_wipe"`
+
+	// InternalRepair is used to repair the affected images.
+	InternalRepair bool `toml:"internal_repair"`
 }
 
 // GetStore returns the container storage for a given configuration
@@ -810,6 +813,7 @@ func DefaultConfig() (*Config, error) {
 			VersionFile:       CrioVersionPathTmp,
 			CleanShutdownFile: CrioCleanShutdownFile,
 			InternalWipe:      true,
+			InternalRepair:    false,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
