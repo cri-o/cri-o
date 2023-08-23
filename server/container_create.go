@@ -232,11 +232,12 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	}
 	if genPasswd {
 		// verify uid exists in containers /etc/passwd, else generate a passwd with the user entry
-		passwdPath, err := utils.GeneratePasswd(containerUser, uid, gid, homedir, rootfs, ctrRunDir)
+		passwdPath, shadowPath, err := utils.GeneratePasswd(containerUser, uid, gid, homedir, rootfs, ctrRunDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate passwd: %w", err)
 		}
 		if passwdPath != "" {
+			log.Infof(ctx, "Mounting custom /etc/passwd path")
 			if err := securityLabel(passwdPath, mountLabel, false, false); err != nil {
 				return err
 			}
@@ -248,6 +249,19 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 				Options:     []string{"rw", "bind", "nodev", "nosuid", "noexec"},
 			}
 			specgen.AddMount(mnt)
+		}
+		if shadowPath != "" {
+			log.Infof(ctx, "Mounting custom /etc/shadow path")
+			if err := securityLabel(shadowPath, mountLabel, false, false); err != nil {
+				return fmt.Errorf("change shadow security label: %w", err)
+			}
+
+			specgen.AddMount(rspec.Mount{
+				Type:        "bind",
+				Source:      shadowPath,
+				Destination: "/etc/shadow",
+				Options:     []string{"rw", "bind", "nodev", "nosuid", "noexec"},
+			})
 		}
 	}
 
