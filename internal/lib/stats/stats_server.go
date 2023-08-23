@@ -48,11 +48,16 @@ func New(cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
 		shutdown:             make(chan struct{}, 1),
 		alreadyShutdown:      false,
-		collectionPeriod:     time.Duration(cs.Config().StatsCollectionPeriod) * time.Second,
+		collectionPeriod:     time.Duration(cs.Config().CollectionPeriod) * time.Second,
 		sboxStats:            make(map[string]*types.PodSandboxStats),
 		ctrStats:             make(map[string]*types.ContainerStats),
 		customSandboxMetrics: make(map[string]*SandboxMetrics),
 		parentServerIface:    cs,
+	}
+	// Check if StatsCollectionPeriod is set and CollectionPeriod is not
+	// until we remove StatsCollectionPeriod completely from the crio config.
+	if ss.collectionPeriod == 0 && cs.Config().CollectionPeriod != 0 {
+		ss.collectionPeriod = time.Duration(cs.Config().CollectionPeriod) * time.Second
 	}
 	go ss.updateLoop()
 	return ss
@@ -184,6 +189,8 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 					metrics = append(metrics, networkMetrics...)
 				}
 			}
+		default:
+			logrus.Warnf("Unknown or misspelled metric: %s", metric)
 		}
 	}
 
@@ -204,7 +211,7 @@ func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics
 	// Reset metrics for the next iteration
 	sm.ResetMetricsForSandbox()
 
-	includedMetrics := []string{"cpu", "memory", "network"} // Hardcoded for now
+	includedMetrics := ss.Config().IncludedPodMetrics
 	allMetrics := ss.GenerateAllSandboxMetrics(sb, includedMetrics, sm)
 	for _, m := range allMetrics {
 		sm.AddMetricToSandbox(m)

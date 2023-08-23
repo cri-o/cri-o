@@ -390,6 +390,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stats-collection-period") {
 		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
+	if ctx.IsSet("collection-period") {
+		config.CollectionPeriod = ctx.Int("collection-period")
+	}
+	if ctx.IsSet("included_pod_metrics") {
+		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included_pod_metrics")
+	}
 	if ctx.IsSet("enable-pod-events") {
 		config.EnablePodEvents = ctx.Bool("enable-pod-events")
 	}
@@ -1109,8 +1115,20 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.IntFlag{
 			Name:    "stats-collection-period",
 			Value:   defConf.StatsCollectionPeriod,
-			Usage:   "The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.",
+			Usage:   "The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. This option is deprecated and will be removed in the future.",
 			EnvVars: []string{"CONTAINER_STATS_COLLECTION_PERIOD"},
+		},
+		&cli.IntFlag{
+			Name:    "collection-period",
+			Value:   defConf.CollectionPeriod,
+			Usage:   "The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.",
+			EnvVars: []string{"COLLECTION_PERIOD"},
+		},
+		&cli.StringSliceFlag{
+			Name:    "included_pod_metrics",
+			Usage:   "A list of included pod metrics. Specify the names of the metrics to be included in this list.",
+			EnvVars: []string{"CONTAINER_INCLUDED_POD_METRCIS"},
+			Value:   cli.NewStringSlice(defConf.IncludedPodMetrics...),
 		},
 		&cli.BoolFlag{
 			Name:    "enable-criu-support",

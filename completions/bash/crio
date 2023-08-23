@@ -28,6 +28,7 @@ h
 --cni-config-dir
 --cni-default-network
 --cni-plugin-dir
+--collection-period
 --config
 --config-dir
 --conmon
@@ -60,6 +61,7 @@ h
 --hooks-dir
 --hostnetwork-disable-selinux
 --image-volumes
+--included_pod_metrics
 --infra-ctr-cpuset
 --insecure-registry
 --internal-repair

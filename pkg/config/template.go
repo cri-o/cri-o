@@ -586,6 +586,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.StatsCollectionPeriod, c.StatsCollectionPeriod),
 		},
 		{
+			templateString: templateStringCrioStatsCollectionPeriod,
+			group:          crioStatsConfig,
+			isDefaultValue: simpleEqual(dc.CollectionPeriod, c.CollectionPeriod),
+		},
+		{
+			templateString: templateStringCrioStatsIncludedPodMetrics,
+			group:          crioNetworkConfig,
+			isDefaultValue: stringSliceEqual(dc.IncludedPodMetrics, c.IncludedPodMetrics),
+		},
+		{
 			templateString: templateStringCrioNRIEnable,
 			group:          crioNRIConfig,
 			isDefaultValue: simpleEqual(dc.NRI.Enabled, c.NRI.Enabled),
@@ -1506,6 +1516,18 @@ const templateStringCrioStats = `# Necessary information pertaining to container
 const templateStringCrioStatsStatsCollectionPeriod = `# The number of seconds between collecting pod and container stats.
 # If set to 0, the stats are collected on-demand instead.
 {{ $.Comment }}stats_collection_period = {{ .StatsCollectionPeriod }}
+
+`
+
+const templateStringCrioStatsCollectionPeriod = `# The number of seconds between collecting pod/container stats and pod
+# sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.
+{{ $.Comment }}collection_period = {{ .CollectionPeriod }}
+
+`
+
+const templateStringCrioStatsIncludedPodMetrics = `# List of included pod metrics.
+{{ $.Comment }}included_pod_metrics = [
+{{ range $opt := .IncludedPodMetrics }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 
