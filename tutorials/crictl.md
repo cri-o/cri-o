@@ -18,9 +18,8 @@ This section will walk you through installing the following components:
 
 ### Get crictl
 
-```shell
-go get github.com/kubernetes-sigs/cri-tools/cmd/crictl
-```
+See [install-crictl](https://github.com/kubernetes-sigs/cri-tools#install) for details
+on how to install crictl.
 
 ### Ensure the CRI-O service is running
 
@@ -99,7 +98,13 @@ Info: # Redacted
 
 ### Create a Redis container inside the Pod
 
-Use the `crictl` command to pull the Redis image, create a Redis container from
+Use the `crictl` command to pull the Redis image.
+
+```shell
+sudo crictl pull quay.io/crio/fedora-crio-ci:latest
+```
+
+Create a Redis container from
 a container configuration and attach it to the Pod created earlier,
 while capturing the container ID:
 
