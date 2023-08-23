@@ -1016,11 +1016,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	if !s.config.EnablePodEvents {
 		return
 	}
-	if err := s.Runtime().UpdateContainerStatus(ctx, container); err != nil {
-		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to update the container status %s: %v", eventType, container.ID(), err)
-		return
-	}
-
+	
 	if !s.HasSandbox(container.Sandbox()) {
 		return
 	}
