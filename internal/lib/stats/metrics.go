@@ -1,6 +1,7 @@
 package statsserver
 
 import (
+	"reflect"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -117,6 +118,78 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				Name:      "container_fs_usage_bytes",
 				Help:      "Number of bytes that are consumed by the container on this filesystem.",
 				LabelKeys: append(baseLabelKeys, "device"),
+			},
+		},
+		"diskio": {
+			{
+				Name:      "container_fs_reads_bytes_total",
+				Help:      "Cumulative count of bytes read",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_reads_total",
+				Help:      "Cumulative count of reads completed",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_sector_reads_total",
+				Help:      "Cumulative count of sector reads completed",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_reads_merged_total",
+				Help:      "Cumulative count of reads merged",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_read_seconds_total",
+				Help:      "Cumulative count of seconds spent reading",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_writes_bytes_total",
+				Help:      "Cumulative count of bytes written",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_writes_total",
+				Help:      "Cumulative count of writes completed",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_sector_writes_total",
+				Help:      "Cumulative count of sector writes completed",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_writes_merged_total",
+				Help:      "Cumulative count of writes merged",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_write_seconds_total",
+				Help:      "Cumulative count of seconds spent writing",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_io_current",
+				Help:      "Number of I/Os currently in progress",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_io_time_seconds_total",
+				Help:      "Cumulative count of seconds spent doing I/Os",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_fs_io_time_weighted_seconds_total",
+				Help:      "Cumulative weighted I/O time in seconds",
+				LabelKeys: append(baseLabelKeys, "device"),
+			},
+			{
+				Name:      "container_blkio_device_usage_total",
+				Help:      "Blkio Device bytes usage",
+				LabelKeys: append(baseLabelKeys, "device", "major", "minor", "operation"),
 			},
 		},
 		"memory": {
@@ -304,22 +377,9 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, stats interface{}, container []C
 // findExistingMetric finds an existing metric with the same label values.
 func findExistingMetric(metrics []*types.Metric, name string, values, labels []string) *types.Metric {
 	for _, m := range metrics {
-		if m.Name == name && equalStringSlices(m.LabelValues, append(values, labels...)) {
+		if m.Name == name && reflect.DeepEqual(m.LabelValues, append(values, labels...)) {
 			return m
 		}
 	}
 	return nil
-}
-
-// equalStringSlices checks if two string slices are equal.
-func equalStringSlices(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
 }

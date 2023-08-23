@@ -1,6 +1,7 @@
 package statsserver
 
 import (
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -56,7 +57,7 @@ var (
 			valueFunc: func(stats interface{}) metricValues {
 				mem := stats.(*cgroups.MemoryStats)
 				var value uint64
-				if cgroups.IsCgroup2UnifiedMode() {
+				if node.CgroupIsV2() {
 					value = mem.Stats["file_mapped"]
 				} else if mem.UseHierarchy {
 					value = mem.Stats["total_mapped_file"]
@@ -126,7 +127,7 @@ var (
 				mem := stats.(*cgroups.MemoryStats)
 				var workingSet uint64
 				inactiveFileKeyName := "total_inactive_file"
-				if cgroups.IsCgroup2UnifiedMode() {
+				if node.CgroupIsV2() {
 					inactiveFileKeyName = "inactive_file"
 				}
 				workingSet = mem.Usage.Usage
