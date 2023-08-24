@@ -302,6 +302,13 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				LabelKeys: append(baseLabelKeys, "interface"),
 			},
 		},
+		"oom": {
+			{
+				Name:      "container_oom_events_total",
+				Help:      "Count of out of memory events observed for the container",
+				LabelKeys: baseLabelKeys,
+			},
+		},
 		"processes": {
 			{
 				Name:      "container_processes",
