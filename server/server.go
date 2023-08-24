@@ -1016,7 +1016,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	if !s.config.EnablePodEvents {
 		return
 	}
-	
+
 	if !s.HasSandbox(container.Sandbox()) {
 		return
 	}
