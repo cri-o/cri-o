@@ -25,7 +25,7 @@ pushd cri-o
 
 # Start CRI-O
 systemctl daemon-reload
-systemctl start crio
+systemctl start crio || (journalctl -xeu crio.service && exit 1)
 systemctl is-active --quiet crio && echo CRI-O is running
 
 # Run a workload
