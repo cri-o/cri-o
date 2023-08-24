@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -99,6 +103,22 @@ func (ss *StatsServer) GetSandboxCgroupStats(sb *sandbox.Sandbox) (*cgmgr.Cgroup
 		return nil, err
 	}
 	return sbCgroupStats, nil
+}
+
+func (ss *StatsServer) GetCgroupManager(sb *sandbox.Sandbox) (cgroups.Manager, error) {
+	cg := &cgcfgs.Cgroup{
+		Name:   filepath.Base(sb.CgroupParent()),
+		Parent: sb.CgroupParent(),
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	mgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return nil, err
+	}
+
+	return mgr, nil
 }
 
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
@@ -189,6 +209,14 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 					metrics = append(metrics, networkMetrics...)
 				}
 			}
+		case "oom":
+			cm, err := ss.GetCgroupManager(sb)
+			if err != nil {
+				logrus.Errorf("Unable to fetch cgroup manager %s: %v", sb.ID(), err)
+				return nil
+			}
+			oomMetrics := GenerateSandboxOOMMetrics(sb, cm, sm)
+			metrics = append(metrics, oomMetrics...)
 		default:
 			logrus.Warnf("Unknown or misspelled metric: %s", metric)
 		}

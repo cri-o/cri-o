@@ -188,6 +188,30 @@ var (
 	}
 )
 
+var (
+	oomMetrics []ContainerStats = []ContainerStats{
+		{
+			desc: &types.MetricDescriptor{
+				Name:      "container_oom_events_total",
+				Help:      "Count of out of memory events observed for the container",
+				LabelKeys: baseLabelKeys,
+			},
+			valueFunc: func(stats interface{}) metricValues {
+				mem := stats.(cgroups.Manager)
+				count, err := mem.OOMKillCount()
+				if err != nil {
+					count = 0
+				}
+				return metricValues{{value: count, metricType: types.MetricType_COUNTER}}
+			},
+		},
+	}
+)
+
 func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *cgroups.MemoryStats, sm *SandboxMetrics) []*types.Metric {
 	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory", sm)
+}
+
+func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c cgroups.Manager, sm *SandboxMetrics) []*types.Metric {
+	return ComputeSandboxMetrics(sb, c, oomMetrics, "oom", sm)
 }
