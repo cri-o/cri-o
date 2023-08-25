@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/buildah/util"
 	"github.com/containers/common/pkg/subscriptions"
+	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/pkg/rootless"
 	selinux "github.com/containers/podman/v4/pkg/selinux"
 	cstorage "github.com/containers/storage"
