@@ -3,6 +3,7 @@ package runtimehandlerhooks
 import (
 	"context"
 
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 )
@@ -28,7 +29,7 @@ func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *san
 func (*DefaultCPULoadBalanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	// Disable cpuset.sched_load_balance for all stale cgroups.
 	// This way, cpumanager can ignore stopped containers, but the running ones will still have exclusive access.
-	if c.Spoofed() {
+	if c.Spoofed() || node.CgroupIsV2() {
 		return nil
 	}
 
@@ -37,5 +38,5 @@ func (*DefaultCPULoadBalanceHooks) PostStop(ctx context.Context, c *oci.Containe
 		return err
 	}
 
-	return disableCPULoadBalancing(containerManagers)
+	return disableCPULoadBalancingV1(containerManagers)
 }
