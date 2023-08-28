@@ -38,7 +38,7 @@ dependencies:
       match: version
 
   - name: conmon
-    version: v2.1.7
+    version: v2.1.8
     refPaths:
     - path: scripts/versions
       match: conmon
@@ -60,7 +60,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 1.8.5
+    version: 1.8.7
     refPaths:
     - path: scripts/versions
       match: crun
