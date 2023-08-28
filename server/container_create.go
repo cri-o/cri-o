@@ -238,20 +238,29 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		}
 	}
 	if genPasswd {
-		// verify uid exists in containers /etc/passwd, else generate a passwd with the user entry
-		passwdPath, err := utils.GeneratePasswd(containerUser, uid, gid, homedir, rootfs, ctrRunDir)
+		// verify uid exists in containers /etc/passwd, else generate a passwd/shadow with the user entry
+		passwdPath, shadowPath, err := utils.GeneratePasswd(ctx, containerUser, uid, gid, homedir, rootfs, ctrRunDir)
 		if err != nil {
-			return err
+			return fmt.Errorf("generate passwd: %w", err)
 		}
-		if passwdPath != "" {
-			if err := securityLabel(passwdPath, mountLabel, false, false); err != nil {
-				return err
+
+		for k, v := range map[string]string{
+			"/etc/passwd": passwdPath,
+			"/etc/shadow": shadowPath,
+		} {
+			if v == "" {
+				continue
+			}
+
+			log.Debugf(ctx, "Mounting custom %q path: %q", k, v)
+			if err := securityLabel(v, mountLabel, false, false); err != nil {
+				return fmt.Errorf("apply security label: %w", err)
 			}
 
 			mnt := rspec.Mount{
 				Type:        "bind",
-				Source:      passwdPath,
-				Destination: "/etc/passwd",
+				Source:      v,
+				Destination: k,
 				Options:     []string{"rw", "bind", "nodev", "nosuid", "noexec"},
 			}
 			specgen.AddMount(mnt)

@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"strconv"
 
 	"github.com/containers/podman/v4/pkg/lookup"
+	"github.com/cri-o/cri-o/internal/log"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
@@ -196,41 +198,41 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd
-func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
+func GeneratePasswd(ctx context.Context, username string, uid, gid uint32, homedir, rootfs, rundir string) (passwdFile, shadowFile string, err error) {
 	// if UID exists inside of container rootfs /etc/passwd then
 	// don't generate passwd
 	if _, err := lookup.GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
-		return "", nil
+		return "", "", nil
 	}
-	passwdFile := filepath.Join(rundir, "passwd")
+	passwdFile = filepath.Join(rundir, "passwd")
 	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
 	if err != nil {
-		return "", fmt.Errorf("unable to follow symlinks to passwd file: %w", err)
+		return "", "", fmt.Errorf("unable to follow symlinks to passwd file: %w", err)
 	}
 	var st unix.Stat_t
 	err = unix.Stat(originPasswdFile, &st)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return "", nil
+			return "", "", nil
 		}
-		return "", fmt.Errorf("unable to stat passwd file %s: %w", originPasswdFile, err)
+		return "", "", fmt.Errorf("unable to stat passwd file %s: %w", originPasswdFile, err)
 	}
 	// Check if passwd file is world writable.
 	if st.Mode&0o022 != 0 {
-		return "", nil
+		return "", "", nil
 	}
 
 	if uid == st.Uid && st.Mode&0o200 != 0 {
-		return "", nil
+		return "", "", nil
 	}
 
 	orig, err := os.ReadFile(originPasswdFile)
 	if err != nil {
 		// If no /etc/passwd in container ignore and return
 		if os.IsNotExist(err) {
-			return "", nil
+			return "", "", nil
 		}
-		return "", fmt.Errorf("read passwd file: %w", err)
+		return "", "", fmt.Errorf("read passwd file: %w", err)
 	}
 	if username == "" {
 		username = "default"
@@ -240,13 +242,49 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	}
 	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
 	if err := os.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create temporary passwd file: %w", err)
+		return "", "", fmt.Errorf("failed to create temporary passwd file: %w", err)
 	}
 	if err := os.Chown(passwdFile, int(st.Uid), int(st.Gid)); err != nil {
-		return "", fmt.Errorf("failed to chown temporary passwd file: %w", err)
+		return "", "", fmt.Errorf("failed to chown temporary passwd file: %w", err)
 	}
 
-	return passwdFile, nil
+	// Update /etc/shadow accordingly if present
+	originShadowFile, err := securejoin.SecureJoin(rootfs, "/etc/shadow")
+	if err != nil {
+		log.Debugf(ctx, "Unable to follow symlink to shadow file: %v", err)
+		return passwdFile, "", nil
+	}
+	var sts unix.Stat_t
+	if err := unix.Stat(originShadowFile, &sts); err != nil {
+		if os.IsNotExist(err) {
+			log.Debugf(ctx, "Shadow file does not exist")
+			return passwdFile, "", nil
+		}
+		log.Debugf(ctx, "Unable to stat shadow file: %v", err)
+		return passwdFile, "", nil
+	}
+
+	origShadowFileContent, err := os.ReadFile(originShadowFile)
+	if err != nil {
+		// If no /etc/shadow in container ignore and return
+		if os.IsNotExist(err) {
+			log.Debugf(ctx, "No shadow file in container, ignoring")
+			return passwdFile, "", nil
+		}
+		log.Debugf(ctx, "Unable to read shadow file: %v", err)
+		return passwdFile, "", nil
+	}
+	newShadowFileContent := fmt.Sprintf("%s%s:!::0:::::\n", origShadowFileContent, username)
+	shadowFile = filepath.Join(rundir, "shadow")
+	if err := os.WriteFile(shadowFile, []byte(newShadowFileContent), os.FileMode(sts.Mode)&os.ModePerm); err != nil {
+		log.Debugf(ctx, "Unable to write shadow file: %v", err)
+		return passwdFile, "", nil
+	}
+	if err := os.Chown(shadowFile, int(sts.Uid), int(sts.Gid)); err != nil {
+		return passwdFile, "", nil
+	}
+
+	return passwdFile, shadowFile, nil
 }
 
 // Int32Ptr is a utility function to assign to integer pointer variables

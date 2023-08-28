@@ -2,6 +2,7 @@ package utils_test
 
 import (
 	"bytes"
+	"context"
 	"os"
 	"path/filepath"
 	"strings"
@@ -207,9 +208,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "root")
@@ -226,9 +228,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon")
@@ -245,9 +248,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "25")
@@ -264,9 +268,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).ToNot(BeEmpty())
+			Expect(shadowFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300")
@@ -290,9 +295,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon:mail")
@@ -309,9 +315,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "2:22")
@@ -328,9 +335,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).To(BeEmpty())
+			Expect(shadowFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon:250")
@@ -347,9 +355,14 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).ToNot(BeEmpty())
+			Expect(shadowFile).ToNot(BeEmpty())
+
+			shadowContent, err := os.ReadFile(shadowFile)
+			Expect(err).To(BeNil())
+			Expect(shadowContent).To(ContainSubstring("default:!::0:::::"))
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:250")
@@ -366,9 +379,10 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).To(BeNil())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
-			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
+			passwdFile, shadowFile, err := utils.GeneratePasswd(context.Background(), "", uid, gid, "", dir, dir)
 			Expect(err).To(BeNil())
 			Expect(passwdFile).ToNot(BeEmpty())
+			Expect(shadowFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:mail")
@@ -413,6 +427,35 @@ ntp:x:123:123:NTP:/var/empty:/sbin/nologin
 smmsp:x:209:209:smmsp:/var/spool/mqueue:/sbin/nologin
 guest:x:405:100:guest:/dev/null:/sbin/nologin
 nobody:x:65534:65534:nobody:/:/sbin/nologin`
+
+	alpineShadowFile := `root:*::0:::::
+bin:!::0:::::
+daemon:!::0:::::
+adm:!::0:::::
+lp:!::0:::::
+sync:!::0:::::
+shutdown:!::0:::::
+halt:!::0:::::
+mail:!::0:::::
+news:!::0:::::
+uucp:!::0:::::
+operator:!::0:::::
+man:!::0:::::
+postmaster:!::0:::::
+cron:!::0:::::
+ftp:!::0:::::
+sshd:!::0:::::
+at:!::0:::::
+squid:!::0:::::
+xfs:!::0:::::
+games:!::0:::::
+cyrus:!::0:::::
+vpopmail:!::0:::::
+ntp:!::0:::::
+smmsp:!::0:::::
+guest:!::0:::::
+nobody:!::0:::::
+`
 
 	alpineGroupFile := `root:x:0:root
 bin:x:1:root,bin,daemon
@@ -468,6 +511,8 @@ nobody:x:65534:`
 	err = os.Mkdir(filepath.Join(dir, "etc"), 0o755)
 	Expect(err).To(BeNil())
 	err = os.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0o755)
+	Expect(err).To(BeNil())
+	err = os.WriteFile(filepath.Join(dir, "etc", "shadow"), []byte(alpineShadowFile), 0o640)
 	Expect(err).To(BeNil())
 	err = os.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
 	Expect(err).To(BeNil())
