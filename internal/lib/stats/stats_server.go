@@ -132,7 +132,10 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if err != nil {
 		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
 	}
-
+	if sbCgroupStats == nil {
+		logrus.Info("Sandbox stats are not available.")
+		return nil
+	}
 	sandboxStats := cgmgrStatsToCRISandbox(sbCgroupStats, sb)
 	if err := ss.populateNetworkUsage(sandboxStats, sb); err != nil {
 		logrus.Errorf("Error adding network stats for sandbox %s: %v", sb.ID(), err)
@@ -146,6 +149,10 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		cCgroupStats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
 		if err != nil {
 			logrus.Errorf("Error getting container stats %s: %v", c.ID(), err)
+			continue
+		}
+		if cCgroupStats == nil {
+			logrus.Info("Container stats are not available.")
 			continue
 		}
 		cStats := cgmgrStatsToCRIContainer(cCgroupStats, c)
@@ -169,38 +176,38 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 	var metrics []*types.Metric
 
 	var sbCgroupStats *cgmgr.CgroupStats
-	var links []netlink.Link
 	var err error
 
 	for _, metric := range includedMetrics {
 		switch metric {
-		case "cpu":
+		case "cpu", "memory":
 			if sbCgroupStats == nil {
 				sbCgroupStats, err = ss.GetSandboxCgroupStats(sb)
 				if err != nil {
 					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
 					return nil
 				}
-			}
-			cpuMetrics := GenerateSandboxCPUMetrics(sb, &sbCgroupStats.MostStats.CpuStats, sm)
-			metrics = append(metrics, cpuMetrics...)
-		case "memory":
-			if sbCgroupStats == nil {
-				sbCgroupStats, err = ss.GetSandboxCgroupStats(sb)
-				if err != nil {
-					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+				if sbCgroupStats == nil {
+					logrus.Infof("Sandbox cgroup stats are not available for metric: %s", metric)
 					return nil
 				}
 			}
-			memoryMetrics := GenerateSandboxMemoryMetrics(sb, &sbCgroupStats.MostStats.MemoryStats, sm)
-			metrics = append(metrics, memoryMetrics...)
+			if metric == "cpu" {
+				cpuMetrics := GenerateSandboxCPUMetrics(sb, &sbCgroupStats.MostStats.CpuStats, sm)
+				metrics = append(metrics, cpuMetrics...)
+			} else if metric == "memory" {
+				memoryMetrics := GenerateSandboxMemoryMetrics(sb, &sbCgroupStats.MostStats.MemoryStats, sm)
+				metrics = append(metrics, memoryMetrics...)
+			}
 		case "network":
-			if links == nil {
-				links, err = netlink.LinkList()
-				if err != nil {
-					logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
-					return nil
-				}
+			links, err := netlink.LinkList()
+			if err != nil {
+				logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
+				return nil
+			}
+			if len(links) == 0 {
+				logrus.Infof("Network links are not available.")
+				return nil
 			}
 			for i := range links {
 				attrs := links[i].Attrs()
