@@ -12,16 +12,13 @@ import (
 // The actual test suite
 var _ = t.Describe("Stats", func() {
 	t.Describe("UpdateWithMemoryStatsFromFile", func() {
-		var (
-			file   string
-			memory *cgmgr.CgroupMemoryStats
-		)
+		var file string
 		BeforeEach(func() {
 			file = t.MustTempFile("memoryStatFile")
-			memory = &cgmgr.CgroupMemoryStats{}
 		})
 		It("fail if invalid file", func() {
-			Expect(cgmgr.MemoryStatsFromFile("invalid", "", 0)).NotTo(BeNil())
+			_, err := cgmgr.MemoryStatsFromFile("invalid", "", 0)
+			Expect(err).ToNot(BeNil())
 		})
 		It("should get stats from file", func() {
 			var (
@@ -37,11 +34,14 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)).To(BeNil())
-			Expect(memory.Rss).To(Equal(rssVal))
-			Expect(memory.PgFault).To(Equal(pgFaultVal))
-			Expect(memory.PgMajFault).To(Equal(pgMajFaultVal))
-			Expect(memory.WorkingSet).To(Equal(expectedUsage))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)
+			Expect(err).To(BeNil())
+			Expect(memStats).NotTo(BeNil())
+
+			Expect(memStats.Rss).To(Equal(rssVal))
+			Expect(memStats.PgFault).To(Equal(pgFaultVal))
+			Expect(memStats.PgMajFault).To(Equal(pgMajFaultVal))
+			Expect(memStats.WorkingSet).To(Equal(expectedUsage))
 		})
 		It("should get stats from file with different inactive search string", func() {
 			var (
@@ -53,8 +53,11 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)).To(BeNil())
-			Expect(memory.WorkingSet).To(Equal(expectedUsage))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)
+			Expect(err).To(BeNil())
+			Expect(memStats).NotTo(BeNil())
+
+			Expect(memStats.WorkingSet).To(Equal(expectedUsage))
 		})
 		It("should fail from invalid", func() {
 			var (
@@ -65,7 +68,9 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, 0)).NotTo(BeNil())
+			_, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, 0)
+
+			Expect(err).NotTo(BeNil())
 		})
 		It("should not set WorkingSetBytes if negative", func() {
 			var (
@@ -77,8 +82,10 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, usage)).To(BeNil())
-			Expect(memory.WorkingSet).To(Equal(uint64(0)))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, usage)
+
+			Expect(err).To(BeNil())
+			Expect(memStats.WorkingSet).To(Equal(uint64(0)))
 		})
 	})
 })
