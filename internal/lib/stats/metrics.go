@@ -20,7 +20,7 @@ type metricValues []metricValue
 
 type ContainerStats struct {
 	desc      *types.MetricDescriptor
-	valueFunc func(stats interface{}) metricValues
+	valueFunc func() metricValues
 }
 
 type SandboxMetrics struct {
@@ -51,12 +51,12 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	}
 }
 
-func (sm *SandboxMetrics) ResetMetricsForSandbox() {
-	sm.next.Metrics = []*types.Metric{} // Reset metrics for the next iteration
+func (s *SandboxMetrics) ResetMetricsForSandbox() {
+	s.next.Metrics = []*types.Metric{} // Reset metrics for the next iteration
 }
 
-func (sm *SandboxMetrics) AddMetricToSandbox(m *types.Metric) {
-	sm.next.Metrics = append(sm.next.Metrics, m)
+func (s *SandboxMetrics) AddMetricToSandbox(m *types.Metric) {
+	s.next.Metrics = append(s.next.Metrics, m)
 }
 
 // store metricdescriptors statically at startup, populate the list
@@ -358,11 +358,11 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 	return []string{sb.ID(), "POD", ""}
 }
 
-func ComputeSandboxMetrics(sb *sandbox.Sandbox, stats interface{}, container []ContainerStats, metric string, sm *SandboxMetrics) []*types.Metric {
+func ComputeSandboxMetrics(sb *sandbox.Sandbox, container []*ContainerStats, metric string, sm *SandboxMetrics) []*types.Metric {
 	values := append(sandboxBaseLabelValues(sb), metric)
 	metrics := make([]*types.Metric, 0, len(container))
 	for _, m := range container {
-		metricValues := m.valueFunc(stats)
+		metricValues := m.valueFunc()
 		if len(metricValues) == 0 {
 			// No metrics to process for this ContainerStats, move to the next one
 			continue

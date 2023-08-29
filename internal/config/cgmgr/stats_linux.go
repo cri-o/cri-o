@@ -142,7 +142,7 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	// conversion to uint64 needed to build on 32-bit
 	// but lint complains about unnecessary conversion
 	// see: pr#2409
-	physicalMemory := uint64(si.Totalram)
+	physicalMemory := uint64(si.Totalram) //nolint:unconvert
 
 	// If the cgroup limit exceeds the available physical memory, use the physical memory as the limit
 	if cgroupLimit > physicalMemory {
