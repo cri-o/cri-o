@@ -915,10 +915,10 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 		return nil, fmt.Errorf("unknown stats type %T", stats)
 	}
 
-	return metricsToCtrStats(ctx, c, m), nil
+	return metricsToCtrStats(ctx, m), nil
 }
 
-func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *cgmgr.CgroupStats {
+func metricsToCtrStats(ctx context.Context, m *cgroups.Metrics) *cgmgr.CgroupStats {
 	var (
 		cpuNano         uint64
 		memLimit        uint64
