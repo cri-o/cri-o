@@ -59,7 +59,7 @@ crio
 [--hooks-dir]=[value]
 [--hostnetwork-disable-selinux]
 [--image-volumes]=[value]
-[--included_pod_metrics]=[value]
+[--included-pod-metrics]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
 [--internal-repair]

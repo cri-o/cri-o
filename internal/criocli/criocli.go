@@ -393,8 +393,8 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("collection-period") {
 		config.CollectionPeriod = ctx.Int("collection-period")
 	}
-	if ctx.IsSet("included_pod_metrics") {
-		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included_pod_metrics")
+	if ctx.IsSet("included-pod-metrics") {
+		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
 	}
 	if ctx.IsSet("enable-pod-events") {
 		config.EnablePodEvents = ctx.Bool("enable-pod-events")
@@ -1125,7 +1125,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"COLLECTION_PERIOD"},
 		},
 		&cli.StringSliceFlag{
-			Name:    "included_pod_metrics",
+			Name:    "included-pod-metrics",
 			Usage:   "A list of included pod metrics. Specify the names of the metrics to be included in this list.",
 			EnvVars: []string{"CONTAINER_INCLUDED_POD_METRCIS"},
 			Value:   cli.NewStringSlice(defConf.IncludedPodMetrics...),
