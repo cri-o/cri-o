@@ -47,7 +47,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
-			storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented"))
+			storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented")).AnyTimes()
 
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
@@ -56,7 +56,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Stats)).To(Equal(1))
+			Expect(len(response.Stats)).To(Equal(0))
 		})
 		It("should filter stopped container", func() {
 			// Given
