@@ -1,4 +1,4 @@
-go 1.20
+go 1.21
 
 module github.com/cri-o/cri-o
 
