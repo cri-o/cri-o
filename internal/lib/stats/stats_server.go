@@ -93,16 +93,8 @@ func (ss *StatsServer) update() {
 
 	for _, sb := range ss.ListSandboxes() {
 		ss.updateSandbox(sb)
-		ss.updateSandboxMetrics(sb)
+		ss.updatePodSandboxMetrics(sb)
 	}
-}
-
-func (ss *StatsServer) GetSandboxCgroupStats(sb *sandbox.Sandbox) (*cgmgr.CgroupStats, error) {
-	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent())
-	if err != nil {
-		return nil, err
-	}
-	return sbCgroupStats, nil
 }
 
 func (ss *StatsServer) GetCgroupManager(sb *sandbox.Sandbox) (cgroups.Manager, error) {
@@ -128,12 +120,11 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if sb == nil {
 		return nil
 	}
-	sbCgroupStats, err := ss.GetSandboxCgroupStats(sb)
+	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent())
 	if err != nil {
-		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+		logrus.Warnf("Error getting sandbox stats %s: %v", sb.ID(), err)
 	}
 	if sbCgroupStats == nil {
-		logrus.Info("Sandbox stats are not available.")
 		return nil
 	}
 	sandboxStats := cgmgrStatsToCRISandbox(sbCgroupStats, sb)
@@ -152,7 +143,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			continue
 		}
 		if cCgroupStats == nil {
-			logrus.Info("Container stats are not available.")
+			logrus.Info("Container cCgroupStats are not available.")
 			continue
 		}
 		cStats := cgmgrStatsToCRIContainer(cCgroupStats, c)
@@ -170,19 +161,29 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	return sandboxStats
 }
 
-// GenerateAllSandboxMetrics generates a list of metrics for the specified sandbox
-// by collecting metrics from different sources based on the includedMetrics.
-func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMetrics []string, sm *SandboxMetrics) []*types.Metric {
+// GenerateSandboxContainerMetrics generates a list of metrics for the specified sandbox
+// containers by collecting metrics from different sources based on the includedMetrics
+// except for network metrics which is collected at pod level.
+func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *oci.Container, sm *SandboxMetrics) []*types.Metric {
 	var metrics []*types.Metric
 
 	var sbCgroupStats *cgmgr.CgroupStats
 	var err error
 
-	for _, metric := range includedMetrics {
+	includedMetrics := ss.Config().IncludedPodMetrics
+	var updatedIncludedMetrics []string
+	// Skip network metrics as they are collected at pod level
+	for _, val := range includedMetrics {
+		if val != "network" {
+			updatedIncludedMetrics = append(updatedIncludedMetrics, val)
+		}
+	}
+
+	for _, metric := range updatedIncludedMetrics {
 		switch metric {
 		case "cpu", "memory":
 			if sbCgroupStats == nil {
-				sbCgroupStats, err = ss.GetSandboxCgroupStats(sb)
+				sbCgroupStats, err = ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
 				if err != nil {
 					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
 					return nil
@@ -193,28 +194,11 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 				}
 			}
 			if metric == "cpu" {
-				cpuMetrics := GenerateSandboxCPUMetrics(sb, &sbCgroupStats.MostStats.CpuStats, sm)
+				cpuMetrics := GenerateSandboxCPUMetrics(sb, c, &sbCgroupStats.MostStats.CpuStats, sm)
 				metrics = append(metrics, cpuMetrics...)
 			} else if metric == "memory" {
-				memoryMetrics := GenerateSandboxMemoryMetrics(sb, &sbCgroupStats.MostStats.MemoryStats, sm)
+				memoryMetrics := GenerateSandboxMemoryMetrics(sb, c, &sbCgroupStats.MostStats.MemoryStats, sm)
 				metrics = append(metrics, memoryMetrics...)
-			}
-		case "network":
-			links, err := netlink.LinkList()
-			if err != nil {
-				logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
-				return nil
-			}
-			if len(links) == 0 {
-				logrus.Infof("Network links are not available.")
-				return nil
-			}
-			for i := range links {
-				attrs := links[i].Attrs()
-				if attrs != nil {
-					networkMetrics := GenerateSandboxNetworkMetrics(sb, attrs, sm)
-					metrics = append(metrics, networkMetrics...)
-				}
 			}
 		case "oom":
 			cm, err := ss.GetCgroupManager(sb)
@@ -222,7 +206,7 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 				logrus.Errorf("Unable to fetch cgroup manager %s: %v", sb.ID(), err)
 				return nil
 			}
-			oomMetrics := GenerateSandboxOOMMetrics(sb, cm, sm)
+			oomMetrics := GenerateSandboxOOMMetrics(sb, c, cm, sm)
 			metrics = append(metrics, oomMetrics...)
 		default:
 			logrus.Warnf("Unknown or misspelled metric: %s", metric)
@@ -232,7 +216,7 @@ func (ss *StatsServer) GenerateAllSandboxMetrics(sb *sandbox.Sandbox, includedMe
 	return metrics
 }
 
-func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	if sb == nil {
 		return nil
 	}
@@ -245,15 +229,54 @@ func (ss *StatsServer) updateSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics
 
 	// Reset metrics for the next iteration
 	sm.ResetMetricsForSandbox()
+	sm.ResetContainerMetricsForSandbox() // Reset container metrics as well
 
 	includedMetrics := ss.Config().IncludedPodMetrics
-	allMetrics := ss.GenerateAllSandboxMetrics(sb, includedMetrics, sm)
-	for _, m := range allMetrics {
-		sm.AddMetricToSandbox(m)
+	for _, metric := range includedMetrics {
+		if metric == "network" {
+			podMetrics := ss.GenerateNetworkMetrics(sb, sm)
+			for _, m := range podMetrics {
+				sm.AddMetricToSandboxMetrics("", m)
+			}
+		}
 	}
+	for _, c := range sb.Containers().List() {
+		// Skip if the container is stopped
+		if c.StateNoLock().Status == oci.ContainerStateStopped {
+			continue
+		}
+		containerMetrics := ss.GenerateSandboxContainerMetrics(sb, c, sm)
+		for _, m := range containerMetrics {
+			sm.AddMetricToSandboxMetrics(c.ID(), m)
+		}
+	}
+
 	sm.current, sm.next = sm.next, sm.current
 	ss.customSandboxMetrics[sb.ID()] = sm // Update the entry in the map
 	return sm
+}
+
+func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
+	var metrics []*types.Metric
+
+	links, err := netlink.LinkList()
+	if err != nil {
+		logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
+		return nil
+	}
+	if len(links) == 0 {
+		logrus.Infof("Network links are not available.")
+		return nil
+	}
+	for i := range links {
+		attrs := links[i].Attrs()
+		if attrs != nil {
+			networkMetrics := GenerateSandboxNetworkMetrics(sb, attrs, sm)
+			metrics = append(metrics, networkMetrics...)
+		}
+	}
+
+	return metrics
 }
 
 func cgmgrStatsToCRISandbox(cgroupStats *cgmgr.CgroupStats, sb *sandbox.Sandbox) *types.PodSandboxStats {
@@ -327,6 +350,28 @@ func (ss *StatsServer) updateContainer(c *oci.Container, sb *sandbox.Sandbox) *t
 	}
 	ss.ctrStats[c.ID()] = cStats
 	return cStats
+}
+
+func (ss *StatsServer) updateSandboxContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerMetrics {
+	if c == nil || sb == nil {
+		return nil
+	}
+	if c.StateNoLock().Status == oci.ContainerStateStopped {
+		return nil
+	}
+	sm, exists := ss.customSandboxMetrics[sb.ID()]
+	if !exists {
+		sm = NewSandboxMetrics(sb)
+	}
+	containerMetrics := ss.GenerateSandboxContainerMetrics(sb, c, sm)
+	for _, m := range containerMetrics {
+		sm.AddMetricToSandboxMetrics(c.ID(), m)
+	}
+	ss.customSandboxMetrics[sb.ID()] = sm
+	// To fetch the updated containerMetrics
+	cm := findExistingContainerMetric(sm.next.ContainerMetrics, c.ID())
+
+	return cm
 }
 
 // updateUsageNanoCores calculates the usage nano cores by averaging the CPU usage between the timestamps
@@ -469,43 +514,43 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 	delete(ss.sboxStats, sb.ID())
 }
 
-// StatsForSandboxMetrics returns the metrics for the given sandbox
-func (ss *StatsServer) StatsForSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+// MetricsForPodSandbox returns the metrics for the given sandbox pod/container.
+func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
-	return ss.statsForSandboxMetrics(sb)
+	return ss.metricsForPodSandbox(sb)
 }
 
-// StatsForSandboxMetricsList returns the metrics for the given list of sandboxes
-func (ss *StatsServer) StatsForSandboxMetricsList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
+// MetricsForPodSandboxList returns the metrics for the given list of sandboxes
+func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	metricsList := make([]*SandboxMetrics, 0, len(sboxes))
 	for _, sb := range sboxes {
-		if metrics := ss.statsForSandboxMetrics(sb); metrics != nil {
+		if metrics := ss.metricsForPodSandbox(sb); metrics != nil {
 			metricsList = append(metricsList, metrics)
 		}
 	}
 	return metricsList
 }
 
-// statsForSandboxMetrics is an internal, non-locking version of StatsForSandboxMetrics
+// metricsForPodSandbox is an internal, non-locking version of MetricsForPodSandbox
 // that returns (and occasionally gathers) the metrics for the given sandbox.
-func (ss *StatsServer) statsForSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	if ss.collectionPeriod == 0 {
-		return ss.updateSandboxMetrics(sb)
+		return ss.updatePodSandboxMetrics(sb)
 	}
 	sboxMetrics, ok := ss.customSandboxMetrics[sb.ID()]
 	if ok {
 		return sboxMetrics
 	}
 	// Cache miss, try again
-	return ss.updateSandboxMetrics(sb)
+	return ss.updatePodSandboxMetrics(sb)
 }
 
-// RemoveMetricsForSandboxMetrics removes the saved entry for the specified sandbox
+// RemoveMetricsForPodSandbox removes the saved entry for the specified sandbox
 // to prevent the map from always growing.
-func (ss *StatsServer) RemoveMetricsForSandboxMetrics(sb *sandbox.Sandbox) {
+func (ss *StatsServer) RemoveMetricsForPodSandbox(sb *sandbox.Sandbox) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	delete(ss.customSandboxMetrics, sb.ID())
@@ -556,6 +601,61 @@ func (ss *StatsServer) RemoveStatsForContainer(c *oci.Container) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	delete(ss.ctrStats, c.ID())
+}
+
+// MetricsForSandboxContainer returns the metrics for the given container
+func (ss *StatsServer) MetricsForSandboxContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	return ss.metricsForSandboxContainer(c, sb)
+}
+
+// MetricsForSandboxContainers returns the metrics for the given list of containers
+func (ss *StatsServer) MetricsForSandboxContainers(ctrs []*oci.Container) []*types.ContainerMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	metrics := make([]*types.ContainerMetrics, 0, len(ctrs))
+	for _, c := range ctrs {
+		sb := ss.GetSandbox(c.Sandbox())
+		if sb == nil {
+			logrus.Errorf("Unexpectedly failed to get sandbox %s for container %s", c.Sandbox(), c.ID())
+			continue
+		}
+
+		if metric := ss.metricsForSandboxContainer(c, sb); metric != nil {
+			metrics = append(metrics, metric)
+		}
+	}
+	return metrics
+}
+
+func (ss *StatsServer) metricsForSandboxContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerMetrics {
+	if ss.collectionPeriod == 0 {
+		return ss.updateSandboxContainer(c, sb)
+	}
+	ctrMetric, ok := ss.customSandboxMetrics[sb.ID()]
+	if ok {
+		containerMetrics := ctrMetric.current.GetContainerMetrics()
+		for _, metrics := range containerMetrics {
+			if metrics.ContainerId == c.ID() {
+				return metrics
+			}
+		}
+	}
+	return ss.updateSandboxContainer(c, sb)
+}
+
+func (ss *StatsServer) RemoveContainerMetrics(c *oci.Container) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	for _, sandboxMetrics := range ss.customSandboxMetrics {
+		for i, containerMetrics := range sandboxMetrics.current.ContainerMetrics {
+			if containerMetrics.ContainerId == c.ID() {
+				sandboxMetrics.current.ContainerMetrics = append(sandboxMetrics.current.ContainerMetrics[:i], sandboxMetrics.current.ContainerMetrics[i+1:]...)
+				break
+			}
+		}
+	}
 }
 
 // Shutdown tells the updateLoop to stop updating.

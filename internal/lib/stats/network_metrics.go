@@ -113,5 +113,5 @@ func GenerateSandboxNetworkMetrics(sb *sandbox.Sandbox, stats interface{}, sm *S
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, networkMetrics, "network", sm)
+	return ComputeSandboxMetrics(sb, nil, networkMetrics, "network", sm)
 }
