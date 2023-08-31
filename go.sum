@@ -922,8 +922,8 @@ github.com/containers/ocicrypt v1.1.0/go.mod h1:b8AOe0YR67uU8OqfVNcznfFpAzu3rdgU
 github.com/containers/ocicrypt v1.1.1/go.mod h1:Dm55fwWm1YZAjYRaJ94z2mfZikIyIN4B0oB3dj3jFxY=
 github.com/containers/ocicrypt v1.1.8 h1:saSBF0/8DyPUjzcxMVzL2OBUWCkvRvqIm75pu0ADSZk=
 github.com/containers/ocicrypt v1.1.8/go.mod h1:jM362hyBtbwLMWzXQZTlkjKGAQf/BN/LFMtH0FIRt34=
-github.com/containers/podman/v4 v4.6.1 h1:DWE/00+c1YV9jkygtEQ6xdSXyn6W/S+PZLMtDZ83+Dk=
-github.com/containers/podman/v4 v4.6.1/go.mod h1:6Ika738rAtI1wJPofiIjbASU/9Bb64XvRvhRS/5UKjk=
+github.com/containers/podman/v4 v4.6.2 h1:tUHH6RfavqH0QZJHA9JoiMtMatjUSe4LjkvQYD8AhMs=
+github.com/containers/podman/v4 v4.6.2/go.mod h1:RszjaonNv/hLayX58T06xci2ixrcCoR5hfdfN6PQWmc=
 github.com/containers/psgo v1.8.0 h1:2loGekmGAxM9ir5OsXWEfGwFxorMPYnc6gEDsGFQvhY=
 github.com/containers/psgo v1.8.0/go.mod h1:T8ZxnX3Ur4RvnhxFJ7t8xJ1F48RhiZB4rSrOaR/qGHc=
 github.com/containers/storage v1.43.0/go.mod h1:uZ147thiIFGdVTjMmIw19knttQnUCl3y9zjreHrg11s=
