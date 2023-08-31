@@ -378,8 +378,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrIface.Contai
 			}
 			// Clear default capabilities from spec
 			specgen.ClearProcessCapabilities()
-			capabilities.AddCapabilities = append(capabilities.AddCapabilities, s.config.DefaultCapabilities...)
-			err = setupCapabilities(specgen, capabilities)
+			err = setupCapabilities(specgen, capabilities, s.config.DefaultCapabilities)
 			if err != nil {
 				return nil, err
 			}
