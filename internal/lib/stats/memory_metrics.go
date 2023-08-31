@@ -3,12 +3,13 @@ package statsserver
 import (
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, stats interface{}, sm *SandboxMetrics) []*types.Metric {
+func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}, sm *SandboxMetrics) []*types.Metric {
 	mem, ok := stats.(*cgroups.MemoryStats)
 	if !ok {
 		logrus.Errorf("Failed to assert stats as *cgroups.MemoryStats")
@@ -186,10 +187,10 @@ func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, stats interface{}, sm *Sa
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, memoryMetrics, "memory", sm)
+	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory", sm)
 }
 
-func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, stats interface{}, sm *SandboxMetrics) []*types.Metric {
+func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}, sm *SandboxMetrics) []*types.Metric {
 	oom, ok := stats.(cgroups.Manager)
 	if !ok {
 		logrus.Errorf("Failed to assert stats as cgroups.Manager")
@@ -211,5 +212,5 @@ func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, stats interface{}, sm *Sandb
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, oomMetrics, "oom", sm)
+	return ComputeSandboxMetrics(sb, c, oomMetrics, "oom", sm)
 }
