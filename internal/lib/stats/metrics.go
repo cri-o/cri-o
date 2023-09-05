@@ -27,26 +27,16 @@ type ContainerStats struct {
 }
 
 type SandboxMetrics struct {
-	current *types.PodSandboxMetrics
-	next    *types.PodSandboxMetrics
+	metric *types.PodSandboxMetrics
 }
 
-func (s *SandboxMetrics) GetCurrent() *types.PodSandboxMetrics {
-	return s.current
-}
-
-func (s *SandboxMetrics) GetNext() *types.PodSandboxMetrics {
-	return s.next
+func (s *SandboxMetrics) GetMetric() *types.PodSandboxMetrics {
+	return s.metric
 }
 
 func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	return &SandboxMetrics{
-		current: &types.PodSandboxMetrics{
-			PodSandboxId:     sb.ID(),
-			Metrics:          []*types.Metric{},
-			ContainerMetrics: []*types.ContainerMetrics{},
-		},
-		next: &types.PodSandboxMetrics{
+		metric: &types.PodSandboxMetrics{
 			PodSandboxId:     sb.ID(),
 			Metrics:          []*types.Metric{},
 			ContainerMetrics: []*types.ContainerMetrics{},
@@ -55,22 +45,22 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 }
 
 func (s *SandboxMetrics) ResetContainerMetricsForSandbox() {
-	for _, cm := range s.next.ContainerMetrics {
+	for _, cm := range s.metric.ContainerMetrics {
 		cm.Metrics = []*types.Metric{} // Reset metrics for each container
 	}
-	s.next.Metrics = []*types.Metric{} // Reset metrics for the next iteration
+	s.metric.Metrics = []*types.Metric{} // Reset metrics for the next iteration
 }
 
 func (s *SandboxMetrics) ResetMetricsForSandbox() {
-	s.next.Metrics = []*types.Metric{} // Reset metrics for the next iteration
+	s.metric.Metrics = []*types.Metric{} // Reset metrics for the next iteration
 }
 
 // AddMetricToSandboxMetrics adds the metrics for the specified pod/container(s).
 func (s *SandboxMetrics) AddMetricToSandboxMetrics(containerID string, m *types.Metric) {
 	if containerID == "" {
-		s.next.Metrics = append(s.next.Metrics, m)
+		s.metric.Metrics = append(s.metric.Metrics, m)
 	} else {
-		containerMetrics := findExistingContainerMetric(s.next.ContainerMetrics, containerID)
+		containerMetrics := findExistingContainerMetric(s.metric.ContainerMetrics, containerID)
 		if containerMetrics != nil {
 			containerMetrics.Metrics = append(containerMetrics.Metrics, m)
 		}
@@ -389,16 +379,7 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*ContainerStats, metric string, sm *SandboxMetrics) []*types.Metric {
 	values := append(sandboxBaseLabelValues(sb), metric)
 	metrics := make([]*types.Metric, 0, len(stats))
-	var targetMetrics interface{}
-	if metric == NetworkMetrics {
-		if c == nil {
-			targetMetrics = &sm.GetCurrent().Metrics
-		} else {
-			targetMetrics = &sm.GetNext().ContainerMetrics
-		}
-	} else {
-		targetMetrics = &sm.GetNext().ContainerMetrics
-	}
+
 	for _, m := range stats {
 		metricValues := m.valueFunc()
 		if len(metricValues) == 0 {
@@ -407,7 +388,7 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 		}
 
 		for _, v := range metricValues {
-			existingMetric := findExistingSandboxMetric(targetMetrics, m.desc.Name, values, v.labels)
+			existingMetric := findExistingSandboxMetric(sm.metric, m.desc.Name, values, v.labels)
 			if existingMetric != nil {
 				existingMetric.Value = &types.UInt64Value{Value: v.value}
 			} else {
@@ -419,10 +400,10 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 						Value:       &types.UInt64Value{Value: v.value},
 						LabelValues: append(values, v.labels...),
 					}
-					sm.GetCurrent().Metrics = append(sm.GetCurrent().Metrics, newMetric)
+					sm.metric.Metrics = append(sm.metric.Metrics, newMetric)
 				} else {
 					// Check if the container metric already exists
-					existingContainerMetric := findExistingContainerMetric(sm.GetNext().ContainerMetrics, c.ID())
+					existingContainerMetric := findExistingContainerMetric(sm.metric.ContainerMetrics, c.ID())
 					if existingContainerMetric != nil {
 						newMetric := &types.Metric{
 							Name:        m.desc.Name,
@@ -445,7 +426,7 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 								},
 							},
 						}
-						sm.GetNext().ContainerMetrics = append(sm.GetNext().ContainerMetrics, newContainerMetric)
+						sm.metric.ContainerMetrics = append(sm.metric.ContainerMetrics, newContainerMetric)
 					}
 				}
 			}
@@ -456,17 +437,8 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 }
 
 // findExistingSandboxMetric finds an existing metric with the same label values in Sandbox Metrics.
-func findExistingSandboxMetric(metrics interface{}, name string, values, labels []string) *types.Metric {
-	var targetMetrics []*types.Metric
-	switch m := metrics.(type) {
-	case *[]*types.Metric:
-		targetMetrics = *m
-	case *[]*types.ContainerMetrics:
-		for _, cm := range *m {
-			targetMetrics = append(targetMetrics, cm.Metrics...)
-		}
-	}
-	for _, m := range targetMetrics {
+func findExistingSandboxMetric(metrics *types.PodSandboxMetrics, name string, values, labels []string) *types.Metric {
+	for _, m := range metrics.Metrics {
 		if m.Name == name && reflect.DeepEqual(m.LabelValues, append(values, labels...)) {
 			return m
 		}
