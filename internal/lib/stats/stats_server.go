@@ -251,7 +251,6 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 		}
 	}
 
-	sm.current, sm.next = sm.next, sm.current
 	ss.customSandboxMetrics[sb.ID()] = sm // Update the entry in the map
 	return sm
 }
@@ -369,7 +368,7 @@ func (ss *StatsServer) updateSandboxContainer(c *oci.Container, sb *sandbox.Sand
 	}
 	ss.customSandboxMetrics[sb.ID()] = sm
 	// To fetch the updated containerMetrics
-	cm := findExistingContainerMetric(sm.next.ContainerMetrics, c.ID())
+	cm := findExistingContainerMetric(sm.metric.ContainerMetrics, c.ID())
 
 	return cm
 }
@@ -635,7 +634,7 @@ func (ss *StatsServer) metricsForSandboxContainer(c *oci.Container, sb *sandbox.
 	}
 	ctrMetric, ok := ss.customSandboxMetrics[sb.ID()]
 	if ok {
-		containerMetrics := ctrMetric.current.GetContainerMetrics()
+		containerMetrics := ctrMetric.metric.GetContainerMetrics()
 		for _, metrics := range containerMetrics {
 			if metrics.ContainerId == c.ID() {
 				return metrics
@@ -649,9 +648,9 @@ func (ss *StatsServer) RemoveContainerMetrics(c *oci.Container) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	for _, sandboxMetrics := range ss.customSandboxMetrics {
-		for i, containerMetrics := range sandboxMetrics.current.ContainerMetrics {
+		for i, containerMetrics := range sandboxMetrics.metric.ContainerMetrics {
 			if containerMetrics.ContainerId == c.ID() {
-				sandboxMetrics.current.ContainerMetrics = append(sandboxMetrics.current.ContainerMetrics[:i], sandboxMetrics.current.ContainerMetrics[i+1:]...)
+				sandboxMetrics.metric.ContainerMetrics = append(sandboxMetrics.metric.ContainerMetrics[:i], sandboxMetrics.metric.ContainerMetrics[i+1:]...)
 				break
 			}
 		}

@@ -12,14 +12,14 @@ func (s *Server) ListPodSandboxMetrics(ctx context.Context, req *types.ListPodSa
 	responseMetricsList := make([]*types.PodSandboxMetrics, 0, len(metricsList))
 
 	for _, metrics := range metricsList {
-		if current := metrics.GetCurrent(); current != nil {
+		if current := metrics.GetMetric(); current != nil {
 			responseMetricsList = append(responseMetricsList, current)
 		} else {
 			// Iterate over container metrics within each PodSandboxMetrics
-			containerMetricsList := metrics.GetCurrent().ContainerMetrics
+			containerMetricsList := metrics.GetMetric().ContainerMetrics
 			for _, containerMetrics := range containerMetricsList {
 				containerPodSandboxMetrics := &types.PodSandboxMetrics{
-					PodSandboxId:     metrics.GetCurrent().PodSandboxId,
+					PodSandboxId:     metrics.GetMetric().PodSandboxId,
 					ContainerMetrics: []*types.ContainerMetrics{containerMetrics},
 				}
 				responseMetricsList = append(responseMetricsList, containerPodSandboxMetrics)
