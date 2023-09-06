@@ -190,14 +190,14 @@ sudo apt install apt-transport-https ca-certificates curl gnupg2 software-proper
 And then run the following as root:
 
 ```shell
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{$OS}/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{$VERSION}/{$OS}/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:{$VERSION}.list
+sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list'
+sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/'$VERSION'/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:'$VERSION'.list'
 
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/{$OS}/Release.key | apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/{$VERSION}/{$OS}/Release.key | apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | apt-key add -
 
-apt-get update
-apt-get install cri-o cri-o-runc
+sudo apt-get update
+sudo apt-get install cri-o cri-o-runc
 ```
 <!-- markdownlint-enable MD013 -->
 
