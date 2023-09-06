@@ -84,6 +84,8 @@ Questions and issues should be raised in the Kubernetes [sig-node Slack channel]
 ## Roadmap
 
 A roadmap that describes the direction of CRI-O can be found [here](/roadmap.md).
+The project is tracking all ongoing efforts as part of the [Feature Roadmap
+GitHub project](https://github.com/orgs/cri-o/projects/1).
 
 ## Commands
 
