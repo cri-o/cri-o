@@ -193,8 +193,8 @@ And then run the following as root:
 sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list'
 sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/'$VERSION'/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:'$VERSION'.list'
 
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | apt-key add -
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | sudo apt-key add -
 
 sudo apt-get update
 sudo apt-get install cri-o cri-o-runc
