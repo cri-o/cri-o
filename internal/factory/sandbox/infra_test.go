@@ -2,8 +2,11 @@ package sandbox_test
 
 import (
 	"os"
+	"path/filepath"
 
-	"github.com/cri-o/cri-o/internal/factory/sandbox"
+	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
+
 	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -45,7 +48,7 @@ var _ = Describe("Sandbox", func() {
 		}
 
 		for _, c := range testCases {
-			err := sandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
+			err := sboxfactory.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
 			Expect(err).To(BeNil())
 
@@ -67,7 +70,7 @@ var _ = Describe("Sandbox", func() {
 
 		It("should succeed with default config", func() {
 			// When
-			_, err := sandbox.PauseCommand(cfg, nil)
+			_, err := sboxfactory.PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -80,7 +83,7 @@ var _ = Describe("Sandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Entrypoint: entrypoint}}
 
 			// When
-			res, err := sandbox.PauseCommand(cfg, image)
+			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -94,7 +97,7 @@ var _ = Describe("Sandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Cmd: cmd}}
 
 			// When
-			res, err := sandbox.PauseCommand(cfg, image)
+			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -112,7 +115,7 @@ var _ = Describe("Sandbox", func() {
 			}}
 
 			// When
-			res, err := sandbox.PauseCommand(cfg, image)
+			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).To(BeNil())
@@ -123,7 +126,7 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail if config is nil", func() {
 			// When
-			res, err := sandbox.PauseCommand(nil, nil)
+			res, err := sboxfactory.PauseCommand(nil, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -135,11 +138,60 @@ var _ = Describe("Sandbox", func() {
 			cfg.PauseCommand = ""
 
 			// When
-			res, err := sandbox.PauseCommand(cfg, nil)
+			res, err := sboxfactory.PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).NotTo(BeNil())
 			Expect(res).To(BeNil())
+		})
+	})
+
+	Context("SetupShm", func() {
+		shmSize := int64(libsandbox.DefaultShmSize)
+		mountLabel := "system_u:object_r:container_file_t:s0:c1,c2"
+
+		It("should fail if shm size is <= 0", func() {
+			// When
+			shmSize = int64(-1)
+			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
+			Expect(err).To(BeNil())
+
+			// When
+			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeEmpty())
+		})
+
+		It("should fail if mount label is empty", func() {
+			// When
+			mountLabel = ""
+			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
+			Expect(err).To(BeNil())
+
+			// When
+			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeEmpty())
+		})
+
+		It("should fail if dir already exists", func() {
+			// Given
+			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
+			Expect(err).To(BeNil())
+			shmPath := filepath.Join(dir, "shm")
+			err = os.Mkdir(shmPath, 0o700)
+			Expect(err).To(BeNil())
+
+			// When
+			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeEmpty())
 		})
 	})
 })
