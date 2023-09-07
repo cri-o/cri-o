@@ -18,15 +18,21 @@
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
 CRI-O follows the Kubernetes release cycles with respect to its minor versions
-(`1.x.y`). Patch releases (`1.x.z`) for CRI-O are not in sync with those from
-Kubernetes, because those are scheduled for each month, whereas CRI-O provides
+(`1.x.y`). Patch releases (`1.x.z`) for Kubernetes are not in sync with those from
+CRI-O, because they are scheduled for each month, whereas CRI-O provides
 them only if necessary. If a Kubernetes release goes [End of
 Life](https://kubernetes.io/releases/patch-releases/),
 then the corresponding CRI-O version can be considered in the same way.
 
 This means that CRI-O also follows the Kubernetes `n-2` release version skew
 policy when it comes to feature graduation, deprecation or removal. This also
-applies to features which are independent from Kubernetes.
+applies to features which are independent from Kubernetes. Nevertheless, feature
+backports to supported release branches, which are independent from Kubernetes
+or other tools like cri-tools, are still possible. This allows CRI-O to decouple
+from the Kubernetes release cycle and have enough flexibility when it comes to
+implement new features. Every feature to be backported will be a case by case
+decision of the community while the overall compatibility matrix should not be
+compromised.
 
 For more information visit the [Kubernetes Version Skew
 Policy](https://kubernetes.io/releases/version-skew-policy/).
