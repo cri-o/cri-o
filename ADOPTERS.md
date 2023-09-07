@@ -45,3 +45,4 @@ Below is a non-exhaustive list of CRI-O adopters in production environments:
 - [Adobe](https://www.adobe.com/) uses CRI-O as the primary container runtime for
   our Kubernetes clusters. We chose CRI-O because it's stable at scale and has
   fantastic support from its maintainers and community.
+- [PITS Global Data Recovery Services](https://www.pitsdatarecovery.net/) CRI-O is used on K8s and was chosen for its clean and easy-to-manage interface. 
