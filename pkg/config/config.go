@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -38,6 +39,7 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/cpuset"
@@ -220,6 +222,10 @@ type RuntimeHandler struct {
 	// PlatformRuntimePaths defines a configuration option that specifies
 	// the runtime paths for different platforms.
 	PlatformRuntimePaths map[string]string `toml:"platform_runtime_paths,omitempty"`
+
+	// Output of the "features" subcommand.
+	// This is populated dynamically and not read from config.
+	features features.Features
 }
 
 // Multiple runtime Handlers in a map
@@ -1219,8 +1225,25 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	for _, invalidHandlerName := range failedValidation {
 		delete(c.Runtimes, invalidHandlerName)
 	}
+	c.initializeRuntimeFeatures()
 
 	return nil
+}
+
+func (c *RuntimeConfig) initializeRuntimeFeatures() {
+	for _, handler := range c.Runtimes {
+		// If this returns an error, we just ignore it and assume the features sub-command is
+		// not supported by the runtime.
+		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
+		if err != nil {
+			logrus.Errorf("Getting OCI runtime features failed: %s", err)
+			continue
+		}
+		// Ignore errors to Unmarshal too, we can't populate it.
+		if err := json.Unmarshal(output, &handler.features); err != nil {
+			logrus.Errorf("Unmarshalling OCI features failed: %s", err)
+		}
+	}
 }
 
 func (c *RuntimeConfig) TranslateMonitorFields(onExecution bool) error {
@@ -1518,6 +1541,18 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 	)
 	r.DisallowedAnnotations = disallowed
 	return nil
+}
+
+// RuntimeSupportsIDMap returns whether this runtime supports the "runtime features"
+// command, and that the output of that command advertises IDMap mounts as an option
+func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
+	if r.features.Linux == nil || r.features.Linux.MountExtensions == nil || r.features.Linux.MountExtensions.IDMap == nil {
+		return false
+	}
+	if enabled := r.features.Linux.MountExtensions.IDMap.Enabled; enabled == nil || !*enabled {
+		return false
+	}
+	return true
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
