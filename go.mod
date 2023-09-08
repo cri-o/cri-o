@@ -1,4 +1,4 @@
-go 1.20
+go 1.21
 
 module github.com/cri-o/cri-o
 
@@ -19,14 +19,13 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
-	github.com/containers/buildah v1.31.2
-	github.com/containers/common v0.55.3
+	github.com/containers/common v0.55.4
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.5.1
 	github.com/containers/image/v5 v5.27.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.8
-	github.com/containers/podman/v4 v4.6.1
+	github.com/containers/podman/v4 v4.6.2
 	github.com/containers/storage v1.49.0
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
@@ -43,7 +42,7 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/go-github/v50 v50.2.0
 	github.com/google/renameio v1.0.1
-	github.com/google/uuid v1.3.0
+	github.com/google/uuid v1.3.1
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/intel/goresctrl v0.4.0
 	github.com/json-iterator/go v1.1.12
@@ -108,6 +107,7 @@ require (
 	github.com/containerd/go-runc v1.0.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/containerd/typeurl/v2 v2.1.1 // indirect
+	github.com/containers/buildah v1.31.3 // indirect
 	github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 // indirect
 	github.com/containers/psgo v1.8.0 // indirect
 	github.com/coreos/go-systemd v0.0.0-20190719114852-fd7a80b32e1f // indirect
