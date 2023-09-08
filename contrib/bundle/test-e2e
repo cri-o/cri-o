@@ -89,8 +89,6 @@ pushd cri-o
 RUNTIME_TYPE=oci
 if [[ $USE_CONMONRS -eq 1 ]]; then
     echo "Using conmonrs instead of conmon"
-    curl_retry https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
-        bash -s -- -o /usr/bin/conmonrs
     RUNTIME_TYPE=pod
 else
     conmon --version

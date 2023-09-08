@@ -3,6 +3,7 @@ install $SELINUX -d -m 755 "$DESTDIR$CNIDIR"
 install $SELINUX -D -m 755 -t "$DESTDIR$OPT_CNI_BIN_DIR" cni-plugins/*
 install $SELINUX -D -m 644 -t "$DESTDIR$CNIDIR" contrib/11-crio-ipv4-bridge.conflist
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/conmon
+install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/conmonrs
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crictl
 install $SELINUX -d -m 755 "$DESTDIR$BASHINSTALLDIR"
 install $SELINUX -d -m 755 "$DESTDIR$FISHINSTALLDIR"
@@ -52,6 +53,7 @@ if [ -n "$SELINUX" ]; then
 
         chcon -u system_u -r object_r -t bin_t \
             "$DESTDIR$BINDIR/conmon" \
+            "$DESTDIR$BINDIR/conmonrs" \
             "$DESTDIR$BINDIR/crictl" \
             "$DESTDIR$BINDIR/pinns"
 
