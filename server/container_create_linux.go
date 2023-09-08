@@ -321,7 +321,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, s.Config().Root)
+	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -919,7 +920,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1064,12 +1065,17 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			SelinuxRelabel: m.SelinuxRelabel,
 		})
 
+		uidMappings := getOCIMappings(m.UidMappings)
+		gidMappings := getOCIMappings(m.GidMappings)
+		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
+			return nil, nil, fmt.Errorf("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
+		}
 		ociMounts = append(ociMounts, rspec.Mount{
 			Source:      src,
 			Destination: dest,
 			Options:     options,
-			UIDMappings: getOCIMappings(m.UidMappings),
-			GIDMappings: getOCIMappings(m.GidMappings),
+			UIDMappings: uidMappings,
+			GIDMappings: gidMappings,
 		})
 	}
 
