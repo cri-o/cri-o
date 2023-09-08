@@ -443,6 +443,9 @@ bundle-test-e2e:
 bundle-test-e2e-conmonrs:
 	sudo contrib/bundle/test-e2e --use-conmonrs
 
+bundle-test-kubernetes:
+	cd contrib/bundle && vagrant up
+
 bundles: ${BOM}
 	contrib/bundle/build amd64
 	contrib/bundle/build arm64

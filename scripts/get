@@ -251,10 +251,17 @@ install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man8" man/crio.8
 install $SELINUX -D -m 644 -t "$DESTDIR$BASHINSTALLDIR" completions/bash/crio
 install $SELINUX -D -m 644 -t "$DESTDIR$FISHINSTALLDIR" completions/fish/crio.fish
 install $SELINUX -D -m 644 -t "$DESTDIR$ZSHINSTALLDIR" completions/zsh/_crio
-install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/policy.json
 install $SELINUX -D -m 644 -t "$DESTDIR$SYSTEMDDIR" contrib/crio.service
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/pinns
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
+
+if [ ! -f "$DESTDIR$CONTAINERS_DIR/policy.json" ]; then
+    install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/policy.json
+fi
+
+if [ ! -f "$DESTDIR$CONTAINERS_DIR/registries.conf" ]; then
+    install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/registries.conf
+fi
 
 # only install runc if it's not already in the path
 if ! command -v runc; then

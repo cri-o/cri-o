@@ -124,3 +124,9 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
+
+  - name: Kubernetes
+    version: v1.28
+    refPaths:
+      - path: contrib/bundle/Vagrantfile
+        match: KUBERNETES_VERSION
