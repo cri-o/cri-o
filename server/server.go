@@ -18,8 +18,6 @@ import (
 	"sync"
 	"time"
 
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
-
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -46,6 +44,7 @@ import (
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/kubelet/pkg/cri/streaming"
+	kubetypes "k8s.io/kubelet/pkg/types"
 
 	nriIf "github.com/cri-o/cri-o/internal/nri"
 )

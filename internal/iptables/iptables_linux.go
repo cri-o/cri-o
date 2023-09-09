@@ -1,6 +1,3 @@
-//go:build linux
-// +build linux
-
 /*
 Copyright 2017 The Kubernetes Authors.
 
@@ -16,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+// Vendored from https://git.k8s.io/kubernetes/pkg/util/iptables/iptables_linux.go
 
 package iptables
 
@@ -67,12 +66,12 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 	// can't assume which lock method it'll use.
 
 	// Roughly duplicate iptables 1.6.x xtables_lock() function.
-	l.lock16, err = os.OpenFile(lockfilePath16x, os.O_CREATE, 0600)
+	l.lock16, err = os.OpenFile(lockfilePath16x, os.O_CREATE, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open iptables lock %s: %v", lockfilePath16x, err)
 	}
 
-	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) {
+	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) { //nolint:staticcheck
 		if err := grabIptablesFileLock(l.lock16); err != nil {
 			return false, nil
 		}
@@ -82,7 +81,7 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 	}
 
 	// Roughly duplicate iptables 1.4.x xtables_lock() function.
-	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) {
+	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) { //nolint:staticcheck
 		l.lock14, err = net.ListenUnix("unix", &net.UnixAddr{Name: lockfilePath14x, Net: "unix"})
 		if err != nil {
 			return false, nil

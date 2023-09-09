@@ -23,8 +23,8 @@ import (
 	"strings"
 	"time"
 
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	"k8s.io/apimachinery/pkg/util/sets"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
 
 type fakeChain struct {

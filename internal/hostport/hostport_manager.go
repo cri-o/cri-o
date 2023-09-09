@@ -26,12 +26,12 @@ import (
 	"strings"
 	"sync"
 
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
 	utilerrors "k8s.io/apimachinery/pkg/util/errors"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 	utilnet "k8s.io/utils/net"
 )
 

@@ -21,7 +21,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 var _ = t.Describe("Container", func() {

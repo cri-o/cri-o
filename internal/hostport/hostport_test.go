@@ -19,9 +19,9 @@ package hostport
 import (
 	"fmt"
 
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
 
 type fakeSocket struct {

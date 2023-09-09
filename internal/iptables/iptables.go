@@ -14,6 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Vendored from https://git.k8s.io/kubernetes/pkg/util/iptables/iptables.go
+
 package iptables
 
 import (
@@ -363,6 +365,7 @@ func (runner *runner) SaveInto(table Table, buffer *bytes.Buffer) error {
 
 	err := cmd.Run()
 	if err != nil {
+		//nolint:errcheck
 		stderrBuffer.WriteTo(buffer) // ignore error, since we need to return the original error
 	}
 	return err
@@ -418,7 +421,7 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 	}
 
 	// run the command and return the output or an error including the output and error
-	fullArgs := append(runner.restoreWaitFlag, args...)
+	fullArgs := append(runner.restoreWaitFlag, args...) //nolint:gocritic
 	iptablesRestoreCmd := iptablesRestoreCommand(runner.protocol)
 	klog.V(4).InfoS("Running", "command", iptablesRestoreCmd, "arguments", fullArgs)
 	cmd := runner.exec.Command(iptablesRestoreCmd, fullArgs...)
@@ -446,7 +449,6 @@ func iptablesRestoreCommand(protocol Protocol) string {
 		return cmdIP6TablesRestore
 	}
 	return cmdIPTablesRestore
-
 }
 
 func iptablesCommand(protocol Protocol) string {
@@ -462,7 +464,7 @@ func (runner *runner) run(op operation, args []string) ([]byte, error) {
 
 func (runner *runner) runContext(ctx context.Context, op operation, args []string) ([]byte, error) {
 	iptablesCmd := iptablesCommand(runner.protocol)
-	fullArgs := append(runner.waitFlag, string(op))
+	fullArgs := append(runner.waitFlag, string(op)) //nolint:gocritic
 	fullArgs = append(fullArgs, args...)
 	klog.V(5).InfoS("Running", "command", iptablesCmd, "arguments", fullArgs)
 	if ctx == nil {
@@ -481,7 +483,7 @@ func (runner *runner) checkRule(table Table, chain Chain, args ...string) (bool,
 	return runner.checkRuleWithoutCheck(table, chain, args...)
 }
 
-var hexnumRE = regexp.MustCompile("0x0+([0-9])")
+var hexnumRE = regexp.MustCompile("0x0+([0-9])") //nolint:gocritic
 
 func trimhex(s string) string {
 	return hexnumRE.ReplaceAllString(s, "0x$1")
@@ -512,7 +514,7 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 	argset := sets.NewString(argsCopy...)
 
 	for _, line := range strings.Split(string(out), "\n") {
-		var fields = strings.Fields(line)
+		fields := strings.Fields(line)
 
 		// Check that this is a rule for the correct chain, and that it has
 		// the correct number of argument (+2 for "-A <chain name>")
@@ -569,7 +571,7 @@ const (
 // Monitor is part of Interface
 func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
 	for {
-		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) {
+		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck
 			for _, table := range tables {
 				if _, err := runner.EnsureChain(table, canary); err != nil {
 					klog.ErrorS(err, "Could not set up iptables canary", "table", table, "chain", canary)
@@ -580,7 +582,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 		}, stopCh)
 
 		// Poll until stopCh is closed or iptables is flushed
-		err := utilwait.PollUntil(interval, func() (bool, error) {
+		err := utilwait.PollUntil(interval, func() (bool, error) { //nolint:staticcheck
 			if exists, err := runner.ChainExists(tables[0], canary); exists {
 				return false, nil
 			} else if isResourceError(err) {
@@ -590,7 +592,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 			klog.V(2).InfoS("IPTables canary deleted", "table", tables[0], "chain", canary)
 			// Wait for the other canaries to be deleted too before returning
 			// so we don't start reloading too soon.
-			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) {
+			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) { //nolint:staticcheck
 				for i := 1; i < len(tables); i++ {
 					if exists, err := runner.ChainExists(tables[i], canary); exists || isResourceError(err) {
 						return false, nil
@@ -603,11 +605,10 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 			}
 			return true, nil
 		}, stopCh)
-
 		if err != nil {
 			// stopCh was closed
 			for _, table := range tables {
-				_ = runner.DeleteChain(table, canary)
+				_ = runner.DeleteChain(table, canary) //nolint:errcheck
 			}
 			return
 		}
@@ -652,14 +653,14 @@ const iptablesVersionPattern = `v([0-9]+(\.[0-9]+)+)`
 func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversion.Version, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
 	iptablesCmd := iptablesCommand(protocol)
-	bytes, err := exec.Command(iptablesCmd, "--version").CombinedOutput()
+	b, err := exec.Command(iptablesCmd, "--version").CombinedOutput()
 	if err != nil {
 		return nil, err
 	}
-	versionMatcher := regexp.MustCompile(iptablesVersionPattern)
-	match := versionMatcher.FindStringSubmatch(string(bytes))
+	versionMatcher := regexp.MustCompile(iptablesVersionPattern) //nolint:gocritic
+	match := versionMatcher.FindStringSubmatch(string(b))
 	if match == nil {
-		return nil, fmt.Errorf("no iptables version found in string: %s", bytes)
+		return nil, fmt.Errorf("no iptables version found in string: %s", b)
 	}
 	version, err := utilversion.ParseGeneric(match[1])
 	if err != nil {
@@ -714,14 +715,14 @@ func getIPTablesRestoreVersionString(exec utilexec.Interface, protocol Protocol)
 	iptablesRestoreCmd := iptablesRestoreCommand(protocol)
 	cmd := exec.Command(iptablesRestoreCmd, "--version")
 	cmd.SetStdin(bytes.NewReader([]byte{}))
-	bytes, err := cmd.CombinedOutput()
+	b, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", err
 	}
-	versionMatcher := regexp.MustCompile(iptablesVersionPattern)
-	match := versionMatcher.FindStringSubmatch(string(bytes))
+	versionMatcher := regexp.MustCompile(iptablesVersionPattern) //nolint:gocritic
+	match := versionMatcher.FindStringSubmatch(string(b))
 	if match == nil {
-		return "", fmt.Errorf("no iptables version found in string: %s", bytes)
+		return "", fmt.Errorf("no iptables version found in string: %s", b)
 	}
 	return match[1], nil
 }
@@ -819,7 +820,7 @@ type LineData struct {
 	Data string
 }
 
-var regexpParseError = regexp.MustCompile("line ([1-9][0-9]*) failed$")
+var regexpParseError = regexp.MustCompile("line ([1-9][0-9]*) failed$") //nolint:gocritic
 
 // parseRestoreError extracts the line from the error, if it matches returns parseError
 // for example:

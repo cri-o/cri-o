@@ -24,8 +24,8 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	v1 "k8s.io/api/core/v1"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
 
 const (

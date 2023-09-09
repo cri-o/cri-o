@@ -32,7 +32,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 // Container is the main public container interface

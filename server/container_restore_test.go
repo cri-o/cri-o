@@ -18,7 +18,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubetypes "k8s.io/kubelet/pkg/types"
 )
 
 var _ = t.Describe("ContainerRestore", func() {

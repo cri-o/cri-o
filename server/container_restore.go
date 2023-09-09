@@ -18,7 +18,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubetypes "k8s.io/kubernetes/pkg/kubelet/types"
+	kubetypes "k8s.io/kubelet/pkg/types"
 )
 
 func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (bool, error) {

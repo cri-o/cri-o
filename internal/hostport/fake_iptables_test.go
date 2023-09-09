@@ -20,8 +20,8 @@ import (
 	"bytes"
 	"testing"
 
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	"github.com/stretchr/testify/assert"
-	utiliptables "k8s.io/kubernetes/pkg/util/iptables"
 )
 
 func TestRestoreFlushRules(t *testing.T) {
