@@ -705,14 +705,14 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 			name = namedRef.DockerReference().String()
 		}
 
-		prunedNames := 0
+		remainingNames := 0
 		for _, imgName := range img.Names {
 			if imgName != name && imgName != nameOrID {
-				prunedNames += 1
+				remainingNames += 1
 			}
 		}
 
-		if prunedNames > 0 {
+		if remainingNames > 0 {
 			return svc.store.RemoveNames(img.ID, []string{name, nameOrID})
 		}
 	}
