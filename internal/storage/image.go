@@ -127,9 +127,13 @@ type ImageServer interface {
 	PrepareImage(systemContext *types.SystemContext, imageName string) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
 	PullImage(systemContext *types.SystemContext, imageName string, options *ImageCopyOptions) (types.ImageReference, error)
+
+	// DeleteImage deletes a storage image (impacting all its tags)
+	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
 	// UntagImage removes a name from the specified image, and if it was
 	// the only name the image had, removes the image.
 	UntagImage(systemContext *types.SystemContext, imageName string) error
+
 	// GetStore returns the reference to the storage library Store which
 	// the image server uses to hold images, and is the destination used
 	// when it's asked to pull an image.
@@ -711,6 +715,16 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 		if prunedNames > 0 {
 			return svc.store.RemoveNames(img.ID, []string{name, nameOrID})
 		}
+	}
+
+	return ref.DeleteImage(svc.ctx, systemContext)
+}
+
+// DeleteImage deletes a storage image (impacting all its tags)
+func (svc *imageService) DeleteImage(systemContext *types.SystemContext, id StorageImageID) error {
+	ref, err := id.imageRef(svc)
+	if err != nil {
+		return err
 	}
 
 	return ref.DeleteImage(svc.ctx, systemContext)

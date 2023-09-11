@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/containers/image/v5/docker/reference"
+	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 )
 
@@ -73,4 +75,12 @@ func (id StorageImageID) IDStringForOutOfProcessConsumptionOnly() string {
 func (id StorageImageID) Format(f fmt.State, verb rune) {
 	id.ensureInitialized()
 	fmt.Fprintf(f, fmt.FormatString(f, verb), id.privateID)
+}
+
+// imageRef(svc) returns a types.ImageReference for id
+// This succeeds even if the image does not exist.
+func (id StorageImageID) imageRef(svc *imageService) (types.ImageReference, error) {
+	id.ensureInitialized()
+	// This is never expected to fail, we have validated privateID.
+	return istorage.Transport.NewStoreReference(svc.store, nil, id.privateID)
 }

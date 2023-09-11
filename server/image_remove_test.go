@@ -51,8 +51,8 @@ var _ = t.Describe("ImageRemove", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(testSHA256).
 					Return(&parsedTestSHA256),
-				imageServerMock.EXPECT().UntagImage(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().DeleteImage(
+					gomock.Any(), parsedTestSHA256).
 					Return(nil),
 			)
 			// When

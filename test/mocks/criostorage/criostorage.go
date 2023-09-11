@@ -55,6 +55,20 @@ func (mr *MockImageServerMockRecorder) CandidatesForPotentiallyShortImageName(ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CandidatesForPotentiallyShortImageName", reflect.TypeOf((*MockImageServer)(nil).CandidatesForPotentiallyShortImageName), arg0, arg1)
 }
 
+// DeleteImage mocks base method.
+func (m *MockImageServer) DeleteImage(arg0 *types.SystemContext, arg1 storage0.StorageImageID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteImage", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteImage indicates an expected call of DeleteImage.
+func (mr *MockImageServerMockRecorder) DeleteImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImageServer)(nil).DeleteImage), arg0, arg1)
+}
+
 // GetStore mocks base method.
 func (m *MockImageServer) GetStore() storage.Store {
 	m.ctrl.T.Helper()
