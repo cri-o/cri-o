@@ -31,10 +31,20 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, imageRef)
-	if err != nil {
-		return err
+	var images []string
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
+		images = []string{id.IDStringForOutOfProcessConsumptionOnly()} // This violates rules of references.StorageImageID, but it will be removed soon.
+	} else {
+		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
+		if err != nil {
+			return err
+		}
+		for _, ref := range potentialMatches {
+			images = append(images, ref.StringForOutOfProcessConsumptionOnly()) // This violates rules of references.StorageImageID, but it will be removed soon.
+		}
 	}
+
+	var err error
 	for _, img := range images {
 		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
 		if err != nil {
