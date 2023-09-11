@@ -31,7 +31,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +75,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -107,7 +107,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,7 +141,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		t.Error(err)
 	}
 	var hasCgroupRO bool
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,6 +156,47 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}
 	if !hasCgroupRO {
 		t.Error("Cgroup mount not added with RO.")
+	}
+}
+
+func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
+	ctr, err := container.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ctr.SetConfig(&types.ContainerConfig{
+		Mounts: []*types.Mount{
+			{
+				ContainerPath: "/sys",
+				HostPath:      "/sys",
+				UidMappings: []*types.IDMapping{
+					{
+						HostId:      1000,
+						ContainerId: 1,
+						Length:      1000,
+					},
+				},
+			},
+		},
+		Metadata: &types.ContainerMetadata{
+			Name: "testctr",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "testpod",
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
+	if err == nil {
+		t.Errorf("Should have failed to create id mapped mount with no id map support")
+	}
+
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, "")
+	if err != nil {
+		t.Errorf("%v", err)
 	}
 }
 
