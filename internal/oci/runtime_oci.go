@@ -1004,11 +1004,6 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return true, nil
 		})
 	c.opLock.Lock()
-	// run command again
-	state, _, err2 := stateCmd()
-	if err2 != nil {
-		return err2
-	}
 	if state == nil {
 		return fmt.Errorf("state command returned nil")
 	}
