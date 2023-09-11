@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/storage"
 )
 
 // StorageImageID is a stable identifier for a (deduplicated) image in a local storage.
@@ -44,6 +45,11 @@ func parseStorageImageID(input string) (StorageImageID, error) {
 		return StorageImageID{}, fmt.Errorf("%q is not a valid image ID", input)
 	}
 	return newExactStorageImageID(input), nil
+}
+
+// storageImageIDFromImage is an internal constructor of a StorageImageID.
+func storageImageIDFromImage(image *storage.Image) StorageImageID {
+	return newExactStorageImageID(image.ID)
 }
 
 func (id StorageImageID) ensureInitialized() {

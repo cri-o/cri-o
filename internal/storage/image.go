@@ -28,6 +28,7 @@ import (
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
@@ -133,6 +134,15 @@ type ImageServer interface {
 	// the image server uses to hold images, and is the destination used
 	// when it's asked to pull an image.
 	GetStore() storage.Store
+
+	// HeuristicallyTryResolvingStringAsIDPrefix checks if heuristicInput could be a valid image ID or a prefix, and returns
+	// a StorageImageID if so, or nil if the input can be something else.
+	// DO NOT CALL THIS from in-process callers who know what their input is and don't NEED to involve heuristics.
+	HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) *StorageImageID
+	// CandidatesForPotentiallyShortImageName resolves an image name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
+	// It will only return an empty slice if err != nil.
+	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error)
+
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
 	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
@@ -746,20 +756,27 @@ func (svc *imageLookupService) isSecureIndex(indexName string) bool {
 	return true
 }
 
-// ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
-// Will only return an empty slice if err != nil.
-func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
-	if reference.IsFullIdentifier(imageName) {
-		return []string{imageName}, nil // If it is already a full image ID, there’s nothing to do.
+// HeuristicallyTryResolvingStringAsIDPrefix checks if heuristicInput could be a valid image ID or a prefix, and returns
+// a StorageImageID if so, or nil if the input can be something else.
+// DO NOT CALL THIS from in-process callers who know what their input is and don't NEED to involve heuristics.
+func (svc *imageService) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInput string) *StorageImageID {
+	if res, err := parseStorageImageID(heuristicInput); err == nil {
+		return &res // If it is already a full image ID, accept it.
 	}
-	if len(imageName) >= minimumTruncatedIDLength {
-		if img, err := svc.store.Image(imageName); err == nil && strings.HasPrefix(img.ID, imageName) {
+	if len(heuristicInput) >= minimumTruncatedIDLength {
+		if img, err := svc.store.Image(heuristicInput); err == nil && strings.HasPrefix(img.ID, heuristicInput) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need to expand it.
-			return []string{img.ID}, nil
+			res := storageImageIDFromImage(img)
+			return &res
 		}
 	}
+	return nil
+}
 
+// CandidatesForPotentiallyShortImageName resolves an image name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
+// It will only return an empty slice if err != nil.
+func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error) {
 	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
 	sc := types.SystemContext{}
 	if systemContext != nil {
@@ -776,7 +793,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		logrus.Info(desc)
 	}
 
-	images := make([]string, len(resolved.PullCandidates))
+	images := make([]RegistryImageReference, len(resolved.PullCandidates))
 	for i := range resolved.PullCandidates {
 		// Strip the tag from ambiguous image references that have a
 		// digest as well (e.g.  `image:tag@sha256:123...`).  Such
@@ -792,9 +809,30 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 			}
 			ref = canonical
 		}
-		images[i] = ref.String()
+		images[i] = references.RegistryImageReferenceFromRaw(ref)
 	}
 
+	return images, nil
+}
+
+// ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
+// Will only return an empty slice if err != nil.
+func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
+	if id := svc.HeuristicallyTryResolvingStringAsIDPrefix(imageName); id != nil {
+		// This violates rules of StorageImageID, and should be removed soon (2023-10).
+		id := id.IDStringForOutOfProcessConsumptionOnly()
+		return []string{id}, nil
+	}
+
+	fullyQualified, err := svc.CandidatesForPotentiallyShortImageName(systemContext, imageName)
+	if err != nil {
+		return nil, err
+	}
+	images := make([]string, len(fullyQualified))
+	for i := range fullyQualified {
+		// This violates rules of StorageImageID, and should be removed soon (2023-10).
+		images[i] = fullyQualified[i].StringForOutOfProcessConsumptionOnly()
+	}
 	return images, nil
 }
 

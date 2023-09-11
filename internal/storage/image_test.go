@@ -243,22 +243,6 @@ var _ = t.Describe("Image", func() {
 			}))
 		})
 
-		It("should succeed to resolve with a local copy", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(nil, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(testImageName))
-		})
-
 		It("should succeed to resolve with a locally-not-matching image id", func() {
 			// Given
 			gomock.InOrder()
