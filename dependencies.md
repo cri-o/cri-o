@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 09 Sep 2023 13:09:42 UTC for commit [7a011aa][0]._
+_Generated on Mon, 11 Sep 2023 07:53:16 UTC for commit [538ec35][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7a011aa8b5826953fd1a8c64b79c5d9be31ee738
+[0]: https://github.com/cri-o/cri-o/commit/538ec3588331cb430cfaededd1eaf2e677e35467
 
 ## Outdated Dependencies
 
@@ -219,7 +219,7 @@ _Generated on Sat, 09 Sep 2023 13:09:42 UTC for commit [7a011aa][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.1                                            | v1.0.5                             | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be                |                                    | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                            |                                    | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230905171431-65dfe0d23e1f | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230909222155-9043b8ad462c | false  | true             |
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
@@ -496,7 +496,7 @@ _Generated on Sat, 09 Sep 2023 13:09:42 UTC for commit [7a011aa][0]._
 | github.com/grpc-ecosystem/go-grpc-middleware                                            | v1.4.0                                            |                                    | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                            | v1.2.1-0.20210315223345-82c243799c99              |                                    | false  | true             |
 | github.com/grpc-ecosystem/grpc-gateway                                                  | v1.16.0                                           |                                    | false  | true             |
-| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.15.2                                           | v2.17.1                            | false  | true             |
+| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.15.2                                           | v2.18.0                            | false  | true             |
 | github.com/hashicorp/errwrap                                                            | v1.1.0                                            |                                    | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                                       | v0.5.2                                            |                                    | false  | true             |
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                            |                                    | false  | true             |
