@@ -3,7 +3,7 @@ package text
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"io"
 	"math"
 	"strconv"
@@ -11,6 +11,7 @@ import (
 	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/internal/nodemap"
 	"capnproto.org/go/capnp/v3/internal/schema"
+	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/internal/strquote"
 	"capnproto.org/go/capnp/v3/schemas"
 )
@@ -119,7 +120,7 @@ func (enc *Encoder) marshalStruct(typeID uint64, s capnp.Struct) error {
 		return err
 	}
 	if !n.IsValid() || n.Which() != schema.Node_Which_structNode {
-		return fmt.Errorf("cannot find struct type %#x", typeID)
+		return errors.New("cannot find struct type " + str.UToHex(typeID))
 	}
 	var discriminant uint16
 	if n.StructNode().DiscriminantCount() > 0 {
@@ -171,7 +172,11 @@ func (enc *Encoder) marshalFieldValue(s capnp.Struct, f schema.Field) error {
 	}
 	if dv.IsValid() && int(typ.Which()) != int(dv.Which()) {
 		name, _ := f.Name()
-		return fmt.Errorf("marshal field %s: default value is a %v, want %v", name, dv.Which(), typ.Which())
+		return errors.New(
+			"marshal field " + name +
+				": default value is a " + dv.Which().String() +
+				", want " + typ.Which().String(),
+		)
 	}
 	switch typ.Which() {
 	case schema.Type_Which_void:
@@ -277,7 +282,7 @@ func (enc *Encoder) marshalFieldValue(s capnp.Struct, f schema.Field) error {
 	case schema.Type_Which_anyPointer:
 		enc.w.WriteString(anyPointerMarker)
 	default:
-		return fmt.Errorf("unknown field type %v", typ.Which())
+		return errors.New("unknown field type " + typ.Which().String())
 	}
 	return nil
 }
@@ -394,7 +399,7 @@ func (enc *Encoder) marshalList(elem schema.Type, l capnp.List) error {
 		}
 		enc.w.WriteByte(']')
 	default:
-		return fmt.Errorf("unknown list type %v", elem.Which())
+		return errors.New("unknown list type " + elem.Which().String())
 	}
 	return nil
 }
@@ -405,7 +410,9 @@ func (enc *Encoder) marshalEnum(typ uint64, val uint16) error {
 		return err
 	}
 	if n.Which() != schema.Node_Which_enum {
-		return fmt.Errorf("marshaling enum of type @%#x: type is not an enum", typ)
+		return errors.New(
+			"marshaling enum of type @" + str.UToHex(typ) + ": type is not an enum",
+		)
 	}
 	enums, err := n.Enum().Enumerants()
 	if err != nil {

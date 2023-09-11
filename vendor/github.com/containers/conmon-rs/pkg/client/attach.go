@@ -74,7 +74,7 @@ type AttachConfig struct {
 	Passthrough bool
 
 	// Channel of resize events.
-	Resize chan resize.TerminalSize
+	Resize <-chan resize.TerminalSize
 
 	// The standard streams for this attach session.
 	Streams AttachStreams
@@ -121,12 +121,8 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 
 		if err := req.SetId(cfg.ID); err != nil {
@@ -407,7 +403,7 @@ func (c *ConmonClient) readStdio(
 		c.tryCloseAttachReaderForID(id)
 
 		if closeErr := conn.CloseWrite(); closeErr != nil {
-			return fmt.Errorf("%v: %w", closeErr, err)
+			return errors.Join(closeErr, err)
 		}
 
 		if err != nil {
@@ -432,7 +428,7 @@ func (c *ConmonClient) readStdio(
 
 		if errors.Is(err, util.ErrDetach) {
 			if closeErr := conn.CloseWrite(); closeErr != nil {
-				return fmt.Errorf("%v: %w", closeErr, err)
+				return errors.Join(closeErr, err)
 			}
 
 			return err
@@ -484,12 +480,8 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 
 		if err := req.SetId(cfg.ID); err != nil {
@@ -498,10 +490,6 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 
 		req.SetWidth(cfg.Size.Width)
 		req.SetHeight(cfg.Size.Height)
-
-		if err := p.SetRequest(req); err != nil {
-			return fmt.Errorf("set request: %w", err)
-		}
 
 		return nil
 	})

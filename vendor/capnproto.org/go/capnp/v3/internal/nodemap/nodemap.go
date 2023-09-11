@@ -18,7 +18,7 @@ func (m *Map) registry() *schemas.Registry {
 	if m.reg != nil {
 		return m.reg
 	}
-	return &schemas.DefaultRegistry
+	return schemas.DefaultRegistry
 }
 
 // UseRegistry assigns 'reg' to 'm' and initializes the nodes map.

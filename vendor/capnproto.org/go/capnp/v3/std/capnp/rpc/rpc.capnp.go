@@ -3045,27 +3045,32 @@ const schema_b312981b2552a250 = "x\xda\x9cX\x7f\x8c\x15\xd5\xf5?\xe7\xde\xb7\xef
 	"\xab\xd5\x99\xc2}\xb1\xd3\xd5\xeemr\x92\\\xa2\xc6\xf3" +
 	"\x7f\x03\x00\x00\xff\xff\x13\x1e\x1c\xb7"
 
-func init() {
-	schemas.Register(schema_b312981b2552a250,
-		0x836a53ce789d4cd4,
-		0x8523ddc40b86b8b0,
-		0x91b79f1f808db032,
-		0x95bc14545813fbc1,
-		0x9a0e61223d96743b,
-		0x9c6a046bfbc1ac5a,
-		0x9e19b28d3db3573a,
-		0xad1a6c0d7dd07497,
-		0xb28c96e23f4cbd58,
-		0xbbc29655fa89086e,
-		0xd37007fde1f0027d,
-		0xd37d2eb2c2f80e63,
-		0xd4c9b56290554016,
-		0xd562b4df655bdd4d,
-		0xd625b7063acf691a,
-		0xd800b1d6cd6f1ca0,
-		0xdae8b0f61aab5f99,
-		0xe94ccf8031176ec4,
-		0xf316944415569081,
-		0xf964368b0fbd3711,
-		0xfbe1980490e001af)
+func RegisterSchema(reg *schemas.Registry) {
+	reg.Register(&schemas.Schema{
+		String: schema_b312981b2552a250,
+		Nodes: []uint64{
+			0x836a53ce789d4cd4,
+			0x8523ddc40b86b8b0,
+			0x91b79f1f808db032,
+			0x95bc14545813fbc1,
+			0x9a0e61223d96743b,
+			0x9c6a046bfbc1ac5a,
+			0x9e19b28d3db3573a,
+			0xad1a6c0d7dd07497,
+			0xb28c96e23f4cbd58,
+			0xbbc29655fa89086e,
+			0xd37007fde1f0027d,
+			0xd37d2eb2c2f80e63,
+			0xd4c9b56290554016,
+			0xd562b4df655bdd4d,
+			0xd625b7063acf691a,
+			0xd800b1d6cd6f1ca0,
+			0xdae8b0f61aab5f99,
+			0xe94ccf8031176ec4,
+			0xf316944415569081,
+			0xf964368b0fbd3711,
+			0xfbe1980490e001af,
+		},
+		Compressed: true,
+	})
 }

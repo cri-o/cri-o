@@ -14,4 +14,9 @@ echo "** capnpc-go"
 echo "** schemas"
 (cd std/capnp; ../gen.sh compile)
 (cd std/capnp; capnp compile --no-standard-import -I.. -o- schema.capnp) | (cd internal/schema && capnpc-go -promises=0 -schemas=0 -structstrings=0)
+(
+	top="$PWD"
+	cd flowcontrol/internal/test-tool
+	capnp compile --no-standard-import -I "$top/std" -ogo *.capnp
+)
 go generate ./...

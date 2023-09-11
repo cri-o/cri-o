@@ -2,6 +2,9 @@ package capnp
 
 import (
 	"bytes"
+
+	"capnproto.org/go/capnp/v3/exc"
+	"capnproto.org/go/capnp/v3/internal/str"
 )
 
 // A Ptr is a reference to a Cap'n Proto struct, list, or interface.
@@ -212,11 +215,11 @@ var _ TypeParam[Ptr] = Ptr{}
 func unmarshalDefault(def []byte) (Ptr, error) {
 	msg, err := Unmarshal(def)
 	if err != nil {
-		return Ptr{}, annotatef(err, "read default")
+		return Ptr{}, exc.WrapError("read default", err)
 	}
 	p, err := msg.Root()
 	if err != nil {
-		return Ptr{}, annotatef(err, "read default")
+		return Ptr{}, exc.WrapError("read default", err)
 	}
 	return p, nil
 }
@@ -324,11 +327,11 @@ func Equal(p1, p2 Ptr) (bool, error) {
 		for i := 0; i < n; i++ {
 			sp1, err := s1.Ptr(uint16(i))
 			if err != nil {
-				return false, annotatef(err, "equal")
+				return false, exc.WrapError("equal", err)
 			}
 			sp2, err := s2.Ptr(uint16(i))
 			if err != nil {
-				return false, annotatef(err, "equal")
+				return false, exc.WrapError("equal", err)
 			}
 			if ok, err := Equal(sp1, sp2); !ok || err != nil {
 				return false, err
@@ -361,7 +364,7 @@ func Equal(p1, p2 Ptr) (bool, error) {
 		for i := 0; i < l1.Len(); i++ {
 			e1, e2 := l1.Struct(i), l2.Struct(i)
 			if ok, err := Equal(e1.ToPtr(), e2.ToPtr()); err != nil {
-				return false, annotatef(err, "equal: list element %d", i)
+				return false, exc.WrapError("equal: list element "+str.Itod(i), err)
 			} else if !ok {
 				return false, nil
 			}
