@@ -208,7 +208,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			log.Debugf(ctx, "Image in store has different ID, re-pulling %s", img)
 		}
 
-		// Pull by collecting progress metrics
+		// Collect pull progress metrics
 		progress := make(chan imageTypes.ProgressProperties)
 		defer close(progress) // nolint:gocritic
 		go func() {
