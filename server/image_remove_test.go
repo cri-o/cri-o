@@ -33,7 +33,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
-					resolvedImageName.StringForOutOfProcessConsumptionOnly()).Return(nil),
+					resolvedImageName).Return(nil),
 			)
 			// When
 			_, err := sut.RemoveImage(context.Background(),
@@ -72,7 +72,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
-					resolvedImageName.StringForOutOfProcessConsumptionOnly()).Return(t.TestError),
+					resolvedImageName).Return(t.TestError),
 			)
 			// When
 			_, err := sut.RemoveImage(context.Background(),

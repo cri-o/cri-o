@@ -39,15 +39,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	if err != nil {
 		return err
 	}
-	images := make([]string, 0, len(potentialMatches))
-	for _, ref := range potentialMatches {
-		images = append(images, ref.StringForOutOfProcessConsumptionOnly()) // This violates rules of references.StorageImageID, but it will be removed soon.
-	}
-
-	for _, img := range images {
-		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
+	for _, name := range potentialMatches {
+		err = s.StorageImageServer().UntagImage(s.config.SystemContext, name)
 		if err != nil {
-			log.Debugf(ctx, "Error deleting image %s: %v", img, err)
+			log.Debugf(ctx, "Error deleting image %s: %v", name, err)
 			continue
 		}
 		deleted = true

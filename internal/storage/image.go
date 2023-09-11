@@ -132,7 +132,7 @@ type ImageServer interface {
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
 	// UntagImage removes a name from the specified image, and if it was
 	// the only name the image had, removes the image.
-	UntagImage(systemContext *types.SystemContext, imageName string) error
+	UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error
 
 	// GetStore returns the reference to the storage library Store which
 	// the image server uses to hold images, and is the destination used
@@ -684,8 +684,8 @@ func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemCon
 	return srcSystemContext, srcRef, destRef, nil
 }
 
-func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID string) error {
-	ref, err := svc.getRef(nameOrID)
+func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
+	ref, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
 	if err != nil {
 		return err
 	}
@@ -693,31 +693,22 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, nameOrID
 	if err != nil {
 		return err
 	}
+	// Do not use ref from now on; if the tag moves, ref can refer to a different image. Prefer img.ID.
 
-	if !strings.HasPrefix(img.ID, nameOrID) {
-		namedRef, err := svc.lookup.remoteImageReference(nameOrID)
-		if err != nil {
-			return err
-		}
-
-		name := nameOrID
-		if namedRef.DockerReference() != nil {
-			name = namedRef.DockerReference().String()
-		}
-
-		remainingNames := 0
-		for _, imgName := range img.Names {
-			if imgName != name && imgName != nameOrID {
-				remainingNames += 1
-			}
-		}
-
-		if remainingNames > 0 {
-			return svc.store.RemoveNames(img.ID, []string{name, nameOrID})
+	nameString := name.Raw().String()
+	remainingNames := 0
+	for _, imgName := range img.Names {
+		if imgName != nameString {
+			remainingNames += 1
 		}
 	}
 
-	return ref.DeleteImage(svc.ctx, systemContext)
+	if remainingNames > 0 {
+		return svc.store.RemoveNames(img.ID, []string{nameString})
+	}
+	// Note that the remainingNames check is unavoidably racy:
+	// the image can be tagged with another name at this point.
+	return svc.DeleteImage(systemContext, newExactStorageImageID(img.ID))
 }
 
 // DeleteImage deletes a storage image (impacting all its tags)

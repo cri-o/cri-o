@@ -173,7 +173,7 @@ func (mr *MockImageServerMockRecorder) ResolveNames(arg0, arg1 interface{}) *gom
 }
 
 // UntagImage mocks base method.
-func (m *MockImageServer) UntagImage(arg0 *types.SystemContext, arg1 string) error {
+func (m *MockImageServer) UntagImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagImage", arg0, arg1)
 	ret0, _ := ret[0].(error)
