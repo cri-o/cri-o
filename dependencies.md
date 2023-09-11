@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 11 Sep 2023 10:46:16 UTC for commit [66d079d][0]._
+_Generated on Mon, 11 Sep 2023 14:42:40 UTC for commit [df60b21][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/66d079d34a4136b87e6abcc7dcb5f8a857847f11
+[0]: https://github.com/cri-o/cri-o/commit/df60b21359f84b292bf8f8e95c26a00a46933ae7
 
 ## Outdated Dependencies
 
@@ -157,7 +157,7 @@ _Generated on Mon, 11 Sep 2023 10:46:16 UTC for commit [66d079d][0]._
 | github.com/14rcole/gopopulate                                                           | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
 | github.com/AdaLogics/go-fuzz-headers                                                    | v0.0.0-20230106234847-43070de90fa1                | v0.0.0-20230811130428-ced1acdcaa24 | false  | true             |
 | github.com/AdamKorcz/go-118-fuzz-build                                                  | v0.0.0-20221215162035-5330a85ea652                | v0.0.0-20230306123547-8075edf89bb0 | false  | true             |
-| github.com/AdamKorcz/go-fuzz-headers-1                                                  | v0.0.0-20230618160516-e936619f9f18                | v0.0.0-20230906174457-9f598545f62c | false  | true             |
+| github.com/AdamKorcz/go-fuzz-headers-1                                                  | v0.0.0-20230618160516-e936619f9f18                | v0.0.0-20230911125124-d173eab86009 | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper | v0.2.0                                            |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                              |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.6.1                                            | v1.7.2                             | false  | true             |
@@ -847,7 +847,7 @@ _Generated on Mon, 11 Sep 2023 10:46:16 UTC for commit [66d079d][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                |                                    | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.1                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230905144417-27252a376b30 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230911130819-09df2b681efd | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
