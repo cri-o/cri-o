@@ -142,3 +142,11 @@ function teardown() {
 	[[ "$container_name" == "restored-sleep-container" ]]
 	[[ "$pod_name" == "restoresandbox2" ]]
 }
+
+@test "checkpoint one container into non-existing directory" {
+	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	run ! crictl checkpoint --export=/does/not/exist/cp.tar "$ctr_id"
+}
