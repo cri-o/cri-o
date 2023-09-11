@@ -337,7 +337,6 @@ apt install -y  \
   btrfs-tools \
   containers-common \
   git \
-  golang-go \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
@@ -364,7 +363,6 @@ apt-get update -qq && apt-get install -y \
   libbtrfs-dev \
   containers-common \
   git \
-  golang-go \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
