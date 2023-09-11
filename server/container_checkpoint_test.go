@@ -6,7 +6,6 @@ import (
 
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -43,11 +42,6 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				State: specs.State{Status: oci.ContainerStateRunning},
 			})
 			testContainer.SetSpec(&specs.Spec{Version: "1.0.0"})
-
-			gomock.InOrder(
-				runtimeServerMock.EXPECT().StopContainer(gomock.Any(), gomock.Any()).
-					Return(nil),
-			)
 
 			// When
 			_, err := sut.CheckpointContainer(
