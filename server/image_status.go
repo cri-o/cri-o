@@ -19,7 +19,6 @@ import (
 func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	var resp *types.ImageStatusResponse
 	image := ""
 	img := req.Image
 	if img != nil {
@@ -35,11 +34,12 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		return nil, err
 	}
 	var (
+		status   *pkgstorage.ImageResult
 		notfound bool
 		lastErr  error
 	)
 	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
+		status_, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Is(err, storage.ErrImageUnknown) {
 				log.Debugf(ctx, "Can't find %s", image)
@@ -50,48 +50,48 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 			lastErr = err
 			continue
 		}
-
-		// Ensure that size is already defined
-		var size uint64
-		if status.Size == nil {
-			size = 0
-		} else {
-			size = *status.Size
-		}
-
-		resp = &types.ImageStatusResponse{
-			Image: &types.Image{
-				Id:          status.ID,
-				RepoTags:    status.RepoTags,
-				RepoDigests: status.RepoDigests,
-				Size_:       size,
-				Spec: &types.ImageSpec{
-					Annotations: status.Annotations,
-				},
-			},
-		}
-		if req.Verbose {
-			info, err := createImageInfo(status)
-			if err != nil {
-				return nil, fmt.Errorf("creating image info: %w", err)
-			}
-			resp.Info = info
-		}
-		uid, username := getUserFromImage(status.User)
-		if uid != nil {
-			resp.Image.Uid = &types.Int64Value{Value: *uid}
-		}
-		resp.Image.Username = username
+		status = status_
 		break
 	}
-	if lastErr != nil && resp == nil {
+	if lastErr != nil && status == nil {
 		return nil, lastErr
 	}
-	if notfound && resp == nil {
+	if notfound && status == nil {
 		log.Infof(ctx, "Image %s not found", image)
 		return &types.ImageStatusResponse{}, nil
 	}
 
+	// Ensure that size is already defined
+	var size uint64
+	if status.Size == nil {
+		size = 0
+	} else {
+		size = *status.Size
+	}
+
+	resp := &types.ImageStatusResponse{
+		Image: &types.Image{
+			Id:          status.ID,
+			RepoTags:    status.RepoTags,
+			RepoDigests: status.RepoDigests,
+			Size_:       size,
+			Spec: &types.ImageSpec{
+				Annotations: status.Annotations,
+			},
+		},
+	}
+	if req.Verbose {
+		info, err := createImageInfo(status)
+		if err != nil {
+			return nil, fmt.Errorf("creating image info: %w", err)
+		}
+		resp.Info = info
+	}
+	uid, username := getUserFromImage(status.User)
+	if uid != nil {
+		resp.Image.Uid = &types.Int64Value{Value: *uid}
+	}
+	resp.Image.Username = username
 	log.Infof(ctx, "Image status: %v", resp)
 	return resp, nil
 }
