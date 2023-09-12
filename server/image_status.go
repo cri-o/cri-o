@@ -72,9 +72,17 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
 func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (*pkgstorage.ImageResult, error) {
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, spec.Image)
-	if err != nil {
-		return nil, err
+	var images []string
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
+		images = []string{id.IDStringForOutOfProcessConsumptionOnly()} // This violates rules of storage.StorageImageID, but it will be removed soon.
+	} else {
+		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.Image)
+		if err != nil {
+			return nil, err
+		}
+		for _, ref := range potentialMatches {
+			images = append(images, ref.StringForOutOfProcessConsumptionOnly()) // This violates rules of references.RegistryImageReference, but it will be removed soon.
+		}
 	}
 	var lastErr error
 	for _, image := range images {
