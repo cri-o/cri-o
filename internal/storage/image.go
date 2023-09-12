@@ -122,6 +122,11 @@ type ImageServer interface {
 	ListImages(systemContext *types.SystemContext) ([]ImageResult, error)
 	// ImageStatus returns status of an image which matches the filter.
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
+	// ImageStatusByID returns status of a single image
+	ImageStatusByID(systemContext *types.SystemContext, id StorageImageID) (*ImageResult, error)
+	// ImageStatusByName returns status of an image tagged with name.
+	ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error)
+
 	// PrepareImage returns an Image where the config digest can be grabbed
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName string) (types.ImageCloser, error)
@@ -363,11 +368,45 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	if err != nil {
 		return nil, err
 	}
+
+	return svc.imageStatus(systemContext, ref, image)
+}
+
+func (svc *imageService) ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error) {
+	ref, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
+	if err != nil {
+		return nil, err
+	}
+	image, err := istorage.Transport.GetStoreImage(svc.store, ref) //nolint: staticcheck
+	if err != nil {
+		return nil, err
+	}
+
+	return svc.imageStatus(systemContext, ref, image)
+}
+
+func (svc *imageService) ImageStatusByID(systemContext *types.SystemContext, id StorageImageID) (*ImageResult, error) {
+	ref, err := id.imageRef(svc)
+	if err != nil {
+		return nil, err
+	}
+	image, err := istorage.Transport.GetStoreImage(svc.store, ref) //nolint: staticcheck
+	if err != nil {
+		return nil, err
+	}
+
+	return svc.imageStatus(systemContext, ref, image)
+}
+
+// imageStatus is the underlying implementation of ImageStatus*.
+// ref must exactly match image.
+func (svc *imageService) imageStatus(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (*ImageResult, error) {
 	svc.imageCacheLock.Lock()
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 
 	if !ok {
+		var err error
 		cacheItem, err = svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
 		if err != nil {
 			return nil, err

@@ -55,8 +55,8 @@ var _ = t.Describe("ContainerRestore", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "does-not-exist.tar").
 					Return([]storage.RegistryImageReference{checkpointImageName}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), checkpointImageName.StringForOutOfProcessConsumptionOnly()).
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), checkpointImageName).
 					Return(&storage.ImageResult{
 						ID:   "image",
 						User: "10", Size: &size,
@@ -510,8 +510,8 @@ var _ = t.Describe("ContainerRestore", func() {
 						gomock.Any(), "image").
 						Return([]storage.RegistryImageReference{checkpointImageName}, nil),
 
-					imageServerMock.EXPECT().ImageStatus(
-						gomock.Any(), checkpointImageName.StringForOutOfProcessConsumptionOnly()).
+					imageServerMock.EXPECT().ImageStatusByName(
+						gomock.Any(), checkpointImageName).
 						Return(&storage.ImageResult{
 							ID:   "image",
 							User: "10", Size: &size,
@@ -563,8 +563,8 @@ var _ = t.Describe("ContainerRestore", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "localhost/checkpoint-image:tag1").
 					Return([]storage.RegistryImageReference{checkpointImageName}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), checkpointImageName.StringForOutOfProcessConsumptionOnly()).
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), checkpointImageName).
 					Return(&storage.ImageResult{
 						ID:   "abcdef",
 						User: "10", Size: &size,

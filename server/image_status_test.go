@@ -35,8 +35,8 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), "docker.io/library/image:latest").
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
 						ID:   "image",
 						User: "10", Size: &size,
@@ -61,8 +61,8 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), "docker.io/library/image:latest",
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate,
 				).Return(
 					&storage.ImageResult{
 						ID:   "image",
@@ -103,8 +103,8 @@ var _ = t.Describe("ImageStatus", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(testSHA256).
 					Return(&parsedTestSHA256),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().ImageStatusByID(
+					gomock.Any(), parsedTestSHA256).
 					Return(&storage.ImageResult{ID: testSHA256, User: "me"}, nil),
 			)
 
@@ -125,8 +125,8 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), "docker.io/library/image:latest").
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(nil, cstorage.ErrImageUnknown),
 			)
 
@@ -147,8 +147,8 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), "docker.io/library/image:latest").
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(nil, t.TestError),
 			)
 

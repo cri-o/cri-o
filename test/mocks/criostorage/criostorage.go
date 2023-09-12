@@ -112,6 +112,36 @@ func (mr *MockImageServerMockRecorder) ImageStatus(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatus", reflect.TypeOf((*MockImageServer)(nil).ImageStatus), arg0, arg1)
 }
 
+// ImageStatusByID mocks base method.
+func (m *MockImageServer) ImageStatusByID(arg0 *types.SystemContext, arg1 storage0.StorageImageID) (*storage0.ImageResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageStatusByID", arg0, arg1)
+	ret0, _ := ret[0].(*storage0.ImageResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImageStatusByID indicates an expected call of ImageStatusByID.
+func (mr *MockImageServerMockRecorder) ImageStatusByID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatusByID", reflect.TypeOf((*MockImageServer)(nil).ImageStatusByID), arg0, arg1)
+}
+
+// ImageStatusByName mocks base method.
+func (m *MockImageServer) ImageStatusByName(arg0 *types.SystemContext, arg1 references.RegistryImageReference) (*storage0.ImageResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageStatusByName", arg0, arg1)
+	ret0, _ := ret[0].(*storage0.ImageResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImageStatusByName indicates an expected call of ImageStatusByName.
+func (mr *MockImageServerMockRecorder) ImageStatusByName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatusByName", reflect.TypeOf((*MockImageServer)(nil).ImageStatusByName), arg0, arg1)
+}
+
 // ListImages mocks base method.
 func (m *MockImageServer) ListImages(arg0 *types.SystemContext) ([]storage0.ImageResult, error) {
 	m.ctrl.T.Helper()
