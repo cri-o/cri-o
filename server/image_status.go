@@ -34,16 +34,14 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		return nil, err
 	}
 	var (
-		status   *pkgstorage.ImageResult
-		notfound bool
-		lastErr  error
+		status  *pkgstorage.ImageResult
+		lastErr error
 	)
 	for _, image := range images {
 		status_, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Is(err, storage.ErrImageUnknown) {
 				log.Debugf(ctx, "Can't find %s", image)
-				notfound = true
 				continue
 			}
 			log.Warnf(ctx, "Error getting status from %s: %v", image, err)
@@ -53,10 +51,12 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 		status = status_
 		break
 	}
-	if lastErr != nil && status == nil {
-		return nil, lastErr
-	}
-	if notfound && status == nil {
+	if status == nil {
+		if lastErr != nil {
+			return nil, lastErr
+		}
+		// ResolveNames returns at least one value if it doesn't fail.
+		// So, if we got here, there was at least one ErrImageUnknown, and no other errors.
 		log.Infof(ctx, "Image %s not found", image)
 		return &types.ImageStatusResponse{}, nil
 	}
