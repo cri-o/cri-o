@@ -255,14 +255,21 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 			return imageCacheItem{}, err
 		}
 	}
-	name, _, _ := sortNamesByType(image.Names)
+
+	imagePinned := false
+	for _, image := range image.Names {
+		if FilterPinnedImage(image, svc.regexForPinnedImages) {
+			imagePinned = true
+			break
+		}
+	}
 	return imageCacheItem{
 		config:        imageConfig,
 		size:          size,
 		configDigest:  configDigest,
 		info:          info,
 		annotations:   ociManifest.Annotations,
-		isImagePinned: FilterPinnedImage(name, svc.regexForPinnedImages),
+		isImagePinned: imagePinned,
 	}, nil
 }
 
