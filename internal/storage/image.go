@@ -793,7 +793,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		}
 	}
 
-	// Disable short name alias mode. Will enable it once we settle on a shortname alias table.
+	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
 	disabled := types.ShortNameModeDisabled
 	systemContext.ShortNameMode = &disabled
 	resolved, err := shortnames.Resolve(systemContext, imageName)
