@@ -3,7 +3,6 @@ package server_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -37,18 +36,20 @@ var _ = t.Describe("ImageRemove", func() {
 			Expect(err).To(BeNil())
 		})
 
-		It("should succeed when image id cannot be parsed", func() {
-			// Given
+		// Given
+		It("should succeed with a full image id", func() {
+			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			gomock.InOrder(
 				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return(nil, storage.ErrCannotParseImageID),
-				imageServerMock.EXPECT().UntagImage(gomock.Any(),
-					gomock.Any()).Return(nil),
+					gomock.Any(), testSHA256).
+					Return([]string{testSHA256}, nil),
+				imageServerMock.EXPECT().UntagImage(
+					gomock.Any(), testSHA256).
+					Return(nil),
 			)
 			// When
 			_, err := sut.RemoveImage(context.Background(),
-				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: "image"}})
+				&types.RemoveImageRequest{Image: &types.ImageSpec{Image: testSHA256}})
 
 			// Then
 			Expect(err).To(BeNil())

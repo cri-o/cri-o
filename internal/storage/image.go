@@ -3,7 +3,6 @@ package storage
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -41,9 +40,6 @@ import (
 const (
 	minimumTruncatedIDLength = 3
 )
-
-// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
-var ErrCannotParseImageID = errors.New("cannot parse an image ID")
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
@@ -797,8 +793,8 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 	// This to prevent any image ID to go through this routine
 	_, err := reference.ParseNormalizedNamed(imageName)
 	if err != nil {
-		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
-			return nil, ErrCannotParseImageID
+		if reference.IsFullIdentifier(imageName) {
+			return []string{imageName}, nil
 		}
 		return nil, err
 	}
