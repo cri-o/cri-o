@@ -794,9 +794,13 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 	}
 
 	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
+	sc := types.SystemContext{}
+	if systemContext != nil {
+		sc = *systemContext // A shallow copy
+	}
 	disabled := types.ShortNameModeDisabled
-	systemContext.ShortNameMode = &disabled
-	resolved, err := shortnames.Resolve(systemContext, imageName)
+	sc.ShortNameMode = &disabled
+	resolved, err := shortnames.Resolve(&sc, imageName)
 	if err != nil {
 		return nil, err
 	}
