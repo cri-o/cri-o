@@ -254,7 +254,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imgResult.ID,
+		image, imageRef,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
