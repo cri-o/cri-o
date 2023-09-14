@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/log"
@@ -155,6 +156,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		images []string
 		pulled string
 	)
+	if reference.IsFullIdentifier(pullArgs.image) {
+		return "", errors.New("cannot parse an image ID")
+	}
 	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
