@@ -792,11 +792,6 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 			return []string{img.ID}, nil
 		}
 	}
-	// This to prevent any image ID to go through this routine
-	_, err := reference.ParseNormalizedNamed(imageName)
-	if err != nil {
-		return nil, err
-	}
 
 	// Disable short name alias mode. Will enable it once we settle on a shortname alias table.
 	disabled := types.ShortNameModeDisabled
