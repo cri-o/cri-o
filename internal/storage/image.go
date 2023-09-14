@@ -786,7 +786,7 @@ func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageN
 		return []string{imageName}, nil // If it is already a full image ID, there’s nothing to do.
 	}
 	if len(imageName) >= minimumTruncatedIDLength {
-		if img, err := svc.store.Image(imageName); err == nil && img != nil && strings.HasPrefix(img.ID, imageName) {
+		if img, err := svc.store.Image(imageName); err == nil && strings.HasPrefix(img.ID, imageName) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need to expand it.
 			return []string{img.ID}, nil
