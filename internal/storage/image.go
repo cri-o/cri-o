@@ -786,7 +786,7 @@ func (svc *imageLookupService) isSecureIndex(indexName string) bool {
 // ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
 // Will only return an empty slice if err != nil.
 func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
-	// _Maybe_ it's a truncated image ID.  Don't prepend a registry name, then.
+	// _Maybe_ it's a truncated image ID, or an image ID that refers to a locally-present image.  Don't prepend a registry name, then.
 	if len(imageName) >= minimumTruncatedIDLength && svc.store != nil {
 		if img, err := svc.store.Image(imageName); err == nil && img != nil && strings.HasPrefix(img.ID, imageName) {
 			// It's a truncated version of the ID of an image that's present in local storage;
