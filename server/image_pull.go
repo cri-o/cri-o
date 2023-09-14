@@ -151,15 +151,13 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		return "", err
 	}
 
-	var (
-		images []string
-		pulled string
-	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
+	remoteCandidates, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
-	for _, img := range images {
+	var pulled string
+	for _, remoteCandidateName := range remoteCandidates {
+		img := remoteCandidateName.StringForOutOfProcessConsumptionOnly() // This violates storage API rules, it will be fixed shortly.
 		var tmpImg imageTypes.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
@@ -175,7 +173,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 					break
 				}
 			}
-			log.Debugf(ctx, "Error preparing image %s: %v", img, err)
+			log.Debugf(ctx, "Error preparing image %s: %v", remoteCandidateName, err)
 			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
@@ -190,7 +188,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				// case, we're going to repull the image in any case
 				log.Debugf(ctx, "Image config digest is empty, re-pulling image")
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
-				log.Debugf(ctx, "Image %s already in store, skipping pull", img)
+				log.Debugf(ctx, "Image %s already in store, skipping pull", remoteCandidateName)
 				pulled = img
 
 				// Skipped digests metrics
@@ -205,7 +203,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 
 				break
 			}
-			log.Debugf(ctx, "Image in store has different ID, re-pulling %s", img)
+			log.Debugf(ctx, "Image in store has different ID, re-pulling %s", remoteCandidateName)
 		}
 
 		// Collect pull progress metrics
@@ -219,12 +217,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 				if p.Artifact.Size > 0 {
 					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
-						p.Event, img, p.Artifact.Digest, p.Offset,
+						p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
 						float64(p.Offset)/float64(p.Artifact.Size)*100,
 					)
 				} else {
 					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
-						p.Event, img, p.Artifact.Digest, p.Offset,
+						p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
 					)
 				}
 
@@ -283,7 +281,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			},
 		})
 		if err != nil {
-			log.Debugf(ctx, "Error pulling image %s: %v", img, err)
+			log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
 			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
