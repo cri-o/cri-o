@@ -582,7 +582,7 @@ registries = []
 ```
 <!-- markdownlint-enable MD013 -->
 
-For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md).
+For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md).
 
 ### Optional - Modify verbosity of logs
 
