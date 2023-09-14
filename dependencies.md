@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 14 Sep 2023 00:52:41 UTC for commit [8ed3b1a][0]._
+_Generated on Thu, 14 Sep 2023 09:03:51 UTC for commit [6b5e756][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8ed3b1a27b93d4fafee02b6081e76ee852b206e1
+[0]: https://github.com/cri-o/cri-o/commit/6b5e756fa93758edf684482c2ad85772a5b88bec
 
 ## Outdated Dependencies
 
@@ -271,7 +271,7 @@ _Generated on Thu, 14 Sep 2023 00:52:41 UTC for commit [8ed3b1a][0]._
 | github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.0+incompatible                | false  | true             |
 | github.com/bugsnag/osext                                                                | v0.0.0-20130617224835-0dd3f918b21b                |                                    | false  | true             |
 | github.com/bugsnag/panicwrap                                                            | v0.0.0-20151223152923-e2c28503fcd0                | v1.3.4                             | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.49.0                                           | v3.54.0                            | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.49.0                                           | v3.55.0                            | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                            |                                    | false  | true             |
 | github.com/cavaliercoder/badio                                                          | v0.0.0-20160213150051-ce5280129e9e                |                                    | false  | true             |
 | github.com/cavaliercoder/go-cpio                                                        | v0.0.0-20180626203310-925f9528c45e                | v1.0.1                             | false  | true             |
@@ -856,7 +856,7 @@ _Generated on Thu, 14 Sep 2023 00:52:41 UTC for commit [8ed3b1a][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230912052245-8d736b687bf4 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230914012755-978068686674 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
