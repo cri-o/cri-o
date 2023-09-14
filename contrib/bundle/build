@@ -108,15 +108,24 @@ cp "$GIT_ROOT/contrib/bundle/Makefile" "$TMPDIR"
 cp "$GIT_ROOT/contrib/bundle/README.md" "$TMPDIR"
 cp "$GIT_ROOT/LICENSE" "$TMPDIR"
 
-curl_to() {
-    curl -sSfL -o "$1" "$2"
+curl_retry() {
+    curl -sSfL --retry 5 --retry-delay 3 "$@"
 }
+
+curl_to() {
+    curl_retry -sSfL -o "$1" "$2"
+}
+
 TMP_BIN=$TMPDIR/bin
 
 # conmon
 curl_to "$TMP_BIN/conmon" \
     "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$ARCH"
 chmod +x "$TMP_BIN/conmon"
+
+# conmon-rs
+curl_retry https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
+    bash -s -- -n -a "$ARCH" -l "${VERSIONS["conmon-rs"]}" -o "$TMP_BIN/conmonrs"
 
 # runc
 curl_to "$TMP_BIN/runc" \
@@ -183,7 +192,7 @@ $BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
 pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
-EXP_CNT=67
+EXP_CNT=68
 if ! command -v runc; then
     EXP_CNT=$((EXP_CNT + 1))
 fi
