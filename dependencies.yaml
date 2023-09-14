@@ -1,6 +1,6 @@
 dependencies:
   - name: go
-    version: 1.21
+    version: '1.21.1'
     refPaths:
     - path: go.mod
       match: go
@@ -62,7 +62,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 1.8.7
+    version: '1.8.7'
     refPaths:
     - path: scripts/versions
       match: crun
@@ -78,49 +78,49 @@ dependencies:
       match: version
 
   - name: zeitgeist
-    version: 0.4.1
+    version: '0.4.1'
     refPaths:
       - path: Makefile
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.15.1
+    version: '2.15.1'
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
 
   - name: bom
-    version: 0.5.1
+    version: '0.5.1'
     refPaths:
       - path: Makefile
         match: BOM_VERSION
 
   - name: release-notes
-    version: 0.15.1
+    version: '0.15.1'
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.6.0
+    version: '3.6.0'
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
 
   - name: mockgen
-    version: 1.6.0
+    version: '1.6.0'
     refPaths:
       - path: Makefile
         match: MOCKGEN_VERSION
 
   - name: go-mod-outdated
-    version: 0.9.0
+    version: '0.9.0'
     refPaths:
       - path: Makefile
         match: GO_MOD_OUTDATED_VERSION
 
   - name: gosec
-    version: 2.15.0
+    version: '2.15.0'
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
