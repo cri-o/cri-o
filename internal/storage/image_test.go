@@ -261,10 +261,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to resolve with a locally-not-matching image id", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(testSHA256).
-					Return(nil, cs.ErrImageUnknown),
-			)
+			gomock.InOrder()
 
 			// When
 			names, err := sut.ResolveNames(ctx, testSHA256)
