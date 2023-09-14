@@ -42,12 +42,8 @@ const (
 	minimumTruncatedIDLength = 3
 )
 
-var (
-	// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
-	ErrCannotParseImageID = errors.New("cannot parse an image ID")
-	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
-	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
-)
+// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
+var ErrCannotParseImageID = errors.New("cannot parse an image ID")
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
