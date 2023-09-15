@@ -145,6 +145,10 @@ type RootConfig struct {
 	// explicitly handled by other options will be stored.
 	RunRoot string `toml:"runroot"`
 
+	// ImageStore if set it will allow end-users to store newly pulled image
+	// in path provided by `ImageStore` instead of path provided in `Root`.
+	ImageStore string `toml:"imagestore"`
+
 	// Storage is the name of the storage driver which handles actually
 	// storing the contents of containers.
 	Storage string `toml:"storage_driver"`
@@ -182,6 +186,7 @@ func (c *RootConfig) GetStore() (storage.Store, error) {
 	return storage.GetStore(storage.StoreOptions{
 		RunRoot:            c.RunRoot,
 		GraphRoot:          c.Root,
+		ImageStore:         c.ImageStore,
 		GraphDriverName:    c.Storage,
 		GraphDriverOptions: c.StorageOptions,
 	})
@@ -819,6 +824,7 @@ func DefaultConfig() (*Config, error) {
 		RootConfig: RootConfig{
 			Root:              storeOpts.GraphRoot,
 			RunRoot:           storeOpts.RunRoot,
+			ImageStore:        storeOpts.ImageStore,
 			Storage:           storeOpts.GraphDriverName,
 			StorageOptions:    storeOpts.GraphDriverOptions,
 			LogDir:            "/var/log/crio/pods",
