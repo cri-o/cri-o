@@ -213,11 +213,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
-		if err == storage.ErrCannotParseImageID {
-			images = append(images, image)
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 
 	// Get imageName and imageRef that are later requested in container status

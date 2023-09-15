@@ -259,20 +259,16 @@ var _ = t.Describe("Image", func() {
 			Expect(names[0]).To(Equal(testImageName))
 		})
 
-		It("should fail to resolve with invalid image id", func() {
+		It("should succeed to resolve with a locally-not-matching image id", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
+			gomock.InOrder()
 
 			// When
 			names, err := sut.ResolveNames(ctx, testSHA256)
 
 			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(err).To(Equal(storage.ErrCannotParseImageID))
-			Expect(names).To(BeNil())
+			Expect(err).To(BeNil())
+			Expect(names[0]).To(Equal(testSHA256))
 		})
 
 		It("should fail to resolve with invalid registry name", func() {

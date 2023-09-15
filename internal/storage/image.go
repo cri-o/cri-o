@@ -3,7 +3,6 @@ package storage
 import (
 	"bufio"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -40,13 +39,6 @@ import (
 
 const (
 	minimumTruncatedIDLength = 3
-)
-
-var (
-	// ErrCannotParseImageID is returned when we try to ResolveNames for an image ID
-	ErrCannotParseImageID = errors.New("cannot parse an image ID")
-	// ErrImageMultiplyTagged is returned when we try to remove an image that still has multiple names
-	ErrImageMultiplyTagged = errors.New("image still has multiple names applied")
 )
 
 // ImageResult wraps a subset of information about an image: its ID, its names,
@@ -790,27 +782,25 @@ func (svc *imageLookupService) isSecureIndex(indexName string) bool {
 // ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
 // Will only return an empty slice if err != nil.
 func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
-	// _Maybe_ it's a truncated image ID.  Don't prepend a registry name, then.
-	if len(imageName) >= minimumTruncatedIDLength && svc.store != nil {
-		if img, err := svc.store.Image(imageName); err == nil && img != nil && strings.HasPrefix(img.ID, imageName) {
+	if reference.IsFullIdentifier(imageName) {
+		return []string{imageName}, nil // If it is already a full image ID, there’s nothing to do.
+	}
+	if len(imageName) >= minimumTruncatedIDLength {
+		if img, err := svc.store.Image(imageName); err == nil && strings.HasPrefix(img.ID, imageName) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need to expand it.
 			return []string{img.ID}, nil
 		}
 	}
-	// This to prevent any image ID to go through this routine
-	_, err := reference.ParseNormalizedNamed(imageName)
-	if err != nil {
-		if strings.Contains(err.Error(), "cannot specify 64-byte hexadecimal strings") {
-			return nil, ErrCannotParseImageID
-		}
-		return nil, err
-	}
 
-	// Disable short name alias mode. Will enable it once we settle on a shortname alias table.
+	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
+	sc := types.SystemContext{}
+	if systemContext != nil {
+		sc = *systemContext // A shallow copy
+	}
 	disabled := types.ShortNameModeDisabled
-	systemContext.ShortNameMode = &disabled
-	resolved, err := shortnames.Resolve(systemContext, imageName)
+	sc.ShortNameMode = &disabled
+	resolved, err := shortnames.Resolve(&sc, imageName)
 	if err != nil {
 		return nil, err
 	}

@@ -89,20 +89,20 @@ var _ = t.Describe("ImageStatus", func() {
 			))
 		})
 
-		It("should succeed with wrong image id", func() {
+		It("should succeed with a full image ID", func() {
+			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return(nil, storage.ErrCannotParseImageID),
+				imageServerMock.EXPECT().ResolveNames(gomock.Any(), testSHA256).
+					Return([]string{testSHA256}, nil),
 				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{ID: "image", User: "me"}, nil),
+					gomock.Any(), testSHA256).
+					Return(&storage.ImageResult{ID: testSHA256, User: "me"}, nil),
 			)
 
 			// When
 			response, err := sut.ImageStatus(context.Background(),
-				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
+				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: testSHA256}})
 
 			// Then
 			Expect(err).To(BeNil())

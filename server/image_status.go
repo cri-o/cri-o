@@ -32,11 +32,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	log.Infof(ctx, "Checking image status: %s", image)
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
 	if err != nil {
-		if err == pkgstorage.ErrCannotParseImageID {
-			images = append(images, image)
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	var (
 		notfound bool

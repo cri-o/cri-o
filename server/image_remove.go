@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/storage"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -34,11 +33,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 
 	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, imageRef)
 	if err != nil {
-		if err == storage.ErrCannotParseImageID {
-			images = append(images, imageRef)
-		} else {
-			return err
-		}
+		return err
 	}
 	for _, img := range images {
 		err = s.StorageImageServer().UntagImage(s.config.SystemContext, img)
