@@ -149,6 +149,9 @@ the container runtime configuration.
 **blockio_config_file**=""
   Path to the blockio class configuration file for configuring the cgroup blockio controller.
 
+**blockio_reload**=false
+  If true, the runtime reloads blockio_config_file and rescans block devices in the system before applying blockio parameters.
+
 **cdi_spec_dirs**=[]
   Directories to scan for Container Device Interface Specifications to enable CDI device injection. For more details about CDI and the syntax of CDI Spec files please refer to https://github.com/container-orchestrated-devices/container-device-interface.
 

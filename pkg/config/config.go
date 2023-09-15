@@ -120,6 +120,8 @@ const (
 const (
 	// DefaultBlockIOConfigFile is the default value for blockio controller configuration file
 	DefaultBlockIOConfigFile = ""
+	// DefaultBlockIOReload is the default value for reloading blockio with changed config file and block devices.
+	DefaultBlockIOReload = false
 )
 
 const (
@@ -324,6 +326,10 @@ type RuntimeConfig struct {
 	// BlockIOConfigFile is the path to the blockio class configuration
 	// file for configuring the cgroup blockio controller.
 	BlockIOConfigFile string `toml:"blockio_config_file"`
+
+	// BlockIOReload instructs the runtime to reload blockio configuration
+	// rescan block devices in the system before assigning blockio parameters.
+	BlockIOReload bool `toml:"blockio_reload"`
 
 	// IrqBalanceConfigFile is the irqbalance service config file which is used
 	// for configuring irqbalance daemon.
@@ -838,6 +844,7 @@ func DefaultConfig() (*Config, error) {
 			SELinux:                     selinuxEnabled(),
 			ApparmorProfile:             apparmor.DefaultProfile,
 			BlockIOConfigFile:           DefaultBlockIOConfigFile,
+			BlockIOReload:               DefaultBlockIOReload,
 			IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
 			RdtConfigFile:               rdt.DefaultRdtConfigFile,
 			CgroupManagerName:           cgroupManager.Name(),
@@ -1154,6 +1161,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err := c.blockioConfig.Load(c.BlockIOConfigFile); err != nil {
 			return fmt.Errorf("blockio configuration: %w", err)
 		}
+
+		c.blockioConfig.SetReload(c.BlockIOReload)
 
 		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
 			return fmt.Errorf("rdt configuration: %w", err)

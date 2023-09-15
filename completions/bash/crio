@@ -22,6 +22,7 @@ h
 --big-files-temporary-dir
 --bind-mount-prefix
 --blockio-config-file
+--blockio-reload
 --cdi-spec-dirs
 --cgroup-manager
 --clean-shutdown-file

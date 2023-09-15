@@ -168,6 +168,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("blockio-config-file") {
 		config.BlockIOConfigFile = ctx.String("blockio-config-file")
 	}
+	if ctx.IsSet("blockio-reload") {
+		config.BlockIOReload = ctx.Bool("blockio-reload")
+	}
 	if ctx.IsSet("irqbalance-config-file") {
 		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
 	}
@@ -643,6 +646,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:  "blockio-config-file",
 			Usage: "Path to the blockio class configuration file for configuring the cgroup blockio controller.",
 			Value: defConf.BlockIOConfigFile,
+		},
+		&cli.BoolFlag{
+			Name:  "blockio-reload",
+			Usage: "Reload blockio-config-file and rescan blockio devices in the system before applying blockio parameters.",
+			Value: defConf.BlockIOReload,
 		},
 		&cli.StringFlag{
 			Name:  "irqbalance-config-file",

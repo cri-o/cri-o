@@ -219,6 +219,10 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 		c.BlockIOConfigFile = newConfig.BlockIOConfigFile
 		logConfig("blockio_config_file", c.BlockIOConfigFile)
 	}
+	if c.BlockIOReload != newConfig.BlockIOReload {
+		c.BlockIOReload = newConfig.BlockIOReload
+		logConfig("blockio_reload", fmt.Sprintf("%v", c.BlockIOReload))
+	}
 	return nil
 }
 
