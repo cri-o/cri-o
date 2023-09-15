@@ -1,0 +1,44 @@
+name: obs
+on:
+  schedule:
+    - cron: "0 0 * * *"
+env:
+  GO_VERSION: '1.21'
+jobs:
+  obs-test-ubuntu:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.vagrant.d/boxes
+          key: obs-test-${{ hashFiles('test/obs/ubuntu/Vagrantfile') }}
+      - run: cd test/obs/ubuntu && vagrant up
+
+  obs-test-fedora:
+    runs-on: macos-12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.vagrant.d/boxes
+          key: obs-test-${{ hashFiles('test/obs/fedora/Vagrantfile') }}
+      - run: cd test/obs/fedora && vagrant up
+
+  obs-release:
+    runs-on: ubuntu-latest
+    needs:
+      - obs-test-fedora
+      - obs-test-ubuntu
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - name: Release OBS package
+        run: scripts/obs
+        env:
+          RELEASE: 1
+          OBS_PASSWORD: ${{ secrets.OBS_PASSWORD }}

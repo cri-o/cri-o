@@ -1,0 +1,89 @@
+#!/usr/bin/env bash
+set -euox pipefail
+
+# Setup a tmp work dir
+TMPDIR="$(mktemp -d)"
+trap 'sudo rm -rf -- "$TMPDIR"' EXIT
+pushd "$TMPDIR"
+
+# Package options
+TEMPLATE_DIR=cmd/krel/templates/latest
+PACKAGE=cri-o
+DEV_PACKAGE_VERSION="1.29.0-dev"
+PROJECT_ROOT=isv:kubernetes:addons:cri-o
+VERSION=${VERSION:-}
+RELEASE=${RELEASE:-0}
+COMMIT=
+
+curl_retry() {
+    curl -sSfL --retry 5 --retry-delay 3 "$@"
+}
+
+# Change the project based on the provided version
+if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    PROJECT_VERSION=$(echo "$VERSION" | cut -c1-5)
+    VERSION=${VERSION#v}
+    PROJECT=$PROJECT_ROOT:stable:$PROJECT_VERSION:build
+else
+    COMMIT=$(curl_retry https://storage.googleapis.com/cri-o/latest-main.txt)
+    VERSION=$DEV_PACKAGE_VERSION
+    PROJECT=$PROJECT_ROOT:prerelease:main:build
+fi
+
+export OBS_USERNAME=cri-o-release-bot
+
+krel() {
+    go run ./cmd/krel "$@"
+}
+
+setup_krel() {
+    git clone --depth 1 https://github.com/kubernetes/release
+    pushd release
+    krel version
+}
+
+install_osc() {
+    OSC_VERSION=1.3.1
+    curl_retry https://github.com/openSUSE/osc/archive/refs/tags/$OSC_VERSION.tar.gz -o- | tar xfz -
+    pushd osc-$OSC_VERSION
+    sudo ./setup.py build
+    sudo ./setup.py install
+    popd
+}
+
+obs_stage() {
+    if [[ "$COMMIT" != "" ]]; then
+        # Patch the package metadata to download the latest commit
+        sed -i 's;gs://cri-o/artifacts/cri-o.{{ .Architecture }}.v{{ .PackageVersion }}.tar.gz;gs://cri-o/artifacts/cri-o.{{ .Architecture }}.'"$COMMIT"'.tar.gz;g' $TEMPLATE_DIR/metadata.yaml
+    fi
+
+    # Push the sources
+    krel obs stage \
+        --workspace . \
+        --template-dir $TEMPLATE_DIR \
+        --packages $PACKAGE \
+        --project "$PROJECT" \
+        --version "$VERSION" \
+        --architectures amd64,arm64,ppc64le \
+        --submit=false \
+        --nomock
+}
+
+obs_release() {
+    krel obs release \
+        --workspace . \
+        --template-dir "$TEMPLATE_DIR" \
+        --packages $PACKAGE \
+        --project "$PROJECT" \
+        --submit=false \
+        --nomock
+}
+
+install_osc
+setup_krel
+
+if [[ $RELEASE == 0 ]]; then
+    obs_stage
+else
+    obs_release
+fi
