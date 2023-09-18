@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
+_Generated on Mon, 18 Sep 2023 07:17:17 UTC for commit [8ac8c66][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/933c95bf5a9276e60037b2bf3848e40e0902134c
+[0]: https://github.com/cri-o/cri-o/commit/8ac8c662257d224fe33d15aa8ee6f9d73f05bd9b
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | github.com/checkpoint-restore/checkpointctl                                 | v0.1.0                               | v1.1.0      | true   | true             |
 | github.com/container-orchestrated-devices/container-device-interface        | v0.6.0                               | v0.6.1      | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.2                               | v1.7.6      | true   | true             |
-| github.com/containerd/nri                                                   | v0.3.1-0.20230504231226-94185418e253 | v0.4.0      | true   | true             |
+| github.com/containerd/nri                                                   | v0.3.1-0.20230504231226-94185418e253 | v0.5.0      | true   | true             |
 | github.com/containers/common                                                | v0.55.4                              | v0.56.0     | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.5.1                               | v0.6.1      | true   | true             |
 | github.com/containers/image/v5                                              | v5.27.0                              | v5.28.0     | true   | true             |
@@ -229,11 +229,11 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.1                                            | v1.0.5                             | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be                |                                    | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                            |                                    | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230909222155-9043b8ad462c | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230915090254-0eb38a02d7aa | false  | true             |
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.10                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.11                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.18.39                           | false  | true             |
@@ -313,7 +313,7 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | github.com/containerd/go-cni                                                            | v1.1.9                                            |                                    | false  | true             |
 | github.com/containerd/go-runc                                                           | v1.0.0                                            | v1.1.0                             | false  | true             |
 | github.com/containerd/imgcrypt                                                          | v1.1.7                                            | v1.1.8                             | false  | true             |
-| github.com/containerd/nri                                                               | v0.3.1-0.20230504231226-94185418e253              | v0.4.0                             | true   | true             |
+| github.com/containerd/nri                                                               | v0.3.1-0.20230504231226-94185418e253              | v0.5.0                             | true   | true             |
 | github.com/containerd/protobuild                                                        | v0.3.0                                            |                                    | false  | true             |
 | github.com/containerd/stargz-snapshotter/estargz                                        | v0.14.3                                           |                                    | false  | true             |
 | github.com/containerd/ttrpc                                                             | v1.2.2                                            |                                    | true   | true             |
@@ -566,7 +566,7 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230914194620-fc5cb568375d | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230916032513-cb28a001e9b2 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -792,7 +792,7 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | go.step.sm/crypto                                                                       | v0.32.2                                           | v0.35.0                            | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                    | false  | true             |
 | go.uber.org/goleak                                                                      | v1.2.1                                            |                                    | false  | true             |
-| go.uber.org/mock                                                                        | v0.2.0                                            |                                    | false  | true             |
+| go.uber.org/mock                                                                        | v0.2.0                                            | v0.3.0                             | false  | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                                           |                                    | false  | true             |
 | go.uber.org/zap                                                                         | v1.24.0                                           | v1.26.0                            | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                    | false  | true             |
@@ -840,7 +840,7 @@ _Generated on Fri, 15 Sep 2023 09:07:02 UTC for commit [933c95b][0]._
 | gopkg.in/yaml.v2                                                                        | v2.4.0                                            |                                    | false  | true             |
 | gopkg.in/yaml.v3                                                                        | v3.0.1                                            |                                    | false  | true             |
 | gotest.tools                                                                            | v2.2.0+incompatible                               |                                    | false  | true             |
-| gotest.tools/v3                                                                         | v3.4.0                                            | v3.5.0                             | false  | true             |
+| gotest.tools/v3                                                                         | v3.4.0                                            | v3.5.1                             | false  | true             |
 | honnef.co/go/tools                                                                      | v0.0.1-2020.1.4                                   | v0.4.6                             | false  | true             |
 | k8s.io/api                                                                              | v0.28.1                                           | v0.28.2                            | true   | true             |
 | k8s.io/apimachinery                                                                     | v0.28.1                                           | v0.28.2                            | true   | true             |
