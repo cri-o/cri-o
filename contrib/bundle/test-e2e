@@ -58,8 +58,8 @@ ln -sf /run/systemd/resolve/resolv.conf /etc/resolv.conf
 apt-get remove \
     conmon \
     containernetworking-plugins \
-    crun \
-    moby-runc
+    crun
+rm -rf "$(command -v runc)"
 ufw disable
 ip6tables --list >/dev/null
 iptables -F
@@ -114,7 +114,7 @@ crio config --default
 
 # Start CRI-O
 systemctl daemon-reload
-systemctl start crio
+systemctl start crio || (journalctl -xeu crio.service && exit 1)
 systemctl is-active --quiet crio && echo CRI-O is running
 journalctl --no-pager -u crio
 
