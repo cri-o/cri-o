@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -11,7 +12,6 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/cri-o/cri-o/internal/version"
 	"github.com/google/go-github/v50/github"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
@@ -368,25 +368,18 @@ func decVersion(tag string) string {
 func getLatestReleaseVersion(token string) (string, error) {
 	ctx := context.Background()
 	client := github.NewTokenClient(ctx, token)
-	tags, _, err := client.Repositories.ListTags(ctx, "cri-o", "cri-o", nil)
-	if err != nil {
-		return "", err
-	}
-	// To determine the latest release of cri-o, the code iterates over
-	// tags that are equal to or greater than the version.Version value,
-	// adds them to a list, sorts the list, and then returns the last
-	// element of the list.
-	rng, err := semver.ParseRange(fmt.Sprintf(">= %s", version.Version))
+	tags, _, err := client.Repositories.ListTags(ctx, "cri-o", "cri-o", &github.ListOptions{PerPage: 10})
 	if err != nil {
 		return "", err
 	}
 	svers := []semver.Version{}
 	for _, tag := range tags {
 		v := semver.MustParse(strings.SplitAfter(tag.GetName(), "v")[1])
-		if rng(v) {
-			svers = append(svers, v)
-		}
+		svers = append(svers, v)
 	}
 	semver.Sort(svers)
+	if len(svers) == 0 {
+		return "", errors.New("no tags found")
+	}
 	return svers[len(svers)-1].String(), nil
 }
