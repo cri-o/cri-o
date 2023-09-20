@@ -155,8 +155,9 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if err != nil {
 		return "", err
 	}
-	var pulled string
+	var pulled *storage.RegistryImageReference // = nil
 	for _, remoteCandidateName := range remoteCandidates {
+		remoteCandidateName := remoteCandidateName                        // So that *&remoteCandidateName does not change as we iterate the loop.
 		img := remoteCandidateName.StringForOutOfProcessConsumptionOnly() // This violates storage API rules, it will be fixed shortly.
 		var tmpImg imageTypes.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
@@ -169,7 +170,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				if _, err := s.StorageImageServer().ImageStatus(
 					s.config.SystemContext, img,
 				); err == nil {
-					pulled = img
+					pulled = &remoteCandidateName
 					break
 				}
 			}
@@ -189,7 +190,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				log.Debugf(ctx, "Image config digest is empty, re-pulling image")
 			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
 				log.Debugf(ctx, "Image %s already in store, skipping pull", remoteCandidateName)
-				pulled = img
+				pulled = &remoteCandidateName
 
 				// Skipped digests metrics
 				tryRecordSkippedMetric(ctx, img, tmpImgConfigDigest.String())
@@ -285,18 +286,18 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			tryIncrementImagePullFailureMetric(img, err)
 			continue
 		}
-		pulled = img
+		pulled = &remoteCandidateName
 		break
 	}
 
-	if pulled == "" && err != nil {
+	if pulled == nil && err != nil {
 		return "", err
 	}
 
 	// Update metric for successful image pulls
-	metrics.Instance().MetricImagePullsSuccessesInc(pulled)
+	metrics.Instance().MetricImagePullsSuccessesInc(pulled.StringForOutOfProcessConsumptionOnly()) // This violates API rules, and will be fixed shortly.
 
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
+	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled.StringForOutOfProcessConsumptionOnly()) // This violates API rules, it will be fixed shortly.
 	if err != nil {
 		return "", err
 	}
