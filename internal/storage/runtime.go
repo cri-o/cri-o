@@ -244,12 +244,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	// Add a name to the container's layer so that it's easier to follow
 	// what's going on if we're just looking at the storage-eye view of things.
 	layerName := metadata.ContainerName + "-layer"
-	names, err = r.storageImageServer.GetStore().Names(container.LayerID)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	names = append(names, layerName)
-	err = r.storageImageServer.GetStore().SetNames(container.LayerID, names)
+	err = r.storageImageServer.GetStore().AddNames(container.LayerID, []string{layerName})
 	if err != nil {
 		return ContainerInfo{}, err
 	}

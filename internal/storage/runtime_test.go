@@ -497,9 +497,7 @@ var _ = t.Describe("Runtime", func() {
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(&cs.Container{ID: "id"}, nil),
 					imageServerMock.EXPECT().GetStore().Return(storeMock),
-					storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
-					imageServerMock.EXPECT().GetStore().Return(storeMock),
-					storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+					storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).Return(nil),
 					imageServerMock.EXPECT().GetStore().Return(storeMock),
 					storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 						Return("dir", nil),
@@ -634,9 +632,7 @@ var _ = t.Describe("Runtime", func() {
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+				storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).Return(nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("dir", nil),
@@ -667,9 +663,7 @@ var _ = t.Describe("Runtime", func() {
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+				storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).Return(nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("", t.TestError),
@@ -697,35 +691,8 @@ var _ = t.Describe("Runtime", func() {
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).
+				storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).
 					Return(t.TestError),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().DeleteContainer(gomock.Any()).Return(t.TestError),
-			)
-
-			// When
-			_, err := sut.CreatePodSandbox(&types.SystemContext{},
-				"podName", "podID", "imagename", "",
-				"containerName", "metadataName",
-				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
-			)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail to create a pod sandbox on names retrieval error", func() {
-			// Given
-			inOrder(
-				mockCreatePodSandboxImageExists(),
-				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-					Return(&cs.Container{ID: "id"}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Names(gomock.Any()).
-					Return([]string{}, t.TestError),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().DeleteContainer(gomock.Any()).Return(t.TestError),
 			)
@@ -836,9 +803,7 @@ var _ = t.Describe("Runtime", func() {
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Names(gomock.Any()).Return([]string{}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().SetNames(gomock.Any(), gomock.Any()).Return(nil),
+				storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).Return(nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().ContainerDirectory(gomock.Any()).
 					Return("dir", nil),
