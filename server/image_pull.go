@@ -167,9 +167,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			// This allows pulling localhost/ prefixed images even if the
 			// `imagePullPolicy` is set to `Always`.
 			if strings.HasPrefix(img, localRegistryPrefix) {
-				if _, err := s.StorageImageServer().ImageStatus(
-					s.config.SystemContext, img,
-				); err == nil {
+				if _, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName); err == nil {
 					pulled = &remoteCandidateName
 					break
 				}
@@ -181,7 +179,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		defer tmpImg.Close() // nolint:gocritic
 
 		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+		storedImage, err = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
 		if err == nil {
 			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
 			if tmpImgConfigDigest.String() == "" {
@@ -297,7 +295,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	// Update metric for successful image pulls
 	metrics.Instance().MetricImagePullsSuccessesInc(pulled.StringForOutOfProcessConsumptionOnly()) // This violates API rules, and will be fixed shortly.
 
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled.StringForOutOfProcessConsumptionOnly()) // This violates API rules, it will be fixed shortly.
+	status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, *pulled)
 	if err != nil {
 		return "", err
 	}
