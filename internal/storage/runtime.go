@@ -69,9 +69,8 @@ type RuntimeServer interface {
 	// same pod ID in its metadata that the pod's other members do, and
 	// with the pod's infrastructure container having the same value for
 	// both its pod's ID and its container ID.
-	// Pointer arguments can be nil.  Either the image name or ID can be
-	// omitted, but not both.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
+	// Pointer arguments can be nil.  All other arguments are required.
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 
 	// GetContainerMetadata returns the metadata we've stored for a container.
 	GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error)
@@ -348,8 +347,8 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged)
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, "", containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged)
 }
 
 func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {

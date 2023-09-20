@@ -180,18 +180,18 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(arg0, arg1, arg2, arg3,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 string, arg10 uint32, arg11 *types0.IDMappingOptions, arg12 []string, arg13 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
+	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreatePodSandbox indicates an expected call of CreatePodSandbox.
-func (mr *MockRuntimeServerMockRecorder) CreatePodSandbox(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 interface{}) *gomock.Call {
+func (mr *MockRuntimeServerMockRecorder) CreatePodSandbox(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodSandbox", reflect.TypeOf((*MockRuntimeServer)(nil).CreatePodSandbox), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodSandbox", reflect.TypeOf((*MockRuntimeServer)(nil).CreatePodSandbox), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
 }
 
 // DeleteContainer mocks base method.

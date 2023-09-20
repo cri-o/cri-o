@@ -512,7 +512,6 @@ var _ = t.Describe("Runtime", func() {
 				// When
 				info, err = sut.CreatePodSandbox(&types.SystemContext{},
 					"podName", "podID", "imagename", "",
-					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 					"containerName", "metadataName",
 					"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 				)
@@ -668,7 +667,6 @@ var _ = t.Describe("Runtime", func() {
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "imagename", "",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
@@ -694,7 +692,6 @@ var _ = t.Describe("Runtime", func() {
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "imagename", "",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
@@ -715,7 +712,6 @@ var _ = t.Describe("Runtime", func() {
 			// When
 			_, err := sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "imagename", "",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
@@ -824,7 +820,6 @@ var _ = t.Describe("Runtime", func() {
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "pauseimagename", "",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
@@ -844,7 +839,6 @@ var _ = t.Describe("Runtime", func() {
 			// When
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", "pauseimagename", "/var/non-default/credentials.json",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"containerName", "metadataName",
 				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
 			)
