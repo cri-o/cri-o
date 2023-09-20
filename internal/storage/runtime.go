@@ -174,7 +174,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		}
 	}
 	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
-	if img == nil && errors.Is(err, storage.ErrImageUnknown) && isPauseImage {
+	if err != nil && errors.Is(err, storage.ErrImageUnknown) && isPauseImage {
 		image := imageID
 		if imageName != "" {
 			image = imageName
@@ -203,14 +203,17 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		}
 		logrus.Debugf("Successfully pulled image %q", image)
 	}
-	if img == nil && errors.Is(err, storage.ErrImageUnknown) {
-		if imageID == "" {
-			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
+	if err != nil {
+		if errors.Is(err, storage.ErrImageUnknown) {
+			if imageID == "" {
+				return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
+			}
+			if imageName == "" {
+				return ContainerInfo{}, fmt.Errorf("image with ID %q not present in image store", imageID)
+			}
+			return ContainerInfo{}, fmt.Errorf("image %q with ID %q not present in image store", imageName, imageID)
 		}
-		if imageName == "" {
-			return ContainerInfo{}, fmt.Errorf("image with ID %q not present in image store", imageID)
-		}
-		return ContainerInfo{}, fmt.Errorf("image %q with ID %q not present in image store", imageName, imageID)
+		return ContainerInfo{}, err
 	}
 
 	// Pull out a copy of the image's configuration.
