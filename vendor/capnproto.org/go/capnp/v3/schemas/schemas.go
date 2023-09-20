@@ -12,12 +12,12 @@ import (
 	"bytes"
 	"compress/zlib"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
 	"sync"
 
+	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/packed"
 )
 
@@ -121,7 +121,7 @@ func (r *record) read() ([]byte, error) {
 }
 
 // DefaultRegistry is the process-wide registry used by Register and Find.
-var DefaultRegistry Registry
+var DefaultRegistry = &Registry{}
 
 // Register is called by generated code to associate a blob of zlib-
 // compressed, packed Cap'n Proto data for a CodeGeneratorRequest with
@@ -164,7 +164,7 @@ type dupeError struct {
 }
 
 func (e *dupeError) Error() string {
-	return fmt.Sprintf("schemas: registered @%#x twice", e.id)
+	return "schemas: registered @" + str.UToHex(e.id) + " twice"
 }
 
 type notFoundError struct {
@@ -172,7 +172,7 @@ type notFoundError struct {
 }
 
 func (e *notFoundError) Error() string {
-	return fmt.Sprintf("schemas: could not find @%#x", e.id)
+	return "schemas: could not find @" + str.UToHex(e.id)
 }
 
 type decompressError struct {
@@ -181,5 +181,5 @@ type decompressError struct {
 }
 
 func (e *decompressError) Error() string {
-	return fmt.Sprintf("schemas: decompressing schema for @%#x: %v", e.id, e.err)
+	return "schemas: decompressing schema for @" + str.UToHex(e.id) + ": " + e.err.Error()
 }
