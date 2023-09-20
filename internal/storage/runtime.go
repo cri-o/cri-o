@@ -143,7 +143,7 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 
 // imageID must be provided and should refer to an image which existed at before calling this function (but that can change at any time).
 // The caller is also responsible for setting imageName (or "" if unknown)
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, isPauseImage, privileged bool) (ci ContainerInfo, retErr error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ci ContainerInfo, retErr error) {
 	if podName == "" || podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
 	}
@@ -338,7 +338,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	// Resolve the image ID.
 	imageID := img.ID
 
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageAuthFile, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, true, privileged)
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, privileged)
 }
 
 func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
@@ -366,7 +366,7 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 		imageName = img.Names[0]
 	}
 
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged)
+	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, privileged)
 }
 
 func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
