@@ -160,7 +160,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		remoteCandidateName := remoteCandidateName                        // So that *&remoteCandidateName does not change as we iterate the loop.
 		img := remoteCandidateName.StringForOutOfProcessConsumptionOnly() // This violates storage API rules, it will be fixed shortly.
 		var tmpImg imageTypes.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
+		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, remoteCandidateName)
 		if err != nil {
 			// We're not able to find the image remotely, check if it's
 			// available locally, but only for localhost ones.
@@ -268,7 +268,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			}
 		}
 
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
+		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, remoteCandidateName, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
 			DestinationCtx:   s.config.SystemContext,
 			OciDecryptConfig: decryptConfig,

@@ -158,7 +158,7 @@ func (mr *MockImageServerMockRecorder) ListImages(arg0 interface{}) *gomock.Call
 }
 
 // PrepareImage mocks base method.
-func (m *MockImageServer) PrepareImage(arg0 *types.SystemContext, arg1 string) (types.ImageCloser, error) {
+func (m *MockImageServer) PrepareImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference) (types.ImageCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PrepareImage", arg0, arg1)
 	ret0, _ := ret[0].(types.ImageCloser)
@@ -173,7 +173,7 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 string, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)

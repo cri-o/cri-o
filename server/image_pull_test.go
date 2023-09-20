@@ -33,14 +33,14 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					imageCandidate.StringForOutOfProcessConsumptionOnly()).Return(imageCloserMock, nil),
+					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{ID: "id"}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate.StringForOutOfProcessConsumptionOnly(), gomock.Any()).
+					gomock.Any(), imageCandidate, gomock.Any()).
 					Return(nil, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
@@ -69,7 +69,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					imageCandidate.StringForOutOfProcessConsumptionOnly()).Return(imageCloserMock, nil),
+					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
@@ -110,14 +110,14 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					imageCandidate.StringForOutOfProcessConsumptionOnly()).Return(imageCloserMock, nil),
+					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{ID: "id"}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate.StringForOutOfProcessConsumptionOnly(), gomock.Any()).
+					gomock.Any(), imageCandidate, gomock.Any()).
 					Return(nil, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
@@ -164,14 +164,14 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					imageCandidate.StringForOutOfProcessConsumptionOnly()).Return(imageCloserMock, nil),
+					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{ID: "id"}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate.StringForOutOfProcessConsumptionOnly(), gomock.Any()).
+					gomock.Any(), imageCandidate, gomock.Any()).
 					Return(nil, t.TestError),
 				imageCloserMock.EXPECT().Close().Return(nil),
 			)
@@ -194,7 +194,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					imageCandidate.StringForOutOfProcessConsumptionOnly()).Return(nil, t.TestError),
+					imageCandidate).Return(nil, t.TestError),
 			)
 
 			// When

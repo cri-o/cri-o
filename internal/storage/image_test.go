@@ -548,48 +548,16 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("PrepareImage", func() {
-		It("should succeed with testimage", func() {
-			// Given
-			const imageName = "tarball:../../test/testdata/image.tar"
-
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeNil())
-		})
-
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-	})
-
 	t.Describe("PullImage", func() {
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PullImage(&types.SystemContext{}, "",
-				&storage.ImageCopyOptions{})
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
 		It("should fail on invalid policy path", func() {
 			// Given
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
+
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "/not-existing",
-			}, "", &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -598,15 +566,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox:latest"
-			inOrder(
-				mockParseStoreReference(storeMock, "localhost/busybox:latest"),
-			)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -615,15 +581,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on canonical copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			inOrder(
-				mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256),
-			)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
+			Expect(err).To(BeNil())
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

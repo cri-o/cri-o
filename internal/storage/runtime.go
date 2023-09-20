@@ -11,6 +11,7 @@ import (
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	json "github.com/json-iterator/go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -292,7 +293,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, pauseImage.String(), &ImageCopyOptions{
+		ref, err = r.storageImageServer.PullImage(systemContext, references.RegistryImageReferenceFromRaw(pauseImage), &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})

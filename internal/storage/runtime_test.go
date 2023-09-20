@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
@@ -792,14 +793,15 @@ var _ = t.Describe("Runtime", func() {
 		var info storage.ContainerInfo
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
-			mockParseStoreReference(storeMock, "pauseimagename")
-			pulledRef, err := istorage.Transport.ParseStoreReference(storeMock, "pauseimagename")
+			pauseImageRef, err := reference.ParseNormalizedNamed("docker.io/library/pauseimagename:latest")
+			Expect(err).To(BeNil())
+			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImageRef, "")
 			Expect(err).To(BeNil())
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
-				imageServerMock.EXPECT().PullImage(gomock.Any(), "docker.io/library/pauseimagename:latest", expectedCopyOptions).Return(pulledRef, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), references.RegistryImageReferenceFromRaw(pauseImageRef), expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
