@@ -299,7 +299,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		// Maybe it's some other transport's copy of the image?
 		otherRef, err2 := alltransports.ParseImageName(imageName)
 		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference().String())
+			ref, err = istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference(), "")
 		}
 		if err != nil {
 			return ContainerInfo{}, err
