@@ -51,6 +51,11 @@ var _ = t.Describe("Runtime", func() {
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockParseStoreReference(storeMock, "imagename"),
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
 			mockNewImage(storeMock, "docker.io/library/imagename:latest", "123"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
@@ -529,6 +534,13 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid pod ID", func() {
 			// Given
+			inOrder(
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockParseStoreReference(storeMock, "imagename"),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+			)
+
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "", "imagename",
@@ -544,6 +556,13 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid pod name", func() {
 			// Given
+			inOrder(
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockParseStoreReference(storeMock, "imagename"),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+			)
+
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"", "podID", "imagename",
@@ -573,6 +592,13 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid container name", func() {
 			// Given
+			inOrder(
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockParseStoreReference(storeMock, "imagename"),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+			)
+
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
 				"podName", "podID", "imagename", "imageID",
@@ -748,6 +774,11 @@ var _ = t.Describe("Runtime", func() {
 				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockParseStoreReference(storeMock, "imagename"),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
 				// storageReference.newImage:
 				mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
@@ -785,6 +816,11 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
+
+				imageServerMock.EXPECT().GetStore().Return(storeMock),
+				mockParseStoreReference(storeMock, "pauseimagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
 				mockNewImage(storeMock, "docker.io/library/pauseimagename:latest", "nonempty"),
