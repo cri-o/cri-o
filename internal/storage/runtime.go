@@ -78,8 +78,8 @@ type RuntimeServer interface {
 	SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error
 
 	// CreateContainer creates a container with the specified ID.
-	// Pointer arguments can be nil.  Either the image name or ID can be
-	// omitted, but not both.  All other arguments are required.
+	// Pointer arguments can be nil.  Image name can be omitted.
+	// All other arguments are required.
 	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(ctx context.Context, idOrName string) error
@@ -426,33 +426,17 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 }
 
 func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	if imageName == "" && imageID == "" {
+	if imageID == "" {
 		return ContainerInfo{}, ErrInvalidImageName
 	}
 
-	// Check if we have the specified image.
-	var ref types.ImageReference
-	ref, err := istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), imageName)
+	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, imageID)
 	if err != nil {
-		// Maybe it's some other transport's copy of the image?
-		otherRef, err2 := alltransports.ParseImageName(imageName)
-		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference().String())
-		}
-		if err != nil {
-			// Maybe the image ID is sufficient?
-			ref, err = istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), "@"+imageID)
-			if err != nil {
-				return ContainerInfo{}, err
-			}
-		}
+		return ContainerInfo{}, err
 	}
 	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
 	if err != nil {
 		if errors.Is(err, storage.ErrImageUnknown) {
-			if imageID == "" {
-				return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
-			}
 			if imageName == "" {
 				return ContainerInfo{}, fmt.Errorf("image with ID %q not present in image store", imageID)
 			}
@@ -461,11 +445,10 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 		return ContainerInfo{}, err
 	}
 
-	// Update the image name and ID.
+	// Try to set imageName, falling back to one of possibly many names from this deduplicated image.
 	if imageName == "" && len(img.Names) > 0 {
 		imageName = img.Names[0]
 	}
-	imageID = img.ID
 
 	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, "", imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, false, privileged)
 }

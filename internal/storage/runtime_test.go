@@ -44,8 +44,24 @@ var _ = t.Describe("Runtime", func() {
 		mockCtrl.Finish()
 	})
 
-	// The part of createContainerOrPodSandbox before a CreateContainer call, if the image already exists locally.
-	mockCreateContainerOrPodSandboxImageExists := func() mockSequence {
+	// The part of runtimeService.CreateContainer before a CreateContainer call, if the image already exists locally.
+	mockCreateContainerImageExists := func() mockSequence {
+		return inOrder(
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockParseStoreReference(storeMock, "imagename"),
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockNewImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			imageServerMock.EXPECT().GetStore().Return(storeMock),
+		)
+	}
+
+	// The part of CreatePodSandbox before a CreateContainer call, if the image already exists locally.
+	mockCreatePodSandboxImageExists := func() mockSequence {
 		return inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockParseStoreReference(storeMock, "imagename"),
@@ -483,10 +499,8 @@ var _ = t.Describe("Runtime", func() {
 				err  error
 			)
 
-			BeforeEach(func() {
-				// Given
-				inOrder(
-					mockCreateContainerOrPodSandboxImageExists(),
+			mockUnderlyingCreateContainerSuccess := func() mockSequence {
+				return inOrder(
 					storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 						Return(&cs.Container{ID: "id"}, nil),
@@ -501,9 +515,15 @@ var _ = t.Describe("Runtime", func() {
 					storeMock.EXPECT().ContainerRunDirectory(gomock.Any()).
 						Return("runDir", nil),
 				)
-			})
+			}
 
 			It("should succeed to create a container", func() {
+				// Given
+				inOrder(
+					mockCreateContainerImageExists(),
+					mockUnderlyingCreateContainerSuccess(),
+				)
+
 				// When
 				info, err = sut.CreateContainer(&types.SystemContext{},
 					"podName", "podID", "imagename",
@@ -514,6 +534,12 @@ var _ = t.Describe("Runtime", func() {
 			})
 
 			It("should succeed to create a pod sandbox", func() {
+				// Given
+				inOrder(
+					mockCreatePodSandboxImageExists(),
+					mockUnderlyingCreateContainerSuccess(),
+				)
+
 				// When
 				info, err = sut.CreatePodSandbox(&types.SystemContext{},
 					"podName", "podID", "imagename", "",
@@ -536,9 +562,8 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			)
 
 			// When
@@ -558,9 +583,8 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			)
 
 			// When
@@ -594,14 +618,13 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename", "imageID",
+				"podName", "podID", "imagename", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
 				"", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -614,7 +637,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a container on run dir error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreateContainerImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -647,7 +670,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a container on container dir error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreateContainerImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -677,7 +700,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a pod sandbox on set names error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreatePodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -704,7 +727,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a pod sandbox on names retrieval error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreatePodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
@@ -729,7 +752,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a pod sandbox on main creation error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreatePodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
@@ -749,7 +772,7 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a container on main creation error", func() {
 			// Given
 			inOrder(
-				mockCreateContainerOrPodSandboxImageExists(),
+				mockCreateContainerImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(nil, t.TestError),
@@ -771,9 +794,8 @@ var _ = t.Describe("Runtime", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "imagename"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockParseStoreReference(storeMock, "imagename"),
