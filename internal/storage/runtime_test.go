@@ -50,12 +50,8 @@ var _ = t.Describe("Runtime", func() {
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
-
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockParseStoreReference(storeMock, "imagename"),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
-			mockNewImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -66,13 +62,9 @@ var _ = t.Describe("Runtime", func() {
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockParseStoreReference(storeMock, "imagename"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
-
+			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockParseStoreReference(storeMock, "imagename"),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
-			mockNewImage(storeMock, "docker.io/library/imagename:latest", "123"),
+			mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -796,13 +788,9 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
-
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "imagename"),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "123"),
 				// storageReference.newImage:
-				mockResolveImage(storeMock, "docker.io/library/imagename:latest", "123"),
+				mockResolveImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -839,13 +827,9 @@ var _ = t.Describe("Runtime", func() {
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), "pauseimagename", expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
-
+				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockParseStoreReference(storeMock, "pauseimagename"),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "123"),
-				mockNewImage(storeMock, "docker.io/library/pauseimagename:latest", "nonempty"),
+				mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
