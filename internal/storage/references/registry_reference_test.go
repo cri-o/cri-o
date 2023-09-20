@@ -71,4 +71,17 @@ var _ = t.Describe("RegistryImageReference", func() {
 		raw := ref.Raw()
 		Expect(raw.String()).To(Equal(testName))
 	})
+
+	It("Should return a correct registry value", func() {
+		for _, c := range []struct{ in, expected string }{
+			{"implied", "docker.io"},
+			{"example.com/foo:tag", "example.com"},
+			{"example.com:8000/foo:tag", "example.com:8000"},
+		} {
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(c.in)
+			Expect(err).To(BeNil())
+			registry := ref.Registry()
+			Expect(registry).To(Equal(c.expected))
+		}
+	})
 })

@@ -22,7 +22,7 @@ import (
 	crierrors "k8s.io/cri-api/pkg/errors"
 )
 
-var localRegistryPrefix = "localhost/"
+var localRegistryHostname = "localhost"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
@@ -163,10 +163,10 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
 		if err != nil {
 			// We're not able to find the image remotely, check if it's
-			// available locally, but only for localhost/ prefixed ones.
-			// This allows pulling localhost/ prefixed images even if the
+			// available locally, but only for localhost ones.
+			// This allows pulling localhost images even if the
 			// `imagePullPolicy` is set to `Always`.
-			if strings.HasPrefix(img, localRegistryPrefix) {
+			if remoteCandidateName.Registry() == localRegistryHostname {
 				if _, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName); err == nil {
 					pulled = &remoteCandidateName
 					break

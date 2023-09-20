@@ -74,6 +74,12 @@ func (ref RegistryImageReference) Format(f fmt.State, verb rune) {
 	fmt.Fprintf(f, fmt.FormatString(f, verb), ref.privateNamed.String())
 }
 
+// Registry returns the host[:port] part of the reference
+func (ref RegistryImageReference) Registry() string {
+	ref.ensureInitialized()
+	return reference.Domain(ref.privateNamed)
+}
+
 // Raw returns the underlying reference.Named.
 //
 // The return value is !IsNameOnly, and the repo is registry-qualified.
