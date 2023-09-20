@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 20 Sep 2023 07:44:45 UTC for commit [a3d1e58][0]._
+_Generated on Wed, 20 Sep 2023 16:01:58 UTC for commit [05a29f9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a3d1e58a24bb538836a8c3c88cd2ae20d00c2d03
+[0]: https://github.com/cri-o/cri-o/commit/05a29f999e56f26010cfc240e8e52996502942e7
 
 ## Outdated Dependencies
 
@@ -94,7 +94,7 @@ _Generated on Wed, 20 Sep 2023 07:44:45 UTC for commit [a3d1e58][0]._
 | cloud.google.com/go/gkemulticloud                                                       | v0.6.1                                            | v1.0.0                             | false  | true             |
 | cloud.google.com/go/gsuiteaddons                                                        | v1.6.1                                            |                                    | false  | true             |
 | cloud.google.com/go/iam                                                                 | v1.1.1                                            | v1.1.2                             | false  | true             |
-| cloud.google.com/go/iap                                                                 | v1.8.1                                            |                                    | false  | true             |
+| cloud.google.com/go/iap                                                                 | v1.8.1                                            | v1.9.0                             | false  | true             |
 | cloud.google.com/go/ids                                                                 | v1.4.1                                            |                                    | false  | true             |
 | cloud.google.com/go/iot                                                                 | v1.7.1                                            |                                    | false  | true             |
 | cloud.google.com/go/kms                                                                 | v1.12.1                                           | v1.15.2                            | false  | true             |
@@ -644,7 +644,7 @@ _Generated on Wed, 20 Sep 2023 07:44:45 UTC for commit [a3d1e58][0]._
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                            | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20220428173112-74888fd59c2b                | v0.0.0-20230830074515-d9d085e6be90 | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475                |                                    | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.0.5                                            | v9.1.0                             | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.0.5                                            | v9.2.0                             | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.4                                            |                                    | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                            |                                    | false  | true             |
 | github.com/rogpeppe/go-internal                                                         | v1.10.0                                           | v1.11.0                            | false  | true             |
@@ -694,7 +694,7 @@ _Generated on Wed, 20 Sep 2023 07:44:45 UTC for commit [a3d1e58][0]._
 | github.com/stretchr/objx                                                                | v0.5.0                                            | v0.5.1                             | false  | true             |
 | github.com/stretchr/testify                                                             | v1.8.4                                            |                                    | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.4.2                                            | v1.6.0                             | false  | true             |
-| github.com/sylabs/sif/v2                                                                | v2.11.5                                           | v2.14.0                            | false  | true             |
+| github.com/sylabs/sif/v2                                                                | v2.11.5                                           | v2.14.1                            | false  | true             |
 | github.com/syndtr/gocapability                                                          | v0.0.0-20200815063812-42c35b437635                |                                    | true   | true             |
 | github.com/syndtr/goleveldb                                                             | v1.0.1-0.20220721030215-126854af5e6d              |                                    | false  | true             |
 | github.com/tchap/go-patricia                                                            | v2.3.0+incompatible                               |                                    | false  | true             |
@@ -843,7 +843,7 @@ _Generated on Wed, 20 Sep 2023 07:44:45 UTC for commit [a3d1e58][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230918163324-7fe699e4f743 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230920131713-8761ceb9297f | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
