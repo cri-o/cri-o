@@ -10,6 +10,8 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/test.yml
       match: GO_VERSION
+    - path: .github/workflows/cron.yml
+      match: GO_VERSION
     - path: contrib/test/integration/vars.yml
       match: golang_version
     - path: contrib/test/ci/vars.yml
