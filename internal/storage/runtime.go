@@ -141,24 +141,30 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-// imageID must be provided and should refer to an image which existed at before calling this function (but that can change at any time).
-// The caller is also responsible for setting imageName (or "" if unknown)
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ci ContainerInfo, retErr error) {
-	if podName == "" || podID == "" {
+// template must contain all fields of RuntimeContainerMetadata, except as documented below:
+// - ImageName: Caller is responsible for setting it (but it may be "" if unknown, it seems)
+// - ImageID: must be provided and should refer to an image which existed at before calling this function (but that can change at any time).
+// - MetadataName: May be "", defaults to ContainerName in that case
+// - CreatedAt: Not set by the caller
+// - Pod: Not set by caller
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, containerID string, template *RuntimeContainerMetadata, idMappingsOptions *storage.IDMappingOptions, labelOptions []string) (ci ContainerInfo, retErr error) {
+	// Build metadata to store with the container.
+	metadata := *template // A shallow copy
+	if metadata.PodName == "" || metadata.PodID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
 	}
-	if imageID == "" {
+	if metadata.ImageID == "" {
 		return ContainerInfo{}, ErrInvalidImageName
 	}
-	if containerName == "" {
+	if metadata.ContainerName == "" {
 		return ContainerInfo{}, ErrInvalidContainerName
 	}
-	if metadataName == "" {
-		metadataName = containerName
+	if metadata.MetadataName == "" {
+		metadata.MetadataName = metadata.ContainerName
 	}
 
 	// Pull out a copy of the image's configuration.
-	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, imageID)
+	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, metadata.ImageID)
 	if err != nil {
 		return ContainerInfo{}, err
 	}
@@ -173,21 +179,8 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 		return ContainerInfo{}, err
 	}
 
-	// Build metadata to store with the container.
-	metadata := RuntimeContainerMetadata{
-		Pod:           containerID == podID,
-		PodName:       podName,
-		PodID:         podID,
-		ImageName:     imageName,
-		ImageID:       imageID,
-		ContainerName: containerName,
-		MetadataName:  metadataName,
-		UID:           uid,
-		Namespace:     namespace,
-		Attempt:       attempt,
-		CreatedAt:     time.Now().Unix(),
-		Privileged:    privileged,
-	}
+	metadata.Pod = (containerID == metadata.PodID) // Or should this be hard-coded in callers? The caller should know whether it is creating the infra container.
+	metadata.CreatedAt = time.Now().Unix()
 	mdata, err := json.Marshal(&metadata)
 	if err != nil {
 		return ContainerInfo{}, err
@@ -206,7 +199,7 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	if idMappingsOptions != nil {
 		coptions.IDMappingOptions = *idMappingsOptions
 	}
-	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, imageID, "", string(mdata), &coptions)
+	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, metadata.ImageID, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
 			logrus.Debugf("Failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
@@ -333,7 +326,19 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	// Resolve the image ID.
 	imageID := img.ID
 
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, podID, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, privileged)
+	return r.createContainerOrPodSandbox(systemContext, podID, &RuntimeContainerMetadata{
+		PodName:       podName,
+		PodID:         podID,
+		ImageName:     imageName,
+		ImageID:       imageID,
+		ContainerName: containerName,
+		MetadataName:  metadataName,
+		UID:           uid,
+		Namespace:     namespace,
+		MountLabel:    "",
+		Attempt:       attempt,
+		Privileged:    privileged,
+	}, idMappingsOptions, labelOptions)
 }
 
 func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
@@ -361,7 +366,19 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 		imageName = img.Names[0]
 	}
 
-	return r.createContainerOrPodSandbox(systemContext, podName, podID, imageName, imageID, containerName, containerID, metadataName, "", "", attempt, idMappingsOptions, labelOptions, privileged)
+	return r.createContainerOrPodSandbox(systemContext, containerID, &RuntimeContainerMetadata{
+		PodName:       podName,
+		PodID:         podID,
+		ImageName:     imageName,
+		ImageID:       imageID,
+		ContainerName: containerName,
+		MetadataName:  metadataName,
+		UID:           "",
+		Namespace:     "",
+		MountLabel:    "",
+		Attempt:       attempt,
+		Privileged:    privileged,
+	}, idMappingsOptions, labelOptions)
 }
 
 func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
