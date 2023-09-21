@@ -113,7 +113,7 @@ github.com/cenkalti/backoff/v4
 # github.com/cespare/xxhash/v2 v2.2.0
 ## explicit; go 1.11
 github.com/cespare/xxhash/v2
-# github.com/checkpoint-restore/checkpointctl v0.1.0
+# github.com/checkpoint-restore/checkpointctl v1.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
 # github.com/checkpoint-restore/go-criu/v6 v6.3.0
@@ -121,6 +121,9 @@ github.com/checkpoint-restore/checkpointctl/lib
 github.com/checkpoint-restore/go-criu/v6
 github.com/checkpoint-restore/go-criu/v6/rpc
 github.com/checkpoint-restore/go-criu/v6/stats
+# github.com/checkpoint-restore/go-criu/v7 v7.0.0
+## explicit; go 1.18
+github.com/checkpoint-restore/go-criu/v7/stats
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
@@ -867,7 +870,7 @@ github.com/json-iterator/go
 # github.com/kevinburke/ssh_config v1.2.0
 ## explicit
 github.com/kevinburke/ssh_config
-# github.com/klauspost/compress v1.16.7
+# github.com/klauspost/compress v1.17.0
 ## explicit; go 1.18
 github.com/klauspost/compress
 github.com/klauspost/compress/flate
@@ -901,7 +904,7 @@ github.com/mailru/easyjson/jwriter
 github.com/manifoldco/promptui
 github.com/manifoldco/promptui/list
 github.com/manifoldco/promptui/screenbuf
-# github.com/mattn/go-runewidth v0.0.14
+# github.com/mattn/go-runewidth v0.0.15
 ## explicit; go 1.9
 github.com/mattn/go-runewidth
 # github.com/mattn/go-shellwords v1.0.12
