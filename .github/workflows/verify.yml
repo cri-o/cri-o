@@ -34,7 +34,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint the markdown
-        uses: DavidAnson/markdownlint-cli2-action@v12
+        uses: DavidAnson/markdownlint-cli2-action@v13
         with:
           globs: |
             **/*.md
