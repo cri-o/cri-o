@@ -455,7 +455,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		sbox.Name(), sbox.ID(),
 		s.config.PauseImage,
 		s.config.PauseImageAuthFile,
-		"",
 		containerName,
 		kubeName,
 		sbox.Config().Metadata.Uid,
