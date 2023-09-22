@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -21,9 +22,11 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	sconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -99,10 +102,9 @@ type Container interface {
 	// returns the spec
 	Spec() *generate.Generator
 
-	// SpecAddMount adds a mount to the container's spec
-	// it takes the rspec mount object
+	// SpecAddMounts add mounts to the container's spec
 	// if there is already a mount at the path specified, it removes it.
-	SpecAddMount(rspec.Mount)
+	SpecAddMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error)
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
@@ -141,6 +143,7 @@ type container struct {
 	restore    bool
 	spec       generate.Generator
 	pidns      nsmgr.Namespace
+	mounts     map[string]*rspec.Mount
 }
 
 // New creates a new, empty Sandbox instance
@@ -155,12 +158,42 @@ func New() (Container, error) {
 	}, nil
 }
 
-// SpecAddMount adds a specified mount to the spec
-//
-//nolint:gocritic // passing the spec mount around here is intentional
-func (c *container) SpecAddMount(r rspec.Mount) {
-	c.spec.RemoveMount(r.Destination)
-	c.spec.AddMount(r)
+// SpecAddMount add mounts to the spec
+func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+
+	//Setup mounts
+	containerVolumes, secretMounts, err := c.setupMounts(ctx, resourceStore, serverConfig, sb, containerInfo, mountPoint, idMapSupport)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	allMounts := make([]*rspec.Mount, len(c.mounts))
+
+	//Filter out /dev & /sys
+	devSet, sysSet := false, false
+	for dest, m := range c.mounts {
+		if dest == "/dev" {
+			devSet = true
+		}
+		if dest == "/sys" {
+			sysSet = true
+		}
+		allMounts = append(allMounts, m)
+	}
+
+	sort.Sort(orderedMounts(allMounts))
+	for _, m := range allMounts {
+		if devSet && strings.HasPrefix(m.Destination, "/dev/") {
+			continue
+		}
+		if sysSet && strings.HasPrefix(m.Destination, "/sys/") {
+			continue
+		}
+		c.spec.RemoveMount(m.Destination)
+		c.spec.AddMount(*m)
+	}
+
+	return containerVolumes, secretMounts, nil
 }
 
 // SpecAddAnnotation adds all annotations to the spec
