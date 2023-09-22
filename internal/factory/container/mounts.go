@@ -7,11 +7,12 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/mount"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-type orderedMounts []rspec.Mount
+type orderedMounts []*rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
 func (m orderedMounts) Len() int {
@@ -84,47 +85,30 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 
 // Ensure mount point on which path is mounted, is shared.
 func ensureShared(path string, mountInfos []*mount.Info) error {
-	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
-	if err != nil {
-		return err
-	}
-
-	// Make sure source mount point is shared.
-	optsSplit := strings.Split(optionalOpts, " ")
-	for _, opt := range optsSplit {
-		if strings.HasPrefix(opt, "shared:") {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("path %q is mounted on %q but it is not a shared mount", path, sourceMount)
+	return checkPropagationType(path, mountInfos, "shared")
 }
 
 // Ensure mount point on which path is mounted, is either shared or slave.
 func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
+	return checkPropagationType(path, mountInfos, "shared/slave")
+}
+
+func checkPropagationType(path string, mountInfos []*mount.Info, propagation string) error {
 	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
 	if err != nil {
 		return err
 	}
-	// Make sure source mount point is shared.
 	optsSplit := strings.Split(optionalOpts, " ")
 	for _, opt := range optsSplit {
-		if strings.HasPrefix(opt, "shared:") {
+		if strings.HasPrefix(opt, "shared:") && strings.Contains(propagation, "shared") {
+			// Make sure source mount point is shared.
 			return nil
-		} else if strings.HasPrefix(opt, "master:") {
+		} else if strings.HasPrefix(opt, "master:") && strings.Contains(propagation, "slave") {
+			// Make sure source mount point is slave.
 			return nil
 		}
 	}
-	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
-}
-
-func isInCRIMounts(dst string, mounts []*types.Mount) bool {
-	for _, m := range mounts {
-		if m.ContainerPath == dst {
-			return true
-		}
-	}
-	return false
+	return fmt.Errorf("path %q is mounted on %q but it is not a %q mount", path, sourceMount, propagation)
 }
 
 func clearReadOnly(m *rspec.Mount) {
@@ -138,4 +122,53 @@ func clearReadOnly(m *rspec.Mount) {
 	}
 	m.Options = opt
 	m.Options = append(m.Options, "rw")
+}
+
+// isSubDirectoryOf checks if the base path contains the target path.
+// It assumes that paths are Unix-style with forward slashes ("/").
+// It ensures that both paths end with a "/" before comparing, so that "/var/lib" will not incorrectly match "/var/libs".
+
+// The function returns true if the base path starts with the target path, providing a way to check if one directory is a subdirectory of another.
+
+// Examples:
+
+// isSubDirectoryOf("/var/lib/containers/storage", "/") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage") returns true
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage/extra") returns false
+// isSubDirectoryOf("/var/lib/containers/storage", "/va") returns false
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/tmp/containers") returns false
+func isSubDirectoryOf(base, target string) bool {
+	if !strings.HasSuffix(target, "/") {
+		target += "/"
+	}
+	if !strings.HasSuffix(base, "/") {
+		base += "/"
+	}
+	return strings.HasPrefix(base, target)
+}
+
+// resolveSymbolicLink resolves a possible symlink path. If the path is a symlink, returns resolved
+// path; if not, returns the original path.
+// note: strictly SecureJoin is not sufficient, as it does not error when a part of the path doesn't exist
+// but simply moves on. If the last part of the path doesn't exist, it may need to be created.
+func resolveSymbolicLink(scope, path string) (string, error) {
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink != os.ModeSymlink {
+		return path, nil
+	}
+	if scope == "" {
+		scope = "/"
+	}
+	return securejoin.SecureJoin(scope, path)
+}
+
+func (c *container) addMount(mount *rspec.Mount) {
+	if mount != nil {
+		c.mounts[filepath.Clean(mount.Destination)] = mount
+	}
 }
