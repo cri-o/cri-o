@@ -3,6 +3,11 @@ package server
 import (
 	"encoding/json"
 	"fmt"
+	"os"
+	"path/filepath"
+	"runtime/debug"
+	"strings"
+	"time"
 
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -43,6 +48,24 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 		}
 		resp.Info = info
 	}
+
+	if s.config.EnableHeapDump {
+		dumpFilePath := filepath.Join("/tmp", fmt.Sprintf(
+			"crio-heapdump-%s.out",
+			strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", ""),
+		))
+
+		f, err := os.Create(dumpFilePath)
+
+		if err != nil {
+			return nil, fmt.Errorf("creating heapdump output file: %w", err)
+		}
+
+		defer f.Close()
+
+		debug.WriteHeapDump(f.Fd())
+	}
+
 	return resp, nil
 }
 

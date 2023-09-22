@@ -470,6 +470,10 @@ type RuntimeConfig struct {
 	// Option to disable hostport mapping in CRI-O
 	// Default value is 'false'
 	DisableHostPortMapping bool `toml:"disable_hostport_mapping"`
+
+	// EnableHeapDump option will make CRI-O to generate a file at the specified location
+	// containing heap dump information.
+	EnableHeapDump bool `toml:"enable_heap_dump"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.

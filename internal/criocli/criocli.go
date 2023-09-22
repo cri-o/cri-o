@@ -408,6 +408,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("disable-hostport-mapping") {
 		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
 	}
+	if ctx.IsSet("enable-heap-dump") {
+		config.EnableHeapDump = ctx.Bool("enable-heap-dump")
+	}
 	return nil
 }
 
@@ -1163,6 +1166,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O would disable the hostport mapping.",
 			EnvVars: []string{"DISABLE_HOSTPORT_MAPPING"},
 			Value:   defConf.DisableHostPortMapping,
+		},
+		&cli.BoolFlag{
+			Name:    "enable-heap-dump",
+			Usage:   "If true, CRI-O generates a file at the specified location containing heap dump information.",
+			EnvVars: []string{"ENABLE_HEAP_DUMP"},
+			Value:   defConf.EnableHeapDump,
 		},
 	}
 }

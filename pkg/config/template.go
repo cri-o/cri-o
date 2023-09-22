@@ -476,6 +476,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DisableHostPortMapping, c.DisableHostPortMapping),
 		},
 		{
+			templateString: templateStringCrioRuntimeEnableHeapDump,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.RuntimeConfig.EnableHeapDump, c.RuntimeConfig.EnableHeapDump),
+		},
+		{
 			templateString: templateStringCrioImageDefaultTransport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
@@ -1339,6 +1344,11 @@ const templateStringCrioRuntimeDisableHostPortMapping = `# disable_hostport_mapp
 # the container hostport mapping in CRI-O.
 # Default value is set to 'false'
 {{ $.Comment }}disable_hostport_mapping = {{ .DisableHostPortMapping }}
+
+`
+
+const templateStringCrioRuntimeEnableHeapDump = `# Enable/disable to dump heap memory information to a file
+{{ $.Comment }}enable_heap_dump = {{ .EnableHeapDump }}
 
 `
 
