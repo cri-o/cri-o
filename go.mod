@@ -26,7 +26,7 @@ require (
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/podman/v4 v4.6.2
-	github.com/containers/storage v1.50.0
+	github.com/containers/storage v1.50.2
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -89,7 +89,7 @@ require (
 	capnproto.org/go/capnp/v3 v3.0.0-alpha.25 // indirect
 	dario.cat/mergo v1.0.0 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 // indirect
-	github.com/Microsoft/hcsshim v0.11.0 // indirect
+	github.com/Microsoft/hcsshim v0.12.0-rc.0 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230528122434-6f98819771a1 // indirect
 	github.com/VividCortex/ewma v1.2.0 // indirect
 	github.com/acarl005/stripansi v0.0.0-20180116102854-5a71ef0e047d // indirect
@@ -101,6 +101,7 @@ require (
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/cilium/ebpf v0.9.1 // indirect
 	github.com/cloudflare/circl v1.3.3 // indirect
+	github.com/containerd/cgroups/v3 v3.0.2 // indirect
 	github.com/containerd/console v1.0.3 // indirect
 	github.com/containerd/go-runc v1.0.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect

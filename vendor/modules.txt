@@ -38,9 +38,8 @@ github.com/Microsoft/go-winio/internal/fs
 github.com/Microsoft/go-winio/internal/socket
 github.com/Microsoft/go-winio/internal/stringbuffer
 github.com/Microsoft/go-winio/pkg/guid
-github.com/Microsoft/go-winio/tools/mkwinsyscall
 github.com/Microsoft/go-winio/vhd
-# github.com/Microsoft/hcsshim v0.11.0
+# github.com/Microsoft/hcsshim v0.12.0-rc.0
 ## explicit; go 1.18
 github.com/Microsoft/hcsshim
 github.com/Microsoft/hcsshim/computestorage
@@ -159,6 +158,9 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.1.0
 ## explicit; go 1.17
 github.com/containerd/cgroups/stats/v1
+# github.com/containerd/cgroups/v3 v3.0.2
+## explicit; go 1.18
+github.com/containerd/cgroups/v3/cgroup1/stats
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
@@ -471,7 +473,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.50.0
+# github.com/containers/storage v1.50.2
 ## explicit; go 1.19
 github.com/containers/storage
 github.com/containers/storage/drivers
