@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Sep 2023 11:08:39 UTC for commit [1bcd1ca][0]._
+_Generated on Fri, 22 Sep 2023 10:34:20 UTC for commit [ea24802][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1bcd1ca09d3c14e66bde82aa36d580d8e3582f72
+[0]: https://github.com/cri-o/cri-o/commit/ea24802b8efe84d7848d6fe9f60b5d6b725fdadd
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Thu, 21 Sep 2023 11:08:39 UTC for commit [1bcd1ca][0]._
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.17.0                              | v1.18.0     | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.17.0                              | v1.18.0     | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.17.0                              | v1.18.0     | true   | true             |
-| google.golang.org/grpc                                                      | v1.58.0                              | v1.58.1     | true   | true             |
+| google.golang.org/grpc                                                      | v1.58.0                              | v1.58.2     | true   | true             |
 | k8s.io/api                                                                  | v0.28.1                              | v0.28.2     | true   | true             |
 | k8s.io/apimachinery                                                         | v0.28.1                              | v0.28.2     | true   | true             |
 | k8s.io/client-go                                                            | v0.28.1                              | v0.28.2     | true   | true             |
@@ -464,7 +464,7 @@ _Generated on Thu, 21 Sep 2023 11:08:39 UTC for commit [1bcd1ca][0]._
 | github.com/google/btree                                                                 | v1.0.1                                            | v1.1.2                             | false  | true             |
 | github.com/google/cel-go                                                                | v0.16.0                                           | v0.18.0                            | false  | true             |
 | github.com/google/certificate-transparency-go                                           | v1.1.6                                            |                                    | false  | true             |
-| github.com/google/gnostic                                                               | v0.5.7-v3refs                                     | v0.6.9                             | false  | true             |
+| github.com/google/gnostic                                                               | v0.5.7-v3refs                                     | v0.7.0                             | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.8                                            |                                    | false  | true             |
 | github.com/google/go-cmp                                                                | v0.5.9                                            |                                    | false  | true             |
 | github.com/google/go-containerregistry                                                  | v0.15.2                                           | v0.16.1                            | false  | true             |
@@ -483,9 +483,9 @@ _Generated on Thu, 21 Sep 2023 11:08:39 UTC for commit [1bcd1ca][0]._
 | github.com/google/trillian                                                              | v1.5.2                                            |                                    | false  | true             |
 | github.com/google/uuid                                                                  | v1.3.1                                            |                                    | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                            |                                    | false  | true             |
-| github.com/googleapis/enterprise-certificate-proxy                                      | v0.2.5                                            | v0.3.0                             | false  | true             |
+| github.com/googleapis/enterprise-certificate-proxy                                      | v0.2.5                                            | v0.3.1                             | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.11.0                                           | v2.12.0                            | false  | true             |
-| github.com/googleapis/gnostic                                                           | v0.4.1                                            | v0.6.9                             | false  | true             |
+| github.com/googleapis/gnostic                                                           | v0.4.1                                            | v0.7.0                             | false  | true             |
 | github.com/gopherjs/gopherjs                                                            | v0.0.0-20181017120253-0766667cb4d1                | v1.17.2                            | false  | true             |
 | github.com/gorilla/handlers                                                             | v1.5.1                                            |                                    | false  | true             |
 | github.com/gorilla/mux                                                                  | v1.8.0                                            |                                    | false  | true             |
@@ -805,7 +805,7 @@ _Generated on Thu, 21 Sep 2023 11:08:39 UTC for commit [1bcd1ca][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20230920204549-e6e6cdab5c13 | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20230920204549-e6e6cdab5c13 | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20230920204549-e6e6cdab5c13 | false  | true             |
-| google.golang.org/grpc                                                                  | v1.58.0                                           | v1.58.1                            | true   | true             |
+| google.golang.org/grpc                                                                  | v1.58.0                                           | v1.58.2                            | true   | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                    | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                    | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                            | v2.3.2                             | false  | true             |
