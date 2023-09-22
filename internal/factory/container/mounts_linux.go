@@ -157,7 +157,7 @@ func (ctr *container) setupShmMounts(sb *sandbox.Sandbox) {
 
 func (ctr *container) addHostPropMounts(mount *rspec.Mount, mountLabel string) error {
 	if mount.Source != "" {
-		if err := securityLabel(mount.Source, mountLabel, false, false); err != nil {
+		if err := SecurityLabel(mount.Source, mountLabel, false, false); err != nil {
 			return err
 		}
 	}
@@ -223,7 +223,7 @@ func (ctr *container) addImageVolumes(ctx context.Context, rootfs string, server
 				return err1
 			}
 			if containerInfo.MountLabel != "" {
-				if err1 := securityLabel(fp, containerInfo.MountLabel, true, false); err1 != nil {
+				if err1 := SecurityLabel(fp, containerInfo.MountLabel, true, false); err1 != nil {
 					return err1
 				}
 			}
@@ -235,7 +235,7 @@ func (ctr *container) addImageVolumes(ctx context.Context, rootfs string, server
 			}
 			// Label the source with the sandbox selinux mount label
 			if containerInfo.MountLabel != "" {
-				if err1 := securityLabel(src, containerInfo.MountLabel, true, false); err1 != nil {
+				if err1 := SecurityLabel(src, containerInfo.MountLabel, true, false); err1 != nil {
 					return err1
 				}
 			}
@@ -403,7 +403,7 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 		if m.SelinuxRelabel {
 			if skipRelabel {
 				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
-			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
+			} else if err := SecurityLabel(src, mountLabel, false, maybeRelabel); err != nil {
 				return nil, err
 			}
 		} else {

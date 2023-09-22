@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/rdt"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/linklogs"
@@ -775,7 +776,7 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 		return err
 	}
 	if mountLabel != "" {
-		if err1 := securityLabel(fp, mountLabel, false, false); err1 != nil {
+		if err1 := container.SecurityLabel(fp, mountLabel, false, false); err1 != nil {
 			return err1
 		}
 	}

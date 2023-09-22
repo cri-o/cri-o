@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-func securityLabel(path, secLabel string, shared, maybeRelabel bool) error {
+func SecurityLabel(path, secLabel string, shared, maybeRelabel bool) error {
 	if maybeRelabel {
 		canonicalSecLabel, err := selinux.CanonicalizeContext(secLabel)
 		if err != nil {

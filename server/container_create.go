@@ -80,7 +80,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 			return err
 		}
 		if passwdPath != "" {
-			if err := securityLabel(passwdPath, mountLabel, false, false); err != nil {
+			if err := container.SecurityLabel(passwdPath, mountLabel, false, false); err != nil {
 				return err
 			}
 
