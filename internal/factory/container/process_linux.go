@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"path/filepath"
+	// "path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -13,14 +13,14 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/pkg/config"
+	// "github.com/cri-o/cri-o/pkg/config"
 	sconfig "github.com/cri-o/cri-o/pkg/config"
 	securejoin "github.com/cyphar/filepath-securejoin"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
+	// rspec "github.com/opencontainers/runtime-spec/specs-go"
+	// "github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-
+	
 )
 
 func (ctr *container) SetContainerWorkingDir(containerImageConfig *v1.Image, containerConfig *types.ContainerConfig) (containerCwd string, err error){
@@ -39,7 +39,7 @@ func (ctr *container) SetContainerWorkingDir(containerImageConfig *v1.Image, con
 	return containerCwd, err
 }
 
-func (ctr *container) SetupProcess(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo)(){
+func (ctr *container) SetupProcess(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) error{
 	containerID := ctr.ID()
 	containerConfig := ctr.Config()
 	specgen := ctr.Spec()
@@ -63,7 +63,7 @@ func (ctr *container) SetupProcess(ctx context.Context, serverConfig *sconfig.Co
 			securityContext.ApparmorProfile,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
+			return fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
 		}
 
 		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
@@ -89,8 +89,6 @@ func (ctr *container) SetupProcess(ctx context.Context, serverConfig *sconfig.Co
 	specgen.AddMultipleProcessEnv(serverConfig.DefaultEnv)
 
 	containerImageConfig := containerInfo.Config
-
-
 	// Add environment variables from image the CRI configuration
 	envs := mergeEnvs(containerImageConfig, containerConfig.Envs)
 	for _, e := range envs {
@@ -100,28 +98,33 @@ func (ctr *container) SetupProcess(ctx context.Context, serverConfig *sconfig.Co
 
 	containerCwd, err := ctr.SetContainerWorkingDir(containerImageConfig, containerConfig)
 	if err != nil {
-		return nil, err;
+		return err;
 	} 
 
 	specgen.SetProcessCwd(containerCwd)
-	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
-		return nil, err
+	if err := setupWorkingDirectory(mountPoint, containerInfo.MountLabel, containerCwd); err != nil {
+		return err
+	}
+
+	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
+		return err
 	}
 
 	if v := sb.Annotations()[crioann.UmaskAnnotation]; v != "" {
 		umaskRegexp := regexp.MustCompile(`^[0-7]{1,4}$`)
 		if !umaskRegexp.MatchString(v) {
-			return nil, fmt.Errorf("invalid umask string %s", v)
+			return fmt.Errorf("invalid umask string %s", v)
 		}
 		decVal, err := strconv.ParseUint(sb.Annotations()[crioann.UmaskAnnotation], 8, 32)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		umask := uint32(decVal)
 		specgen.Config.Process.User.Umask = &umask
-	}
-	
 
+		specgen.SetProcessSelinuxLabel(containerInfo.ProcessLabel)
+	}
+	return nil
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {

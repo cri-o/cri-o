@@ -114,6 +114,9 @@ type Container interface {
 	// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
 	AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error
 
+	// SpecSetProcess sets the process in the spec
+	SpecSetupProcess(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) error
+
 	// SpecSetProcessArgs sets the process args in the spec,
 	// given the image information and passed-in container config
 	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
@@ -590,6 +593,14 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		}
 		c.spec.Config.Linux.Resources.Unified[parts[0]] = v
 	}
+
+	return nil
+}
+
+func (c *container) SpecSetupProcess(ctx context.Context, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string) error {
+	if err := c.SetupProcess(ctx, serverConfig, sb, containerInfo, mountPoint );  err != nil {
+		return err
+	} 
 
 	return nil
 }

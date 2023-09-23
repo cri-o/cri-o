@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/util"
@@ -171,11 +168,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	// creates a spec Generator with the default spec.
 	specgen := ctr.Spec()
 	specgen.HostSpecific = true
-	specgen.ClearProcessRlimits()
-
-	for _, u := range s.config.Ulimits() {
-		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
-	}
 
 	readOnlyRootfs := ctr.ReadOnly(s.config.ReadOnly)
 	specgen.SetRootReadonly(readOnlyRootfs)
@@ -311,19 +303,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(
-			securityContext.ApparmorProfile,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
-		}
-
-		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
-		specgen.SetProcessApparmorProfile(profile)
-	}
-
 	// Get blockio class
 	if s.Config().BlockIO().Enabled() {
 		if blockioClass, err := blockio.ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations()); blockioClass != "" && err == nil {
@@ -344,11 +323,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	logPath, err := ctr.LogPath(sb.LogDir())
 	if err != nil {
 		return nil, err
-	}
-
-	specgen.SetProcessTerminal(containerConfig.Tty)
-	if containerConfig.Tty {
-		specgen.AddProcessEnv("TERM", "xterm")
 	}
 
 	linux := containerConfig.Linux
@@ -383,7 +357,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				}
 			}
 
-			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
 			specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
 			specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
 
@@ -415,7 +388,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				return nil, err
 			}
 		}
-		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+		// specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
 
 		if !ctr.Privileged() {
 			if securityContext.MaskedPaths != nil {
@@ -460,20 +433,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	if err := ctr.SpecSetProcessArgs(containerImageConfig); err != nil {
-		return nil, err
-	}
-
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
 	if !ctr.Privileged() && node.CgroupIsV2() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
 			return nil, err
 		}
 	}
-
-	// Set hostname and add env for hostname
-	specgen.SetHostname(sb.Hostname())
-	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
 	created := time.Now()
 	seccompRef := types.SecurityProfile_Unconfined.String()
@@ -520,17 +485,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	// First add any configured environment variables from crio config.
-	// They will get overridden if specified in the image or container config.
-	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
-
-	// Add environment variables from image the CRI configuration
-	envs := mergeEnvs(containerImageConfig, containerConfig.Envs)
-	for _, e := range envs {
-		parts := strings.SplitN(e, "=", 2)
-		specgen.AddProcessEnv(parts[0], parts[1])
-	}
-
 	// Setup user and groups
 	if linux != nil {
 		if err := setupContainerUser(ctx, specgen, mountPoint, containerInfo.MountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
@@ -538,21 +492,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	// Set working directory
-	// Pick it up from image config first and override if specified in CRI
-	containerCwd := "/"
-	imageCwd := containerImageConfig.Config.WorkingDir
-	if imageCwd != "" {
-		containerCwd = imageCwd
-	}
-	runtimeCwd := containerConfig.WorkingDir
-	if runtimeCwd != "" {
-		containerCwd = runtimeCwd
-	}
-	specgen.SetProcessCwd(containerCwd)
-	if err := setupWorkingDirectory(mountPoint, containerInfo.MountLabel, containerCwd); err != nil {
+	if err := ctr.SpecSetupProcess(ctx, &s.config, sb, containerInfo, mountPoint );  err != nil {
 		return nil, err
-	}
+	} 
 
 	if s.ContainerServer.Hooks != nil {
 		newAnnotations := map[string]string{}
@@ -588,8 +530,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	specgen.SetLinuxMountLabel(containerInfo.MountLabel)
-	specgen.SetProcessSelinuxLabel(processLabel)
-
 	ociContainer.AddManagedPIDNamespace(ctr.PidNamespace())
 
 	ociContainer.SetIDMappings(containerIDMappings)
@@ -617,18 +557,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
 		return nil, err
-	}
-	if v := sb.Annotations()[crioann.UmaskAnnotation]; v != "" {
-		umaskRegexp := regexp.MustCompile(`^[0-7]{1,4}$`)
-		if !umaskRegexp.MatchString(v) {
-			return nil, fmt.Errorf("invalid umask string %s", v)
-		}
-		decVal, err := strconv.ParseUint(sb.Annotations()[crioann.UmaskAnnotation], 8, 32)
-		if err != nil {
-			return nil, err
-		}
-		umask := uint32(decVal)
-		specgen.Config.Process.User.Umask = &umask
 	}
 
 	if containerIDMappings == nil {
@@ -689,22 +617,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	return ociContainer, nil
-}
-
-func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
-	fp, err := securejoin.SecureJoin(rootfs, containerCwd)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(fp, 0o755); err != nil {
-		return err
-	}
-	if mountLabel != "" {
-		if err1 := securityLabel(fp, mountLabel, false, false); err1 != nil {
-			return err1
-		}
-	}
-	return nil
 }
 
 func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
