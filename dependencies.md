@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
+_Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/feb6660c36cfe87642fba8922cae97d5f7fe714b
+[0]: https://github.com/cri-o/cri-o/commit/33869afc24bb289be1c9e2999ea7cd510fde028e
 
 ## Outdated Dependencies
 
@@ -188,7 +188,7 @@ _Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230914175059-27df1b95b69f | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230925165800-4dc2c8b9f720 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -226,7 +226,7 @@ _Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.15                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.16                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.18.42                           | false  | true             |
@@ -465,7 +465,7 @@ _Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
 | github.com/golang/protobuf                                                              | v1.5.3                                            |                                    | false  | true             |
 | github.com/golang/snappy                                                                | v0.0.4                                            |                                    | false  | true             |
 | github.com/google/btree                                                                 | v1.0.1                                            | v1.1.2                             | false  | true             |
-| github.com/google/cel-go                                                                | v0.16.0                                           | v0.18.0                            | false  | true             |
+| github.com/google/cel-go                                                                | v0.16.0                                           | v0.18.1                            | false  | true             |
 | github.com/google/certificate-transparency-go                                           | v1.1.6                                            |                                    | false  | true             |
 | github.com/google/gnostic                                                               | v0.5.7-v3refs                                     | v0.7.0                             | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.8                                            |                                    | false  | true             |
@@ -558,7 +558,7 @@ _Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230922152748-574c5cfa9b21 | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230925161059-162458ff528a | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -729,7 +729,7 @@ _Generated on Mon, 25 Sep 2023 15:07:22 UTC for commit [feb6660][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.9.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                    | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.91.1                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.92.0                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                    | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                    | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.1                                            | v1.1.2                             | false  | true             |
