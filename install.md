@@ -83,8 +83,9 @@ xUbuntu 18.04
 To install, choose a supported version for your operating system, and export it
 as a variable, like so: `export VERSION=1.19`
 
-We also save releases as subprojects. If you'd, for instance, like to use `1.19.1`
-you can set `export VERSION=1.19:1.19.1`
+We also save releases as subprojects. If you'd, for instance, like to use `1.24.5`
+you can set `export VERSION=1.24.5` and
+`export SUBVERSION=$(echo $VERSION | awk -F'.' '{print $1"."$2}')`
 
 Packaging for CRI-O is done best-effort, and is largely driven by requests.
 If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
@@ -135,6 +136,11 @@ And then run the following as root:
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+
+or if you are using a subproject release:
+
+curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:${VERSION}.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/${SUBVERSION}:/${VERSION}/$OS/devel:kubic:libcontainers:stable:cri-o:${SUBVERSION}:${VERSION}.repo
+
 yum install cri-o
 ```
 <!-- markdownlint-enable MD013 -->
