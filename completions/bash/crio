@@ -61,6 +61,7 @@ h
 --hooks-dir
 --hostnetwork-disable-selinux
 --image-volumes
+--imagestore
 --infra-ctr-cpuset
 --insecure-registry
 --internal-repair

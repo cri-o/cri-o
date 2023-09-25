@@ -88,6 +88,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l image-volumes -r -d 'Image
     2. bind: A directory is created inside container state directory and bind
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken.'
+complete -c crio -n '__fish_crio_no_subcommand' -l imagestore -r -d 'Store newly pulled images in the specified path, rather than the path provided by --root.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l infra-ctr-cpuset -r -d 'CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to

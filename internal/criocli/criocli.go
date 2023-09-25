@@ -156,6 +156,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("selinux") {
 		config.SELinux = ctx.Bool("selinux")
 	}
+	if ctx.IsSet("imagestore") {
+		config.ImageStore = ctx.String("imagestore")
+	}
 	if ctx.IsSet("seccomp-profile") {
 		config.SeccompProfile = ctx.String("seccomp-profile")
 	}
@@ -567,6 +570,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "The CRI-O state directory.",
 			Value:     defConf.RunRoot,
 			EnvVars:   []string{"CONTAINER_RUNROOT"},
+			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:      "imagestore",
+			Usage:     "Store newly pulled images in the specified path, rather than the path provided by --root.",
+			Value:     defConf.ImageStore,
+			EnvVars:   []string{"CONTAINER_IMAGESTORE"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{

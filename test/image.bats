@@ -96,6 +96,32 @@ function teardown() {
 	cleanup_images
 }
 
+@test "image pull and list using imagestore" {
+	# Start crio with imagestore
+	mkdir -p "$TESTDIR/imagestore"
+	CONTAINER_IMAGESTORE="$TESTDIR/imagestore" start_crio
+
+	FEDORA="registry.fedoraproject.org/fedora"
+	crictl pull $FEDORA
+	imageid=$(crictl images --quiet "$FEDORA")
+	[ "$imageid" != "" ]
+
+	output=$(crictl images @"$imageid")
+	[[ "$output" == *"$FEDORA"* ]]
+
+	output=$(crictl images --quiet "$imageid")
+	[ "$output" != "" ]
+
+	stop_crio
+	unset CONTAINER_IMAGESTORE
+	# start crio without imagestore
+	start_crio
+	imageid=$(crictl images --quiet "$FEDORA")
+	# no image must be found on default root
+	[[ "$imageid" == "" ]]
+	cleanup_images
+}
+
 @test "image pull with signature" {
 	skip "registry has some issues"
 	start_crio
