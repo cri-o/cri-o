@@ -9,6 +9,7 @@ import (
 
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -483,6 +484,22 @@ var _ = t.Describe("Container", func() {
 			// Then
 			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(append(img.Config.Entrypoint, img.Config.Cmd...)))
+		})
+		It("should set nothing if container is checkpoint", func() {
+			// Given
+			config.Command = nil
+			config.Args = nil
+			img := &v1.Image{}
+			emptyContainer, err := container.New()
+
+			// When
+			Expect(err).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			sut.SetRestore(true)
+
+			// Then
+			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.Spec().Config.Process.Args).To(Equal(emptyContainer.Spec().Config.Process.Args))
 		})
 	})
 	t.Describe("WillRunSystemd", func() {

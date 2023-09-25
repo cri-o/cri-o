@@ -564,6 +564,11 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 // SpecSetProcessArgs sets the process args in the spec,
 // given the image information and passed-in container config
 func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
+	// When restoring a container checkpoint, skip setting the process args
+	if c.Restore() {
+		return nil
+	}
+
 	kubeCommands := c.config.Command
 	kubeArgs := c.config.Args
 
