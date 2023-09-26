@@ -295,25 +295,17 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 }
 
 func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
-	var err error
 	svc.imageCacheLock.Lock()
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 	if !ok {
+		var err error
 		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 		if err != nil {
 			return results, err
 		}
-		if newImageCache == nil {
-			svc.imageCacheLock.Lock()
-			svc.imageCache[image.ID] = cacheItem
-			svc.imageCacheLock.Unlock()
-		} else {
-			newImageCache[image.ID] = cacheItem
-		}
-	} else if newImageCache != nil {
-		newImageCache[image.ID] = cacheItem
 	}
+	newImageCache[image.ID] = cacheItem
 
 	return append(results, svc.buildImageResult(image, cacheItem)), nil
 }
