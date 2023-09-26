@@ -508,7 +508,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -549,91 +549,11 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(len(res)).To(Equal(2))
-		})
-
-		It("should succeed to list images with filter", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				// buildImageCacheItem:
-				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{
-						ID: testSHA256,
-						Names: []string{
-							testNormalizedImageName,
-						},
-					}, nil),
-				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-					Return(nil, nil),
-
-				// makeRepoDigests:
-				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
-					Return(digest.Digest(""), nil),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(res)).To(Equal(1))
-			Expect(res[0].ID).To(Equal(testSHA256))
-		})
-
-		It("should succeed to list images on failure to access an image", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(res)).To(Equal(0))
-		})
-
-		It("should fail to list images with filter an invalid reference", func() {
-			// Given
-			gomock.InOrder(
-				// parseStoreReference("@wrong://image") tries this before failing in parseNormalizedNamed:
-				storeMock.EXPECT().Image("wrong://image").Return(nil, cs.ErrImageUnknown),
-			)
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "wrong://image")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
-		It("should fail to list images with filter on failing appendCachedResult", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				// in buildImageCacheItem, NewImage is failing:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-					Return(nil, t.TestError),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
 		})
 
 		It("should fail to list images without a filter on failing store", func() {
@@ -643,7 +563,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -658,7 +578,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -676,7 +596,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())

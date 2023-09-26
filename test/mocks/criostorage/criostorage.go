@@ -68,18 +68,18 @@ func (mr *MockImageServerMockRecorder) ImageStatus(arg0, arg1 interface{}) *gomo
 }
 
 // ListImages mocks base method.
-func (m *MockImageServer) ListImages(arg0 *types.SystemContext, arg1 string) ([]storage0.ImageResult, error) {
+func (m *MockImageServer) ListImages(arg0 *types.SystemContext) ([]storage0.ImageResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListImages", arg0, arg1)
+	ret := m.ctrl.Call(m, "ListImages", arg0)
 	ret0, _ := ret[0].([]storage0.ImageResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListImages indicates an expected call of ListImages.
-func (mr *MockImageServerMockRecorder) ListImages(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockImageServerMockRecorder) ListImages(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), arg0)
 }
 
 // PrepareImage mocks base method.

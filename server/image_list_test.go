@@ -28,8 +28,7 @@ var _ = t.Describe("ImageList", func() {
 			// Given
 			size := uint64(100)
 			gomock.InOrder(
-				imageServerMock.EXPECT().ListImages(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().ListImages(gomock.Any()).
 					Return([]storage.ImageResult{
 						{ID: imageID, Size: &size, User: "10"},
 					}, nil),
@@ -75,8 +74,8 @@ var _ = t.Describe("ImageList", func() {
 		It("should fail when image listing errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ListImages(gomock.Any(),
-					gomock.Any()).Return(nil, t.TestError),
+				imageServerMock.EXPECT().ListImages(gomock.Any()).
+					Return(nil, t.TestError),
 			)
 
 			// When
