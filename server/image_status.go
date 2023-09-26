@@ -19,22 +19,18 @@ import (
 func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	image := ""
 	img := req.Image
-	if img != nil {
-		image = img.Image
-	}
-	if image == "" {
+	if img == nil || img.Image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
 
-	log.Infof(ctx, "Checking image status: %s", image)
+	log.Infof(ctx, "Checking image status: %s", img.Image)
 	status, err := s.storageImageStatus(ctx, *img)
+	if err != nil {
+		return nil, err
+	}
 	if status == nil {
-		if err != nil {
-			return nil, err
-		}
-		log.Infof(ctx, "Image %s not found", image)
+		log.Infof(ctx, "Image %s not found", img.Image)
 		return &types.ImageStatusResponse{}, nil
 	}
 
