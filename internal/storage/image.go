@@ -319,18 +319,8 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 		}
 		cacheItem, err := svc.getImageCacheItem(systemContext, ref, image)
 		if err != nil {
-			// skip reporting errors if the images haven't finished pulling
-			if os.IsNotExist(err) {
-				donePulling := true
-				for _, name := range image.Names {
-					if _, ok := ImageBeingPulled.Load(name); ok {
-						donePulling = false
-						break
-					}
-				}
-				if !donePulling {
-					continue
-				}
+			if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
+				continue
 			}
 			return nil, err
 		}
@@ -344,6 +334,15 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	svc.imageCache = newImageCache
 	svc.imageCacheLock.Unlock()
 	return results, nil
+}
+
+func imageIsBeingPulled(image *storage.Image) bool {
+	for _, name := range image.Names {
+		if _, ok := ImageBeingPulled.Load(name); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {
