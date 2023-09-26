@@ -48,12 +48,18 @@ var _ = t.Describe("ImageList", func() {
 
 		It("should succeed with filter", func() {
 			// Given
+			size := uint64(100)
 			gomock.InOrder(
-				imageServerMock.EXPECT().ListImages(
-					gomock.Any(), gomock.Any()).
-					Return([]storage.ImageResult{{ID: imageID}}, nil),
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), "image").
+					Return([]string{"docker.io/library/image"}, nil),
+				imageServerMock.EXPECT().ImageStatus(
+					gomock.Any(), "docker.io/library/image").
+					Return(&storage.ImageResult{
+						ID:   "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+						User: "10", Size: &size,
+					}, nil),
 			)
-
 			// When
 			response, err := sut.ListImages(context.Background(),
 				&types.ListImagesRequest{Filter: &types.ImageFilter{
@@ -76,6 +82,28 @@ var _ = t.Describe("ImageList", func() {
 			// When
 			response, err := sut.ListImages(context.Background(),
 				&types.ListImagesRequest{})
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(response).To(BeNil())
+		})
+
+		It("should fail with filter status error", func() {
+			// Given
+			gomock.InOrder(
+				imageServerMock.EXPECT().ResolveNames(
+					gomock.Any(), "image").
+					Return([]string{"docker.io/library/image"}, nil),
+				imageServerMock.EXPECT().ImageStatus(
+					gomock.Any(), "docker.io/library/image").
+					Return(nil, t.TestError),
+			)
+
+			// When
+			response, err := sut.ListImages(context.Background(),
+				&types.ListImagesRequest{Filter: &types.ImageFilter{
+					Image: &types.ImageSpec{Image: "image"},
+				}})
 
 			// Then
 			Expect(err).NotTo(BeNil())
