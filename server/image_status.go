@@ -76,12 +76,9 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	if err != nil {
 		return nil, err
 	}
-	var (
-		status  *pkgstorage.ImageResult
-		lastErr error
-	)
+	var lastErr error
 	for _, image := range images {
-		status_, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
+		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
 		if err != nil {
 			if errors.Is(err, storage.ErrImageUnknown) {
 				log.Debugf(ctx, "Can't find %s", image)
@@ -91,19 +88,15 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 			lastErr = err
 			continue
 		}
-		status = status_
-		break
+		return status, nil
 	}
-	if status == nil {
-		if lastErr != nil {
-			return nil, lastErr
-		}
-		// ResolveNames returns at least one value if it doesn't fail.
-		// So, if we got here, there was at least one ErrImageUnknown, and no other errors.
-		log.Infof(ctx, "Image %s not found", spec.Image)
-		return nil, nil
+	if lastErr != nil {
+		return nil, lastErr
 	}
-	return status, nil
+	// ResolveNames returns at least one value if it doesn't fail.
+	// So, if we got here, there was at least one ErrImageUnknown, and no other errors.
+	log.Infof(ctx, "Image %s not found", spec.Image)
+	return nil, nil
 }
 
 // getUserFromImage gets uid or user name of the image user.
