@@ -294,20 +294,14 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	}
 }
 
-func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
+func (svc *imageService) getImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
 	svc.imageCacheLock.Lock()
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
-	if !ok {
-		var err error
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
-		if err != nil {
-			return results, err
-		}
+	if ok {
+		return cacheItem, nil
 	}
-	newImageCache[image.ID] = cacheItem
-
-	return append(results, svc.buildImageResult(image, cacheItem)), nil
+	return svc.buildImageCacheItem(systemContext, ref)
 }
 
 func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {
@@ -315,7 +309,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	if err != nil {
 		return nil, err
 	}
-	var results []ImageResult
+	results := make([]ImageResult, 0, len(images))
 	newImageCache := make(imageCache, len(images))
 	for i := range images {
 		image := &images[i]
@@ -323,7 +317,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 		if err != nil {
 			return nil, err
 		}
-		results, err = svc.appendCachedResult(systemContext, ref, image, results, newImageCache)
+		cacheItem, err := svc.getImageCacheItem(systemContext, ref, image)
 		if err != nil {
 			// skip reporting errors if the images haven't finished pulling
 			if os.IsNotExist(err) {
@@ -340,6 +334,9 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 			}
 			return nil, err
 		}
+
+		newImageCache[image.ID] = cacheItem
+		results = append(results, svc.buildImageResult(image, cacheItem))
 	}
 	// replace image cache with cache we just built
 	// this invalidates all stale entries in cache
