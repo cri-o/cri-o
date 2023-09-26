@@ -542,9 +542,7 @@ var _ = t.Describe("Image", func() {
 						{ID: testSHA256},
 					},
 					nil),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				mockLoop(),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				mockLoop(),
 			)
 
@@ -590,7 +588,6 @@ var _ = t.Describe("Image", func() {
 			inOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{{ID: testSHA256}}, nil),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(nil, t.TestError),
 			)

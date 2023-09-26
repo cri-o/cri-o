@@ -303,7 +303,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	newImageCache := make(imageCache, len(images))
 	for i := range images {
 		image := &images[i]
-		ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
+		ref, err := istorage.Transport.NewStoreReference(svc.store, nil, image.ID)
 		if err != nil {
 			return nil, err
 		}
