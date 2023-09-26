@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
+_Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/33869afc24bb289be1c9e2999ea7cd510fde028e
+[0]: https://github.com/cri-o/cri-o/commit/ea1f5fc48a8155ebb17bf3b514044d5f11a1bdd8
 
 ## Outdated Dependencies
 
@@ -477,7 +477,7 @@ _Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
 | github.com/google/go-querystring                                                        | v1.1.0                                            |                                    | false  | true             |
 | github.com/google/gofuzz                                                                | v1.2.0                                            |                                    | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                               |                                    | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20230323073829-e72429f035bd                | v0.0.0-20230912144702-c363fe2c2ed8 | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20230323073829-e72429f035bd                | v0.0.0-20230926050212-f7f687d19a98 | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                            |                                    | true   | true             |
 | github.com/google/rpmpack                                                               | v0.0.0-20210518075352-dc539ef4f2ea                | v0.5.0                             | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.4                                            | v0.1.7                             | false  | true             |
@@ -558,7 +558,7 @@ _Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230925161059-162458ff528a | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20230925231128-7a91938865b7 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -729,7 +729,7 @@ _Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.9.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                    | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.92.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.92.1                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                    | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                    | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.1                                            | v1.1.2                             | false  | true             |
@@ -804,7 +804,7 @@ _Generated on Mon, 25 Sep 2023 19:42:59 UTC for commit [33869af][0]._
 | golang.org/x/time                                                                       | v0.3.0                                            |                                    | false  | true             |
 | golang.org/x/tools                                                                      | v0.12.0                                           | v0.13.0                            | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20220907171357-04be3eba64a2                |                                    | false  | true             |
-| google.golang.org/api                                                                   | v0.128.0                                          | v0.142.0                           | false  | true             |
+| google.golang.org/api                                                                   | v0.128.0                                          | v0.143.0                           | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.7                                            | v1.6.8                             | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.110.8                           | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20230920204549-e6e6cdab5c13 | false  | true             |
