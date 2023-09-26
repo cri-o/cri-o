@@ -294,16 +294,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	}
 }
 
-func (svc *imageService) getImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
-	svc.imageCacheLock.Lock()
-	cacheItem, ok := svc.imageCache[image.ID]
-	svc.imageCacheLock.Unlock()
-	if ok {
-		return cacheItem, nil
-	}
-	return svc.buildImageCacheItem(systemContext, ref)
-}
-
 func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {
 	images, err := svc.store.Images()
 	if err != nil {
@@ -317,12 +307,17 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 		if err != nil {
 			return nil, err
 		}
-		cacheItem, err := svc.getImageCacheItem(systemContext, ref, image)
-		if err != nil {
-			if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
-				continue
+		svc.imageCacheLock.Lock()
+		cacheItem, ok := svc.imageCache[image.ID]
+		svc.imageCacheLock.Unlock()
+		if !ok {
+			cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
+			if err != nil {
+				if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
+					continue
+				}
+				return nil, err
 			}
-			return nil, err
 		}
 
 		newImageCache[image.ID] = cacheItem
