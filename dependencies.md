@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
+_Generated on Wed, 27 Sep 2023 07:59:09 UTC for commit [5951d49][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ea1f5fc48a8155ebb17bf3b514044d5f11a1bdd8
+[0]: https://github.com/cri-o/cri-o/commit/5951d4935f00bd1501dc510b68da1aa631c5ed72
 
 ## Outdated Dependencies
 
@@ -222,11 +222,11 @@ _Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.1                                            | v1.0.5                             | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be                |                                    | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                            |                                    | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230915090254-0eb38a02d7aa | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230926155939-487cb28bd359 | false  | true             |
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.16                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.17                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.18.42                           | false  | true             |
@@ -243,7 +243,7 @@ _Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.9.28                                           | v1.9.35                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.13.22                                          | v1.15.4                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.22.2                                           | v1.24.5                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.30.2                                           | v1.39.0                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.30.2                                           | v1.40.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.12.12                                          | v1.14.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.14.12                                          | v1.17.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.19.2                                           | v1.22.0                            | false  | true             |
@@ -755,7 +755,7 @@ _Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
 | github.com/yvasiyarov/newrelic_platform_go                                              | v0.0.0-20140908184405-b21fdbd4370f                | v0.0.0-20160601141957-9c099fbc30e9 | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.2                                            | v0.2.3                             | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                            |                                    | false  | true             |
-| github.com/zmap/zcrypto                                                                 | v0.0.0-20220402174210-599ec18ecbac                | v0.0.0-20230922174353-72485cd89876 | false  | true             |
+| github.com/zmap/zcrypto                                                                 | v0.0.0-20220402174210-599ec18ecbac                | v0.0.0-20230927041405-ed2f02cd393d | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.4.0                                            | v3.5.0                             | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.7                                            |                                    | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible               | false  | true             |
@@ -849,7 +849,7 @@ _Generated on Tue, 26 Sep 2023 08:53:45 UTC for commit [ea1f5fc][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230925150118-51a826d4917e | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230926133247-0f52db700d63 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
