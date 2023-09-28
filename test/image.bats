@@ -318,3 +318,14 @@ EOF
 	output=$(crictl logs "$ctr_id")
 	[[ "$output" == *"Hello, world!"* ]]
 }
+
+@test "check if image is pinned appropriately" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-image.conf"
+[crio.image]
+pinned_images = [ "quay.io/crio/hello-wasm:latest" ]
+EOF
+	start_crio
+	crictl pull quay.io/crio/hello-wasm:latest
+	output=$(crictl images -o json | jq '.images[] | select(.repoTags[] == "quay.io/crio/hello-wasm:latest") | .pinned')
+	[ "$output" == "true" ]
+}
