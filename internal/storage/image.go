@@ -70,12 +70,11 @@ type indexInfo struct {
 // Every field in imageCacheItem are fixed properties of an "image", which in this
 // context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
-	config        *specs.Image
-	size          *uint64
-	configDigest  digest.Digest
-	info          *types.ImageInspectInfo
-	annotations   map[string]string
-	isImagePinned bool
+	config       *specs.Image
+	size         *uint64
+	configDigest digest.Digest
+	info         *types.ImageInspectInfo
+	annotations  map[string]string
 }
 
 type imageCache map[string]imageCacheItem
@@ -213,7 +212,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *s
 	return imageDigest, repoDigests
 }
 
-func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (imageCacheItem, error) {
+func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext, ref types.ImageReference) (imageCacheItem, error) {
 	imageFull, err := ref.NewImage(svc.ctx, systemContext)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -248,20 +247,12 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		}
 	}
 
-	imagePinned := false
-	for _, image := range image.Names {
-		if FilterPinnedImage(image, svc.regexForPinnedImages) {
-			imagePinned = true
-			break
-		}
-	}
 	return imageCacheItem{
-		config:        imageConfig,
-		size:          size,
-		configDigest:  configDigest,
-		info:          info,
-		annotations:   ociManifest.Annotations,
-		isImagePinned: imagePinned,
+		config:       imageConfig,
+		size:         size,
+		configDigest: configDigest,
+		info:         info,
+		annotations:  ociManifest.Annotations,
 	}, nil
 }
 
@@ -279,6 +270,13 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		}
 	}
 
+	imagePinned := false
+	for _, image := range image.Names {
+		if FilterPinnedImage(image, svc.regexForPinnedImages) {
+			imagePinned = true
+			break
+		}
+	}
 	return ImageResult{
 		ID:           image.ID,
 		Name:         name,
@@ -292,7 +290,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Labels:       cacheItem.info.Labels,
 		OCIConfig:    cacheItem.config,
 		Annotations:  cacheItem.annotations,
-		Pinned:       cacheItem.isImagePinned,
+		Pinned:       imagePinned,
 	}
 }
 
@@ -302,7 +300,7 @@ func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, 
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image)
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 		if err != nil {
 			return results, err
 		}
@@ -387,7 +385,7 @@ func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrI
 	svc.imageCacheLock.Unlock()
 
 	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref, image) // Single-use-only, not actually cached
+		cacheItem, err = svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
 		if err != nil {
 			return nil, err
 		}
