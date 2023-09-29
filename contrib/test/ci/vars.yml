@@ -156,3 +156,5 @@ kata_skip_pod_tests:
   - 'test "restart crio and still get pod status"'
   - 'test "systemd cgroup_parent correctly set"'
   - 'test "kubernetes pod terminationGracePeriod passthru"'
+
+runc_git_version: v1.1.9
