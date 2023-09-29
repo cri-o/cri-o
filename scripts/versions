@@ -8,7 +8,7 @@ declare -A VERSIONS=(
     ["conmon-rs"]=v0.6.1
     ["cri-tools"]=v1.28.0
     ["runc"]=v1.1.9
-    ["crun"]=1.8.7
+    ["crun"]=1.9.2
     ["bats"]=v1.10.0
     ["buildah"]=v1.28.0
 )
