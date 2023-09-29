@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 29 Sep 2023 07:23:14 UTC for commit [0fb9eb1][0]._
+_Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0fb9eb12e7696fcbf9ff079e0a009e399e95f58a
+[0]: https://github.com/cri-o/cri-o/commit/64dd33e714ead384e5c816cf52863a413d65c371
 
 ## Outdated Dependencies
 
@@ -733,7 +733,7 @@ _Generated on Fri, 29 Sep 2023 07:23:14 UTC for commit [0fb9eb1][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.9.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                    | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.92.1                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.92.3                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                    | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                    | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.1                                            | v1.1.2                             | false  | true             |
