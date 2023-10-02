@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
+_Generated on Mon, 02 Oct 2023 10:09:44 UTC for commit [ece7f27][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/64dd33e714ead384e5c816cf52863a413d65c371
+[0]: https://github.com/cri-o/cri-o/commit/ece7f273f58e1530e06d49ee33446b2e9c50a669
 
 ## Outdated Dependencies
 
@@ -192,7 +192,7 @@ _Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230925165800-4dc2c8b9f720 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230929214131-a4b45456e2b4 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -435,7 +435,7 @@ _Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                    | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                    | false  | true             |
 | github.com/go-playground/universal-translator                                           | v0.18.1                                           |                                    | false  | true             |
-| github.com/go-playground/validator/v10                                                  | v10.14.1                                          | v10.15.4                           | false  | true             |
+| github.com/go-playground/validator/v10                                                  | v10.14.1                                          | v10.15.5                           | false  | true             |
 | github.com/go-redis/redis/v8                                                            | v8.11.5                                           |                                    | false  | true             |
 | github.com/go-redis/redismock/v9                                                        | v9.0.3                                            |                                    | false  | true             |
 | github.com/go-rod/rod                                                                   | v0.113.3                                          | v0.114.3                           | false  | true             |
@@ -657,7 +657,7 @@ _Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                            |                                    | false  | true             |
 | github.com/rogpeppe/go-internal                                                         | v1.10.0                                           | v1.11.0                            | false  | true             |
 | github.com/rootless-containers/rootlesskit                                              | v1.1.1                                            |                                    | false  | true             |
-| github.com/rs/cors                                                                      | v1.9.0                                            | v1.10.0                            | false  | true             |
+| github.com/rs/cors                                                                      | v1.9.0                                            | v1.10.1                            | false  | true             |
 | github.com/russross/blackfriday                                                         | v1.6.0                                            |                                    | false  | true             |
 | github.com/russross/blackfriday/v2                                                      | v2.1.0                                            |                                    | false  | true             |
 | github.com/ryanuber/go-glob                                                             | v1.0.0                                            |                                    | false  | true             |
@@ -728,7 +728,7 @@ _Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 | github.com/veraison/go-cose                                                             | v1.1.0                                            |                                    | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                                     |                                    | true   | true             |
 | github.com/vishvananda/netns                                                            | v0.0.4                                            |                                    | false  | true             |
-| github.com/vmihailenco/msgpack/v5                                                       | v5.3.5                                            |                                    | false  | true             |
+| github.com/vmihailenco/msgpack/v5                                                       | v5.3.5                                            | v5.4.0                             | false  | true             |
 | github.com/vmihailenco/tagparser/v2                                                     | v2.0.0                                            |                                    | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.9.0                             | false  | true             |
@@ -853,7 +853,7 @@ _Generated on Fri, 29 Sep 2023 21:35:45 UTC for commit [64dd33e][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20230927121431-6cf4b051de4f | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231002064126-c9c48d70590c | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
