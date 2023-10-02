@@ -1,0 +1,37 @@
+name: nixpkgs
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'  # At 00:00 on Sunday
+env:
+  NIX_VERSION: '2.18.0'
+jobs:
+  update-nixpkgs:
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v23
+        with:
+          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
+      - run: make nixpkgs
+      - name: Check workspace
+        id: create_pr
+        run: |
+          if [[ $(git diff --stat) != '' ]]; then
+            echo "create_pr=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Create PR if required
+        uses: peter-evans/create-pull-request@v5
+        if: ${{ steps.create_pr.outputs.create_pr == 'true' }}
+        with:
+          commit-message: Update nixpkgs
+          title: 'Update nixpkgs'
+          body: Update nixpkgs to the latest HEAD commit.
+          labels: kind/ci, release-note-none, ok-to-test
+          branch-suffix: timestamp
+          branch: update-nixpkgs
+          delete-branch: true
+          signoff: true

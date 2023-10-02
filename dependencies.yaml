@@ -92,9 +92,11 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.15.1
+    version: 2.18.0
     refPaths:
       - path: .github/workflows/test.yml
+        match: NIX_VERSION
+      - path: .github/workflows/nixpkgs.yml
         match: NIX_VERSION
 
   - name: bom
