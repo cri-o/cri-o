@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 02 Oct 2023 19:16:35 UTC for commit [59d4f34][0]._
+_Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/59d4f341de41ca7f1c8bc6c7f1a32e54253e76cc
+[0]: https://github.com/cri-o/cri-o/commit/91e8ec66be7586bfe844c4f90f91a9f1683cb507
 
 ## Outdated Dependencies
 
@@ -193,7 +193,7 @@ _Generated on Mon, 02 Oct 2023 19:16:35 UTC for commit [59d4f34][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20230929214131-a4b45456e2b4 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231002210723-11700d2711d3 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -253,7 +253,7 @@ _Generated on Mon, 02 Oct 2023 19:16:35 UTC for commit [59d4f34][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.14.12                                          | v1.17.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.19.2                                           | v1.23.0                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.13.5                                           | v1.14.2                            | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20230906235100-ae4cac8b496c | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231003160044-45828d78ecbc | false  | true             |
 | github.com/beeker1121/goque                                                             | v1.0.3-0.20191103205551-d618510128af              |                                    | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                             | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                    | false  | true             |
@@ -563,7 +563,7 @@ _Generated on Mon, 02 Oct 2023 19:16:35 UTC for commit [59d4f34][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231002172114-bab048d221c1 | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231003000336-5c98bf6724ad | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -854,7 +854,7 @@ _Generated on Mon, 02 Oct 2023 19:16:35 UTC for commit [59d4f34][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231002131630-294e777acf1a | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231003141102-833dd976f13d | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
