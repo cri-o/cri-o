@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 04 Oct 2023 00:57:20 UTC for commit [1f5ebdc][0]._
+_Generated on Wed, 04 Oct 2023 07:44:45 UTC for commit [320ffb5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1f5ebdc60076b83c7a3e90d939c4942ba9cc753c
+[0]: https://github.com/cri-o/cri-o/commit/320ffb59d8ae24cbbdda6a3822095e9723c9d0db
 
 ## Outdated Dependencies
 
@@ -140,7 +140,7 @@ _Generated on Wed, 04 Oct 2023 00:57:20 UTC for commit [1f5ebdc][0]._
 | cloud.google.com/go/securitycenter                                                      | v1.23.0                                           |                                    | false  | true             |
 | cloud.google.com/go/servicedirectory                                                    | v1.10.1                                           | v1.11.0                            | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.1                                            |                                    | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.47.0                                           | v1.49.0                            | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.47.0                                           | v1.50.0                            | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.17.1                                           | v1.19.0                            | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.30.1                                           | v1.33.0                            | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.0                                           |                                    | false  | true             |
