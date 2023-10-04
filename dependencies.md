@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
+_Generated on Wed, 04 Oct 2023 00:57:20 UTC for commit [1f5ebdc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/91e8ec66be7586bfe844c4f90f91a9f1683cb507
+[0]: https://github.com/cri-o/cri-o/commit/1f5ebdc60076b83c7a3e90d939c4942ba9cc753c
 
 ## Outdated Dependencies
 
@@ -231,7 +231,7 @@ _Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.20                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.21                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.18.43                           | false  | true             |
@@ -253,7 +253,7 @@ _Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.14.12                                          | v1.17.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.19.2                                           | v1.23.0                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.13.5                                           | v1.14.2                            | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231003160044-45828d78ecbc | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231003182221-725682229e60 | false  | true             |
 | github.com/beeker1121/goque                                                             | v1.0.3-0.20191103205551-d618510128af              |                                    | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                             | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                    | false  | true             |
@@ -563,7 +563,7 @@ _Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231003000336-5c98bf6724ad | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231003195403-b68b21c7a8f8 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -647,7 +647,7 @@ _Generated on Tue, 03 Oct 2023 16:34:10 UTC for commit [91e8ec6][0]._
 | github.com/pquerna/cachecontrol                                                         | v0.1.0                                            | v0.2.0                             | false  | true             |
 | github.com/proglottis/gpgme                                                             | v0.1.3                                            |                                    | false  | true             |
 | github.com/prometheus/client_golang                                                     | v1.16.0                                           | v1.17.0                            | true   | true             |
-| github.com/prometheus/client_model                                                      | v0.4.0                                            |                                    | false  | true             |
+| github.com/prometheus/client_model                                                      | v0.4.0                                            | v0.5.0                             | false  | true             |
 | github.com/prometheus/common                                                            | v0.44.0                                           |                                    | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.10.1                                           | v0.12.0                            | false  | true             |
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                            | false  | true             |
