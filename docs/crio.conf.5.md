@@ -54,6 +54,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   It is used to check if crio wipe should wipe images, which should
   only happen when CRI-O has been upgraded
 
+**imagestore**=""
+  Store newly pulled images in the specified path, rather than the path provided by --root.
+
 **internal_wipe**=true
   **This option is currently DEPRECATED, and will be removed in the future.**
   Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
