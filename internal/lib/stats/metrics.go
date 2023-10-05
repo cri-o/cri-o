@@ -197,7 +197,8 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				Name:      "container_memory_cache", // stats.MemoryStats.Cache
 				Help:      "Number of bytes of page cache memory.",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_rss",
 				Help:      "Size of RSS in bytes.",
 				LabelKeys: baseLabelKeys,
@@ -206,31 +207,38 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				Name:      "container_memory_kernel_usage",
 				Help:      "Size of kernel memory allocated in bytes.",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_mapped_file", // ??? TODO FIXME
 				Help:      "Size of memory mapped files in bytes.",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_swap", // stats.MemoryStats.SwapUsage.Usage
 				Help:      "Container swap usage in bytes.",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_failcnt", // stats.MemoryStats.Usage.Failcnt
 				Help:      "Number of memory usage hits limits",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_usage_bytes", // TODO FIXME
 				Help:      "Current memory usage in bytes, including all memory regardless of when it was accessed",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_max_usage_bytes", // stats.MemoryStats.Usage.MaxUsage
 				Help:      "Maximum memory usage recorded in bytes",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_working_set_bytes", // TODO FIXME
 				Help:      "Current working set in bytes.",
 				LabelKeys: baseLabelKeys,
-			}, {
+			},
+			{
 				Name:      "container_memory_failures_total", // TODO FIXME
 				Help:      "Cumulative count of memory allocation failures.",
 				LabelKeys: append(baseLabelKeys, "failure_type", "scope"),

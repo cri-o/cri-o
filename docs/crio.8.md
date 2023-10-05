@@ -61,7 +61,7 @@ crio
 [--hostnetwork-disable-selinux]
 [--image-volumes]=[value]
 [--imagestore]=[value]
-[--included_pod_metrics]=[value]
+[--included-pod-metrics]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
 [--internal-repair]
@@ -285,11 +285,9 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: "mkdir")
 
-<<<<<<< HEAD
 **--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
-=======
+
 **--included-pod-metrics**="": A list of included pod metrics. Specify the names of the metrics to be included in this list.
->>>>>>> 3a6b8643a (*: add collection_period and included_pod_metrics to StatsConfig)
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
