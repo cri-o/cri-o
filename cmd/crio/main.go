@@ -326,6 +326,9 @@ func main() {
 				logrus.Error(err)
 			}
 
+			if err := os.MkdirAll(filepath.Dir(config.CleanShutdownFile), 0o750); err != nil {
+				logrus.Errorf("Creating clean shutdown directory: %v", err)
+			}
 			// Write "$CleanShutdownFile".supported to show crio-wipe that
 			// we should be wiping if the CleanShutdownFile wasn't found.
 			// This protects us from wiping after an upgrade from a version that don't support
