@@ -616,11 +616,20 @@ type TracingConfig struct {
 	TracingSamplingRatePerMillion int `toml:"tracing_sampling_rate_per_million"`
 }
 
-// StatsConfig specifies all necessary configuration for reporting container and pod stats
+// StatsConfig specifies all necessary configuration for reporting container/pod stats
+// and pod sandbox metrics.
 type StatsConfig struct {
 	// StatsCollectionPeriod is the number of seconds between collecting pod and container stats.
 	// If set to 0, the stats are collected on-demand instead.
 	StatsCollectionPeriod int `toml:"stats_collection_period"`
+
+	// CollectionPeriod is the number of seconds between collecting pod/container stats
+	// and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.
+	CollectionPeriod int `toml:"collection_period"`
+
+	// IncludedPodMetrics specifies the list of metrics to include when collecting pod metrics.
+	// If empty, all available metrics will be collected.
+	IncludedPodMetrics []string `toml:"included_pod_metrics"`
 }
 
 // tomlConfig is another way of looking at a Config, which is

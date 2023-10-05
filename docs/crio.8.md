@@ -26,6 +26,7 @@ crio
 [--cni-config-dir]=[value]
 [--cni-default-network]=[value]
 [--cni-plugin-dir]=[value]
+[--collection-period]=[value]
 [--config-dir|-d]=[value]
 [--config|-c]=[value]
 [--conmon-cgroup]=[value]
@@ -60,6 +61,7 @@ crio
 [--hostnetwork-disable-selinux]
 [--image-volumes]=[value]
 [--imagestore]=[value]
+[--included_pod_metrics]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
 [--internal-repair]
@@ -183,6 +185,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--cni-plugin-dir**="": CNI plugin binaries directory.
 
+**--collection-period**="": The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead. (default: 0)
+
 **--config, -c**="": Path to configuration file (default: "/etc/crio/crio.conf")
 
 **--config-dir, -d**="": Path to the configuration drop-in directory.
@@ -281,7 +285,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: "mkdir")
 
+<<<<<<< HEAD
 **--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
+=======
+**--included-pod-metrics**="": A list of included pod metrics. Specify the names of the metrics to be included in this list.
+>>>>>>> 3a6b8643a (*: add collection_period and included_pod_metrics to StatsConfig)
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
@@ -394,7 +402,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--signature-policy-dir**="": Path to the root directory for namespaced signature policies. Must be an absolute path. (default: "/etc/crio/policies")
 
-**--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. (default: 0)
+**--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. This option is deprecated and will be removed in the future. (default: 0)
 
 **--storage-driver, -s**="": OCI storage driver.
 
