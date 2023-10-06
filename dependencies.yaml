@@ -106,7 +106,7 @@ dependencies:
         match: BOM_VERSION
 
   - name: release-notes
-    version: 0.15.1
+    version: 0.16.1
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
