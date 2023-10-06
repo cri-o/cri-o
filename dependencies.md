@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 06 Oct 2023 03:16:35 UTC for commit [92d4ae0][0]._
+_Generated on Fri, 06 Oct 2023 10:40:40 UTC for commit [83eb88a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/92d4ae0076c9011315c4c6f41fa478f8c5f3ed32
+[0]: https://github.com/cri-o/cri-o/commit/83eb88a10efe9895304c44c083c391bbf38a1507
 
 ## Outdated Dependencies
 
@@ -804,7 +804,7 @@ _Generated on Fri, 06 Oct 2023 03:16:35 UTC for commit [92d4ae0][0]._
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20230922142353-e2f452493d57 | false  | true             |
 | golang.org/x/mod                                                                        | v0.12.0                                           | v0.13.0                            | false  | true             |
 | golang.org/x/net                                                                        | v0.15.0                                           | v0.16.0                            | true   | true             |
-| golang.org/x/oauth2                                                                     | v0.10.0                                           | v0.12.0                            | false  | true             |
+| golang.org/x/oauth2                                                                     | v0.10.0                                           | v0.13.0                            | false  | true             |
 | golang.org/x/sync                                                                       | v0.3.0                                            | v0.4.0                             | true   | true             |
 | golang.org/x/sys                                                                        | v0.12.0                                           | v0.13.0                            | true   | true             |
 | golang.org/x/term                                                                       | v0.12.0                                           | v0.13.0                            | false  | true             |
