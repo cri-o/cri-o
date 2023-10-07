@@ -166,43 +166,9 @@ func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcest
 	if err != nil {
 		return nil, nil, err
 	}
-	/*
-		allMounts := make([]*rspec.Mount, 0, len(c.mounts))
-
-		//Filter out /dev & /sys
-		devSet, sysSet := false, false
-		for _, m := range c.Config().Mounts {
-			if dest == "/dev" {
-				devSet = true
-			}
-			if dest == "/sys" {
-				sysSet = true
-			}
-			allMounts = append(allMounts, m)
-		}
-
-		log.Infof(ctx, "chasan testing", allMounts)
-		sort.Sort(orderedMounts(allMounts))
-		for _, m := range c.mounts {
-			if devSet && strings.HasPrefix(m.Destination, "/dev/") {
-				continue
-			}
-			if sysSet && strings.HasPrefix(m.Destination, "/sys/") {
-				continue
-			}
-			c.spec.RemoveMount(m.Destination)
-			c.spec.AddMount(*m)
-		}
-	*/
 
 	// Add all mounts to specgen
 	for _, m := range c.mountInfo.mounts {
-		//c.spec.RemoveMount(m.Destination)
-		c.spec.AddMount(*m)
-	}
-
-	// Add crimounts to specgen
-	for _, m := range c.mountInfo.criMounts {
 		c.spec.AddMount(*m)
 	}
 

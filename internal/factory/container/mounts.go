@@ -16,13 +16,13 @@ type mountInfo struct {
 	criMounts map[string]*rspec.Mount
 	criDevSet bool
 	criSysSet bool
-	mounts    []*rspec.Mount
+	mounts    map[string]*rspec.Mount
 }
 
 func NewMountInfo() *mountInfo {
 	return &mountInfo{
 		criMounts: make(map[string]*rspec.Mount),
-		mounts:    make([]*rspec.Mount, 0),
+		mounts:    make(map[string]*rspec.Mount),
 	}
 }
 
@@ -191,16 +191,27 @@ func (c container) addCriMount(mount *rspec.Mount) {
 			c.mountInfo.criSysSet = true
 		}
 		c.mountInfo.criMounts[dst] = mount
+		c.addMount(mount)
 	}
 }
 
-func (c *container) addMount(mount *rspec.Mount) {
-	//Check in CRI Mounts
-	dst := filepath.Clean(mount.Destination)
+func (c *container) isInCRIMounts(dst string) bool {
+	dst = filepath.Clean(dst)
 	if _, ok := c.mountInfo.criMounts[dst]; ok ||
 		(strings.HasPrefix(dst, "/dev/") && c.mountInfo.criDevSet) ||
 		(strings.HasPrefix(dst, "/sys/") && c.mountInfo.criSysSet) {
-		return
+		return true
 	}
-	c.mountInfo.mounts = append(c.mountInfo.mounts, mount)
+	return false
+}
+
+func (c *container) isInMounts(dst string) bool {
+	_, ok := c.mountInfo.mounts[dst]
+	return ok
+}
+
+func (c *container) addMount(mount *rspec.Mount) {
+	if mount != nil {
+		c.mountInfo.mounts[filepath.Clean(mount.Destination)] = mount
+	}
 }

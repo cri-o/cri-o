@@ -86,25 +86,30 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 
 func (ctr *container) setupHostNetworkMounts(sb *sandbox.Sandbox, options []string) {
 	if sb.HostNetwork() {
-		ctr.addMount(&rspec.Mount{
-			Destination: "/sys",
-			Type:        "sysfs",
-			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-		})
-		ctr.addMount(&rspec.Mount{
-			Destination: "/sys/fs/cgroup",
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-		})
-		// Only bind mount for host netns
-		ctr.addMount(&rspec.Mount{
-			Destination: "/etc/hosts",
-			Type:        "bind",
-			Source:      "/etc/hosts",
-			Options:     append(options, "bind"),
-		})
+		if !ctr.isInCRIMounts("/sys") {
+			ctr.addMount(&rspec.Mount{
+				Destination: "/sys",
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+			})
+			ctr.addMount(&rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+			})
+		}
+
+		// Only bind mount for host netns and when CRI does not give us any hosts file
+		if !ctr.isInCRIMounts("/etc/hosts") {
+			ctr.addMount(&rspec.Mount{
+				Destination: "/etc/hosts",
+				Type:        "bind",
+				Source:      "/etc/hosts",
+				Options:     append(options, "bind"),
+			})
+		}
 	}
 }
 
@@ -137,12 +142,14 @@ func (ctr *container) setupReadOnlyMounts(readOnly bool) {
 			"/var/tmp": "mode=1777",
 		}
 		for target, mode := range mounts {
-			ctr.addMount(&rspec.Mount{
-				Destination: target,
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     append(options, mode),
-			})
+			if !ctr.isInCRIMounts(target) {
+				ctr.addMount(&rspec.Mount{
+					Destination: target,
+					Type:        "tmpfs",
+					Source:      "tmpfs",
+					Options:     append(options, mode),
+				})
+			}
 		}
 	}
 }
@@ -299,14 +306,6 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 		skipRelabel = true
 	}
 
-	// Add default mounts to the list
-	defaultMounts := specgen.Mounts()
-	specgen.ClearMounts()
-	for k := range defaultMounts {
-		// Lets handle the overridden mounts when adding to the OCI spec gen
-		ctr.addMount(&defaultMounts[k])
-	}
-
 	// Get mount info from system
 	mountInfos, err := mount.GetMounts()
 	if err != nil {
@@ -428,25 +427,36 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 			Destination: dest,
 			Type:        "bind",
 			Source:      src,
-			Options:     options,
+			Options:     append(options, "bind"),
 			UIDMappings: uidMappings,
 			GIDMappings: gidMappings,
 		})
 	}
 
+	// Add default mounts to the list
+	defaultMounts := specgen.Mounts()
+	specgen.ClearMounts()
+	for k, mount := range defaultMounts {
+		if !ctr.isInCRIMounts(mount.Destination) {
+			ctr.addMount(&defaultMounts[k])
+		}
+	}
+
 	// Check for cgroup2RW
-	m := rspec.Mount{
-		Destination: "/sys/fs/cgroup",
-		Type:        "cgroup",
-		Source:      "cgroup",
-		Options:     []string{"nosuid", "noexec", "nodev", "relatime"},
+	if !ctr.isInCRIMounts("/sys") {
+		m := rspec.Mount{
+			Destination: "/sys/fs/cgroup",
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "relatime"},
+		}
+		if cgroup2RW {
+			m.Options = append(m.Options, "rw")
+		} else {
+			m.Options = append(m.Options, "ro")
+		}
+		ctr.addMount(&m)
 	}
-	if cgroup2RW {
-		m.Options = append(m.Options, "rw")
-	} else {
-		m.Options = append(m.Options, "ro")
-	}
-	ctr.addMount(&m)
 
 	return volumes, nil
 }
@@ -463,12 +473,14 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 		options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev", "tmpcopyup"}
 		destinations := []string{"/run", "/run/lock", "/tmp", "/var/log/journal"}
 		for _, dest := range destinations {
-			ctr.addMount(&rspec.Mount{
-				Destination: dest,
-				Type:        "tmpfs",
-				Source:      "tmpfs",
-				Options:     options,
-			})
+			if ctr.isInMounts(dest) {
+				ctr.addMount(&rspec.Mount{
+					Destination: dest,
+					Type:        "tmpfs",
+					Source:      "tmpfs",
+					Options:     options,
+				})
+			}
 		}
 
 		if node.CgroupIsV2() {
@@ -502,7 +514,7 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 
 func (c *container) isBindMounted(destinations []string) bool {
 	for _, dest := range destinations {
-		if mount, isPresent := c.mountInfo.criMounts[dest]; isPresent {
+		if mount, isPresent := c.mountInfo.mounts[dest]; isPresent {
 			for _, option := range mount.Options {
 				if option == "bind" || option == "rbind" {
 					return true
