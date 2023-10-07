@@ -3,6 +3,6 @@
 
 package container
 
-func securityLabel(path string, seclabel string, shared, maybeRelabel bool) error {
+func SecurityLabel(path string, seclabel string, shared, maybeRelabel bool) error {
 	return nil
 }

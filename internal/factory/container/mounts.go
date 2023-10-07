@@ -12,6 +12,20 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+type mountInfo struct {
+	criMounts map[string]*rspec.Mount
+	criDevSet bool
+	criSysSet bool
+	mounts    []*rspec.Mount
+}
+
+func NewMountInfo() *mountInfo {
+	return &mountInfo{
+		criMounts: make(map[string]*rspec.Mount),
+		mounts:    make([]*rspec.Mount, 0),
+	}
+}
+
 type orderedMounts []*rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
@@ -167,8 +181,26 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-func (c *container) addMount(mount *rspec.Mount) {
+func (c container) addCriMount(mount *rspec.Mount) {
 	if mount != nil {
-		c.mounts[filepath.Clean(mount.Destination)] = mount
+		dst := filepath.Clean(mount.Destination)
+		if dst == "/dev" {
+			c.mountInfo.criDevSet = true
+		}
+		if dst == "/sys" {
+			c.mountInfo.criSysSet = true
+		}
+		c.mountInfo.criMounts[dst] = mount
 	}
+}
+
+func (c *container) addMount(mount *rspec.Mount) {
+	//Check in CRI Mounts
+	dst := filepath.Clean(mount.Destination)
+	if _, ok := c.mountInfo.criMounts[dst]; ok ||
+		(strings.HasPrefix(dst, "/dev/") && c.mountInfo.criDevSet) ||
+		(strings.HasPrefix(dst, "/sys/") && c.mountInfo.criSysSet) {
+		return
+	}
+	c.mountInfo.mounts = append(c.mountInfo.mounts, mount)
 }

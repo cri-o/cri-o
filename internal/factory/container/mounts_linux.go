@@ -29,13 +29,11 @@ import (
 
 func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 
+	readOnlyRootfs := ctr.ReadOnly(serverConfig.ReadOnly)
 	options := []string{"rw"}
-	if serverConfig.ReadOnly {
+	if readOnlyRootfs {
 		options = []string{"ro"}
 	}
-
-	// Setup readonly mounts
-	ctr.setupReadOnlyMounts(serverConfig.ReadOnly)
 
 	// add OCI default & bind mounts
 	maybeRelabel := false
@@ -48,6 +46,9 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 	if err != nil {
 		return nil, nil, err
 	}
+
+	// Setup readonly mounts
+	ctr.setupReadOnlyMounts(readOnlyRootfs)
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
 	ctr.setupHostNetworkMounts(sb, options)
@@ -187,8 +188,8 @@ func (ctr *container) setupHostPropMounts(sb *sandbox.Sandbox, mountLabel string
 		},
 	}
 
-	for _, mount := range hostMounts {
-		if err := ctr.addHostPropMounts(&mount, mountLabel); err != nil {
+	for k := range hostMounts {
+		if err := ctr.addHostPropMounts(&hostMounts[k], mountLabel); err != nil {
 			return err
 		}
 	}
@@ -298,16 +299,12 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 		skipRelabel = true
 	}
 
-	// Sort mounts in number of parts. This ensures that high level mounts don't
-	// shadow other mounts.
-	sort.Sort(criOrderedMounts(mounts))
-
 	// Add default mounts to the list
 	defaultMounts := specgen.Mounts()
 	specgen.ClearMounts()
-	for _, m := range defaultMounts {
+	for k := range defaultMounts {
 		// Lets handle the overridden mounts when adding to the OCI spec gen
-		ctr.addMount(&m)
+		ctr.addMount(&defaultMounts[k])
 	}
 
 	// Get mount info from system
@@ -315,6 +312,10 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 	if err != nil {
 		return nil, err
 	}
+
+	// Sort mounts in number of parts. This ensures that high level mounts don't
+	// shadow other mounts.
+	sort.Sort(criOrderedMounts(mounts))
 
 	// Handle mounts from container spec (CRI)
 	for _, m := range mounts {
@@ -423,7 +424,7 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
 			return nil, fmt.Errorf("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
 		}
-		ctr.addMount(&rspec.Mount{
+		ctr.addCriMount(&rspec.Mount{
 			Destination: dest,
 			Type:        "bind",
 			Source:      src,
@@ -501,7 +502,7 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 
 func (c *container) isBindMounted(destinations []string) bool {
 	for _, dest := range destinations {
-		if mount, isPresent := c.mounts[dest]; isPresent {
+		if mount, isPresent := c.mountInfo.criMounts[dest]; isPresent {
 			for _, option := range mount.Options {
 				if option == "bind" || option == "rbind" {
 					return true

@@ -629,7 +629,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	specgen.SetLinuxMountLabel(containerInfo.MountLabel)
-	specgen.SetProcessSelinuxLabel(processLabel)
+	specgen.SetProcessSelinuxLabel(containerInfo.ProcessLabel)
 
 	ociContainer.AddManagedPIDNamespace(ctr.PidNamespace())
 
