@@ -514,6 +514,13 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 
 func (c *container) isBindMounted(destinations []string) bool {
 	for _, dest := range destinations {
+		if mount, isPresent := c.mountInfo.criMounts[dest]; isPresent {
+			for _, option := range mount.Options {
+				if option == "bind" || option == "rbind" {
+					return true
+				}
+			}
+		}
 		if mount, isPresent := c.mountInfo.mounts[dest]; isPresent {
 			for _, option := range mount.Options {
 				if option == "bind" || option == "rbind" {

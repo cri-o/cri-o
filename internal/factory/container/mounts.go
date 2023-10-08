@@ -191,7 +191,6 @@ func (c container) addCriMount(mount *rspec.Mount) {
 			c.mountInfo.criSysSet = true
 		}
 		c.mountInfo.criMounts[dst] = mount
-		c.addMount(mount)
 	}
 }
 
