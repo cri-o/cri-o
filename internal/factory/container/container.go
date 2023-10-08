@@ -172,11 +172,6 @@ func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcest
 		c.spec.AddMount(*m)
 	}
 
-	//Add CRI mounts to specgen
-	for _, m := range c.mountInfo.criMounts {
-		c.spec.AddMount(*m)
-	}
-
 	return containerVolumes, secretMounts, nil
 }
 

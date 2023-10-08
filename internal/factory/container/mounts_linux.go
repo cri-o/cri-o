@@ -75,6 +75,9 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 	// Add secrets from the default and override mounts.conf files
 	secretMounts := ctr.setupSecretMounts(serverConfig, containerInfo, mountPoint)
 
+	// Add OCI mounts
+	ctr.setupOCIMounts()
+
 	// Setup systemd mounts if process args are configured to run
 	// as systemd instance
 	if err := ctr.setupSystemdMounts(containerInfo); err != nil {
@@ -514,13 +517,6 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 
 func (c *container) isBindMounted(destinations []string) bool {
 	for _, dest := range destinations {
-		if mount, isPresent := c.mountInfo.criMounts[dest]; isPresent {
-			for _, option := range mount.Options {
-				if option == "bind" || option == "rbind" {
-					return true
-				}
-			}
-		}
 		if mount, isPresent := c.mountInfo.mounts[dest]; isPresent {
 			for _, option := range mount.Options {
 				if option == "bind" || option == "rbind" {
@@ -545,4 +541,10 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 		})
 	}
 	return ids
+}
+
+func (c *container) setupOCIMounts() {
+	for _, m := range c.mountInfo.criMounts {
+		c.addMount(m)
+	}
 }
