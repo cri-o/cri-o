@@ -215,9 +215,8 @@ func (c *container) addMount(mount *rspec.Mount) {
 	if mount != nil {
 		if m, ok := c.mountInfo.mounts[filepath.Clean(mount.Destination)]; ok {
 			var index int
-			for k, v := range c.mountInfo.allmounts {
-				if v == m {
-					index = k
+			for index, _ = range c.mountInfo.allmounts {
+				if c.mountInfo.allmounts[index] == m {
 					break
 				}
 			}
