@@ -17,12 +17,14 @@ type mountInfo struct {
 	criDevSet bool
 	criSysSet bool
 	mounts    map[string]*rspec.Mount
+	allmounts []*rspec.Mount
 }
 
 func NewMountInfo() *mountInfo {
 	return &mountInfo{
 		criMounts: make(map[string]*rspec.Mount),
 		mounts:    make(map[string]*rspec.Mount),
+		allmounts: make([]*rspec.Mount, 0),
 	}
 }
 
@@ -211,6 +213,19 @@ func (c *container) isInMounts(dst string) bool {
 
 func (c *container) addMount(mount *rspec.Mount) {
 	if mount != nil {
+		if m, ok := c.mountInfo.mounts[filepath.Clean(mount.Destination)]; ok {
+			var index int
+			for k, v := range c.mountInfo.allmounts {
+				if v == m {
+					index = k
+					break
+				}
+			}
+			c.mountInfo.allmounts[index] = mount
+		} else {
+			c.mountInfo.allmounts = append(c.mountInfo.allmounts, mount)
+
+		}
 		c.mountInfo.mounts[filepath.Clean(mount.Destination)] = mount
 	}
 }

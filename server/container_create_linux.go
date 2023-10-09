@@ -318,12 +318,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container spec configuration")
 
-	// Update mounts in spec
-	containerVolumes, secretMounts, err := ctr.SpecAddMounts(ctx, s.resourceStore, &s.config, sb, containerInfo, mountPoint, idMapSupport)
-	if err != nil {
-		return nil, err
-	}
-
 	labels := containerConfig.Labels
 
 	if err := validateLabels(labels); err != nil {
@@ -507,6 +501,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	// Set hostname and add env for hostname
 	specgen.SetHostname(sb.Hostname())
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
+
+	// Update mounts in spec
+	containerVolumes, secretMounts, err := ctr.SpecAddMounts(ctx, s.resourceStore, &s.config, sb, containerInfo, mountPoint, idMapSupport)
+	if err != nil {
+		return nil, err
+	}
 
 	created := time.Now()
 	seccompRef := types.SecurityProfile_Unconfined.String()
