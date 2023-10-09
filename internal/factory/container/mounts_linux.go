@@ -278,8 +278,8 @@ func (ctr *container) setupSecretMounts(serverConfig *sconfig.Config, containerI
 		rootless.IsRootless(),
 		ctr.DisableFips(),
 	)
-	for _, mount := range secretMounts {
-		ctr.addMount(&mount)
+	for k := range secretMounts {
+		ctr.addMount(&secretMounts[k])
 	}
 	return secretMounts
 }
