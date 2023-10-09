@@ -305,7 +305,7 @@ func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodS
 	}
 
 	if cfg.Metadata.Name == "" {
-		return errors.New("name is nil")
+		return errors.New("name is empty")
 	}
 
 	if sboxConfig == nil {
