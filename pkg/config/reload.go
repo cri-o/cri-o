@@ -119,6 +119,9 @@ func (c *Config) ReloadLogFilter(newConfig *Config) error {
 
 func (c *Config) ReloadPauseImage(newConfig *Config) error {
 	if c.PauseImage != newConfig.PauseImage {
+		if _, err := newConfig.ParsePauseImage(); err != nil {
+			return err
+		}
 		c.PauseImage = newConfig.PauseImage
 		logConfig("pause_image", c.PauseImage)
 	}

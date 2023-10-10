@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/containers/image/v5/docker/reference"
 	istorage "github.com/containers/image/v5/storage"
-	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/log"
@@ -70,7 +70,7 @@ type RuntimeServer interface {
 	// with the pod's infrastructure container having the same value for
 	// both its pod's ID and its container ID.
 	// Pointer arguments can be nil.  All other arguments are required.
-	CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage reference.Named, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 
 	// GetContainerMetadata returns the metadata we've stored for a container.
 	GetContainerMetadata(idOrName string) (RuntimeContainerMetadata, error)
@@ -275,27 +275,16 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	}, nil
 }
 
-func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID, imageName, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	if imageName == "" {
-		return ContainerInfo{}, ErrInvalidImageName
-	}
-
+func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage reference.Named, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
 	// Check if we have the specified image.
 	var ref types.ImageReference
-	ref, err := istorage.Transport.ParseStoreReference(r.storageImageServer.GetStore(), imageName)
+	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), pauseImage, "")
 	if err != nil {
-		// Maybe it's some other transport's copy of the image?
-		otherRef, err2 := alltransports.ParseImageName(imageName)
-		if err2 == nil && otherRef.DockerReference() != nil {
-			ref, err = istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), otherRef.DockerReference(), "")
-		}
-		if err != nil {
-			return ContainerInfo{}, err
-		}
+		return ContainerInfo{}, err
 	}
 	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
 	if err != nil && errors.Is(err, storage.ErrImageUnknown) {
-		logrus.Debugf("Couldn't find image %q, retrieving it", imageName)
+		logrus.Debugf("Couldn't find image %q, retrieving it", pauseImage.String())
 		sourceCtx := types.SystemContext{}
 		if systemContext != nil {
 			sourceCtx = *systemContext // A shallow copy
@@ -303,7 +292,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, imageName, &ImageCopyOptions{
+		ref, err = r.storageImageServer.PullImage(systemContext, pauseImage.String(), &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
@@ -314,11 +303,11 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		logrus.Debugf("Successfully pulled image %q", imageName)
+		logrus.Debugf("Successfully pulled image %q", pauseImage.String())
 	}
 	if err != nil {
 		if errors.Is(err, storage.ErrImageUnknown) {
-			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", imageName)
+			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", pauseImage.String())
 		}
 		return ContainerInfo{}, err
 	}
@@ -329,7 +318,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	return r.createContainerOrPodSandbox(systemContext, podID, &RuntimeContainerMetadata{
 		PodName:       podName,
 		PodID:         podID,
-		ImageName:     imageName,
+		ImageName:     pauseImage.String(),
 		ImageID:       imageID,
 		ContainerName: containerName,
 		MetadataName:  metadataName,
