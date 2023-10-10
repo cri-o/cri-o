@@ -168,9 +168,14 @@ func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcest
 		return nil, nil, err
 	}
 
+	allmounts := make([]*rspec.Mount, 0, len(c.mountInfo.mounts))
+	for k := range c.mountInfo.mounts {
+		allmounts = append(allmounts, c.mountInfo.mounts[k])
+	}
+
 	// Sort & Add mounts to specgen
-	sort.Sort(orderedMounts(c.mountInfo.allmounts))
-	for _, m := range c.mountInfo.allmounts {
+	sort.Sort(orderedMounts(allmounts))
+	for _, m := range allmounts {
 		c.spec.AddMount(*m)
 	}
 
