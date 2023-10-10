@@ -121,8 +121,6 @@ type ImageCopyOptions struct {
 type ImageServer interface {
 	// ListImages returns list of all images.
 	ListImages(systemContext *types.SystemContext) ([]ImageResult, error)
-	// ImageStatus returns status of an image which matches the filter.
-	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// ImageStatusByID returns status of a single image
 	ImageStatusByID(systemContext *types.SystemContext, id StorageImageID) (*ImageResult, error)
 	// ImageStatusByName returns status of an image tagged with name.
@@ -156,22 +154,6 @@ type ImageServer interface {
 	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
 	// it uses crio's default registries to qualify it.
 	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
-}
-
-func (svc *imageService) getRef(name string) (types.ImageReference, error) {
-	ref, err := alltransports.ParseImageName(name)
-	if err != nil {
-		ref2, err2 := istorage.Transport.ParseStoreReference(svc.store, "@"+name)
-		if err2 != nil {
-			ref3, err3 := istorage.Transport.ParseStoreReference(svc.store, name)
-			if err3 != nil {
-				return nil, err
-			}
-			ref2 = ref3
-		}
-		ref = ref2
-	}
-	return ref, nil
 }
 
 func sortNamesByType(names []string) (bestName string, tags, digests []string) {
@@ -358,19 +340,6 @@ func imageIsBeingPulled(image *storage.Image) bool {
 		}
 	}
 	return false
-}
-
-func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {
-	ref, err := svc.getRef(nameOrID)
-	if err != nil {
-		return nil, err
-	}
-	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	return svc.imageStatus(systemContext, ref, image)
 }
 
 func (svc *imageService) ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error) {

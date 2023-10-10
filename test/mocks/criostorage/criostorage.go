@@ -96,21 +96,6 @@ func (mr *MockImageServerMockRecorder) HeuristicallyTryResolvingStringAsIDPrefix
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeuristicallyTryResolvingStringAsIDPrefix", reflect.TypeOf((*MockImageServer)(nil).HeuristicallyTryResolvingStringAsIDPrefix), arg0)
 }
 
-// ImageStatus mocks base method.
-func (m *MockImageServer) ImageStatus(arg0 *types.SystemContext, arg1 string) (*storage0.ImageResult, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageStatus", arg0, arg1)
-	ret0, _ := ret[0].(*storage0.ImageResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ImageStatus indicates an expected call of ImageStatus.
-func (mr *MockImageServerMockRecorder) ImageStatus(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatus", reflect.TypeOf((*MockImageServer)(nil).ImageStatus), arg0, arg1)
-}
-
 // ImageStatusByID mocks base method.
 func (m *MockImageServer) ImageStatusByID(arg0 *types.SystemContext, arg1 storage0.StorageImageID) (*storage0.ImageResult, error) {
 	m.ctrl.T.Helper()

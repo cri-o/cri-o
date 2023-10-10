@@ -354,18 +354,6 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("ImageStatus", func() {
-		It("should fail to get on wrong reference", func() {
-			// Given
-			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-	})
-
 	t.Describe("ImageStatusByName", func() {
 		It("should succeed to get the image status with digest", func() {
 			// Given
