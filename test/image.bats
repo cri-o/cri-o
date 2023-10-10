@@ -88,7 +88,7 @@ function teardown() {
 	imageid=$(crictl images --quiet "$IMAGE")
 	[ "$imageid" != "" ]
 
-	output=$(crictl images @"$imageid")
+	output=$(crictl images "$imageid")
 	[[ "$output" == *"$IMAGE"* ]]
 
 	output=$(crictl images --quiet "$imageid")
@@ -106,7 +106,7 @@ function teardown() {
 	imageid=$(crictl images --quiet "$FEDORA")
 	[ "$imageid" != "" ]
 
-	output=$(crictl images @"$imageid")
+	output=$(crictl images "$imageid")
 	[[ "$output" == *"$FEDORA"* ]]
 
 	output=$(crictl images --quiet "$imageid")
@@ -136,9 +136,6 @@ function teardown() {
 	imageid=$(crictl images --quiet "$IMAGE:go")
 	[ "$imageid" != "" ]
 
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
-
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
@@ -152,8 +149,6 @@ function teardown() {
 
 	imageid=$(crictl images --quiet "$NGINX_IMAGE")
 	[ "$imageid" != "" ]
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -180,9 +175,6 @@ function teardown() {
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	esac
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -213,9 +205,6 @@ function teardown() {
 		;;
 	esac
 
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
-
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
@@ -239,9 +228,6 @@ function teardown() {
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -267,9 +253,6 @@ function teardown() {
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]

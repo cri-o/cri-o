@@ -117,8 +117,8 @@ type ImageCopyOptions struct {
 // ImageServer wraps up various CRI-related activities into a reusable
 // implementation.
 type ImageServer interface {
-	// ListImages returns list of all images which match the filter.
-	ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error)
+	// ListImages returns list of all images.
+	ListImages(systemContext *types.SystemContext) ([]ImageResult, error)
 	// ImageStatus returns status of an image which matches the filter.
 	ImageStatus(systemContext *types.SystemContext, filter string) (*ImageResult, error)
 	// PrepareImage returns an Image where the config digest can be grabbed
@@ -294,81 +294,50 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	}
 }
 
-func (svc *imageService) appendCachedResult(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image, results []ImageResult, newImageCache imageCache) ([]ImageResult, error) {
-	var err error
-	svc.imageCacheLock.Lock()
-	cacheItem, ok := svc.imageCache[image.ID]
-	svc.imageCacheLock.Unlock()
-	if !ok {
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
-		if err != nil {
-			return results, err
-		}
-		if newImageCache == nil {
-			svc.imageCacheLock.Lock()
-			svc.imageCache[image.ID] = cacheItem
-			svc.imageCacheLock.Unlock()
-		} else {
-			newImageCache[image.ID] = cacheItem
-		}
-	} else if newImageCache != nil {
-		newImageCache[image.ID] = cacheItem
+func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {
+	images, err := svc.store.Images()
+	if err != nil {
+		return nil, err
 	}
-
-	return append(results, svc.buildImageResult(image, cacheItem)), nil
-}
-
-func (svc *imageService) ListImages(systemContext *types.SystemContext, filter string) ([]ImageResult, error) {
-	var results []ImageResult
-	if filter != "" {
-		// we never remove entries from cache unless unfiltered ListImages call is made. Is it safe?
-		ref, err := svc.getRef(filter)
+	results := make([]ImageResult, 0, len(images))
+	newImageCache := make(imageCache, len(images))
+	for i := range images {
+		image := &images[i]
+		ref, err := istorage.Transport.NewStoreReference(svc.store, nil, image.ID)
 		if err != nil {
 			return nil, err
 		}
-		if image, err := istorage.Transport.GetStoreImage(svc.store, ref); err == nil {
-			results, err = svc.appendCachedResult(systemContext, ref, image, []ImageResult{}, nil)
+		svc.imageCacheLock.Lock()
+		cacheItem, ok := svc.imageCache[image.ID]
+		svc.imageCacheLock.Unlock()
+		if !ok {
+			cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 			if err != nil {
-				return nil, err
-			}
-		}
-	} else {
-		images, err := svc.store.Images()
-		if err != nil {
-			return nil, err
-		}
-		newImageCache := make(imageCache, len(images))
-		for i := range images {
-			image := &images[i]
-			ref, err := istorage.Transport.ParseStoreReference(svc.store, "@"+image.ID)
-			if err != nil {
-				return nil, err
-			}
-			results, err = svc.appendCachedResult(systemContext, ref, image, results, newImageCache)
-			if err != nil {
-				// skip reporting errors if the images haven't finished pulling
-				if os.IsNotExist(err) {
-					donePulling := true
-					for _, name := range image.Names {
-						if _, ok := ImageBeingPulled.Load(name); ok {
-							donePulling = false
-							break
-						}
-					}
-					if !donePulling {
-						continue
-					}
+				if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
+					continue
 				}
 				return nil, err
 			}
 		}
-		// replace image cache with cache we just built
-		// this invalidates all stale entries in cache
-		svc.imageCacheLock.Lock()
-		svc.imageCache = newImageCache
-		svc.imageCacheLock.Unlock()
+
+		newImageCache[image.ID] = cacheItem
+		results = append(results, svc.buildImageResult(image, cacheItem))
 	}
+	// replace image cache with cache we just built
+	// this invalidates all stale entries in cache
+	svc.imageCacheLock.Lock()
+	svc.imageCache = newImageCache
+	svc.imageCacheLock.Unlock()
 	return results, nil
+}
+
+func imageIsBeingPulled(image *storage.Image) bool {
+	for _, name := range image.Names {
+		if _, ok := ImageBeingPulled.Load(name); ok {
+			return true
+		}
+	}
+	return false
 }
 
 func (svc *imageService) ImageStatus(systemContext *types.SystemContext, nameOrID string) (*ImageResult, error) {

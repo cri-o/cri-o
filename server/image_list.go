@@ -11,15 +11,26 @@ import (
 func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (*types.ListImagesResponse, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
-	filter := ""
-	reqFilter := req.Filter
-	if reqFilter != nil {
-		filterImage := reqFilter.Image
-		if filterImage != nil {
-			filter = filterImage.Image
+
+	if reqFilter := req.Filter; reqFilter != nil {
+		if filterImage := reqFilter.Image; filterImage != nil && filterImage.Image != "" {
+			// Historically CRI-O has interpreted the “filter” as a single image to look up.
+			// Also, the type of the value is types.ImageSpec, the value used to refer to a single image.
+			// And, ultimately, Kubelet never uses the filter.
+			// So, fall back to existing code instead of having an extra code path doing some kind of filtering.
+			status, err := s.storageImageStatus(ctx, *filterImage)
+			if err != nil {
+				return nil, err
+			}
+			resp := &types.ListImagesResponse{}
+			if status != nil {
+				resp.Images = append(resp.Images, ConvertImage(status))
+			}
+			return resp, nil
 		}
 	}
-	results, err := s.StorageImageServer().ListImages(s.config.SystemContext, filter)
+
+	results, err := s.StorageImageServer().ListImages(s.config.SystemContext)
 	if err != nil {
 		return nil, err
 	}
