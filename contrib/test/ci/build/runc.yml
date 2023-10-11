@@ -21,3 +21,7 @@
     dest: /usr/bin/runc
     state: link
     force: yes
+
+- name: load custom selinux rules
+  shell: scripts/mod-selinux.sh
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
