@@ -70,10 +70,12 @@ func NewSearchIndexParamsWithHTTPClient(client *http.Client) *SearchIndexParams 
 	}
 }
 
-/* SearchIndexParams contains all the parameters to send to the API endpoint
-   for the search index operation.
+/*
+SearchIndexParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the search index operation.
+
+	Typically these are written to a http.Request.
 */
 type SearchIndexParams struct {
 

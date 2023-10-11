@@ -25,14 +25,14 @@ import (
 // SystemHooksService handles communication with the system hooks related
 // methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/system_hooks.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/system_hooks.html
 type SystemHooksService struct {
 	client *Client
 }
 
 // Hook represents a GitLap system hook.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/system_hooks.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/system_hooks.html
 type Hook struct {
 	ID                     int        `json:"id"`
 	URL                    string     `json:"url"`
@@ -51,7 +51,7 @@ func (h Hook) String() string {
 // ListHooks gets a list of system hooks.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#list-system-hooks
+// https://docs.gitlab.com/ee/api/system_hooks.html#list-system-hooks
 func (s *SystemHooksService) ListHooks(options ...RequestOptionFunc) ([]*Hook, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodGet, "hooks", nil, options)
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *SystemHooksService) ListHooks(options ...RequestOptionFunc) ([]*Hook, *
 // GetHook get a single system hook.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#get-system-hook
+// https://docs.gitlab.com/ee/api/system_hooks.html#get-system-hook
 func (s *SystemHooksService) GetHook(hook int, options ...RequestOptionFunc) (*Hook, *Response, error) {
 	u := fmt.Sprintf("hooks/%d", hook)
 
@@ -91,7 +91,7 @@ func (s *SystemHooksService) GetHook(hook int, options ...RequestOptionFunc) (*H
 // AddHookOptions represents the available AddHook() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#add-new-system-hook-hook
+// https://docs.gitlab.com/ee/api/system_hooks.html#add-new-system-hook
 type AddHookOptions struct {
 	URL                    *string `url:"url,omitempty" json:"url,omitempty"`
 	Token                  *string `url:"token,omitempty" json:"token,omitempty"`
@@ -105,7 +105,7 @@ type AddHookOptions struct {
 // AddHook adds a new system hook hook.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#add-new-system-hook-hook
+// https://docs.gitlab.com/ee/api/system_hooks.html#add-new-system-hook
 func (s *SystemHooksService) AddHook(opt *AddHookOptions, options ...RequestOptionFunc) (*Hook, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodPost, "hooks", opt, options)
 	if err != nil {
@@ -123,7 +123,7 @@ func (s *SystemHooksService) AddHook(opt *AddHookOptions, options ...RequestOpti
 
 // HookEvent represents an event trigger by a GitLab system hook.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/system_hooks.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/system_hooks.html
 type HookEvent struct {
 	EventName  string `json:"event_name"`
 	Name       string `json:"name"`
@@ -140,7 +140,7 @@ func (h HookEvent) String() string {
 // TestHook tests a system hook.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#test-system-hook
+// https://docs.gitlab.com/ee/api/system_hooks.html#test-system-hook
 func (s *SystemHooksService) TestHook(hook int, options ...RequestOptionFunc) (*HookEvent, *Response, error) {
 	u := fmt.Sprintf("hooks/%d", hook)
 
@@ -163,7 +163,7 @@ func (s *SystemHooksService) TestHook(hook int, options ...RequestOptionFunc) (*
 // is also returned as JSON.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/system_hooks.html#delete-system-hook
+// https://docs.gitlab.com/ee/api/system_hooks.html#delete-system-hook
 func (s *SystemHooksService) DeleteHook(hook int, options ...RequestOptionFunc) (*Response, error) {
 	u := fmt.Sprintf("hooks/%d", hook)
 

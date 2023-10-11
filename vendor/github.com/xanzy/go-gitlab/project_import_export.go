@@ -28,7 +28,7 @@ import (
 // import/export related methods of the GitLab API.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/user/project/settings/import_export.html
+// https://docs.gitlab.com/ee/api/project_import_export.html
 type ProjectImportExportService struct {
 	client *Client
 }
@@ -36,7 +36,7 @@ type ProjectImportExportService struct {
 // ImportStatus represents a project import status.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#import-status
+// https://docs.gitlab.com/ee/api/project_import_export.html#import-status
 type ImportStatus struct {
 	ID                int        `json:"id"`
 	Description       string     `json:"description"`
@@ -58,7 +58,7 @@ func (s ImportStatus) String() string {
 // ExportStatus represents a project export status.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#export-status
+// https://docs.gitlab.com/ee/api/project_import_export.html#export-status
 type ExportStatus struct {
 	ID                int        `json:"id"`
 	Description       string     `json:"description"`
@@ -82,7 +82,7 @@ func (s ExportStatus) String() string {
 // ScheduleExportOptions represents the available ScheduleExport() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#schedule-an-export
+// https://docs.gitlab.com/ee/api/project_import_export.html#schedule-an-export
 type ScheduleExportOptions struct {
 	Description *string `url:"description,omitempty" json:"description,omitempty"`
 	Upload      struct {
@@ -94,7 +94,7 @@ type ScheduleExportOptions struct {
 // ScheduleExport schedules a project export.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#schedule-an-export
+// https://docs.gitlab.com/ee/api/project_import_export.html#schedule-an-export
 func (s *ProjectImportExportService) ScheduleExport(pid interface{}, opt *ScheduleExportOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *ProjectImportExportService) ScheduleExport(pid interface{}, opt *Schedu
 // ExportStatus get the status of export.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#export-status
+// https://docs.gitlab.com/ee/api/project_import_export.html#export-status
 func (s *ProjectImportExportService) ExportStatus(pid interface{}, options ...RequestOptionFunc) (*ExportStatus, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -138,7 +138,7 @@ func (s *ProjectImportExportService) ExportStatus(pid interface{}, options ...Re
 // ExportDownload download the finished export.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#export-download
+// https://docs.gitlab.com/ee/api/project_import_export.html#export-download
 func (s *ProjectImportExportService) ExportDownload(pid interface{}, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -163,7 +163,7 @@ func (s *ProjectImportExportService) ExportDownload(pid interface{}, options ...
 // ImportFileOptions represents the available ImportFile() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#import-a-file
+// https://docs.gitlab.com/ee/api/project_import_export.html#import-a-file
 type ImportFileOptions struct {
 	Namespace      *string               `url:"namespace,omitempty" json:"namespace,omitempty"`
 	Name           *string               `url:"name,omitempty" json:"name,omitempty"`
@@ -175,7 +175,7 @@ type ImportFileOptions struct {
 // Import a project from an archive file.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#import-a-file
+// https://docs.gitlab.com/ee/api/project_import_export.html#import-a-file
 func (s *ProjectImportExportService) ImportFromFile(archive io.Reader, opt *ImportFileOptions, options ...RequestOptionFunc) (*ImportStatus, *Response, error) {
 	req, err := s.client.UploadRequest(
 		http.MethodPost,
@@ -202,7 +202,7 @@ func (s *ProjectImportExportService) ImportFromFile(archive io.Reader, opt *Impo
 // ImportStatus get the status of an import.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/project_import_export.html#import-status
+// https://docs.gitlab.com/ee/api/project_import_export.html#import-status
 func (s *ProjectImportExportService) ImportStatus(pid interface{}, options ...RequestOptionFunc) (*ImportStatus, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

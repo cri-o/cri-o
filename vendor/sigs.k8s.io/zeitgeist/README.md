@@ -67,7 +67,9 @@ dependencies:
 
 Use `zeitgeist validate` to verify that the dependency version is correct in all files referenced in _`refPaths`_, and whether any newer version is available `upstream`:
 
-![zeigeist validate](/docs/validate.png)
+![zeigeist validate](./docs/validate.png)
+
+You can also use `zeitgeist upgrade` to go ahead and upgrade your dependencies to the latest versions detected by Zeitgeist.
 
 ## Installation
 

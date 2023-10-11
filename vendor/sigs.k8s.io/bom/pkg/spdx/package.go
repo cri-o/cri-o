@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:gosec
 // SHA1 is the currently accepted hash algorithm for SPDX documents, used for
 // file integrity checks, NOT security.
 // Instances of G401 and G505 can be safely ignored in this file.
 //
 // ref: https://github.com/spdx/spdx-spec/issues/11
+//
+//nolint:gosec
 package spdx
 
 import (
@@ -70,6 +71,8 @@ PackageLicenseConcluded: {{ if .LicenseConcluded }}{{ .LicenseConcluded }}{{ els
 {{ end -}}
 {{ if .HomePage }}PackageHomePage: {{ .HomePage }}
 {{ end -}}
+{{ if .PrimaryPurpose }}PrimaryPackagePurpose: {{ .PrimaryPurpose }}
+{{ end -}}
 {{ if .ExternalRefs }}{{- range $key, $value := .ExternalRefs -}}ExternalRef: {{ $value.Category }} {{ $value.Type }} {{ $value.Locator }}
 {{ end -}}
 {{ end -}}
@@ -93,6 +96,7 @@ type Package struct {
 	Version              string   // Package version
 	Comment              string   // a place for the SPDX document creator to record any general comments
 	HomePage             string   // A web site that serves as the package home page
+	PrimaryPurpose       string   // Estimate of the most likely package usage
 
 	// Supplier: the actual distribution source for the package/directory
 	Supplier struct {
@@ -107,6 +111,22 @@ type Package struct {
 	}
 
 	ExternalRefs []ExternalRef // List of external references
+}
+
+// PackagePurposes lists the valid package purposes
+// https://spdx.github.io/spdx-spec/v2.3/package-information/#724-primary-package-purpose-field
+var PackagePurposes = []string{
+	"APPLICATION", "FRAMEWORK", "LIBRARY", "CONTAINER", "OPERATING-SYSTEM",
+	"DEVICE", "FIRMWARE", "SOURCE", "ARCHIVE", "FILE", "INSTALL", "OTHER",
+}
+
+var ExternalRefCategories = map[string][]string{
+	"SECURITY":        {"cpe22Type", "cpe23Type", "advisory", "fix", "url", "swid"},
+	"PACKAGE_MANAGER": {"maven-central", "npm", "nuget", "bower", "purl"},
+	"PACKAGE-MANAGER": {"maven-central", "npm", "nuget", "bower", "purl"},
+	"PERSISTENT-ID":   {"swh", "gitoid"},
+	"PERSISTENT_ID":   {"swh", "gitoid"},
+	"OTHER":           {},
 }
 
 func NewPackage() (p *Package) {
@@ -339,14 +359,40 @@ func (p *Package) SetEntity(e *Entity) {
 	p.Entity = *e
 }
 
-// Draw renders the package data as a tree-like structure
-// nolint:gocritic
-func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, seen *map[string]struct{}) {
+func (p *Package) drawTitle(o *DrawingOptions) string {
 	title := p.SPDXID()
-	(*seen)[p.SPDXID()] = struct{}{}
-	if p.Name != "" {
+	if o.Purls && p.Purl() != nil && p.Purl().Name != "" {
+		title = p.Purl().String()
+	} else if p.Name != "" {
 		title = p.Name
+		if o.Version && p.Version != "" {
+			title += "@" + p.Version
+		}
 	}
+	return title
+}
+
+// drawName returns the name string to be used in the outline
+func (p *Package) drawName(o *DrawingOptions) string {
+	name := p.SPDXID()
+	if o.Purls && p.Purl() != nil && p.Purl().Name != "" {
+		name = p.Purl().String()
+	} else if p.Name != "" {
+		name = p.Name
+		if o.Version && p.Version != "" {
+			name = name + "@" + p.Version
+		}
+	}
+	return name
+}
+
+// Draw renders the package data as a tree-like structure
+//
+//nolint:gocritic
+func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, seen *map[string]struct{}) {
+	(*seen)[p.SPDXID()] = struct{}{}
+
+	title := p.drawTitle(o)
 	if !o.SkipName {
 		fmt.Fprintln(builder, treeLines(o, depth-1, connectorT)+title)
 	}
@@ -381,7 +427,7 @@ func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, s
 
 			if !o.OnlyIDs {
 				if _, ok := rel.Peer.(*Package); ok {
-					name = rel.Peer.(*Package).Name
+					name = rel.Peer.(*Package).drawName(o)
 					etype = "PACKAGE"
 				}
 
@@ -398,15 +444,6 @@ func (p *Package) Draw(builder *strings.Builder, o *DrawingOptions, depth int, s
 		// If the peer is external, state it
 		if rel.PeerExtReference != "" {
 			line += " (external)"
-		}
-
-		// Version is useful for dependencies, so add it:
-		if rel.Type == DEPENDS_ON {
-			if _, ok := rel.Peer.(*Package); ok {
-				if rel.Peer.(*Package).Version != "" {
-					line += fmt.Sprintf(" (version %s)", rel.Peer.(*Package).Version)
-				}
-			}
 		}
 
 		// If it is a file, print the name
@@ -468,14 +505,14 @@ func (p *Package) GetElementByID(id string) Object {
 }
 
 // Purl searches the external refs in the package and returns
-// a pursed purl if it finds a purl PACKAGE-MANAGER
+// a parsed purl if it finds a purl PACKAGE_MANAGER extref:
 func (p *Package) Purl() *purl.PackageURL {
 	if p.ExternalRefs == nil {
 		return nil
 	}
 	purlString := ""
 	for _, er := range p.ExternalRefs {
-		if er.Category == "PACKAGE-MANAGER" && er.Type == "purl" {
+		if (er.Category == "PACKAGE-MANAGER" || er.Category == "PACKAGE_MANAGER") && er.Type == "purl" {
 			purlString = er.Locator
 		}
 	}
@@ -485,7 +522,7 @@ func (p *Package) Purl() *purl.PackageURL {
 	// Parse the purl
 	purlObject, err := purl.FromString(purlString)
 	if err != nil {
-		logrus.Warnf("Invalid Purl in package %s: %s", p.SPDXID(), purlString)
+		logrus.Warnf("Invalid purl in package %s: %s", p.SPDXID(), purlString)
 		return nil
 	}
 	return &purlObject
@@ -495,7 +532,7 @@ type PurlSearchOption string
 
 // PurlMatches gets a spec url and returns true if its defined parts
 // match the analog parts in the package's purl
-func (p *Package) PurlMatches(spec *purl.PackageURL, opts ...PurlSearchOption) bool {
+func (p *Package) PurlMatches(spec *purl.PackageURL, _ ...PurlSearchOption) bool {
 	pkgPurl := p.Purl()
 	if pkgPurl == nil {
 		return false

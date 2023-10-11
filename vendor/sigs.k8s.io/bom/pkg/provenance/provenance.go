@@ -24,6 +24,7 @@ import (
 	"os"
 
 	intoto "github.com/in-toto/in-toto-golang/in_toto"
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
@@ -61,7 +62,7 @@ func NewSLSAStatement() *Statement {
 func NewSLSAPredicate() Predicate {
 	return Predicate{
 		ProvenancePredicate: slsa.ProvenancePredicate{
-			Builder: slsa.ProvenanceBuilder{
+			Builder: common.ProvenanceBuilder{
 				ID: "",
 			},
 			Invocation: slsa.ProvenanceInvocation{
@@ -74,7 +75,7 @@ func NewSLSAPredicate() Predicate {
 			Metadata: &slsa.ProvenanceMetadata{
 				Completeness: slsa.ProvenanceComplete{},
 			},
-			Materials: []slsa.ProvenanceMaterial{},
+			Materials: []common.ProvenanceMaterial{},
 		},
 		impl: &defaultPredicateImplementation{},
 	}

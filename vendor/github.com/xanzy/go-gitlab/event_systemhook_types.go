@@ -28,7 +28,7 @@ type systemHookEvent struct {
 // BaseSystemEvent contains system hook's common properties.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type BaseSystemEvent struct {
 	EventName string `json:"event_name"`
 	CreatedAt string `json:"created_at"`
@@ -38,7 +38,7 @@ type BaseSystemEvent struct {
 // ProjectSystemEvent represents a project system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type ProjectSystemEvent struct {
 	BaseSystemEvent
 	Name                 string `json:"name"`
@@ -54,7 +54,7 @@ type ProjectSystemEvent struct {
 // GroupSystemEvent represents a group system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type GroupSystemEvent struct {
 	BaseSystemEvent
 	Name                 string `json:"name"`
@@ -71,7 +71,7 @@ type GroupSystemEvent struct {
 // KeySystemEvent represents a key system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type KeySystemEvent struct {
 	BaseSystemEvent
 	ID       int    `json:"id"`
@@ -82,7 +82,7 @@ type KeySystemEvent struct {
 // UserSystemEvent represents a user system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type UserSystemEvent struct {
 	BaseSystemEvent
 	ID          int    `json:"user_id"`
@@ -90,12 +90,13 @@ type UserSystemEvent struct {
 	Username    string `json:"username"`
 	OldUsername string `json:"old_username,omitempty"`
 	Email       string `json:"email"`
+	State       string `json:"state,omitempty"`
 }
 
 // UserGroupSystemEvent represents a user group system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type UserGroupSystemEvent struct {
 	BaseSystemEvent
 	ID          int    `json:"user_id"`
@@ -111,7 +112,7 @@ type UserGroupSystemEvent struct {
 // UserTeamSystemEvent represents a user team system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html
 type UserTeamSystemEvent struct {
 	BaseSystemEvent
 	ID                       int    `json:"user_id"`
@@ -129,7 +130,7 @@ type UserTeamSystemEvent struct {
 // PushSystemEvent represents a push system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html#push-events
 type PushSystemEvent struct {
 	BaseSystemEvent
 	Before       string `json:"before"`
@@ -172,7 +173,7 @@ type PushSystemEvent struct {
 // TagPushSystemEvent represents a tag push system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html#tag-events
 type TagPushSystemEvent struct {
 	BaseSystemEvent
 	Before       string `json:"before"`
@@ -215,7 +216,7 @@ type TagPushSystemEvent struct {
 // RepositoryUpdateSystemEvent represents a repository updated system event.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/system_hooks/system_hooks.html
+// https://docs.gitlab.com/ee/administration/system_hooks.html#repository-update-events
 type RepositoryUpdateSystemEvent struct {
 	BaseSystemEvent
 	UserID     int    `json:"user_id"`

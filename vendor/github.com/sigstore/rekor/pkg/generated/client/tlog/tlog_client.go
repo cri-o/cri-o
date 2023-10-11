@@ -52,9 +52,9 @@ type ClientService interface {
 }
 
 /*
-  GetLogInfo gets information about the current state of the transparency log
+GetLogInfo gets information about the current state of the transparency log
 
-  Returns the current root hash and size of the merkle tree used to store the log entries.
+Returns the current root hash and size of the merkle tree used to store the log entries.
 */
 func (a *Client) GetLogInfo(params *GetLogInfoParams, opts ...ClientOption) (*GetLogInfoOK, error) {
 	// TODO: Validate the params before sending
@@ -65,8 +65,8 @@ func (a *Client) GetLogInfo(params *GetLogInfoParams, opts ...ClientOption) (*Ge
 		ID:                 "getLogInfo",
 		Method:             "GET",
 		PathPattern:        "/api/v1/log",
-		ProducesMediaTypes: []string{"application/json;q=1", "application/yaml"},
-		ConsumesMediaTypes: []string{"application/json", "application/yaml"},
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetLogInfoReader{formats: a.formats},
@@ -91,9 +91,9 @@ func (a *Client) GetLogInfo(params *GetLogInfoParams, opts ...ClientOption) (*Ge
 }
 
 /*
-  GetLogProof gets information required to generate a consistency proof for the transparency log
+GetLogProof gets information required to generate a consistency proof for the transparency log
 
-  Returns a list of hashes for specified tree sizes that can be used to confirm the consistency of the transparency log
+Returns a list of hashes for specified tree sizes that can be used to confirm the consistency of the transparency log
 */
 func (a *Client) GetLogProof(params *GetLogProofParams, opts ...ClientOption) (*GetLogProofOK, error) {
 	// TODO: Validate the params before sending
@@ -104,8 +104,8 @@ func (a *Client) GetLogProof(params *GetLogProofParams, opts ...ClientOption) (*
 		ID:                 "getLogProof",
 		Method:             "GET",
 		PathPattern:        "/api/v1/log/proof",
-		ProducesMediaTypes: []string{"application/json;q=1", "application/yaml"},
-		ConsumesMediaTypes: []string{"application/json", "application/yaml"},
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetLogProofReader{formats: a.formats},

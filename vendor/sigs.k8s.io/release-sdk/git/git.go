@@ -65,9 +65,13 @@ const (
 	// DefaultBranch is the default branch name
 	DefaultBranch = "master"
 
+	// DefaultGitUser is the default user name used for commits.
+	DefaultGitUser = "Kubernetes Release Robot"
+
+	// DefaultGitEmail is the default email used for commits.
+	DefaultGitEmail = "k8s-release-robot@users.noreply.github.com"
+
 	defaultGithubAuthRoot = "git@github.com:"
-	defaultGitUser        = "Kubernetes Release Robot"
-	defaultGitEmail       = "k8s-release-robot@users.noreply.github.com"
 	gitExecutable         = "git"
 	releaseBranchPrefix   = "release-"
 )
@@ -192,13 +196,13 @@ func GetRepoURL(org, repo string, useSSH bool) (repoURL string) {
 // user and email.
 func ConfigureGlobalDefaultUserAndEmail() error {
 	if err := filterCommand(
-		"", "config", "--global", "user.name", defaultGitUser,
+		"", "config", "--global", "user.name", DefaultGitUser,
 	).RunSuccess(); err != nil {
 		return fmt.Errorf("configure user name: %w", err)
 	}
 
 	if err := filterCommand(
-		"", "config", "--global", "user.email", defaultGitEmail,
+		"", "config", "--global", "user.email", DefaultGitEmail,
 	).RunSuccess(); err != nil {
 		return fmt.Errorf("configure user email: %w", err)
 	}
@@ -280,6 +284,7 @@ type Repo struct {
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt gitfakes/fake_worktree.go > gitfakes/_fake_worktree.go && mv gitfakes/_fake_worktree.go gitfakes/fake_worktree.go"
 
 // Repository is the main interface to the git.Repository functionality
+//
 //counterfeiter:generate . Repository
 type Repository interface {
 	CreateTag(string, plumbing.Hash, *git.CreateTagOptions) (*plumbing.Reference, error)
@@ -295,6 +300,7 @@ type Repository interface {
 }
 
 // Worktree is the main interface to the git.Worktree functionality
+//
 //counterfeiter:generate . Worktree
 type Worktree interface {
 	Add(string) (plumbing.Hash, error)
@@ -332,7 +338,7 @@ func (r *Repo) SetMaxRetries(numRetries int) {
 }
 
 func LSRemoteExec(repoURL string, args ...string) (string, error) {
-	cmdArgs := append([]string{"ls-remote", repoURL}, args...)
+	cmdArgs := append([]string{"ls-remote", "--", repoURL}, args...)
 	cmdStatus, err := filterCommand("", cmdArgs...).
 		RunSilentSuccessOutput()
 	if err != nil {
@@ -630,7 +636,7 @@ func (r *Repo) latestNonPatchFinalVersions() ([]semver.Version, error) {
 		return nil, err
 	}
 
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		ver, err := util.TagStringToSemver(t.Name().Short())
 
 		if err == nil {
@@ -1020,7 +1026,7 @@ func (r *Repo) Tags() (res []string, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("get tags: %w", err)
 	}
-	_ = tags.ForEach(func(t *plumbing.Reference) error { // nolint: errcheck
+	_ = tags.ForEach(func(t *plumbing.Reference) error { //nolint: errcheck
 		res = append(res, t.Name().Short())
 		return nil
 	})
@@ -1096,8 +1102,8 @@ func (r *Repo) Commit(msg string) error {
 		msg,
 		&git.CommitOptions{
 			Author: &object.Signature{
-				Name:  defaultGitUser,
-				Email: defaultGitEmail,
+				Name:  DefaultGitUser,
+				Email: DefaultGitEmail,
 				When:  time.Now(),
 			},
 		},
@@ -1132,8 +1138,8 @@ func (r *Repo) Tag(name, message string) error {
 		head.Hash(),
 		&git.CreateTagOptions{
 			Tagger: &object.Signature{
-				Name:  defaultGitUser,
-				Email: defaultGitEmail,
+				Name:  DefaultGitUser,
+				Email: DefaultGitEmail,
 				When:  time.Now(),
 			},
 			Message: message,
@@ -1251,7 +1257,10 @@ func (r *Repo) PushToRemote(remote, remoteBranch string) error {
 // repository
 func (r *Repo) LsRemote(args ...string) (output string, err error) {
 	for i := r.maxRetries + 1; i > 0; i-- {
-		output, err = r.runGitCmd("ls-remote", args...)
+		params := []string{}
+		params = append(params, "--")
+		params = append(params, args...)
+		output, err = r.runGitCmd("ls-remote", params...)
 		if err == nil {
 			return output, nil
 		}
@@ -1301,7 +1310,7 @@ func (r *Repo) IsDirty() (bool, error) {
 // RemoteTags return the tags that currently exist in the
 func (r *Repo) RemoteTags() (tags []string, err error) {
 	logrus.Debug("Listing remote tags with ls-remote")
-	output, err := r.LsRemote("--tags", DefaultRemote)
+	output, err := r.LsRemote(DefaultRemote)
 	if err != nil {
 		return tags, fmt.Errorf("while listing tags using ls-remote: %w", err)
 	}

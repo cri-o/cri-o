@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 
 	"github.com/containers/buildah/pkg/parse"
@@ -22,10 +23,13 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/regexp"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 )
+
+var umaskRegex = regexp.Delayed(`^[0-7]{1,4}$`)
 
 // WithStorageConfig uses the given configuration to set up container storage.
 // If this is not specified, the system default configuration will be used
@@ -109,6 +113,18 @@ func WithStorageConfig(config storage.StoreOptions) RuntimeOption {
 	}
 }
 
+func WithTransientStore(transientStore bool) RuntimeOption {
+	return func(rt *Runtime) error {
+		if rt.valid {
+			return define.ErrRuntimeFinalized
+		}
+
+		rt.storageConfig.TransientStore = transientStore
+
+		return nil
+	}
+}
+
 // WithSignaturePolicy specifies the path of a file which decides how trust is
 // managed for images we've pulled.
 // If this is not specified, the system default configuration will be used
@@ -138,6 +154,17 @@ func WithOCIRuntime(runtime string) RuntimeOption {
 
 		rt.config.Engine.OCIRuntime = runtime
 
+		return nil
+	}
+}
+
+// WithCtrOCIRuntime specifies an OCI runtime in container's config.
+func WithCtrOCIRuntime(runtime string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.OCIRuntime = runtime
 		return nil
 	}
 }
@@ -255,6 +282,16 @@ func WithRegistriesConf(path string) RuntimeOption {
 	}
 }
 
+// WithDatabaseBackend configures the runtime's database backend.
+func WithDatabaseBackend(value string) RuntimeOption {
+	logrus.Debugf("Setting custom database backend: %q", value)
+	return func(rt *Runtime) error {
+		// The value will be parsed later on.
+		rt.config.Engine.DBBackend = value
+		return nil
+	}
+}
+
 // WithHooksDir sets the directories to look for OCI runtime hook configuration.
 func WithHooksDir(hooksDirs ...string) RuntimeOption {
 	return func(rt *Runtime) error {
@@ -273,7 +310,7 @@ func WithHooksDir(hooksDirs ...string) RuntimeOption {
 	}
 }
 
-// WithCDI sets the devices to check for for CDI configuration.
+// WithCDI sets the devices to check for CDI configuration.
 func WithCDI(devices []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -284,7 +321,7 @@ func WithCDI(devices []string) CtrCreateOption {
 	}
 }
 
-// WithStorageOpts sets the devices to check for for CDI configuration.
+// WithStorageOpts sets the devices to check for CDI configuration.
 func WithStorageOpts(storageOpts map[string]string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -351,8 +388,8 @@ func WithNoPivotRoot() RuntimeOption {
 	}
 }
 
-// WithCNIConfigDir sets the CNI configuration directory.
-func WithCNIConfigDir(dir string) RuntimeOption {
+// WithNetworkConfigDir sets the network configuration directory.
+func WithNetworkConfigDir(dir string) RuntimeOption {
 	return func(rt *Runtime) error {
 		if rt.valid {
 			return define.ErrRuntimeFinalized
@@ -644,6 +681,23 @@ func WithShmSize(size int64) CtrCreateOption {
 	}
 }
 
+// WithShmSizeSystemd sets the size of systemd-specific mounts:
+//
+//	/run
+//	/run/lock
+//	/var/log/journal
+//	/tmp
+func WithShmSizeSystemd(size int64) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.ShmSizeSystemd = size
+		return nil
+	}
+}
+
 // WithPrivileged sets the privileged flag in the container runtime.
 func WithPrivileged(privileged bool) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -753,6 +807,7 @@ func WithName(name string) CtrCreateOption {
 			return define.ErrCtrFinalized
 		}
 
+		name = strings.TrimPrefix(name, "/")
 		// Check the name against a regex
 		if !define.NameRegex.MatchString(name) {
 			return define.RegexError
@@ -822,7 +877,7 @@ func WithIDMappings(idmappings storage.IDMappingOptions) CtrCreateOption {
 	}
 }
 
-// WithUTSNSFromPod indicates the the container should join the UTS namespace of
+// WithUTSNSFromPod indicates that the container should join the UTS namespace of
 // its pod
 func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 	return func(ctr *Container) error {
@@ -844,7 +899,7 @@ func WithUTSNSFromPod(p *Pod) CtrCreateOption {
 	}
 }
 
-// WithIPCNSFrom indicates the the container should join the IPC namespace of
+// WithIPCNSFrom indicates that the container should join the IPC namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -864,7 +919,7 @@ func WithIPCNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithMountNSFrom indicates the the container should join the mount namespace
+// WithMountNSFrom indicates that the container should join the mount namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -883,7 +938,7 @@ func WithMountNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithNetNSFrom indicates the the container should join the network namespace
+// WithNetNSFrom indicates that the container should join the network namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -903,7 +958,7 @@ func WithNetNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithPIDNSFrom indicates the the container should join the PID namespace of
+// WithPIDNSFrom indicates that the container should join the PID namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -937,7 +992,7 @@ func WithAddCurrentUserPasswdEntry() CtrCreateOption {
 	}
 }
 
-// WithUserNSFrom indicates the the container should join the user namespace of
+// WithUserNSFrom indicates that the container should join the user namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -957,7 +1012,6 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 		}
 		// NewFromSpec() is deprecated according to its comment
 		// however the recommended replace just causes a nil map panic
-		//nolint:staticcheck
 		g := generate.NewFromSpec(ctr.config.Spec)
 
 		g.ClearLinuxUIDMappings()
@@ -972,7 +1026,7 @@ func WithUserNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithUTSNSFrom indicates the the container should join the UTS namespace of
+// WithUTSNSFrom indicates that the container should join the UTS namespace of
 // the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -992,7 +1046,7 @@ func WithUTSNSFrom(nsCtr *Container) CtrCreateOption {
 	}
 }
 
-// WithCgroupNSFrom indicates the the container should join the Cgroup namespace
+// WithCgroupNSFrom indicates that the container should join the Cgroup namespace
 // of the given container.
 // If the container has joined a pod, it can only join the namespaces of
 // containers in the same pod.
@@ -1196,7 +1250,7 @@ func WithDNS(dnsServers []string) CtrCreateOption {
 	}
 }
 
-// WithDNSOption sets addition dns options for the container.
+// WithDNSOption sets additional dns options for the container.
 func WithDNSOption(dnsOptions []string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -1306,7 +1360,7 @@ func WithCommand(command []string) CtrCreateOption {
 
 // WithRootFS sets the rootfs for the container.
 // This creates a container from a directory on disk and not an image.
-func WithRootFS(rootfs string, overlay bool) CtrCreateOption {
+func WithRootFS(rootfs string, overlay bool, mapping *string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
 			return define.ErrCtrFinalized
@@ -1316,6 +1370,7 @@ func WithRootFS(rootfs string, overlay bool) CtrCreateOption {
 		}
 		ctr.config.Rootfs = rootfs
 		ctr.config.RootfsOverlay = overlay
+		ctr.config.RootfsMapping = mapping
 		return nil
 	}
 }
@@ -1417,6 +1472,7 @@ func WithNamedVolumes(volumes []*ContainerNamedVolume) CtrCreateOption {
 				Dest:        vol.Dest,
 				Options:     mountOpts,
 				IsAnonymous: vol.IsAnonymous,
+				SubPath:     vol.SubPath,
 			})
 		}
 
@@ -1508,7 +1564,7 @@ func WithCreateCommand(cmd []string) CtrCreateOption {
 	}
 }
 
-// withIsInfra allows us to dfferentiate between infra containers and other containers
+// withIsInfra allows us to differentiate between infra containers and other containers
 // within the container config
 func withIsInfra() CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1522,7 +1578,7 @@ func withIsInfra() CtrCreateOption {
 	}
 }
 
-// WithIsService allows us to dfferentiate between service containers and other container
+// WithIsService allows us to differentiate between service containers and other container
 // within the container config
 func WithIsService() CtrCreateOption {
 	return func(ctr *Container) error {
@@ -1605,6 +1661,18 @@ func WithVolumeLabels(labels map[string]string) VolumeCreateOption {
 			volume.config.Labels[key] = value
 		}
 
+		return nil
+	}
+}
+
+// WithVolumeMountLabel sets the MountLabel of the volume.
+func WithVolumeMountLabel(mountLabel string) VolumeCreateOption {
+	return func(volume *Volume) error {
+		if volume.valid {
+			return define.ErrVolumeFinalized
+		}
+
+		volume.config.MountLabel = mountLabel
 		return nil
 	}
 }
@@ -1768,7 +1836,7 @@ func WithUmask(umask string) CtrCreateOption {
 		if ctr.valid {
 			return define.ErrCtrFinalized
 		}
-		if !define.UmaskRegex.MatchString(umask) {
+		if !umaskRegex.MatchString(umask) {
 			return fmt.Errorf("invalid umask string %s: %w", umask, define.ErrInvalidArg)
 		}
 		ctr.config.Umask = umask
@@ -1831,7 +1899,7 @@ func WithHostUsers(hostUsers []string) CtrCreateOption {
 	}
 }
 
-// WithInitCtrType indicates the container is a initcontainer
+// WithInitCtrType indicates the container is an initcontainer
 func WithInitCtrType(containerType string) CtrCreateOption {
 	return func(ctr *Container) error {
 		if ctr.valid {
@@ -1881,7 +1949,22 @@ func WithInfraConfig(compatibleOptions InfraInherit) CtrCreateOption {
 
 		err = json.Unmarshal(compatMarshal, ctr.config)
 		if err != nil {
-			return errors.New("could not unmarshal compatible options into contrainer config")
+			return errors.New("could not unmarshal compatible options into container config")
+		}
+		return nil
+	}
+}
+
+// WithStartupHealthcheck sets a startup healthcheck for the container.
+// Requires that a healthcheck must be set.
+func WithStartupHealthcheck(startupHC *define.StartupHealthCheck) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+		ctr.config.StartupHealthCheckConfig = new(define.StartupHealthCheck)
+		if err := JSONDeepCopy(startupHC, ctr.config.StartupHealthCheckConfig); err != nil {
+			return fmt.Errorf("error copying startup healthcheck into container: %w", err)
 		}
 		return nil
 	}
@@ -2232,6 +2315,19 @@ func WithPasswdEntry(passwdEntry string) CtrCreateOption {
 	}
 }
 
+// WithGroupEntry sets the entry to write to the /etc/group file.
+func WithGroupEntry(groupEntry string) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.GroupEntry = groupEntry
+
+		return nil
+	}
+}
+
 // WithMountAllDevices sets the option to mount all of a privileged container's
 // host devices
 func WithMountAllDevices() CtrCreateOption {
@@ -2241,6 +2337,19 @@ func WithMountAllDevices() CtrCreateOption {
 		}
 
 		ctr.config.MountAllDevices = true
+
+		return nil
+	}
+}
+
+// WithLabelNested sets the LabelNested flag allowing label separation within container
+func WithLabelNested(nested bool) CtrCreateOption {
+	return func(ctr *Container) error {
+		if ctr.valid {
+			return define.ErrCtrFinalized
+		}
+
+		ctr.config.LabelNested = nested
 
 		return nil
 	}

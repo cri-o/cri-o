@@ -34,25 +34,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 )
 
-var (
-	// Fulcio cert-extensions, documented here: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
-	CertExtensionOIDCIssuer               = "1.3.6.1.4.1.57264.1.1"
-	CertExtensionGithubWorkflowTrigger    = "1.3.6.1.4.1.57264.1.2"
-	CertExtensionGithubWorkflowSha        = "1.3.6.1.4.1.57264.1.3"
-	CertExtensionGithubWorkflowName       = "1.3.6.1.4.1.57264.1.4"
-	CertExtensionGithubWorkflowRepository = "1.3.6.1.4.1.57264.1.5"
-	CertExtensionGithubWorkflowRef        = "1.3.6.1.4.1.57264.1.6"
-
-	CertExtensionMap = map[string]string{
-		CertExtensionOIDCIssuer:               "oidcIssuer",
-		CertExtensionGithubWorkflowTrigger:    "githubWorkflowTrigger",
-		CertExtensionGithubWorkflowSha:        "githubWorkflowSha",
-		CertExtensionGithubWorkflowName:       "githubWorkflowName",
-		CertExtensionGithubWorkflowRepository: "githubWorkflowRepository",
-		CertExtensionGithubWorkflowRef:        "githubWorkflowRef",
-	}
-)
-
 // LoadPublicKey is a wrapper for VerifierForKeyRef, hardcoding SHA256 as the hash algorithm
 func LoadPublicKey(ctx context.Context, keyRef string) (verifier signature.Verifier, err error) {
 	return VerifierForKeyRef(ctx, keyRef, crypto.SHA256)
@@ -62,9 +43,19 @@ func LoadPublicKey(ctx context.Context, keyRef string) (verifier signature.Verif
 // verifier using the provided hash algorithm
 func VerifierForKeyRef(ctx context.Context, keyRef string, hashAlgorithm crypto.Hash) (verifier signature.Verifier, err error) {
 	// The key could be plaintext, in a file, at a URL, or in KMS.
-	if kmsKey, err := kms.Get(ctx, keyRef, hashAlgorithm); err == nil {
+	var perr *kms.ProviderNotFoundError
+	kmsKey, err := kms.Get(ctx, keyRef, hashAlgorithm)
+	switch {
+	case err == nil:
 		// KMS specified
 		return kmsKey, nil
+	case errors.As(err, &perr):
+		// We can ignore ProviderNotFoundError; that just means the keyRef
+		// didn't match any of the KMS schemes.
+	default:
+		// But other errors indicate something more insidious; pass those
+		// through.
+		return nil, err
 	}
 
 	raw, err := blob.LoadFileOrURL(keyRef)
@@ -97,14 +88,13 @@ func loadKey(keyPath string, pf cosign.PassFunc) (signature.SignerVerifier, erro
 	return cosign.LoadPrivateKey(kb, pass)
 }
 
-// LoadPublicKeyRaw loads a verifier from a raw public key passed in
+// LoadPublicKeyRaw loads a verifier from a PEM-encoded public key
 func LoadPublicKeyRaw(raw []byte, hashAlgorithm crypto.Hash) (signature.Verifier, error) {
-	// PEM encoded file.
-	ed, err := cosign.PemToECDSAKey(raw)
+	pub, err := cryptoutils.UnmarshalPEMToPublicKey(raw)
 	if err != nil {
-		return nil, fmt.Errorf("pem to ecdsa: %w", err)
+		return nil, err
 	}
-	return signature.LoadECDSAVerifier(ed, hashAlgorithm)
+	return signature.LoadVerifier(pub, hashAlgorithm)
 }
 
 func SignerFromKeyRef(ctx context.Context, keyRef string, pf cosign.PassFunc) (signature.Signer, error) {
@@ -252,27 +242,10 @@ func CertSubject(c *x509.Certificate) string {
 	case c.URIs != nil:
 		return c.URIs[0].String()
 	}
-	return ""
-}
-
-func CertIssuerExtension(cert *x509.Certificate) string {
-	for _, ext := range cert.Extensions {
-		if ext.Id.String() == CertExtensionOIDCIssuer {
-			return string(ext.Value)
-		}
+	// ignore error if there's no OtherName SAN
+	otherName, _ := cosign.UnmarshalOtherNameSAN(c.Extensions)
+	if len(otherName) > 0 {
+		return otherName
 	}
 	return ""
-}
-
-func CertExtensions(cert *x509.Certificate) map[string]string {
-	extensions := map[string]string{}
-	for _, ext := range cert.Extensions {
-		readableName, ok := CertExtensionMap[ext.Id.String()]
-		if ok {
-			extensions[readableName] = string(ext.Value)
-		} else {
-			extensions[ext.Id.String()] = string(ext.Value)
-		}
-	}
-	return extensions
 }

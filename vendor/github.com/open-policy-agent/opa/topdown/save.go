@@ -279,7 +279,7 @@ func newSaveSupport() *saveSupport {
 }
 
 func (s *saveSupport) List() []*ast.Module {
-	result := []*ast.Module{}
+	result := make([]*ast.Module, 0, len(s.modules))
 	for _, module := range s.modules {
 		result = append(result, module)
 	}
@@ -375,12 +375,16 @@ func ignoreExprDuringPartial(expr *ast.Expr) bool {
 }
 
 func ignoreDuringPartial(bi *ast.Builtin) bool {
+	// Note(philipc): We keep this legacy check around to avoid breaking
+	// existing library users.
+	//nolint:staticcheck // We specifically ignore our own linter warning here.
 	for _, ignore := range ast.IgnoreDuringPartialEval {
 		if bi == ignore {
 			return true
 		}
 	}
-	return false
+	// Otherwise, ensure all non-deterministic builtins are thrown out.
+	return bi.Nondeterministic
 }
 
 type inliningControl struct {

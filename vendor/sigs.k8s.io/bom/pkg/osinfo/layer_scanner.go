@@ -35,6 +35,7 @@ const (
 	OSCentos     = "centos"
 	OSRHEL       = "rhel"
 	OSAlpine     = "alpine"
+	OSWolfi      = "wolfi"
 	OSDistroless = "distroless"
 )
 
@@ -80,6 +81,10 @@ func (loss *LayerScanner) OSType(layerPath string) (ostype string, err error) {
 
 	if strings.Contains(osrelease, "NAME=\"Alpine Linux\"") {
 		return OSAlpine, nil
+	}
+
+	if strings.Contains(osrelease, "NAME=\"Wolfi\"") {
+		return OSWolfi, nil
 	}
 
 	if strings.Contains(osrelease, "PRETTY_NAME=\"Distroless") {
@@ -178,7 +183,7 @@ func (loss *LayerScanner) extractFileFromTar(tarPath, filePath, destPath string)
 				if !strings.HasPrefix(target, string(filepath.Separator)) {
 					newTarget := filepath.Dir(filePath)
 
-					// nolint:gosec // This is not zipslip, path it not used for writing just
+					//nolint:gosec // This is not zipslip, path it not used for writing just
 					// to search a file in the tarfile, the extract path is fexed.
 					newTarget = filepath.Join(newTarget, hdr.Linkname)
 					target = filepath.Clean(newTarget)

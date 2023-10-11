@@ -25,14 +25,14 @@ import (
 // MilestonesService handles communication with the milestone related methods
 // of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/milestones.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/milestones.html
 type MilestonesService struct {
 	client *Client
 }
 
 // Milestone represents a GitLab milestone.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/milestones.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/milestones.html
 type Milestone struct {
 	ID          int        `json:"id"`
 	IID         int        `json:"iid"`
@@ -55,7 +55,7 @@ func (m Milestone) String() string {
 // ListMilestonesOptions represents the available ListMilestones() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#list-project-milestones
+// https://docs.gitlab.com/ee/api/milestones.html#list-project-milestones
 type ListMilestonesOptions struct {
 	ListOptions
 	IIDs                    *[]int  `url:"iids[],omitempty" json:"iids,omitempty"`
@@ -68,7 +68,7 @@ type ListMilestonesOptions struct {
 // ListMilestones returns a list of project milestones.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#list-project-milestones
+// https://docs.gitlab.com/ee/api/milestones.html#list-project-milestones
 func (s *MilestonesService) ListMilestones(pid interface{}, opt *ListMilestonesOptions, options ...RequestOptionFunc) ([]*Milestone, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -93,7 +93,7 @@ func (s *MilestonesService) ListMilestones(pid interface{}, opt *ListMilestonesO
 // GetMilestone gets a single project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#get-single-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#get-single-milestone
 func (s *MilestonesService) GetMilestone(pid interface{}, milestone int, options ...RequestOptionFunc) (*Milestone, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -118,7 +118,7 @@ func (s *MilestonesService) GetMilestone(pid interface{}, milestone int, options
 // CreateMilestoneOptions represents the available CreateMilestone() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#create-new-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#create-new-milestone
 type CreateMilestoneOptions struct {
 	Title       *string  `url:"title,omitempty" json:"title,omitempty"`
 	Description *string  `url:"description,omitempty" json:"description,omitempty"`
@@ -129,7 +129,7 @@ type CreateMilestoneOptions struct {
 // CreateMilestone creates a new project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#create-new-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#create-new-milestone
 func (s *MilestonesService) CreateMilestone(pid interface{}, opt *CreateMilestoneOptions, options ...RequestOptionFunc) (*Milestone, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -154,7 +154,7 @@ func (s *MilestonesService) CreateMilestone(pid interface{}, opt *CreateMileston
 // UpdateMilestoneOptions represents the available UpdateMilestone() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#edit-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#edit-milestone
 type UpdateMilestoneOptions struct {
 	Title       *string  `url:"title,omitempty" json:"title,omitempty"`
 	Description *string  `url:"description,omitempty" json:"description,omitempty"`
@@ -166,7 +166,7 @@ type UpdateMilestoneOptions struct {
 // UpdateMilestone updates an existing project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#edit-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#edit-milestone
 func (s *MilestonesService) UpdateMilestone(pid interface{}, milestone int, opt *UpdateMilestoneOptions, options ...RequestOptionFunc) (*Milestone, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -191,7 +191,7 @@ func (s *MilestonesService) UpdateMilestone(pid interface{}, milestone int, opt 
 // DeleteMilestone deletes a specified project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#delete-project-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#delete-project-milestone
 func (s *MilestonesService) DeleteMilestone(pid interface{}, milestone int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -209,13 +209,13 @@ func (s *MilestonesService) DeleteMilestone(pid interface{}, milestone int, opti
 // GetMilestoneIssuesOptions represents the available GetMilestoneIssues() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#get-all-issues-assigned-to-a-single-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#get-all-issues-assigned-to-a-single-milestone
 type GetMilestoneIssuesOptions ListOptions
 
 // GetMilestoneIssues gets all issues assigned to a single project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#get-all-issues-assigned-to-a-single-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#get-all-issues-assigned-to-a-single-milestone
 func (s *MilestonesService) GetMilestoneIssues(pid interface{}, milestone int, opt *GetMilestoneIssuesOptions, options ...RequestOptionFunc) ([]*Issue, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -241,14 +241,14 @@ func (s *MilestonesService) GetMilestoneIssues(pid interface{}, milestone int, o
 // GetMilestoneMergeRequests() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#get-all-merge-requests-assigned-to-a-single-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#get-all-merge-requests-assigned-to-a-single-milestone
 type GetMilestoneMergeRequestsOptions ListOptions
 
 // GetMilestoneMergeRequests gets all merge requests assigned to a single
 // project milestone.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/milestones.html#get-all-merge-requests-assigned-to-a-single-milestone
+// https://docs.gitlab.com/ee/api/milestones.html#get-all-merge-requests-assigned-to-a-single-milestone
 func (s *MilestonesService) GetMilestoneMergeRequests(pid interface{}, milestone int, opt *GetMilestoneMergeRequestsOptions, options ...RequestOptionFunc) ([]*MergeRequest, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

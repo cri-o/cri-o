@@ -48,6 +48,8 @@ const (
 	entTool         = "Tool"
 	entOrganization = "Organization"
 
+	CatPackageManager = "PACKAGE-MANAGER"
+
 	termBanner = `ICAgICAgICAgICAgICAgXyAgICAgIAogX19fIF8gX18gICBfX3wgfF8gIF9fCi8gX198ICdfIFwg
 LyBfYCBcIFwvIC8KXF9fIFwgfF8pIHwgKF98IHw+ICA8IAp8X19fLyAuX18vIFxfXyxfL18vXF9c
 CiAgICB8X3wgICAgICAgICAgICAgICAK`
@@ -64,6 +66,17 @@ type SPDX struct {
 	options *Options
 }
 
+// ImageReferenceInfo is a type to move information about a container image reference
+type ImageReferenceInfo struct {
+	Digest    string
+	Reference string
+	Archive   string
+	Arch      string
+	OS        string
+	MediaType string
+	Images    []ImageReferenceInfo
+}
+
 func NewSPDX() *SPDX {
 	return &SPDX{
 		impl:    &spdxDefaultImplementation{},
@@ -76,16 +89,17 @@ func (spdx *SPDX) SetImplementation(impl spdxImplementation) {
 }
 
 type Options struct {
-	AnalyzeLayers    bool
-	NoGitignore      bool     // Do not read exclusions from gitignore file
-	ProcessGoModules bool     // If true, spdx will check if dirs are go modules and analize the packages
-	OnlyDirectDeps   bool     // Only include direct dependencies from go.mod
-	ScanLicenses     bool     // Scan licenses from everypossible place unless false
-	AddTarFiles      bool     // Scan and add files inside of tarfiles
-	ScanImages       bool     // When true, scan container images for OS information
-	LicenseCacheDir  string   // Directory to cache SPDX license downloads
-	LicenseData      string   // Directory to store the SPDX licenses
-	IgnorePatterns   []string // Patterns to ignore when scanning file
+	AnalyzeLayers      bool
+	NoGitignore        bool     // Do not read exclusions from gitignore file
+	ProcessGoModules   bool     // If true, spdx will check if dirs are go modules and analize the packages
+	OnlyDirectDeps     bool     // Only include direct dependencies from go.mod
+	ScanLicenses       bool     // Scan licenses from everypossible place unless false
+	AddTarFiles        bool     // Scan and add files inside of tarfiles
+	ScanImages         bool     // When true, scan container images for OS information
+	LicenseCacheDir    string   // Directory to cache SPDX license downloads
+	LicenseData        string   // Directory to store the SPDX licenses
+	LicenseListVersion string   // Version of the SPDX license list to use
+	IgnorePatterns     []string // Patterns to ignore when scanning file
 }
 
 func (spdx *SPDX) Options() *Options {
@@ -214,8 +228,9 @@ func (spdx *SPDX) FileFromPath(filePath string) (*File, error) {
 }
 
 // AnalyzeLayer uses the collection of image analyzers to see if
-//  it matches a known image from which a spdx package can be
-//  enriched with more information
+//
+//	it matches a known image from which a spdx package can be
+//	enriched with more information
 func (spdx *SPDX) AnalyzeImageLayer(layerPath string, pkg *Package) error {
 	return spdx.impl.AnalyzeImageLayer(layerPath, pkg)
 }
@@ -225,24 +240,18 @@ func (spdx *SPDX) ExtractTarballTmp(tarPath string) (tmpDir string, err error) {
 	return spdx.impl.ExtractTarballTmp(tarPath)
 }
 
-// PullImagesToArchive
-func (spdx *SPDX) PullImagesToArchive(reference, path string) ([]struct {
-	Reference string
-	Archive   string
-	Arch      string
-	OS        string
-}, error,
-) {
+// PullImagesToArchive downloads all the images found from a reference to disk
+func (spdx *SPDX) PullImagesToArchive(reference, path string) (*ImageReferenceInfo, error) {
 	return spdx.impl.PullImagesToArchive(reference, path)
 }
 
 // ImageRefToPackage gets an image reference (tag or digest) and returns
 // a spdx package describing it. It can take two forms:
-//  - When the reference is a digest (or single image), a single package
-//    describing the layers is returned
-//  - When the reference is an image index, the returned package is a
-//    package referencing each of the images, each in its own packages.
-//  All subpackages are returned with a relationship of VARIANT_OF
+//   - When the reference is a digest (or single image), a single package
+//     describing the layers is returned
+//   - When the reference is an image index, the returned package is a
+//     package referencing each of the images, each in its own packages.
+//     All subpackages are returned with a relationship of VARIANT_OF
 func (spdx *SPDX) ImageRefToPackage(reference string) (pkg *Package, err error) {
 	return spdx.impl.ImageRefToPackage(reference, spdx.Options())
 }
@@ -257,17 +266,20 @@ func Banner() string {
 
 // recursiveIDSearch is a function that recursively searches an object's peers
 // to find the specified SPDX ID. If found, returns a copy of the object.
-// nolint:gocritic // seen is a pointer recursively populated
+//
+//nolint:gocritic // seen is a pointer recursively populated
 func recursiveIDSearch(id string, o Object, seen *map[string]struct{}) Object {
 	if o.SPDXID() == id {
 		return o
 	}
+
+	if _, ok := (*seen)[o.SPDXID()]; ok {
+		return nil
+	}
+	(*seen)[o.SPDXID()] = struct{}{}
+
 	for _, rel := range *o.GetRelationships() {
 		if rel.Peer == nil {
-			continue
-		}
-
-		if _, ok := (*seen)[o.SPDXID()]; ok {
 			continue
 		}
 
@@ -285,7 +297,8 @@ func recursiveIDSearch(id string, o Object, seen *map[string]struct{}) Object {
 // recursivePurlSearch is a function that recursively searches an object's peers
 // to find those that match the purl parts defined. If found, returns a copy of
 // the object.
-// nolint:gocritic // seen is a pointer recursively populated
+//
+//nolint:gocritic // seen is a pointer recursively populated
 func recursivePurlSearch(purlSpec *purl.PackageURL, o Object, seen *map[string]struct{}, opts ...PurlSearchOption) []*Package {
 	foundPackages := []*Package{}
 	// Only packages can express purls

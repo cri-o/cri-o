@@ -19,8 +19,11 @@ package object
 //go:generate go run github.com/maxbrunsfeld/counterfeiter/v6 -generate
 //go:generate /usr/bin/env bash -c "cat ../scripts/boilerplate/boilerplate.generatego.txt objectfakes/fake_store.go > objectfakes/_fake_store.go && mv objectfakes/_fake_store.go objectfakes/fake_store.go"
 
-//counterfeiter:generate . Store
 // Store is an interface modeling supported filestore operations
+//
+// Store is an interface modeling supported filestore operations
+//
+//counterfeiter:generate . Store
 type Store interface {
 	// Configure options
 	SetOptions(opts ...OptFn)

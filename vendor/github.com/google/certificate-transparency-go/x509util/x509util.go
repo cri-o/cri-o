@@ -402,22 +402,22 @@ func GeneralNamesToString(gname *x509.GeneralNames) string {
 // The output roughly resembles that from openssl x509 -text.
 func CertificateToString(cert *x509.Certificate) string {
 	var result bytes.Buffer
-	result.WriteString(fmt.Sprintf("Certificate:\n"))
-	result.WriteString(fmt.Sprintf("    Data:\n"))
+	result.WriteString("Certificate:\n")
+	result.WriteString("    Data:\n")
 	result.WriteString(fmt.Sprintf("        Version: %d (%#x)\n", cert.Version, cert.Version-1))
 	result.WriteString(fmt.Sprintf("        Serial Number: %s (0x%s)\n", cert.SerialNumber.Text(10), cert.SerialNumber.Text(16)))
 	result.WriteString(fmt.Sprintf("    Signature Algorithm: %v\n", cert.SignatureAlgorithm))
 	result.WriteString(fmt.Sprintf("        Issuer: %v\n", NameToString(cert.Issuer)))
-	result.WriteString(fmt.Sprintf("        Validity:\n"))
+	result.WriteString("        Validity:\n")
 	result.WriteString(fmt.Sprintf("            Not Before: %v\n", cert.NotBefore))
 	result.WriteString(fmt.Sprintf("            Not After : %v\n", cert.NotAfter))
 	result.WriteString(fmt.Sprintf("        Subject: %v\n", NameToString(cert.Subject)))
-	result.WriteString(fmt.Sprintf("        Subject Public Key Info:\n"))
+	result.WriteString("        Subject Public Key Info:\n")
 	result.WriteString(fmt.Sprintf("            Public Key Algorithm: %v\n", publicKeyAlgorithmToString(cert.PublicKeyAlgorithm)))
 	result.WriteString(fmt.Sprintf("%v\n", publicKeyToString(cert.PublicKeyAlgorithm, cert.PublicKey)))
 
 	if len(cert.Extensions) > 0 {
-		result.WriteString(fmt.Sprintf("        X509v3 extensions:\n"))
+		result.WriteString("        X509v3 extensions:\n")
 	}
 	// First display the extensions that are already cracked out
 	showAuthKeyID(&result, cert)
@@ -453,7 +453,7 @@ func showCritical(result *bytes.Buffer, critical bool) {
 func showAuthKeyID(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionAuthorityKeyId, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Authority Key Identifier:"))
+		result.WriteString("            X509v3 Authority Key Identifier:")
 		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                keyid:%v\n", hex.EncodeToString(cert.AuthorityKeyId)))
 	}
@@ -462,7 +462,7 @@ func showAuthKeyID(result *bytes.Buffer, cert *x509.Certificate) {
 func showSubjectKeyID(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionSubjectKeyId, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Subject Key Identifier:"))
+		result.WriteString("            X509v3 Subject Key Identifier:")
 		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                keyid:%v\n", hex.EncodeToString(cert.SubjectKeyId)))
 	}
@@ -471,7 +471,7 @@ func showSubjectKeyID(result *bytes.Buffer, cert *x509.Certificate) {
 func showKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionKeyUsage, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Key Usage:"))
+		result.WriteString("            X509v3 Key Usage:")
 		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                %v\n", keyUsageToString(cert.KeyUsage)))
 	}
@@ -480,7 +480,7 @@ func showKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
 func showExtendedKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionExtendedKeyUsage, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Extended Key Usage:"))
+		result.WriteString("            X509v3 Extended Key Usage:")
 		showCritical(result, critical)
 		var usages bytes.Buffer
 		for _, usage := range cert.ExtKeyUsage {
@@ -496,20 +496,20 @@ func showExtendedKeyUsage(result *bytes.Buffer, cert *x509.Certificate) {
 func showBasicConstraints(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionBasicConstraints, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Basic Constraints:"))
+		result.WriteString("            X509v3 Basic Constraints:")
 		showCritical(result, critical)
 		result.WriteString(fmt.Sprintf("                CA:%t", cert.IsCA))
 		if cert.MaxPathLen > 0 || cert.MaxPathLenZero {
 			result.WriteString(fmt.Sprintf(", pathlen:%d", cert.MaxPathLen))
 		}
-		result.WriteString(fmt.Sprintf("\n"))
+		result.WriteString("\n")
 	}
 }
 
 func showSubjectAltName(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionSubjectAltName, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Subject Alternative Name:"))
+		result.WriteString("            X509v3 Subject Alternative Name:")
 		showCritical(result, critical)
 		var buf bytes.Buffer
 		for _, name := range cert.DNSNames {
@@ -530,10 +530,10 @@ func showSubjectAltName(result *bytes.Buffer, cert *x509.Certificate) {
 func showNameConstraints(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionNameConstraints, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Name Constraints:"))
+		result.WriteString("            X509v3 Name Constraints:")
 		showCritical(result, critical)
 		if len(cert.PermittedDNSDomains) > 0 {
-			result.WriteString(fmt.Sprintf("                Permitted:\n"))
+			result.WriteString("                Permitted:\n")
 			var buf bytes.Buffer
 			for _, name := range cert.PermittedDNSDomains {
 				commaAppend(&buf, "DNS:"+name)
@@ -548,7 +548,7 @@ func showNameConstraints(result *bytes.Buffer, cert *x509.Certificate) {
 func showCertPolicies(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionCertificatePolicies, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Certificate Policies:"))
+		result.WriteString("            X509v3 Certificate Policies:")
 		showCritical(result, critical)
 		for _, oid := range cert.PolicyIdentifiers {
 			result.WriteString(fmt.Sprintf("                Policy: %v\n", oid.String()))
@@ -561,9 +561,9 @@ func showCertPolicies(result *bytes.Buffer, cert *x509.Certificate) {
 func showCRLDPs(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionCRLDistributionPoints, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 CRL Distribution Points:"))
+		result.WriteString("            X509v3 CRL Distribution Points:")
 		showCritical(result, critical)
-		result.WriteString(fmt.Sprintf("                Full Name:\n"))
+		result.WriteString("                Full Name:\n")
 		var buf bytes.Buffer
 		for _, pt := range cert.CRLDistributionPoints {
 			commaAppend(&buf, "URI:"+pt)
@@ -577,7 +577,7 @@ func showCRLDPs(result *bytes.Buffer, cert *x509.Certificate) {
 func showAuthInfoAccess(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionAuthorityInfoAccess, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            Authority Information Access:"))
+		result.WriteString("            Authority Information Access:")
 		showCritical(result, critical)
 		var issuerBuf bytes.Buffer
 		for _, issuer := range cert.IssuingCertificateURL {
@@ -600,7 +600,7 @@ func showAuthInfoAccess(result *bytes.Buffer, cert *x509.Certificate) {
 func showSubjectInfoAccess(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionSubjectInfoAccess, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            Subject Information Access:"))
+		result.WriteString("            Subject Information Access:")
 		showCritical(result, critical)
 		var tsBuf bytes.Buffer
 		for _, ts := range cert.SubjectTimestamps {
@@ -639,7 +639,7 @@ func showAddressRange(prefix x509.IPAddressPrefix, afi uint16) string {
 func showRPKIAddressRanges(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionIPPrefixList, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            sbgp-ipAddrBlock:"))
+		result.WriteString("            sbgp-ipAddrBlock:")
 		showCritical(result, critical)
 		for _, blocks := range cert.RPKIAddressRanges {
 			afi := blocks.AFI
@@ -690,7 +690,7 @@ func showASIDs(result *bytes.Buffer, asids *x509.ASIdentifiers, label string) {
 func showRPKIASIdentifiers(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionASList, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            sbgp-autonomousSysNum:"))
+		result.WriteString("            sbgp-autonomousSysNum:")
 		showCritical(result, critical)
 		showASIDs(result, cert.RPKIASNumbers, "Autonomous System Numbers")
 		showASIDs(result, cert.RPKIRoutingDomainIDs, "Routing Domain Identifiers")
@@ -699,7 +699,7 @@ func showRPKIASIdentifiers(result *bytes.Buffer, cert *x509.Certificate) {
 func showCTPoison(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionCTPoison, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            RFC6962 Pre-Certificate Poison:"))
+		result.WriteString("            RFC6962 Pre-Certificate Poison:")
 		showCritical(result, critical)
 		result.WriteString("                .....\n")
 	}
@@ -708,7 +708,7 @@ func showCTPoison(result *bytes.Buffer, cert *x509.Certificate) {
 func showCTSCT(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509.OIDExtensionCTSCT, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            RFC6962 Certificate Transparency SCT:"))
+		result.WriteString("            RFC6962 Certificate Transparency SCT:")
 		showCritical(result, critical)
 		for i, sctData := range cert.SCTList.SCTList {
 			result.WriteString(fmt.Sprintf("              SCT [%d]:\n", i))
@@ -723,7 +723,7 @@ func showCTSCT(result *bytes.Buffer, cert *x509.Certificate) {
 			result.WriteString(fmt.Sprintf("                  LogID: %s\n", base64.StdEncoding.EncodeToString(sct.LogID.KeyID[:])))
 			result.WriteString(fmt.Sprintf("                  Timestamp: %d\n", sct.Timestamp))
 			result.WriteString(fmt.Sprintf("                  Signature: %s\n", sct.Signature.Algorithm))
-			result.WriteString(fmt.Sprintf("                  Signature:\n"))
+			result.WriteString("                  Signature:\n")
 			appendHexData(result, sct.Signature.Signature, 16, "                    ")
 			result.WriteString("\n")
 		}
@@ -733,18 +733,18 @@ func showCTSCT(result *bytes.Buffer, cert *x509.Certificate) {
 func showCTLogSTHInfo(result *bytes.Buffer, cert *x509.Certificate) {
 	count, critical := OIDInExtensions(x509ext.OIDExtensionCTSTH, cert.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            Certificate Transparency STH:"))
+		result.WriteString("            Certificate Transparency STH:")
 		showCritical(result, critical)
 		sthInfo, err := x509ext.LogSTHInfoFromCert(cert)
 		if err != nil {
-			result.WriteString(fmt.Sprintf("              Failed to decode STH:\n"))
+			result.WriteString("              Failed to decode STH:\n")
 			return
 		}
 		result.WriteString(fmt.Sprintf("              LogURL: %s\n", string(sthInfo.LogURL)))
 		result.WriteString(fmt.Sprintf("              Version: %d\n", sthInfo.Version))
 		result.WriteString(fmt.Sprintf("              TreeSize: %d\n", sthInfo.TreeSize))
 		result.WriteString(fmt.Sprintf("              Timestamp: %d\n", sthInfo.Timestamp))
-		result.WriteString(fmt.Sprintf("              RootHash:\n"))
+		result.WriteString("              RootHash:\n")
 		appendHexData(result, sthInfo.SHA256RootHash[:], 16, "                    ")
 		result.WriteString("\n")
 		result.WriteString(fmt.Sprintf("              TreeHeadSignature: %s\n", sthInfo.TreeHeadSignature.Algorithm))

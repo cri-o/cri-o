@@ -40,54 +40,54 @@ func AddDocument(parent *cobra.Command) {
 }
 
 /*
-func AddQuery(parent *cobra.Command) {
-	queryCmd := &cobra.Command{
-		Short:             "bom document query → Query for data in an SPDX document",
-		Use:               "query SPDX_FILE",
-		SilenceUsage:      false,
-		SilenceErrors:     false,
-		PersistentPreRunE: initLogging,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if len(args) < 2 {
-				cmd.Help()
+	func AddQuery(parent *cobra.Command) {
+		queryCmd := &cobra.Command{
+			Short:             "bom document query → Query for data in an SPDX document",
+			Use:               "query SPDX_FILE",
+			SilenceUsage:      false,
+			SilenceErrors:     false,
+			PersistentPreRunE: initLogging,
+			RunE: func(cmd *cobra.Command, args []string) error {
+				if len(args) < 2 {
+					cmd.Help()
+					return nil
+				}
+				doc, err := spdx.OpenDoc(args[0])
+				if err != nil {
+					return fmt.Errorf("opening document: %w", err)
+				}
+
+				// Parse the purl
+				pquery, err := purl.FromString(args[1])
+				if err != nil {
+					return fmt.Errorf(err, "parsing purl")
+				}
+
+				// Create the purl we will use to query
+				var purlType, purlNamespace, purlName, purlVersion string
+				if pquery.Type != "*" {
+					purlType = pquery.Type
+				}
+				if pquery.Name != "*" {
+					purlName = pquery.Name
+				}
+				if pquery.Version != "*" {
+					purlVersion = pquery.Version
+				}
+				if pquery.Namespace != "*" {
+					purlNamespace = pquery.Namespace
+				}
+				pSpec := purl.NewPackageURL(purlType, purlNamespace, purlName, purlVersion, purl.Qualifiers{}, "")
+
+				pkgs := doc.GetPackagesByPurl(pSpec)
+				for _, pk := range pkgs {
+					fmt.Printf("%s (%s)\n", pk.Name, pk.Purl())
+				}
 				return nil
-			}
-			doc, err := spdx.OpenDoc(args[0])
-			if err != nil {
-				return fmt.Errorf("opening document: %w", err)
-			}
-
-			// Parse the purl
-			pquery, err := purl.FromString(args[1])
-			if err != nil {
-				return fmt.Errorf(err, "parsing purl")
-			}
-
-			// Create the purl we will use to query
-			var purlType, purlNamespace, purlName, purlVersion string
-			if pquery.Type != "*" {
-				purlType = pquery.Type
-			}
-			if pquery.Name != "*" {
-				purlName = pquery.Name
-			}
-			if pquery.Version != "*" {
-				purlVersion = pquery.Version
-			}
-			if pquery.Namespace != "*" {
-				purlNamespace = pquery.Namespace
-			}
-			pSpec := purl.NewPackageURL(purlType, purlNamespace, purlName, purlVersion, purl.Qualifiers{}, "")
-
-			pkgs := doc.GetPackagesByPurl(pSpec)
-			for _, pk := range pkgs {
-				fmt.Printf("%s (%s)\n", pk.Name, pk.Purl())
-			}
-			return nil
-		},
+			},
+		}
+		parent.AddCommand(queryCmd)
 	}
-	parent.AddCommand(queryCmd)
-}
 */
 func AddOutline(parent *cobra.Command) {
 	outlineOpts := &spdx.DrawingOptions{}
@@ -108,12 +108,12 @@ bom will try to add useful information to the oultine but, if needed, you can
 set the --spdx-ids to only output the IDs of the entities.
 
 `,
-		Use:           "outline SPDX_FILE",
+		Use:           "outline SPDX_FILE|URL",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) != 1 {
-				cmd.Help() // nolint:errcheck
+				cmd.Help() //nolint:errcheck
 				return errors.New("you should only specify one file")
 			}
 			doc, err := spdx.OpenDoc(args[0])
@@ -142,6 +142,18 @@ set the --spdx-ids to only output the IDs of the entities.
 		"spdx-ids",
 		false,
 		"use SPDX identifiers in tree nodes instead of names",
+	)
+	outlineCmd.PersistentFlags().BoolVar(
+		&outlineOpts.Version,
+		"version",
+		true,
+		"show versions along with package names",
+	)
+	outlineCmd.PersistentFlags().BoolVar(
+		&outlineOpts.Purls,
+		"purl",
+		false,
+		"show package urls instead of name@version",
 	)
 
 	parent.AddCommand(outlineCmd)

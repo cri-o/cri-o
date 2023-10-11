@@ -69,10 +69,12 @@ func NewGetLogProofParamsWithHTTPClient(client *http.Client) *GetLogProofParams 
 	}
 }
 
-/* GetLogProofParams contains all the parameters to send to the API endpoint
-   for the get log proof operation.
+/*
+GetLogProofParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the get log proof operation.
+
+	Typically these are written to a http.Request.
 */
 type GetLogProofParams struct {
 

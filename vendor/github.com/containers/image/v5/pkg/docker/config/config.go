@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/homedir"
@@ -32,11 +33,6 @@ type dockerConfigFile struct {
 	CredHelpers map[string]string           `json:"credHelpers,omitempty"`
 }
 
-type authPath struct {
-	path         string
-	legacyFormat bool
-}
-
 var (
 	defaultPerUIDPathFormat = filepath.FromSlash("/run/containers/%d/auth.json")
 	xdgConfigHomePath       = filepath.FromSlash("containers/auth.json")
@@ -52,11 +48,24 @@ var (
 	ErrNotSupported = errors.New("not supported")
 )
 
+// authPath combines a path to a file with container registry access keys,
+// along with expected properties of that path (currently just whether it's)
+// legacy format or not.
+type authPath struct {
+	path         string
+	legacyFormat bool
+}
+
+// newAuthPathDefault constructs an authPath in non-legacy format.
+func newAuthPathDefault(path string) authPath {
+	return authPath{path: path, legacyFormat: false}
+}
+
 // SetCredentials stores the username and password in a location
 // appropriate for sys and the users’ configuration.
 // A valid key is a repository, a namespace within a registry, or a registry hostname;
 // using forms other than just a registry may fail depending on configuration.
-// Returns a human-redable description of the location that was updated.
+// Returns a human-readable description of the location that was updated.
 // NOTE: The return value is only intended to be read by humans; its form is not an API,
 // it may change (or new forms can be added) any time.
 func SetCredentials(sys *types.SystemContext, key, username, password string) (string, error) {
@@ -78,25 +87,28 @@ func SetCredentials(sys *types.SystemContext, key, username, password string) (s
 		switch helper {
 		// Special-case the built-in helpers for auth files.
 		case sysregistriesv2.AuthenticationFileHelper:
-			desc, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+			desc, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, string, error) {
 				if ch, exists := auths.CredHelpers[key]; exists {
 					if isNamespaced {
-						return false, unsupportedNamespaceErr(ch)
+						return false, "", unsupportedNamespaceErr(ch)
 					}
-					return false, setAuthToCredHelper(ch, key, username, password)
+					desc, err := setAuthToCredHelper(ch, key, username, password)
+					if err != nil {
+						return false, "", err
+					}
+					return false, desc, nil
 				}
 				creds := base64.StdEncoding.EncodeToString([]byte(username + ":" + password))
 				newCreds := dockerAuthConfig{Auth: creds}
 				auths.AuthConfigs[key] = newCreds
-				return true, nil
+				return true, "", nil
 			})
 		// External helpers.
 		default:
 			if isNamespaced {
 				err = unsupportedNamespaceErr(helper)
 			} else {
-				desc = fmt.Sprintf("credential helper: %s", helper)
-				err = setAuthToCredHelper(helper, key, username, password)
+				desc, err = setAuthToCredHelper(helper, key, username, password)
 			}
 		}
 		if err != nil {
@@ -128,10 +140,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	// possible sources, and then call `GetCredentials` on them.  That
 	// prevents us from having to reverse engineer the logic in
 	// `GetCredentials`.
-	allKeys := make(map[string]bool)
-	addKey := func(s string) {
-		allKeys[s] = true
-	}
+	allKeys := set.New[string]()
 
 	// To use GetCredentials, we must at least convert the URL forms into host names.
 	// While we're at it, we’ll also canonicalize docker.io to the standard format.
@@ -146,8 +155,8 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 		// Special-case the built-in helper for auth files.
 		case sysregistriesv2.AuthenticationFileHelper:
 			for _, path := range getAuthFilePaths(sys, homedir.Get()) {
-				// readJSONFile returns an empty map in case the path doesn't exist.
-				auths, err := readJSONFile(path.path, path.legacyFormat)
+				// parse returns an empty map in case the path doesn't exist.
+				auths, err := path.parse()
 				if err != nil {
 					return nil, fmt.Errorf("reading JSON file %q: %w", path.path, err)
 				}
@@ -155,14 +164,14 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 				// direct mapping to a registry, so we can just
 				// walk the map.
 				for registry := range auths.CredHelpers {
-					addKey(registry)
+					allKeys.Add(registry)
 				}
 				for key := range auths.AuthConfigs {
 					key := normalizeAuthFileKey(key, path.legacyFormat)
 					if key == normalizedDockerIORegistry {
 						key = "docker.io"
 					}
-					addKey(key)
+					allKeys.Add(key)
 				}
 			}
 		// External helpers.
@@ -177,7 +186,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 				}
 			}
 			for registry := range creds {
-				addKey(registry)
+				allKeys.Add(registry)
 			}
 		}
 	}
@@ -185,7 +194,7 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 	// Now use `GetCredentials` to the specific auth configs for each
 	// previously listed registry.
 	authConfigs := make(map[string]types.DockerAuthConfig)
-	for key := range allKeys {
+	for _, key := range allKeys.Values() {
 		authConf, err := GetCredentials(sys, key)
 		if err != nil {
 			// Note: we rely on the logging in `GetCredentials`.
@@ -205,32 +214,32 @@ func GetAllCredentials(sys *types.SystemContext) (map[string]types.DockerAuthCon
 // by tests.
 func getAuthFilePaths(sys *types.SystemContext, homeDir string) []authPath {
 	paths := []authPath{}
-	pathToAuth, lf, err := getPathToAuth(sys)
+	pathToAuth, userSpecifiedPath, err := getPathToAuth(sys)
 	if err == nil {
-		paths = append(paths, authPath{path: pathToAuth, legacyFormat: lf})
+		paths = append(paths, pathToAuth)
 	} else {
 		// Error means that the path set for XDG_RUNTIME_DIR does not exist
 		// but we don't want to completely fail in the case that the user is pulling a public image
 		// Logging the error as a warning instead and moving on to pulling the image
 		logrus.Warnf("%v: Trying to pull image in the event that it is a public image.", err)
 	}
-	xdgCfgHome := os.Getenv("XDG_CONFIG_HOME")
-	if xdgCfgHome == "" {
-		xdgCfgHome = filepath.Join(homeDir, ".config")
-	}
-	paths = append(paths, authPath{path: filepath.Join(xdgCfgHome, xdgConfigHomePath), legacyFormat: false})
-	if dockerConfig := os.Getenv("DOCKER_CONFIG"); dockerConfig != "" {
+	if !userSpecifiedPath {
+		xdgCfgHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgCfgHome == "" {
+			xdgCfgHome = filepath.Join(homeDir, ".config")
+		}
+		paths = append(paths, newAuthPathDefault(filepath.Join(xdgCfgHome, xdgConfigHomePath)))
+		if dockerConfig := os.Getenv("DOCKER_CONFIG"); dockerConfig != "" {
+			paths = append(paths, newAuthPathDefault(filepath.Join(dockerConfig, "config.json")))
+		} else {
+			paths = append(paths,
+				newAuthPathDefault(filepath.Join(homeDir, dockerHomePath)),
+			)
+		}
 		paths = append(paths,
-			authPath{path: filepath.Join(dockerConfig, "config.json"), legacyFormat: false},
-		)
-	} else {
-		paths = append(paths,
-			authPath{path: filepath.Join(homeDir, dockerHomePath), legacyFormat: false},
+			authPath{path: filepath.Join(homeDir, dockerLegacyHomePath), legacyFormat: true},
 		)
 	}
-	paths = append(paths,
-		authPath{path: filepath.Join(homeDir, dockerLegacyHomePath), legacyFormat: true},
-	)
 	return paths
 }
 
@@ -276,7 +285,7 @@ func getCredentialsWithHomeDir(sys *types.SystemContext, key, homeDir string) (t
 	// Anonymous function to query credentials from auth files.
 	getCredentialsFromAuthFiles := func() (types.DockerAuthConfig, string, error) {
 		for _, path := range getAuthFilePaths(sys, homeDir) {
-			authConfig, err := findCredentialsInFile(key, registry, path.path, path.legacyFormat)
+			authConfig, err := findCredentialsInFile(key, registry, path)
 			if err != nil {
 				return types.DockerAuthConfig{}, "", err
 			}
@@ -383,17 +392,16 @@ func RemoveAuthentication(sys *types.SystemContext, key string) error {
 		if isNamespaced {
 			logrus.Debugf("Not removing credentials because namespaced keys are not supported for the credential helper: %s", helper)
 			return
-		} else {
-			err := deleteAuthFromCredHelper(helper, key)
-			if err == nil {
-				logrus.Debugf("Credentials for %q were deleted from credential helper %s", key, helper)
-				isLoggedIn = true
-				return
-			}
-			if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
-				logrus.Debugf("Not logged in to %s with credential helper %s", key, helper)
-				return
-			}
+		}
+		err := deleteAuthFromCredHelper(helper, key)
+		if err == nil {
+			logrus.Debugf("Credentials for %q were deleted from credential helper %s", key, helper)
+			isLoggedIn = true
+			return
+		}
+		if credentials.IsErrCredentialsNotFoundMessage(err.Error()) {
+			logrus.Debugf("Not logged in to %s with credential helper %s", key, helper)
+			return
 		}
 		multiErr = multierror.Append(multiErr, fmt.Errorf("removing credentials for %s from credential helper %s: %w", key, helper, err))
 	}
@@ -403,7 +411,7 @@ func RemoveAuthentication(sys *types.SystemContext, key string) error {
 		switch helper {
 		// Special-case the built-in helper for auth files.
 		case sysregistriesv2.AuthenticationFileHelper:
-			_, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+			_, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, string, error) {
 				if innerHelper, exists := auths.CredHelpers[key]; exists {
 					removeFromCredHelper(innerHelper)
 				}
@@ -411,7 +419,7 @@ func RemoveAuthentication(sys *types.SystemContext, key string) error {
 					isLoggedIn = true
 					delete(auths.AuthConfigs, key)
 				}
-				return true, multiErr
+				return true, "", multiErr
 			})
 			if err != nil {
 				multiErr = multierror.Append(multiErr, err)
@@ -446,18 +454,18 @@ func RemoveAllAuthentication(sys *types.SystemContext) error {
 		switch helper {
 		// Special-case the built-in helper for auth files.
 		case sysregistriesv2.AuthenticationFileHelper:
-			_, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, error) {
+			_, err = modifyJSON(sys, func(auths *dockerConfigFile) (bool, string, error) {
 				for registry, helper := range auths.CredHelpers {
 					// Helpers in auth files are expected
 					// to exist, so no special treatment
 					// for them.
 					if err := deleteAuthFromCredHelper(helper, registry); err != nil {
-						return false, err
+						return false, "", err
 					}
 				}
 				auths.CredHelpers = make(map[string]string)
 				auths.AuthConfigs = make(map[string]dockerAuthConfig)
-				return true, nil
+				return true, "", nil
 			})
 		// External helpers.
 		default:
@@ -495,28 +503,28 @@ func listAuthsFromCredHelper(credHelper string) (map[string]string, error) {
 	return helperclient.List(p)
 }
 
-// getPathToAuth gets the path of the auth.json file used for reading and writing credentials
-// returns the path, and a bool specifies whether the file is in legacy format
-func getPathToAuth(sys *types.SystemContext) (string, bool, error) {
+// getPathToAuth gets the path of the auth.json file used for reading and writing credentials,
+// and a boolean indicating whether the return value came from an explicit user choice (i.e. not defaults)
+func getPathToAuth(sys *types.SystemContext) (authPath, bool, error) {
 	return getPathToAuthWithOS(sys, runtime.GOOS)
 }
 
 // getPathToAuthWithOS is an internal implementation detail of getPathToAuth,
 // it exists only to allow testing it with an artificial runtime.GOOS.
-func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (string, bool, error) {
+func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (authPath, bool, error) {
 	if sys != nil {
 		if sys.AuthFilePath != "" {
-			return sys.AuthFilePath, false, nil
+			return newAuthPathDefault(sys.AuthFilePath), true, nil
 		}
 		if sys.LegacyFormatAuthFilePath != "" {
-			return sys.LegacyFormatAuthFilePath, true, nil
+			return authPath{path: sys.LegacyFormatAuthFilePath, legacyFormat: true}, true, nil
 		}
 		if sys.RootForImplicitAbsolutePaths != "" {
-			return filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), false, nil
+			return newAuthPathDefault(filepath.Join(sys.RootForImplicitAbsolutePaths, fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()))), false, nil
 		}
 	}
 	if goOS == "windows" || goOS == "darwin" {
-		return filepath.Join(homedir.Get(), nonLinuxAuthFilePath), false, nil
+		return newAuthPathDefault(filepath.Join(homedir.Get(), nonLinuxAuthFilePath)), false, nil
 	}
 
 	runtimeDir := os.Getenv("XDG_RUNTIME_DIR")
@@ -528,20 +536,20 @@ func getPathToAuthWithOS(sys *types.SystemContext, goOS string) (string, bool, e
 			// This means the user set the XDG_RUNTIME_DIR variable and either forgot to create the directory
 			// or made a typo while setting the environment variable,
 			// so return an error referring to $XDG_RUNTIME_DIR instead of xdgRuntimeDirPath inside.
-			return "", false, fmt.Errorf("%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.: %w", runtimeDir, err)
+			return authPath{}, false, fmt.Errorf("%q directory set by $XDG_RUNTIME_DIR does not exist. Either create the directory or unset $XDG_RUNTIME_DIR.: %w", runtimeDir, err)
 		} // else ignore err and let the caller fail accessing xdgRuntimeDirPath.
-		return filepath.Join(runtimeDir, xdgRuntimeDirPath), false, nil
+		return newAuthPathDefault(filepath.Join(runtimeDir, xdgRuntimeDirPath)), false, nil
 	}
-	return fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid()), false, nil
+	return newAuthPathDefault(fmt.Sprintf(defaultPerUIDPathFormat, os.Getuid())), false, nil
 }
 
-// readJSONFile unmarshals the authentications stored in the auth.json file and returns it
+// parse unmarshals the authentications stored in the auth.json file and returns it
 // or returns an empty dockerConfigFile data structure if auth.json does not exist
-// if the file exists and is empty, readJSONFile returns an error
-func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
+// if the file exists and is empty, this function returns an error.
+func (path authPath) parse() (dockerConfigFile, error) {
 	var auths dockerConfigFile
 
-	raw, err := os.ReadFile(path)
+	raw, err := os.ReadFile(path.path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			auths.AuthConfigs = map[string]dockerAuthConfig{}
@@ -550,15 +558,15 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 		return dockerConfigFile{}, err
 	}
 
-	if legacyFormat {
+	if path.legacyFormat {
 		if err = json.Unmarshal(raw, &auths.AuthConfigs); err != nil {
-			return dockerConfigFile{}, fmt.Errorf("unmarshaling JSON at %q: %w", path, err)
+			return dockerConfigFile{}, fmt.Errorf("unmarshaling JSON at %q: %w", path.path, err)
 		}
 		return auths, nil
 	}
 
 	if err = json.Unmarshal(raw, &auths); err != nil {
-		return dockerConfigFile{}, fmt.Errorf("unmarshaling JSON at %q: %w", path, err)
+		return dockerConfigFile{}, fmt.Errorf("unmarshaling JSON at %q: %w", path.path, err)
 	}
 
 	if auths.AuthConfigs == nil {
@@ -573,42 +581,48 @@ func readJSONFile(path string, legacyFormat bool) (dockerConfigFile, error) {
 
 // modifyJSON finds an auth.json file, calls editor on the contents, and
 // writes it back if editor returns true.
-// Returns a human-redable description of the file, to be returned by SetCredentials.
-func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (bool, error)) (string, error) {
-	path, legacyFormat, err := getPathToAuth(sys)
+// Returns a human-readable description of the file, to be returned by SetCredentials.
+//
+// The editor may also return a human-readable description of the updated location; if it is "",
+// the file itself is used.
+func modifyJSON(sys *types.SystemContext, editor func(auths *dockerConfigFile) (bool, string, error)) (string, error) {
+	path, _, err := getPathToAuth(sys)
 	if err != nil {
 		return "", err
 	}
-	if legacyFormat {
-		return "", fmt.Errorf("writes to %s using legacy format are not supported", path)
+	if path.legacyFormat {
+		return "", fmt.Errorf("writes to %s using legacy format are not supported", path.path)
 	}
 
-	dir := filepath.Dir(path)
+	dir := filepath.Dir(path.path)
 	if err = os.MkdirAll(dir, 0700); err != nil {
 		return "", err
 	}
 
-	auths, err := readJSONFile(path, false)
+	auths, err := path.parse()
 	if err != nil {
-		return "", fmt.Errorf("reading JSON file %q: %w", path, err)
+		return "", fmt.Errorf("reading JSON file %q: %w", path.path, err)
 	}
 
-	updated, err := editor(&auths)
+	updated, description, err := editor(&auths)
 	if err != nil {
-		return "", fmt.Errorf("updating %q: %w", path, err)
+		return "", fmt.Errorf("updating %q: %w", path.path, err)
 	}
 	if updated {
 		newData, err := json.MarshalIndent(auths, "", "\t")
 		if err != nil {
-			return "", fmt.Errorf("marshaling JSON %q: %w", path, err)
+			return "", fmt.Errorf("marshaling JSON %q: %w", path.path, err)
 		}
 
-		if err = ioutils.AtomicWriteFile(path, newData, 0600); err != nil {
-			return "", fmt.Errorf("writing to file %q: %w", path, err)
+		if err = ioutils.AtomicWriteFile(path.path, newData, 0600); err != nil {
+			return "", fmt.Errorf("writing to file %q: %w", path.path, err)
 		}
 	}
 
-	return path, nil
+	if description == "" {
+		description = path.path
+	}
+	return description, nil
 }
 
 func getAuthFromCredHelper(credHelper, registry string) (types.DockerAuthConfig, error) {
@@ -636,7 +650,9 @@ func getAuthFromCredHelper(credHelper, registry string) (types.DockerAuthConfig,
 	}
 }
 
-func setAuthToCredHelper(credHelper, registry, username, password string) error {
+// setAuthToCredHelper stores (username, password) for registry in credHelper.
+// Returns a human-readable description of the destination, to be returned by SetCredentials.
+func setAuthToCredHelper(credHelper, registry, username, password string) (string, error) {
 	helperName := fmt.Sprintf("docker-credential-%s", credHelper)
 	p := helperclient.NewShellProgramFunc(helperName)
 	creds := &credentials.Credentials{
@@ -644,7 +660,10 @@ func setAuthToCredHelper(credHelper, registry, username, password string) error 
 		Username:  username,
 		Secret:    password,
 	}
-	return helperclient.Store(p, creds)
+	if err := helperclient.Store(p, creds); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("credential helper: %s", credHelper), nil
 }
 
 func deleteAuthFromCredHelper(credHelper, registry string) error {
@@ -655,17 +674,17 @@ func deleteAuthFromCredHelper(credHelper, registry string) error {
 
 // findCredentialsInFile looks for credentials matching "key"
 // (which is "registry" or a namespace in "registry") in "path".
-func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types.DockerAuthConfig, error) {
-	auths, err := readJSONFile(path, legacyFormat)
+func findCredentialsInFile(key, registry string, path authPath) (types.DockerAuthConfig, error) {
+	auths, err := path.parse()
 	if err != nil {
-		return types.DockerAuthConfig{}, fmt.Errorf("reading JSON file %q: %w", path, err)
+		return types.DockerAuthConfig{}, fmt.Errorf("reading JSON file %q: %w", path.path, err)
 	}
 
 	// First try cred helpers. They should always be normalized.
 	// This intentionally uses "registry", not "key"; we don't support namespaced
 	// credentials in helpers.
 	if ch, exists := auths.CredHelpers[registry]; exists {
-		logrus.Debugf("Looking up in credential helper %s based on credHelpers entry in %s", ch, path)
+		logrus.Debugf("Looking up in credential helper %s based on credHelpers entry in %s", ch, path.path)
 		return getAuthFromCredHelper(ch, registry)
 	}
 
@@ -673,7 +692,7 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	// (This is not a feature of ~/.docker/config.json; we support it even for
 	// those files as an extension.)
 	var keys []string
-	if !legacyFormat {
+	if !path.legacyFormat {
 		keys = authKeysForKey(key)
 	} else {
 		keys = []string{registry}
@@ -683,7 +702,7 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	// keys we prefer exact matches as well.
 	for _, key := range keys {
 		if val, exists := auths.AuthConfigs[key]; exists {
-			return decodeDockerAuth(path, key, val)
+			return decodeDockerAuth(path.path, key, val)
 		}
 	}
 
@@ -697,14 +716,14 @@ func findCredentialsInFile(key, registry, path string, legacyFormat bool) (types
 	// so account for that as well.
 	registry = normalizeRegistry(registry)
 	for k, v := range auths.AuthConfigs {
-		if normalizeAuthFileKey(k, legacyFormat) == registry {
-			return decodeDockerAuth(path, k, v)
+		if normalizeAuthFileKey(k, path.legacyFormat) == registry {
+			return decodeDockerAuth(path.path, k, v)
 		}
 	}
 
 	// Only log this if we found nothing; getCredentialsWithHomeDir logs the
 	// source of found data.
-	logrus.Debugf("No credentials matching %s found in %s", key, path)
+	logrus.Debugf("No credentials matching %s found in %s", key, path.path)
 	return types.DockerAuthConfig{}, nil
 }
 
@@ -737,8 +756,8 @@ func decodeDockerAuth(path, key string, conf dockerAuthConfig) (types.DockerAuth
 		return types.DockerAuthConfig{}, err
 	}
 
-	parts := strings.SplitN(string(decoded), ":", 2)
-	if len(parts) != 2 {
+	user, passwordPart, valid := strings.Cut(string(decoded), ":")
+	if !valid {
 		// if it's invalid just skip, as docker does
 		if len(decoded) > 0 { // Docker writes "auths": { "$host": {} } entries if a credential helper is used, don’t warn about those
 			logrus.Warnf(`Error parsing the "auth" field of a credential entry %q in %q, missing semicolon`, key, path) // Don’t include the text of decoded, because that might put secrets into a log.
@@ -748,8 +767,7 @@ func decodeDockerAuth(path, key string, conf dockerAuthConfig) (types.DockerAuth
 		return types.DockerAuthConfig{}, nil
 	}
 
-	user := parts[0]
-	password := strings.Trim(parts[1], "\x00")
+	password := strings.Trim(passwordPart, "\x00")
 	return types.DockerAuthConfig{
 		Username:      user,
 		Password:      password,
@@ -764,7 +782,7 @@ func normalizeAuthFileKey(key string, legacyFormat bool) string {
 	stripped = strings.TrimPrefix(stripped, "https://")
 
 	if legacyFormat || stripped != key {
-		stripped = strings.SplitN(stripped, "/", 2)[0]
+		stripped, _, _ = strings.Cut(stripped, "/")
 	}
 
 	return normalizeRegistry(stripped)
