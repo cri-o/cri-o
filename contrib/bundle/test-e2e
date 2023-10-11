@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-USE_CONMONRS=0
+USE_CONMON=0
 
 usage() {
     printf "Usage: %s [ --use-conmonrs ] [ -h ]\n\n" "$(basename "$0")"
     echo "Possible arguments:"
-    printf "  --use-conmonrs\tUse conmonrs instead of conmon\n"
+    printf "  --use-conmon\tUse conmon instead of conmon-rs\n"
     printf "  -h\t\t\tShow this help message\n"
 }
 
@@ -14,7 +14,7 @@ parse_args() {
     for arg in "$@"; do
         shift
         case "$arg" in
-        '--use-conmonrs') set -- "$@" '-c' ;;
+        '--use-conmon') set -- "$@" '-c' ;;
         '--help') set -- "$@" '-h' ;;
         *) set -- "$@" "$arg" ;;
         esac
@@ -23,7 +23,7 @@ parse_args() {
     while getopts 'ch' OPTION; do
         case "$OPTION" in
         c)
-            USE_CONMONRS=1
+            USE_CONMON=1
             ;;
         h)
             usage
@@ -86,26 +86,20 @@ pushd cri-o
 ./install
 
 # Set runtime type based on selection
-RUNTIME_TYPE=oci
-if [[ $USE_CONMONRS -eq 1 ]]; then
-    echo "Using conmonrs instead of conmon"
-    RUNTIME_TYPE=pod
-else
+if [[ $USE_CONMON -eq 1 ]]; then
+    echo "Using conmon instead of conmon-rs"
+    sed 's;pod;oci;g' /etc/crio/crio.conf.d/10-crun.conf
     conmon --version
+else
+    conmonrs --version
 fi
 
-# Use runc as default runtime
-rm /etc/crio/crio.conf.d/10-crun.conf
-cat <<EOT >>/etc/crio/crio.conf.d/10-config.conf
+cat <<EOT >>/etc/crio/crio.conf.d/10-log-level.conf
 [crio.runtime]
 log_level = "debug"
-
-[crio.runtime.runtimes.runc]
-runtime_path = "/usr/local/bin/runc"
-runtime_type = "$RUNTIME_TYPE"
 EOT
 
-runc --version
+crun --version
 
 crio config
 crio config --default
@@ -188,6 +182,6 @@ _output/bin/e2e.test --provider=local --host="https://$IP:6443" \
     --ginkgo.skip='\[Flaky|Slow|Serial|sig-network|NodeFeature:RuntimeHandler\]|exec hook properly'
 
 # Validate that we were using conmonrs
-if [[ $USE_CONMONRS -eq 1 ]]; then
+if [[ $USE_CONMON -eq 0 ]]; then
     journalctl --no-pager -u crio | grep -qm1 "Using conmonrs version:"
 fi

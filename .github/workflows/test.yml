@@ -232,7 +232,7 @@ jobs:
           path: build/bundle
       - run: make bundle-test
 
-  bundle-test-e2e:
+  bundle-test-e2e-conmon:
     runs-on: ubuntu-latest
     needs: bundles
     steps:
@@ -244,7 +244,7 @@ jobs:
         with:
           name: bundle
           path: build/bundle
-      - run: make bundle-test-e2e
+      - run: make bundle-test-e2e-conmon
 
   bundle-test-e2e-conmonrs:
     runs-on: ubuntu-latest

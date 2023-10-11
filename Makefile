@@ -437,11 +437,11 @@ bundle: ${BOM}
 bundle-test:
 	sudo contrib/bundle/test
 
-bundle-test-e2e:
-	sudo contrib/bundle/test-e2e
+bundle-test-e2e-conmon:
+	sudo contrib/bundle/test-e2e --use-conmon
 
 bundle-test-e2e-conmonrs:
-	sudo contrib/bundle/test-e2e --use-conmonrs
+	sudo contrib/bundle/test-e2e
 
 bundle-test-kubernetes:
 	cd contrib/bundle && vagrant up
