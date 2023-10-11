@@ -150,10 +150,6 @@ type ImageServer interface {
 	// CandidatesForPotentiallyShortImageName resolves an image name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
 	// It will only return an empty slice if err != nil.
 	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error)
-
-	// ResolveNames takes an image reference and if it's unqualified (w/o hostname),
-	// it uses crio's default registries to qualify it.
-	ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error)
 }
 
 func sortNamesByType(names []string) (bestName string, tags, digests []string) {
@@ -806,27 +802,6 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 		images[i] = references.RegistryImageReferenceFromRaw(ref)
 	}
 
-	return images, nil
-}
-
-// ResolveNames resolves an image name into a storage image ID or a fully-qualified image name (domain/repo/image:tag).
-// Will only return an empty slice if err != nil.
-func (svc *imageService) ResolveNames(systemContext *types.SystemContext, imageName string) ([]string, error) {
-	if id := svc.HeuristicallyTryResolvingStringAsIDPrefix(imageName); id != nil {
-		// This violates rules of StorageImageID, and should be removed soon (2023-10).
-		id := id.IDStringForOutOfProcessConsumptionOnly()
-		return []string{id}, nil
-	}
-
-	fullyQualified, err := svc.CandidatesForPotentiallyShortImageName(systemContext, imageName)
-	if err != nil {
-		return nil, err
-	}
-	images := make([]string, len(fullyQualified))
-	for i := range fullyQualified {
-		// This violates rules of StorageImageID, and should be removed soon (2023-10).
-		images[i] = fullyQualified[i].StringForOutOfProcessConsumptionOnly()
-	}
 	return images, nil
 }
 
