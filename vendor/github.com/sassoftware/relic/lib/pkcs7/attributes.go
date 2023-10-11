@@ -18,9 +18,7 @@ package pkcs7
 
 import (
 	"encoding/asn1"
-	"errors"
 	"fmt"
-	"time"
 )
 
 type ErrNoAttribute struct {
@@ -31,27 +29,21 @@ func (e ErrNoAttribute) Error() string {
 	return fmt.Sprintf("attribute not found: %s", e.ID)
 }
 
-// Bytes returns a SET OF form of the attribute list for digesting, per RFC 2315 9.3, 2nd paragraph
+// marshal authenticated attributes for digesting
 func (l *AttributeList) Bytes() ([]byte, error) {
-	return marshalUnsortedSet(*l)
-}
-
-// Need to marshal authenticated attributes as a SET OF in order to digest them,
-// but since go 1.15 sets get sorted which breaks the digest. Marshal as a
-// sequence and then change the tag.
-func marshalUnsortedSet(v interface{}) ([]byte, error) {
-	encoded, err := asn1.Marshal(v)
+	// needs an explicit SET OF tag but not the class-specific tag from the
+	// original struct. see RFC 2315 9.3, 2nd paragraph
+	encoded, err := asn1.Marshal(struct {
+		A []Attribute `asn1:"set"`
+	}{A: *l})
 	if err != nil {
 		return nil, err
 	}
-	if len(encoded) > 0 {
-		if encoded[0]&0x1f != asn1.TagSequence {
-			return nil, fmt.Errorf("expected sequence, got %d", encoded[0]&0x1f)
-		}
-		// sequence 16 -> set 17
-		encoded[0] |= 1
+	var raw asn1.RawValue
+	if _, err := asn1.Unmarshal(encoded, &raw); err != nil {
+		return nil, err
 	}
-	return encoded, nil
+	return raw.Bytes, nil
 }
 
 // unmarshal a single attribute, if it exists
@@ -93,35 +85,4 @@ func (l *AttributeList) Add(oid asn1.ObjectIdentifier, obj interface{}) error {
 			Bytes:      value,
 		}})
 	return nil
-}
-
-func (i SignerInfo) SigningTime() (time.Time, error) {
-	var raw asn1.RawValue
-	if err := i.AuthenticatedAttributes.GetOne(OidAttributeSigningTime, &raw); err != nil {
-		return time.Time{}, err
-	}
-	return ParseTime(raw)
-}
-
-// AuthenticatedAttributesBytes returns a SET OF form of the attribute list for digesting, per RFC 2315 9.3, 2nd paragraph
-func (i SignerInfo) AuthenticatedAttributesBytes() ([]byte, error) {
-	if i.RawContent == nil {
-		return i.AuthenticatedAttributes.Bytes()
-	}
-	// decode the SignerInfo as a sequence of raw values to extract how the
-	// authenticated attributes were originally encoded extract the original
-	var seq []asn1.RawValue
-	if _, err := asn1.Unmarshal(i.RawContent, &seq); err != nil {
-		return nil, err
-	}
-	if len(seq) < 4 {
-		return nil, errors.New("short sequence in SignerInfo")
-	}
-	raw := seq[3]
-	// tweak the attribute sequence to be a set
-	return marshalUnsortedSet(asn1.RawValue{
-		Tag:        asn1.TagSequence,
-		IsCompound: true,
-		Bytes:      raw.Bytes,
-	})
 }

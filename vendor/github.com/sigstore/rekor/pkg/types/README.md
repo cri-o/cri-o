@@ -8,6 +8,10 @@ Rekor supports pluggable types (aka different schemas) for entries stored in the
 
 - Alpine Packages [schema](alpine/alpine_schema.json)
   - Versions: 0.0.1
+- COSE Envelopes [schema](cose/cose_schema.json)
+  - Versions: 0.0.1
+- HashedRekord [schema](hashedrekord/hashedrekord_schema.json)
+  - Versions: 0.0.1
 - Helm Provenance Files [schema](helm/helm_schema.json)
   - Versions: 0.0.1
 - In-Toto Attestations [schema](intoto/intoto_schema.json)
@@ -20,7 +24,7 @@ Rekor supports pluggable types (aka different schemas) for entries stored in the
   - Versions: 0.0.1
 - RPM Packages [schema](rpm/rpm_schema.json)
   - Versions: 0.0.1
-- COSE Envelopes [schema](cose/cose_schema.json)
+- TUF Metadata [schema](tuf/tuf_schema.json)
   - Versions: 0.0.1
 
 Refer to [Rekor docs](https://docs.sigstore.dev/rekor/pluggable-types) for adding support for new types.

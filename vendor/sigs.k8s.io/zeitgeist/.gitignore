@@ -1,7 +1,10 @@
 coverage.out
 .DS_Store
 dist/
+output/
 bin/
 .idea
 /zeitgeist
 /imagerefs
+/imagerefs_buoy
+.vscode/*

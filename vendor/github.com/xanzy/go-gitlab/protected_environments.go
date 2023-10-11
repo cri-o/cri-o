@@ -89,7 +89,7 @@ func (s *ProtectedEnvironmentsService) ListProtectedEnvironments(pid interface{}
 // protected environment.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/protected_environments.html#get-a-single-protected-environment-or-wildcard-protected-environment
+// https://docs.gitlab.com/ee/api/protected_environments.html#get-a-single-protected-environment
 func (s *ProtectedEnvironmentsService) GetProtectedEnvironment(pid interface{}, environment string, options ...RequestOptionFunc) (*ProtectedEnvironment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -115,7 +115,7 @@ func (s *ProtectedEnvironmentsService) GetProtectedEnvironment(pid interface{}, 
 // ProtectRepositoryEnvironments() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/protected_environments.html#protect-repository-environments
+// https://docs.gitlab.com/ee/api/protected_environments.html#protect-a-single-environment
 type ProtectRepositoryEnvironmentsOptions struct {
 	Name                  *string                      `url:"name,omitempty" json:"name,omitempty"`
 	DeployAccessLevels    *[]*EnvironmentAccessOptions `url:"deploy_access_levels,omitempty" json:"deploy_access_levels,omitempty"`
@@ -126,7 +126,7 @@ type ProtectRepositoryEnvironmentsOptions struct {
 // a protected environment.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/protected_environments.html#protect-repository-environments
+// https://docs.gitlab.com/ee/api/protected_environments.html#protect-a-single-environment
 type EnvironmentAccessOptions struct {
 	AccessLevel *AccessLevelValue `url:"access_level,omitempty" json:"access_level,omitempty"`
 	UserID      *int              `url:"user_id,omitempty" json:"user_id,omitempty"`
@@ -137,7 +137,7 @@ type EnvironmentAccessOptions struct {
 // several project repository environments using wildcard protected environment.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/protected_environments.html#protect-repository-environments
+// https://docs.gitlab.com/ee/api/protected_environments.html#protect-a-single-environment
 func (s *ProtectedEnvironmentsService) ProtectRepositoryEnvironments(pid interface{}, opt *ProtectRepositoryEnvironmentsOptions, options ...RequestOptionFunc) (*ProtectedEnvironment, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -163,7 +163,7 @@ func (s *ProtectedEnvironmentsService) ProtectRepositoryEnvironments(pid interfa
 // protected environment.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/protected_environments.html#unprotect-repository-environments
+// https://docs.gitlab.com/ee/api/protected_environments.html#unprotect-a-single-environment
 func (s *ProtectedEnvironmentsService) UnprotectEnvironment(pid interface{}, environment string, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

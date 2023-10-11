@@ -68,10 +68,12 @@ func NewGetLogEntryByUUIDParamsWithHTTPClient(client *http.Client) *GetLogEntryB
 	}
 }
 
-/* GetLogEntryByUUIDParams contains all the parameters to send to the API endpoint
-   for the get log entry by UUID operation.
+/*
+GetLogEntryByUUIDParams contains all the parameters to send to the API endpoint
 
-   Typically these are written to a http.Request.
+	for the get log entry by UUID operation.
+
+	Typically these are written to a http.Request.
 */
 type GetLogEntryByUUIDParams struct {
 

@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
@@ -44,7 +43,7 @@ func FileOrURLReadCloser(ctx context.Context, url string, content []byte) (io.Re
 
 		dataReader = resp.Body
 	} else {
-		dataReader = ioutil.NopCloser(bytes.NewReader(content))
+		dataReader = io.NopCloser(bytes.NewReader(content))
 	}
 	return dataReader, nil
 }

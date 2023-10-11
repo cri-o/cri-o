@@ -29,12 +29,12 @@ import (
 // AccessControlValue represents an access control value within GitLab,
 // used for managing access to certain project features.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html
 type AccessControlValue string
 
 // List of available access control values.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html
 const (
 	DisabledAccessControl AccessControlValue = "disabled"
 	EnabledAccessControl  AccessControlValue = "enabled"
@@ -52,12 +52,12 @@ func AccessControl(v AccessControlValue) *AccessControlValue {
 
 // AccessLevelValue represents a permission level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
+// GitLab API docs: https://docs.gitlab.com/ee/user/permissions.html
 type AccessLevelValue int
 
 // List of available access levels
 //
-// GitLab API docs: https://docs.gitlab.com/ce/permissions/permissions.html
+// GitLab API docs: https://docs.gitlab.com/ee/user/permissions.html
 const (
 	NoPermissions            AccessLevelValue = 0
 	MinimalAccessPermissions AccessLevelValue = 5
@@ -67,9 +67,10 @@ const (
 	MaintainerPermissions    AccessLevelValue = 40
 	OwnerPermissions         AccessLevelValue = 50
 
-	// These are deprecated and should be removed in a future version
+	// Deprecated: Renamed to MaintainerPermissions in GitLab 11.0.
 	MasterPermissions AccessLevelValue = 40
-	OwnerPermission   AccessLevelValue = 50
+	// Deprecated: Renamed to OwnerPermissions.
+	OwnerPermission AccessLevelValue = 50
 )
 
 // AccessLevel is a helper routine that allocates a new AccessLevelValue
@@ -269,7 +270,7 @@ type EventTypeValue string
 
 // List of available action type
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/events.html#action-types
+// GitLab API docs: https://docs.gitlab.com/ee/user/profile/contributions_calendar.html#user-contribution-events
 const (
 	CreatedEventType   EventTypeValue = "created"
 	UpdatedEventType   EventTypeValue = "updated"
@@ -289,7 +290,7 @@ type EventTargetTypeValue string
 
 // List of available action type
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/events.html#target-types
+// GitLab API docs: https://docs.gitlab.com/ee/api/events.html#target-types
 const (
 	IssueEventTargetType        EventTargetTypeValue = "issue"
 	MilestoneEventTargetType    EventTargetTypeValue = "milestone"
@@ -302,7 +303,7 @@ const (
 
 // FileActionValue represents the available actions that can be performed on a file.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/commits.html#create-a-commit-with-multiple-files-and-actions
+// GitLab API docs: https://docs.gitlab.com/ee/api/commits.html#create-a-commit-with-multiple-files-and-actions
 type FileActionValue string
 
 // The available file actions.
@@ -413,7 +414,7 @@ type LinkTypeValue string
 // List of available release link types
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/releases/links.html#create-a-link
+// https://docs.gitlab.com/ee/api/releases/links.html#create-a-release-link
 const (
 	ImageLinkType   LinkTypeValue = "image"
 	OtherLinkType   LinkTypeValue = "other"
@@ -452,12 +453,12 @@ func LicenseApprovalStatus(v LicenseApprovalStatusValue) *LicenseApprovalStatusV
 
 // MergeMethodValue represents a project merge type within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#project-merge-method
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#project-merge-method
 type MergeMethodValue string
 
 // List of available merge type
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/projects.html#project-merge-method
+// GitLab API docs: https://docs.gitlab.com/ee/api/projects.html#project-merge-method
 const (
 	NoFastForwardMerge MergeMethodValue = "merge"
 	FastForwardMerge   MergeMethodValue = "ff"
@@ -563,12 +564,12 @@ func NotificationLevel(v NotificationLevelValue) *NotificationLevelValue {
 
 // ProjectCreationLevelValue represents a project creation level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 type ProjectCreationLevelValue string
 
 // List of available project creation levels.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 const (
 	NoOneProjectCreation      ProjectCreationLevelValue = "noone"
 	MaintainerProjectCreation ProjectCreationLevelValue = "maintainer"
@@ -610,12 +611,12 @@ func SharedRunnersSetting(v SharedRunnersSettingValue) *SharedRunnersSettingValu
 
 // SubGroupCreationLevelValue represents a sub group creation level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 type SubGroupCreationLevelValue string
 
 // List of available sub group creation levels.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 const (
 	OwnerSubGroupCreationLevelValue      SubGroupCreationLevelValue = "owner"
 	MaintainerSubGroupCreationLevelValue SubGroupCreationLevelValue = "maintainer"
@@ -660,7 +661,7 @@ type TasksCompletionStatus struct {
 
 // TodoAction represents the available actions that can be performed on a todo.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/todos.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/todos.html
 type TodoAction string
 
 // The available todo actions.
@@ -675,7 +676,7 @@ const (
 
 // TodoTargetType represents the available target that can be linked to a todo.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/todos.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/todos.html
 type TodoTargetType string
 
 const (
@@ -696,12 +697,12 @@ const (
 
 // VariableTypeValue represents a variable type within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 type VariableTypeValue string
 
 // List of available variable types.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 const (
 	EnvVariableType  VariableTypeValue = "env_var"
 	FileVariableType VariableTypeValue = "file"
@@ -717,12 +718,12 @@ func VariableType(v VariableTypeValue) *VariableTypeValue {
 
 // VisibilityValue represents a visibility level within GitLab.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 type VisibilityValue string
 
 // List of available visibility levels.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/
+// GitLab API docs: https://docs.gitlab.com/ee/api/
 const (
 	PrivateVisibility  VisibilityValue = "private"
 	InternalVisibility VisibilityValue = "internal"
@@ -739,7 +740,7 @@ func Visibility(v VisibilityValue) *VisibilityValue {
 
 // WikiFormatValue represents the available wiki formats.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/wikis.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/wikis.html
 type WikiFormatValue string
 
 // The available wiki formats.

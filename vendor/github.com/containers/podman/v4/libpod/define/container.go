@@ -29,7 +29,7 @@ var RestartPolicyMap = map[string]string{
 
 // InitContainerTypes
 const (
-	// AlwaysInitContainer is an init container than runs on each
+	// AlwaysInitContainer is an init container that runs on each
 	// pod start (including restart)
 	AlwaysInitContainer = "always"
 	// OneShotInitContainer is a container that only runs as init once
@@ -37,4 +37,12 @@ const (
 	OneShotInitContainer = "once"
 	// ContainerInitPath is the default path of the mounted container init.
 	ContainerInitPath = "/run/podman-init"
+)
+
+// Kubernetes Kinds
+const (
+	// A Pod kube yaml spec
+	K8sKindPod = "pod"
+	// A Deployment kube yaml spec
+	K8sKindDeployment = "deployment"
 )
