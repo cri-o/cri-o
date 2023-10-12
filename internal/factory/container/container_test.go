@@ -117,7 +117,7 @@ var _ = t.Describe("Container", func() {
 			Expect(currentTime).ToNot(BeNil())
 			Expect(sb).ToNot(BeNil())
 
-			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, false, "foo", "")
+			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, "foo", "")
 			Expect(err).To(BeNil())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
