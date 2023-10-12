@@ -15,14 +15,17 @@
 package client
 
 import (
+	"crypto/tls"
+	"net/http"
 	"net/url"
 
 	"github.com/go-openapi/runtime"
 	httptransport "github.com/go-openapi/runtime/client"
 	"github.com/go-openapi/strfmt"
+	"github.com/hashicorp/go-cleanhttp"
+	retryablehttp "github.com/hashicorp/go-retryablehttp"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/util"
-	"github.com/spf13/viper"
 )
 
 func GetRekorClient(rekorServerURL string, opts ...Option) (*client.Rekor, error) {
@@ -32,19 +35,30 @@ func GetRekorClient(rekorServerURL string, opts ...Option) (*client.Rekor, error
 	}
 	o := makeOptions(opts...)
 
-	rt := httptransport.New(url.Host, client.DefaultBasePath, []string{url.Scheme})
-	rt.Consumers["application/yaml"] = YamlConsumer()
-	rt.Consumers["application/x-pem-file"] = runtime.TextConsumer()
-	rt.Consumers["application/pem-certificate-chain"] = runtime.TextConsumer()
-	rt.Producers["application/yaml"] = YamlProducer()
-	rt.Producers["application/timestamp-query"] = runtime.ByteStreamProducer()
-	rt.Consumers["application/timestamp-reply"] = runtime.ByteStreamConsumer()
+	retryableClient := retryablehttp.NewClient()
+	defaultTransport := cleanhttp.DefaultTransport()
+	if o.InsecureTLS {
+		/* #nosec G402 */
+		defaultTransport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+	}
+	retryableClient.HTTPClient = &http.Client{
+		Transport: defaultTransport,
+	}
+	retryableClient.RetryMax = int(o.RetryCount)
+	retryableClient.Logger = o.Logger
 
-	if viper.GetString("api-key") != "" {
-		rt.DefaultAuthentication = httptransport.APIKeyAuth("apiKey", "query", viper.GetString("api-key"))
+	httpClient := retryableClient.StandardClient()
+	httpClient.Transport = createRoundTripper(httpClient.Transport, o)
+
+	// sanitize path
+	if url.Path == "" {
+		url.Path = client.DefaultBasePath
 	}
 
-	rt.Transport = createRoundTripper(rt.Transport, o)
+	rt := httptransport.NewWithClient(url.Host, url.Path, []string{url.Scheme}, httpClient)
+	rt.Consumers["application/json"] = runtime.JSONConsumer()
+	rt.Consumers["application/x-pem-file"] = runtime.TextConsumer()
+	rt.Producers["application/json"] = runtime.JSONProducer()
 
 	registry := strfmt.Default
 	registry.Add("signedCheckpoint", &util.SignedNote{}, util.SignedCheckpointValidator)

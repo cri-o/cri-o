@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,6 +36,10 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/models"
 	"github.com/sigstore/rekor/pkg/log"
 	"github.com/sigstore/rekor/pkg/pki"
+	"github.com/sigstore/rekor/pkg/pki/minisign"
+	"github.com/sigstore/rekor/pkg/pki/pgp"
+	"github.com/sigstore/rekor/pkg/pki/ssh"
+	"github.com/sigstore/rekor/pkg/pki/x509"
 	"github.com/sigstore/rekor/pkg/types"
 	"github.com/sigstore/rekor/pkg/types/rekord"
 	"github.com/sigstore/rekor/pkg/util"
@@ -341,8 +344,11 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 
 	var err error
 	artifactBytes := props.ArtifactBytes
-	if artifactBytes == nil {
+	if len(artifactBytes) == 0 {
 		var artifactReader io.ReadCloser
+		if props.ArtifactPath == nil {
+			return nil, errors.New("path to artifact file must be specified")
+		}
 		if props.ArtifactPath.IsAbs() {
 			artifactReader, err = util.FileOrURLReadCloser(ctx, props.ArtifactPath.String(), nil)
 			if err != nil {
@@ -354,7 +360,7 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 				return nil, fmt.Errorf("error opening artifact file: %w", err)
 			}
 		}
-		artifactBytes, err = ioutil.ReadAll(artifactReader)
+		artifactBytes, err = io.ReadAll(artifactReader)
 		if err != nil {
 			return nil, fmt.Errorf("error reading artifact file: %w", err)
 		}
@@ -371,13 +377,15 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatX509)
 	case "ssh":
 		re.RekordObj.Signature.Format = swag.String(models.RekordV001SchemaSignatureFormatSSH)
+	default:
+		return nil, fmt.Errorf("unexpected format of public key: %s", props.PKIFormat)
 	}
 	sigBytes := props.SignatureBytes
-	if sigBytes == nil {
+	if len(sigBytes) == 0 {
 		if props.SignaturePath == nil {
 			return nil, errors.New("a detached signature must be provided")
 		}
-		sigBytes, err = ioutil.ReadFile(filepath.Clean(props.SignaturePath.Path))
+		sigBytes, err = os.ReadFile(filepath.Clean(props.SignaturePath.Path))
 		if err != nil {
 			return nil, fmt.Errorf("error reading signature file: %w", err)
 		}
@@ -388,18 +396,20 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 
 	re.RekordObj.Signature.PublicKey = &models.RekordV001SchemaSignaturePublicKey{}
 	publicKeyBytes := props.PublicKeyBytes
-	if publicKeyBytes == nil {
-		if props.PublicKeyPath == nil {
-			return nil, errors.New("public key must be provided to verify detached signature")
+	if len(publicKeyBytes) == 0 {
+		if len(props.PublicKeyPaths) != 1 {
+			return nil, errors.New("only one public key must be provided to verify detached signature")
 		}
-		publicKeyBytes, err = ioutil.ReadFile(filepath.Clean(props.PublicKeyPath.Path))
+		keyBytes, err := os.ReadFile(filepath.Clean(props.PublicKeyPaths[0].Path))
 		if err != nil {
 			return nil, fmt.Errorf("error reading public key file: %w", err)
 		}
-		re.RekordObj.Signature.PublicKey.Content = (*strfmt.Base64)(&publicKeyBytes)
-	} else {
-		re.RekordObj.Signature.PublicKey.Content = (*strfmt.Base64)(&publicKeyBytes)
+		publicKeyBytes = append(publicKeyBytes, keyBytes)
+	} else if len(publicKeyBytes) != 1 {
+		return nil, errors.New("only one public key must be provided")
 	}
+
+	re.RekordObj.Signature.PublicKey.Content = (*strfmt.Base64)(&publicKeyBytes[0])
 
 	if err := re.validate(); err != nil {
 		return nil, err
@@ -413,4 +423,23 @@ func (v V001Entry) CreateFromArtifactProperties(ctx context.Context, props types
 	returnVal.Spec = re.RekordObj
 
 	return &returnVal, nil
+}
+
+func (v V001Entry) Verifier() (pki.PublicKey, error) {
+	if v.RekordObj.Signature == nil || v.RekordObj.Signature.PublicKey == nil || v.RekordObj.Signature.PublicKey.Content == nil {
+		return nil, errors.New("rekord v0.0.1 entry not initialized")
+	}
+
+	switch f := *v.RekordObj.Signature.Format; f {
+	case "x509":
+		return x509.NewPublicKey(bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content))
+	case "ssh":
+		return ssh.NewPublicKey(bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content))
+	case "pgp":
+		return pgp.NewPublicKey(bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content))
+	case "minisign":
+		return minisign.NewPublicKey(bytes.NewReader(*v.RekordObj.Signature.PublicKey.Content))
+	default:
+		return nil, fmt.Errorf("unexpected format of public key: %s", f)
+	}
 }

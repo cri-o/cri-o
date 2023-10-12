@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/open-policy-agent/opa/ast/location"
 	"github.com/open-policy-agent/opa/internal/debug"
 	"github.com/open-policy-agent/opa/internal/gojsonschema"
 	"github.com/open-policy-agent/opa/metrics"
@@ -103,12 +104,17 @@ type Compiler struct {
 	builtins              map[string]*Builtin           // universe of built-in functions
 	customBuiltins        map[string]*Builtin           // user-supplied custom built-in functions (deprecated: use capabilities)
 	unsafeBuiltinsMap     map[string]struct{}           // user-supplied set of unsafe built-ins functions to block (deprecated: use capabilities)
+	deprecatedBuiltinsMap map[string]struct{}           // set of deprecated, but not removed, built-in functions
 	enablePrintStatements bool                          // indicates if print statements should be elided (default)
 	comprehensionIndices  map[*Term]*ComprehensionIndex // comprehension key index
 	initialized           bool                          // indicates if init() has been called
 	debug                 debug.Debug                   // emits debug information produced during compilation
 	schemaSet             *SchemaSet                    // user-supplied schemas for input and data documents
 	inputType             types.Type                    // global input type retrieved from schema set
+	annotationSet         *AnnotationSet                // hierarchical set of annotations
+	strict                bool                          // enforce strict compilation checks
+	keepModules           bool                          // whether to keep the unprocessed, parse modules (below)
+	parsedModules         map[string]*Module            // parsed, but otherwise unprocessed modules, kept track of when keepModules is true
 }
 
 // CompilerStage defines the interface for stages in the compiler.
@@ -239,11 +245,12 @@ func NewCompiler() *Compiler {
 		}, func(x util.T) int {
 			return x.(Ref).Hash()
 		}),
-		maxErrs:              CompileErrorLimitDefault,
-		after:                map[string][]CompilerStageDefinition{},
-		unsafeBuiltinsMap:    map[string]struct{}{},
-		comprehensionIndices: map[*Term]*ComprehensionIndex{},
-		debug:                debug.Discard(),
+		maxErrs:               CompileErrorLimitDefault,
+		after:                 map[string][]CompilerStageDefinition{},
+		unsafeBuiltinsMap:     map[string]struct{}{},
+		deprecatedBuiltinsMap: map[string]struct{}{},
+		comprehensionIndices:  map[*Term]*ComprehensionIndex{},
+		debug:                 debug.Discard(),
 	}
 
 	c.ModuleTree = NewModuleTree(nil)
@@ -258,6 +265,9 @@ func NewCompiler() *Compiler {
 		// load additional modules. If any stages run before resolution, they
 		// need to be re-run after resolution.
 		{"ResolveRefs", "compile_stage_resolve_refs", c.resolveAllRefs},
+		{"CheckKeywordOverrides", "compile_stage_check_keyword_overrides", c.checkKeywordOverrides},
+		{"CheckDuplicateImports", "compile_stage_check_duplicate_imports", c.checkDuplicateImports},
+		{"RemoveImports", "compile_stage_remove_imports", c.removeImports},
 		{"SetModuleTree", "compile_stage_set_module_tree", c.setModuleTree},
 		{"SetRuleTree", "compile_stage_set_rule_tree", c.setRuleTree},
 		// The local variable generator must be initialized after references are
@@ -268,6 +278,9 @@ func NewCompiler() *Compiler {
 		{"CheckVoidCalls", "compile_stage_check_void_calls", c.checkVoidCalls},
 		{"RewritePrintCalls", "compile_stage_rewrite_print_calls", c.rewritePrintCalls},
 		{"RewriteExprTerms", "compile_stage_rewrite_expr_terms", c.rewriteExprTerms},
+		{"ParseMetadataBlocks", "compile_stage_parse_metadata_blocks", c.parseMetadataBlocks},
+		{"SetAnnotationSet", "compile_stage_set_annotationset", c.setAnnotationSet},
+		{"RewriteRegoMetadataCalls", "compile_stage_rewrite_rego_metadata_calls", c.rewriteRegoMetadataCalls},
 		{"SetGraph", "compile_stage_set_graph", c.setGraph},
 		{"RewriteComprehensionTerms", "compile_stage_rewrite_comprehension_terms", c.rewriteComprehensionTerms},
 		{"RewriteRefsInHead", "compile_stage_rewrite_refs_in_head", c.rewriteRefsInHead},
@@ -279,8 +292,9 @@ func NewCompiler() *Compiler {
 		{"RewriteEquals", "compile_stage_rewrite_equals", c.rewriteEquals},
 		{"RewriteDynamicTerms", "compile_stage_rewrite_dynamic_terms", c.rewriteDynamicTerms},
 		{"CheckRecursion", "compile_stage_check_recursion", c.checkRecursion},
-		{"CheckTypes", "compile_stage_check_types", c.checkTypes},
+		{"CheckTypes", "compile_stage_check_types", c.checkTypes}, // must be run after CheckRecursion
 		{"CheckUnsafeBuiltins", "compile_state_check_unsafe_builtins", c.checkUnsafeBuiltins},
+		{"CheckDeprecatedBuiltins", "compile_state_check_deprecated_builtins", c.checkDeprecatedBuiltins},
 		{"BuildRuleIndices", "compile_stage_rebuild_indices", c.buildRuleIndices},
 		{"BuildComprehensionIndices", "compile_stage_rebuild_comprehension_indices", c.buildComprehensionIndices},
 	}
@@ -336,6 +350,11 @@ func (c *Compiler) WithCapabilities(capabilities *Capabilities) *Compiler {
 	return c
 }
 
+// Capabilities returns the capabilities enabled during compilation.
+func (c *Compiler) Capabilities() *Capabilities {
+	return c.capabilities
+}
+
 // WithDebug sets where debug messages are written to. Passing `nil` has no
 // effect.
 func (c *Compiler) WithDebug(sink io.Writer) *Compiler {
@@ -362,6 +381,28 @@ func (c *Compiler) WithUnsafeBuiltins(unsafeBuiltins map[string]struct{}) *Compi
 	return c
 }
 
+// WithStrict enables strict mode in the compiler.
+func (c *Compiler) WithStrict(strict bool) *Compiler {
+	c.strict = strict
+	return c
+}
+
+// WithKeepModules enables retaining unprocessed modules in the compiler.
+// Note that the modules aren't copied on the way in or out -- so when
+// accessing them via ParsedModules(), mutations will occur in the module
+// map that was passed into Compile().`
+func (c *Compiler) WithKeepModules(y bool) *Compiler {
+	c.keepModules = y
+	return c
+}
+
+// ParsedModules returns the parsed, unprocessed modules from the compiler.
+// It is `nil` if keeping modules wasn't enabled via `WithKeepModules(true)`.
+// The map includes all modules loaded via the ModuleLoader, if one was used.
+func (c *Compiler) ParsedModules() map[string]*Module {
+	return c.parsedModules
+}
+
 // QueryCompiler returns a new QueryCompiler object.
 func (c *Compiler) QueryCompiler() QueryCompiler {
 	c.init()
@@ -377,10 +418,20 @@ func (c *Compiler) Compile(modules map[string]*Module) {
 	c.init()
 
 	c.Modules = make(map[string]*Module, len(modules))
+	c.sorted = make([]string, 0, len(modules))
+
+	if c.keepModules {
+		c.parsedModules = make(map[string]*Module, len(modules))
+	} else {
+		c.parsedModules = nil
+	}
 
 	for k, v := range modules {
 		c.Modules[k] = v.Copy()
 		c.sorted = append(c.sorted, k)
+		if c.parsedModules != nil {
+			c.parsedModules[k] = v
+		}
 	}
 
 	sort.Strings(c.sorted)
@@ -424,16 +475,16 @@ func (c *Compiler) GetArity(ref Ref) int {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//		package a.b.c
 //
-//	p[k] = v { ... }    # rule1
-//  p[k1] = v1 { ... }  # rule2
+//		p[k] = v { ... }    # rule1
+//	 p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesExact("data.a.b.c.p.x") => nil
-//  GetRulesExact("data.a.b.c")     => nil
+//	GetRulesExact("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesExact("data.a.b.c.p.x") => nil
+//	GetRulesExact("data.a.b.c")     => nil
 func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 	node := c.RuleTree
 
@@ -451,16 +502,16 @@ func (c *Compiler) GetRulesExact(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//	package a.b.c
+//		package a.b.c
 //
-//	p[k] = v { ... }    # rule1
-//  p[k1] = v1 { ... }  # rule2
+//		p[k] = v { ... }    # rule1
+//	 p[k1] = v1 { ... }  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
-//  GetRulesForVirtualDocument("data.a.b.c")     => nil
+//	GetRulesForVirtualDocument("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesForVirtualDocument("data.a.b.c.p.x") => [rule1, rule2]
+//	GetRulesForVirtualDocument("data.a.b.c")     => nil
 func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -481,17 +532,17 @@ func (c *Compiler) GetRulesForVirtualDocument(ref Ref) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  p[x] = y { ... }  # rule1
-//  p[k] = v { ... }  # rule2
-//  q { ... }         # rule3
+//	p[x] = y { ... }  # rule1
+//	p[k] = v { ... }  # rule2
+//	q { ... }         # rule3
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
-//  GetRulesWithPrefix("data.a.b.c.p.a") => nil
-//  GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
+//	GetRulesWithPrefix("data.a.b.c.p")   => [rule1, rule2]
+//	GetRulesWithPrefix("data.a.b.c.p.a") => nil
+//	GetRulesWithPrefix("data.a.b.c")     => [rule1, rule2, rule3]
 func (c *Compiler) GetRulesWithPrefix(ref Ref) (rules []*Rule) {
 
 	node := c.RuleTree
@@ -530,18 +581,18 @@ func extractRules(s []util.T) (rules []*Rule) {
 //
 // E.g., given the following module:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  p[x] = y { q[x] = y; ... } # rule1
-//  q[x] = y { ... }           # rule2
+//	p[x] = y { q[x] = y; ... } # rule1
+//	q[x] = y { ... }           # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRules("data.a.b.c.p")	=> [rule1]
-//  GetRules("data.a.b.c.p.x")	=> [rule1]
-//  GetRules("data.a.b.c.q")	=> [rule2]
-//  GetRules("data.a.b.c")		=> [rule1, rule2]
-//  GetRules("data.a.b.d")		=> nil
+//	GetRules("data.a.b.c.p")	=> [rule1]
+//	GetRules("data.a.b.c.p.x")	=> [rule1]
+//	GetRules("data.a.b.c.q")	=> [rule2]
+//	GetRules("data.a.b.c")		=> [rule1, rule2]
+//	GetRules("data.a.b.d")		=> nil
 func (c *Compiler) GetRules(ref Ref) (rules []*Rule) {
 
 	set := map[*Rule]struct{}{}
@@ -576,34 +627,34 @@ func (c *Compiler) GetRulesDynamic(ref Ref) []*Rule {
 //
 // E.g., given the following modules:
 //
-//  package a.b.c
+//	package a.b.c
 //
-//  r1 = 1  # rule1
+//	r1 = 1  # rule1
 //
 // and:
 //
-//  package a.d.c
+//	package a.d.c
 //
-//  r2 = 2  # rule2
+//	r2 = 2  # rule2
 //
 // The following calls yield the rules on the right.
 //
-//  GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
-//  GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
-//  GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
+//	GetRulesDynamicWithOpts("data.a[x].c[y]", opts) => [rule1, rule2]
+//	GetRulesDynamicWithOpts("data.a[x].c.r2", opts) => [rule2]
+//	GetRulesDynamicWithOpts("data.a.b[x][y]", opts) => [rule1]
 //
 // Using the RulesOptions parameter, the inclusion of hidden modules can be
 // controlled:
 //
 // With
 //
-//  package system.main
+//	package system.main
 //
-//  r3 = 3 # rule3
+//	r3 = 3 # rule3
 //
 // We'd get this result:
 //
-//  GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
+//	GetRulesDynamicWithOpts("data[x]", RulesOptions{IncludeHiddenModules: true}) => [rule1, rule2, rule3]
 //
 // Without the options, it would be excluded.
 func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
@@ -612,7 +663,8 @@ func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
 	set := map[*Rule]struct{}{}
 	var walk func(node *TreeNode, i int)
 	walk = func(node *TreeNode, i int) {
-		if i >= len(ref) {
+		switch {
+		case i >= len(ref):
 			// We've reached the end of the reference and want to collect everything
 			// under this "prefix".
 			node.DepthFirst(func(descendant *TreeNode) bool {
@@ -622,7 +674,8 @@ func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
 				}
 				return descendant.Hide
 			})
-		} else if i == 0 || IsConstant(ref[i].Value) {
+
+		case i == 0 || IsConstant(ref[i].Value):
 			// The head of the ref is always grounded.  In case another part of the
 			// ref is also grounded, we can lookup the exact child.  If it's not found
 			// we can immediately return...
@@ -636,7 +689,8 @@ func (c *Compiler) GetRulesDynamicWithOpts(ref Ref, opts RulesOptions) []*Rule {
 				// Otherwise, we continue using the child node.
 				walk(child, i+1)
 			}
-		} else {
+
+		default:
 			// This part of the ref is a dynamic term.  We can't know what it refers
 			// to and will just need to try all of the children.
 			for _, child := range node.Children {
@@ -784,15 +838,11 @@ func (c *Compiler) checkRuleConflicts() {
 		kinds := map[DocKind]struct{}{}
 		defaultRules := 0
 		arities := map[int]struct{}{}
-		declared := false
 
 		for _, rule := range node.Values {
 			r := rule.(*Rule)
 			kinds[r.Head.DocKind()] = struct{}{}
 			arities[len(r.Head.Args)] = struct{}{}
-			if r.Head.Assign {
-				declared = true
-			}
 			if r.Default {
 				defaultRules++
 			}
@@ -800,9 +850,7 @@ func (c *Compiler) checkRuleConflicts() {
 
 		name := Var(node.Key.(String))
 
-		if declared && len(node.Values) > 1 {
-			c.err(NewError(TypeErr, node.Values[0].(*Rule).Loc(), "rule named %v redeclared at %v", name, node.Values[1].(*Rule).Loc()))
-		} else if len(kinds) > 1 || len(arities) > 1 {
+		if len(kinds) > 1 || len(arities) > 1 {
 			c.err(NewError(TypeErr, node.Values[0].(*Rule).Loc(), "conflicting rules named %v found", name))
 		} else if defaultRules > 1 {
 			c.err(NewError(TypeErr, node.Values[0].(*Rule).Loc(), "multiple default rules named %s found", name))
@@ -835,13 +883,13 @@ func (c *Compiler) checkRuleConflicts() {
 func (c *Compiler) checkUndefinedFuncs() {
 	for _, name := range c.sorted {
 		m := c.Modules[name]
-		for _, err := range checkUndefinedFuncs(m, c.GetArity, c.RewrittenVars) {
+		for _, err := range checkUndefinedFuncs(c.TypeEnv, m, c.GetArity, c.RewrittenVars) {
 			c.err(err)
 		}
 	}
 }
 
-func checkUndefinedFuncs(x interface{}, arity func(Ref) int, rwVars map[Var]Var) Errors {
+func checkUndefinedFuncs(env *TypeEnv, x interface{}, arity func(Ref) int, rwVars map[Var]Var) Errors {
 
 	var errs Errors
 
@@ -850,7 +898,21 @@ func checkUndefinedFuncs(x interface{}, arity func(Ref) int, rwVars map[Var]Var)
 			return false
 		}
 		ref := expr.Operator()
-		if arity(ref) >= 0 {
+		if arity := arity(ref); arity >= 0 {
+			operands := len(expr.Operands())
+			if expr.Generated { // an output var was added
+				if !expr.IsEquality() && operands != arity+1 {
+					ref = rewriteVarsInRef(rwVars)(ref)
+					errs = append(errs, arityMismatchError(env, ref, expr, arity, operands-1))
+					return true
+				}
+			} else { // either output var or not
+				if operands != arity && operands != arity+1 {
+					ref = rewriteVarsInRef(rwVars)(ref)
+					errs = append(errs, arityMismatchError(env, ref, expr, arity, operands))
+					return true
+				}
+			}
 			return false
 		}
 		ref = rewriteVarsInRef(rwVars)(ref)
@@ -859,6 +921,20 @@ func checkUndefinedFuncs(x interface{}, arity func(Ref) int, rwVars map[Var]Var)
 	})
 
 	return errs
+}
+
+func arityMismatchError(env *TypeEnv, f Ref, expr *Expr, exp, act int) *Error {
+	if want, ok := env.Get(f).(*types.Function); ok { // generate richer error for built-in functions
+		have := make([]types.Type, len(expr.Operands()))
+		for i, op := range expr.Operands() {
+			have[i] = env.Get(op)
+		}
+		return newArgError(expr.Loc(), f, "arity mismatch", have, want.NamedFuncArgs())
+	}
+	if act != 1 {
+		return NewError(TypeErr, expr.Loc(), "function %v has arity %d, got %d arguments", f, exp, act)
+	}
+	return NewError(TypeErr, expr.Loc(), "function %v has arity %d, got %d argument", f, exp, act)
 }
 
 // checkSafetyRuleBodies ensures that variables appearing in negated expressions or non-target
@@ -977,7 +1053,25 @@ func mergeSchemas(schemas ...*gojsonschema.SubSchema) (*gojsonschema.SubSchema, 
 	return result, nil
 }
 
-func parseSchema(schema interface{}) (types.Type, error) {
+type schemaParser struct {
+	definitionCache map[string]*cachedDef
+}
+
+type cachedDef struct {
+	properties []*types.StaticProperty
+}
+
+func newSchemaParser() *schemaParser {
+	return &schemaParser{
+		definitionCache: map[string]*cachedDef{},
+	}
+}
+
+func (parser *schemaParser) parseSchema(schema interface{}) (types.Type, error) {
+	return parser.parseSchemaWithPropertyKey(schema, "")
+}
+
+func (parser *schemaParser) parseSchemaWithPropertyKey(schema interface{}, propertyKey string) (types.Type, error) {
 	subSchema, ok := schema.(*gojsonschema.SubSchema)
 	if !ok {
 		return nil, fmt.Errorf("unexpected schema type %v", subSchema)
@@ -985,7 +1079,10 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 	// Handle referenced schemas, returns directly when a $ref is found
 	if subSchema.RefSchema != nil {
-		return parseSchema(subSchema.RefSchema)
+		if existing, ok := parser.definitionCache[subSchema.Ref.String()]; ok {
+			return types.NewObject(existing.properties, nil), nil
+		}
+		return parser.parseSchemaWithPropertyKey(subSchema.RefSchema, subSchema.Ref.String())
 	}
 
 	// Handle anyOf
@@ -997,7 +1094,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 			copySchema := *subSchema
 			copySchemaRef := &copySchema
 			copySchemaRef.AnyOf = nil
-			coreType, err := parseSchema(copySchemaRef)
+			coreType, err := parser.parseSchema(copySchemaRef)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", subSchema, err)
 			}
@@ -1012,7 +1109,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 		// Iterate through every property of AnyOf and add it to orType
 		for _, pSchema := range subSchema.AnyOf {
-			newtype, err := parseSchema(pSchema)
+			newtype, err := parser.parseSchema(pSchema)
 			if err != nil {
 				return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 			}
@@ -1035,12 +1132,12 @@ func parseSchema(schema interface{}) (types.Type, error) {
 				if err != nil {
 					return nil, err
 				}
-				return parseSchema(objectOrArrayResult)
+				return parser.parseSchema(objectOrArrayResult)
 			} else if subSchema.Types.String() != allOfResult.Types.String() {
 				return nil, fmt.Errorf("unable to merge these schemas")
 			}
 		}
-		return parseSchema(allOfResult)
+		return parser.parseSchema(allOfResult)
 	}
 
 	if subSchema.Types.IsTyped() {
@@ -1055,15 +1152,28 @@ func parseSchema(schema interface{}) (types.Type, error) {
 
 		} else if subSchema.Types.Contains("object") {
 			if len(subSchema.PropertiesChildren) > 0 {
-				staticProps := make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren))
+				def := &cachedDef{
+					properties: make([]*types.StaticProperty, 0, len(subSchema.PropertiesChildren)),
+				}
 				for _, pSchema := range subSchema.PropertiesChildren {
-					newtype, err := parseSchema(pSchema)
+					def.properties = append(def.properties, types.NewStaticProperty(pSchema.Property, nil))
+				}
+				if propertyKey != "" {
+					parser.definitionCache[propertyKey] = def
+				}
+				for _, pSchema := range subSchema.PropertiesChildren {
+					newtype, err := parser.parseSchema(pSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v: %w", pSchema, err)
 					}
-					staticProps = append(staticProps, types.NewStaticProperty(pSchema.Property, newtype))
+					for i, prop := range def.properties {
+						if prop.Key == pSchema.Property {
+							def.properties[i].Value = newtype
+							break
+						}
+					}
 				}
-				return types.NewObject(staticProps, nil), nil
+				return types.NewObject(def.properties, nil), nil
 			}
 			return types.NewObject(nil, types.NewDynamicProperty(types.A, types.A)), nil
 
@@ -1071,7 +1181,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 			if len(subSchema.ItemsChildren) > 0 {
 				if subSchema.ItemsChildrenIsSingleSchema {
 					iSchema := subSchema.ItemsChildren[0]
-					newtype, err := parseSchema(iSchema)
+					newtype, err := parser.parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1080,7 +1190,7 @@ func parseSchema(schema interface{}) (types.Type, error) {
 				newTypes := make([]types.Type, 0, len(subSchema.ItemsChildren))
 				for i := 0; i != len(subSchema.ItemsChildren); i++ {
 					iSchema := subSchema.ItemsChildren[i]
-					newtype, err := parseSchema(iSchema)
+					newtype, err := parser.parseSchema(iSchema)
 					if err != nil {
 						return nil, fmt.Errorf("unexpected schema type %v", iSchema)
 					}
@@ -1095,15 +1205,29 @@ func parseSchema(schema interface{}) (types.Type, error) {
 	// Assume types if not specified in schema
 	if len(subSchema.PropertiesChildren) > 0 {
 		if err := subSchema.Types.Add("object"); err == nil {
-			return parseSchema(subSchema)
+			return parser.parseSchema(subSchema)
 		}
 	} else if len(subSchema.ItemsChildren) > 0 {
 		if err := subSchema.Types.Add("array"); err == nil {
-			return parseSchema(subSchema)
+			return parser.parseSchema(subSchema)
 		}
 	}
 
 	return types.A, nil
+}
+
+func (c *Compiler) setAnnotationSet() {
+	// Sorting modules by name for stable error reporting
+	sorted := make([]*Module, 0, len(c.Modules))
+	for _, mName := range c.sorted {
+		sorted = append(sorted, c.Modules[mName])
+	}
+
+	as, errs := BuildAnnotationSet(sorted)
+	for _, err := range errs {
+		c.err(err)
+	}
+	c.annotationSet = as
 }
 
 // checkTypes runs the type checker on all rules. The type checker builds a
@@ -1115,7 +1239,7 @@ func (c *Compiler) checkTypes() {
 		WithSchemaSet(c.schemaSet).
 		WithInputType(c.inputType).
 		WithVarRewriter(rewriteVarsInRef(c.RewrittenVars))
-	env, errs := checker.CheckTypes(c.TypeEnv, sorted)
+	env, errs := checker.CheckTypes(c.TypeEnv, sorted, c.annotationSet)
 	for _, err := range errs {
 		c.err(err)
 	}
@@ -1125,6 +1249,15 @@ func (c *Compiler) checkTypes() {
 func (c *Compiler) checkUnsafeBuiltins() {
 	for _, name := range c.sorted {
 		errs := checkUnsafeBuiltins(c.unsafeBuiltinsMap, c.Modules[name])
+		for _, err := range errs {
+			c.err(err)
+		}
+	}
+}
+
+func (c *Compiler) checkDeprecatedBuiltins() {
+	for _, name := range c.sorted {
+		errs := checkDeprecatedBuiltins(c.deprecatedBuiltinsMap, c.Modules[name], c.strict)
 		for _, err := range errs {
 			c.err(err)
 		}
@@ -1160,10 +1293,10 @@ func (c *Compiler) compile() {
 		if c.Failed() {
 			return
 		}
-		for _, s := range c.after[s.name] {
-			err := c.runStageAfter(s.MetricName, s.Stage)
-			if err != nil {
+		for _, a := range c.after[s.name] {
+			if err := c.runStageAfter(a.MetricName, a.Stage); err != nil {
 				c.err(err)
+				return
 			}
 		}
 	}
@@ -1183,6 +1316,9 @@ func (c *Compiler) init() {
 
 	for _, bi := range c.capabilities.Builtins {
 		c.builtins[bi.Name] = bi
+		if c.strict && bi.IsDeprecated() {
+			c.deprecatedBuiltinsMap[bi.Name] = struct{}{}
+		}
 	}
 
 	for name, bi := range c.customBuiltins {
@@ -1220,9 +1356,7 @@ func (c *Compiler) err(err *Error) {
 func (c *Compiler) getExports() *util.HashMap {
 
 	rules := util.NewHashMap(func(a, b util.T) bool {
-		r1 := a.(Ref)
-		r2 := a.(Ref)
-		return r1.Equal(r2)
+		return a.(Ref).Equal(b.(Ref))
 	}, func(v util.T) int {
 		return v.(Ref).Hash()
 	})
@@ -1242,6 +1376,69 @@ func (c *Compiler) getExports() *util.HashMap {
 	}
 
 	return rules
+}
+
+func (c *Compiler) GetAnnotationSet() *AnnotationSet {
+	return c.annotationSet
+}
+
+func (c *Compiler) checkDuplicateImports() {
+	if !c.strict {
+		return
+	}
+
+	for _, name := range c.sorted {
+		mod := c.Modules[name]
+		processedImports := map[Var]*Import{}
+
+		for _, imp := range mod.Imports {
+			name := imp.Name()
+
+			if processed, conflict := processedImports[name]; conflict {
+				c.err(NewError(CompileErr, imp.Location, "import must not shadow %v", processed))
+			} else {
+				processedImports[name] = imp
+			}
+		}
+	}
+}
+
+func (c *Compiler) checkKeywordOverrides() {
+	for _, name := range c.sorted {
+		mod := c.Modules[name]
+		errs := checkKeywordOverrides(mod, c.strict)
+		for _, err := range errs {
+			c.err(err)
+		}
+	}
+}
+
+func checkKeywordOverrides(node interface{}, strict bool) Errors {
+	if !strict {
+		return nil
+	}
+
+	errors := Errors{}
+
+	WalkRules(node, func(rule *Rule) bool {
+		name := rule.Head.Name.String()
+		if RootDocumentRefs.Contains(RefTerm(VarTerm(name))) {
+			errors = append(errors, NewError(CompileErr, rule.Location, "rules must not shadow %v (use a different rule name)", name))
+		}
+		return true
+	})
+
+	WalkExprs(node, func(expr *Expr) bool {
+		if expr.IsAssignment() {
+			name := expr.Operand(0).String()
+			if RootDocumentRefs.Contains(RefTerm(VarTerm(name))) {
+				errors = append(errors, NewError(CompileErr, expr.Location, "variables must not shadow %v (use a different variable name)", name))
+			}
+		}
+		return false
+	})
+
+	return errors
 }
 
 // resolveAllRefs resolves references in expressions to their fully qualified values.
@@ -1275,8 +1472,20 @@ func (c *Compiler) resolveAllRefs() {
 			return false
 		})
 
-		// Once imports have been resolved, they are no longer needed.
-		mod.Imports = nil
+		if c.strict { // check for unused imports
+			for _, imp := range mod.Imports {
+				path := imp.Path.Value.(Ref)
+				if FutureRootDocument.Equal(path[0]) {
+					continue // ignore future imports
+				}
+
+				for v, u := range globals {
+					if v.Equal(imp.Name()) && !u.used {
+						c.err(NewError(CompileErr, imp.Location, "%s unused", imp.String()))
+					}
+				}
+			}
+		}
 	}
 
 	if c.moduleLoader != nil {
@@ -1294,10 +1503,19 @@ func (c *Compiler) resolveAllRefs() {
 		for id, module := range parsed {
 			c.Modules[id] = module.Copy()
 			c.sorted = append(c.sorted, id)
+			if c.parsedModules != nil {
+				c.parsedModules[id] = module
+			}
 		}
 
 		sort.Strings(c.sorted)
 		c.resolveAllRefs()
+	}
+}
+
+func (c *Compiler) removeImports() {
+	for name := range c.Modules {
+		c.Modules[name].Imports = nil
 	}
 }
 
@@ -1345,12 +1563,14 @@ func (c *Compiler) rewritePrintCalls() {
 		WalkRules(mod, func(r *Rule) bool {
 			safe := r.Head.Args.Vars()
 			safe.Update(ReservedVars)
-			WalkBodies(r, func(b Body) bool {
+			vis := func(b Body) bool {
 				for _, err := range rewritePrintCalls(c.localvargen, c.GetArity, safe, b) {
 					c.err(err)
 				}
 				return false
-			})
+			}
+			WalkBodies(r.Head, vis)
+			WalkBodies(r.Body, vis)
 			return false
 		})
 	}
@@ -1379,11 +1599,11 @@ func checkVoidCalls(env *TypeEnv, x interface{}) Errors {
 //
 // For example, given the following print statement:
 //
-//   print("the value of x is:", input.x)
+//	print("the value of x is:", input.x)
 //
 // The expression would be rewritten to:
 //
-//   print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
+//	print({__local0__ | __local0__ = "the value of x is:"}, {__local1__ | __local1__ = input.x})
 func rewritePrintCalls(gen *localVarGenerator, getArity func(Ref) int, globals VarSet, body Body) Errors {
 
 	var errs Errors
@@ -1391,7 +1611,7 @@ func rewritePrintCalls(gen *localVarGenerator, getArity func(Ref) int, globals V
 	// Visit comprehension bodies recursively to ensure print statements inside
 	// those bodies only close over variables that are safe.
 	for i := range body {
-		if ContainsComprehensions(body[i]) {
+		if ContainsClosures(body[i]) {
 			safe := outputVarsForBody(body[:i], getArity, globals)
 			safe.Update(globals)
 			WalkClosures(body[i], func(x interface{}) bool {
@@ -1401,6 +1621,9 @@ func rewritePrintCalls(gen *localVarGenerator, getArity func(Ref) int, globals V
 				case *ArrayComprehension:
 					errs = rewritePrintCalls(gen, getArity, safe, x.Body)
 				case *ObjectComprehension:
+					errs = rewritePrintCalls(gen, getArity, safe, x.Body)
+				case *Every:
+					safe.Update(x.KeyValueVars())
 					errs = rewritePrintCalls(gen, getArity, safe, x.Body)
 				}
 				return true
@@ -1462,6 +1685,8 @@ func erasePrintCalls(node interface{}) {
 		case *SetComprehension:
 			x.Body = erasePrintCallsInBody(x.Body)
 		case *ObjectComprehension:
+			x.Body = erasePrintCallsInBody(x.Body)
+		case *Every:
 			x.Body = erasePrintCallsInBody(x.Body)
 		}
 		return false
@@ -1570,6 +1795,222 @@ func (c *Compiler) rewriteDynamicTerms() {
 	}
 }
 
+func (c *Compiler) parseMetadataBlocks() {
+	// Only parse annotations if rego.metadata built-ins are called
+	regoMetadataCalled := false
+	for _, name := range c.sorted {
+		mod := c.Modules[name]
+		WalkExprs(mod, func(expr *Expr) bool {
+			if isRegoMetadataChainCall(expr) || isRegoMetadataRuleCall(expr) {
+				regoMetadataCalled = true
+			}
+			return regoMetadataCalled
+		})
+
+		if regoMetadataCalled {
+			break
+		}
+	}
+
+	if regoMetadataCalled {
+		// NOTE: Possible optimization: only parse annotations for modules on the path of rego.metadata-calling module
+		for _, name := range c.sorted {
+			mod := c.Modules[name]
+
+			if len(mod.Annotations) == 0 {
+				var errs Errors
+				mod.Annotations, errs = parseAnnotations(mod.Comments)
+				errs = append(errs, attachAnnotationsNodes(mod)...)
+				for _, err := range errs {
+					c.err(err)
+				}
+			}
+		}
+	}
+}
+
+func (c *Compiler) rewriteRegoMetadataCalls() {
+	eqFactory := newEqualityFactory(c.localvargen)
+
+	_, chainFuncAllowed := c.builtins[RegoMetadataChain.Name]
+	_, ruleFuncAllowed := c.builtins[RegoMetadataRule.Name]
+
+	for _, name := range c.sorted {
+		mod := c.Modules[name]
+
+		WalkRules(mod, func(rule *Rule) bool {
+			var firstChainCall *Expr
+			var firstRuleCall *Expr
+
+			WalkExprs(rule, func(expr *Expr) bool {
+				if chainFuncAllowed && firstChainCall == nil && isRegoMetadataChainCall(expr) {
+					firstChainCall = expr
+				} else if ruleFuncAllowed && firstRuleCall == nil && isRegoMetadataRuleCall(expr) {
+					firstRuleCall = expr
+				}
+				return firstChainCall != nil && firstRuleCall != nil
+			})
+
+			chainCalled := firstChainCall != nil
+			ruleCalled := firstRuleCall != nil
+
+			if chainCalled || ruleCalled {
+				body := make(Body, 0, len(rule.Body)+2)
+
+				var metadataChainVar Var
+				if chainCalled {
+					// Create and inject metadata chain for rule
+
+					chain, err := createMetadataChain(c.annotationSet.Chain(rule))
+					if err != nil {
+						c.err(err)
+						return false
+					}
+
+					chain.Location = firstChainCall.Location
+					eq := eqFactory.Generate(chain)
+					metadataChainVar = eq.Operands()[0].Value.(Var)
+					body.Append(eq)
+				}
+
+				var metadataRuleVar Var
+				if ruleCalled {
+					// Create and inject metadata for rule
+
+					var metadataRuleTerm *Term
+
+					a := getPrimaryRuleAnnotations(c.annotationSet, rule)
+					if a != nil {
+						annotObj, err := a.toObject()
+						if err != nil {
+							c.err(err)
+							return false
+						}
+						metadataRuleTerm = NewTerm(*annotObj)
+					} else {
+						// If rule has no annotations, assign an empty object
+						metadataRuleTerm = ObjectTerm()
+					}
+
+					metadataRuleTerm.Location = firstRuleCall.Location
+					eq := eqFactory.Generate(metadataRuleTerm)
+					metadataRuleVar = eq.Operands()[0].Value.(Var)
+					body.Append(eq)
+				}
+
+				for _, expr := range rule.Body {
+					body.Append(expr)
+				}
+				rule.Body = body
+
+				vis := func(b Body) bool {
+					for _, err := range rewriteRegoMetadataCalls(&metadataChainVar, &metadataRuleVar, b, &c.RewrittenVars) {
+						c.err(err)
+					}
+					return false
+				}
+				WalkBodies(rule.Head, vis)
+				WalkBodies(rule.Body, vis)
+			}
+
+			return false
+		})
+	}
+}
+
+func getPrimaryRuleAnnotations(as *AnnotationSet, rule *Rule) *Annotations {
+	annots := as.GetRuleScope(rule)
+
+	if len(annots) == 0 {
+		return nil
+	}
+
+	// Sort by annotation location; chain must start with annotations declared closest to rule, then going outward
+	sort.SliceStable(annots, func(i, j int) bool {
+		return annots[i].Location.Compare(annots[j].Location) > 0
+	})
+
+	return annots[0]
+}
+
+func rewriteRegoMetadataCalls(metadataChainVar *Var, metadataRuleVar *Var, body Body, rewrittenVars *map[Var]Var) Errors {
+	var errs Errors
+
+	WalkClosures(body, func(x interface{}) bool {
+		switch x := x.(type) {
+		case *ArrayComprehension:
+			errs = rewriteRegoMetadataCalls(metadataChainVar, metadataRuleVar, x.Body, rewrittenVars)
+		case *SetComprehension:
+			errs = rewriteRegoMetadataCalls(metadataChainVar, metadataRuleVar, x.Body, rewrittenVars)
+		case *ObjectComprehension:
+			errs = rewriteRegoMetadataCalls(metadataChainVar, metadataRuleVar, x.Body, rewrittenVars)
+		case *Every:
+			errs = rewriteRegoMetadataCalls(metadataChainVar, metadataRuleVar, x.Body, rewrittenVars)
+		}
+		return true
+	})
+
+	for i := range body {
+		expr := body[i]
+		var metadataVar Var
+
+		if metadataChainVar != nil && isRegoMetadataChainCall(expr) {
+			metadataVar = *metadataChainVar
+		} else if metadataRuleVar != nil && isRegoMetadataRuleCall(expr) {
+			metadataVar = *metadataRuleVar
+		} else {
+			continue
+		}
+
+		// NOTE(johanfylling): An alternative strategy would be to walk the body and replace all operands[0]
+		// usages with *metadataChainVar
+		operands := expr.Operands()
+		var newExpr *Expr
+		if len(operands) > 0 { // There is an output var to rewrite
+			rewrittenVar := operands[0]
+			newExpr = Equality.Expr(rewrittenVar, NewTerm(metadataVar))
+		} else { // No output var, just rewrite expr to metadataVar
+			newExpr = NewExpr(NewTerm(metadataVar))
+		}
+
+		newExpr.Generated = true
+		newExpr.Location = expr.Location
+		body.Set(newExpr, i)
+	}
+
+	return errs
+}
+
+func isRegoMetadataChainCall(x *Expr) bool {
+	return x.IsCall() && x.Operator().Equal(RegoMetadataChain.Ref())
+}
+
+func isRegoMetadataRuleCall(x *Expr) bool {
+	return x.IsCall() && x.Operator().Equal(RegoMetadataRule.Ref())
+}
+
+func createMetadataChain(chain []*AnnotationsRef) (*Term, *Error) {
+
+	metaArray := NewArray()
+	for _, link := range chain {
+		p := link.Path.toArray().
+			Slice(1, -1) // Dropping leading 'data' element of path
+		obj := NewObject(
+			Item(StringTerm("path"), NewTerm(p)),
+		)
+		if link.Annotations != nil {
+			annotObj, err := link.Annotations.toObject()
+			if err != nil {
+				return nil, err
+			}
+			obj.Insert(StringTerm("annotations"), NewTerm(*annotObj))
+		}
+		metaArray = metaArray.Append(NewTerm(obj))
+	}
+
+	return NewTerm(metaArray), nil
+}
+
 func (c *Compiler) rewriteLocalVars() {
 
 	for _, name := range c.sorted {
@@ -1591,6 +2032,7 @@ func (c *Compiler) rewriteLocalVars() {
 			nestedXform := &rewriteNestedHeadVarLocalTransform{
 				gen:           gen,
 				RewrittenVars: c.RewrittenVars,
+				strict:        c.strict,
 			}
 
 			NewGenericVisitor(nestedXform.Visit).Walk(rule.Head)
@@ -1614,7 +2056,7 @@ func (c *Compiler) rewriteLocalVars() {
 
 			c.rewriteLocalArgVars(gen, stack, rule)
 
-			body, declared, errs := rewriteLocalVars(gen, stack, used, rule.Body)
+			body, declared, errs := rewriteLocalVars(gen, stack, used, rule.Body, c.strict)
 			for _, err := range errs {
 				c.err(err)
 			}
@@ -1651,6 +2093,7 @@ type rewriteNestedHeadVarLocalTransform struct {
 	gen           *localVarGenerator
 	errs          Errors
 	RewrittenVars map[Var]Var
+	strict        bool
 }
 
 func (xform *rewriteNestedHeadVarLocalTransform) Visit(x interface{}) bool {
@@ -1680,13 +2123,13 @@ func (xform *rewriteNestedHeadVarLocalTransform) Visit(x interface{}) bool {
 			term.Value = cpy
 			stop = true
 		case *ArrayComprehension:
-			xform.errs = rewriteDeclaredVarsInArrayComprehension(xform.gen, stack, x, xform.errs)
+			xform.errs = rewriteDeclaredVarsInArrayComprehension(xform.gen, stack, x, xform.errs, xform.strict)
 			stop = true
 		case *SetComprehension:
-			xform.errs = rewriteDeclaredVarsInSetComprehension(xform.gen, stack, x, xform.errs)
+			xform.errs = rewriteDeclaredVarsInSetComprehension(xform.gen, stack, x, xform.errs, xform.strict)
 			stop = true
 		case *ObjectComprehension:
-			xform.errs = rewriteDeclaredVarsInObjectComprehension(xform.gen, stack, x, xform.errs)
+			xform.errs = rewriteDeclaredVarsInObjectComprehension(xform.gen, stack, x, xform.errs, xform.strict)
 			stop = true
 		}
 
@@ -1745,7 +2188,9 @@ func (vis *ruleArgLocalRewriter) Visit(x interface{}) Visitor {
 	switch v := t.Value.(type) {
 	case Var:
 		gv, ok := vis.stack.Declared(v)
-		if !ok {
+		if ok {
+			vis.stack.Seen(v)
+		} else {
 			gv = vis.gen.Generate()
 			vis.stack.Insert(v, gv, argVar)
 		}
@@ -1785,7 +2230,7 @@ func (c *Compiler) rewriteWithModifiers() {
 			if !ok {
 				return x, nil
 			}
-			body, err := rewriteWithModifiersInBody(c, f, body)
+			body, err := rewriteWithModifiersInBody(c, c.unsafeBuiltinsMap, f, body)
 			if err != nil {
 				c.err(err)
 			}
@@ -1893,6 +2338,7 @@ func (qc *queryCompiler) Compile(query Body) (Body, error) {
 		metricName string
 		f          func(*QueryContext, Body) (Body, error)
 	}{
+		{"CheckKeywordOverrides", "query_compile_stage_check_keyword_overrides", qc.checkKeywordOverrides},
 		{"ResolveRefs", "query_compile_stage_resolve_refs", qc.resolveRefs},
 		{"RewriteLocalVars", "query_compile_stage_rewrite_local_vars", qc.rewriteLocalVars},
 		{"CheckVoidCalls", "query_compile_stage_check_void_calls", qc.checkVoidCalls},
@@ -1905,6 +2351,7 @@ func (qc *queryCompiler) Compile(query Body) (Body, error) {
 		{"RewriteDynamicTerms", "query_compile_stage_rewrite_dynamic_terms", qc.rewriteDynamicTerms},
 		{"CheckTypes", "query_compile_stage_check_types", qc.checkTypes},
 		{"CheckUnsafeBuiltins", "query_compile_stage_check_unsafe_builtins", qc.checkUnsafeBuiltins},
+		{"CheckDeprecatedBuiltins", "query_compile_stage_check_deprecated_builtins", qc.checkDeprecatedBuiltins},
 		{"BuildComprehensionIndex", "query_compile_stage_build_comprehension_index", qc.buildComprehensionIndices},
 	}
 
@@ -1940,9 +2387,16 @@ func (qc *queryCompiler) applyErrorLimit(err error) error {
 	return err
 }
 
+func (qc *queryCompiler) checkKeywordOverrides(_ *QueryContext, body Body) (Body, error) {
+	if errs := checkKeywordOverrides(body, qc.compiler.strict); len(errs) > 0 {
+		return nil, errs
+	}
+	return body, nil
+}
+
 func (qc *queryCompiler) resolveRefs(qctx *QueryContext, body Body) (Body, error) {
 
-	var globals map[Var]Ref
+	var globals map[Var]*usedRef
 
 	if qctx != nil {
 		pkg := qctx.Package
@@ -1992,7 +2446,7 @@ func (qc *queryCompiler) rewriteExprTerms(_ *QueryContext, body Body) (Body, err
 func (qc *queryCompiler) rewriteLocalVars(_ *QueryContext, body Body) (Body, error) {
 	gen := newLocalVarGenerator("q", body)
 	stack := newLocalDeclaredVars()
-	body, _, err := rewriteLocalVars(gen, stack, nil, body)
+	body, _, err := rewriteLocalVars(gen, stack, nil, body, qc.compiler.strict)
 	if len(err) != 0 {
 		return nil, err
 	}
@@ -2025,7 +2479,7 @@ func (qc *queryCompiler) checkVoidCalls(_ *QueryContext, body Body) (Body, error
 }
 
 func (qc *queryCompiler) checkUndefinedFuncs(_ *QueryContext, body Body) (Body, error) {
-	if errs := checkUndefinedFuncs(body, qc.compiler.GetArity, qc.rewritten); len(errs) > 0 {
+	if errs := checkUndefinedFuncs(qc.compiler.TypeEnv, body, qc.compiler.GetArity, qc.rewritten); len(errs) > 0 {
 		return nil, errs
 	}
 	return body, nil
@@ -2040,7 +2494,7 @@ func (qc *queryCompiler) checkSafety(_ *QueryContext, body Body) (Body, error) {
 	return reordered, nil
 }
 
-func (qc *queryCompiler) checkTypes(qctx *QueryContext, body Body) (Body, error) {
+func (qc *queryCompiler) checkTypes(_ *QueryContext, body Body) (Body, error) {
 	var errs Errors
 	checker := newTypeChecker().
 		WithSchemaSet(qc.compiler.schemaSet).
@@ -2054,30 +2508,39 @@ func (qc *queryCompiler) checkTypes(qctx *QueryContext, body Body) (Body, error)
 	return body, nil
 }
 
-func (qc *queryCompiler) checkUnsafeBuiltins(qctx *QueryContext, body Body) (Body, error) {
-	var unsafe map[string]struct{}
-	if qc.unsafeBuiltins != nil {
-		unsafe = qc.unsafeBuiltins
-	} else {
-		unsafe = qc.compiler.unsafeBuiltinsMap
-	}
-	errs := checkUnsafeBuiltins(unsafe, body)
+func (qc *queryCompiler) checkUnsafeBuiltins(_ *QueryContext, body Body) (Body, error) {
+	errs := checkUnsafeBuiltins(qc.unsafeBuiltinsMap(), body)
 	if len(errs) > 0 {
 		return nil, errs
 	}
 	return body, nil
 }
 
-func (qc *queryCompiler) rewriteWithModifiers(qctx *QueryContext, body Body) (Body, error) {
+func (qc *queryCompiler) unsafeBuiltinsMap() map[string]struct{} {
+	if qc.unsafeBuiltins != nil {
+		return qc.unsafeBuiltins
+	}
+	return qc.compiler.unsafeBuiltinsMap
+}
+
+func (qc *queryCompiler) checkDeprecatedBuiltins(_ *QueryContext, body Body) (Body, error) {
+	errs := checkDeprecatedBuiltins(qc.compiler.deprecatedBuiltinsMap, body, qc.compiler.strict)
+	if len(errs) > 0 {
+		return nil, errs
+	}
+	return body, nil
+}
+
+func (qc *queryCompiler) rewriteWithModifiers(_ *QueryContext, body Body) (Body, error) {
 	f := newEqualityFactory(newLocalVarGenerator("q", body))
-	body, err := rewriteWithModifiersInBody(qc.compiler, f, body)
+	body, err := rewriteWithModifiersInBody(qc.compiler, qc.unsafeBuiltinsMap(), f, body)
 	if err != nil {
 		return nil, Errors{err}
 	}
 	return body, nil
 }
 
-func (qc *queryCompiler) buildComprehensionIndices(qctx *QueryContext, body Body) (Body, error) {
+func (qc *queryCompiler) buildComprehensionIndices(_ *QueryContext, body Body) (Body, error) {
 	// NOTE(tsandall): The query compiler does not have a metrics object so we
 	// cannot record index metrics currently.
 	_ = buildComprehensionIndices(qc.compiler.debug, qc.compiler.GetArity, ReservedVars, qc.RewrittenVars(), body, qc.comprehensionIndices)
@@ -2335,7 +2798,13 @@ func NewModuleTree(mods map[string]*Module) *ModuleTreeNode {
 	root := &ModuleTreeNode{
 		Children: map[Value]*ModuleTreeNode{},
 	}
-	for _, m := range mods {
+	names := make([]string, 0, len(mods))
+	for name := range mods {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	for _, name := range names {
+		m := mods[name]
 		node := root
 		for i, x := range m.Package.Path {
 			c, ok := node.Children[x.Value]
@@ -2451,6 +2920,19 @@ func (n *TreeNode) Child(k Value) *TreeNode {
 	return nil
 }
 
+// Find dereferences ref along the tree
+func (n *TreeNode) Find(ref Ref) *TreeNode {
+	node := n
+	for _, r := range ref {
+		child := node.Child(r.Value)
+		if child == nil {
+			return nil
+		}
+		node = child
+	}
+	return node
+}
+
 // DepthFirst performs a depth-first traversal of the rule tree rooted at n. If
 // f returns true, traversal will not continue to the children of n.
 func (n *TreeNode) DepthFirst(f func(node *TreeNode) bool) {
@@ -2504,7 +2986,7 @@ func NewGraph(modules map[string]*Module, list func(Ref) []*Rule) *Graph {
 		})
 	}
 
-	// Walk over all rules, add them to graph, and build adjencency lists.
+	// Walk over all rules, add them to graph, and build adjacency lists.
 	for _, module := range modules {
 		WalkRules(module, func(a *Rule) bool {
 			graph.addNode(a)
@@ -2724,13 +3206,10 @@ func (vs unsafeVars) Slice() (result []unsafePair) {
 // contains a mapping of expressions to unsafe variables in those expressions.
 func reorderBodyForSafety(builtins map[string]*Builtin, arity func(Ref) int, globals VarSet, body Body) (Body, unsafeVars) {
 
-	body, unsafe := reorderBodyForClosures(arity, globals, body)
-	if len(unsafe) != 0 {
-		return nil, unsafe
-	}
-
-	reordered := Body{}
+	bodyVars := body.Vars(SafetyCheckVisitorParams)
+	reordered := make(Body, 0, len(body))
 	safe := VarSet{}
+	unsafe := unsafeVars{}
 
 	for _, e := range body {
 		for v := range e.Vars(SafetyCheckVisitorParams) {
@@ -2750,10 +3229,23 @@ func reorderBodyForSafety(builtins map[string]*Builtin, arity func(Ref) int, glo
 				continue
 			}
 
-			safe.Update(outputVarsForExpr(e, arity, safe))
+			ovs := outputVarsForExpr(e, arity, safe)
+
+			// check closures: is this expression closing over variables that
+			// haven't been made safe by what's already included in `reordered`?
+			vs := unsafeVarsInClosures(e, arity, safe)
+			cv := vs.Intersect(bodyVars).Diff(globals)
+			uv := cv.Diff(outputVarsForBody(reordered, arity, safe))
+
+			if len(uv) > 0 {
+				if uv.Equal(ovs) { // special case "closure-self"
+					continue
+				}
+				unsafe.Set(e, uv)
+			}
 
 			for v := range unsafe[e] {
-				if safe.Contains(v) {
+				if ovs.Contains(v) || safe.Contains(v) {
 					delete(unsafe[e], v)
 				}
 			}
@@ -2761,10 +3253,11 @@ func reorderBodyForSafety(builtins map[string]*Builtin, arity func(Ref) int, glo
 			if len(unsafe[e]) == 0 {
 				delete(unsafe, e)
 				reordered.Append(e)
+				safe.Update(ovs) // this expression's outputs are safe
 			}
 		}
 
-		if len(reordered) == n {
+		if len(reordered) == n { // fixed point, could not add any expr of body
 			break
 		}
 	}
@@ -2799,7 +3292,8 @@ type bodySafetyTransformer struct {
 }
 
 func (xform *bodySafetyTransformer) Visit(x interface{}) bool {
-	if term, ok := x.(*Term); ok {
+	switch term := x.(type) {
+	case *Term:
 		switch x := term.Value.(type) {
 		case *object:
 			cpy, _ := x.Map(func(k, v *Term) (*Term, *Term, error) {
@@ -2827,6 +3321,12 @@ func (xform *bodySafetyTransformer) Visit(x interface{}) bool {
 			return true
 		case *SetComprehension:
 			xform.reorderSetComprehensionSafety(x)
+			return true
+		}
+	case *Expr:
+		if ev, ok := term.Terms.(*Every); ok {
+			xform.globals.Update(ev.KeyValueVars())
+			ev.Body = xform.reorderComprehensionSafety(NewVarSet(), ev.Body)
 			return true
 		}
 	}
@@ -2864,51 +3364,20 @@ func (xform *bodySafetyTransformer) reorderSetComprehensionSafety(sc *SetCompreh
 	sc.Body = xform.reorderComprehensionSafety(sc.Term.Vars(), sc.Body)
 }
 
-// reorderBodyForClosures returns a copy of the body ordered such that
-// expressions (such as array comprehensions) that close over variables are ordered
-// after other expressions that contain the same variable in an output position.
-func reorderBodyForClosures(arity func(Ref) int, globals VarSet, body Body) (Body, unsafeVars) {
-
-	reordered := Body{}
-	unsafe := unsafeVars{}
-
-	for {
-		n := len(reordered)
-
-		for _, e := range body {
-			if reordered.Contains(e) {
-				continue
-			}
-
-			// Collect vars that are contained in closures within this
-			// expression.
-			vs := VarSet{}
-			WalkClosures(e, func(x interface{}) bool {
-				vis := &VarVisitor{vars: vs}
-				vis.Walk(x)
-				return true
-			})
-
-			// Compute vars that are closed over from the body but not yet
-			// contained in the output position of an expression in the reordered
-			// body. These vars are considered unsafe.
-			cv := vs.Intersect(body.Vars(SafetyCheckVisitorParams)).Diff(globals)
-			uv := cv.Diff(outputVarsForBody(reordered, arity, globals))
-
-			if len(uv) == 0 {
-				reordered = append(reordered, e)
-				delete(unsafe, e)
-			} else {
-				unsafe.Set(e, uv)
-			}
+// unsafeVarsInClosures collects vars that are contained in closures within
+// this expression.
+func unsafeVarsInClosures(e *Expr, arity func(Ref) int, safe VarSet) VarSet {
+	vs := VarSet{}
+	WalkClosures(e, func(x interface{}) bool {
+		vis := &VarVisitor{vars: vs}
+		if ev, ok := x.(*Every); ok {
+			vis.Walk(ev.Body)
+			return true
 		}
-
-		if len(reordered) == n {
-			break
-		}
-	}
-
-	return reordered, unsafe
+		vis.Walk(x)
+		return true
+	})
+	return vs
 }
 
 // OutputVarsFromBody returns all variables which are the "output" for
@@ -2918,10 +3387,10 @@ func OutputVarsFromBody(c *Compiler, body Body, safe VarSet) VarSet {
 	return outputVarsForBody(body, c.GetArity, safe)
 }
 
-func outputVarsForBody(body Body, getArity func(Ref) int, safe VarSet) VarSet {
+func outputVarsForBody(body Body, arity func(Ref) int, safe VarSet) VarSet {
 	o := safe.Copy()
 	for _, e := range body {
-		o.Update(outputVarsForExpr(e, getArity, o))
+		o.Update(outputVarsForExpr(e, arity, o))
 	}
 	return o.Diff(safe)
 }
@@ -2933,7 +3402,7 @@ func OutputVarsFromExpr(c *Compiler, expr *Expr, safe VarSet) VarSet {
 	return outputVarsForExpr(expr, c.GetArity, safe)
 }
 
-func outputVarsForExpr(expr *Expr, getArity func(Ref) int, safe VarSet) VarSet {
+func outputVarsForExpr(expr *Expr, arity func(Ref) int, safe VarSet) VarSet {
 
 	// Negated expressions must be safe.
 	if expr.Negated {
@@ -2942,15 +3411,11 @@ func outputVarsForExpr(expr *Expr, getArity func(Ref) int, safe VarSet) VarSet {
 
 	// With modifier inputs must be safe.
 	for _, with := range expr.With {
-		unsafe := false
-		WalkVars(with, func(v Var) bool {
-			if !safe.Contains(v) {
-				unsafe = true
-				return true
-			}
-			return false
-		})
-		if unsafe {
+		vis := NewVarVisitor().WithParams(SafetyCheckVisitorParams)
+		vis.Walk(with)
+		vars := vis.Vars()
+		unsafe := vars.Diff(safe)
+		if len(unsafe) > 0 {
 			return VarSet{}
 		}
 	}
@@ -2968,12 +3433,14 @@ func outputVarsForExpr(expr *Expr, getArity func(Ref) int, safe VarSet) VarSet {
 			return VarSet{}
 		}
 
-		arity := getArity(operator)
-		if arity < 0 {
+		ar := arity(operator)
+		if ar < 0 {
 			return VarSet{}
 		}
 
-		return outputVarsForExprCall(expr, arity, safe, terms)
+		return outputVarsForExprCall(expr, ar, safe, terms)
+	case *Every:
+		return outputVarsForTerms(terms.Domain, safe)
 	default:
 		panic("illegal expression")
 	}
@@ -3001,13 +3468,13 @@ func outputVarsForExprCall(expr *Expr, arity int, safe VarSet, terms []*Term) Va
 		return output
 	}
 
-	vis := NewVarVisitor().WithParams(VarVisitorParams{
+	params := VarVisitorParams{
 		SkipClosures:   true,
 		SkipSets:       true,
 		SkipObjectKeys: true,
 		SkipRefHead:    true,
-	})
-
+	}
+	vis := NewVarVisitor().WithParams(params)
 	vis.Walk(Args(terms[:numInputTerms]))
 	unsafe := vis.Vars().Diff(output).Diff(safe)
 
@@ -3015,19 +3482,13 @@ func outputVarsForExprCall(expr *Expr, arity int, safe VarSet, terms []*Term) Va
 		return VarSet{}
 	}
 
-	vis = NewVarVisitor().WithParams(VarVisitorParams{
-		SkipRefHead:    true,
-		SkipSets:       true,
-		SkipObjectKeys: true,
-		SkipClosures:   true,
-	})
-
+	vis = NewVarVisitor().WithParams(params)
 	vis.Walk(Args(terms[numInputTerms:]))
 	output.Update(vis.vars)
 	return output
 }
 
-func outputVarsForTerms(expr *Expr, safe VarSet) VarSet {
+func outputVarsForTerms(expr interface{}, safe VarSet) VarSet {
 	output := VarSet{}
 	WalkTerms(expr, func(x *Term) bool {
 		switch r := x.Value.(type) {
@@ -3093,31 +3554,24 @@ func (l *localVarGenerator) Generate() Var {
 	}
 }
 
-func getGlobals(pkg *Package, rules []Var, imports []*Import) map[Var]Ref {
+func getGlobals(pkg *Package, rules []Var, imports []*Import) map[Var]*usedRef {
 
-	globals := map[Var]Ref{}
+	globals := map[Var]*usedRef{}
 
 	// Populate globals with exports within the package.
 	for _, v := range rules {
 		global := append(Ref{}, pkg.Path...)
 		global = append(global, &Term{Value: String(v)})
-		globals[v] = global
+		globals[v] = &usedRef{ref: global}
 	}
 
 	// Populate globals with imports.
-	for _, i := range imports {
-		if len(i.Alias) > 0 {
-			path := i.Path.Value.(Ref)
-			globals[i.Alias] = path
-		} else {
-			path := i.Path.Value.(Ref)
-			if len(path) == 1 {
-				globals[path[0].Value.(Var)] = path
-			} else {
-				v := path[len(path)-1].Value.(String)
-				globals[Var(v)] = path
-			}
+	for _, imp := range imports {
+		path := imp.Path.Value.(Ref)
+		if FutureRootDocument.Equal(path[0]) {
+			continue // ignore future imports
 		}
+		globals[imp.Name()] = &usedRef{ref: path}
 	}
 
 	return globals
@@ -3130,14 +3584,14 @@ func requiresEval(x *Term) bool {
 	return ContainsRefs(x) || ContainsComprehensions(x)
 }
 
-func resolveRef(globals map[Var]Ref, ignore *declaredVarStack, ref Ref) Ref {
+func resolveRef(globals map[Var]*usedRef, ignore *declaredVarStack, ref Ref) Ref {
 
 	r := Ref{}
 	for i, x := range ref {
 		switch v := x.Value.(type) {
 		case Var:
 			if g, ok := globals[v]; ok && !ignore.Contains(v) {
-				cpy := g.Copy()
+				cpy := g.ref.Copy()
 				for i := range cpy {
 					cpy[i].SetLocation(x.Location)
 				}
@@ -3146,6 +3600,7 @@ func resolveRef(globals map[Var]Ref, ignore *declaredVarStack, ref Ref) Ref {
 				} else {
 					r = append(r, NewTerm(cpy).SetLocation(x.Location))
 				}
+				g.used = true
 			} else {
 				r = append(r, x)
 			}
@@ -3159,7 +3614,12 @@ func resolveRef(globals map[Var]Ref, ignore *declaredVarStack, ref Ref) Ref {
 	return r
 }
 
-func resolveRefsInRule(globals map[Var]Ref, rule *Rule) error {
+type usedRef struct {
+	ref  Ref
+	used bool
+}
+
+func resolveRefsInRule(globals map[Var]*usedRef, rule *Rule) error {
 	ignore := &declaredVarStack{}
 
 	vars := NewVarSet()
@@ -3222,15 +3682,15 @@ func resolveRefsInRule(globals map[Var]Ref, rule *Rule) error {
 	return nil
 }
 
-func resolveRefsInBody(globals map[Var]Ref, ignore *declaredVarStack, body Body) Body {
-	r := Body{}
+func resolveRefsInBody(globals map[Var]*usedRef, ignore *declaredVarStack, body Body) Body {
+	r := make([]*Expr, 0, len(body))
 	for _, expr := range body {
 		r = append(r, resolveRefsInExpr(globals, ignore, expr))
 	}
 	return r
 }
 
-func resolveRefsInExpr(globals map[Var]Ref, ignore *declaredVarStack, expr *Expr) *Expr {
+func resolveRefsInExpr(globals map[Var]*usedRef, ignore *declaredVarStack, expr *Expr) *Expr {
 	cpy := *expr
 	switch ts := expr.Terms.(type) {
 	case *Term:
@@ -3245,6 +3705,20 @@ func resolveRefsInExpr(globals map[Var]Ref, ignore *declaredVarStack, expr *Expr
 		if val, ok := ts.Symbols[0].Value.(Call); ok {
 			cpy.Terms = &SomeDecl{Symbols: []*Term{CallTerm(resolveRefsInTermSlice(globals, ignore, val)...)}}
 		}
+	case *Every:
+		locals := NewVarSet()
+		if ts.Key != nil {
+			locals.Update(ts.Key.Vars())
+		}
+		locals.Update(ts.Value.Vars())
+		ignore.Push(locals)
+		cpy.Terms = &Every{
+			Key:    ts.Key.Copy(),   // TODO(sr): do more?
+			Value:  ts.Value.Copy(), // TODO(sr): do more?
+			Domain: resolveRefsInTerm(globals, ignore, ts.Domain),
+			Body:   resolveRefsInBody(globals, ignore, ts.Body),
+		}
+		ignore.Pop()
 	}
 	for _, w := range cpy.With {
 		w.Target = resolveRefsInTerm(globals, ignore, w.Target)
@@ -3253,14 +3727,15 @@ func resolveRefsInExpr(globals map[Var]Ref, ignore *declaredVarStack, expr *Expr
 	return &cpy
 }
 
-func resolveRefsInTerm(globals map[Var]Ref, ignore *declaredVarStack, term *Term) *Term {
+func resolveRefsInTerm(globals map[Var]*usedRef, ignore *declaredVarStack, term *Term) *Term {
 	switch v := term.Value.(type) {
 	case Var:
 		if g, ok := globals[v]; ok && !ignore.Contains(v) {
-			cpy := g.Copy()
+			cpy := g.ref.Copy()
 			for i := range cpy {
 				cpy[i].SetLocation(term.Location)
 			}
+			g.used = true
 			return NewTerm(cpy).SetLocation(term.Location)
 		}
 		return term
@@ -3325,7 +3800,7 @@ func resolveRefsInTerm(globals map[Var]Ref, ignore *declaredVarStack, term *Term
 	}
 }
 
-func resolveRefsInTermArray(globals map[Var]Ref, ignore *declaredVarStack, terms *Array) []*Term {
+func resolveRefsInTermArray(globals map[Var]*usedRef, ignore *declaredVarStack, terms *Array) []*Term {
 	cpy := make([]*Term, terms.Len())
 	for i := 0; i < terms.Len(); i++ {
 		cpy[i] = resolveRefsInTerm(globals, ignore, terms.Elem(i))
@@ -3333,7 +3808,7 @@ func resolveRefsInTermArray(globals map[Var]Ref, ignore *declaredVarStack, terms
 	return cpy
 }
 
-func resolveRefsInTermSlice(globals map[Var]Ref, ignore *declaredVarStack, terms []*Term) []*Term {
+func resolveRefsInTermSlice(globals map[Var]*usedRef, ignore *declaredVarStack, terms []*Term) []*Term {
 	cpy := make([]*Term, len(terms))
 	for i := 0; i < len(terms); i++ {
 		cpy[i] = resolveRefsInTerm(globals, ignore, terms[i])
@@ -3492,11 +3967,14 @@ func rewriteEquals(x interface{}) {
 func rewriteDynamics(f *equalityFactory, body Body) Body {
 	result := make(Body, 0, len(body))
 	for _, expr := range body {
-		if expr.IsEquality() {
+		switch {
+		case expr.IsEquality():
 			result = rewriteDynamicsEqExpr(f, expr, result)
-		} else if expr.IsCall() {
+		case expr.IsCall():
 			result = rewriteDynamicsCallExpr(f, expr, result)
-		} else {
+		case expr.IsEvery():
+			result = rewriteDynamicsEveryExpr(f, expr, result)
+		default:
 			result = rewriteDynamicsTermExpr(f, expr, result)
 		}
 	}
@@ -3523,6 +4001,13 @@ func rewriteDynamicsCallExpr(f *equalityFactory, expr *Expr, result Body) Body {
 	for i := 1; i < len(terms); i++ {
 		result, terms[i] = rewriteDynamicsOne(expr, f, terms[i], result)
 	}
+	return appendExpr(result, expr)
+}
+
+func rewriteDynamicsEveryExpr(f *equalityFactory, expr *Expr, result Body) Body {
+	ev := expr.Terms.(*Every)
+	result, ev.Domain = rewriteDynamicsOne(expr, f, ev.Domain, result)
+	ev.Body = rewriteDynamics(f, ev.Body)
 	return appendExpr(result, expr)
 }
 
@@ -3672,6 +4157,21 @@ func expandExpr(gen *localVarGenerator, expr *Expr) (result []*Expr) {
 			result = append(result, extras...)
 		}
 		result = append(result, expr)
+	case *Every:
+		var extras []*Expr
+		if _, ok := terms.Domain.Value.(Call); ok {
+			extras, terms.Domain = expandExprTerm(gen, terms.Domain)
+		} else {
+			term := NewTerm(gen.Generate()).SetLocation(terms.Domain.Location)
+			eq := Equality.Expr(term, terms.Domain).SetLocation(terms.Domain.Location)
+			eq.Generated = true
+			eq.With = expr.With
+			extras = append(extras, eq)
+			terms.Domain = term
+		}
+		terms.Body = rewriteExprTermsInBody(gen, terms.Body)
+		result = append(result, extras...)
+		result = append(result, expr)
 	}
 	return
 }
@@ -3789,8 +4289,8 @@ type localDeclaredVars struct {
 
 	// rewritten contains a mapping of *all* user-defined variables
 	// that have been rewritten whereas vars contains the state
-	// from the current query (not not any nested queries, and all
-	// vars seen).
+	// from the current query (not any nested queries, and all vars
+	// seen).
 	rewritten map[Var]Var
 }
 
@@ -3808,6 +4308,7 @@ type declaredVarSet struct {
 	vs         map[Var]Var
 	reverse    map[Var]Var
 	occurrence map[Var]varOccurrence
+	count      map[Var]int
 }
 
 func newDeclaredVarSet() *declaredVarSet {
@@ -3815,6 +4316,7 @@ func newDeclaredVarSet() *declaredVarSet {
 		vs:         map[Var]Var{},
 		reverse:    map[Var]Var{},
 		occurrence: map[Var]varOccurrence{},
+		count:      map[Var]int{},
 	}
 }
 
@@ -3845,6 +4347,8 @@ func (s localDeclaredVars) Insert(x, y Var, occurrence varOccurrence) {
 	elem.vs[x] = y
 	elem.reverse[y] = x
 	elem.occurrence[x] = occurrence
+
+	elem.count[x] = 1
 
 	// If the variable has been rewritten (where x != y, with y being
 	// the generated value), store it in the map of rewritten vars.
@@ -3880,6 +4384,30 @@ func (s localDeclaredVars) GlobalOccurrence(x Var) (varOccurrence, bool) {
 	return newVar, false
 }
 
+// Seen marks x as seen by incrementing its counter
+func (s localDeclaredVars) Seen(x Var) {
+	for i := len(s.vars) - 1; i >= 0; i-- {
+		dvs := s.vars[i]
+		if c, ok := dvs.count[x]; ok {
+			dvs.count[x] = c + 1
+			return
+		}
+	}
+
+	s.vars[len(s.vars)-1].count[x] = 1
+}
+
+// Count returns how many times x has been seen
+func (s localDeclaredVars) Count(x Var) int {
+	for i := len(s.vars) - 1; i >= 0; i-- {
+		if c, ok := s.vars[i].count[x]; ok {
+			return c
+		}
+	}
+
+	return 0
+}
+
 // rewriteLocalVars rewrites bodies to remove assignment/declaration
 // expressions. For example:
 //
@@ -3890,24 +4418,27 @@ func (s localDeclaredVars) GlobalOccurrence(x Var) (varOccurrence, bool) {
 // __local0__ = 1; p[__local0__]
 //
 // During rewriting, assignees are validated to prevent use before declaration.
-func rewriteLocalVars(g *localVarGenerator, stack *localDeclaredVars, used VarSet, body Body) (Body, map[Var]Var, Errors) {
+func rewriteLocalVars(g *localVarGenerator, stack *localDeclaredVars, used VarSet, body Body, strict bool) (Body, map[Var]Var, Errors) {
 	var errs Errors
-	body, errs = rewriteDeclaredVarsInBody(g, stack, used, body, errs)
+	body, errs = rewriteDeclaredVarsInBody(g, stack, used, body, errs, strict)
 	return body, stack.Pop().vs, errs
 }
 
-func rewriteDeclaredVarsInBody(g *localVarGenerator, stack *localDeclaredVars, used VarSet, body Body, errs Errors) (Body, Errors) {
+func rewriteDeclaredVarsInBody(g *localVarGenerator, stack *localDeclaredVars, used VarSet, body Body, errs Errors, strict bool) (Body, Errors) {
 
 	var cpy Body
 
 	for i := range body {
 		var expr *Expr
-		if body[i].IsAssignment() {
-			expr, errs = rewriteDeclaredAssignment(g, stack, body[i], errs)
-		} else if _, ok := body[i].Terms.(*SomeDecl); ok {
-			expr, errs = rewriteSomeDeclStatement(g, stack, body[i], errs)
-		} else {
-			expr, errs = rewriteDeclaredVarsInExpr(g, stack, body[i], errs)
+		switch {
+		case body[i].IsAssignment():
+			expr, errs = rewriteDeclaredAssignment(g, stack, body[i], errs, strict)
+		case body[i].IsSome():
+			expr, errs = rewriteSomeDeclStatement(g, stack, body[i], errs, strict)
+		case body[i].IsEvery():
+			expr, errs = rewriteEveryStatement(g, stack, body[i], errs, strict)
+		default:
+			expr, errs = rewriteDeclaredVarsInExpr(g, stack, body[i], errs, strict)
 		}
 		if expr != nil {
 			cpy.Append(expr)
@@ -3921,7 +4452,43 @@ func rewriteDeclaredVarsInBody(g *localVarGenerator, stack *localDeclaredVars, u
 		cpy.Append(NewExpr(BooleanTerm(true)))
 	}
 
+	errs = checkUnusedAssignedVars(body[0].Loc(), stack, used, errs, strict)
 	return cpy, checkUnusedDeclaredVars(body[0].Loc(), stack, used, cpy, errs)
+}
+
+func checkUnusedAssignedVars(loc *Location, stack *localDeclaredVars, used VarSet, errs Errors, strict bool) Errors {
+
+	if !strict || len(errs) > 0 {
+		return errs
+	}
+
+	dvs := stack.Peek()
+	unused := NewVarSet()
+
+	for v, occ := range dvs.occurrence {
+		// A var that was assigned in this scope must have been seen (used) more than once (the time of assignment) in
+		// the same, or nested, scope to be counted as used.
+		if !v.IsWildcard() && occ == assignedVar && stack.Count(v) <= 1 {
+			unused.Add(dvs.vs[v])
+		}
+	}
+
+	rewrittenUsed := NewVarSet()
+	for v := range used {
+		if gv, ok := stack.Declared(v); ok {
+			rewrittenUsed.Add(gv)
+		} else {
+			rewrittenUsed.Add(v)
+		}
+	}
+
+	unused = unused.Diff(rewrittenUsed)
+
+	for _, gv := range unused.Sorted() {
+		errs = append(errs, NewError(CompileErr, loc, "assigned var %v unused", dvs.reverse[gv]))
+	}
+
+	return errs
 }
 
 func checkUnusedDeclaredVars(loc *Location, stack *localDeclaredVars, used VarSet, cpy Body, errs Errors) Errors {
@@ -3954,13 +4521,53 @@ func checkUnusedDeclaredVars(loc *Location, stack *localDeclaredVars, used VarSe
 	unused := declared.Diff(bodyvars).Diff(used)
 
 	for _, gv := range unused.Sorted() {
-		errs = append(errs, NewError(CompileErr, loc, "declared var %v unused", dvs.reverse[gv]))
+		rv := dvs.reverse[gv]
+		if !rv.IsGenerated() {
+			errs = append(errs, NewError(CompileErr, loc, "declared var %v unused", rv))
+		}
 	}
 
 	return errs
 }
 
-func rewriteSomeDeclStatement(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors) (*Expr, Errors) {
+func rewriteEveryStatement(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors, strict bool) (*Expr, Errors) {
+	e := expr.Copy()
+	every := e.Terms.(*Every)
+
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, every.Domain, errs, strict)
+
+	stack.Push()
+	defer stack.Pop()
+
+	// if the key exists, rewrite
+	if every.Key != nil {
+		if v := every.Key.Value.(Var); !v.IsWildcard() {
+			gv, err := rewriteDeclaredVar(g, stack, v, declaredVar)
+			if err != nil {
+				return nil, append(errs, NewError(CompileErr, every.Loc(), err.Error()))
+			}
+			every.Key.Value = gv
+		}
+	} else { // if the key doesn't exist, add dummy local
+		every.Key = NewTerm(g.Generate())
+	}
+
+	// value is always present
+	if v := every.Value.Value.(Var); !v.IsWildcard() {
+		gv, err := rewriteDeclaredVar(g, stack, v, declaredVar)
+		if err != nil {
+			return nil, append(errs, NewError(CompileErr, every.Loc(), err.Error()))
+		}
+		every.Value.Value = gv
+	}
+
+	used := NewVarSet()
+	every.Body, errs = rewriteDeclaredVarsInBody(g, stack, used, every.Body, errs, strict)
+
+	return rewriteDeclaredVarsInExpr(g, stack, e, errs, strict)
+}
+
+func rewriteSomeDeclStatement(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors, strict bool) (*Expr, Errors) {
 	e := expr.Copy()
 	decl := e.Terms.(*SomeDecl)
 	for i := range decl.Symbols {
@@ -3998,20 +4605,20 @@ func rewriteSomeDeclStatement(g *localVarGenerator, stack *localDeclaredVars, ex
 					return nil, append(errs, NewError(CompileErr, decl.Loc(), err.Error()))
 				}
 			}
-			return rewriteDeclaredVarsInExpr(g, stack, e, errs)
+			return rewriteDeclaredVarsInExpr(g, stack, e, errs, strict)
 		}
 	}
 	return nil, errs
 }
 
-func rewriteDeclaredVarsInExpr(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors) (*Expr, Errors) {
+func rewriteDeclaredVarsInExpr(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors, strict bool) (*Expr, Errors) {
 	vis := NewGenericVisitor(func(x interface{}) bool {
 		var stop bool
 		switch x := x.(type) {
 		case *Term:
-			stop, errs = rewriteDeclaredVarsInTerm(g, stack, x, errs)
+			stop, errs = rewriteDeclaredVarsInTerm(g, stack, x, errs, strict)
 		case *With:
-			_, errs = rewriteDeclaredVarsInTerm(g, stack, x.Value, errs)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, x.Value, errs, strict)
 			stop = true
 		}
 		return stop
@@ -4020,7 +4627,7 @@ func rewriteDeclaredVarsInExpr(g *localVarGenerator, stack *localDeclaredVars, e
 	return expr, errs
 }
 
-func rewriteDeclaredAssignment(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors) (*Expr, Errors) {
+func rewriteDeclaredAssignment(g *localVarGenerator, stack *localDeclaredVars, expr *Expr, errs Errors, strict bool) (*Expr, Errors) {
 
 	if expr.Negated {
 		errs = append(errs, NewError(CompileErr, expr.Location, "cannot assign vars inside negated expression"))
@@ -4036,10 +4643,10 @@ func rewriteDeclaredAssignment(g *localVarGenerator, stack *localDeclaredVars, e
 	// Rewrite terms on right hand side capture seen vars and recursively
 	// process comprehensions before left hand side is processed. Also
 	// rewrite with modifier.
-	errs = rewriteDeclaredVarsInTermRecursive(g, stack, expr.Operand(1), errs)
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, expr.Operand(1), errs, strict)
 
 	for _, w := range expr.With {
-		errs = rewriteDeclaredVarsInTermRecursive(g, stack, w.Value, errs)
+		errs = rewriteDeclaredVarsInTermRecursive(g, stack, w.Value, errs, strict)
 	}
 
 	// Rewrite vars on left hand side with unique names. Catch redeclaration
@@ -4086,11 +4693,12 @@ func rewriteDeclaredAssignment(g *localVarGenerator, stack *localDeclaredVars, e
 	return expr, errs
 }
 
-func rewriteDeclaredVarsInTerm(g *localVarGenerator, stack *localDeclaredVars, term *Term, errs Errors) (bool, Errors) {
+func rewriteDeclaredVarsInTerm(g *localVarGenerator, stack *localDeclaredVars, term *Term, errs Errors, strict bool) (bool, Errors) {
 	switch v := term.Value.(type) {
 	case Var:
 		if gv, ok := stack.Declared(v); ok {
 			term.Value = gv
+			stack.Seen(v)
 		} else if stack.Occurrence(v) == newVar {
 			stack.Insert(v, v, seenVar)
 		}
@@ -4105,69 +4713,90 @@ func rewriteDeclaredVarsInTerm(g *localVarGenerator, stack *localDeclaredVars, t
 			return true, errs
 		}
 		return false, errs
+	case Call:
+		ref := v[0]
+		WalkVars(ref, func(v Var) bool {
+			if gv, ok := stack.Declared(v); ok && !gv.Equal(v) {
+				// We will rewrite the ref of a function call, which is never ok since we don't have first-class functions.
+				errs = append(errs, NewError(CompileErr, term.Location, "called function %s shadowed", ref))
+				return true
+			}
+			return false
+		})
+		return false, errs
 	case *object:
 		cpy, _ := v.Map(func(k, v *Term) (*Term, *Term, error) {
 			kcpy := k.Copy()
-			errs = rewriteDeclaredVarsInTermRecursive(g, stack, kcpy, errs)
-			errs = rewriteDeclaredVarsInTermRecursive(g, stack, v, errs)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, kcpy, errs, strict)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, v, errs, strict)
 			return kcpy, v, nil
 		})
 		term.Value = cpy
 	case Set:
 		cpy, _ := v.Map(func(elem *Term) (*Term, error) {
 			elemcpy := elem.Copy()
-			errs = rewriteDeclaredVarsInTermRecursive(g, stack, elemcpy, errs)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, elemcpy, errs, strict)
 			return elemcpy, nil
 		})
 		term.Value = cpy
 	case *ArrayComprehension:
-		errs = rewriteDeclaredVarsInArrayComprehension(g, stack, v, errs)
+		errs = rewriteDeclaredVarsInArrayComprehension(g, stack, v, errs, strict)
 	case *SetComprehension:
-		errs = rewriteDeclaredVarsInSetComprehension(g, stack, v, errs)
+		errs = rewriteDeclaredVarsInSetComprehension(g, stack, v, errs, strict)
 	case *ObjectComprehension:
-		errs = rewriteDeclaredVarsInObjectComprehension(g, stack, v, errs)
+		errs = rewriteDeclaredVarsInObjectComprehension(g, stack, v, errs, strict)
 	default:
 		return false, errs
 	}
 	return true, errs
 }
 
-func rewriteDeclaredVarsInTermRecursive(g *localVarGenerator, stack *localDeclaredVars, term *Term, errs Errors) Errors {
+func rewriteDeclaredVarsInTermRecursive(g *localVarGenerator, stack *localDeclaredVars, term *Term, errs Errors, strict bool) Errors {
 	WalkNodes(term, func(n Node) bool {
 		var stop bool
 		switch n := n.(type) {
 		case *With:
-			_, errs = rewriteDeclaredVarsInTerm(g, stack, n.Value, errs)
+			errs = rewriteDeclaredVarsInTermRecursive(g, stack, n.Value, errs, strict)
 			stop = true
 		case *Term:
-			stop, errs = rewriteDeclaredVarsInTerm(g, stack, n, errs)
+			stop, errs = rewriteDeclaredVarsInTerm(g, stack, n, errs, strict)
 		}
 		return stop
 	})
 	return errs
 }
 
-func rewriteDeclaredVarsInArrayComprehension(g *localVarGenerator, stack *localDeclaredVars, v *ArrayComprehension, errs Errors) Errors {
+func rewriteDeclaredVarsInArrayComprehension(g *localVarGenerator, stack *localDeclaredVars, v *ArrayComprehension, errs Errors, strict bool) Errors {
+	used := NewVarSet()
+	used.Update(v.Term.Vars())
+
 	stack.Push()
-	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, nil, v.Body, errs)
-	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Term, errs)
+	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, used, v.Body, errs, strict)
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Term, errs, strict)
 	stack.Pop()
 	return errs
 }
 
-func rewriteDeclaredVarsInSetComprehension(g *localVarGenerator, stack *localDeclaredVars, v *SetComprehension, errs Errors) Errors {
+func rewriteDeclaredVarsInSetComprehension(g *localVarGenerator, stack *localDeclaredVars, v *SetComprehension, errs Errors, strict bool) Errors {
+	used := NewVarSet()
+	used.Update(v.Term.Vars())
+
 	stack.Push()
-	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, nil, v.Body, errs)
-	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Term, errs)
+	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, used, v.Body, errs, strict)
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Term, errs, strict)
 	stack.Pop()
 	return errs
 }
 
-func rewriteDeclaredVarsInObjectComprehension(g *localVarGenerator, stack *localDeclaredVars, v *ObjectComprehension, errs Errors) Errors {
+func rewriteDeclaredVarsInObjectComprehension(g *localVarGenerator, stack *localDeclaredVars, v *ObjectComprehension, errs Errors, strict bool) Errors {
+	used := NewVarSet()
+	used.Update(v.Key.Vars())
+	used.Update(v.Value.Vars())
+
 	stack.Push()
-	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, nil, v.Body, errs)
-	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Key, errs)
-	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Value, errs)
+	v.Body, errs = rewriteDeclaredVarsInBody(g, stack, used, v.Body, errs, strict)
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Key, errs, strict)
+	errs = rewriteDeclaredVarsInTermRecursive(g, stack, v.Value, errs, strict)
 	stack.Pop()
 	return errs
 }
@@ -4191,10 +4820,10 @@ func rewriteDeclaredVar(g *localVarGenerator, stack *localDeclaredVars, v Var, o
 // rewriteWithModifiersInBody will rewrite the body so that with modifiers do
 // not contain terms that require evaluation as values. If this function
 // encounters an invalid with modifier target then it will raise an error.
-func rewriteWithModifiersInBody(c *Compiler, f *equalityFactory, body Body) (Body, *Error) {
+func rewriteWithModifiersInBody(c *Compiler, unsafeBuiltinsMap map[string]struct{}, f *equalityFactory, body Body) (Body, *Error) {
 	var result Body
 	for i := range body {
-		exprs, err := rewriteWithModifier(c, f, body[i])
+		exprs, err := rewriteWithModifier(c, unsafeBuiltinsMap, f, body[i])
 		if err != nil {
 			return nil, err
 		}
@@ -4209,61 +4838,120 @@ func rewriteWithModifiersInBody(c *Compiler, f *equalityFactory, body Body) (Bod
 	return result, nil
 }
 
-func rewriteWithModifier(c *Compiler, f *equalityFactory, expr *Expr) ([]*Expr, *Error) {
+func rewriteWithModifier(c *Compiler, unsafeBuiltinsMap map[string]struct{}, f *equalityFactory, expr *Expr) ([]*Expr, *Error) {
 
 	var result []*Expr
 	for i := range expr.With {
-		err := validateTarget(c, expr.With[i].Target)
+		eval, err := validateWith(c, unsafeBuiltinsMap, expr, i)
 		if err != nil {
 			return nil, err
 		}
 
-		if requiresEval(expr.With[i].Value) {
+		if eval {
 			eq := f.Generate(expr.With[i].Value)
 			result = append(result, eq)
 			expr.With[i].Value = eq.Operand(0)
 		}
 	}
 
-	// If any of the with modifiers in this expression were rewritten then result
-	// will be non-empty. In this case, the expression will have been modified and
-	// it should also be added to the result.
-	if len(result) > 0 {
-		result = append(result, expr)
-	}
-	return result, nil
+	return append(result, expr), nil
 }
 
-func validateTarget(c *Compiler, term *Term) *Error {
-	if !isInputRef(term) && !isDataRef(term) {
-		return NewError(TypeErr, term.Location, "with keyword target must start with %v or %v", InputRootDocument, DefaultRootDocument)
+func validateWith(c *Compiler, unsafeBuiltinsMap map[string]struct{}, expr *Expr, i int) (bool, *Error) {
+	target, value := expr.With[i].Target, expr.With[i].Value
+
+	// Ensure that values that are built-ins are rewritten to Ref (not Var)
+	if v, ok := value.Value.(Var); ok {
+		if _, ok := c.builtins[v.String()]; ok {
+			value.Value = Ref([]*Term{NewTerm(v)})
+		}
+	}
+	isBuiltinRefOrVar, err := isBuiltinRefOrVar(c.builtins, unsafeBuiltinsMap, target)
+	if err != nil {
+		return false, err
 	}
 
-	if isDataRef(term) {
-		ref := term.Value.(Ref)
+	switch {
+	case isDataRef(target):
+		ref := target.Value.(Ref)
 		node := c.RuleTree
 		for i := 0; i < len(ref)-1; i++ {
 			child := node.Child(ref[i].Value)
 			if child == nil {
 				break
 			} else if len(child.Values) > 0 {
-				return NewError(CompileErr, term.Loc(), "with keyword cannot partially replace virtual document(s)")
+				return false, NewError(CompileErr, target.Loc(), "with keyword cannot partially replace virtual document(s)")
 			}
 			node = child
 		}
 
 		if node != nil {
+			// NOTE(sr): at this point in the compiler stages, we don't have a fully-populated
+			// TypeEnv yet -- so we have to make do with this check to see if the replacement
+			// target is a function. It's probably wrong for arity-0 functions, but those are
+			// and edge case anyways.
 			if child := node.Child(ref[len(ref)-1].Value); child != nil {
-				for _, value := range child.Values {
-					if len(value.(*Rule).Head.Args) > 0 {
-						return NewError(CompileErr, term.Loc(), "with keyword cannot replace functions")
+				for _, v := range child.Values {
+					if len(v.(*Rule).Head.Args) > 0 {
+						if ok, err := validateWithFunctionValue(c.builtins, unsafeBuiltinsMap, c.RuleTree, value); err != nil || ok {
+							return false, err // may be nil
+						}
 					}
 				}
 			}
 		}
+	case isInputRef(target): // ok, valid
+	case isBuiltinRefOrVar:
 
+		// NOTE(sr): first we ensure that parsed Var builtins (`count`, `concat`, etc)
+		// are rewritten to their proper Ref convention
+		if v, ok := target.Value.(Var); ok {
+			target.Value = Ref([]*Term{NewTerm(v)})
+		}
+
+		targetRef := target.Value.(Ref)
+		bi := c.builtins[targetRef.String()] // safe because isBuiltinRefOrVar checked this
+		if err := validateWithBuiltinTarget(bi, targetRef, target.Loc()); err != nil {
+			return false, err
+		}
+
+		if ok, err := validateWithFunctionValue(c.builtins, unsafeBuiltinsMap, c.RuleTree, value); err != nil || ok {
+			return false, err // may be nil
+		}
+	default:
+		return false, NewError(TypeErr, target.Location, "with keyword target must reference existing %v, %v, or a function", InputRootDocument, DefaultRootDocument)
+	}
+	return requiresEval(value), nil
+}
+
+func validateWithBuiltinTarget(bi *Builtin, target Ref, loc *location.Location) *Error {
+	switch bi.Name {
+	case Equality.Name,
+		RegoMetadataChain.Name,
+		RegoMetadataRule.Name:
+		return NewError(CompileErr, loc, "with keyword replacing built-in function: replacement of %q invalid", bi.Name)
+	}
+
+	switch {
+	case target.HasPrefix(Ref([]*Term{VarTerm("internal")})):
+		return NewError(CompileErr, loc, "with keyword replacing built-in function: replacement of internal function %q invalid", target)
+
+	case bi.Relation:
+		return NewError(CompileErr, loc, "with keyword replacing built-in function: target must not be a relation")
+
+	case bi.Decl.Result() == nil:
+		return NewError(CompileErr, loc, "with keyword replacing built-in function: target must not be a void function")
 	}
 	return nil
+}
+
+func validateWithFunctionValue(bs map[string]*Builtin, unsafeMap map[string]struct{}, ruleTree *TreeNode, value *Term) (bool, *Error) {
+	if v, ok := value.Value.(Ref); ok {
+		if ruleTree.Find(v) != nil { // ref exists in rule tree
+			return true, nil
+		}
+	}
+	return isBuiltinRefOrVar(bs, unsafeMap, value)
 }
 
 func isInputRef(term *Term) bool {
@@ -4282,6 +4970,18 @@ func isDataRef(term *Term) bool {
 		}
 	}
 	return false
+}
+
+func isBuiltinRefOrVar(bs map[string]*Builtin, unsafeBuiltinsMap map[string]struct{}, term *Term) (bool, *Error) {
+	switch v := term.Value.(type) {
+	case Ref, Var:
+		if _, ok := unsafeBuiltinsMap[v.String()]; ok {
+			return false, NewError(CompileErr, term.Location, "with keyword replacing built-in function: target must not be unsafe: %q", v)
+		}
+		_, ok := bs[v.String()]
+		return ok, nil
+	}
+	return false, nil
 }
 
 func isVirtual(node *TreeNode, ref Ref) bool {
@@ -4356,6 +5056,25 @@ func checkUnsafeBuiltins(unsafeBuiltinsMap map[string]struct{}, node interface{}
 			operator := x.Operator().String()
 			if _, ok := unsafeBuiltinsMap[operator]; ok {
 				errs = append(errs, NewError(TypeErr, x.Loc(), "unsafe built-in function calls in expression: %v", operator))
+			}
+		}
+		return false
+	})
+	return errs
+}
+
+func checkDeprecatedBuiltins(deprecatedBuiltinsMap map[string]struct{}, node interface{}, strict bool) Errors {
+	// Early out; deprecatedBuiltinsMap is only populated in strict-mode.
+	if !strict {
+		return nil
+	}
+
+	errs := make(Errors, 0)
+	WalkExprs(node, func(x *Expr) bool {
+		if x.IsCall() {
+			operator := x.Operator().String()
+			if _, ok := deprecatedBuiltinsMap[operator]; ok {
+				errs = append(errs, NewError(TypeErr, x.Loc(), "deprecated built-in function calls in expression: %v", operator))
 			}
 		}
 		return false

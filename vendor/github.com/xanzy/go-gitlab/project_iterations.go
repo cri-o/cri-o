@@ -56,7 +56,7 @@ func (i ProjectIteration) String() string {
 // options
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/group_iterations.html#list-project-iterations
+// https://docs.gitlab.com/ee/api/iterations.html#list-project-iterations
 type ListProjectIterationsOptions struct {
 	ListOptions
 	State            *string `url:"state,omitempty" json:"state,omitempty"`
@@ -67,7 +67,7 @@ type ListProjectIterationsOptions struct {
 // ListProjectIterations returns a list of projects iterations.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/group_iterations.html#list-project-iterations
+// https://docs.gitlab.com/ee/api/iterations.html#list-project-iterations
 func (i *ProjectIterationsService) ListProjectIterations(pid interface{}, opt *ListProjectIterationsOptions, options ...RequestOptionFunc) ([]*ProjectIteration, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

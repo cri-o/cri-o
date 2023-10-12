@@ -44,7 +44,7 @@ func (p *Pod) save() error {
 // This cannot lock any other pod, but may lock individual containers, as those
 // will have refreshed by the time pod refresh runs.
 func (p *Pod) refresh() error {
-	// Need to to an update from the DB to pull potentially-missing state
+	// Need to do an update from the DB to pull potentially-missing state
 	if err := p.runtime.state.UpdatePod(p); err != nil {
 		return err
 	}
@@ -66,4 +66,11 @@ func (p *Pod) refresh() error {
 
 	// Save changes
 	return p.save()
+}
+
+// resetPodState resets state fields to default values.
+// It is performed before a refresh and clears the state after a reboot.
+// It does not save the results - assumes the database will do that for us.
+func resetPodState(state *podState) {
+	state.CgroupPath = ""
 }

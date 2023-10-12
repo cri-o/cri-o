@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/compression"
 	"github.com/containers/image/v5/signature"
+	"github.com/containers/image/v5/signature/signer"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -99,6 +100,9 @@ type CopyOptions struct {
 	PolicyAllowStorage bool
 	// SignaturePolicyPath to overwrite the default one.
 	SignaturePolicyPath string
+	// If non-empty, asks for signatures to be added during the copy
+	// using the provided signers.
+	Signers []*signer.Signer
 	// If non-empty, asks for a signature to be added during the copy, and
 	// specifies a key ID.
 	SignBy string
@@ -163,39 +167,37 @@ var storageAllowedPolicyScopes = signature.PolicyTransportScopes{
 	},
 }
 
-// getDockerAuthConfig extracts a docker auth config from the CopyOptions.  Returns
-// nil if no credentials are set.
-func (options *CopyOptions) getDockerAuthConfig() (*types.DockerAuthConfig, error) {
-	authConf := &types.DockerAuthConfig{IdentityToken: options.IdentityToken}
+// getDockerAuthConfig extracts a docker auth config. Returns nil if
+// no credentials are set.
+func getDockerAuthConfig(name, passwd, creds, idToken string) (*types.DockerAuthConfig, error) {
+	numCredsSources := 0
 
-	if options.Username != "" {
-		if options.Credentials != "" {
-			return nil, errors.New("username/password cannot be used with credentials")
-		}
-		authConf.Username = options.Username
-		authConf.Password = options.Password
-		return authConf, nil
+	if name != "" {
+		numCredsSources++
+	}
+	if creds != "" {
+		name, passwd, _ = strings.Cut(creds, ":")
+		numCredsSources++
+	}
+	if idToken != "" {
+		numCredsSources++
+	}
+	authConf := &types.DockerAuthConfig{
+		Username:      name,
+		Password:      passwd,
+		IdentityToken: idToken,
 	}
 
-	if options.Credentials != "" {
-		split := strings.SplitN(options.Credentials, ":", 2)
-		switch len(split) {
-		case 1:
-			authConf.Username = split[0]
-		default:
-			authConf.Username = split[0]
-			authConf.Password = split[1]
-		}
+	switch numCredsSources {
+	case 0:
+		// Return nil if there is no credential source.
+		return nil, nil
+	case 1:
 		return authConf, nil
+	default:
+		// Cannot use the multiple credential sources.
+		return nil, errors.New("cannot use the multiple credential sources")
 	}
-
-	// We should return nil unless a token was set.  That's especially
-	// useful for Podman's remote API.
-	if options.IdentityToken != "" {
-		return authConf, nil
-	}
-
-	return nil, nil
 }
 
 // newCopier creates a copier.  Note that fields in options *may* overwrite the
@@ -233,7 +235,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 		c.systemContext.SignaturePolicyPath = options.SignaturePolicyPath
 	}
 
-	dockerAuthConfig, err := options.getDockerAuthConfig()
+	dockerAuthConfig, err := getDockerAuthConfig(options.Username, options.Password, options.Credentials, options.IdentityToken)
 	if err != nil {
 		return nil, err
 	}
@@ -299,6 +301,7 @@ func (r *Runtime) newCopier(options *CopyOptions) (*copier, error) {
 	c.imageCopyOptions.OciEncryptLayers = options.OciEncryptLayers
 	c.imageCopyOptions.OciDecryptConfig = options.OciDecryptConfig
 	c.imageCopyOptions.RemoveSignatures = options.RemoveSignatures
+	c.imageCopyOptions.Signers = options.Signers
 	c.imageCopyOptions.SignBy = options.SignBy
 	c.imageCopyOptions.SignPassphrase = options.SignPassphrase
 	c.imageCopyOptions.SignBySigstorePrivateKeyFile = options.SignBySigstorePrivateKeyFile

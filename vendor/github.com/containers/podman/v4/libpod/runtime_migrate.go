@@ -18,7 +18,7 @@ import (
 
 func (r *Runtime) stopPauseProcess() error {
 	if rootless.IsRootless() {
-		pausePidPath, err := util.GetRootlessPauseProcessPidPathGivenDir(r.config.Engine.TmpDir)
+		pausePidPath, err := util.GetRootlessPauseProcessPidPath()
 		if err != nil {
 			return fmt.Errorf("could not get pause process pid file path: %w", err)
 		}
@@ -49,7 +49,7 @@ func (r *Runtime) migrate() error {
 		return err
 	}
 
-	allCtrs, err := r.state.AllContainers()
+	allCtrs, err := r.state.AllContainers(false)
 	if err != nil {
 		return err
 	}

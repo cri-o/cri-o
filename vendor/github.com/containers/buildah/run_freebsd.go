@@ -6,7 +6,6 @@ package buildah
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -20,6 +19,7 @@ import (
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
 	"github.com/containers/buildah/pkg/jail"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/resolvconf"
 	nettypes "github.com/containers/common/libnetwork/types"
@@ -72,7 +72,7 @@ func setChildProcess() error {
 }
 
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := ioutil.TempDir("", Package)
+	p, err := os.MkdirTemp("", Package)
 	if err != nil {
 		return err
 	}
@@ -99,7 +99,13 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if isolation == IsolationDefault {
 		isolation = b.Isolation
 		if isolation == IsolationDefault {
-			isolation = IsolationOCI
+			isolation, err = parse.IsolationOption("")
+			if err != nil {
+				logrus.Debugf("got %v while trying to determine default isolation, guessing OCI", err)
+				isolation = IsolationOCI
+			} else if isolation == IsolationDefault {
+				isolation = IsolationOCI
+			}
 		}
 	}
 	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {
@@ -305,8 +311,8 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	return spec.Mounts, nil
 }
 
-// If this function succeeds and returns a non-nil lockfile.Locker, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, lockfile.Locker, error) {
+// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
 	return nil, nil, errors.New("cache mounts not supported on freebsd")
 }
 
@@ -357,8 +363,7 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 		if len(spliti) > 2 {
 			options = strings.Split(spliti[2], ",")
 		}
-		options = append(options, "bind")
-		mount, err := parseMount("bind", spliti[0], spliti[1], options)
+		mount, err := parseMount("nullfs", spliti[0], spliti[1], options)
 		if err != nil {
 			return nil, err
 		}

@@ -1,6 +1,7 @@
 package dsse
 
 import (
+	"context"
 	"crypto"
 	"errors"
 	"fmt"
@@ -15,7 +16,7 @@ must perform the same steps.
 If KeyID returns successfully, only signature matching the key ID will be verified.
 */
 type Verifier interface {
-	Verify(data, sig []byte) error
+	Verify(ctx context.Context, data, sig []byte) error
 	KeyID() (string, error)
 	Public() crypto.PublicKey
 }
@@ -31,7 +32,7 @@ type AcceptedKey struct {
 	Sig    Signature
 }
 
-func (ev *EnvelopeVerifier) Verify(e *Envelope) ([]AcceptedKey, error) {
+func (ev *EnvelopeVerifier) Verify(ctx context.Context, e *Envelope) ([]AcceptedKey, error) {
 	if e == nil {
 		return nil, errors.New("cannot verify a nil envelope")
 	}
@@ -78,7 +79,7 @@ func (ev *EnvelopeVerifier) Verify(e *Envelope) ([]AcceptedKey, error) {
 				continue
 			}
 
-			err = v.Verify(paeEnc, sig)
+			err = v.Verify(ctx, paeEnc, sig)
 			if err != nil {
 				continue
 			}
@@ -104,11 +105,11 @@ func (ev *EnvelopeVerifier) Verify(e *Envelope) ([]AcceptedKey, error) {
 
 	// Sanity if with some reflect magic this happens.
 	if ev.threshold <= 0 || ev.threshold > len(ev.providers) {
-		return nil, errors.New("Invalid threshold")
+		return nil, errors.New("invalid threshold")
 	}
 
 	if len(usedKeyids) < ev.threshold {
-		return acceptedKeys, errors.New(fmt.Sprintf("Accepted signatures do not match threshold, Found: %d, Expected %d", len(acceptedKeys), ev.threshold))
+		return acceptedKeys, fmt.Errorf("accepted signatures do not match threshold, Found: %d, Expected %d", len(acceptedKeys), ev.threshold)
 	}
 
 	return acceptedKeys, nil
@@ -121,7 +122,7 @@ func NewEnvelopeVerifier(v ...Verifier) (*EnvelopeVerifier, error) {
 func NewMultiEnvelopeVerifier(threshold int, p ...Verifier) (*EnvelopeVerifier, error) {
 
 	if threshold <= 0 || threshold > len(p) {
-		return nil, errors.New("Invalid threshold")
+		return nil, errors.New("invalid threshold")
 	}
 
 	ev := EnvelopeVerifier{

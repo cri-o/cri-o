@@ -34,14 +34,15 @@ type PackagesService struct {
 //
 // GitLab API docs: https://docs.gitlab.com/ee/api/packages.html
 type Package struct {
-	ID          int           `json:"id"`
-	Name        string        `json:"name"`
-	Version     string        `json:"version"`
-	PackageType string        `json:"package_type"`
-	Status      string        `json:"status"`
-	Links       *PackageLinks `json:"_links"`
-	CreatedAt   *time.Time    `json:"created_at"`
-	Tags        []string      `json:"tags"`
+	ID               int           `json:"id"`
+	Name             string        `json:"name"`
+	Version          string        `json:"version"`
+	PackageType      string        `json:"package_type"`
+	Status           string        `json:"status"`
+	Links            *PackageLinks `json:"_links"`
+	CreatedAt        *time.Time    `json:"created_at"`
+	LastDownloadedAt *time.Time    `json:"last_downloaded_at"`
+	Tags             []PackageTag  `json:"tags"`
 }
 
 func (s Package) String() string {
@@ -68,6 +69,19 @@ type PackageLinks struct {
 }
 
 func (s PackageLinks) String() string {
+	return Stringify(s)
+}
+
+// PackageTag holds label information about the package
+type PackageTag struct {
+	ID        int        `json:"id"`
+	PackageID int        `json:"package_id"`
+	Name      string     `json:"name"`
+	CreatedAt *time.Time `json:"created_at"`
+	UpdatedAt *time.Time `json:"updated_at"`
+}
+
+func (s PackageTag) String() string {
 	return Stringify(s)
 }
 
@@ -216,6 +230,25 @@ func (s *PackagesService) DeleteProjectPackage(pid interface{}, pkg int, options
 		return nil, err
 	}
 	u := fmt.Sprintf("projects/%s/packages/%d", PathEscape(project), pkg)
+
+	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// DeletePackageFile deletes a file in project package
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/packages.html#delete-a-package-file
+func (s *PackagesService) DeletePackageFile(pid interface{}, pkg, file int, options ...RequestOptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/packages/%d/package_files/%d", PathEscape(project), pkg, file)
 
 	req, err := s.client.NewRequest(http.MethodDelete, u, nil, options)
 	if err != nil {

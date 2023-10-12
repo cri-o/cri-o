@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v45/github"
+	"github.com/google/go-github/v48/github"
 )
 
 func NewReplayer(replayDir string) Client {
@@ -320,4 +320,19 @@ func (c *githubNotesReplayClient) CreateComment(ctx context.Context, owner, repo
 		return nil, nil, err
 	}
 	return result, record.response(), nil
+}
+
+func (c *githubNotesReplayClient) ListIssues(
+	ctx context.Context, owner, repo string, opts *github.IssueListByRepoOptions,
+) ([]*github.Issue, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPIListIssues)
+	if err != nil {
+		return nil, nil, err
+	}
+	issues := make([]*github.Issue, 0)
+	record := apiRecord{Result: issues}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return issues, record.response(), nil
 }

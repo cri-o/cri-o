@@ -402,12 +402,12 @@ func ykAuthenticate(tx *scTx, key [24]byte, rand io.Reader) error {
 	response := make([]byte, 8)
 	block.Encrypt(response, challenge)
 
-	data := append([]byte{
+	data := []byte{
 		0x7c, // Dynamic Authentication Template tag
 		20,   // 2+8+2+8
 		0x80, // 'Witness'
 		0x08, // Tag length
-	})
+	}
 	data = append(data, cardResponse...)
 	data = append(data,
 		0x81, // 'Challenge'
@@ -632,47 +632,6 @@ func ykSerial(tx *scTx, v *version) (uint32, error) {
 	return binary.BigEndian.Uint32(resp), nil
 }
 
-// ykChangeManagementKey sets the Management Key to the new key provided. The
-// user must have authenticated with the existing key first.
-func ykChangeManagementKey(tx *scTx, key [24]byte) error {
-	cmd := apdu{
-		instruction: insSetMGMKey,
-		param1:      0xff,
-		param2:      0xff, // TODO: support touch policy
-		data: append([]byte{
-			alg3DES, keyCardManagement, 24,
-		}, key[:]...),
-	}
-	if _, err := tx.Transmit(cmd); err != nil {
-		return fmt.Errorf("command failed: %w", err)
-	}
-	return nil
-}
-
-func unmarshalDERField(b []byte, tag uint64) (obj []byte, err error) {
-	var prefix []byte
-	for tag > 0 {
-		prefix = append(prefix, byte(tag))
-		tag = tag >> 8
-	}
-	for i, j := 0, len(prefix)-1; i < j; i, j = i+1, j-1 {
-		prefix[i], prefix[j] = prefix[j], prefix[i]
-	}
-
-	hasPrefix := bytes.HasPrefix(b, prefix)
-	for len(b) > 0 {
-		var v asn1.RawValue
-		b, err = asn1.Unmarshal(b, &v)
-		if err != nil {
-			return nil, err
-		}
-		if hasPrefix {
-			return v.Bytes, nil
-		}
-	}
-	return nil, fmt.Errorf("no der value with tag 0x%x", prefix)
-}
-
 // Metadata returns protected data stored on the card. This can be used to
 // retrieve PIN protected management keys.
 func (yk *YubiKey) Metadata(pin string) (*Metadata, error) {
@@ -780,9 +739,7 @@ func (m *Metadata) unmarshal(b []byte) error {
 			return fmt.Errorf("invalid management key length: %d", len(v.Bytes))
 		}
 		var key [24]byte
-		for i := 0; i < len(v.Bytes); i++ {
-			key[i] = v.Bytes[i]
-		}
+		copy(key[:], v.Bytes)
 		m.ManagementKey = &key
 	}
 	return nil

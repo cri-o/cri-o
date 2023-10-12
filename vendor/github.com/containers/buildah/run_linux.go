@@ -7,7 +7,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -70,7 +69,7 @@ func setChildProcess() error {
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := ioutil.TempDir("", define.Package)
+	p, err := os.MkdirTemp("", define.Package)
 	if err != nil {
 		return err
 	}
@@ -97,7 +96,13 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if isolation == define.IsolationDefault {
 		isolation = b.Isolation
 		if isolation == define.IsolationDefault {
-			isolation = define.IsolationOCI
+			isolation, err = parse.IsolationOption("")
+			if err != nil {
+				logrus.Debugf("got %v while trying to determine default isolation, guessing OCI", err)
+				isolation = IsolationOCI
+			} else if isolation == IsolationDefault {
+				isolation = IsolationOCI
+			}
 		}
 	}
 	if err := checkAndOverrideIsolationOptions(isolation, &options); err != nil {
@@ -115,8 +120,10 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		return err
 	}
 
+	workDir := b.WorkDir()
 	if options.WorkingDir != "" {
 		g.SetProcessCwd(options.WorkingDir)
+		workDir = options.WorkingDir
 	} else if b.WorkDir() != "" {
 		g.SetProcessCwd(b.WorkDir())
 	}
@@ -209,6 +216,8 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	if err != nil {
 		return err
 	}
+
+	g.SetProcessNoNewPrivileges(b.CommonBuildOpts.NoNewPrivileges)
 
 	g.SetProcessApparmorProfile(b.CommonBuildOpts.ApparmorProfile)
 
@@ -319,6 +328,7 @@ rootless=%d
 	}
 
 	runMountInfo := runMountInfo{
+		WorkDir:          workDir,
 		ContextDir:       options.ContextDir,
 		Secrets:          options.Secrets,
 		SSHSources:       options.SSHSources,
@@ -478,7 +488,7 @@ func setupRootlessNetwork(pid int) (teardown func(), err error) {
 	defer rootlessSlirpSyncR.Close()
 
 	// Be sure there are no fds inherited to slirp4netns except the sync pipe
-	files, err := ioutil.ReadDir("/proc/self/fd")
+	files, err := os.ReadDir("/proc/self/fd")
 	if err != nil {
 		return nil, fmt.Errorf("cannot list open fds: %w", err)
 	}
@@ -1094,8 +1104,8 @@ func setupSpecialMountSpecChanges(spec *spec.Spec, shmSize string) ([]specs.Moun
 	}
 
 	addCgroup := true
-	// mount sys when root and no userns or when both netns and userns are private
-	canMountSys := (!isRootless && !isNewUserns) || (isNetns && isNewUserns)
+	// mount sys when root and no userns or when a new netns is created
+	canMountSys := (!isRootless && !isNewUserns) || isNetns
 	if !canMountSys {
 		addCgroup = false
 		sys := "/sys"
@@ -1197,10 +1207,10 @@ func checkIdsGreaterThan5(ids []spec.LinuxIDMapping) bool {
 	return false
 }
 
-// If this function succeeds and returns a non-nil lockfile.Locker, the caller must unlock it (when??).
-func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps) (*spec.Mount, lockfile.Locker, error) {
+// If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
+func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*spec.Mount, *lockfile.LockFile, error) {
 	var optionMounts []specs.Mount
-	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints)
+	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, nil, err
 	}

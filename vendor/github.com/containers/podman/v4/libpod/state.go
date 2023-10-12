@@ -39,17 +39,10 @@ type State interface { //nolint:interfacebloat
 	// the program.
 	ValidateDBConfig(runtime *Runtime) error
 
-	// SetNamespace() sets the namespace for the store, and will determine
-	// what containers are retrieved with container and pod retrieval calls.
-	// A namespace of "", the empty string, acts as no namespace, and
-	// containers and pods in all namespaces will be returned.
-	SetNamespace(ns string) error
-
-	// Resolve an ID into a Name. Since Podman names and IDs are globally
-	// unique between Pods and Containers, the ID may belong to either a pod
-	// or container. Despite this, we will always return ErrNoSuchCtr if the
-	// ID does not exist.
-	GetName(id string) (string, error)
+	// Resolve an ID to a Container Name.
+	GetContainerName(id string) (string, error)
+	// Resolve an ID to a Pod Name.
+	GetPodName(id string) (string, error)
 
 	// Return a container from the database from its full ID.
 	// If the container is not in the set namespace, an error will be
@@ -96,14 +89,17 @@ type State interface { //nolint:interfacebloat
 	// The container being checked must be part of the set namespace.
 	ContainerInUse(ctr *Container) ([]string, error)
 	// Retrieves all containers presently in state.
+	// If `loadState` is set, the containers' state will be loaded as well.
 	// If a namespace is set, only containers within the namespace will be
 	// returned.
-	AllContainers() ([]*Container, error)
+	AllContainers(loadState bool) ([]*Container, error)
 
 	// Get networks the container is currently connected to.
 	GetNetworks(ctr *Container) (map[string]types.PerNetworkOptions, error)
 	// Add the container to the given network with the given options
 	NetworkConnect(ctr *Container, network string, opts types.PerNetworkOptions) error
+	// Modify the container network with the given options.
+	NetworkModify(ctr *Container, network string, opts types.PerNetworkOptions) error
 	// Remove the container from the given network, removing all aliases for
 	// the container in that network in the process.
 	NetworkDisconnect(ctr *Container, network string) error
@@ -113,10 +109,8 @@ type State interface { //nolint:interfacebloat
 
 	// Add the exit code for the specified container to the database.
 	AddContainerExitCode(id string, exitCode int32) error
-
 	// Return the exit code for the specified container.
 	GetContainerExitCode(id string) (int32, error)
-
 	// Remove exit codes older than 5 minutes.
 	PruneContainerExitCodes() error
 
@@ -168,6 +162,8 @@ type State interface { //nolint:interfacebloat
 	// There are a lot of capital letters and conditions here, but the short
 	// answer is this: use this only very sparingly, and only if you really
 	// know what you're doing.
+	// TODO: Once BoltDB is removed, RewriteContainerConfig and
+	// SafeRewriteContainerConfig can be merged.
 	RewriteContainerConfig(ctr *Container, newCfg *ContainerConfig) error
 	// This is a more limited version of RewriteContainerConfig, though it
 	// comes with the added ability to alter a container's name. In exchange
