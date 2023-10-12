@@ -207,7 +207,7 @@ github.com/containerd/fifo
 # github.com/containerd/go-runc v1.0.0
 ## explicit; go 1.13
 github.com/containerd/go-runc
-# github.com/containerd/nri v0.3.1-0.20230504231226-94185418e253
+# github.com/containerd/nri v0.5.0
 ## explicit; go 1.19
 github.com/containerd/nri/pkg/adaptation
 github.com/containerd/nri/pkg/api
