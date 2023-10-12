@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -109,7 +108,7 @@ func (i impersonatedIDTokenSource) Token() (*oauth2.Token, error) {
 		return nil, fmt.Errorf("impersonate: unable to generate ID token: %v", err)
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
 	if err != nil {
 		return nil, fmt.Errorf("impersonate: unable to read body: %v", err)
 	}
