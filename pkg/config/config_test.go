@@ -717,6 +717,70 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+
+		It("should fail when PauseImage is invalid", func() {
+			// Given
+			sut.ImageConfig.PauseImage = "//NOT:a valid image reference!"
+
+			// When
+			err := sut.ImageConfig.Validate(false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+	})
+
+	t.Describe("ImageConfig.ParsePauseImage", func() {
+		It("should succeed with the default value", func() {
+			// Given
+			sut.ImageConfig.PauseImage = config.DefaultPauseImage
+
+			// When
+			ref, err := sut.ImageConfig.ParsePauseImage()
+
+			// Then
+			Expect(err).To(BeNil())
+			// DefaultPauseImage is using a canonical form where this comparison is expected to work.
+			Expect(ref.String()).To(Equal(config.DefaultPauseImage))
+		})
+
+		It("should succeed with a name-only value", func() {
+			// Given
+			sut.ImageConfig.PauseImage = "registry.k8s.io/pause"
+
+			// When
+			ref, err := sut.ImageConfig.ParsePauseImage()
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(ref.String()).To(Equal("registry.k8s.io/pause:latest"))
+		})
+
+		It("should succeed with a short name", func() {
+			// NOTE: This behavior is undocumented. Users are expected to provide a
+			// name with a registry
+
+			// Given
+			sut.ImageConfig.PauseImage = "short:notlatest"
+
+			// When
+			ref, err := sut.ImageConfig.ParsePauseImage()
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(ref.String()).To(Equal("docker.io/library/short:notlatest"))
+		})
+
+		It("should fail with an invalid value", func() {
+			// Given
+			sut.ImageConfig.PauseImage = "//THIS is:very!invalid="
+
+			// When
+			_, err := sut.ImageConfig.ParsePauseImage()
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
 	})
 
 	t.Describe("ValidateNetworkConfig", func() {

@@ -8,6 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -180,7 +181,7 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(arg0, arg1, arg2, arg3,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2 string, arg3 reference.Named, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
 	ret0, _ := ret[0].(storage0.ContainerInfo)

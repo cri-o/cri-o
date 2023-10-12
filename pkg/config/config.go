@@ -16,6 +16,7 @@ import (
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/pkg/hooks"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -487,8 +488,9 @@ type ImageConfig struct {
 	// containing credentials necessary for pulling images from secure
 	// registries.
 	GlobalAuthFile string `toml:"global_auth_file"`
-	// PauseImage is the name of an image which we use to instantiate infra
-	// containers.
+	// PauseImage is the name of an image on a registry which we use to instantiate infra
+	// containers. It should start with a registry host name.
+	// Format is enforced by validation.
 	PauseImage string `toml:"pause_image"`
 	// PauseImageAuthFile, if not empty, is a path to a file like
 	// /var/lib/kubelet/config.json containing credentials necessary
@@ -1407,12 +1409,25 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 	if !filepath.IsAbs(c.SignaturePolicyDir) {
 		return fmt.Errorf("signature policy dir %q is not absolute", c.SignaturePolicyDir)
 	}
+	if _, err := c.ParsePauseImage(); err != nil {
+		return fmt.Errorf("invalid pause image %q: %w", c.PauseImage, err)
+	}
 	if onExecution {
 		if err := os.MkdirAll(c.SignaturePolicyDir, 0o755); err != nil {
 			return fmt.Errorf("cannot create signature policy dir: %w", err)
 		}
 	}
 	return nil
+}
+
+// ParsePauseImage parses the .PauseImage value as into a validated, well-typed value.
+// The value is not a short name, and satisfies !reference.IsNameOnly.
+func (c *ImageConfig) ParsePauseImage() (reference.Named, error) {
+	ref, err := reference.ParseNormalizedNamed(c.PauseImage)
+	if err != nil {
+		return nil, err
+	}
+	return reference.TagNameOnly(ref), nil
 }
 
 // Validate is the main entry point for network configuration validation.

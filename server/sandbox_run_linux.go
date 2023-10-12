@@ -451,9 +451,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	privileged := s.privilegedSandbox(req)
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage creation")
+	pauseImage, err := s.config.ParsePauseImage()
+	if err != nil {
+		return nil, err
+	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sbox.Name(), sbox.ID(),
-		s.config.PauseImage,
+		pauseImage,
 		s.config.PauseImageAuthFile,
 		containerName,
 		kubeName,
@@ -632,8 +636,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.Namespace, namespace)
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
 	g.AddAnnotation(annotations.SandboxID, sbox.ID())
-	g.AddAnnotation(annotations.Image, s.config.PauseImage)
-	g.AddAnnotation(annotations.ImageName, s.config.PauseImage)
+	g.AddAnnotation(annotations.Image, pauseImage.String())
+	g.AddAnnotation(annotations.ImageName, pauseImage.String())
 	g.AddAnnotation(annotations.ContainerName, containerName)
 	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.ShmPath, shmPath)
@@ -913,7 +917,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// In the case of kernel separated containers, we need the infra container to create the VM for the pod
 	if sb.NeedsInfra(s.config.DropInfraCtr) || podIsKernelSeparated {
 		log.Debugf(ctx, "Keeping infra container for pod %s", sbox.ID())
-		container, err = oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+		container, err = oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, pauseImage.String(), "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 		if err != nil {
 			return nil, err
 		}
