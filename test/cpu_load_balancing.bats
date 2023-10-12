@@ -36,22 +36,16 @@ EOF
 }
 
 function check_sched_load_balance() {
-	local pid="$1"
+	local ctr_id="$1"
 	local is_enabled="$2"
 
-	path=$(sched_load_balance_path "$pid")
+	set_container_pod_cgroup_root "cpuset" "$ctr_id"
+	cgroup_file="cpuset.sched_load_balance"
 
-	[[ "$is_enabled" == $(cat "$path") ]]
-}
-
-function sched_load_balance_path() {
-	local pid="$1"
-
-	path="/sys/fs/cgroup/cpuset"
-	loadbalance_filename="cpuset.sched_load_balance"
-	cgroup=$(grep cpuset /proc/"$pid"/cgroup | tr ":" " " | awk '{ printf $3 }')
-
-	echo "$path$cgroup/$loadbalance_filename"
+	[[ $(cat "$CTR_CGROUP"/"$cgroup_file") == "$is_enabled" ]]
+	if [[ "$CONTAINER_DEFAULT_RUNTIME" == "crun" ]]; then
+		[[ $(cat "$CTR_CGROUP"/container/"$cgroup_file") == "$is_enabled" ]]
+	fi
 }
 
 # Verify the pre start runtime handler hooks run when triggered by annotation and workload.
@@ -70,10 +64,9 @@ function sched_load_balance_path() {
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	ctr_pid=$(crictl inspect "$ctr_id" | jq .info.pid)
 
 	# check for sched_load_balance
-	check_sched_load_balance "$ctr_pid" 0 # disabled
+	check_sched_load_balance "$ctr_id" 0 # disabled
 }
 
 # Verify the post stop runtime handler hooks run when a container is stopped manually.
@@ -81,15 +74,13 @@ function sched_load_balance_path() {
 	start_crio
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
-	ctr_pid=$(crictl inspect "$ctr_id" | jq .info.pid)
 
 	# check for sched_load_balance
-	path=$(sched_load_balance_path "$ctr_pid")
-	[[ "1" == $(cat "$path") ]]
+	check_sched_load_balance "$ctr_id" 1 # enabled
 
 	# check sched_load_balance is disabled after container stopped
 	crictl stop "$ctr_id"
-	[[ "0" == $(cat "$path") ]]
+	check_sched_load_balance "$ctr_id" 0 # disabled
 }
 
 # Verify the post stop runtime handler hooks run when a container exits on its own.
@@ -99,12 +90,10 @@ function sched_load_balance_path() {
 	jq '	  .command = ["/bin/sh", "-c", "sleep 5 && exit 0"]' \
 		"$TESTDATA"/container_config.json > "$ctrconfig"
 	ctr_id=$(crictl run "$ctrconfig" "$TESTDATA"/sandbox_config.json)
-	ctr_pid=$(crictl inspect "$ctr_id" | jq .info.pid)
 
-	path=$(sched_load_balance_path "$ctr_pid")
 	# wait until container exits naturally
 	sleep 10
 
 	# check for sched_load_balance
-	[[ "0" == $(cat "$path") ]]
+	check_sched_load_balance "$ctr_id" 0 # disabled
 }
