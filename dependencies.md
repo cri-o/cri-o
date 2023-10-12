@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 12 Oct 2023 07:46:41 UTC for commit [5f4151d][0]._
+_Generated on Thu, 12 Oct 2023 10:59:59 UTC for commit [f54ac5f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5f4151dfb302e57815392de371f858c50799598f
+[0]: https://github.com/cri-o/cri-o/commit/f54ac5f6033e1180d90540ff2b9ff61407b6c507
 
 ## Outdated Dependencies
 
@@ -26,9 +26,7 @@ _Generated on Thu, 12 Oct 2023 07:46:41 UTC for commit [5f4151d][0]._
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.17.0                              | v1.19.0             | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.17.0                              | v1.19.0             | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.17.0                              | v1.19.0             | true   | true             |
-| golang.org/x/net                                                            | v0.15.0                              | v0.17.0             | true   | true             |
 | golang.org/x/sync                                                           | v0.3.0                               | v0.4.0              | true   | true             |
-| golang.org/x/sys                                                            | v0.12.0                              | v0.13.0             | true   | true             |
 | google.golang.org/grpc                                                      | v1.58.0                              | v1.58.3             | true   | true             |
 | k8s.io/api                                                                  | v0.28.1                              | v0.28.2             | true   | true             |
 | k8s.io/apimachinery                                                         | v0.28.1                              | v0.28.2             | true   | true             |
@@ -798,17 +796,17 @@ _Generated on Thu, 12 Oct 2023 07:46:41 UTC for commit [5f4151d][0]._
 | go.uber.org/zap                                                                         | v1.24.0                                           | v1.26.0                            | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                    | false  | true             |
 | gocloud.dev                                                                             | v0.30.0                                           | v0.34.0                            | false  | true             |
-| golang.org/x/crypto                                                                     | v0.13.0                                           | v0.14.0                            | false  | true             |
+| golang.org/x/crypto                                                                     | v0.14.0                                           |                                    | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20230522175609-2e198f4a06a1                | v0.0.0-20231006140011-7918f672742d | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.13.0                            | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616 | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20231006135142-2b44d11868fe | false  | true             |
 | golang.org/x/mod                                                                        | v0.12.0                                           | v0.13.0                            | false  | true             |
-| golang.org/x/net                                                                        | v0.15.0                                           | v0.17.0                            | true   | true             |
+| golang.org/x/net                                                                        | v0.17.0                                           |                                    | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.10.0                                           | v0.13.0                            | false  | true             |
 | golang.org/x/sync                                                                       | v0.3.0                                            | v0.4.0                             | true   | true             |
-| golang.org/x/sys                                                                        | v0.12.0                                           | v0.13.0                            | true   | true             |
-| golang.org/x/term                                                                       | v0.12.0                                           | v0.13.0                            | false  | true             |
+| golang.org/x/sys                                                                        | v0.13.0                                           |                                    | true   | true             |
+| golang.org/x/term                                                                       | v0.13.0                                           |                                    | false  | true             |
 | golang.org/x/text                                                                       | v0.13.0                                           |                                    | false  | true             |
 | golang.org/x/time                                                                       | v0.3.0                                            |                                    | false  | true             |
 | golang.org/x/tools                                                                      | v0.12.0                                           | v0.14.0                            | false  | true             |
