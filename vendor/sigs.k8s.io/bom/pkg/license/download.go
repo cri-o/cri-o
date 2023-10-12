@@ -14,25 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// SHA1 is the currently accepted hash algorithm for SPDX documents, used for
-// file integrity checks, NOT security.
-// Instances of G401 and G505 can be safely ignored in this file.
-//
-// ref: https://github.com/spdx/spdx-spec/issues/11
-//
-//nolint:gosec
 package license
 
 import (
-	"crypto/sha1"
+	"archive/zip"
+	"bytes"
+	"crypto/sha256"
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
-	"github.com/nozzle/throttler"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-utils/http"
@@ -43,7 +39,13 @@ import (
 const (
 	LicenseDataURL      = "https://spdx.org/licenses/"
 	LicenseListFilename = "licenses.json"
+	BaseReleaseURL      = "https://github.com/spdx/license-list-data/archive/refs/tags/"
+	LatestReleaseURL    = "https://api.github.com/repos/spdx/license-list-data/releases/latest"
+	EmbeddedDataDir     = "pkg/license/data/"
 )
+
+//go:embed data
+var f embed.FS
 
 // NewDownloader returns a downloader with the default options
 func NewDownloader() (*Downloader, error) {
@@ -69,6 +71,7 @@ type DownloaderOptions struct {
 	EnableCache       bool   // Should we use the cache or not
 	CacheDir          string // Directory where data will be cached, defaults to temporary dir
 	parallelDownloads int    // Number of license downloads we'll do at once
+	Version           string // Version of the licenses to download  (eg v3.19) or blank for latest
 }
 
 // Validate Checks the downloader options
@@ -110,15 +113,27 @@ func (d *Downloader) SetImplementation(di DownloaderImplementation) {
 // GetLicenses is the mina function of the downloader. Returns a license list
 // or an error if could get them
 func (d *Downloader) GetLicenses() (*List, error) {
-	return d.impl.GetLicenses()
+	tag := d.impl.Version()
+	var err error
+	if tag == "" {
+		tag, err = d.impl.GetLatestTag()
+		if err != nil {
+			return nil, fmt.Errorf("getting latest license list tag: %w", err)
+		}
+	}
+
+	return d.impl.GetLicenses(tag)
 }
 
 //counterfeiter:generate . DownloaderImplementation
 
 // DownloaderImplementation has only one method
 type DownloaderImplementation interface {
-	GetLicenses() (*List, error)
+	GetLicenses(versionTag string) (*List, error)
 	SetOptions(*DownloaderOptions)
+	GetLatestTag() (string, error)
+	Version() string
+	DownloadLicenseArchive(tag string) (zipData []byte, err error)
 }
 
 // DefaultDownloaderOpts set of options for the license downloader
@@ -133,65 +148,154 @@ type DefaultDownloaderImpl struct {
 	Options *DownloaderOptions
 }
 
+// Version returns the version from the options
+func (ddi *DefaultDownloaderImpl) Version() string {
+	return ddi.Options.Version
+}
+
 // SetOptions sets the implementation options
 func (ddi *DefaultDownloaderImpl) SetOptions(opts *DownloaderOptions) {
 	ddi.Options = opts
 }
 
-// GetLicenses downloads the main json file listing all SPDX supported licenses
-func (ddi *DefaultDownloaderImpl) GetLicenses() (licenses *List, err error) {
-	// TODO: Cache licenselist
-	logrus.Debugf("Downloading main SPDX license data from " + LicenseDataURL)
-
-	// Get the list of licenses
-	licensesJSON, err := http.NewAgent().Get(LicenseDataURL + LicenseListFilename)
-	if err != nil {
-		return nil, fmt.Errorf("fetching licenses list: %w", err)
+// GetLatestTag gets the latest version of the license list from github
+func (ddi *DefaultDownloaderImpl) GetLatestTag() (string, error) {
+	var data []byte
+	var err error
+	if ddi.Options.EnableCache {
+		data, err = ddi.getCachedData(LatestReleaseURL)
+		if err != nil {
+			return "", fmt.Errorf("getting latest version from cache: %w", err)
+		}
 	}
 
-	licenseList := &List{}
-	if err := json.Unmarshal(licensesJSON, licenseList); err != nil {
+	if data == nil {
+		data, err = http.NewAgent().Get(LatestReleaseURL)
+		if err != nil {
+			return "", err
+		}
+
+		if err := ddi.cacheData(LatestReleaseURL, data); err != nil {
+			return "", fmt.Errorf("caching latest version: %w", err)
+		}
+	}
+	type GHReleaseResp struct {
+		TagName string `json:"tag_name"`
+	}
+	resp := GHReleaseResp{}
+	if err := json.Unmarshal(data, &resp); err != nil {
+		return "", err
+	}
+	return resp.TagName, nil
+}
+
+// readLicenseDirectory Reads the license data from a filsystem. It supports a
+// subpath if the license tree is located in a different directory.
+func (ddi *DefaultDownloaderImpl) readLicenseDirectory(licensefs fs.FS, subpath string) (licenses *List, err error) {
+	licenses = &List{}
+	licensesJSON, err := fs.ReadFile(licensefs, filepath.Join(subpath, "json/licenses.json"))
+	if err != nil {
+		return nil, fmt.Errorf("reading license catalog: %w", err)
+	}
+
+	if err := json.Unmarshal(licensesJSON, &licenses); err != nil {
 		return nil, fmt.Errorf("parsing SPDX licence list: %w", err)
 	}
 
-	logrus.Infof("Read data for %d licenses. Downloading.", len(licenseList.LicenseData))
-
-	// Create a new Throttler that will get `parallelDownloads` urls at a time
-	t := throttler.New(ddi.Options.parallelDownloads, len(licenseList.LicenseData))
-	for _, l := range licenseList.LicenseData {
-		licURL := l.DetailsURL
-		// If the license URLs have a local reference
-		if strings.HasPrefix(licURL, "./") {
-			licURL = LicenseDataURL + strings.TrimPrefix(licURL, "./")
+	err = fs.WalkDir(licensefs, filepath.Join(subpath, "json/details"), func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
 		}
-		// Launch a goroutine to fetch the URL.
-		go func(url string) {
-			var lic *License
-			defer t.Done(err)
-			lic, err = ddi.getLicenseFromURL(url)
-			if err != nil {
-				logrus.Error(err)
-				return
-			}
-			logrus.Debugf("Got license: %s from %s", l.LicenseID, url)
-			licenseList.Add(lic)
-		}(licURL)
-		t.Throttle()
+		if d.IsDir() {
+			return nil
+		}
+		data, err := fs.ReadFile(licensefs, path)
+		if err != nil {
+			return fmt.Errorf("reading license file%s: %w", path, err)
+		}
+		license, err := ParseLicense(data)
+		if err != nil {
+			return fmt.Errorf("parsing license data: %w", err)
+		}
+		licenses.Add(license)
+		return nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("walking license filesystem: %w", err)
+	}
+	return licenses, nil
+}
+
+// DownloadLicenseListToFile downloads the license list from github and
+// stores it in a file
+func (d *Downloader) DownloadLicenseListToFile(tag, path string) (err error) {
+	if tag == "" {
+		tag, err = d.impl.GetLatestTag()
+		if err != nil {
+			return fmt.Errorf("getting latest license list")
+		}
+	}
+	data, err := d.impl.DownloadLicenseArchive(tag)
+	if err != nil {
+		return fmt.Errorf("downloading archive: %w", err)
+	}
+	if err := os.WriteFile(path, data, os.FileMode(0o644)); err != nil {
+		return fmt.Errorf("writing archive data: %w", err)
+	}
+	return nil
+}
+
+func (ddi *DefaultDownloaderImpl) DownloadLicenseArchive(tag string) (zipData []byte, err error) {
+	if tag == DefaultCatalogOpts.Version {
+		logrus.Infof("Using embedded %s license list", DefaultCatalogOpts.Version)
+		return f.ReadFile(fmt.Sprintf("data/license-list-%s.zip", tag))
 	}
 
-	logrus.Infof("Downloaded %d licenses", len(licenseList.Licenses))
-
-	// If the throttler collected errors, return those
-	if t.Err() != nil {
-		return nil, t.Err()
+	link := BaseReleaseURL + tag + ".zip"
+	if ddi.Options.EnableCache {
+		zipData, err = ddi.getCachedData(link)
+		if err != nil {
+			return nil, fmt.Errorf("getting cached data: %w", err)
+		}
 	}
-	return licenseList, nil
+
+	// No cached data available
+	if zipData == nil {
+		zipData, err = http.NewAgent().WithTimeout(time.Hour).Get(link)
+		if err != nil {
+			return nil, fmt.Errorf("downloading license tarball: %w", err)
+		}
+		if err := ddi.cacheData(link, zipData); err != nil {
+			return nil, fmt.Errorf("caching license list: %w", err)
+		}
+	}
+	return zipData, nil
+}
+
+// GetLicenses downloads the main json file listing all SPDX supported licenses
+func (ddi *DefaultDownloaderImpl) GetLicenses(tag string) (licenses *List, err error) {
+	zipData, err := ddi.DownloadLicenseArchive(tag)
+	if err != nil {
+		return nil, fmt.Errorf("downloading licenses: %w", err)
+	}
+
+	reader, err := zip.NewReader(bytes.NewReader(zipData), int64(len(zipData)))
+	if err != nil {
+		return nil, fmt.Errorf("creating zip reader: %w", err)
+	}
+
+	licenses, err = ddi.readLicenseDirectory(reader, fmt.Sprintf("license-list-data-%s", tag[1:]))
+	if err != nil {
+		return nil, fmt.Errorf("reading license filesystem: %w", err)
+	}
+
+	return licenses, nil
 }
 
 // cacheFileName return the cache filename for an URL
 func (ddi *DefaultDownloaderImpl) cacheFileName(url string) string {
 	return filepath.Join(
-		ddi.Options.CacheDir, fmt.Sprintf("%x.json", sha1.Sum([]byte(url))),
+		ddi.Options.CacheDir, fmt.Sprintf("%x.json", sha256.New().Sum([]byte(url))),
 	)
 }
 
@@ -207,6 +311,7 @@ func (ddi *DefaultDownloaderImpl) cacheData(url string, data []byte) error {
 	if err = os.WriteFile(cacheFileName, data, os.FileMode(0o644)); err != nil {
 		return fmt.Errorf("writing cache file: %w", err)
 	}
+	logrus.Debugf("Cached %s to %s", url, cacheFileName)
 	return nil
 }
 
@@ -224,51 +329,18 @@ func (ddi *DefaultDownloaderImpl) getCachedData(url string) ([]byte, error) {
 	}
 
 	if finfo.Size() == 0 {
-		logrus.Warn("Cached file is empty, removing")
+		logrus.Warnf("Cached file %s is empty, removing", cacheFileName)
 		return nil, fmt.Errorf("removing corrupt cached file: %w", os.Remove(cacheFileName))
 	}
-	licensesJSON, err := os.ReadFile(cacheFileName)
+	cachedData, err := os.ReadFile(cacheFileName)
 	if err != nil {
 		return nil, fmt.Errorf("reading cached data file: %w", err)
 	}
-	return licensesJSON, nil
+	logrus.Debugf("Reusing cached data from %s", url)
+	return cachedData, nil
 }
 
-// getLicenseFromURL downloads a license in json and returns it parsed into a struct
-func (ddi *DefaultDownloaderImpl) getLicenseFromURL(url string) (license *License, err error) {
-	licenseJSON := []byte{}
-	// Determine the cache file name
-	if ddi.Options.EnableCache {
-		licenseJSON, err = ddi.getCachedData(url)
-		if err != nil {
-			return nil, fmt.Errorf("checking download cache: %w", err)
-		}
-		if len(licenseJSON) > 0 {
-			logrus.Debugf("Data for %s is already cached", url)
-		}
-	}
-
-	// If we still don't have json data, download it
-	if len(licenseJSON) == 0 {
-		logrus.Debugf("Downloading license data from %s", url)
-		licenseJSON, err = http.NewAgent().Get(url)
-		if err != nil {
-			return nil, fmt.Errorf("getting %s: %w", url, err)
-		}
-
-		logrus.Debugf("Downloaded %d bytes from %s", len(licenseJSON), url)
-
-		if ddi.Options.EnableCache {
-			if err := ddi.cacheData(url, licenseJSON); err != nil {
-				return nil, fmt.Errorf("caching url data: %w", err)
-			}
-		}
-	}
-
-	// Parse the SPDX license from the JSON data
-	l, err := ParseLicense(licenseJSON)
-	if err != nil {
-		return nil, fmt.Errorf("parsing license json data: %w", err)
-	}
-	return l, err
+// GetLatestTag returns the last version of the SPDX LIcense list found on GitHub
+func (d *Downloader) GetLatestTag() (string, error) {
+	return d.impl.GetLatestTag()
 }

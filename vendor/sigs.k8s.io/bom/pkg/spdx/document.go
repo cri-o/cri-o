@@ -45,6 +45,7 @@ import (
 	"sigs.k8s.io/bom/pkg/provenance"
 	"sigs.k8s.io/release-utils/hash"
 	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/version"
 )
 
 var docTemplate = `{{ if .Version }}SPDXVersion: {{.Version}}
@@ -70,6 +71,8 @@ ExternalDocumentRef:{{ extDocFormat $value }}
 {{- range $key, $value := .Creator.Tool }}Creator: Tool: {{ $value }}
 {{ end -}}
 {{- end -}}
+{{ end -}}
+{{ if .LicenseListVersion }}LicenseListVersion: {{ .LicenseListVersion }}
 {{ end -}}
 {{ if .Created }}Created: {{ dateFormat .Created }}
 {{ end }}
@@ -124,6 +127,8 @@ type DrawingOptions struct {
 	SkipName    bool
 	OnlyIDs     bool
 	ASCIIOnly   bool
+	Purls       bool
+	Version     bool
 }
 
 // String returns the SPDX string of the external document ref
@@ -169,7 +174,9 @@ func NewDocument() *Document {
 		}{
 			Person:       defaultDocumentAuthor,
 			Organization: "Kubernetes Release Engineering",
-			Tool:         []string{"sigs.k8s.io/bom/pkg/spdx"},
+			Tool: []string{
+				fmt.Sprintf("%s-%s", "bom", version.GetVersionInfo().GitVersion),
+			},
 		},
 	}
 }

@@ -44,9 +44,6 @@ steps:
   args:
   - '-exc'
   - |
-    # googleapis is not Go code, but it's required for .pb.go regeneration because of API dependencies.
-    git clone --depth=1 https://github.com/googleapis/googleapis.git "$$GOPATH/src/github.com/googleapis/googleapis"
-
     # Use latest versions of Trillian docker images built by the Trillian CI cloudbuilders.
     docker pull gcr.io/$PROJECT_ID/log_server:latest
     docker tag gcr.io/$PROJECT_ID/log_server:latest deployment_trillian-log-server

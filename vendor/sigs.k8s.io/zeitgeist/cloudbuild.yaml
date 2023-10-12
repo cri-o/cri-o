@@ -1,0 +1,38 @@
+# See https://cloud.google.com/cloud-build/docs/build-config
+---
+timeout: 7200s
+options:
+  substitution_option: ALLOW_LOOSE
+  machineType: 'N1_HIGHCPU_32'
+steps:
+  - name: gcr.io/cloud-builders/git
+    dir: "go/src/sigs.k8s.io"
+    args:
+      - "clone"
+      - "https://github.com/kubernetes-sigs/zeitgeist"
+
+  - name: gcr.io/cloud-builders/git
+    entrypoint: "bash"
+    dir: "go/src/sigs.k8s.io/zeitgeist"
+    args:
+      - '-c'
+      - |
+        git fetch
+        echo "Checking out ${_PULL_BASE_REF}"
+        git checkout ${_PULL_BASE_REF}
+
+  - name: 'gcr.io/k8s-staging-releng/releng-ci:latest-go1.20-bullseye'
+    dir: "go/src/sigs.k8s.io/zeitgeist"
+    entrypoint: make
+    env:
+      - TAG=$_GIT_TAG
+      - PULL_BASE_REF=$_PULL_BASE_REF
+      - KO_DOCKER_REPO=gcr.io/k8s-staging-zeitgeist
+    args:
+      - ko-release
+
+substitutions:
+  # _GIT_TAG will be filled with a git-based tag for the image, of the form vYYYYMMDD-hash, and
+  # can be used as a substitution
+  _GIT_TAG: '12345'
+  _PULL_BASE_REF: 'dev'

@@ -22,12 +22,17 @@ import (
 	"github.com/go-openapi/strfmt"
 
 	"github.com/sigstore/rekor/pkg/generated/models"
+	"github.com/sigstore/rekor/pkg/pki"
 )
 
 type BaseUnmarshalTester struct{}
 
 func (u BaseUnmarshalTester) NewEntry() EntryImpl {
 	return &BaseUnmarshalTester{}
+}
+
+func (u BaseUnmarshalTester) Verifier() (pki.PublicKey, error) {
+	return nil, nil
 }
 
 func (u BaseUnmarshalTester) APIVersion() string {

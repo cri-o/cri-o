@@ -143,6 +143,18 @@ set the --spdx-ids to only output the IDs of the entities.
 		false,
 		"use SPDX identifiers in tree nodes instead of names",
 	)
+	outlineCmd.PersistentFlags().BoolVar(
+		&outlineOpts.Version,
+		"version",
+		true,
+		"show versions along with package names",
+	)
+	outlineCmd.PersistentFlags().BoolVar(
+		&outlineOpts.Purls,
+		"purl",
+		false,
+		"show package urls instead of name@version",
+	)
 
 	parent.AddCommand(outlineCmd)
 }

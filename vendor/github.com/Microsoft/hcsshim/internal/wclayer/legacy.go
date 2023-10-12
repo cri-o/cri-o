@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -295,6 +294,18 @@ func (r *legacyLayerReader) Next() (path string, size int64, fileInfo *winio.Fil
 	return
 }
 
+func (r *legacyLayerReader) LinkInfo() (uint32, *winio.FileIDInfo, error) {
+	fileStandardInfo, err := winio.GetFileStandardInfo(r.currentFile)
+	if err != nil {
+		return 0, nil, err
+	}
+	fileIDInfo, err := winio.GetFileID(r.currentFile)
+	if err != nil {
+		return 0, nil, err
+	}
+	return fileStandardInfo.NumberOfLinks, fileIDInfo, nil
+}
+
 func (r *legacyLayerReader) Read(b []byte) (int, error) {
 	if r.backupReader == nil {
 		if r.currentFile == nil {
@@ -377,7 +388,7 @@ func newLegacyLayerWriter(root string, parentRoots []string, destRoot string) (w
 		}
 		w.parentRoots = append(w.parentRoots, f)
 	}
-	w.bufWriter = bufio.NewWriterSize(ioutil.Discard, 65536)
+	w.bufWriter = bufio.NewWriterSize(io.Discard, 65536)
 	return
 }
 
@@ -420,7 +431,7 @@ func (w *legacyLayerWriter) reset() error {
 	if err != nil {
 		return err
 	}
-	w.bufWriter.Reset(ioutil.Discard)
+	w.bufWriter.Reset(io.Discard)
 	if w.currentIsDir {
 		r := w.currentFile
 		br := winio.NewBackupStreamReader(r)
@@ -696,7 +707,7 @@ func (w *legacyLayerWriter) Add(name string, fileInfo *winio.FileBasicInfo) erro
 		// The file attributes are written before the stream.
 		err = binary.Write(w.bufWriter, binary.LittleEndian, uint32(fileInfo.FileAttributes))
 		if err != nil {
-			w.bufWriter.Reset(ioutil.Discard)
+			w.bufWriter.Reset(io.Discard)
 			return err
 		}
 	}

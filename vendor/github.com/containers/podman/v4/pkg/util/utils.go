@@ -27,6 +27,7 @@ import (
 	"github.com/containers/podman/v4/pkg/signal"
 	"github.com/containers/storage/pkg/idtools"
 	stypes "github.com/containers/storage/types"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/term"
@@ -54,6 +55,76 @@ func parseCreds(creds string) (string, string) {
 		return up[0], ""
 	}
 	return up[0], up[1]
+}
+
+// Takes build context and validates `.containerignore` or `.dockerignore`
+// if they are symlink outside of buildcontext. Returns list of files to be
+// excluded and resolved path to the ignore files inside build context or error
+func ParseDockerignore(containerfiles []string, root string) ([]string, string, error) {
+	ignoreFile := ""
+	path, err := securejoin.SecureJoin(root, ".containerignore")
+	if err != nil {
+		return nil, ignoreFile, err
+	}
+	// set resolved ignore file so imagebuildah
+	// does not attempts to re-resolve it
+	ignoreFile = path
+	ignore, err := os.ReadFile(path)
+	if err != nil {
+		var dockerIgnoreErr error
+		path, symlinkErr := securejoin.SecureJoin(root, ".dockerignore")
+		if symlinkErr != nil {
+			return nil, ignoreFile, symlinkErr
+		}
+		// set resolved ignore file so imagebuildah
+		// does not attempts to re-resolve it
+		ignoreFile = path
+		ignore, dockerIgnoreErr = os.ReadFile(path)
+		if os.IsNotExist(dockerIgnoreErr) {
+			// In this case either ignorefile was not found
+			// or it is a symlink to unexpected file in such
+			// case manually set ignorefile to `/dev/null` so
+			// internally imagebuildah does not attempts to re-resolve
+			// this invalid symlink and instead reads a blank file.
+			ignoreFile = "/dev/null"
+		}
+		// after https://github.com/containers/buildah/pull/4239 build supports
+		// <Containerfile>.containerignore or <Containerfile>.dockerignore as ignore file
+		// so remote must support parsing that.
+		if dockerIgnoreErr != nil {
+			for _, containerfile := range containerfiles {
+				if _, err := os.Stat(filepath.Join(root, containerfile+".containerignore")); err == nil {
+					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".containerignore")
+					if symlinkErr == nil {
+						ignoreFile = path
+						ignore, dockerIgnoreErr = os.ReadFile(path)
+					}
+				}
+				if _, err := os.Stat(filepath.Join(root, containerfile+".dockerignore")); err == nil {
+					path, symlinkErr = securejoin.SecureJoin(root, containerfile+".dockerignore")
+					if symlinkErr == nil {
+						ignoreFile = path
+						ignore, dockerIgnoreErr = os.ReadFile(path)
+					}
+				}
+				if dockerIgnoreErr == nil {
+					break
+				}
+			}
+		}
+		if dockerIgnoreErr != nil && !os.IsNotExist(dockerIgnoreErr) {
+			return nil, ignoreFile, err
+		}
+	}
+	rawexcludes := strings.Split(string(ignore), "\n")
+	excludes := make([]string, 0, len(rawexcludes))
+	for _, e := range rawexcludes {
+		if len(e) == 0 || e[0] == '#' {
+			continue
+		}
+		excludes = append(excludes, e)
+	}
+	return excludes, ignoreFile, nil
 }
 
 // ParseRegistryCreds takes a credentials string in the form USERNAME:PASSWORD
@@ -113,13 +184,34 @@ func ParseSignal(rawSignal string) (syscall.Signal, error) {
 
 // GetKeepIDMapping returns the mappings and the user to use when keep-id is used
 func GetKeepIDMapping(opts *namespaces.KeepIDUserNsOptions) (*stypes.IDMappingOptions, int, int, error) {
-	if !rootless.IsRootless() {
-		return nil, -1, -1, errors.New("keep-id is only supported in rootless mode")
-	}
 	options := stypes.IDMappingOptions{
 		HostUIDMapping: false,
 		HostGIDMapping: false,
 	}
+
+	if !rootless.IsRootless() {
+		uids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		gids, err := rootless.ReadMappingsProc("/proc/self/uid_map")
+		if err != nil {
+			return nil, 0, 0, err
+		}
+		options.UIDMap = uids
+		options.GIDMap = gids
+
+		uid, gid := 0, 0
+		if opts.UID != nil {
+			uid = int(*opts.UID)
+		}
+		if opts.GID != nil {
+			gid = int(*opts.GID)
+		}
+
+		return &options, uid, gid, nil
+	}
+
 	min := func(a, b int) int {
 		if a < b {
 			return a
@@ -496,6 +588,19 @@ func IDtoolsToRuntimeSpec(idMaps []idtools.IDMap) (convertedIDMap []specs.LinuxI
 			ContainerID: uint32(idmap.ContainerID),
 			HostID:      uint32(idmap.HostID),
 			Size:        uint32(idmap.Size),
+		}
+		convertedIDMap = append(convertedIDMap, tempIDMap)
+	}
+	return convertedIDMap
+}
+
+// RuntimeSpecToIDtoolsTo converts runtime spec to the one of the idtools ID mapping
+func RuntimeSpecToIDtools(idMaps []specs.LinuxIDMapping) (convertedIDMap []idtools.IDMap) {
+	for _, idmap := range idMaps {
+		tempIDMap := idtools.IDMap{
+			ContainerID: int(idmap.ContainerID),
+			HostID:      int(idmap.HostID),
+			Size:        int(idmap.Size),
 		}
 		convertedIDMap = append(convertedIDMap, tempIDMap)
 	}

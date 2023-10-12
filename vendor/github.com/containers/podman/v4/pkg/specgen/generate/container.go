@@ -166,14 +166,13 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	s.Env = envLib.Join(defaultEnvs, s.Env)
 
 	// Labels and Annotations
-	annotations := make(map[string]string)
 	if newImage != nil {
 		labels, err := newImage.Labels(ctx)
 		if err != nil {
 			return nil, err
 		}
 
-		// labels from the image that don't exist already
+		// labels from the image that don't already exist
 		if len(labels) > 0 && s.Labels == nil {
 			s.Labels = make(map[string]string)
 		}
@@ -183,12 +182,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 			}
 		}
 
-		// Add annotations from the image
-		for k, v := range inspectData.Annotations {
-			if !define.IsReservedAnnotation(k) {
-				annotations[k] = v
-			}
-		}
+		// Do NOT include image annotations - these can have security
+		// implications, we don't want untrusted images setting them.
 	}
 
 	// in the event this container is in a pod, and the pod has an infra container
@@ -199,6 +194,7 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 	//   VM, which is the default behavior
 	// - "container" denotes the container should join the VM of the SandboxID
 	//   (the infra container)
+	annotations := make(map[string]string)
 	if len(s.Pod) > 0 {
 		p, err := r.LookupPod(s.Pod)
 		if err != nil {
@@ -307,8 +303,8 @@ func CompleteSpec(ctx context.Context, r *libpod.Runtime, s *specgen.SpecGenerat
 }
 
 // ConfigToSpec takes a completed container config and converts it back into a specgenerator for purposes of cloning an existing container
-func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID string) (*libpod.Container, *libpod.InfraInherit, error) {
-	c, err := rt.LookupContainer(contaierID)
+func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, containerID string) (*libpod.Container, *libpod.InfraInherit, error) {
+	c, err := rt.LookupContainer(containerID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -478,6 +474,7 @@ func ConfigToSpec(rt *libpod.Runtime, specg *specgen.SpecGenerator, contaierID s
 	specg.HostDeviceList = conf.DeviceHostSrc
 	specg.Networks = conf.Networks
 	specg.ShmSize = &conf.ShmSize
+	specg.ShmSizeSystemd = &conf.ShmSizeSystemd
 
 	mapSecurityConfig(conf, specg)
 

@@ -48,6 +48,8 @@ const (
 	entTool         = "Tool"
 	entOrganization = "Organization"
 
+	CatPackageManager = "PACKAGE-MANAGER"
+
 	termBanner = `ICAgICAgICAgICAgICAgXyAgICAgIAogX19fIF8gX18gICBfX3wgfF8gIF9fCi8gX198ICdfIFwg
 LyBfYCBcIFwvIC8KXF9fIFwgfF8pIHwgKF98IHw+ICA8IAp8X19fLyAuX18vIFxfXyxfL18vXF9c
 CiAgICB8X3wgICAgICAgICAgICAgICAK`
@@ -87,16 +89,17 @@ func (spdx *SPDX) SetImplementation(impl spdxImplementation) {
 }
 
 type Options struct {
-	AnalyzeLayers    bool
-	NoGitignore      bool     // Do not read exclusions from gitignore file
-	ProcessGoModules bool     // If true, spdx will check if dirs are go modules and analize the packages
-	OnlyDirectDeps   bool     // Only include direct dependencies from go.mod
-	ScanLicenses     bool     // Scan licenses from everypossible place unless false
-	AddTarFiles      bool     // Scan and add files inside of tarfiles
-	ScanImages       bool     // When true, scan container images for OS information
-	LicenseCacheDir  string   // Directory to cache SPDX license downloads
-	LicenseData      string   // Directory to store the SPDX licenses
-	IgnorePatterns   []string // Patterns to ignore when scanning file
+	AnalyzeLayers      bool
+	NoGitignore        bool     // Do not read exclusions from gitignore file
+	ProcessGoModules   bool     // If true, spdx will check if dirs are go modules and analize the packages
+	OnlyDirectDeps     bool     // Only include direct dependencies from go.mod
+	ScanLicenses       bool     // Scan licenses from everypossible place unless false
+	AddTarFiles        bool     // Scan and add files inside of tarfiles
+	ScanImages         bool     // When true, scan container images for OS information
+	LicenseCacheDir    string   // Directory to cache SPDX license downloads
+	LicenseData        string   // Directory to store the SPDX licenses
+	LicenseListVersion string   // Version of the SPDX license list to use
+	IgnorePatterns     []string // Patterns to ignore when scanning file
 }
 
 func (spdx *SPDX) Options() *Options {
@@ -269,12 +272,14 @@ func recursiveIDSearch(id string, o Object, seen *map[string]struct{}) Object {
 	if o.SPDXID() == id {
 		return o
 	}
+
+	if _, ok := (*seen)[o.SPDXID()]; ok {
+		return nil
+	}
+	(*seen)[o.SPDXID()] = struct{}{}
+
 	for _, rel := range *o.GetRelationships() {
 		if rel.Peer == nil {
-			continue
-		}
-
-		if _, ok := (*seen)[o.SPDXID()]; ok {
 			continue
 		}
 

@@ -160,7 +160,7 @@ type ContainerBasicConfig struct {
 	// Conflicts with UtsNS if UtsNS is not set to private.
 	// Optional.
 	Hostname string `json:"hostname,omitempty"`
-	// HostUses is a list of host usernames or UIDs to add to the container
+	// HostUsers is a list of host usernames or UIDs to add to the container
 	// /etc/passwd file
 	HostUsers []string `json:"hostusers,omitempty"`
 	// Sysctl sets kernel parameters for the container
@@ -219,6 +219,8 @@ type ContainerBasicConfig struct {
 	Passwd *bool `json:"manage_password,omitempty"`
 	// PasswdEntry specifies arbitrary data to append to a file.
 	PasswdEntry string `json:"passwd_entry,omitempty"`
+	// GroupEntry specifies arbitrary data to append to a file.
+	GroupEntry string `json:"group_entry,omitempty"`
 }
 
 // ContainerStorageConfig contains information on the storage configuration of a
@@ -238,6 +240,8 @@ type ContainerStorageConfig struct {
 	Rootfs string `json:"rootfs,omitempty"`
 	// RootfsOverlay tells if rootfs is actually an overlay on top of base path
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
+	// RootfsMapping specifies if there are mappings to apply to the rootfs.
+	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ImageVolumeMode indicates how image volumes will be created.
 	// Supported modes are "ignore" (do not create), "tmpfs" (create as
 	// tmpfs), and "anonymous" (create as anonymous volumes).
@@ -293,6 +297,10 @@ type ContainerStorageConfig struct {
 	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
 	ShmSize *int64 `json:"shm_size,omitempty"`
+	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
+	// specifically /run, /run/lock, /var/log/journal and /tmp.
+	// Optional
+	ShmSizeSystemd *int64 `json:"shm_size_systemd,omitempty"`
 	// WorkDir is the container's working directory.
 	// If unset, the default, /, will be used.
 	// Optional.
@@ -387,6 +395,10 @@ type ContainerSecurityConfig struct {
 	// ReadWriteTmpfs indicates that when running with a ReadOnlyFilesystem
 	// mount temporary file systems
 	ReadWriteTmpfs bool `json:"read_write_tmpfs,omitempty"`
+
+	// LabelNested indicates whether or not the container is allowed to
+	// run fully nested containers including labelling
+	LabelNested bool `json:"label_nested,omitempty"`
 
 	// Umask is the umask the init process of the container will be run with.
 	Umask string `json:"umask,omitempty"`
@@ -600,9 +612,15 @@ func NewSpecGenerator(arg string, rootfs bool) *SpecGenerator {
 		csc.Rootfs = arg
 		// check if rootfs should use overlay
 		lastColonIndex := strings.LastIndex(csc.Rootfs, ":")
-		if lastColonIndex != -1 && lastColonIndex+1 < len(csc.Rootfs) && csc.Rootfs[lastColonIndex+1:] == "O" {
-			csc.RootfsOverlay = true
-			csc.Rootfs = csc.Rootfs[:lastColonIndex]
+		if lastColonIndex != -1 {
+			lastPart := csc.Rootfs[lastColonIndex+1:]
+			if lastPart == "O" {
+				csc.RootfsOverlay = true
+				csc.Rootfs = csc.Rootfs[:lastColonIndex]
+			} else if lastPart == "idmap" || strings.HasPrefix(lastPart, "idmap=") {
+				csc.RootfsMapping = &lastPart
+				csc.Rootfs = csc.Rootfs[:lastColonIndex]
+			}
 		}
 	} else {
 		csc.Image = arg

@@ -559,10 +559,13 @@ func parseTagValue(file *os.File) (doc *Document, err error) {
 				currentObject.(*Package).LicenseInfoFromFiles = append(currentObject.(*Package).LicenseInfoFromFiles, value)
 			}
 		case "PackageSupplier":
+			if value == NOASSERTION {
+				continue
+			}
 			// Supplier has a tag/value format inside
 			match := tagRegExp.FindStringSubmatch(value)
 			if len(match) != 3 {
-				return nil, fmt.Errorf("invalid creator tag syntax at line %d", i)
+				return nil, fmt.Errorf("invalid supplier tag syntax at line %d: %s", i, value)
 			}
 			switch match[1] {
 			case entPerson:

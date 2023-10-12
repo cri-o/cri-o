@@ -31,16 +31,26 @@ import (
 // CatalogOptions are the spdx settings
 type CatalogOptions struct {
 	CacheDir string // Directrory to catch the license we download from SPDX.org
+	Version  string // Version of the licenses to download  (eg v3.19) or blank for latest
 }
 
 // DefaultCatalogOpts are the predetermined settings. License and cache directories
-// are in the temporary OS directory and are created if the do not exist
-var DefaultCatalogOpts = &CatalogOptions{}
+// are in the temporary OS directory and are created if the do not exist.
+//
+// The version included here is hardcoded and is intended to be the latest. The
+// magefile in the project takes care of replacing this value when updating the
+// license zip file.
+//
+//	DO NOT RENAME OR MOVE THIS OPTION WITHOUT MODIFYING THE MAGEFILE
+var DefaultCatalogOpts = CatalogOptions{
+	Version: "v3.20",
+}
 
 // NewCatalogWithOptions returns a SPDX object with the specified options
-func NewCatalogWithOptions(opts *CatalogOptions) (catalog *Catalog, err error) {
+func NewCatalogWithOptions(opts CatalogOptions) (catalog *Catalog, err error) {
 	// Create the license downloader
 	doptions := DefaultDownloaderOpts
+	doptions.Version = opts.Version
 	doptions.CacheDir = opts.CacheDir
 	downloader, err := NewDownloaderWithOptions(doptions)
 	if err != nil {
@@ -55,7 +65,7 @@ func NewCatalogWithOptions(opts *CatalogOptions) (catalog *Catalog, err error) {
 }
 
 // Options returns  a pointer to the catlog options
-func (catalog *Catalog) Options() *CatalogOptions {
+func (catalog *Catalog) Options() CatalogOptions {
 	return catalog.opts
 }
 
@@ -73,9 +83,9 @@ func (catalog *Catalog) LoadLicenses() error {
 
 // Catalog is an objec to interact with licenses and manifest creation
 type Catalog struct {
-	Downloader *Downloader     // License Downloader
-	List       *List           // List of licenses
-	opts       *CatalogOptions // SPDX Options
+	Downloader *Downloader    // License Downloader
+	List       *List          // List of licenses
+	opts       CatalogOptions // SPDX Options
 }
 
 // WriteLicensesAsText writes the SPDX license collection to text files
@@ -91,7 +101,6 @@ func (catalog *Catalog) WriteLicensesAsText(targetDir string) error {
 	}
 
 	var wg errgroup.Group
-	var err error
 	for _, l := range catalog.List.Licenses {
 		l := l
 		wg.Go(func() error {
@@ -100,16 +109,12 @@ func (catalog *Catalog) WriteLicensesAsText(targetDir string) error {
 			}
 			licPath := filepath.Join(targetDir, "assets", l.LicenseID)
 			if !util.Exists(licPath) {
-				if err = os.MkdirAll(licPath, 0o755); err != nil {
-					err = fmt.Errorf("creating license directory: %w", err)
+				if err := os.MkdirAll(licPath, 0o755); err != nil {
+					return fmt.Errorf("creating license directory: %w", err)
 				}
 			}
-			if lerr := l.WriteText(filepath.Join(licPath, "license.txt")); err != nil {
-				if err == nil {
-					err = lerr
-				} else {
-					err = fmt.Errorf("%v: %w", lerr, err)
-				}
+			if err := l.WriteText(filepath.Join(licPath, "license.txt")); err != nil {
+				return fmt.Errorf("wriiting license text: %w", err)
 			}
 			return nil
 		})

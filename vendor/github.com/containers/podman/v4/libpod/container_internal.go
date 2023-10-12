@@ -35,6 +35,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/chrootarchive"
+	"github.com/containers/storage/pkg/idmap"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/mount"
@@ -237,6 +238,11 @@ func (c *Container) shouldRestart() bool {
 		}
 	}
 
+	// Explicitly stopped by user, do not restart again.
+	if c.state.StoppedByUser {
+		return false
+	}
+
 	// If we did not get a restart policy match, return false
 	// Do the same if we're not a policy that restarts.
 	if !c.state.RestartPolicyMatch ||
@@ -385,9 +391,6 @@ func (c *Container) syncContainer() error {
 }
 
 func (c *Container) setupStorageMapping(dest, from *storage.IDMappingOptions) {
-	if c.config.Rootfs != "" {
-		return
-	}
 	*dest = *from
 	// If we are creating a container inside a pod, we always want to inherit the
 	// userns settings from the infra container. So clear the auto userns settings
@@ -619,7 +622,7 @@ func (c *Container) teardownStorage() error {
 // Reset resets state fields to default values.
 // It is performed before a refresh and clears the state after a reboot.
 // It does not save the results - assumes the database will do that for us.
-func resetState(state *ContainerState) {
+func resetContainerState(state *ContainerState) {
 	state.PID = 0
 	state.ConmonPID = 0
 	state.Mountpoint = ""
@@ -1005,6 +1008,8 @@ func (c *Container) completeNetworkSetup() error {
 			nameservers = append(nameservers, server.String())
 		}
 	}
+	nameservers = c.addSlirp4netnsDNS(nameservers)
+
 	// check if we have a bindmount for /etc/hosts
 	if hostsBindMount, ok := state.BindMounts[config.DefaultHostsFile]; ok {
 		entries, err := c.getHostsEntries()
@@ -1035,10 +1040,11 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	}
 
 	// Generate the OCI newSpec
-	newSpec, err := c.generateSpec(ctx)
+	newSpec, cleanupFunc, err := c.generateSpec(ctx)
 	if err != nil {
 		return err
 	}
+	defer cleanupFunc()
 
 	// Make sure the workdir exists while initializing container
 	if err := c.resolveWorkDir(); err != nil {
@@ -1306,15 +1312,38 @@ func (c *Container) stop(timeout uint) error {
 		}
 	}
 
-	// Set the container state to "stopping" and unlock the container
-	// before handing it over to conmon to unblock other commands.  #8501
-	// demonstrates nicely that a high stop timeout will block even simple
-	// commands such as `podman ps` from progressing if the container lock
-	// is held when busy-waiting for the container to be stopped.
+	// OK, the following code looks a bit weird but we have to make sure we can stop
+	// containers with the restart policy always, to do this we have to set
+	// StoppedByUser even when there is nothing to stop right now. This is due to the
+	// cleanup process waiting on the container lock and then afterwards restarts it.
+	// shouldRestart() then checks for StoppedByUser and does not restart it.
+	// https://github.com/containers/podman/issues/18259
+	var cannotStopErr error
+	if c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
+		cannotStopErr = define.ErrCtrStopped
+	} else if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopping) {
+		cannotStopErr = fmt.Errorf("can only stop created or running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
+	}
+
 	c.state.StoppedByUser = true
-	c.state.State = define.ContainerStateStopping
+	if cannotStopErr == nil {
+		// Set the container state to "stopping" and unlock the container
+		// before handing it over to conmon to unblock other commands.  #8501
+		// demonstrates nicely that a high stop timeout will block even simple
+		// commands such as `podman ps` from progressing if the container lock
+		// is held when busy-waiting for the container to be stopped.
+		c.state.State = define.ContainerStateStopping
+	}
 	if err := c.save(); err != nil {
-		return fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
+		rErr := fmt.Errorf("saving container %s state before stopping: %w", c.ID(), err)
+		if cannotStopErr == nil {
+			return rErr
+		}
+		// we return below with cannotStopErr
+		logrus.Error(rErr)
+	}
+	if cannotStopErr != nil {
+		return cannotStopErr
 	}
 	if !c.batched {
 		c.lock.Unlock()
@@ -1541,9 +1570,34 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	// We need to mount the container before volumes - to ensure the copyup
 	// works properly.
 	mountPoint := c.config.Rootfs
+
+	if c.config.RootfsMapping != nil {
+		uidMappings, gidMappings, err := parseIDMapMountOption(c.config.IDMappings, *c.config.RootfsMapping)
+		if err != nil {
+			return "", err
+		}
+
+		pid, cleanupFunc, err := idmap.CreateUsernsProcess(util.RuntimeSpecToIDtools(uidMappings), util.RuntimeSpecToIDtools(gidMappings))
+		if err != nil {
+			return "", err
+		}
+		defer cleanupFunc()
+
+		if err := idmap.CreateIDMappedMount(c.config.Rootfs, c.config.Rootfs, pid); err != nil {
+			return "", fmt.Errorf("failed to create idmapped mount: %w", err)
+		}
+		defer func() {
+			if deferredErr != nil {
+				if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
+					logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
+				}
+			}
+		}()
+	}
+
 	// Check if overlay has to be created on top of Rootfs
 	if c.config.RootfsOverlay {
-		overlayDest := c.runtime.RunRoot()
+		overlayDest := c.runtime.GraphRoot()
 		contentDir, err := overlay.GenerateStructure(overlayDest, c.ID(), "rootfs", c.RootUID(), c.RootGID())
 		if err != nil {
 			return "", fmt.Errorf("rootfs-overlay: failed to create TempDir in the %s directory: %w", overlayDest, err)
@@ -1809,6 +1863,11 @@ func (c *Container) cleanupStorage() error {
 				logrus.Errorf("Failed to clean up overlay mounts for %s: %v", c.ID(), err)
 			}
 			cleanupErr = err
+		}
+	}
+	if c.config.RootfsMapping != nil {
+		if err := unix.Unmount(c.config.Rootfs, 0); err != nil {
+			logrus.Errorf("Unmounting idmapped rootfs for container %s after mount error: %v", c.ID(), err)
 		}
 	}
 

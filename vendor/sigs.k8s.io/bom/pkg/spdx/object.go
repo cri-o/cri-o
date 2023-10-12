@@ -19,15 +19,11 @@ limitations under the License.
 // Instances of G401 and G505 can be safely ignored in this file.
 //
 // ref: https://github.com/spdx/spdx-spec/issues/11
-//
-//nolint:gosec
 package spdx
 
 import (
-	"crypto/sha1"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 
@@ -107,32 +103,20 @@ func (e *Entity) ReadChecksums(filePath string) error {
 	if e.Checksum == nil {
 		e.Checksum = map[string]string{}
 	}
-	file, err := os.Open(filePath)
-	if err != nil {
-		return fmt.Errorf("opening file for reading: "+filePath+" :%w", err)
-	}
-	defer file.Close()
-	// TODO: Make this line like the others once this PR is
-	// included in a k-sigs/release-util release:
-	// https://github.com/kubernetes-sigs/release-utils/pull/16
-	s1, err := hash.ForFile(filePath, sha1.New())
-	if err != nil {
-		return fmt.Errorf("getting sha1 sum for file: %w", err)
-	}
-	s256, err := hash.SHA256ForFile(filePath)
-	if err != nil {
-		return fmt.Errorf("getting file checksums: %w", err)
-	}
-	s512, err := hash.SHA512ForFile(filePath)
-	if err != nil {
-		return fmt.Errorf("getting file checksums: %w", err)
+
+	// Hash the file contents
+	for algo, fn := range map[string]func(string) (string, error){
+		"SHA1":   hash.SHA1ForFile,
+		"SHA256": hash.SHA256ForFile,
+		"SHA512": hash.SHA512ForFile,
+	} {
+		csum, err := fn(filePath)
+		if err != nil {
+			return fmt.Errorf("hashing %s file %s: %w", algo, filePath, err)
+		}
+		e.Checksum[algo] = csum
 	}
 
-	e.Checksum = map[string]string{
-		"SHA1":   s1,
-		"SHA256": s256,
-		"SHA512": s512,
-	}
 	return nil
 }
 
