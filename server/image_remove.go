@@ -31,6 +31,15 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	// FIXME: The CRI API definition says
+	//      This call is idempotent, and must not return an error if the image has
+	//      already been removed.
+	// and this code doesn’t seem to conform to that.
+
+	// Actually Kubelet is only ever calling this with full image IDs.
+	// So we don't really need to accept ID prefixes nor short names;
+	// or is there another user?!
+
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
 		return s.StorageImageServer().DeleteImage(s.config.SystemContext, *id)
 	}
