@@ -271,9 +271,6 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 			// https://github.com/opencontainers/runc/pull/2224
 			c.spec.AddAnnotation("org.systemd.property.TimeoutStopUSec", "uint64 "+t+"000000") // sec to usec
 		}
-		if systemdHasCollectMode {
-			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
-		}
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
 		c.spec.AddAnnotation("org.systemd.property.After", "['crio.service']")
 	}

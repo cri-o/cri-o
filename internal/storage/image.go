@@ -32,7 +32,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/godbus/dbus/v5"
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -460,16 +459,7 @@ func moveSelfToCgroup(cgroup string, hasCollectMode bool) error {
 
 	unitName := fmt.Sprintf("crio-pull-image-%d.scope", os.Getpid())
 
-	systemdProperties := []systemdDbus.Property{}
-	if hasCollectMode {
-		systemdProperties = append(systemdProperties,
-			systemdDbus.Property{
-				Name:  "CollectMode",
-				Value: dbus.MakeVariant("inactive-or-failed"),
-			})
-	}
-
-	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), os.Getpid(), slice, unitName, systemdProperties...)
+	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), os.Getpid(), slice, unitName, []systemdDbus.Property{})
 }
 
 func copyImageChild() {
