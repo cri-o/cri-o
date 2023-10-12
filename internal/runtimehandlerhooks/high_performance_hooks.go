@@ -58,9 +58,15 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 		return nil
 	}
 
+	// creating libctr managers is expensive on v1. Reuse between CPU load balancing and CPU quota
+	podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
+	if err != nil {
+		return err
+	}
+
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := disableCPULoadBalancing(c); err != nil {
+		if err := disableCPULoadBalancing(containerManagers); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -76,7 +82,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the CFS quota for the container CPUs
 	if shouldCPUQuotaBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
-		if err := setCPUQuota(s.CgroupParent(), c); err != nil {
+		if err := setCPUQuota(podManager, containerManagers); err != nil {
 			return fmt.Errorf("set CPU CFS quota: %w", err)
 		}
 	}
@@ -204,34 +210,19 @@ func annotationValueDeprecationWarning(annotation string) string {
 // Since CRI-O is the owner of the container cgroup, it must set this value for
 // the container. Some other entity (kubelet, external service) must ensure this is the case for all
 // other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
-func disableCPULoadBalancing(c *oci.Container) error {
-	lspec := c.Spec().Linux
-	if lspec == nil ||
-		lspec.Resources == nil ||
-		lspec.Resources.CPU == nil ||
-		lspec.Resources.CPU.Cpus == "" {
-		return fmt.Errorf("find container %s CPUs", c.ID())
-	}
-
+func disableCPULoadBalancing(containerManagers []cgroups.Manager) error {
 	if node.CgroupIsV2() {
 		return fmt.Errorf("disabling CPU load balancing on cgroupv2 not yet supported")
 	}
 
-	pid, err := c.Pid()
-	if err != nil {
-		return fmt.Errorf("failed to get pid of container %s: %w", c.ID(), err)
-	}
-	controllers, err := cgroups.ParseCgroupFile("/proc/" + strconv.Itoa(pid) + "/cgroup")
-	if err != nil {
-		return fmt.Errorf("failed to get cgroups of container %s: %w", c.ID(), err)
+	for i := len(containerManagers) - 1; i >= 0; i-- {
+		cpusetPath := containerManagers[i].Path("cpuset")
+		if err := cgroups.WriteFile(cpusetPath, "cpuset.sched_load_balance", "0"); err != nil {
+			return err
+		}
 	}
 
-	cpusetPath, ok := controllers["cpuset"]
-	if !ok {
-		return fmt.Errorf("failed to get cpuset of container %s", c.ID())
-	}
-
-	return cgroups.WriteFile("/sys/fs/cgroup/cpuset"+cpusetPath, "cpuset.sched_load_balance", "0")
+	return nil
 }
 
 func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
@@ -283,21 +274,19 @@ func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irq
 	return nil
 }
 
-func setCPUQuota(parentDir string, c *oci.Container) error {
-	containerCgroup, containerCgroupParent, systemd, err := containerCgroupAndParent(parentDir, c)
-	if err != nil {
+func setCPUQuota(podManager cgroups.Manager, containerManagers []cgroups.Manager) error {
+	if err := disableCPUQuotaForCgroup(podManager); err != nil {
 		return err
 	}
-	podCgroup := filepath.Base(containerCgroupParent)
-	podCgroupParent := filepath.Dir(containerCgroupParent)
-
-	if err := disableCPUQuotaForCgroup(podCgroup, podCgroupParent, systemd); err != nil {
-		return err
+	for _, containerManager := range containerManagers {
+		if err := disableCPUQuotaForCgroup(containerManager); err != nil {
+			return err
+		}
 	}
-	return disableCPUQuotaForCgroup(containerCgroup, containerCgroupParent, systemd)
+	return nil
 }
 
-func containerCgroupAndParent(parentDir string, c *oci.Container) (ctrCgroup, parentCgroup string, systemd bool, _ error) {
+func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) (podManager cgroups.Manager, containerManagers []cgroups.Manager, _ error) {
 	var (
 		cgroupManager cgmgr.CgroupManager
 		err           error
@@ -312,25 +301,60 @@ func containerCgroupAndParent(parentDir string, c *oci.Container) (ctrCgroup, pa
 		// Programming error, this is only possible if the manager string is invalid.
 		panic(err)
 	}
-	cgroupPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
+
+	containerCgroupFullPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
 	if err != nil {
-		return "", "", false, err
+		return nil, nil, err
 	}
-	containerCgroup := filepath.Base(cgroupPath)
+
+	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
+	podManager, err = libctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	containerCgroup := filepath.Base(containerCgroupFullPath)
 	// A quirk of libcontainer's cgroup driver.
-	// See explanation in disableCPUQuotaForCgroup function.
 	if cgroupManager.IsSystemd() {
 		containerCgroup = c.ID()
 	}
-	return containerCgroup, filepath.Dir(cgroupPath), cgroupManager.IsSystemd(), nil
+
+	containerManager, err := libctrManager(containerCgroup, filepath.Dir(containerCgroupFullPath), cgroupManager.IsSystemd())
+	if err != nil {
+		return nil, nil, err
+	}
+	containerManagers = []cgroups.Manager{containerManager}
+
+	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
+	extraManager, err := trueContainerCgroupManager(containerCgroupFullPath)
+	if err != nil {
+		return nil, nil, err
+	}
+	if extraManager != nil {
+		containerManagers = append(containerManagers, extraManager)
+	}
+	return podManager, containerManagers, nil
 }
 
-func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
-	mgr, err := libctrManager(cgroup, parent, systemd)
-	if err != nil {
-		return err
+func trueContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager, error) {
+	// HACK: There isn't really a better way to check if the actual container cgroup is in a child cgroup of the expected.
+	// We could check /proc/$pid/cgroup, but we need to be able to query this after the container exits and the process is gone.
+	// We know the source of this: crun creates a sub cgroup of the container to do the actual management, to enforce systemd's single
+	// owner rule. Thus, we need to hardcode this check.
+	actualContainerCgroup := filepath.Join(expectedContainerCgroup, "container")
+	cgroupRoot := "/sys/fs/cgroup"
+	// Choose cpuset as the cgroup to check, with little reason.
+	if !node.CgroupIsV2() {
+		cgroupRoot += "/cpuset"
 	}
+	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
+		return nil, nil
+	}
+	// must be crun, make another libctrManager. Regardless of cgroup driver, it will be treated as cgroupfs
+	return libctrManager(filepath.Base(actualContainerCgroup), filepath.Dir(actualContainerCgroup), false)
+}
 
+func disableCPUQuotaForCgroup(mgr cgroups.Manager) error {
 	return mgr.Set(&configs.Resources{
 		SkipDevices: true,
 		CpuQuota:    -1,

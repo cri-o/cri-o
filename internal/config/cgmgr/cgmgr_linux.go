@@ -193,7 +193,7 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 		if path == "" {
 			return fmt.Errorf("failed to find cpuset for newly created cgroup")
 		}
-		if err := os.Mkdir(path, 0o755); err != nil && !os.IsNotExist(err) {
+		if err := os.MkdirAll(path, 0o755); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
 		}
 		if err := libctr.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
