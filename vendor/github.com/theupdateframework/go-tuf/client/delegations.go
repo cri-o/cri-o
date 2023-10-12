@@ -8,13 +8,23 @@ import (
 
 // getTargetFileMeta searches for a verified TargetFileMeta matching a target
 // Requires a local snapshot to be loaded and is locked to the snapshot versions.
-// Searches through delegated targets following TUF spec 1.0.19 section 5.6.
 func (c *Client) getTargetFileMeta(target string) (data.TargetFileMeta, error) {
 	snapshot, err := c.loadLocalSnapshot()
 	if err != nil {
 		return data.TargetFileMeta{}, err
 	}
 
+	targetFileMeta, _, err := c.getTargetFileMetaDelegationPath(target, snapshot)
+	if err != nil {
+		return data.TargetFileMeta{}, err
+	}
+	return targetFileMeta, nil
+}
+
+// getTargetFileMetaDelegationPath searches for a verified TargetFileMeta matching a target
+// Requires snapshot to be passed and is locked to that specific snapshot versions.
+// Searches through delegated targets following TUF spec 1.0.19 section 5.6.
+func (c *Client) getTargetFileMetaDelegationPath(target string, snapshot *data.Snapshot) (data.TargetFileMeta, []string, error) {
 	// delegationsIterator covers 5.6.7
 	// - pre-order depth-first search starting with the top targets
 	// - filter delegations with paths or path_hash_prefixes matching searched target
@@ -22,50 +32,75 @@ func (c *Client) getTargetFileMeta(target string) (data.TargetFileMeta, error) {
 	// - 5.6.7.2 terminations
 	delegations, err := targets.NewDelegationsIterator(target, c.db)
 	if err != nil {
-		return data.TargetFileMeta{}, err
+		return data.TargetFileMeta{}, nil, err
 	}
+
+	targetFileMeta := data.TargetFileMeta{}
+	delegationRole := ""
 
 	for i := 0; i < c.MaxDelegations; i++ {
 		d, ok := delegations.Next()
 		if !ok {
-			return data.TargetFileMeta{}, ErrUnknownTarget{target, snapshot.Version}
+			return data.TargetFileMeta{}, nil, ErrUnknownTarget{target, snapshot.Version}
 		}
 
 		// covers 5.6.{1,2,3,4,5,6}
 		targets, err := c.loadDelegatedTargets(snapshot, d.Delegatee.Name, d.DB)
 		if err != nil {
-			return data.TargetFileMeta{}, err
+			return data.TargetFileMeta{}, nil, err
 		}
 
 		// stop when the searched TargetFileMeta is found
 		if m, ok := targets.Targets[target]; ok {
-			return m, nil
+			delegationRole = d.Delegatee.Name
+			targetFileMeta = m
+			break
 		}
 
 		if targets.Delegations != nil {
 			delegationsDB, err := verify.NewDBFromDelegations(targets.Delegations)
 			if err != nil {
-				return data.TargetFileMeta{}, err
+				return data.TargetFileMeta{}, nil, err
 			}
 			err = delegations.Add(targets.Delegations.Roles, d.Delegatee.Name, delegationsDB)
 			if err != nil {
-				return data.TargetFileMeta{}, err
+				return data.TargetFileMeta{}, nil, err
 			}
 		}
 	}
 
-	return data.TargetFileMeta{}, ErrMaxDelegations{
+	if len(delegationRole) > 0 {
+		return targetFileMeta, buildPath(delegations.Parent, delegationRole, ""), nil
+	}
+
+	return data.TargetFileMeta{}, nil, ErrMaxDelegations{
 		Target:          target,
 		MaxDelegations:  c.MaxDelegations,
 		SnapshotVersion: snapshot.Version,
 	}
 }
 
+func buildPath(parent func(string) string, start string, end string) []string {
+	if start == end {
+		return nil
+	}
+
+	path := []string{start}
+	current := start
+	for {
+		current = parent(current)
+		if current == end {
+			break
+		}
+		path = append(path, current)
+	}
+	return path
+}
+
 func (c *Client) loadLocalSnapshot() (*data.Snapshot, error) {
 	if err := c.getLocalMeta(); err != nil {
 		return nil, err
 	}
-
 	rawS, ok := c.localMeta["snapshot.json"]
 	if !ok {
 		return nil, ErrNoLocalSnapshot

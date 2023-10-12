@@ -88,35 +88,41 @@ func (c *CreationInfo) GetLicenseListVersion() string { return c.LicenseListVers
 func (c *CreationInfo) GetCreated() string            { return c.Created }
 
 type Package struct {
-	ID                   string                  `json:"SPDXID"`
-	Name                 string                  `json:"name"`
-	Version              string                  `json:"versionInfo"`
-	FilesAnalyzed        bool                    `json:"filesAnalyzed"`
-	LicenseDeclared      string                  `json:"licenseDeclared"`
-	LicenseConcluded     string                  `json:"licenseConcluded"`
-	Description          string                  `json:"description,omitempty"`
-	DownloadLocation     string                  `json:"downloadLocation"`
-	Originator           string                  `json:"originator,omitempty"`
-	SourceInfo           string                  `json:"sourceInfo,omitempty"`
-	CopyrightText        string                  `json:"copyrightText"`
-	PrimaryPurpose       string                  `json:"primaryPackagePurpose,omitempty"`
-	HasFiles             []string                `json:"hasFiles,omitempty"`
-	LicenseInfoFromFiles []string                `json:"licenseInfoFromFiles,omitempty"`
-	Checksums            []Checksum              `json:"checksums"`
-	ExternalRefs         []ExternalRef           `json:"externalRefs,omitempty"`
-	VerificationCode     PackageVerificationCode `json:"packageVerificationCode,omitempty"`
+	ID                   string                   `json:"SPDXID"`
+	Name                 string                   `json:"name"`
+	Version              string                   `json:"versionInfo"`
+	FilesAnalyzed        bool                     `json:"filesAnalyzed"`
+	LicenseDeclared      string                   `json:"licenseDeclared,omitempty"`
+	LicenseConcluded     string                   `json:"licenseConcluded,omitempty"`
+	Description          string                   `json:"description,omitempty"`
+	DownloadLocation     string                   `json:"downloadLocation"`
+	Originator           string                   `json:"originator,omitempty"`
+	SourceInfo           string                   `json:"sourceInfo,omitempty"`
+	CopyrightText        string                   `json:"copyrightText"`
+	PrimaryPurpose       string                   `json:"primaryPackagePurpose,omitempty"`
+	HasFiles             []string                 `json:"hasFiles,omitempty"`
+	LicenseInfoFromFiles []string                 `json:"licenseInfoFromFiles,omitempty"`
+	Checksums            []Checksum               `json:"checksums"`
+	ExternalRefs         []ExternalRef            `json:"externalRefs,omitempty"`
+	VerificationCode     *PackageVerificationCode `json:"packageVerificationCode,omitempty"`
 }
 
-func (p *Package) GetID() string                                         { return p.ID }
-func (p *Package) GetName() string                                       { return p.Name }
-func (p *Package) GetDownloadLocation() string                           { return p.DownloadLocation }
-func (p *Package) GetCopyrightText() string                              { return p.CopyrightText }
-func (p *Package) GetLicenseConcluded() string                           { return p.LicenseConcluded }
-func (p *Package) GetFilesAnalyzed() bool                                { return p.FilesAnalyzed }
-func (p *Package) GetLicenseDeclared() string                            { return p.LicenseDeclared }
-func (p *Package) GetVersion() string                                    { return p.Version }
-func (p *Package) GetVerificationCode() document.PackageVerificationCode { return &p.VerificationCode }
-func (p *Package) GetPrimaryPurpose() string                             { return p.PrimaryPurpose }
+func (p *Package) GetID() string               { return p.ID }
+func (p *Package) GetName() string             { return p.Name }
+func (p *Package) GetDownloadLocation() string { return p.DownloadLocation }
+func (p *Package) GetCopyrightText() string    { return p.CopyrightText }
+func (p *Package) GetLicenseConcluded() string { return p.LicenseConcluded }
+func (p *Package) GetFilesAnalyzed() bool      { return p.FilesAnalyzed }
+func (p *Package) GetLicenseDeclared() string  { return p.LicenseDeclared }
+func (p *Package) GetVersion() string          { return p.Version }
+func (p *Package) GetPrimaryPurpose() string   { return p.PrimaryPurpose }
+
+func (p *Package) GetVerificationCode() document.PackageVerificationCode {
+	if p.VerificationCode == nil {
+		return &PackageVerificationCode{}
+	}
+	return p.VerificationCode
+}
 
 func (p *Package) GetChecksums() []document.Checksum {
 	checksums := make([]document.Checksum, len(p.Checksums))
@@ -135,7 +141,7 @@ func (p *Package) GetExternalRefs() []document.ExternalRef {
 }
 
 type PackageVerificationCode struct {
-	Value         string   `json:"packageVerificationCodeValue"`
+	Value         string   `json:"packageVerificationCodeValue,omitempty"`
 	ExcludedFiles []string `json:"packageVerificationCodeExcludedFiles,omitempty"`
 }
 
@@ -146,10 +152,10 @@ type File struct {
 	Name              string     `json:"fileName"`
 	CopyrightText     string     `json:"copyrightText"`
 	NoticeText        string     `json:"noticeText,omitempty"`
-	LicenseConcluded  string     `json:"licenseConcluded"`
+	LicenseConcluded  string     `json:"licenseConcluded,omitempty"`
 	Description       string     `json:"description,omitempty"`
 	FileTypes         []string   `json:"fileTypes,omitempty"`
-	LicenseInfoInFile []string   `json:"licenseInfoInFiles"` // List of licenses
+	LicenseInfoInFile []string   `json:"licenseInfoInFiles,omitempty"` // List of licenses
 	Checksums         []Checksum `json:"checksums"`
 }
 

@@ -99,7 +99,7 @@ func (sb *SignatureBuilder) Sign() (*ContentInfoSignedData, error) {
 	pubKey := sb.privateKey.Public()
 	digestAlg, pkeyAlg, err := x509tools.PkixAlgorithms(pubKey, sb.signerOpts)
 	if err != nil {
-		return nil, fmt.Errorf("pkcs7: %w", err)
+		return nil, fmt.Errorf("pkcs7: %s", err)
 	}
 	if len(sb.certs) < 1 || !x509tools.SameKey(pubKey, sb.certs[0].PublicKey) {
 		return nil, errors.New("pkcs7: first certificate must match private key")

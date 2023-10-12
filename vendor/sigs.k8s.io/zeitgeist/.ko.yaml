@@ -1,17 +1,25 @@
-defaultBaseImage: gcr.io/distroless/base:nonroot
+---
+defaultBaseImage: gcr.io/distroless/static-debian11
 
 builds:
-- id: zeitgeist
-  dir: .
-  main: .
-  env:
-  - CGO_ENABLED=0
-  flags:
-  - -trimpath
-  - -tags
-  - nostackdriver
-  ldflags:
-  - -s
-  - -w
-  - -extldflags "-static"
-  - "{{ .Env.LDFLAGS }}"
+  - id: zeitgeist
+    dir: .
+    main: .
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - "{{ .Env.LDFLAGS }}"
+
+  - id: buoy
+    dir: ./buoy
+    main: .
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -extldflags "-static"
+      - "{{ .Env.LDFLAGS }}"

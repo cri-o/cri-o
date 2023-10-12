@@ -170,3 +170,16 @@ func (k PublicKey) EmailAddresses() []string {
 func (k PublicKey) Subjects() []string {
 	return nil
 }
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	root := &data.Root{}
+	if err := json.Unmarshal(k.root.Signed, root); err != nil {
+		return nil, err
+	}
+	identity, err := json.Marshal(root.Keys)
+	if err != nil {
+		return nil, err
+	}
+	return []string{string(identity)}, nil
+}

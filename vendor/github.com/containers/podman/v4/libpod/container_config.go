@@ -116,6 +116,8 @@ type ContainerRootFSConfig struct {
 	Rootfs string `json:"rootfs,omitempty"`
 	// RootfsOverlay tells if rootfs has to be mounted as an overlay
 	RootfsOverlay bool `json:"rootfs_overlay,omitempty"`
+	// RootfsMapping specifies if there are mappings to apply to the rootfs.
+	RootfsMapping *string `json:"rootfs_mapping,omitempty"`
 	// ShmDir is the path to be mounted on /dev/shm in container.
 	// If not set manually at creation time, Libpod will create a tmpfs
 	// with the size specified in ShmSize and populate this with the path of
@@ -128,6 +130,8 @@ type ContainerRootFSConfig struct {
 	// ShmSize is the size of the container's SHM. Only used if ShmDir was
 	// not set manually at time of creation.
 	ShmSize int64 `json:"shmSize"`
+	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
+	ShmSizeSystemd int64 `json:"shmSizeSystemd"`
 	// Static directory for container content that will persist across
 	// reboot.
 	// StaticDir is a persistent directory for Libpod files that will
@@ -215,6 +219,8 @@ type ContainerSecurityConfig struct {
 	// Libpod - mostly used in rootless containers where the user running
 	// Libpod wants to retain their UID inside the container.
 	AddCurrentUserPasswdEntry bool `json:"addCurrentUserPasswdEntry,omitempty"`
+	// LabelNested, allow labeling separation from within a container
+	LabelNested bool `json:"label_nested"`
 }
 
 // ContainerNameSpaceConfig is an embedded sub-config providing
@@ -352,6 +358,8 @@ type ContainerMiscConfig struct {
 	CgroupsMode string `json:"cgroupsMode,omitempty"`
 	// Cgroup parent of the container.
 	CgroupParent string `json:"cgroupParent"`
+	// GroupEntry specifies arbitrary data to append to a file.
+	GroupEntry string `json:"group_entry,omitempty"`
 	// LogPath log location
 	LogPath string `json:"logPath"`
 	// LogTag is the tag used for logging
@@ -365,7 +373,7 @@ type ContainerMiscConfig struct {
 	// RestartPolicy indicates what action the container will take upon
 	// exiting naturally.
 	// Allowed options are "no" (take no action), "on-failure" (restart on
-	// non-zero exit code, up an a maximum of RestartRetries times),
+	// non-zero exit code, up to a maximum of RestartRetries times),
 	// and "always" (always restart the container on any exit code).
 	// The empty string is treated as the default ("no")
 	RestartPolicy string `json:"restart_policy,omitempty"`
@@ -441,6 +449,7 @@ type InfraInherit struct {
 	SelinuxOpts        []string                 `json:"selinux_opts,omitempty"`
 	Volumes            []*specgen.NamedVolume   `json:"volumes,omitempty"`
 	ShmSize            *int64                   `json:"shm_size"`
+	ShmSizeSystemd     *int64                   `json:"shm_size_systemd"`
 }
 
 // IsDefaultShmSize determines if the user actually set the shm in the parent ctr or if it has been set to the default size

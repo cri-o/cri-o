@@ -421,13 +421,18 @@ var SupportedExts = []string{"json", "toml", "yaml", "yml", "properties", "props
 // SupportedRemoteProviders are universally supported remote providers.
 var SupportedRemoteProviders = []string{"etcd", "etcd3", "consul", "firestore"}
 
+// OnConfigChange sets the event handler that is called when a config file changes.
 func OnConfigChange(run func(in fsnotify.Event)) { v.OnConfigChange(run) }
+
+// OnConfigChange sets the event handler that is called when a config file changes.
 func (v *Viper) OnConfigChange(run func(in fsnotify.Event)) {
 	v.onConfigChange = run
 }
 
+// WatchConfig starts watching a config file for changes.
 func WatchConfig() { v.WatchConfig() }
 
+// WatchConfig starts watching a config file for changes.
 func (v *Viper) WatchConfig() {
 	initWG := sync.WaitGroup{}
 	initWG.Add(1)
@@ -463,9 +468,8 @@ func (v *Viper) WatchConfig() {
 					// we only care about the config file with the following cases:
 					// 1 - if the config file was modified or created
 					// 2 - if the real path to the config file changed (eg: k8s ConfigMap replacement)
-					const writeOrCreateMask = fsnotify.Write | fsnotify.Create
 					if (filepath.Clean(event.Name) == configFile &&
-						event.Op&writeOrCreateMask != 0) ||
+						(event.Has(fsnotify.Write) || event.Has(fsnotify.Create))) ||
 						(currentConfigFile != "" && currentConfigFile != realConfigFile) {
 						realConfigFile = currentConfigFile
 						err := v.ReadInConfig()
@@ -475,8 +479,7 @@ func (v *Viper) WatchConfig() {
 						if v.onConfigChange != nil {
 							v.onConfigChange(event)
 						}
-					} else if filepath.Clean(event.Name) == configFile &&
-						event.Op&fsnotify.Remove != 0 {
+					} else if filepath.Clean(event.Name) == configFile && event.Has(fsnotify.Remove) {
 						eventsWG.Done()
 						return
 					}

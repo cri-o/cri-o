@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/common"
 	slsa "github.com/in-toto/in-toto-golang/in_toto/slsa_provenance/v0.2"
 )
 
@@ -35,7 +36,7 @@ func (p *Predicate) SetImplementation(impl PredicateImplementation) {
 }
 
 // AddMaterial adds an entry to the listo of materials
-func (p *Predicate) AddMaterial(uri string, ds slsa.DigestSet) {
+func (p *Predicate) AddMaterial(uri string, ds common.DigestSet) {
 	p.impl.AddMaterial(p, uri, ds)
 }
 
@@ -46,7 +47,7 @@ func (p *Predicate) Write(path string) error {
 
 //counterfeiter:generate . PredicateImplementation
 type PredicateImplementation interface {
-	AddMaterial(*Predicate, string, slsa.DigestSet)
+	AddMaterial(*Predicate, string, common.DigestSet)
 	Write(*Predicate, string) error
 }
 
@@ -67,11 +68,11 @@ func (pi *defaultPredicateImplementation) Write(p *Predicate, path string) error
 }
 
 // AddMaterial adds a material to the entry
-func (pi *defaultPredicateImplementation) AddMaterial(p *Predicate, uri string, ds slsa.DigestSet) {
+func (pi *defaultPredicateImplementation) AddMaterial(p *Predicate, uri string, ds common.DigestSet) {
 	if p.Materials == nil {
-		p.Materials = []slsa.ProvenanceMaterial{}
+		p.Materials = []common.ProvenanceMaterial{}
 	}
-	p.Materials = append(p.Materials, slsa.ProvenanceMaterial{
+	p.Materials = append(p.Materials, common.ProvenanceMaterial{
 		URI:    uri,
 		Digest: ds,
 	})

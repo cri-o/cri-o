@@ -52,7 +52,7 @@ func RunInspections(layout Layout, runDir string, lineNormalization bool) (map[s
 		}
 
 		linkMb, err := InTotoRun(inspection.Name, runDir, paths, paths,
-			inspection.Run, Key{}, []string{"sha256"}, nil, nil, lineNormalization)
+			inspection.Run, Key{}, []string{"sha256"}, nil, nil, lineNormalization, false)
 
 		if err != nil {
 			return nil, err

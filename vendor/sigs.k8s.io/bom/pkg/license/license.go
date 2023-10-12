@@ -105,6 +105,7 @@ type ReaderOptions struct {
 	WorkDir             string  // Directory where the reader will store its data
 	CacheDir            string  // Optional directory where the reader will store its downloads cache
 	LicenseDir          string  // Optional dir to store and read the SPDX licenses from
+	LicenseListVersion  string  // Version of the SPDX license list to use
 }
 
 // Validate checks the options to verify the are sane

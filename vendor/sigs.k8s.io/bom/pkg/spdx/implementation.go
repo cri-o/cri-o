@@ -248,9 +248,10 @@ func refInfoFromIndex(descr *remote.Descriptor) (refinfo *ImageReferenceInfo, er
 	logrus.Infof("Reference image index points to %d manifests", len(indexManifest.Manifests))
 	refinfo.MediaType = string(indexManifest.MediaType)
 
-	// Add all the child images describen in the index
-	for _, manifest := range indexManifest.Manifests {
-		archImgDigest, err := fullDigest(descr.Ref.(name.Tag), manifest.Digest)
+	// Add all the child images described in the index
+	// TODO: rangeValCopy: each iteration copies 136 bytes (consider pointers or indexing)
+	for _, manifest := range indexManifest.Manifests { //nolint: gocritic
+		archImgDigest, err := fullDigest(tag, manifest.Digest)
 		if err != nil {
 			return nil, fmt.Errorf("generating digest for image: %w", err)
 		}
@@ -605,6 +606,7 @@ func (di *spdxDefaultImplementation) LicenseReader(spdxOpts *Options) (*license.
 	opts := license.DefaultReaderOptions
 	opts.CacheDir = spdxOpts.LicenseCacheDir
 	opts.LicenseDir = spdxOpts.LicenseData
+	opts.LicenseListVersion = spdxOpts.LicenseListVersion
 	// Create the new reader
 	reader, err := license.NewReaderWithOptions(opts)
 	if err != nil {
@@ -616,7 +618,7 @@ func (di *spdxDefaultImplementation) LicenseReader(spdxOpts *Options) (*license.
 // GetDirectoryLicense takes a path and scans
 // the files in it to determine licensins information
 func (di *spdxDefaultImplementation) GetDirectoryLicense(
-	reader *license.Reader, path string, spdxOpts *Options,
+	reader *license.Reader, path string, _ *Options,
 ) (*license.License, error) {
 	licenseResult, err := reader.ReadTopLicense(path)
 	if err != nil {
@@ -762,7 +764,7 @@ func (di *spdxDefaultImplementation) ImageRefToPackage(ref string, opts *Options
 	packageurl := di.purlFromImage(references)
 	if packageurl != "" {
 		pkg.ExternalRefs = append(pkg.ExternalRefs, ExternalRef{
-			Category: "PACKAGE-MANAGER",
+			Category: CatPackageManager,
 			Type:     "purl",
 			Locator:  packageurl,
 		})
@@ -789,7 +791,7 @@ func (di *spdxDefaultImplementation) referenceInfoToPackage(opts *Options, img *
 	packageurl := di.purlFromImage(img)
 	if packageurl != "" {
 		subpkg.ExternalRefs = append(subpkg.ExternalRefs, ExternalRef{
-			Category: "PACKAGE-MANAGER",
+			Category: CatPackageManager,
 			Type:     "purl",
 			Locator:  packageurl,
 		})
@@ -909,6 +911,17 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 				ospk.Name = (*osPackageData)[i].Package
 				ospk.Version = (*osPackageData)[i].Version
 				ospk.HomePage = (*osPackageData)[i].HomePage
+				ospk.Originator = struct {
+					Person       string
+					Organization string
+				}{
+					Person: (*osPackageData)[i].MaintainerName,
+				}
+				if (*osPackageData)[i].License != "" {
+					ospk.LicenseDeclared = (*osPackageData)[i].License
+				}
+				ospk.Checksum = (*osPackageData)[i].Checksums
+
 				if (*osPackageData)[i].MaintainerName != "" {
 					ospk.Supplier.Person = (*osPackageData)[i].MaintainerName
 					if (*osPackageData)[i].MaintainerEmail != "" {
@@ -917,7 +930,7 @@ func (di *spdxDefaultImplementation) PackageFromImageTarball(
 				}
 				if (*osPackageData)[i].PackageURL() != "" {
 					ospk.ExternalRefs = append(ospk.ExternalRefs, ExternalRef{
-						Category: "PACKAGE-MANAGER",
+						Category: CatPackageManager,
 						Type:     "purl",
 						Locator:  (*osPackageData)[i].PackageURL(),
 					})
@@ -1007,11 +1020,16 @@ func (di *spdxDefaultImplementation) PackageFromDirectory(opts *Options, dirPath
 			err = fmt.Errorf("scanning file for license: %w", err)
 			return
 		}
+
+		// If a file does not contain a license then we assume
+		// the whole repository license applies. If it has one,
+		// the we conclude that files is released under those licenses.
 		f.LicenseInfoInFile = NONE
 		if lic == nil {
 			f.LicenseConcluded = licenseTag
 		} else {
 			f.LicenseInfoInFile = lic.LicenseID
+			f.LicenseConcluded = lic.LicenseID
 		}
 
 		if err = f.ReadSourceFile(filepath.Join(dirPath, path)); err != nil {
