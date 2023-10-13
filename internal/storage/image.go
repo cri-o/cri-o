@@ -88,6 +88,7 @@ type imageLookupService struct {
 type imageService struct {
 	lookup               *imageLookupService
 	store                storage.Store
+	storageTransport     StorageTransport
 	imageCache           imageCache
 	imageCacheLock       sync.Mutex
 	ctx                  context.Context
@@ -837,7 +838,7 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 // which will prepend the passed-in DefaultTransport value to an image name if
 // a name that's passed to its PullImage() method can't be resolved to an image
 // in the store and can't be resolved to a source on its own.
-func GetImageService(ctx context.Context, store storage.Store, serverConfig *config.Config) (ImageServer, error) {
+func GetImageService(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (ImageServer, error) {
 	if store == nil {
 		var err error
 		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
@@ -848,6 +849,9 @@ func GetImageService(ctx context.Context, store storage.Store, serverConfig *con
 		if err != nil {
 			return nil, err
 		}
+	}
+	if storageTransport == nil {
+		storageTransport = nativeStorageTransport{}
 	}
 	ils := &imageLookupService{
 		DefaultTransport:      serverConfig.DefaultTransport,
@@ -861,6 +865,7 @@ func GetImageService(ctx context.Context, store storage.Store, serverConfig *con
 	is := &imageService{
 		lookup:               ils,
 		store:                store,
+		storageTransport:     storageTransport,
 		imageCache:           make(map[string]imageCacheItem),
 		ctx:                  ctx,
 		config:               serverConfig,
@@ -885,6 +890,17 @@ func GetImageService(ctx context.Context, store storage.Store, serverConfig *con
 	}
 
 	return is, nil
+}
+
+// StorageTransport is a level of indirection to allow mocking istorage.ResolveReference
+type StorageTransport interface {
+	ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error)
+}
+
+type nativeStorageTransport struct{}
+
+func (st nativeStorageTransport) ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error) {
+	return istorage.ResolveReference(ref)
 }
 
 // FilterPinnedImage checks if the given image needs to be pinned

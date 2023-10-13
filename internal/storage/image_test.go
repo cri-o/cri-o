@@ -12,6 +12,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -36,8 +37,9 @@ var _ = t.Describe("Image", func() {
 	)
 
 	var (
-		mockCtrl  *gomock.Controller
-		storeMock *containerstoragemock.MockStore
+		mockCtrl             *gomock.Controller
+		storeMock            *containerstoragemock.MockStore
+		storageTransportMock *criostoragemock.MockStorageTransport
 
 		// The system under test
 		sut storage.ImageServer
@@ -51,6 +53,7 @@ var _ = t.Describe("Image", func() {
 		// Setup the mocks
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+		storageTransportMock = criostoragemock.NewMockStorageTransport(mockCtrl)
 
 		// Setup the SUT
 		var err error
@@ -68,7 +71,7 @@ var _ = t.Describe("Image", func() {
 		}
 
 		sut, err = storage.GetImageService(
-			context.Background(), storeMock, config,
+			context.Background(), storeMock, storageTransportMock, config,
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -83,7 +86,7 @@ var _ = t.Describe("Image", func() {
 			// Given
 			// When
 			imageService, err := storage.GetImageService(
-				context.Background(), storeMock, &config.Config{},
+				context.Background(), storeMock, storageTransportMock, &config.Config{},
 			)
 
 			// Then
@@ -105,7 +108,7 @@ var _ = t.Describe("Image", func() {
 			}
 			imageService, err := storage.GetImageService(
 				context.Background(),
-				storeMock, config,
+				storeMock, storageTransportMock, config,
 			)
 
 			// Then
@@ -282,7 +285,7 @@ var _ = t.Describe("Image", func() {
 				},
 			}
 			// Create an empty file for the registries config path
-			sut, err := storage.GetImageService(context.Background(), storeMock, config)
+			sut, err := storage.GetImageService(context.Background(), storeMock, storageTransportMock, config)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 

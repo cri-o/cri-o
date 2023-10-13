@@ -36,6 +36,7 @@ var (
 
 type runtimeService struct {
 	storageImageServer ImageServer
+	storageTransport   StorageTransport
 	ctx                context.Context
 }
 
@@ -522,9 +523,13 @@ func (r *runtimeService) GetRunDir(id string) (string, error) {
 // GetRuntimeService returns a RuntimeServer that uses the passed-in image
 // service to pull and manage images, and its store to manage containers based
 // on those images.
-func GetRuntimeService(ctx context.Context, storageImageServer ImageServer) RuntimeServer {
+func GetRuntimeService(ctx context.Context, storageImageServer ImageServer, storageTransport StorageTransport) RuntimeServer {
+	if storageTransport == nil {
+		storageTransport = nativeStorageTransport{}
+	}
 	return &runtimeService{
 		storageImageServer: storageImageServer,
+		storageTransport:   storageTransport,
 		ctx:                ctx,
 	}
 }

@@ -1,10 +1,14 @@
 package storage_test
 
 import (
+	"github.com/containers/image/v5/docker/reference"
+	istorage "github.com/containers/image/v5/storage"
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/mockutils"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
 )
 
 // containers/image/storage.storageReference.StringWithinTransport
@@ -30,6 +34,34 @@ func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageN
 	return mockutils.InOrder(
 		storeMock.EXPECT().Image(expectedImageName).
 			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
+	)
+}
+
+// containers/image/storage.ResolveReference
+// expectedImageName must be in the fully normalized format (reference.Named.String())!
+// resolvedImageID may be "" to simulate a missing image
+func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTransportMock *criostoragemock.MockStorageTransport, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence { //nolint: unparam
+	var namedRef reference.Named
+	if expectedImageName != "" {
+		nr, err := reference.ParseNormalizedNamed(expectedImageName)
+		Expect(err).To(BeNil())
+		namedRef = nr
+	}
+	expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, expectedImageID)
+	Expect(err).To(BeNil())
+	if resolvedImageID == "" {
+		return mockutils.InOrder(
+			storageTransportMock.EXPECT().ResolveReference(expectedRef).
+				Return(nil, nil, istorage.ErrNoSuchImage),
+		)
+	}
+	resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, resolvedImageID)
+	Expect(err).To(BeNil())
+	return mockutils.InOrder(
+		storageTransportMock.EXPECT().ResolveReference(expectedRef).
+			Return(resolvedRef,
+				&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}},
+				nil),
 	)
 }
 

@@ -22,9 +22,10 @@ var _ = t.Describe("Runtime", func() {
 	Expect(err).To(BeNil())
 
 	var (
-		mockCtrl        *gomock.Controller
-		storeMock       *containerstoragemock.MockStore
-		imageServerMock *criostoragemock.MockImageServer
+		mockCtrl             *gomock.Controller
+		storeMock            *containerstoragemock.MockStore
+		storageTransportMock *criostoragemock.MockStorageTransport
+		imageServerMock      *criostoragemock.MockImageServer
 	)
 
 	// The system under test
@@ -38,9 +39,10 @@ var _ = t.Describe("Runtime", func() {
 		// Setup the mocks
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+		storageTransportMock = criostoragemock.NewMockStorageTransport(mockCtrl)
 		imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
 
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
+		sut = storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 		Expect(sut).NotTo(BeNil())
 
 		ctx = context.TODO()
@@ -785,7 +787,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using default credentials", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
@@ -804,7 +806,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
