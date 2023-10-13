@@ -741,7 +741,7 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(BeNil())
 			// DefaultPauseImage is using a canonical form where this comparison is expected to work.
-			Expect(ref.String()).To(Equal(config.DefaultPauseImage))
+			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal(config.DefaultPauseImage))
 		})
 
 		It("should succeed with a name-only value", func() {
@@ -753,7 +753,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(ref.String()).To(Equal("registry.k8s.io/pause:latest"))
+			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("registry.k8s.io/pause:latest"))
 		})
 
 		It("should succeed with a short name", func() {
@@ -768,7 +768,7 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(ref.String()).To(Equal("docker.io/library/short:notlatest"))
+			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/short:notlatest"))
 		})
 
 		It("should fail with an invalid value", func() {

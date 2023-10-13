@@ -3,7 +3,6 @@ package storage_test
 import (
 	"context"
 
-	"github.com/containers/image/v5/docker/reference"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
@@ -526,7 +525,7 @@ var _ = t.Describe("Runtime", func() {
 
 			It("should succeed to create a pod sandbox", func() {
 				// Given
-				pauseImage, err2 := reference.ParseNormalizedNamed("imagename:latest")
+				pauseImage, err2 := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
 				Expect(err2).To(BeNil())
 				inOrder(
 					mockCreatePodSandboxImageExists(),
@@ -688,7 +687,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a pod sandbox on set names error", func() {
 			// Given
-			pauseImage, err := reference.ParseNormalizedNamed("imagename:latest")
+			pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
 			Expect(err).To(BeNil())
 			inOrder(
 				mockCreatePodSandboxImageExists(),
@@ -715,7 +714,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a pod sandbox on main creation error", func() {
 			// Given
-			pauseImage, err := reference.ParseNormalizedNamed("imagename:latest")
+			pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
 			Expect(err).To(BeNil())
 			inOrder(
 				mockCreatePodSandboxImageExists(),
@@ -787,21 +786,21 @@ var _ = t.Describe("Runtime", func() {
 	})
 
 	t.Describe("pauseImage", func() {
-		pauseImage, err := reference.ParseNormalizedNamed("pauseimagename:latest")
+		pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("pauseimagename:latest")
 		Expect(err).To(BeNil())
 
 		var info storage.ContainerInfo
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
-			pauseImageRef, err := reference.ParseNormalizedNamed("docker.io/library/pauseimagename:latest")
+			pauseImageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pauseimagename:latest")
 			Expect(err).To(BeNil())
-			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImageRef, "")
+			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImageRef.Raw(), "")
 			Expect(err).To(BeNil())
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
-				imageServerMock.EXPECT().PullImage(gomock.Any(), references.RegistryImageReferenceFromRaw(pauseImageRef), expectedCopyOptions).Return(pulledRef, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImageRef, expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
