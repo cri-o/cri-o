@@ -37,7 +37,7 @@ FILES_ETC=(
     "$GIT_ROOT/contrib/bundle/10-crun.conf"
 )
 FILES_CONTRIB=(
-    "$GIT_ROOT/contrib/bundle/registries.conf"
+    "$GIT_ROOT/contrib/bundle/crio-registries.conf"
     "$GIT_ROOT/contrib/cni/11-crio-ipv4-bridge.conflist"
     "$GIT_ROOT/contrib/policy.json"
     "$GIT_ROOT/contrib/systemd/crio.service"
@@ -192,7 +192,7 @@ $BOM validate -e "$SPDX_PATH" -d "$CRIODIR"
 pushd "$TMPDIR"
 export DESTDIR=test/
 ./install
-EXP_CNT=68
+EXP_CNT=69
 if ! command -v runc; then
     EXP_CNT=$((EXP_CNT + 1))
 fi

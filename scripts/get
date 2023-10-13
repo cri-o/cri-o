@@ -205,6 +205,7 @@ DESTDIR=${DESTDIR:-}
 PREFIX=${PREFIX:-/usr/local}
 ETCDIR=${ETCDIR:-/etc}
 CONTAINERS_DIR=${CONTAINERS_DIR:-$ETCDIR/containers}
+CONTAINERS_REGISTRIES_CONFD_DIR=${CONTAINERS_REGISTRIES_CONFD_DIR:-$CONTAINERS_DIR/registries.conf.d}
 CNIDIR=${CNIDIR:-$ETCDIR/cni/net.d}
 BINDIR=${BINDIR:-$PREFIX/bin}
 MANDIR=${MANDIR:-$PREFIX/share/man}
@@ -239,6 +240,7 @@ install $SELINUX -d -m 755 "$DESTDIR$BASHINSTALLDIR"
 install $SELINUX -d -m 755 "$DESTDIR$FISHINSTALLDIR"
 install $SELINUX -d -m 755 "$DESTDIR$ZSHINSTALLDIR"
 install $SELINUX -d -m 755 "$DESTDIR$CONTAINERS_DIR"
+install $SELINUX -d -m 755 "$DESTDIR$CONTAINERS_REGISTRIES_CONFD_DIR"
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio-status
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio
 install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR" etc/crictl.yaml
@@ -255,13 +257,10 @@ install $SELINUX -D -m 644 -t "$DESTDIR$ZSHINSTALLDIR" completions/zsh/_crio
 install $SELINUX -D -m 644 -t "$DESTDIR$SYSTEMDDIR" contrib/crio.service
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/pinns
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
+install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_REGISTRIES_CONFD_DIR" contrib/crio-registries.conf
 
 if [ ! -f "$DESTDIR$CONTAINERS_DIR/policy.json" ]; then
     install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/policy.json
-fi
-
-if [ ! -f "$DESTDIR$CONTAINERS_DIR/registries.conf" ]; then
-    install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/registries.conf
 fi
 
 # only install runc if it's not already in the path
