@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 13 Oct 2023 13:41:31 UTC for commit [dee5ee3][0]._
+_Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/dee5ee3daf193ccb024c2b049e05a3aa2a55c060
+[0]: https://github.com/cri-o/cri-o/commit/78bbef3b80a7a5b80c37c7e063a16a1fe1339c4f
 
 ## Outdated Dependencies
 
@@ -22,10 +22,7 @@ _Generated on Fri, 13 Oct 2023 13:41:31 UTC for commit [dee5ee3][0]._
 | github.com/prometheus/client_golang                                         | v1.16.0                              | v1.17.0             | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.2                               | v0.2.3              | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.43.0                              | v0.45.0             | true   | true             |
-| go.opentelemetry.io/otel                                                    | v1.17.0                              | v1.19.0             | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.17.0                              | v1.19.0             | true   | true             |
-| go.opentelemetry.io/otel/sdk                                                | v1.17.0                              | v1.19.0             | true   | true             |
-| go.opentelemetry.io/otel/trace                                              | v1.17.0                              | v1.19.0             | true   | true             |
 | golang.org/x/sync                                                           | v0.3.0                               | v0.4.0              | true   | true             |
 | k8s.io/api                                                                  | v0.28.1                              | v0.28.2             | true   | true             |
 | k8s.io/apimachinery                                                         | v0.28.1                              | v0.28.2             | true   | true             |
@@ -725,7 +722,7 @@ _Generated on Fri, 13 Oct 2023 13:41:31 UTC for commit [dee5ee3][0]._
 | github.com/urfave/cli/v2                                                                | v2.25.7                                           |                                    | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                                           |                                    | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                                           |                                    | false  | true             |
-| github.com/vbauerster/mpb/v8                                                            | v8.4.0                                            | v8.6.1                             | false  | true             |
+| github.com/vbauerster/mpb/v8                                                            | v8.4.0                                            | v8.6.2                             | false  | true             |
 | github.com/vektah/gqlparser/v2                                                          | v2.4.5                                            | v2.5.10                            | false  | true             |
 | github.com/veraison/go-cose                                                             | v1.1.0                                            |                                    | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                                     |                                    | true   | true             |
@@ -778,14 +775,14 @@ _Generated on Fri, 13 Oct 2023 13:41:31 UTC for commit [dee5ee3][0]._
 | go.opencensus.io                                                                        | v0.24.0                                           |                                    | false  | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.43.0                                           | v0.45.0                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.35.1                                           | v0.45.0                            | false  | true             |
-| go.opentelemetry.io/otel                                                                | v1.17.0                                           | v1.19.0                            | true   | true             |
+| go.opentelemetry.io/otel                                                                | v1.19.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/internal/retry                                  | v1.15.0                                           | v1.17.0                            | false  | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace                                       | v1.17.0                                           | v1.19.0                            | false  | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                         | v1.17.0                                           | v1.19.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp                         | v1.14.0                                           | v1.19.0                            | false  | true             |
-| go.opentelemetry.io/otel/metric                                                         | v1.17.0                                           | v1.19.0                            | false  | true             |
-| go.opentelemetry.io/otel/sdk                                                            | v1.17.0                                           | v1.19.0                            | true   | true             |
-| go.opentelemetry.io/otel/trace                                                          | v1.17.0                                           | v1.19.0                            | true   | true             |
+| go.opentelemetry.io/otel/metric                                                         | v1.19.0                                           |                                    | false  | true             |
+| go.opentelemetry.io/otel/sdk                                                            | v1.19.0                                           |                                    | true   | true             |
+| go.opentelemetry.io/otel/trace                                                          | v1.19.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.0.0                                            |                                    | false  | true             |
 | go.step.sm/crypto                                                                       | v0.32.2                                           | v0.36.0                            | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                    | false  | true             |
