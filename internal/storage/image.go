@@ -698,16 +698,16 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
-	ref, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
+	unstableRef, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
 	if err != nil {
 		return err
 	}
-	//nolint:staticcheck // TODO: fix deprecated usage
-	img, err := istorage.Transport.GetStoreImage(svc.store, ref)
+	_, img, err := svc.storageTransport.ResolveReference(unstableRef)
 	if err != nil {
 		return err
 	}
-	// Do not use ref from now on; if the tag moves, ref can refer to a different image. Prefer img.ID.
+	// Do not use unstableRef from now on; if the tag moves, ref can refer to a different image.
+	// Prefer img.ID or the other return value of ResolveReference.
 
 	nameString := name.Raw().String()
 	remainingNames := 0

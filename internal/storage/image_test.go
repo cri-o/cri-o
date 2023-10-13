@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/image/v5/docker/reference"
+	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/mockutils"
@@ -309,7 +311,8 @@ var _ = t.Describe("Image", func() {
 		It("should succeed to untag an image", func() {
 			// Given
 			mockutils.InOrder(
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", testSHA256),
 				storeMock.EXPECT().Image(testSHA256).
 					Return(&cs.Image{ID: testSHA256}, nil),
 				storeMock.EXPECT().DeleteImage(testSHA256, true).
@@ -328,7 +331,8 @@ var _ = t.Describe("Image", func() {
 		It("should fail to untag an image that can't be found", func() {
 			// Given
 			mockutils.InOrder(
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", ""),
 			)
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).To(BeNil())
@@ -342,13 +346,21 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to untag an image with multiple names", func() {
 			// Given
+			namedRef, err := reference.ParseNormalizedNamed(testImageName)
+			Expect(err).To(BeNil())
+			namedRef = reference.TagNameOnly(namedRef)
+			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
+			Expect(err).To(BeNil())
+			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			Expect(err).To(BeNil())
 			mockutils.InOrder(
-				// storage.Transport.GetStoreImage:
-				storeMock.EXPECT().Image(testNormalizedImageName).
-					Return(&cs.Image{
-						ID:    testSHA256,
-						Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
-					}, nil),
+				storageTransportMock.EXPECT().ResolveReference(expectedRef).
+					Return(resolvedRef,
+						&cs.Image{
+							ID:    testSHA256,
+							Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
+						},
+						nil),
 
 				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
