@@ -258,7 +258,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imageRef,
+		image, imageRef.IDStringForOutOfProcessConsumptionOnly(), // This violates API rules, and will be fixed shortly.
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
@@ -777,7 +777,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, imageRef, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	// The imageRef.IDStringForOutOfProcessConsumptionOnly() use violates API rules, and will be fixed shortly.
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, imageRef.IDStringForOutOfProcessConsumptionOnly(), criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

@@ -17,6 +17,8 @@ import (
 var _ = t.Describe("ImageList", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -24,8 +26,6 @@ var _ = t.Describe("ImageList", func() {
 		setupSUT()
 	})
 	AfterEach(afterEach)
-
-	const imageID = "imageID"
 
 	t.Describe("ImageList", func() {
 		It("should succeed", func() {
@@ -46,7 +46,7 @@ var _ = t.Describe("ImageList", func() {
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Images)).To(BeEquivalentTo(1))
-			Expect(response.Images[0].Id).To(Equal(imageID))
+			Expect(response.Images[0].Id).To(Equal(imageID.IDStringForOutOfProcessConsumptionOnly()))
 		})
 
 		It("should succeed with filter", func() {
@@ -61,7 +61,7 @@ var _ = t.Describe("ImageList", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:   "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812",
+						ID:   imageID,
 						User: "10", Size: &size,
 					}, nil),
 			)
@@ -121,7 +121,7 @@ var _ = t.Describe("ImageList", func() {
 	t.Describe("ConvertImage", func() {
 		It("should succeed with empty repo tags and digests", func() {
 			// Given
-			image := &storage.ImageResult{}
+			image := &storage.ImageResult{ID: imageID}
 
 			// When
 			result := server.ConvertImage(image)
@@ -136,6 +136,7 @@ var _ = t.Describe("ImageList", func() {
 			// Given
 			size := uint64(100)
 			image := &storage.ImageResult{
+				ID:          imageID,
 				RepoTags:    []string{"1", "2"},
 				RepoDigests: []string{"3", "4"},
 				Size:        &size,
@@ -158,6 +159,7 @@ var _ = t.Describe("ImageList", func() {
 		It("should succeed with previous tag but no current", func() {
 			// Given
 			image := &storage.ImageResult{
+				ID:           imageID,
 				PreviousName: "1",
 				Digest:       digest.Digest("2"),
 			}

@@ -86,7 +86,11 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(BeNil())
 			currentTime := time.Now()
 			volumes := []oci.ContainerVolume{}
-			imageResult := storage.ImageResult{}
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
+			imageResult := storage.ImageResult{
+				ID: imageID,
+			}
 			mountPoint := "test"
 			configStopSignal := "test"
 
@@ -122,7 +126,7 @@ var _ = t.Describe("Container", func() {
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.Name))
-			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID))
+			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerID]).To(Equal(sut.ID()))
 			Expect(sut.Spec().Config.Annotations[annotations.SandboxID]).To(Equal(sb.ID()))

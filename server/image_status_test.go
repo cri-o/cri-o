@@ -17,6 +17,8 @@ import (
 var _ = t.Describe("ImageStatus", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -38,7 +40,7 @@ var _ = t.Describe("ImageStatus", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:   "image",
+						ID:   imageID,
 						User: "10", Size: &size,
 					}, nil),
 			)
@@ -65,7 +67,7 @@ var _ = t.Describe("ImageStatus", func() {
 					gomock.Any(), imageCandidate,
 				).Return(
 					&storage.ImageResult{
-						ID:   "image",
+						ID:   imageID,
 						User: "10",
 						Size: &size,
 						OCIConfig: &specs.Image{
@@ -105,7 +107,7 @@ var _ = t.Describe("ImageStatus", func() {
 					Return(&parsedTestSHA256),
 				imageServerMock.EXPECT().ImageStatusByID(
 					gomock.Any(), parsedTestSHA256).
-					Return(&storage.ImageResult{ID: testSHA256, User: "me"}, nil),
+					Return(&storage.ImageResult{ID: parsedTestSHA256, User: "me"}, nil),
 			)
 
 			// When

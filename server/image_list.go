@@ -64,7 +64,7 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	to := &types.Image{
-		Id:          from.ID,
+		Id:          from.ID.IDStringForOutOfProcessConsumptionOnly(),
 		RepoTags:    repoTags,
 		RepoDigests: repoDigests,
 		Pinned:      from.Pinned,

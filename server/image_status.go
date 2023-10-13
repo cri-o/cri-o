@@ -44,7 +44,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 	resp := &types.ImageStatusResponse{
 		Image: &types.Image{
-			Id:          status.ID,
+			Id:          status.ID.IDStringForOutOfProcessConsumptionOnly(),
 			RepoTags:    status.RepoTags,
 			RepoDigests: status.RepoDigests,
 			Size_:       size,

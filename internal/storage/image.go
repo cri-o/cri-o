@@ -43,7 +43,7 @@ const (
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID           string
+	ID           StorageImageID
 	Name         string
 	RepoTags     []string
 	RepoDigests  []string
@@ -273,7 +273,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		}
 	}
 	return ImageResult{
-		ID:           image.ID,
+		ID:           storageImageIDFromImage(image),
 		Name:         name,
 		RepoTags:     tags,
 		RepoDigests:  repoDigests,
