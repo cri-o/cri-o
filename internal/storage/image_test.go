@@ -378,22 +378,29 @@ var _ = t.Describe("Image", func() {
 
 	t.Describe("ImageStatusByName", func() {
 		It("should succeed to get the image status with digest", func() {
+			namedRef, err := reference.ParseNormalizedNamed(testImageName)
+			Expect(err).To(BeNil())
+			namedRef = reference.TagNameOnly(namedRef)
+			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
+			Expect(err).To(BeNil())
+			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			Expect(err).To(BeNil())
 			// Given
 			mockutils.InOrder(
-				// storage.Transport.GetStoreImage:
-				storeMock.EXPECT().Image(testNormalizedImageName).
-					Return(&cs.Image{
-						ID: testSHA256,
-						Names: []string{
-							testNormalizedImageName,
-							"localhost/a@sha256:" + testSHA256,
-							"localhost/b@sha256:" + testSHA256,
-							"localhost/c:latest",
-						},
-					}, nil),
+				storageTransportMock.EXPECT().ResolveReference(expectedRef).
+					Return(resolvedRef,
+						&cs.Image{
+							ID: testSHA256,
+							Names: []string{
+								testNormalizedImageName,
+								"localhost/a@sha256:" + testSHA256,
+								"localhost/b@sha256:" + testSHA256,
+								"localhost/c:latest",
+							},
+						}, nil),
 				// buildImageCacheItem
-				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-				storeMock.EXPECT().Image(testNormalizedImageName).
+				mockNewImage(storeMock, namedRef.String(), testSHA256, testSHA256),
+				storeMock.EXPECT().Image(testSHA256).
 					Return(&cs.Image{
 						ID: testSHA256,
 						Names: []string{
@@ -423,7 +430,8 @@ var _ = t.Describe("Image", func() {
 		It("should fail to get on missing store image", func() {
 			// Given
 			mockutils.InOrder(
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", ""),
 			)
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).To(BeNil())
@@ -439,9 +447,10 @@ var _ = t.Describe("Image", func() {
 		It("should fail to get on corrupt image", func() {
 			// Given
 			mockutils.InOrder(
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", testSHA256),
 				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
+				mockResolveImage(storeMock, testNormalizedImageName, testSHA256, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),
 			)
@@ -477,7 +486,7 @@ var _ = t.Describe("Image", func() {
 			mockLoop := func() mockutils.MockSequence {
 				return mockutils.InOrder(
 					// buildImageCacheItem:
-					mockNewImage(storeMock, testSHA256, testSHA256),
+					mockNewImage(storeMock, "", testSHA256, testSHA256),
 					storeMock.EXPECT().Image(gomock.Any()).
 						Return(&cs.Image{
 							ID: testSHA256,

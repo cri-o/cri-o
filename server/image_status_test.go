@@ -3,7 +3,7 @@ package server_test
 import (
 	"context"
 
-	cstorage "github.com/containers/storage"
+	istorage "github.com/containers/image/v5/storage"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
@@ -129,7 +129,7 @@ var _ = t.Describe("ImageStatus", func() {
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
-					Return(nil, cstorage.ErrImageUnknown),
+					Return(nil, istorage.ErrNoSuchImage),
 			)
 
 			// When

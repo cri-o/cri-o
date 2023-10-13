@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/storage"
+	istorage "github.com/containers/image/v5/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	json "github.com/json-iterator/go"
@@ -75,7 +75,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
 		status, err := s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
-			if errors.Is(err, storage.ErrImageUnknown) {
+			if errors.Is(err, istorage.ErrNoSuchImage) {
 				log.Infof(ctx, "Image %s not found", spec.Image)
 				return nil, nil
 			}
@@ -93,7 +93,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	for _, name := range potentialMatches {
 		status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if err != nil {
-			if errors.Is(err, storage.ErrImageUnknown) {
+			if errors.Is(err, istorage.ErrNoSuchImage) {
 				log.Debugf(ctx, "Can't find %s", name)
 				continue
 			}
@@ -107,7 +107,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 		return nil, lastErr
 	}
 	// CandidatesForPotentiallyShortImageName returns at least one value if it doesn't fail.
-	// So, if we got here, there was at least one ErrImageUnknown, and no other errors.
+	// So, if we got here, there was at least one ErrNoSuchImage, and no other errors.
 	log.Infof(ctx, "Image %s not found", spec.Image)
 	return nil, nil
 }

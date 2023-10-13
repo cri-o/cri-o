@@ -21,22 +21,6 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 	)
 }
 
-// containers/image/storage.Transport.GetStoreImage
-// expectedImageName must be in the fully normalized format (reference.Named.String())!
-// resolvedImageID may be "" to simulate a missing image
-func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockutils.MockSequence {
-	if resolvedImageID == "" {
-		return mockutils.InOrder(
-			storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown),
-			mockResolveImage(storeMock, expectedImageName, ""),
-		)
-	}
-	return mockutils.InOrder(
-		storeMock.EXPECT().Image(expectedImageName).
-			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
-	)
-}
-
 // containers/image/storage.ResolveReference
 // expectedImageName must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image
@@ -66,20 +50,25 @@ func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTran
 }
 
 // containers/image/storage.storageReference.resolveImage
-// expectedImageNameOrID, if a name, must be in the fully normalized format (reference.Named.String())!
+// expectedImageName, if not "", must be in the fully normalized format (reference.Named.String())!
+// expectedImageID may be ""
 // resolvedImageID may be "" to simulate a missing image
-func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNameOrID, resolvedImageID string) mockutils.MockSequence {
+func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
+	lookupKey := expectedImageID
+	if lookupKey == "" {
+		lookupKey = expectedImageName
+	}
 	if resolvedImageID == "" {
 		return mockutils.InOrder(
-			storeMock.EXPECT().Image(expectedImageNameOrID).Return(nil, cstorage.ErrImageUnknown),
-			// Assuming expectedImageNameOrID does not have a digest, so resolveName does not call ImagesByDigest
+			storeMock.EXPECT().Image(lookupKey).Return(nil, cstorage.ErrImageUnknown),
+			// Assuming lookupKey does not have a digest, so resolveName does not call ImagesByDigest
 			mockStorageReferenceStringWithinTransport(storeMock),
 			mockStorageReferenceStringWithinTransport(storeMock),
 		)
 	}
 	return mockutils.InOrder(
-		storeMock.EXPECT().Image(expectedImageNameOrID).
-			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageNameOrID}}, nil),
+		storeMock.EXPECT().Image(lookupKey).
+			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
 	)
 }
 
@@ -95,9 +84,9 @@ func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mo
 }
 
 // containers/image/storage.storageReference.newImage
-func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockutils.MockSequence {
+func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
 	return mockutils.InOrder(
-		mockResolveImage(storeMock, expectedImageName, resolvedImageID),
+		mockResolveImage(storeMock, expectedImageName, expectedImageID, resolvedImageID),
 		storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 			Return(testManifest, nil),
 		mockStorageImageSourceGetSize(storeMock),

@@ -55,7 +55,7 @@ var _ = t.Describe("Runtime", func() {
 	mockCreateContainerImageExists := func() mockutils.MockSequence {
 		return mockutils.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+			mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -68,7 +68,7 @@ var _ = t.Describe("Runtime", func() {
 				"docker.io/library/imagename:latest", "",
 				imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+			mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -729,7 +729,7 @@ var _ = t.Describe("Runtime", func() {
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// storageReference.newImage:
-				mockResolveImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+				mockResolveImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -769,7 +769,7 @@ var _ = t.Describe("Runtime", func() {
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+				mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),

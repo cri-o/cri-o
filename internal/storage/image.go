@@ -374,17 +374,11 @@ func imageIsBeingPulled(image *storage.Image) bool {
 }
 
 func (svc *imageService) ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error) {
-	ref, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
+	unstableRef, err := istorage.Transport.NewStoreReference(svc.store, name.Raw(), "")
 	if err != nil {
 		return nil, err
 	}
-	//nolint:staticcheck // TODO: fix deprecated usage
-	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
-	if err != nil {
-		return nil, err
-	}
-
-	return svc.imageStatus(systemContext, ref, image)
+	return svc.imageStatus(systemContext, unstableRef)
 }
 
 func (svc *imageService) ImageStatusByID(systemContext *types.SystemContext, id StorageImageID) (*ImageResult, error) {
@@ -392,25 +386,25 @@ func (svc *imageService) ImageStatusByID(systemContext *types.SystemContext, id 
 	if err != nil {
 		return nil, err
 	}
-	//nolint:staticcheck // TODO: fix deprecated usage
-	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
+	return svc.imageStatus(systemContext, ref)
+}
+
+// imageStatus is the underlying implementation of ImageStatus* for a storage unstableRef.
+func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstableRef types.ImageReference) (*ImageResult, error) {
+	resolvedRef, image, err := svc.storageTransport.ResolveReference(unstableRef)
 	if err != nil {
 		return nil, err
 	}
+	// unstableRef might point to different images over time. Use resolvedRef, which precisely
+	// matches image, from now on.
 
-	return svc.imageStatus(systemContext, ref, image)
-}
-
-// imageStatus is the underlying implementation of ImageStatus*.
-// ref must exactly match image.
-func (svc *imageService) imageStatus(systemContext *types.SystemContext, ref types.ImageReference, image *storage.Image) (*ImageResult, error) {
 	svc.imageCacheLock.Lock()
 	cacheItem, ok := svc.imageCache[image.ID]
 	svc.imageCacheLock.Unlock()
 
 	if !ok {
 		var err error
-		cacheItem, err = svc.buildImageCacheItem(systemContext, ref) // Single-use-only, not actually cached
+		cacheItem, err = svc.buildImageCacheItem(systemContext, resolvedRef) // Single-use-only, not actually cached
 		if err != nil {
 			return nil, err
 		}
