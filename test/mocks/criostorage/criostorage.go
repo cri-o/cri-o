@@ -13,6 +13,7 @@ import (
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
+	references "github.com/cri-o/cri-o/internal/storage/references"
 	gomock "github.com/golang/mock/gomock"
 )
 
@@ -39,6 +40,35 @@ func (m *MockImageServer) EXPECT() *MockImageServerMockRecorder {
 	return m.recorder
 }
 
+// CandidatesForPotentiallyShortImageName mocks base method.
+func (m *MockImageServer) CandidatesForPotentiallyShortImageName(arg0 *types.SystemContext, arg1 string) ([]references.RegistryImageReference, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CandidatesForPotentiallyShortImageName", arg0, arg1)
+	ret0, _ := ret[0].([]references.RegistryImageReference)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CandidatesForPotentiallyShortImageName indicates an expected call of CandidatesForPotentiallyShortImageName.
+func (mr *MockImageServerMockRecorder) CandidatesForPotentiallyShortImageName(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CandidatesForPotentiallyShortImageName", reflect.TypeOf((*MockImageServer)(nil).CandidatesForPotentiallyShortImageName), arg0, arg1)
+}
+
+// DeleteImage mocks base method.
+func (m *MockImageServer) DeleteImage(arg0 *types.SystemContext, arg1 storage0.StorageImageID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteImage", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteImage indicates an expected call of DeleteImage.
+func (mr *MockImageServerMockRecorder) DeleteImage(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImageServer)(nil).DeleteImage), arg0, arg1)
+}
+
 // GetStore mocks base method.
 func (m *MockImageServer) GetStore() storage.Store {
 	m.ctrl.T.Helper()
@@ -51,6 +81,20 @@ func (m *MockImageServer) GetStore() storage.Store {
 func (mr *MockImageServerMockRecorder) GetStore() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetStore", reflect.TypeOf((*MockImageServer)(nil).GetStore))
+}
+
+// HeuristicallyTryResolvingStringAsIDPrefix mocks base method.
+func (m *MockImageServer) HeuristicallyTryResolvingStringAsIDPrefix(arg0 string) *storage0.StorageImageID {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HeuristicallyTryResolvingStringAsIDPrefix", arg0)
+	ret0, _ := ret[0].(*storage0.StorageImageID)
+	return ret0
+}
+
+// HeuristicallyTryResolvingStringAsIDPrefix indicates an expected call of HeuristicallyTryResolvingStringAsIDPrefix.
+func (mr *MockImageServerMockRecorder) HeuristicallyTryResolvingStringAsIDPrefix(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeuristicallyTryResolvingStringAsIDPrefix", reflect.TypeOf((*MockImageServer)(nil).HeuristicallyTryResolvingStringAsIDPrefix), arg0)
 }
 
 // ImageStatus mocks base method.
@@ -129,7 +173,7 @@ func (mr *MockImageServerMockRecorder) ResolveNames(arg0, arg1 interface{}) *gom
 }
 
 // UntagImage mocks base method.
-func (m *MockImageServer) UntagImage(arg0 *types.SystemContext, arg1 string) error {
+func (m *MockImageServer) UntagImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagImage", arg0, arg1)
 	ret0, _ := ret[0].(error)

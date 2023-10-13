@@ -8,6 +8,7 @@ import (
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
@@ -243,22 +244,6 @@ var _ = t.Describe("Image", func() {
 			}))
 		})
 
-		It("should succeed to resolve with a local copy", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(nil, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(testImageName))
-		})
-
 		It("should succeed to resolve with a locally-not-matching image id", func() {
 			// Given
 			gomock.InOrder()
@@ -324,75 +309,40 @@ var _ = t.Describe("Image", func() {
 		It("should succeed to untag an image", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
+				storeMock.EXPECT().Image(testSHA256).
+					Return(&cs.Image{ID: testSHA256}, nil),
 				storeMock.EXPECT().DeleteImage(testSHA256, true).
 					Return(nil, nil),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail to untag an image with invalid name", func() {
-			// Given
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should fail to untag an image that can't be found", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail to untag an image with a docker:// reference", func() {
-			// Given
-			const imageName = "docker://localhost/busybox:latest"
-			inOrder(
-				mockGetStoreImage(storeMock, "localhost/busybox:latest", testSHA256),
-			)
-
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).NotTo(BeNil()) // FIXME: this actually fails because it tries to untag the image at the docker://localhost registry!
-		})
-
-		It("should fail to untag an image with a docker:// digest reference", func() {
-			// Given
-			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			inOrder(
-				mockGetStoreImage(storeMock, "localhost/busybox@sha256:"+testSHA256, testSHA256),
-			)
-
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).NotTo(BeNil()) // FIXME: this actually fails because it tries to untag the image at the docker://localhost registry!
 		})
 
 		It("should fail to untag an image with multiple names", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				// storage.Transport.GetStoreImage:
 				storeMock.EXPECT().Image(testNormalizedImageName).
 					Return(&cs.Image{
@@ -400,12 +350,14 @@ var _ = t.Describe("Image", func() {
 						Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
 					}, nil),
 
-				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest", "image"}).
+				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
