@@ -525,7 +525,7 @@ var _ = t.Describe("ContainerRestore", func() {
 						}, nil),
 
 					runtimeServerMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(),
+						gomock.Any(), gomock.Any(), imageID, gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any()).
 						Return(storage.ContainerInfo{

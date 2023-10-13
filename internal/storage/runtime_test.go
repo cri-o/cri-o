@@ -17,6 +17,9 @@ import (
 
 // The actual test suite
 var _ = t.Describe("Runtime", func() {
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+	Expect(err).To(BeNil())
+
 	var (
 		mockCtrl        *gomock.Controller
 		storeMock       *containerstoragemock.MockStore
@@ -50,9 +53,9 @@ var _ = t.Describe("Runtime", func() {
 		return inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -62,9 +65,9 @@ var _ = t.Describe("Runtime", func() {
 		return inOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -516,8 +519,7 @@ var _ = t.Describe("Runtime", func() {
 
 				// When
 				info, err = sut.CreateContainer(&types.SystemContext{},
-					"podName", "podID", "imagename",
-					"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+					"podName", "podID", "imagename", imageID,
 					"containerName", "containerID", "",
 					0, nil, []string{"mountLabel"}, false,
 				)
@@ -555,13 +557,12 @@ var _ = t.Describe("Runtime", func() {
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -576,13 +577,12 @@ var _ = t.Describe("Runtime", func() {
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"", "podID", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"", "podID", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -592,31 +592,17 @@ var _ = t.Describe("Runtime", func() {
 			Expect(err).To(Equal(storage.ErrInvalidPodName))
 		})
 
-		It("should fail to create a container on invalid image ID", func() {
-			// Given
-			// When
-			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "", "",
-				"containerName", "containerID", "metadataName",
-				0, nil, []string{"mountLabel"}, false,
-			)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(err).To(Equal(storage.ErrInvalidImageName))
-		})
-
 		It("should fail to create a container on invalid container name", func() {
 			// Given
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "podID", "imagename", imageID,
 				"", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -647,8 +633,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "podID", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -675,8 +660,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "podID", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -745,8 +729,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "podID", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -760,10 +743,10 @@ var _ = t.Describe("Runtime", func() {
 			inOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// storageReference.newImage:
-				mockResolveImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockResolveImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -774,8 +757,7 @@ var _ = t.Describe("Runtime", func() {
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
-				"podName", "podID", "imagename",
-				"8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b",
+				"podName", "podID", "imagename", imageID,
 				"containerName", "containerID", "metadataName",
 				0, nil, []string{"mountLabel"}, false,
 			)
@@ -802,13 +784,13 @@ var _ = t.Describe("Runtime", func() {
 				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImageRef, expectedCopyOptions).Return(pulledRef, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockNewImage(storeMock, "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b", "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"),
+				mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
-					gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+					imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any(), gomock.Any()).
 					Return(&cs.Container{ID: "id"}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().AddNames(gomock.Any(), gomock.Any()).Return(nil),

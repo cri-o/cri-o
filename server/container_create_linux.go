@@ -258,7 +258,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imageRef.IDStringForOutOfProcessConsumptionOnly(), // This violates API rules, and will be fixed shortly.
+		image, imageRef,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
