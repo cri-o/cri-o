@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/opencontainers/go-digest"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 )
@@ -157,8 +158,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	}
 	var pulled *storage.RegistryImageReference // = nil
 	for _, remoteCandidateName := range remoteCandidates {
-		remoteCandidateName := remoteCandidateName                        // So that *&remoteCandidateName does not change as we iterate the loop.
-		img := remoteCandidateName.StringForOutOfProcessConsumptionOnly() // This violates storage API rules, it will be fixed shortly.
+		remoteCandidateName := remoteCandidateName // So that *&remoteCandidateName does not change as we iterate the loop.
 		var tmpImg imageTypes.ImageCloser
 		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, remoteCandidateName)
 		if err != nil {
@@ -173,7 +173,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				}
 			}
 			log.Debugf(ctx, "Error preparing image %s: %v", remoteCandidateName, err)
-			tryIncrementImagePullFailureMetric(img, err)
+			tryIncrementImagePullFailureMetric(remoteCandidateName, err)
 			continue
 		}
 		defer tmpImg.Close() // nolint:gocritic
@@ -191,11 +191,11 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				pulled = &remoteCandidateName
 
 				// Skipped digests metrics
-				tryRecordSkippedMetric(ctx, img, tmpImgConfigDigest.String())
+				tryRecordSkippedMetric(ctx, remoteCandidateName, tmpImgConfigDigest)
 
 				// Skipped bytes metrics
 				if storedImage.Size != nil {
-					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), img)
+					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), remoteCandidateName)
 					// Metrics for image pull skipped bytes
 					metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
 				}
@@ -212,7 +212,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 			for p := range progress {
 				if p.Event == imageTypes.ProgressEventSkipped {
 					// Skipped digests metrics
-					tryRecordSkippedMetric(ctx, img, p.Artifact.Digest.String())
+					tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
 				}
 				if p.Artifact.Size > 0 {
 					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
@@ -228,14 +228,14 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				// Metrics for every digest
 				metrics.Instance().MetricImagePullsByDigestAdd(
 					float64(p.OffsetUpdate),
-					img, p.Artifact.Digest.String(), p.Artifact.MediaType,
+					remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
 					fmt.Sprintf("%d", p.Artifact.Size),
 				)
 
 				// Metrics for the overall image
 				metrics.Instance().MetricImagePullsByNameAdd(
 					float64(p.OffsetUpdate),
-					img, fmt.Sprintf("%d", imageSize(tmpImg)),
+					remoteCandidateName, fmt.Sprintf("%d", imageSize(tmpImg)),
 				)
 
 				// Metrics for image pulls bytes
@@ -281,7 +281,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		})
 		if err != nil {
 			log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
-			tryIncrementImagePullFailureMetric(img, err)
+			tryIncrementImagePullFailureMetric(remoteCandidateName, err)
 			continue
 		}
 		pulled = &remoteCandidateName
@@ -293,7 +293,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	}
 
 	// Update metric for successful image pulls
-	metrics.Instance().MetricImagePullsSuccessesInc(pulled.StringForOutOfProcessConsumptionOnly()) // This violates API rules, and will be fixed shortly.
+	metrics.Instance().MetricImagePullsSuccessesInc(*pulled)
 
 	status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, *pulled)
 	if err != nil {
@@ -307,7 +307,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	return imageRef, nil
 }
 
-func tryIncrementImagePullFailureMetric(img string, err error) {
+func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err error) {
 	// We try to cover some basic use-cases
 	const labelUnknown = "UNKNOWN"
 	label := labelUnknown
@@ -333,8 +333,12 @@ func tryIncrementImagePullFailureMetric(img string, err error) {
 	metrics.Instance().MetricImagePullsFailuresInc(img, label)
 }
 
-func tryRecordSkippedMetric(ctx context.Context, name, digest string) {
-	layer := fmt.Sprintf("%s@%s", name, digest)
+func tryRecordSkippedMetric(ctx context.Context, name storage.RegistryImageReference, someBlobDigest digest.Digest) {
+	// NOTE: This "layer" identification looks like a digested image reference, but
+	// it isn’t one:
+	// - the digest references a layer or config, not a manifest
+	// - "name" may contain a digest already, so this results in name@manifestDigest@someOtherdigest
+	layer := fmt.Sprintf("%s@%s", name.StringForOutOfProcessConsumptionOnly(), someBlobDigest.String())
 	log.Debugf(ctx, "Skipped layer %s", layer)
 	metrics.Instance().MetricImageLayerReuseInc(layer)
 }
