@@ -64,8 +64,9 @@ var _ = t.Describe("Runtime", func() {
 	mockCreatePodSandboxImageExists := func() mockutils.MockSequence {
 		return mockutils.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
+			mockResolveReference(storeMock, storageTransportMock,
+				"docker.io/library/imagename:latest", "",
+				imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
@@ -762,11 +763,11 @@ var _ = t.Describe("Runtime", func() {
 			Expect(err).To(BeNil())
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
+				mockResolveReference(storeMock, storageTransportMock,
+					"docker.io/library/pauseimagename:latest", "", ""),
 				imageServerMock.EXPECT().PullImage(pauseImageRef, expectedCopyOptions).Return(pulledRef, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
+				mockResolveReference(storeMock, storageTransportMock,
+					"docker.io/library/pauseimagename:latest", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 
