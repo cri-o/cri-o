@@ -140,23 +140,52 @@ func (metadata *RuntimeContainerMetadata) SetMountLabel(mountLabel string) {
 	metadata.MountLabel = mountLabel
 }
 
-// template must contain all fields of RuntimeContainerMetadata, except as documented below:
-// - ImageName: Caller is responsible for setting it (but it may be "" if unknown, it seems)
-// - ImageID: must be provided and should refer to an image which existed at before calling this function (but that can change at any time).
-// - MetadataName: May be "", defaults to ContainerName in that case
-// - CreatedAt: Not set by the caller
-// - Pod: Not set by caller
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, containerID string, template *RuntimeContainerMetadata, idMappingsOptions *storage.IDMappingOptions, labelOptions []string) (ci ContainerInfo, retErr error) {
-	// Build metadata to store with the container.
-	metadata := *template // A shallow copy
-	if metadata.PodName == "" || metadata.PodID == "" {
+// runtimeContainerMetadataTemplate is an in-memory subset of RuntimeContainerMetadata.
+type runtimeContainerMetadataTemplate struct {
+	// The pod's name and ID, kept for use by upper layers in determining
+	// which containers belong to which pods.
+	podName string // Applicable to both PodSandboxes and Containers, mandatory
+	podID   string // Applicable to both PodSandboxes and Containers, mandatory
+	// The provided name and the ID of the image that was used to
+	// instantiate the container.
+	imageName string // Applicable to both PodSandboxes and Containers
+	imageID   string // Applicable to both PodSandboxes and Containers. Should refer to an image which existed just now (but that can change at any time).
+	// The container's name, which for an infrastructure container is usually PodName + "-infra".
+	containerName string // Applicable to both PodSandboxes and Containers, mandatory
+	// The name as originally specified in PodSandbox or Container CRI metadata.
+	metadataName string // Applicable to both PodSandboxes and Containers. May be "", defaults to ContainerName in that case
+	uid          string // Only applicable to pods
+	namespace    string // Only applicable to pods
+	attempt      uint32 // Applicable to both PodSandboxes and Containers
+	privileged   bool   // Applicable to both PodSandboxes and Containers
+}
+
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, containerID string, template *runtimeContainerMetadataTemplate, idMappingsOptions *storage.IDMappingOptions, labelOptions []string) (ci ContainerInfo, retErr error) {
+	if template.podName == "" || template.podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
 	}
-	if metadata.ImageID == "" {
+	if template.imageID == "" {
 		return ContainerInfo{}, ErrInvalidImageName
 	}
-	if metadata.ContainerName == "" {
+	if template.containerName == "" {
 		return ContainerInfo{}, ErrInvalidContainerName
+	}
+
+	// Build metadata to store with the container.
+	metadata := RuntimeContainerMetadata{
+		PodName:       template.podName,
+		PodID:         template.podID,
+		ImageName:     template.imageName,
+		ImageID:       template.imageID,
+		ContainerName: template.containerName,
+		MetadataName:  template.metadataName,
+		UID:           template.uid,
+		Namespace:     template.namespace,
+		MountLabel:    "",
+		// CreatedAt is set later
+		Attempt: template.attempt,
+		// Pod is set later
+		Privileged: template.privileged,
 	}
 	if metadata.MetadataName == "" {
 		metadata.MetadataName = metadata.ContainerName
@@ -314,18 +343,17 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	// Resolve the image ID.
 	imageID := img.ID
 
-	return r.createContainerOrPodSandbox(systemContext, podID, &RuntimeContainerMetadata{
-		PodName:       podName,
-		PodID:         podID,
-		ImageName:     pauseImage.StringForOutOfProcessConsumptionOnly(),
-		ImageID:       imageID,
-		ContainerName: containerName,
-		MetadataName:  metadataName,
-		UID:           uid,
-		Namespace:     namespace,
-		MountLabel:    "",
-		Attempt:       attempt,
-		Privileged:    privileged,
+	return r.createContainerOrPodSandbox(systemContext, podID, &runtimeContainerMetadataTemplate{
+		podName:       podName,
+		podID:         podID,
+		imageName:     pauseImage.StringForOutOfProcessConsumptionOnly(),
+		imageID:       imageID,
+		containerName: containerName,
+		metadataName:  metadataName,
+		uid:           uid,
+		namespace:     namespace,
+		attempt:       attempt,
+		privileged:    privileged,
 	}, idMappingsOptions, labelOptions)
 }
 
@@ -354,18 +382,17 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 		imageName = img.Names[0]
 	}
 
-	return r.createContainerOrPodSandbox(systemContext, containerID, &RuntimeContainerMetadata{
-		PodName:       podName,
-		PodID:         podID,
-		ImageName:     imageName,
-		ImageID:       imageID,
-		ContainerName: containerName,
-		MetadataName:  metadataName,
-		UID:           "",
-		Namespace:     "",
-		MountLabel:    "",
-		Attempt:       attempt,
-		Privileged:    privileged,
+	return r.createContainerOrPodSandbox(systemContext, containerID, &runtimeContainerMetadataTemplate{
+		podName:       podName,
+		podID:         podID,
+		imageName:     imageName,
+		imageID:       imageID,
+		containerName: containerName,
+		metadataName:  metadataName,
+		uid:           "",
+		namespace:     "",
+		attempt:       attempt,
+		privileged:    privileged,
 	}, idMappingsOptions, labelOptions)
 }
 
