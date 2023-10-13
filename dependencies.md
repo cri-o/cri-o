@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
+_Generated on Fri, 13 Oct 2023 13:41:31 UTC for commit [dee5ee3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bca7024e9d57d12c0552c6d35c14e10f4a0a9a37
+[0]: https://github.com/cri-o/cri-o/commit/dee5ee3daf193ccb024c2b049e05a3aa2a55c060
 
 ## Outdated Dependencies
 
@@ -27,7 +27,6 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | go.opentelemetry.io/otel/sdk                                                | v1.17.0                              | v1.19.0             | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.17.0                              | v1.19.0             | true   | true             |
 | golang.org/x/sync                                                           | v0.3.0                               | v0.4.0              | true   | true             |
-| google.golang.org/grpc                                                      | v1.58.0                              | v1.58.3             | true   | true             |
 | k8s.io/api                                                                  | v0.28.1                              | v0.28.2             | true   | true             |
 | k8s.io/apimachinery                                                         | v0.28.1                              | v0.28.2             | true   | true             |
 | k8s.io/client-go                                                            | v0.28.1                              | v0.28.2             | true   | true             |
@@ -261,7 +260,7 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                    | false  | true             |
 | github.com/bgentry/speakeasy                                                            | v0.1.0                                            |                                    | false  | true             |
 | github.com/bitly/go-simplejson                                                          | v0.5.0                                            | v0.5.1                             | false  | true             |
-| github.com/bits-and-blooms/bitset                                                       | v1.2.0                                            | v1.9.0                             | false  | true             |
+| github.com/bits-and-blooms/bitset                                                       | v1.2.0                                            | v1.10.0                            | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                               |                                    | true   | true             |
 | github.com/blang/semver/v4                                                              | v4.0.0                                            |                                    | true   | true             |
 | github.com/blendle/zapdriver                                                            | v1.3.1                                            |                                    | false  | true             |
@@ -680,11 +679,11 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | github.com/sigstore/fulcio                                                              | v1.3.1                                            | v1.4.3                             | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.1.0                                            | v0.2.1                             | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.2.2                                            | v1.3.2                             | false  | true             |
-| github.com/sigstore/sigstore                                                            | v1.7.1                                            | v1.7.3                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.1                                            | v1.7.3                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.1                                            | v1.7.3                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.1                                            | v1.7.3                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.1                                            | v1.7.3                             | false  | true             |
+| github.com/sigstore/sigstore                                                            | v1.7.1                                            | v1.7.4                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.1                                            | v1.7.4                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.1                                            | v1.7.4                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.1                                            | v1.7.4                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.1                                            | v1.7.4                             | false  | true             |
 | github.com/sigstore/timestamp-authority                                                 | v1.1.1                                            | v1.2.0                             | false  | true             |
 | github.com/sirupsen/logrus                                                              | v1.9.3                                            |                                    | true   | true             |
 | github.com/skeema/knownhosts                                                            | v1.1.1                                            | v1.2.1                             | false  | true             |
@@ -734,7 +733,7 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | github.com/vmihailenco/msgpack/v5                                                       | v5.3.5                                            | v5.4.0                             | false  | true             |
 | github.com/vmihailenco/tagparser/v2                                                     | v2.0.0                                            |                                    | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
-| github.com/willf/bitset                                                                 | v1.1.11                                           | v1.9.0                             | false  | true             |
+| github.com/willf/bitset                                                                 | v1.1.11                                           | v1.10.0                            | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                    | false  | true             |
 | github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.93.1                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                    | false  | true             |
@@ -753,7 +752,7 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            |                                    | false  | true             |
 | github.com/ysmood/goob                                                                  | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.36.1                            | false  | true             |
+| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.36.2                            | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                            |                                    | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                            |                                    | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.5.6                             | false  | true             |
@@ -817,7 +816,7 @@ _Generated on Fri, 13 Oct 2023 07:41:35 UTC for commit [bca7024][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
-| google.golang.org/grpc                                                                  | v1.58.0                                           | v1.58.3                            | true   | true             |
+| google.golang.org/grpc                                                                  | v1.58.3                                           |                                    | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                    | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                    | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                    | false  | true             |
