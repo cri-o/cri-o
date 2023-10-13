@@ -95,11 +95,15 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 			}
 		}
 	}
+	imageRef := ""
+	if id := ctr.ImageID(); id != nil {
+		imageRef = id.IDStringForOutOfProcessConsumptionOnly()
+	}
 	return types.ContainerInfo{
 		Name:            ctr.Name(),
 		Pid:             pidToReturn,
 		Image:           ctr.ImageName(),
-		ImageRef:        ctr.ImageRef(),
+		ImageRef:        imageRef,
 		CreatedTime:     ctrState.Created.UnixNano(),
 		Labels:          ctr.Labels(),
 		Annotations:     ctr.Annotations(),

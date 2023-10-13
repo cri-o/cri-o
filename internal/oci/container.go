@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -57,6 +58,7 @@ type Container struct {
 	dir                string
 	stopSignal         string
 	imageName          string
+	imageID            *storage.StorageImageID // nil for infra containers.
 	mountPoint         string
 	seccompProfilePath string
 	conmonCgroupfsPath string
@@ -120,9 +122,14 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+// imageID is nil for infra containers.
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName string, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
+	externalImageRef := ""
+	if imageID != nil {
+		externalImageRef = imageID.IDStringForOutOfProcessConsumptionOnly()
+	}
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -134,7 +141,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			Image: &types.ImageSpec{
 				Image: image,
 			},
-			ImageRef: imageRef,
+			ImageRef: externalImageRef,
 		},
 		name:            name,
 		bundlePath:      bundlePath,
@@ -145,6 +152,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		runtimeHandler:  runtimeHandler,
 		crioAnnotations: crioAnnotations,
 		imageName:       imageName,
+		imageID:         imageID,
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
@@ -171,6 +179,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			Image: &types.ImageSpec{},
 		},
 		name:    name,
+		imageID: nil,
 		spoofed: true,
 		state:   state,
 		dir:     dir,
@@ -385,9 +394,9 @@ func (c *Container) ImageName() string {
 	return c.imageName
 }
 
-// ImageRef returns the image ref of the container.
-func (c *Container) ImageRef() string {
-	return c.criContainer.ImageRef
+// ImageID returns the image ID of the container, or nil for infra containers.
+func (c *Container) ImageID() *storage.StorageImageID {
+	return c.imageID
 }
 
 // Sandbox returns the sandbox name of the container.

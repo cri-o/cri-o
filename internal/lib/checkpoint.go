@@ -178,11 +178,15 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
 
+	rootFSImageRef := ""
+	if id := ctr.ImageID(); id != nil {
+		rootFSImageRef = id.IDStringForOutOfProcessConsumptionOnly()
+	}
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
 		RootfsImage:     ctr.Image(),
-		RootfsImageRef:  ctr.ImageRef(),
+		RootfsImageRef:  rootFSImageRef,
 		RootfsImageName: ctr.ImageName(),
 		CreatedTime:     ctr.CreatedAt(),
 		OCIRuntime: func() string {

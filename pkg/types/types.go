@@ -9,7 +9,7 @@ type ContainerInfo struct {
 	Name            string            `json:"name"`
 	Pid             int               `json:"pid"`
 	Image           string            `json:"image"`
-	ImageRef        string            `json:"image_ref"`
+	ImageRef        string            `json:"image_ref"` // In the format of StorageImageID.StringForOutOfProcessConsumptionOnly(), or "".
 	CreatedTime     int64             `json:"created_time"`
 	Labels          map[string]string `json:"labels"`
 	Annotations     map[string]string `json:"annotations"`

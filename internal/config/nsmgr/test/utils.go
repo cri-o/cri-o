@@ -6,6 +6,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -50,10 +51,14 @@ var AllSpoofedNamespaces = []nsmgr.Namespace{
 }
 
 func ContainerWithPid(pid int) (*oci.Container, error) {
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	if err != nil {
+		return nil, err
+	}
 	testContainer, err := oci.NewContainer("testid", "testname", "",
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		"imageName", "imageRef", &types.ContainerMetadata{},
+		"imageName", &imageID, &types.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	if err != nil {

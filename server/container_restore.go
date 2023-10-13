@@ -13,6 +13,7 @@ import (
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -237,31 +238,35 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
 
+	// Newer checkpoints archives have RootfsImageRef set
+	// and using it for the restore is more correct.
+	// For the Kubernetes use case the output of 'crictl ps'
+	// contains for the original container under 'IMAGE' something
+	// like 'registry/path/container@sha256:123444444...'.
+	// The restored container was, however, only displaying something
+	// like 'registry/path/container'.
+	// This had two problems, first, the output from the restored
+	// container was different, but the bigger problem was, that
+	// CRI-O might pull the wrong image from the registry.
+	// If the container in the registry was updated (new latest tag)
+	// all of a sudden the wrong base image would be downloaded.
+	rootFSImage := config.RootfsImageName
+	if config.RootfsImageRef != "" {
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(config.RootfsImageRef)
+		if err != nil {
+			return "", fmt.Errorf("invalid RootfsImageRef %q: %w", config.RootfsImageRef, err)
+		}
+		// This is not quite out-of-process consumption, but types.ContainerConfig is at least
+		// a cross-process API, and this value is correct in that API.
+		rootFSImage = id.IDStringForOutOfProcessConsumptionOnly()
+	}
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
 			Name:    ctrMetadata.Name,
 			Attempt: ctrMetadata.Attempt,
 		},
 		Image: &types.ImageSpec{
-			Image: func() string {
-				if config.RootfsImageRef != "" {
-					// Newer checkpoints archives have RootfsImageRef set
-					// and using it for the restore is more correct.
-					// For the Kubernetes use case the output of 'crictl ps'
-					// contains for the original container under 'IMAGE' something
-					// like 'registry/path/container@sha256:123444444...'.
-					// The restored container was, however, only displaying something
-					// like 'registry/path/container'.
-					// This had two problems, first, the output from the restored
-					// container was different, but the bigger problem was, that
-					// CRI-O might pull the wrong image from the registry.
-					// If the container in the registry was updated (new latest tag)
-					// all of a sudden the wrong base image would be downloaded.
-					return config.RootfsImageRef
-				}
-				// For an older checkpoint archive, let's fallback to the old behavior.
-				return config.RootfsImageName
-			}(),
+			Image: rootFSImage,
 		},
 		Linux: &types.LinuxContainerConfig{
 			Resources:       &types.LinuxContainerResources{},

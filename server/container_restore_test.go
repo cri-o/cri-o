@@ -9,6 +9,7 @@ import (
 	"github.com/containers/podman/v4/pkg/criu"
 	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
@@ -436,13 +437,16 @@ var _ = t.Describe("ContainerRestore", func() {
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
-		images := []string{
-			`{"rootfsImageName": "image"}`,
-			`{"rootfsImageRef": "image"}`,
+		images := []struct {
+			config string
+			byID   bool
+		}{
+			{`{"rootfsImageName": "image"}`, false},
+			{`{"rootfsImageRef": "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"}`, true},
 		}
 		for _, image := range images {
 			loopImage := image
-			It(fmt.Sprintf("should succeed (%s)", image), func() {
+			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
 				// Given
 				addContainerAndSandbox()
 				testContainer.SetStateAndSpoofPid(&oci.ContainerState{
@@ -467,7 +471,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				)
 				Expect(err).To(BeNil())
 				defer os.RemoveAll("spec.dump")
-				err = os.WriteFile("config.dump", []byte(loopImage), 0o644)
+				err = os.WriteFile("config.dump", []byte(loopImage.config), 0o644)
 				Expect(err).To(BeNil())
 				defer os.RemoveAll("config.dump")
 				outFile, err := os.Create("archive.tar")
@@ -503,26 +507,46 @@ var _ = t.Describe("ContainerRestore", func() {
 				}
 
 				size := uint64(100)
-				checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
-				Expect(err).To(BeNil())
 				imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 				Expect(err).To(BeNil())
-				gomock.InOrder(
-					imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
-						Return(nil),
-					imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
-						gomock.Any(), "image").
-						Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+				var imageLookup mockutils.MockSequence
+				if loopImage.byID {
+					imageLookup = mockutils.InOrder(
+						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(imageID.IDStringForOutOfProcessConsumptionOnly()).
+							Return(&imageID),
 
-					imageServerMock.EXPECT().ImageStatusByName(
-						gomock.Any(), checkpointImageName).
-						Return(&storage.ImageResult{
-							ID:   imageID,
-							User: "10", Size: &size,
-							Annotations: map[string]string{
-								crioann.CheckpointAnnotationName: "foo",
-							},
-						}, nil),
+						imageServerMock.EXPECT().ImageStatusByID(
+							gomock.Any(), imageID).
+							Return(&storage.ImageResult{
+								ID:   imageID,
+								User: "10", Size: &size,
+								Annotations: map[string]string{
+									crioann.CheckpointAnnotationName: "foo",
+								},
+							}, nil),
+					)
+				} else {
+					checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+					Expect(err).To(BeNil())
+					imageLookup = mockutils.InOrder(
+						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+							Return(nil),
+						imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+							gomock.Any(), "image").
+							Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+						imageServerMock.EXPECT().ImageStatusByName(
+							gomock.Any(), checkpointImageName).
+							Return(&storage.ImageResult{
+								ID:   imageID,
+								User: "10", Size: &size,
+								Annotations: map[string]string{
+									crioann.CheckpointAnnotationName: "foo",
+								},
+							}, nil),
+					)
+				}
+				mockutils.InOrder(
+					imageLookup,
 
 					runtimeServerMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), imageID, gomock.Any(),

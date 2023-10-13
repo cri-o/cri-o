@@ -211,7 +211,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	// Get imageName and imageRef that are later requested in container status
+	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(image); id != nil {
 		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
@@ -236,7 +236,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	imageName := imgResult.Name
-	imageRef := imgResult.ID
+	imageID := imgResult.ID
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
@@ -258,7 +258,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imageRef,
+		image, imageID,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
@@ -777,8 +777,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	// The imageRef.IDStringForOutOfProcessConsumptionOnly() use violates API rules, and will be fixed shortly.
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, imageRef.IDStringForOutOfProcessConsumptionOnly(), criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, &imageID, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

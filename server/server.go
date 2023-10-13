@@ -651,7 +651,10 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 		// Best-effort append to imageMapToDelete
 		if ctrs, err := s.ContainerServer.ListContainers(); err == nil {
 			for _, ctr := range ctrs {
-				imageMapToDelete[ctr.ImageRef()] = struct{}{}
+				if id := ctr.ImageID(); id != nil {
+					// This violates API rules, and will be fixed shortly.
+					imageMapToDelete[id.IDStringForOutOfProcessConsumptionOnly()] = struct{}{}
+				}
 			}
 		}
 		for _, sb := range s.ContainerServer.ListSandboxes() {
