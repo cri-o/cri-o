@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 16 Oct 2023 14:12:04 UTC for commit [555205f][0]._
+_Generated on Mon, 16 Oct 2023 19:10:49 UTC for commit [a36a8d1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/555205f097e1afb6711daa98f944f187e66fbd43
+[0]: https://github.com/cri-o/cri-o/commit/a36a8d15dac0defc874dfe76d3d359fb0b3699a6
 
 ## Outdated Dependencies
 
@@ -229,10 +229,10 @@ _Generated on Mon, 16 Oct 2023 14:12:04 UTC for commit [555205f][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.25                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.26                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.18.45                           | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.13.26                                          | v1.13.43                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.13.4                                           | v1.13.13                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.1.34                                           | v1.1.43                            | false  | true             |
@@ -649,7 +649,7 @@ _Generated on Mon, 16 Oct 2023 14:12:04 UTC for commit [555205f][0]._
 | github.com/prometheus/common                                                            | v0.44.0                                           |                                    | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.10.1                                           | v0.12.0                            | false  | true             |
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                            | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20220428173112-74888fd59c2b                | v0.0.0-20230830074515-d9d085e6be90 | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20220428173112-74888fd59c2b                | v0.0.0-20231016165630-1072508f7daa | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475                |                                    | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.0.5                                            | v9.2.1                             | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.4                                            |                                    | false  | true             |
@@ -810,9 +810,9 @@ _Generated on Mon, 16 Oct 2023 14:12:04 UTC for commit [555205f][0]._
 | google.golang.org/api                                                                   | v0.128.0                                          | v0.147.0                           | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.7                                            | v1.6.8                             | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.110.8                           | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231012201019-e917dd12ba7a | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
 | google.golang.org/grpc                                                                  | v1.58.3                                           |                                    | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                    | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                    | true   | true             |
@@ -852,7 +852,7 @@ _Generated on Mon, 16 Oct 2023 14:12:04 UTC for commit [555205f][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016131056-058f699b3d10 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016161344-d0c133d4e633 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
