@@ -77,16 +77,6 @@ var _ = t.Describe("Image", func() {
 		Expect(os.Remove(ctx.SystemRegistriesConfPath)).To(BeNil())
 	})
 
-	mockGetRef := func() mockSequence {
-		return inOrder(
-			// parseStoreReference ("@"+testImageName) will fail, recognizing it as an invalid image ID
-			storeMock.EXPECT().Image(testImageName).
-				Return(&cs.Image{ID: testSHA256}, nil),
-
-			mockParseStoreReference(storeMock, testImageName),
-		)
-	}
-
 	t.Describe("GetImageService", func() {
 		It("should succeed to retrieve an image service", func() {
 			// Given
@@ -365,10 +355,21 @@ var _ = t.Describe("Image", func() {
 	})
 
 	t.Describe("ImageStatus", func() {
+		It("should fail to get on wrong reference", func() {
+			// Given
+			// When
+			res, err := sut.ImageStatus(&types.SystemContext{}, "")
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(res).To(BeNil())
+		})
+	})
+
+	t.Describe("ImageStatusByName", func() {
 		It("should succeed to get the image status with digest", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				// storage.Transport.GetStoreImage:
 				storeMock.EXPECT().Image(testNormalizedImageName).
 					Return(&cs.Image{
@@ -398,34 +399,27 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
 
-		It("should fail to get on wrong reference", func() {
-			// Given
-			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
 		It("should fail to get on missing store image", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -435,16 +429,17 @@ var _ = t.Describe("Image", func() {
 		It("should fail to get on corrupt image", func() {
 			// Given
 			inOrder(
-				mockGetRef(),
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
 				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -604,7 +599,9 @@ var _ = t.Describe("Image", func() {
 		It("should fail on copy image", func() {
 			// Given
 			const imageName = "docker://localhost/busybox:latest"
-			mockParseStoreReference(storeMock, "localhost/busybox:latest")
+			inOrder(
+				mockParseStoreReference(storeMock, "localhost/busybox:latest"),
+			)
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
@@ -619,7 +616,9 @@ var _ = t.Describe("Image", func() {
 		It("should fail on canonical copy image", func() {
 			// Given
 			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256)
+			inOrder(
+				mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256),
+			)
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{

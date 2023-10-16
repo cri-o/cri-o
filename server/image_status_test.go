@@ -5,6 +5,7 @@ import (
 
 	cstorage "github.com/containers/storage"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,6 +15,9 @@ import (
 
 // The actual test suite
 var _ = t.Describe("ImageStatus", func() {
+	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+	Expect(err).To(BeNil())
+
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -26,11 +30,13 @@ var _ = t.Describe("ImageStatus", func() {
 			// Given
 			size := uint64(100)
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
 						ID:   "image",
 						User: "10", Size: &size,
@@ -50,13 +56,13 @@ var _ = t.Describe("ImageStatus", func() {
 			// Given
 			size := uint64(100)
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any(),
-				).Return(
-					[]string{"image"}, nil,
-				),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any(),
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate,
 				).Return(
 					&storage.ImageResult{
 						ID:   "image",
@@ -92,11 +98,13 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should succeed with a full image ID", func() {
 			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			// Given
+			parsedTestSHA256, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
+			Expect(err).To(BeNil())
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(gomock.Any(), testSHA256).
-					Return([]string{testSHA256}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), testSHA256).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(testSHA256).
+					Return(&parsedTestSHA256),
+				imageServerMock.EXPECT().ImageStatusByID(
+					gomock.Any(), parsedTestSHA256).
 					Return(&storage.ImageResult{ID: testSHA256, User: "me"}, nil),
 			)
 
@@ -112,11 +120,13 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should succeed with unknown image", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(nil, cstorage.ErrImageUnknown),
 			)
 
@@ -132,11 +142,13 @@ var _ = t.Describe("ImageStatus", func() {
 		It("should fail with wrong image status retrieval", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(nil, t.TestError),
 			)
 
@@ -149,11 +161,13 @@ var _ = t.Describe("ImageStatus", func() {
 			Expect(response).To(BeNil())
 		})
 
-		It("should fail if resolve names failed", func() {
+		It("should fail if short name resolution failed", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
 					Return(nil, t.TestError),
 			)
 

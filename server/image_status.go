@@ -72,19 +72,32 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 // storageImageStatus calls ImageStatus for a k8s ImageSpec.
 // Returns (nil, nil) if image was not found.
 func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (*pkgstorage.ImageResult, error) {
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, spec.Image)
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
+		status, err := s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
+			if errors.Is(err, storage.ErrImageUnknown) {
+				log.Infof(ctx, "Image %s not found", spec.Image)
+				return nil, nil
+			}
+			log.Warnf(ctx, "Error getting status from %s: %v", spec.Image, err)
+			return nil, err
+		}
+		return status, nil
+	}
+
+	potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.Image)
 	if err != nil {
 		return nil, err
 	}
 	var lastErr error
-	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
+	for _, name := range potentialMatches {
+		status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if err != nil {
 			if errors.Is(err, storage.ErrImageUnknown) {
-				log.Debugf(ctx, "Can't find %s", image)
+				log.Debugf(ctx, "Can't find %s", name)
 				continue
 			}
-			log.Warnf(ctx, "Error getting status from %s: %v", image, err)
+			log.Warnf(ctx, "Error getting status from %s: %v", name, err)
 			lastErr = err
 			continue
 		}
@@ -93,7 +106,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	if lastErr != nil {
 		return nil, lastErr
 	}
-	// ResolveNames returns at least one value if it doesn't fail.
+	// CandidatesForPotentiallyShortImageName returns at least one value if it doesn't fail.
 	// So, if we got here, there was at least one ErrImageUnknown, and no other errors.
 	log.Infof(ctx, "Image %s not found", spec.Image)
 	return nil, nil
