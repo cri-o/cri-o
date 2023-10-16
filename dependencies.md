@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
+_Generated on Mon, 16 Oct 2023 09:22:54 UTC for commit [4c417f5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/78bbef3b80a7a5b80c37c7e063a16a1fe1339c4f
+[0]: https://github.com/cri-o/cri-o/commit/4c417f5ccd3979a921ee536bc2682487032a9aa5
 
 ## Outdated Dependencies
 
@@ -37,7 +37,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 |-----------------------------------------------------------------------------------------|---------------------------------------------------|------------------------------------|--------|------------------|
 | bazil.org/fuse                                                                          | v0.0.0-20160811212531-371fbbdaa898                | v0.0.0-20230120002735-62a210ff1fd5 | false  | true             |
 | capnproto.org/go/capnp/v3                                                               | v3.0.0-alpha.25                                   | v3.0.0-alpha-29                    | false  | true             |
-| chainguard.dev/go-grpc-kit                                                              | v0.16.0                                           | v0.17.1                            | false  | true             |
+| chainguard.dev/go-grpc-kit                                                              | v0.16.0                                           | v0.17.2                            | false  | true             |
 | cloud.google.com/go                                                                     | v0.110.4                                          | v0.110.8                           | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.1                                            | v1.7.2                             | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                                | v1.8.1                                            | v1.8.2                             | false  | true             |
@@ -222,7 +222,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.4                                            | v1.4.5                             | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.2                                            | v1.1.3                             | false  | true             |
 | github.com/aliyun/credentials-go                                                        | v1.2.3                                            | v1.3.1                             | false  | true             |
-| github.com/andybalholm/brotli                                                           | v1.0.1                                            | v1.0.5                             | false  | true             |
+| github.com/andybalholm/brotli                                                           | v1.0.1                                            | v1.0.6                             | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be                |                                    | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                            |                                    | false  | true             |
 | github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20230926155939-487cb28bd359 | false  | true             |
@@ -291,7 +291,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                    | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.3                                            |                                    | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe                |                                    | false  | true             |
-| github.com/cncf/xds/go                                                                  | v0.0.0-20230607035331-e9ce68804cb4                | v0.0.0-20231011190438-776c4db845ed | false  | true             |
+| github.com/cncf/xds/go                                                                  | v0.0.0-20230607035331-e9ce68804cb4                | v0.0.0-20231016030527-8bd2eac9fb4a | false  | true             |
 | github.com/cockroachdb/apd/v2                                                           | v2.0.2                                            |                                    | false  | true             |
 | github.com/cockroachdb/datadriven                                                       | v0.0.0-20190809214429-80d97fb3cbaa                | v1.0.2                             | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be                |                                    | false  | true             |
@@ -544,7 +544,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                             | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                    | false  | true             |
-| github.com/klauspost/compress                                                           | v1.16.7                                           | v1.17.0                            | false  | true             |
+| github.com/klauspost/compress                                                           | v1.16.7                                           | v1.17.1                            | false  | true             |
 | github.com/klauspost/cpuid/v2                                                           | v2.0.4                                            | v2.2.5                             | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6                                            |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.3                                            |                                    | false  | true             |
@@ -749,7 +749,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            |                                    | false  | true             |
 | github.com/ysmood/goob                                                                  | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.36.2                            | false  | true             |
+| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.36.3                            | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                            |                                    | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                            |                                    | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.5.6                             | false  | true             |
@@ -852,7 +852,7 @@ _Generated on Fri, 13 Oct 2023 23:50:50 UTC for commit [78bbef3][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231012104454-9051a454f03f | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016085036-3262b2bd73ed | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
