@@ -124,9 +124,11 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
+// userRequestedImage is the users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!)
+// at any future time.
 // imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 // imageID is nil for infra containers.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	externalImageRef := ""
@@ -142,7 +144,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			Metadata:     md,
 			Annotations:  annotations,
 			Image: &types.ImageSpec{
-				Image: image,
+				Image: userRequestedImage,
 			},
 			ImageRef: externalImageRef,
 		},
@@ -387,8 +389,9 @@ func (c *Container) CrioAnnotations() map[string]string {
 	return c.crioAnnotations
 }
 
-// Image returns the image of the container.
-func (c *Container) Image() string {
+// UserRequestedImage returns the users' input originally used to find imageID; it might evaluate to a different image
+// (or to a different kind of reference!) at any future time.
+func (c *Container) UserRequestedImage() string {
 	return c.criContainer.Image.Image
 }
 

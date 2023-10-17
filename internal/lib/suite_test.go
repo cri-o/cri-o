@@ -65,7 +65,7 @@ var _ = BeforeSuite(func() {
 			"io.kubernetes.cri-o.IP": "{}",
 			"io.kubernetes.cri-o.NamespaceOptions": "{}",
 			"io.kubernetes.cri-o.SeccompProfilePath": "{}",
-			"io.kubernetes.cri-o.Image": "{}",
+			"io.kubernetes.cri-o.Image": "quay.io/image",
 			"io.kubernetes.cri-o.ImageName": "example.com/some-other/deduplicated-name:notlatest",
 			"io.kubernetes.cri-o.ImageRef": "1111111111111111111111111111111111111111111111111111111111111111",
 			"io.kubernetes.cri-o.KubeName": "{}",

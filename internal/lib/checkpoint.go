@@ -189,7 +189,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
-		RootfsImage:     ctr.Image(),
+		RootfsImage:     ctr.UserRequestedImage(),
 		RootfsImageRef:  rootFSImageRef,
 		RootfsImageName: rootFSImageName,
 		CreatedTime:     ctr.CreatedAt(),

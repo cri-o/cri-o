@@ -446,9 +446,9 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	img, ok := m.Annotations[annotations.Image]
+	userRequestedImage, ok := m.Annotations[annotations.Image]
 	if !ok {
-		img = ""
+		userRequestedImage = ""
 	}
 
 	var imgName *references.RegistryImageReference
@@ -484,7 +484,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, img, imgName, imageID, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, imgName, imageID, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}

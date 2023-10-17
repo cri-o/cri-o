@@ -73,8 +73,8 @@ type Container interface {
 	// DisableFips returns whether the container should disable fips mode
 	DisableFips() bool
 
-	// Image returns the image specified in the container spec, or an error
-	Image() (string, error)
+	// UserRequestedImage returns the image specified in the container spec, or an error
+	UserRequestedImage() (string, error)
 
 	// ReadOnly returns whether the rootfs should be readonly
 	// it takes a bool as to whether crio was configured to
@@ -172,7 +172,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	created := time.Now()
 	labels := c.Config().Labels
 
-	image, err := c.Image()
+	userRequestedImage, err := c.UserRequestedImage()
 	if err != nil {
 		return err
 	}
@@ -211,7 +211,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 		}
 	}
 
-	c.spec.AddAnnotation(annotations.Image, image)
+	c.spec.AddAnnotation(annotations.Image, userRequestedImage)
 	imageName := ""
 	if imageResult.SomeNameOfThisImage != nil {
 		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
@@ -464,8 +464,8 @@ func (c *container) DisableFips() bool {
 	return false
 }
 
-// Image returns the image specified in the container spec, or an error
-func (c *container) Image() (string, error) {
+// UserRequestedImage returns the image specified in the container spec, or an error
+func (c *container) UserRequestedImage() (string, error) {
 	imageSpec := c.config.Image
 	if imageSpec == nil {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")

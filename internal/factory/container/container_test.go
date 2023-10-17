@@ -104,7 +104,7 @@ var _ = t.Describe("Container", func() {
 				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
 			Expect(err).To(BeNil())
 
-			image, err := sut.Image()
+			image, err := sut.UserRequestedImage()
 			Expect(err).To(BeNil())
 
 			logpath, err := sut.LogPath(sb.LogDir())
@@ -186,7 +186,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.DisableFips()).To(Equal(false))
 		})
 	})
-	t.Describe("Image", func() {
+	t.Describe("UserRequestedImage", func() {
 		It("should fail when spec not set", func() {
 			// Given
 
@@ -194,7 +194,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -206,7 +206,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -221,7 +221,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).To(BeNil())
 			Expect(img).To(Equal(testImage))
 		})
