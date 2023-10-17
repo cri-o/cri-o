@@ -8,7 +8,7 @@ import (
 type ContainerInfo struct {
 	Name            string            `json:"name"`
 	Pid             int               `json:"pid"`
-	Image           string            `json:"image"`
+	Image           string            `json:"image"`     // If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 	ImageRef        string            `json:"image_ref"` // In the format of StorageImageID.StringForOutOfProcessConsumptionOnly(), or "".
 	CreatedTime     int64             `json:"created_time"`
 	Labels          map[string]string `json:"labels"`

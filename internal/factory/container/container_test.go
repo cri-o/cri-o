@@ -14,6 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -88,8 +89,11 @@ var _ = t.Describe("Container", func() {
 			volumes := []oci.ContainerVolume{}
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 			Expect(err).To(BeNil())
+			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
+			Expect(err).To(BeNil())
 			imageResult := storage.ImageResult{
-				ID: imageID,
+				ID:                  imageID,
+				SomeNameOfThisImage: &imageName,
 			}
 			mountPoint := "test"
 			configStopSignal := "test"
@@ -125,7 +129,7 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(BeNil())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
-			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.Name))
+			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerID]).To(Equal(sut.ID()))

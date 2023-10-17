@@ -235,7 +235,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	imageName := imgResult.Name
+	imageName := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())

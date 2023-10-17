@@ -43,19 +43,21 @@ const (
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID           StorageImageID
-	Name         string
-	RepoTags     []string
-	RepoDigests  []string
-	Size         *uint64
-	Digest       digest.Digest
-	ConfigDigest digest.Digest
-	User         string
-	PreviousName string
-	Labels       map[string]string
-	OCIConfig    *specs.Image
-	Annotations  map[string]string
-	Pinned       bool // pinned image to prevent it from garbage collection
+	ID StorageImageID
+	// May be nil if the image was referenced by ID and has no names.
+	// It also has NO RELATIONSHIP to user input when returned by ImageStatusByName.
+	SomeNameOfThisImage *RegistryImageReference
+	RepoTags            []string
+	RepoDigests         []string
+	Size                *uint64
+	Digest              digest.Digest
+	ConfigDigest        digest.Digest
+	User                string
+	PreviousName        string
+	Labels              map[string]string
+	OCIConfig           *specs.Image
+	Annotations         map[string]string
+	Pinned              bool // pinned image to prevent it from garbage collection
 }
 
 type indexInfo struct {
@@ -275,10 +277,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	}
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
 
-	someNameString := ""
-	if someName != nil {
-		someNameString = someName.Raw().String()
-	}
 	repoTagStrings := make([]string, 0, len(tags))
 	for _, t := range tags {
 		repoTagStrings = append(repoTagStrings, t.String())
@@ -307,19 +305,19 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		}
 	}
 	return ImageResult{
-		ID:           storageImageIDFromImage(image),
-		Name:         someNameString,
-		RepoTags:     repoTagStrings,
-		RepoDigests:  repoDigestStrings,
-		Size:         cacheItem.size,
-		Digest:       imageDigest,
-		ConfigDigest: cacheItem.configDigest,
-		User:         cacheItem.config.Config.User,
-		PreviousName: previousName,
-		Labels:       cacheItem.info.Labels,
-		OCIConfig:    cacheItem.config,
-		Annotations:  cacheItem.annotations,
-		Pinned:       imagePinned,
+		ID:                  storageImageIDFromImage(image),
+		SomeNameOfThisImage: someName,
+		RepoTags:            repoTagStrings,
+		RepoDigests:         repoDigestStrings,
+		Size:                cacheItem.size,
+		Digest:              imageDigest,
+		ConfigDigest:        cacheItem.configDigest,
+		User:                cacheItem.config.Config.User,
+		PreviousName:        previousName,
+		Labels:              cacheItem.info.Labels,
+		OCIConfig:           cacheItem.config,
+		Annotations:         cacheItem.annotations,
+		Pinned:              imagePinned,
 	}, nil
 }
 

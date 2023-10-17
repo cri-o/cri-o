@@ -19,6 +19,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -55,9 +56,10 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir                string
-	stopSignal         string
-	imageName          string
+	dir        string
+	stopSignal string
+	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+	imageName          *references.RegistryImageReference
 	imageID            *storage.StorageImageID // nil for infra containers.
 	mountPoint         string
 	seccompProfilePath string
@@ -122,8 +124,9 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
+// imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 // imageID is nil for infra containers.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName string, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	externalImageRef := ""
@@ -389,8 +392,9 @@ func (c *Container) Image() string {
 	return c.criContainer.Image.Image
 }
 
-// ImageName returns the image name of the container.
-func (c *Container) ImageName() string {
+// ImageName returns _some_ name of the image imageID, if any;
+// it may have NO RELATIONSHIP to the users’ requested image name.
+func (c *Container) ImageName() *references.RegistryImageReference {
 	return c.imageName
 }
 

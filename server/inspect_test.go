@@ -8,6 +8,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -51,11 +52,15 @@ func TestGetContainerInfo(t *testing.T) {
 		"io.kubernetes.test1": "value1",
 	}
 	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+		if err != nil {
+			t.Fatal(err)
+		}
 		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", "imageName", &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -87,8 +92,8 @@ func TestGetContainerInfo(t *testing.T) {
 	if ci.Name != "testname" {
 		t.Fatalf("expected name testname, got %s", ci.Name)
 	}
-	if ci.Image != "imageName" {
-		t.Fatalf("expected image name imageName, got %s", ci.Image)
+	if ci.Image != "example.com/some-image:latest" {
+		t.Fatalf("expected image name example.com/some-image:latest, got %s", ci.Image)
 	}
 	if ci.ImageRef != "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812" {
 		t.Fatalf("expected image ref 2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812, got %s", ci.ImageRef)
@@ -172,11 +177,15 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+		if err != nil {
+			t.Fatal(err)
+		}
 		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -208,11 +217,15 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 	labels := map[string]string{}
 	annotations := map[string]string{}
 	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
+		imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+		if err != nil {
+			t.Fatal(err)
+		}
 		imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", "imageName", &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}

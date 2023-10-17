@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
@@ -294,7 +295,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	if !wasSpoofed {
-		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", nil, nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], nil, nil, nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 		if err != nil {
 			return sb, err
 		}
@@ -450,9 +451,13 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		img = ""
 	}
 
-	imgName, ok := m.Annotations[annotations.ImageName]
-	if !ok {
-		imgName = ""
+	var imgName *references.RegistryImageReference
+	if s, ok := m.Annotations[annotations.ImageName]; ok && s != "" {
+		name, err := references.ParseRegistryImageReferenceFromOutOfProcessData(s)
+		if err != nil {
+			return fmt.Errorf("invalid %s annotation %q: %w", annotations.ImageName, s, err)
+		}
+		imgName = &name
 	}
 
 	var imageID *storage.StorageImageID
