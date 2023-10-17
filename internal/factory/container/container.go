@@ -104,7 +104,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -162,7 +162,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec
-func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -270,9 +270,6 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 			// currently only supported by systemd, see
 			// https://github.com/opencontainers/runc/pull/2224
 			c.spec.AddAnnotation("org.systemd.property.TimeoutStopUSec", "uint64 "+t+"000000") // sec to usec
-		}
-		if systemdHasCollectMode {
-			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 		}
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
 		c.spec.AddAnnotation("org.systemd.property.After", "['crio.service']")

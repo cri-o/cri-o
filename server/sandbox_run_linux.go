@@ -16,7 +16,6 @@ import (
 	selinux "github.com/containers/podman/v4/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
@@ -652,10 +651,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
-	}
-
-	if s.config.CgroupManager().IsSystemd() && node.SystemdHasCollectMode() {
-		g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 	}
 
 	created := time.Now()

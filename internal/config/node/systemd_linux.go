@@ -11,21 +11,10 @@ import (
 )
 
 var (
-	systemdHasCollectModeOnce sync.Once
-	systemdHasCollectMode     bool
-	systemdHasCollectModeErr  error
-
 	systemdHasAllowedCPUsOnce sync.Once
 	systemdHasAllowedCPUs     bool
 	systemdHasAllowedCPUsErr  error
 )
-
-func SystemdHasCollectMode() bool {
-	systemdHasCollectModeOnce.Do(func() {
-		systemdHasCollectMode, systemdHasCollectModeErr = systemdSupportsProperty("CollectMode")
-	})
-	return systemdHasCollectMode
-}
 
 func SystemdHasAllowedCPUs() bool {
 	systemdHasAllowedCPUsOnce.Do(func() {

@@ -52,13 +52,6 @@ func ValidateConfig() error {
 			fatal:     false,
 		},
 		{
-			name:      "systemd CollectMode",
-			init:      SystemdHasCollectMode,
-			err:       &systemdHasCollectModeErr,
-			activated: &systemdHasCollectMode,
-			fatal:     false,
-		},
-		{
 			name:      "systemd AllowedCPUs",
 			init:      SystemdHasAllowedCPUs,
 			err:       &systemdHasAllowedCPUsErr,

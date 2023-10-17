@@ -26,13 +26,10 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/godbus/dbus/v5"
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -434,18 +431,17 @@ func init() {
 }
 
 type copyImageArgs struct {
-	Lookup         *imageLookupService
-	ImageName      string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
-	ParentCgroup   string
-	SystemContext  *types.SystemContext
-	Options        *ImageCopyOptions
-	HasCollectMode bool
+	Lookup        *imageLookupService
+	ImageName     string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
+	ParentCgroup  string
+	SystemContext *types.SystemContext
+	Options       *ImageCopyOptions
 
 	StoreOptions storage.StoreOptions
 }
 
 // moveSelfToCgroup moves the current process to a new transient cgroup.
-func moveSelfToCgroup(cgroup string, hasCollectMode bool) error {
+func moveSelfToCgroup(cgroup string) error {
 	slice := "system.slice"
 	if rootless.IsRootless() {
 		slice = "user.slice"
@@ -460,16 +456,7 @@ func moveSelfToCgroup(cgroup string, hasCollectMode bool) error {
 
 	unitName := fmt.Sprintf("crio-pull-image-%d.scope", os.Getpid())
 
-	systemdProperties := []systemdDbus.Property{}
-	if hasCollectMode {
-		systemdProperties = append(systemdProperties,
-			systemdDbus.Property{
-				Name:  "CollectMode",
-				Value: dbus.MakeVariant("inactive-or-failed"),
-			})
-	}
-
-	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), os.Getpid(), slice, unitName, systemdProperties...)
+	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), os.Getpid(), slice, unitName)
 }
 
 func copyImageChild() {
@@ -480,7 +467,7 @@ func copyImageChild() {
 		os.Exit(1)
 	}
 
-	if err := moveSelfToCgroup(args.ParentCgroup, args.HasCollectMode); err != nil {
+	if err := moveSelfToCgroup(args.ParentCgroup); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
@@ -582,7 +569,6 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 			UIDMap:             svc.store.UIDMap(),
 			GIDMap:             svc.store.GIDMap(),
 		},
-		HasCollectMode: node.SystemdHasCollectMode(),
 	}
 
 	stdinArguments.Options.Progress = nil
