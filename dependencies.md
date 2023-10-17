@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 16 Oct 2023 19:10:49 UTC for commit [a36a8d1][0]._
+_Generated on Tue, 17 Oct 2023 09:22:41 UTC for commit [91ffdab][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a36a8d15dac0defc874dfe76d3d359fb0b3699a6
+[0]: https://github.com/cri-o/cri-o/commit/91ffdaba91ff58c32dd35b19fedc8c75c937b10c
 
 ## Outdated Dependencies
 
@@ -138,7 +138,7 @@ _Generated on Mon, 16 Oct 2023 19:10:49 UTC for commit [a36a8d1][0]._
 | cloud.google.com/go/securitycenter                                                      | v1.23.0                                           | v1.23.1                            | false  | true             |
 | cloud.google.com/go/servicedirectory                                                    | v1.10.1                                           | v1.11.1                            | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.1                                            | v1.7.2                             | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.47.0                                           | v1.50.0                            | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.47.0                                           | v1.51.0                            | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.17.1                                           | v1.19.1                            | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.30.1                                           | v1.33.0                            | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.0                                           | v1.10.1                            | false  | true             |
@@ -574,7 +574,7 @@ _Generated on Mon, 16 Oct 2023 19:10:49 UTC for commit [a36a8d1][0]._
 | github.com/marstr/guid                                                                  | v1.1.0                                            |                                    | false  | true             |
 | github.com/matryer/is                                                                   | v1.2.0                                            | v1.4.1                             | false  | true             |
 | github.com/mattn/go-colorable                                                           | v0.1.13                                           |                                    | false  | true             |
-| github.com/mattn/go-isatty                                                              | v0.0.17                                           | v0.0.19                            | false  | true             |
+| github.com/mattn/go-isatty                                                              | v0.0.17                                           | v0.0.20                            | false  | true             |
 | github.com/mattn/go-runewidth                                                           | v0.0.14                                           | v0.0.15                            | false  | true             |
 | github.com/mattn/go-shellwords                                                          | v1.0.12                                           |                                    | false  | true             |
 | github.com/mattn/go-sqlite3                                                             | v1.14.17                                          |                                    | false  | true             |
@@ -852,7 +852,7 @@ _Generated on Mon, 16 Oct 2023 19:10:49 UTC for commit [a36a8d1][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016161344-d0c133d4e633 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016185203-283df0be0668 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
