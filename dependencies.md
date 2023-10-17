@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
+_Generated on Tue, 17 Oct 2023 17:29:04 UTC for commit [1333493][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/965d57ddc64ba0f5a0fa196a04115d088b35009a
+[0]: https://github.com/cri-o/cri-o/commit/1333493d55a41f7f7c7b8565cacc7a8e4aaca915
 
 ## Outdated Dependencies
 
@@ -15,6 +15,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/containers/common                                                | v0.55.4                              | v0.56.0             | true   | true             |
 | github.com/containers/image/v5                                              | v5.27.0                              | v5.28.0             | true   | true             |
 | github.com/containers/podman/v4                                             | v4.6.2                               | v4.7.1              | true   | true             |
+| github.com/cri-o/ocicni                                                     | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
 | github.com/docker/distribution                                              | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.12.0                              | v2.13.0             | true   | true             |
 | github.com/onsi/gomega                                                      | v1.27.10                             | v1.28.0             | true   | true             |
@@ -168,7 +169,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                              |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.6.1                                            | v1.8.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                        | v1.3.0                                            | v1.4.0                             | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.3.0                                            |                                    | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.3.0                                            | v1.4.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v0.12.0                                           | v1.0.1                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal                        | v0.8.0                                            | v1.0.0                             | false  | true             |
 | github.com/Azure/go-ansiterm                                                            | v0.0.0-20230124172434-306776ec8161                |                                    | false  | true             |
@@ -289,7 +290,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.0                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.5.6                                            | v2.7.0                             | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                    | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.3                                            |                                    | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.3                                            | v1.3.5                             | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe                |                                    | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20230607035331-e9ce68804cb4                | v0.0.0-20231016030527-8bd2eac9fb4a | false  | true             |
 | github.com/cockroachdb/apd/v2                                                           | v2.0.2                                            |                                    | false  | true             |
@@ -344,7 +345,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.2                                            | v2.0.3                             | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.0.5-0.20230602131541-3d57f09010c9              | v0.1.1                             | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.18                                           |                                    | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.1-0.20230504062519-ad62f4ea0c11              |                                    | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.1-0.20230504062519-ad62f4ea0c11              | v0.4.1                             | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20230514072755-504adb8a8af1                | v0.0.0-20231011164504-785e29786b46 | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                            |                                    | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c                |                                    | false  | true             |
@@ -380,7 +381,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5              |                                    | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                            |                                    | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.3.0                                            | v3.4.0                             | false  | true             |
-| github.com/elazarl/goproxy                                                              | v0.0.0-20221015165544-a0805db90819                | v0.0.0-20230808193330-2592e75ae04a | false  | true             |
+| github.com/elazarl/goproxy                                                              | v0.0.0-20221015165544-a0805db90819                | v0.0.0-20231017160920-1fe6677f404d | false  | true             |
 | github.com/emicklei/go-restful                                                          | v2.9.5+incompatible                               | v2.16.0+incompatible               | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.10.1                                           | v3.11.0                            | false  | true             |
 | github.com/emicklei/proto                                                               | v1.10.0                                           | v1.12.1                            | false  | true             |
@@ -758,7 +759,7 @@ _Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 | github.com/yvasiyarov/newrelic_platform_go                                              | v0.0.0-20140908184405-b21fdbd4370f                | v0.0.0-20160601141957-9c099fbc30e9 | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.2                                            | v0.2.3                             | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                            |                                    | false  | true             |
-| github.com/zmap/zcrypto                                                                 | v0.0.0-20220402174210-599ec18ecbac                | v0.0.0-20230927041405-ed2f02cd393d | false  | true             |
+| github.com/zmap/zcrypto                                                                 | v0.0.0-20220402174210-599ec18ecbac                | v0.0.0-20231017153850-d413ce024f2b | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.4.0                                            | v3.5.0                             | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.7                                            |                                    | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible               | false  | true             |
