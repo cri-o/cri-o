@@ -53,9 +53,6 @@ var _ = t.Describe("Runtime", func() {
 	mockCreateContainerImageExists := func() mockutils.MockSequence {
 		return mockutils.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
 			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
@@ -555,11 +552,6 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid pod ID", func() {
 			// Given
-			mockutils.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
-			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
@@ -575,11 +567,6 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid pod name", func() {
 			// Given
-			mockutils.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
-			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
@@ -595,11 +582,6 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should fail to create a container on invalid container name", func() {
 			// Given
-			mockutils.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
-			)
 
 			// When
 			_, err := sut.CreateContainer(&types.SystemContext{},
@@ -742,9 +724,6 @@ var _ = t.Describe("Runtime", func() {
 		It("should fail to create a container on error accessing local image", func() {
 			// Given
 			mockutils.InOrder(
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// storageReference.newImage:
 				mockResolveImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),

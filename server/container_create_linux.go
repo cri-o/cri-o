@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -233,6 +234,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if imgResultErr != nil {
 			return nil, imgResultErr
 		}
+	}
+	// At this point we know image is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if image == "" {
+		return nil, errors.New("internal error: successfully found an image, but image is empty")
 	}
 
 	imageName := imgResult.SomeNameOfThisImage

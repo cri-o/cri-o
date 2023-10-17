@@ -73,7 +73,7 @@ type RuntimeServer interface {
 	SetContainerMetadata(idOrName string, metadata *RuntimeContainerMetadata) error
 
 	// CreateContainer creates a container with the specified ID.
-	// Pointer arguments can be nil.  Image name can be omitted.
+	// Pointer arguments can be nil.
 	// All other arguments are required.
 	CreateContainer(systemContext *types.SystemContext, podName, podID, imageName string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
@@ -112,10 +112,10 @@ type RuntimeContainerMetadata struct {
 	// which containers belong to which pods.
 	PodName string `json:"pod-name"` // Applicable to both PodSandboxes and Containers, mandatory
 	PodID   string `json:"pod-id"`   // Applicable to both PodSandboxes and Containers, mandatory
-	// The provided name and the ID of the image that was used to
-	// instantiate the container.
+	// The users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!) at any future time.
 	ImageName string `json:"image-name"` // Applicable to both PodSandboxes and Containers
-	ImageID   string `json:"image-id"`   // Applicable to both PodSandboxes and Containers
+	// The ID of the image that was used to instantiate the container.
+	ImageID string `json:"image-id"` // Applicable to both PodSandboxes and Containers
 	// The container's name, which for an infrastructure container is usually PodName + "-infra".
 	ContainerName string `json:"name"` // Applicable to both PodSandboxes and Containers, mandatory
 	// The name as originally specified in PodSandbox or Container CRI metadata.
@@ -142,10 +142,10 @@ type runtimeContainerMetadataTemplate struct {
 	// which containers belong to which pods.
 	podName string // Applicable to both PodSandboxes and Containers, mandatory
 	podID   string // Applicable to both PodSandboxes and Containers, mandatory
-	// The provided name and the ID of the image that was used to
-	// instantiate the container.
-	imageName string         // Applicable to both PodSandboxes and Containers
-	imageID   StorageImageID // Applicable to both PodSandboxes and Containers. Should refer to an image which existed just now (but that can change at any time).
+	// The users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!) at any future time.
+	imageName string // Applicable to both PodSandboxes and Containers
+	// The ID of the image that was used to instantiate the container.
+	imageID StorageImageID // Applicable to both PodSandboxes and Containers. Should refer to an image which existed just now (but that can change at any time).
 	// The container's name, which for an infrastructure container is usually PodName + "-infra".
 	containerName string // Applicable to both PodSandboxes and Containers, mandatory
 	// The name as originally specified in PodSandbox or Container CRI metadata.
@@ -352,27 +352,6 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 }
 
 func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, imageName string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
-	// Ideally we would call imageID.imageRef(r.storageImageServer), but storageImageServer does not have access to private data.
-	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, imageID.privateID)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
-	if err != nil {
-		if errors.Is(err, storage.ErrImageUnknown) {
-			if imageName == "" {
-				return ContainerInfo{}, fmt.Errorf("image with ID %q not present in image store", imageID)
-			}
-			return ContainerInfo{}, fmt.Errorf("image %q with ID %q not present in image store", imageName, imageID)
-		}
-		return ContainerInfo{}, err
-	}
-
-	// Try to set imageName, falling back to one of possibly many names from this deduplicated image.
-	if imageName == "" && len(img.Names) > 0 {
-		imageName = img.Names[0]
-	}
-
 	return r.createContainerOrPodSandbox(systemContext, containerID, &runtimeContainerMetadataTemplate{
 		podName:       podName,
 		podID:         podID,
