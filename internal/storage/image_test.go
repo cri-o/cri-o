@@ -480,7 +480,7 @@ var _ = t.Describe("Image", func() {
 			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
-						{ID: testSHA256, Names: []string{"a", "b", "c@sha256:" + testSHA256}},
+						{ID: testSHA256, Names: []string{"a:latest", "b:notlatest", "c@sha256:" + testSHA256}},
 						{ID: testSHA256},
 					},
 					nil),
