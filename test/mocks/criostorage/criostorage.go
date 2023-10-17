@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -97,21 +96,6 @@ func (mr *MockImageServerMockRecorder) HeuristicallyTryResolvingStringAsIDPrefix
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeuristicallyTryResolvingStringAsIDPrefix", reflect.TypeOf((*MockImageServer)(nil).HeuristicallyTryResolvingStringAsIDPrefix), arg0)
 }
 
-// ImageStatus mocks base method.
-func (m *MockImageServer) ImageStatus(arg0 *types.SystemContext, arg1 string) (*storage0.ImageResult, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageStatus", arg0, arg1)
-	ret0, _ := ret[0].(*storage0.ImageResult)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ImageStatus indicates an expected call of ImageStatus.
-func (mr *MockImageServerMockRecorder) ImageStatus(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatus", reflect.TypeOf((*MockImageServer)(nil).ImageStatus), arg0, arg1)
-}
-
 // ImageStatusByID mocks base method.
 func (m *MockImageServer) ImageStatusByID(arg0 *types.SystemContext, arg1 storage0.StorageImageID) (*storage0.ImageResult, error) {
 	m.ctrl.T.Helper()
@@ -158,7 +142,7 @@ func (mr *MockImageServerMockRecorder) ListImages(arg0 interface{}) *gomock.Call
 }
 
 // PrepareImage mocks base method.
-func (m *MockImageServer) PrepareImage(arg0 *types.SystemContext, arg1 string) (types.ImageCloser, error) {
+func (m *MockImageServer) PrepareImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference) (types.ImageCloser, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PrepareImage", arg0, arg1)
 	ret0, _ := ret[0].(types.ImageCloser)
@@ -173,7 +157,7 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 string, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)
@@ -185,21 +169,6 @@ func (m *MockImageServer) PullImage(arg0 *types.SystemContext, arg1 string, arg2
 func (mr *MockImageServerMockRecorder) PullImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullImage", reflect.TypeOf((*MockImageServer)(nil).PullImage), arg0, arg1, arg2)
-}
-
-// ResolveNames mocks base method.
-func (m *MockImageServer) ResolveNames(arg0 *types.SystemContext, arg1 string) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ResolveNames", arg0, arg1)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// ResolveNames indicates an expected call of ResolveNames.
-func (mr *MockImageServerMockRecorder) ResolveNames(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveNames", reflect.TypeOf((*MockImageServer)(nil).ResolveNames), arg0, arg1)
 }
 
 // UntagImage mocks base method.
@@ -255,7 +224,7 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(arg0, arg1, arg2, arg3,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2 string, arg3 reference.Named, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2 string, arg3 references.RegistryImageReference, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
 	ret0, _ := ret[0].(storage0.ContainerInfo)

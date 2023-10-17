@@ -16,7 +16,6 @@ import (
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/pkg/hooks"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -34,6 +33,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
@@ -1421,13 +1421,8 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 }
 
 // ParsePauseImage parses the .PauseImage value as into a validated, well-typed value.
-// The value is not a short name, and satisfies !reference.IsNameOnly.
-func (c *ImageConfig) ParsePauseImage() (reference.Named, error) {
-	ref, err := reference.ParseNormalizedNamed(c.PauseImage)
-	if err != nil {
-		return nil, err
-	}
-	return reference.TagNameOnly(ref), nil
+func (c *ImageConfig) ParsePauseImage() (references.RegistryImageReference, error) {
+	return references.ParseRegistryImageReferenceFromOutOfProcessData(c.PauseImage)
 }
 
 // Validate is the main entry point for network configuration validation.

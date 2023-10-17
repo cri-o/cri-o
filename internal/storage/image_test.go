@@ -129,16 +129,51 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("ResolveNames", func() {
-		It("should succeed to resolve", func() {
+	t.Describe("HeuristicallyTryResolvingStringAsIDPrefix", func() {
+		It("should not match an unrelated name of an existing image", func() {
 			// Given
 			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
+				storeMock.EXPECT().Image(testImageName).
 					Return(&cs.Image{ID: "id"}, nil),
 			)
 
 			// When
-			names, err := sut.ResolveNames(
+			id := sut.HeuristicallyTryResolvingStringAsIDPrefix(
+				testImageName,
+			)
+
+			// Then
+			Expect(id).To(BeNil())
+		})
+
+		It("should match a locally-not-matching image id", func() {
+			// Given
+			gomock.InOrder()
+
+			// When
+			id := sut.HeuristicallyTryResolvingStringAsIDPrefix(testSHA256)
+
+			// Then
+			Expect(id).NotTo(BeNil())
+			Expect(id.IDStringForOutOfProcessConsumptionOnly()).To(Equal(testSHA256))
+		})
+	})
+
+	t.Describe("CandidatesForPotentiallyShortImageName", func() {
+		refsToNames := func(refs []storage.RegistryImageReference) []string {
+			names := []string{}
+			for _, ref := range refs {
+				names = append(names, ref.StringForOutOfProcessConsumptionOnly())
+			}
+			return names
+		}
+
+		It("should succeed to resolve", func() {
+			// Given
+			gomock.InOrder()
+
+			// When
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -147,7 +182,7 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + ":latest",
 				testRedHatRegistry + "/" + testImageName + ":latest",
 				testFedoraRegistry + "/" + testImageName + ":latest",
@@ -157,13 +192,10 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to resolve to a short-name alias", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -172,36 +204,31 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testImageAliasResolved + ":latest",
 			}))
 		})
+
 		It("should succeed to resolve with full qualified image name", func() {
 			// Given
 			const imageName = "docker.io/library/busybox:latest"
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, imageName)
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, imageName)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(imageName))
+			Expect(len(refs)).To(Equal(1))
+			Expect(refs[0].StringForOutOfProcessConsumptionOnly()).To(Equal(imageName))
 		})
 
 		It("should succeed to resolve image name with tag and digest", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -209,7 +236,7 @@ var _ = t.Describe("Image", func() {
 			)
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testRedHatRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testFedoraRegistry + "/" + testImageName + "@sha256:" + testSHA256,
@@ -219,54 +246,33 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to resolve fully qualified image name with tag and digest", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, testNormalizedImageWithTagAndDigest)
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, testNormalizedImageWithTagAndDigest)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
 			}))
 		})
 
-		It("should succeed to resolve with a locally-not-matching image id", func() {
+		It("should fail to resolve with invalid registry name", func() {
 			// Given
 			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, testSHA256)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(names[0]).To(Equal(testSHA256))
-		})
-
-		It("should fail to resolve with invalid registry name", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(ctx, "camelCaseName")
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, "camelCaseName")
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(names).To(BeNil())
+			Expect(refs).To(BeNil())
 		})
 
 		It("should fail to resolve without configured registries", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 			config := &config.Config{
 				SystemContext: ctx,
 				ImageConfig: config.ImageConfig{
@@ -280,7 +286,7 @@ var _ = t.Describe("Image", func() {
 			Expect(sut).NotTo(BeNil())
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "/dev/null",
 				},
@@ -291,7 +297,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).NotTo(BeNil())
 			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
 			Expect(err.Error()).To(Equal(errString))
-			Expect(names).To(BeNil())
+			Expect(refs).To(BeNil())
 		})
 	})
 
@@ -351,18 +357,6 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).NotTo(BeNil())
-		})
-	})
-
-	t.Describe("ImageStatus", func() {
-		It("should fail to get on wrong reference", func() {
-			// Given
-			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
 		})
 	})
 
@@ -548,48 +542,16 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("PrepareImage", func() {
-		It("should succeed with testimage", func() {
-			// Given
-			const imageName = "tarball:../../test/testdata/image.tar"
-
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeNil())
-		})
-
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-	})
-
 	t.Describe("PullImage", func() {
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PullImage(&types.SystemContext{}, "",
-				&storage.ImageCopyOptions{})
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
 		It("should fail on invalid policy path", func() {
 			// Given
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
+
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "/not-existing",
-			}, "", &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -598,15 +560,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox:latest"
-			inOrder(
-				mockParseStoreReference(storeMock, "localhost/busybox:latest"),
-			)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -615,15 +575,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on canonical copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			inOrder(
-				mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256),
-			)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
+			Expect(err).To(BeNil())
 
 			// When
 			res, err := sut.PullImage(&types.SystemContext{
 				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			}, imageRef, &storage.ImageCopyOptions{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
