@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 17 Oct 2023 09:22:41 UTC for commit [91ffdab][0]._
+_Generated on Tue, 17 Oct 2023 12:33:53 UTC for commit [965d57d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/91ffdaba91ff58c32dd35b19fedc8c75c937b10c
+[0]: https://github.com/cri-o/cri-o/commit/965d57ddc64ba0f5a0fa196a04115d088b35009a
 
 ## Outdated Dependencies
 
@@ -852,7 +852,7 @@ _Generated on Tue, 17 Oct 2023 09:22:41 UTC for commit [91ffdab][0]._
 | k8s.io/kubelet                                                                          | v0.0.0-20230907114337-55731bc24469                | v0.28.2                            | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.2                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                |                                    | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231016185203-283df0be0668 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231017113806-d6ab72900ea5 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
