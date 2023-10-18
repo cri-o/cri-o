@@ -45,6 +45,7 @@ func (s *Server) getInfo() types.CrioInfo {
 	return types.CrioInfo{
 		StorageDriver:     s.config.Storage,
 		StorageRoot:       s.config.Root,
+		StorageImage:      s.config.ImageStore,
 		CgroupDriver:      s.config.CgroupManager().Name(),
 		DefaultIDMappings: s.getIDMappingsInfo(),
 	}
