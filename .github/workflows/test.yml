@@ -8,16 +8,16 @@ on:
       - release-*
   pull_request:
 env:
-  GO_VERSION: '1.18'
+  GO_VERSION: '1.20'
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -27,13 +27,13 @@ jobs:
       - run: scripts/github-actions-packages
       - run: make
       - run: bin/crio version
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: build
           path: |
             bin/crio
             bin/crio-status
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: docs
           path: |
@@ -41,7 +41,7 @@ jobs:
             docs/crio.8
             docs/crio.conf.5
             docs/crio.conf.d.5
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: config
           path: crio.conf
@@ -49,8 +49,8 @@ jobs:
   build-386:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -83,8 +83,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
         with:
           name: build
           path: bin
@@ -97,8 +97,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
         with:
           name: build
           path: bin
@@ -110,16 +110,16 @@ jobs:
   build-static-amd64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v10
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v23
+      - uses: cachix/cachix-action@v12
         with:
           name: cri-o-static
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           pushFilter: cri-o
       - run: nix-build nix
       - run: result/bin/crio version
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: build-static-amd64
           path: |
@@ -130,16 +130,16 @@ jobs:
   build-static-arm64:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: cachix/install-nix-action@v12
-      - uses: cachix/cachix-action@v10
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v23
+      - uses: cachix/cachix-action@v12
         with:
           name: cri-o-static
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           pushFilter: cri-o
       - run: nix-build nix/default-arm64.nix
       - run: file result/bin/crio
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: build-static-arm64
           path: |
@@ -154,25 +154,25 @@ jobs:
       - build-static-amd64
       - build-static-arm64
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
         with:
           name: build-static-amd64
           path: bin/static-amd64
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: build-static-arm64
           path: bin/static-arm64
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: docs
           path: docs
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: config
       - run: chmod -R +x bin
       - run: make bundles
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: bundle
           path: build/bundle/*.tar.gz*
@@ -181,8 +181,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: bundles
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -192,11 +192,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: bundles
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-go@v2
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -214,8 +214,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: bundle-test
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v3
         with:
           name: bundle
           path: build/bundle
@@ -230,7 +230,7 @@ jobs:
       - upload-artifacts
       - release-notes
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v3
         with:
           name: bundle
@@ -251,11 +251,11 @@ jobs:
   unit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -267,7 +267,7 @@ jobs:
           make mockgen -j $(nproc)
           hack/tree_status.sh
       - run: sudo PATH="$PATH" make testunit
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: unit
           path: build/coverage
@@ -276,7 +276,7 @@ jobs:
     needs: unit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: actions/download-artifact@v3
@@ -289,14 +289,14 @@ jobs:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -311,7 +311,7 @@ jobs:
       - run: make release-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: release-notes
           path: build/release-notes
@@ -322,14 +322,14 @@ jobs:
     needs: release-notes
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod
@@ -339,7 +339,7 @@ jobs:
       - run: make dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: dependencies
           path: build/dependencies
@@ -348,14 +348,14 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-go@v2
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           token: ${{ secrets.GH_TOKEN }}
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: |
             ~/go/pkg/mod

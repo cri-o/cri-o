@@ -1,4 +1,4 @@
-go 1.17
+go 1.20
 
 module github.com/cri-o/cri-o
 
@@ -63,9 +63,9 @@ require (
 	go.opentelemetry.io/otel v1.3.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.2.0
 	go.opentelemetry.io/otel/sdk v1.2.0
-	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c
-	golang.org/x/sys v0.0.0-20220412211240-33da011f77ad
+	golang.org/x/net v0.17.0
+	golang.org/x/sync v0.1.0
+	golang.org/x/sys v0.13.0
 	google.golang.org/grpc v1.43.0
 	k8s.io/api v0.22.2
 	k8s.io/apimachinery v0.22.2
@@ -208,14 +208,13 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.2.0 // indirect
 	go.opentelemetry.io/otel/trace v1.3.0 // indirect
 	go.opentelemetry.io/proto/otlp v0.10.0 // indirect
-	golang.org/x/crypto v0.0.0-20220321153916-2c7772ba3064 // indirect
-	golang.org/x/mod v0.6.0-dev.0.20220106191415-9b9b3d81d5e3 // indirect
+	golang.org/x/crypto v0.14.0 // indirect
+	golang.org/x/mod v0.8.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20210819190943-2bc19b11175f // indirect
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/term v0.13.0 // indirect
+	golang.org/x/text v0.13.0 // indirect
 	golang.org/x/time v0.0.0-20210723032227-1f47c861a9ac // indirect
-	golang.org/x/tools v0.1.10 // indirect
-	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
+	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20211005153810-c76a74d43a8e // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
