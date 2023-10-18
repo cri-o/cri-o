@@ -69,8 +69,6 @@ RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.4.1
 RELEASE_NOTES_VERSION := v0.16.1
-BOM := ${BUILD_BIN_PATH}/bom
-BOM_VERSION := v0.5.1
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.6.0
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
@@ -160,7 +158,6 @@ shfmt: shellfiles
 
 shellcheck: shellfiles ${SHELLCHECK}
 	${SHELLCHECK} \
-		-P contrib/bundle \
 		-P scripts \
 		-P test \
 		-x \
@@ -198,7 +195,6 @@ build-static:
 	mkdir -p bin
 	cp -r result/bin bin/static
 
-release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
 crio.conf: bin/crio
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
@@ -273,9 +269,6 @@ $(SHFMT): $(BUILD_BIN_PATH)
 $(ZEITGEIST): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64,$(BUILD_BIN_PATH)/zeitgeist)
 
-$(BOM): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux,$(BUILD_BIN_PATH)/bom)
-
 $(MOCKGEN): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
@@ -287,8 +280,6 @@ $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 $(GOSEC): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gosec.tar.gz -C $(BUILD_BIN_PATH)
-
-bom: $(BOM)
 
 $(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
@@ -431,30 +422,6 @@ docs-generation:
 	bin/crio -d "" --config="" md  > docs/crio.8.md
 	bin/crio -d "" --config="" man > docs/crio.8
 
-bundle: ${BOM}
-	contrib/bundle/build
-
-bundle-test:
-	sudo contrib/bundle/test
-
-bundle-test-e2e:
-	sudo contrib/bundle/test-e2e
-
-bundle-test-e2e-conmonrs:
-	sudo contrib/bundle/test-e2e --use-conmonrs
-
-bundle-test-kubernetes:
-	cd contrib/bundle && vagrant up
-
-bundles: ${BOM}
-	contrib/bundle/build amd64
-	contrib/bundle/build arm64
-	contrib/bundle/build ppc64le
-
-get-script:
-	sed -i '/# INCLUDE/q' scripts/get
-	cat contrib/bundle/install-paths contrib/bundle/install >> scripts/get
-
 verify-dependencies: ${ZEITGEIST}
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
 
@@ -539,9 +506,6 @@ release-branch-forward:
 upload-artifacts:
 	./scripts/upload-artifacts
 
-sign-artifacts:
-	./scripts/sign-artifacts
-
 bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
@@ -557,12 +521,6 @@ metrics-exporter: bin/metrics-exporter
 	.explicit_phony \
 	git-validation \
 	binaries \
-	bom \
-	bundle \
-	bundles \
-	bundle-test \
-	bundle-test-e2e \
-	bundle-test-e2e-conmonrs \
 	build-static \
 	clean \
 	completions \
@@ -576,7 +534,6 @@ metrics-exporter: bin/metrics-exporter
 	lint \
 	local-cross \
 	nixpkgs \
-	release-bundle \
 	shellfiles \
 	shfmt \
 	release-branch-forward \
@@ -590,10 +547,8 @@ metrics-exporter: bin/metrics-exporter
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
-	sign-artifacts \
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \
-	get-script \
 	check-log-lines \
 	verify-dependencies
