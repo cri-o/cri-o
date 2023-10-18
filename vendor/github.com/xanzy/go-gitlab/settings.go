@@ -24,14 +24,14 @@ import (
 // SettingsService handles communication with the application SettingsService
 // related methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/settings.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/settings.html
 type SettingsService struct {
 	client *Client
 }
 
 // Settings represents the GitLab application settings.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/settings.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/settings.html
 //
 // The available parameters have been modeled directly after the code, as the
 // documentation seems to be inaccurate.
@@ -45,24 +45,23 @@ type Settings struct {
 	ID                                                    int               `json:"id"`
 	AbuseNotificationEmail                                string            `json:"abuse_notification_email"`
 	AdminMode                                             bool              `json:"admin_mode"`
-	AdminNotificationEmail                                string            `json:"admin_notification_email"` // deprecated
 	AfterSignOutPath                                      string            `json:"after_sign_out_path"`
 	AfterSignUpText                                       string            `json:"after_sign_up_text"`
 	AkismetAPIKey                                         string            `json:"akismet_api_key"`
 	AkismetEnabled                                        bool              `json:"akismet_enabled"`
 	AllowGroupOwnersToManageLDAP                          bool              `json:"allow_group_owners_to_manage_ldap"`
-	AllowLocalRequestsFromHooksAndServices                bool              `json:"allow_local_requests_from_hooks_and_services"` // deprecated
 	AllowLocalRequestsFromSystemHooks                     bool              `json:"allow_local_requests_from_system_hooks"`
 	AllowLocalRequestsFromWebHooksAndServices             bool              `json:"allow_local_requests_from_web_hooks_and_services"`
 	ArchiveBuildsInHumanReadable                          string            `json:"archive_builds_in_human_readable"`
 	AssetProxyAllowlist                                   []string          `json:"asset_proxy_allowlist"`
 	AssetProxyEnabled                                     bool              `json:"asset_proxy_enabled"`
 	AssetProxyURL                                         string            `json:"asset_proxy_url"`
-	AssetProxyWhitelist                                   []string          `json:"asset_proxy_whitelist"` // deprecated
+	AssetProxySecretKey                                   string            `json:"asset_proxy_secret_key"`
 	AuthorizedKeysEnabled                                 bool              `json:"authorized_keys_enabled"`
 	AutoDevOpsDomain                                      string            `json:"auto_devops_domain"`
 	AutoDevOpsEnabled                                     bool              `json:"auto_devops_enabled"`
 	AutomaticPurchasedStorageAllocation                   bool              `json:"automatic_purchased_storage_allocation"`
+	CanCreateGroup                                        bool              `json:"can_create_group"`
 	CheckNamespacePlan                                    bool              `json:"check_namespace_plan"`
 	CommitEmailHostname                                   string            `json:"commit_email_hostname"`
 	ContainerExpirationPoliciesEnableHistoricEntries      bool              `json:"container_expiration_policies_enable_historic_entries"`
@@ -92,7 +91,9 @@ type Settings struct {
 	DefaultProjectVisibility                              VisibilityValue   `json:"default_project_visibility"`
 	DefaultProjectsLimit                                  int               `json:"default_projects_limit"`
 	DefaultSnippetVisibility                              VisibilityValue   `json:"default_snippet_visibility"`
+	DelayedGroupDeletion                                  bool              `json:"delayed_group_deletion"`
 	DelayedProjectDeletion                                bool              `json:"delayed_project_deletion"`
+	DeleteInactiveProjects                                bool              `json:"delete_inactive_projects"`
 	DeletionAdjournedPeriod                               int               `json:"deletion_adjourned_period"`
 	DiffMaxFiles                                          int               `json:"diff_max_files"`
 	DiffMaxLines                                          int               `json:"diff_max_lines"`
@@ -108,11 +109,13 @@ type Settings struct {
 	EKSAccessKeyID                                        string            `json:"eks_access_key_id"`
 	EKSAccountID                                          string            `json:"eks_account_id"`
 	EKSIntegrationEnabled                                 bool              `json:"eks_integration_enabled"`
+	EKSSecretAccessKey                                    string            `json:"eks_secret_access_key"`
 	Ed25519KeyRestriction                                 int               `json:"ed25519_key_restriction"`
 	Ed25519SKKeyRestriction                               int               `json:"ed25519_sk_key_restriction"`
 	ElasticsearchAWS                                      bool              `json:"elasticsearch_aws"`
 	ElasticsearchAWSAccessKey                             string            `json:"elasticsearch_aws_access_key"`
 	ElasticsearchAWSRegion                                string            `json:"elasticsearch_aws_region"`
+	ElasticsearchAWSSecretAccessKey                       string            `json:"elasticsearch_aws_secret_access_key"`
 	ElasticsearchAnalyzersKuromojiEnabled                 bool              `json:"elasticsearch_analyzers_kuromoji_enabled"`
 	ElasticsearchAnalyzersKuromojiSearch                  bool              `json:"elasticsearch_analyzers_kuromoji_search"`
 	ElasticsearchAnalyzersSmartCNEnabled                  bool              `json:"elasticsearch_analyzers_smartcn_enabled"`
@@ -163,6 +166,7 @@ type Settings struct {
 	GitalyTimeoutMedium                                   int               `json:"gitaly_timeout_medium"`
 	GitpodEnabled                                         bool              `json:"gitpod_enabled"`
 	GitpodURL                                             string            `json:"gitpod_url"`
+	GitRateLimitUsersAllowlist                            []string          `json:"git_rate_limit_users_allowlist"`
 	GrafanaEnabled                                        bool              `json:"grafana_enabled"`
 	GrafanaURL                                            string            `json:"grafana_url"`
 	GravatarEnabled                                       bool              `json:"gravatar_enabled"`
@@ -186,6 +190,9 @@ type Settings struct {
 	HousekeepingGcPeriod                                  int               `json:"housekeeping_gc_period"`
 	HousekeepingIncrementalRepackPeriod                   int               `json:"housekeeping_incremental_repack_period"`
 	ImportSources                                         []string          `json:"import_sources"`
+	InactiveProjectsDeleteAfterMonths                     int               `json:"inactive_projects_delete_after_months"`
+	InactiveProjectsMinSizeMB                             int               `json:"inactive_projects_min_size_mb"`
+	InactiveProjectsSendWarningEmailAfterMonths           int               `json:"inactive_projects_send_warning_email_after_months"`
 	InProductMarketingEmailsEnabled                       bool              `json:"in_product_marketing_emails_enabled"`
 	InvisibleCaptchaEnabled                               bool              `json:"invisible_captcha_enabled"`
 	IssuesCreateLimit                                     int               `json:"issues_create_limit"`
@@ -202,7 +209,10 @@ type Settings struct {
 	MaintenanceModeMessage                                string            `json:"maintenance_mode_message"`
 	MaxArtifactsSize                                      int               `json:"max_artifacts_size"`
 	MaxAttachmentSize                                     int               `json:"max_attachment_size"`
+	MaxExportSize                                         int               `json:"max_export_size"`
 	MaxImportSize                                         int               `json:"max_import_size"`
+	MaxNumberOfRepositoryDownloads                        int               `json:"max_number_of_repository_downloads"`
+	MaxNumberOfRepositoryDownloadsWithinTimePeriod        int               `json:"max_number_of_repository_downloads_within_time_period"`
 	MaxPagesSize                                          int               `json:"max_pages_size"`
 	MaxPersonalAccessTokenLifetime                        int               `json:"max_personal_access_token_lifetime"`
 	MaxSSHKeyLifetime                                     int               `json:"max_ssh_key_lifetime"`
@@ -218,13 +228,20 @@ type Settings struct {
 	NotesCreateLimit                                      int               `json:"notes_create_limit"`
 	NotifyOnUnknownSignIn                                 bool              `json:"notify_on_unknown_sign_in"`
 	OutboundLocalRequestsAllowlistRaw                     string            `json:"outbound_local_requests_allowlist_raw"`
+	OutboundLocalRequestsWhitelist                        []string          `json:"outbound_local_requests_whitelist"`
+	PackageRegistryCleanupPoliciesWorkerCapacity          int               `json:"package_registry_cleanup_policies_worker_capacity"`
 	PagesDomainVerificationEnabled                        bool              `json:"pages_domain_verification_enabled"`
 	PasswordAuthenticationEnabledForGit                   bool              `json:"password_authentication_enabled_for_git"`
 	PasswordAuthenticationEnabledForWeb                   bool              `json:"password_authentication_enabled_for_web"`
+	PasswordNumberRequired                                bool              `json:"password_number_required"`
+	PasswordSymbolRequired                                bool              `json:"password_symbol_required"`
+	PasswordUppercaseRequired                             bool              `json:"password_uppercase_required"`
+	PasswordLowercaseRequired                             bool              `json:"password_lowercase_required"`
 	PerformanceBarAllowedGroupID                          string            `json:"performance_bar_allowed_group_id"`
 	PerformanceBarAllowedGroupPath                        string            `json:"performance_bar_allowed_group_path"`
 	PerformanceBarEnabled                                 bool              `json:"performance_bar_enabled"`
 	PersonalAccessTokenPrefix                             string            `json:"personal_access_token_prefix"`
+	PipelineLimitPerProjectUserSha                        int               `json:"pipeline_limit_per_project_user_sha"`
 	PlantumlEnabled                                       bool              `json:"plantuml_enabled"`
 	PlantumlURL                                           string            `json:"plantuml_url"`
 	PollingIntervalMultiplier                             float64           `json:"polling_interval_multiplier,string"`
@@ -250,6 +267,7 @@ type Settings struct {
 	ReceiveMaxInputSize                                   int               `json:"receive_max_input_size"`
 	RepositoryChecksEnabled                               bool              `json:"repository_checks_enabled"`
 	RepositorySizeLimit                                   int               `json:"repository_size_limit"`
+	RepositoryStorages                                    []string          `json:"repository_storages"`
 	RepositoryStoragesWeighted                            map[string]int    `json:"repository_storages_weighted"`
 	RequireAdminApprovalAfterUserSignup                   bool              `json:"require_admin_approval_after_user_signup"`
 	RequireTwoFactorAuthentication                        bool              `json:"require_two_factor_authentication"`
@@ -278,6 +296,7 @@ type Settings struct {
 	SlackAppEnabled                                       bool              `json:"slack_app_enabled"`
 	SlackAppID                                            string            `json:"slack_app_id"`
 	SlackAppSecret                                        string            `json:"slack_app_secret"`
+	SlackAppSigningSecret                                 string            `json:"slack_app_signing_secret"`
 	SlackAppVerificationToken                             string            `json:"slack_app_verification_token"`
 	SnippetSizeLimit                                      int               `json:"snippet_size_limit"`
 	SnowplowAppID                                         string            `json:"snowplow_app_id"`
@@ -323,7 +342,6 @@ type Settings struct {
 	ThrottleUnauthenticatedDeprecatedAPIEnabled           bool              `json:"throttle_unauthenticated_deprecated_api_enabled"`
 	ThrottleUnauthenticatedDeprecatedAPIPeriodInSeconds   int               `json:"throttle_unauthenticated_deprecated_api_period_in_seconds"`
 	ThrottleUnauthenticatedDeprecatedAPIRequestsPerPeriod int               `json:"throttle_unauthenticated_deprecated_api_requests_per_period"`
-	ThrottleUnauthenticatedEnabled                        bool              `json:"throttle_unauthenticated_enabled"`
 	ThrottleUnauthenticatedFilesAPIEnabled                bool              `json:"throttle_unauthenticated_files_api_enabled"`
 	ThrottleUnauthenticatedFilesAPIPeriodInSeconds        int               `json:"throttle_unauthenticated_files_api_period_in_seconds"`
 	ThrottleUnauthenticatedFilesAPIRequestsPerPeriod      int               `json:"throttle_unauthenticated_files_api_requests_per_period"`
@@ -333,11 +351,9 @@ type Settings struct {
 	ThrottleUnauthenticatedPackagesAPIEnabled             bool              `json:"throttle_unauthenticated_packages_api_enabled"`
 	ThrottleUnauthenticatedPackagesAPIPeriodInSeconds     int               `json:"throttle_unauthenticated_packages_api_period_in_seconds"`
 	ThrottleUnauthenticatedPackagesAPIRequestsPerPeriod   int               `json:"throttle_unauthenticated_packages_api_requests_per_period"`
-	ThrottleUnauthenticatedPeriodInSeconds                int               `json:"throttle_unauthenticated_period_in_seconds"`
-	ThrottleUnauthenticatedRequestsPerPeriod              int               `json:"throttle_unauthenticated_requests_per_period"`
-	ThrottleUnauthenticatedWebEnabled                     bool              `json:"throttle_unauthenticated_web_enabled"`             // deprecated
-	ThrottleUnauthenticatedWebPeriodInSeconds             int               `json:"throttle_unauthenticated_web_period_in_seconds"`   // deprecated
-	ThrottleUnauthenticatedWebRequestsPerPeriod           int               `json:"throttle_unauthenticated_web_requests_per_period"` // deprecated
+	ThrottleUnauthenticatedWebEnabled                     bool              `json:"throttle_unauthenticated_web_enabled"`
+	ThrottleUnauthenticatedWebPeriodInSeconds             int               `json:"throttle_unauthenticated_web_period_in_seconds"`
+	ThrottleUnauthenticatedWebRequestsPerPeriod           int               `json:"throttle_unauthenticated_web_requests_per_period"`
 	TimeTrackingLimitToHours                              bool              `json:"time_tracking_limit_to_hours"`
 	TwoFactorGracePeriod                                  int               `json:"two_factor_grace_period"`
 	UniqueIPsLimitEnabled                                 bool              `json:"unique_ips_limit_enabled"`
@@ -350,7 +366,6 @@ type Settings struct {
 	UserDeactivationEmailsEnabled                         bool              `json:"user_deactivation_emails_enabled"`
 	UserDefaultExternal                                   bool              `json:"user_default_external"`
 	UserDefaultInternalRegex                              string            `json:"user_default_internal_regex"`
-	UserEmailLookupLimit                                  int               `json:"user_email_lookup_limit"` // deprecated
 	UserOauthApplications                                 bool              `json:"user_oauth_applications"`
 	UserShowAddSSHKeyMessage                              bool              `json:"user_show_add_ssh_key_message"`
 	UsersGetByIDLimit                                     int               `json:"users_get_by_id_limit"`
@@ -359,6 +374,21 @@ type Settings struct {
 	WebIDEClientsidePreviewEnabled                        bool              `json:"web_ide_clientside_preview_enabled"`
 	WhatsNewVariant                                       string            `json:"whats_new_variant"`
 	WikiPageMaxContentBytes                               int               `json:"wiki_page_max_content_bytes"`
+
+	// Deprecated: Use AbuseNotificationEmail instead.
+	AdminNotificationEmail string `json:"admin_notification_email"`
+	// Deprecated: Use AllowLocalRequestsFromWebHooksAndServices instead.
+	AllowLocalRequestsFromHooksAndServices bool `json:"allow_local_requests_from_hooks_and_services"`
+	// Deprecated: Use AssetProxyAllowlist instead.
+	AssetProxyWhitelist []string `json:"asset_proxy_whitelist"`
+	// Deprecated: Use ThrottleUnauthenticatedWebEnabled or ThrottleUnauthenticatedAPIEnabled instead. (Deprecated in GitLab 14.3)
+	ThrottleUnauthenticatedEnabled bool `json:"throttle_unauthenticated_enabled"`
+	// Deprecated: Use ThrottleUnauthenticatedWebPeriodInSeconds or ThrottleUnauthenticatedAPIPeriodInSeconds instead. (Deprecated in GitLab 14.3)
+	ThrottleUnauthenticatedPeriodInSeconds int `json:"throttle_unauthenticated_period_in_seconds"`
+	// Deprecated: Use ThrottleUnauthenticatedWebRequestsPerPeriod or ThrottleUnauthenticatedAPIRequestsPerPeriod instead. (Deprecated in GitLab 14.3)
+	ThrottleUnauthenticatedRequestsPerPeriod int `json:"throttle_unauthenticated_requests_per_period"`
+	// Deprecated: Replaced by SearchRateLimit in GitLab 14.9 (removed in 15.0).
+	UserEmailLookupLimit int `json:"user_email_lookup_limit"`
 }
 
 func (s Settings) String() string {
@@ -368,7 +398,7 @@ func (s Settings) String() string {
 // GetSettings gets the current application settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#get-current-application.settings
+// https://docs.gitlab.com/ee/api/settings.html#get-current-application-settings
 func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodGet, "application/settings", nil, options)
 	if err != nil {
@@ -387,7 +417,7 @@ func (s *SettingsService) GetSettings(options ...RequestOptionFunc) (*Settings, 
 // UpdateSettingsOptions represents the available UpdateSettings() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#change-application.settings
+// https://docs.gitlab.com/ee/api/settings.html#change-application-settings
 type UpdateSettingsOptions struct {
 	AbuseNotificationEmail                                *string            `url:"abuse_notification_email,omitempty" json:"abuse_notification_email,omitempty"`
 	AdminMode                                             *bool              `url:"admin_mode,omitempty" json:"admin_mode,omitempty"`
@@ -410,6 +440,7 @@ type UpdateSettingsOptions struct {
 	AutoDevOpsDomain                                      *string            `url:"auto_devops_domain,omitempty" json:"auto_devops_domain,omitempty"`
 	AutoDevOpsEnabled                                     *bool              `url:"auto_devops_enabled,omitempty" json:"auto_devops_enabled,omitempty"`
 	AutomaticPurchasedStorageAllocation                   *bool              `url:"automatic_purchased_storage_allocation,omitempty" json:"automatic_purchased_storage_allocation,omitempty"`
+	CanCreateGroup                                        *bool              `url:"can_create_group,omitempty" json:"can_create_group,omitempty"`
 	CheckNamespacePlan                                    *bool              `url:"check_namespace_plan,omitempty" json:"check_namespace_plan,omitempty"`
 	CommitEmailHostname                                   *string            `url:"commit_email_hostname,omitempty" json:"commit_email_hostname,omitempty"`
 	ContainerExpirationPoliciesEnableHistoricEntries      *bool              `url:"container_expiration_policies_enable_historic_entries,omitempty" json:"container_expiration_policies_enable_historic_entries,omitempty"`
@@ -438,7 +469,9 @@ type UpdateSettingsOptions struct {
 	DefaultProjectVisibility                              *VisibilityValue   `url:"default_project_visibility,omitempty" json:"default_project_visibility,omitempty"`
 	DefaultProjectsLimit                                  *int               `url:"default_projects_limit,omitempty" json:"default_projects_limit,omitempty"`
 	DefaultSnippetVisibility                              *VisibilityValue   `url:"default_snippet_visibility,omitempty" json:"default_snippet_visibility,omitempty"`
+	DelayedGroupDeletion                                  *bool              `url:"delayed_group_deletion,omitempty" json:"delayed_group_deletion,omitempty"`
 	DelayedProjectDeletion                                *bool              `url:"delayed_project_deletion,omitempty" json:"delayed_project_deletion,omitempty"`
+	DeleteInactiveProjects                                *bool              `url:"delete_inactive_projects,omitempty" json:"delete_inactive_projects,omitempty"`
 	DeletionAdjournedPeriod                               *int               `url:"deletion_adjourned_period,omitempty" json:"deletion_adjourned_period,omitempty"`
 	DiffMaxFiles                                          *int               `url:"diff_max_files,omitempty" json:"diff_max_files,omitempty"`
 	DiffMaxLines                                          *int               `url:"diff_max_lines,omitempty" json:"diff_max_lines,omitempty"`
@@ -511,6 +544,7 @@ type UpdateSettingsOptions struct {
 	GitalyTimeoutMedium                                   *int               `url:"gitaly_timeout_medium,omitempty" json:"gitaly_timeout_medium,omitempty"`
 	GitpodEnabled                                         *bool              `url:"gitpod_enabled,omitempty" json:"gitpod_enabled,omitempty"`
 	GitpodURL                                             *string            `url:"gitpod_url,omitempty" json:"gitpod_url,omitempty"`
+	GitRateLimitUsersAllowlist                            *[]string          `url:"git_rate_limit_users_allowlist,omitempty" json:"git_rate_limit_users_allowlist,omitempty"`
 	GrafanaEnabled                                        *bool              `url:"grafana_enabled,omitempty" json:"grafana_enabled,omitempty"`
 	GrafanaURL                                            *string            `url:"grafana_url,omitempty" json:"grafana_url,omitempty"`
 	GravatarEnabled                                       *bool              `url:"gravatar_enabled,omitempty" json:"gravatar_enabled,omitempty"`
@@ -534,6 +568,9 @@ type UpdateSettingsOptions struct {
 	HousekeepingGcPeriod                                  *int               `url:"housekeeping_gc_period,omitempty" json:"housekeeping_gc_period,omitempty"`
 	HousekeepingIncrementalRepackPeriod                   *int               `url:"housekeeping_incremental_repack_period,omitempty" json:"housekeeping_incremental_repack_period,omitempty"`
 	ImportSources                                         *[]string          `url:"import_sources,omitempty" json:"import_sources,omitempty"`
+	InactiveProjectsDeleteAfterMonths                     *int               `url:"inactive_projects_delete_after_months,omitempty" json:"inactive_projects_delete_after_months,omitempty"`
+	InactiveProjectsMinSizeMB                             *int               `url:"inactive_projects_min_size_mb,omitempty" json:"inactive_projects_min_size_mb,omitempty"`
+	InactiveProjectsSendWarningEmailAfterMonths           *int               `url:"inactive_projects_send_warning_email_after_months,omitempty" json:"inactive_projects_send_warning_email_after_months,omitempty"`
 	InProductMarketingEmailsEnabled                       *bool              `url:"in_product_marketing_emails_enabled,omitempty" json:"in_product_marketing_emails_enabled,omitempty"`
 	InvisibleCaptchaEnabled                               *bool              `url:"invisible_captcha_enabled,omitempty" json:"invisible_captcha_enabled,omitempty"`
 	IssuesCreateLimit                                     *int               `url:"issues_create_limit,omitempty" json:"issues_create_limit,omitempty"`
@@ -550,7 +587,10 @@ type UpdateSettingsOptions struct {
 	MaintenanceModeMessage                                *string            `url:"maintenance_mode_message,omitempty" json:"maintenance_mode_message,omitempty"`
 	MaxArtifactsSize                                      *int               `url:"max_artifacts_size,omitempty" json:"max_artifacts_size,omitempty"`
 	MaxAttachmentSize                                     *int               `url:"max_attachment_size,omitempty" json:"max_attachment_size,omitempty"`
+	MaxExportSize                                         *int               `url:"max_export_size,omitempty" json:"max_export_size,omitempty"`
 	MaxImportSize                                         *int               `url:"max_import_size,omitempty" json:"max_import_size,omitempty"`
+	MaxNumberOfRepositoryDownloads                        *int               `url:"max_number_of_repository_downloads,omitempty" json:"max_number_of_repository_downloads,omitempty"`
+	MaxNumberOfRepositoryDownloadsWithinTimePeriod        *int               `url:"max_number_of_repository_downloads_within_time_period,omitempty" json:"max_number_of_repository_downloads_within_time_period,omitempty"`
 	MaxPagesSize                                          *int               `url:"max_pages_size,omitempty" json:"max_pages_size,omitempty"`
 	MaxPersonalAccessTokenLifetime                        *int               `url:"max_personal_access_token_lifetime,omitempty" json:"max_personal_access_token_lifetime,omitempty"`
 	MaxSSHKeyLifetime                                     *int               `url:"max_ssh_key_lifetime,omitempty" json:"max_ssh_key_lifetime,omitempty"`
@@ -566,15 +606,22 @@ type UpdateSettingsOptions struct {
 	NotesCreateLimit                                      *int               `url:"notes_create_limit,omitempty" json:"notes_create_limit,omitempty"`
 	NotifyOnUnknownSignIn                                 *bool              `url:"notify_on_unknown_sign_in,omitempty" json:"notify_on_unknown_sign_in,omitempty"`
 	OutboundLocalRequestsAllowlistRaw                     *string            `url:"outbound_local_requests_allowlist_raw,omitempty" json:"outbound_local_requests_allowlist_raw,omitempty"`
+	OutboundLocalRequestsWhitelist                        *[]string          `url:"outbound_local_requests_whitelist,omitempty" json:"outbound_local_requests_whitelist,omitempty"`
+	PackageRegistryCleanupPoliciesWorkerCapacity          *int               `url:"package_registry_cleanup_policies_worker_capacity,omitempty" json:"package_registry_cleanup_policies_worker_capacity,omitempty"`
 	PagesDomainVerificationEnabled                        *bool              `url:"pages_domain_verification_enabled,omitempty" json:"pages_domain_verification_enabled,omitempty"`
 	PasswordAuthenticationEnabledForGit                   *bool              `url:"password_authentication_enabled_for_git,omitempty" json:"password_authentication_enabled_for_git,omitempty"`
 	PasswordAuthenticationEnabledForWeb                   *bool              `url:"password_authentication_enabled_for_web,omitempty" json:"password_authentication_enabled_for_web,omitempty"`
+	PasswordNumberRequired                                *bool              `url:"password_number_required,omitempty" json:"password_number_required,omitempty"`
+	PasswordSymbolRequired                                *bool              `url:"password_symbol_required,omitempty" json:"password_symbol_required,omitempty"`
+	PasswordUppercaseRequired                             *bool              `url:"password_uppercase_required,omitempty" json:"password_uppercase_required,omitempty"`
+	PasswordLowercaseRequired                             *bool              `url:"password_lowercase_required,omitempty" json:"password_lowercase_required,omitempty"`
 	PerformanceBarAllowedGroupID                          *string            `url:"performance_bar_allowed_group_id,omitempty" json:"performance_bar_allowed_group_id,omitempty"`
 	PerformanceBarAllowedGroupPath                        *string            `url:"performance_bar_allowed_group_path,omitempty" json:"performance_bar_allowed_group_path,omitempty"`
 	PerformanceBarEnabled                                 *bool              `url:"performance_bar_enabled,omitempty" json:"performance_bar_enabled,omitempty"`
 	PersonalAccessTokenPrefix                             *string            `url:"personal_access_token_prefix,omitempty" json:"personal_access_token_prefix,omitempty"`
 	PlantumlEnabled                                       *bool              `url:"plantuml_enabled,omitempty" json:"plantuml_enabled,omitempty"`
 	PlantumlURL                                           *string            `url:"plantuml_url,omitempty" json:"plantuml_url,omitempty"`
+	PipelineLimitPerProjectUserSha                        *int               `url:"pipeline_limit_per_project_user_sha,omitempty" json:"pipeline_limit_per_project_user_sha,omitempty"`
 	PollingIntervalMultiplier                             *float64           `url:"polling_interval_multiplier,omitempty" json:"polling_interval_multiplier,omitempty"`
 	PreventMergeRequestsAuthorApproval                    *bool              `url:"prevent_merge_requests_author_approval,omitempty" json:"prevent_merge_requests_author_approval,omitempty"`
 	PreventMergeRequestsCommittersApproval                *bool              `url:"prevent_merge_requests_committers_approval,omitempty" json:"prevent_merge_requests_committers_approval,omitempty"`
@@ -598,6 +645,7 @@ type UpdateSettingsOptions struct {
 	ReceiveMaxInputSize                                   *int               `url:"receive_max_input_size,omitempty" json:"receive_max_input_size,omitempty"`
 	RepositoryChecksEnabled                               *bool              `url:"repository_checks_enabled,omitempty" json:"repository_checks_enabled,omitempty"`
 	RepositorySizeLimit                                   *int               `url:"repository_size_limit,omitempty" json:"repository_size_limit,omitempty"`
+	RepositoryStorages                                    *[]string          `url:"repository_storages,omitempty" json:"repository_storages,omitempty"`
 	RepositoryStoragesWeighted                            *map[string]int    `url:"repository_storages_weighted,omitempty" json:"repository_storages_weighted,omitempty"`
 	RequireAdminApprovalAfterUserSignup                   *bool              `url:"require_admin_approval_after_user_signup,omitempty" json:"require_admin_approval_after_user_signup,omitempty"`
 	RequireTwoFactorAuthentication                        *bool              `url:"require_two_factor_authentication,omitempty" json:"require_two_factor_authentication,omitempty"`
@@ -626,6 +674,7 @@ type UpdateSettingsOptions struct {
 	SlackAppEnabled                                       *bool              `url:"slack_app_enabled,omitempty" json:"slack_app_enabled,omitempty"`
 	SlackAppID                                            *string            `url:"slack_app_id,omitempty" json:"slack_app_id,omitempty"`
 	SlackAppSecret                                        *string            `url:"slack_app_secret,omitempty" json:"slack_app_secret,omitempty"`
+	SlackAppSigningSecret                                 *string            `url:"slack_app_signing_secret,omitempty" json:"slack_app_signing_secret,omitempty"`
 	SlackAppVerificationToken                             *string            `url:"slack_app_verification_token,omitempty" json:"slack_app_verification_token,omitempty"`
 	SnippetSizeLimit                                      *int               `url:"snippet_size_limit,omitempty" json:"snippet_size_limit,omitempty"`
 	SnowplowAppID                                         *string            `url:"snowplow_app_id,omitempty" json:"snowplow_app_id,omitempty"`
@@ -711,7 +760,7 @@ type UpdateSettingsOptions struct {
 // UpdateSettings updates the application settings.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/settings.html#change-application.settings
+// https://docs.gitlab.com/ee/api/settings.html#change-application-settings
 func (s *SettingsService) UpdateSettings(opt *UpdateSettingsOptions, options ...RequestOptionFunc) (*Settings, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodPut, "application/settings", opt, options)
 	if err != nil {

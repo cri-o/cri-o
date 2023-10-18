@@ -8,7 +8,8 @@ on:
       - release-*
   pull_request:
 env:
-  GO_VERSION: '1.19'
+  GO_VERSION: '1.20'
+  GOLANGCI_LINT_VERSION: v1.53.2
 permissions:
   contents: read
 
@@ -19,27 +20,27 @@ jobs:
       pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
       - uses: golangci/golangci-lint-action@v3
         with:
-          version: v1.49.0
+          version: ${{ env.GOLANGCI_LINT_VERSION }}
 
   shellcheck:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
-    - uses: lumaxis/shellcheck-problem-matchers@v1
+    - uses: actions/checkout@v4
+    - uses: lumaxis/shellcheck-problem-matchers@v2
     - run: make shellcheck
 
   shfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: make shfmt
@@ -47,8 +48,8 @@ jobs:
   docs:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
@@ -57,8 +58,8 @@ jobs:
   vendor:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v3
@@ -71,8 +72,8 @@ jobs:
   log-capitalization:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v3
@@ -85,8 +86,8 @@ jobs:
   verify-config-template:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v3
@@ -100,7 +101,7 @@ jobs:
     if: ${{ github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - run: sudo scripts/get
       - run: crio version
 
@@ -108,8 +109,8 @@ jobs:
     if: ${{ github.base_ref == 'main' }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v3
@@ -119,7 +120,7 @@ jobs:
             ~/.cache/go-build
           key: go-get-script-${{ hashFiles('**/go.sum') }}
           restore-keys: go-get-script-
-      - uses: sigstore/cosign-installer@v2
+      - uses: sigstore/cosign-installer@v3
       - run: |
           make get-script
           hack/tree_status.sh
@@ -132,8 +133,8 @@ jobs:
   dependencies:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - uses: actions/cache@v3

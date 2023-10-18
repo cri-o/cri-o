@@ -129,7 +129,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			Pid:            runtimeInfo.PID,
 			ConmonPid:      runtimeInfo.ConmonPID,
 			ExitCode:       runtimeInfo.ExitCode,
-			Error:          "", // can't get yet
+			Error:          runtimeInfo.Error,
 			StartedAt:      runtimeInfo.StartedTime,
 			FinishedAt:     runtimeInfo.FinishedTime,
 			Checkpointed:   runtimeInfo.Checkpointed,
@@ -185,7 +185,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 	}
 
 	if c.config.HealthCheckConfig != nil {
-		// This container has a healthcheck defined in it; we need to add it's state
+		// This container has a healthcheck defined in it; we need to add its state
 		healthCheckState, err := c.getHealthCheckLog()
 		if err != nil {
 			// An error here is not considered fatal; no health state will be displayed
@@ -552,9 +552,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 	hostConfig.NetworkMode = networkMode
 
 	// Port bindings.
-	// Only populate if we're using CNI to configure the network.
+	// Only populate if we are creating the network namespace to configure the network.
 	if c.config.CreateNetNS {
-		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings, c.config.ExposedPorts)
+		hostConfig.PortBindings = makeInspectPortBindings(c.config.PortMappings)
 	} else {
 		hostConfig.PortBindings = make(map[string][]define.InspectHostPort)
 	}

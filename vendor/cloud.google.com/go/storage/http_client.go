@@ -29,6 +29,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/iam/apiv1/iampb"
 	"cloud.google.com/go/internal/optional"
 	"cloud.google.com/go/internal/trace"
 	"golang.org/x/oauth2/google"
@@ -39,7 +40,6 @@ import (
 	raw "google.golang.org/api/storage/v1"
 	"google.golang.org/api/transport"
 	htransport "google.golang.org/api/transport/http"
-	iampb "google.golang.org/genproto/googleapis/iam/v1"
 )
 
 // httpStorageClient is the HTTP-JSON API implementation of the transport-agnostic
@@ -53,6 +53,7 @@ type httpStorageClient struct {
 	raw      *raw.Service
 	scheme   string
 	settings *settings
+	config   *storageConfig
 }
 
 // newHTTPStorageClient initializes a new storageClient that uses the HTTP-JSON
@@ -62,6 +63,7 @@ type httpStorageClient struct {
 func newHTTPStorageClient(ctx context.Context, opts ...storageOption) (storageClient, error) {
 	s := initSettings(opts...)
 	o := s.clientOption
+	config := newStorageConfig(o...)
 
 	var creds *google.Credentials
 	// In general, it is recommended to use raw.NewService instead of htransport.NewClient
@@ -114,17 +116,17 @@ func newHTTPStorageClient(ctx context.Context, opts ...storageOption) (storageCl
 	// htransport selects the correct endpoint among WithEndpoint (user override), WithDefaultEndpoint, and WithDefaultMTLSEndpoint.
 	hc, ep, err := htransport.NewClient(ctx, s.clientOption...)
 	if err != nil {
-		return nil, fmt.Errorf("dialing: %v", err)
+		return nil, fmt.Errorf("dialing: %w", err)
 	}
 	// RawService should be created with the chosen endpoint to take account of user override.
 	rawService, err := raw.NewService(ctx, option.WithEndpoint(ep), option.WithHTTPClient(hc))
 	if err != nil {
-		return nil, fmt.Errorf("storage client: %v", err)
+		return nil, fmt.Errorf("storage client: %w", err)
 	}
 	// Update readHost and scheme with the chosen endpoint.
 	u, err := url.Parse(ep)
 	if err != nil {
-		return nil, fmt.Errorf("supplied endpoint %q is not valid: %v", ep, err)
+		return nil, fmt.Errorf("supplied endpoint %q is not valid: %w", ep, err)
 	}
 
 	return &httpStorageClient{
@@ -134,6 +136,7 @@ func newHTTPStorageClient(ctx context.Context, opts ...storageOption) (storageCl
 		raw:      rawService,
 		scheme:   u.Scheme,
 		settings: s,
+		config:   &config,
 	}, nil
 }
 
@@ -159,7 +162,7 @@ func (c *httpStorageClient) GetServiceAccount(ctx context.Context, project strin
 	return res.EmailAddress, nil
 }
 
-func (c *httpStorageClient) CreateBucket(ctx context.Context, project string, attrs *BucketAttrs, opts ...storageOption) (*BucketAttrs, error) {
+func (c *httpStorageClient) CreateBucket(ctx context.Context, project, bucket string, attrs *BucketAttrs, opts ...storageOption) (*BucketAttrs, error) {
 	s := callSettings(c.settings, opts...)
 	var bkt *raw.Bucket
 	if attrs != nil {
@@ -167,7 +170,7 @@ func (c *httpStorageClient) CreateBucket(ctx context.Context, project string, at
 	} else {
 		bkt = &raw.Bucket{}
 	}
-
+	bkt.Name = bucket
 	// If there is lifecycle information but no location, explicitly set
 	// the location. This is a GCS quirk/bug.
 	if bkt.Location == "" && bkt.Lifecycle != nil {
@@ -344,8 +347,8 @@ func (c *httpStorageClient) ListObjects(ctx context.Context, bucket string, q *Q
 		req.EndOffset(it.query.EndOffset)
 		req.Versions(it.query.Versions)
 		req.IncludeTrailingDelimiter(it.query.IncludeTrailingDelimiter)
-		if len(it.query.fieldSelection) > 0 {
-			req.Fields("nextPageToken", googleapi.Field(it.query.fieldSelection))
+		if selection := it.query.toFieldSelection(); selection != "" {
+			req.Fields("nextPageToken", googleapi.Field(selection))
 		}
 		req.PageToken(pageToken)
 		if s.userProject != "" {
@@ -548,8 +551,25 @@ func (c *httpStorageClient) ListDefaultObjectACLs(ctx context.Context, bucket st
 	}
 	return toObjectACLRules(acls.Items), nil
 }
-func (c *httpStorageClient) UpdateDefaultObjectACL(ctx context.Context, opts ...storageOption) (*ACLRule, error) {
-	return nil, errMethodNotSupported
+func (c *httpStorageClient) UpdateDefaultObjectACL(ctx context.Context, bucket string, entity ACLEntity, role ACLRole, opts ...storageOption) error {
+	s := callSettings(c.settings, opts...)
+	type setRequest interface {
+		Do(opts ...googleapi.CallOption) (*raw.ObjectAccessControl, error)
+		Header() http.Header
+	}
+	acl := &raw.ObjectAccessControl{
+		Bucket: bucket,
+		Entity: string(entity),
+		Role:   string(role),
+	}
+	var req setRequest
+	var err error
+	req = c.raw.DefaultObjectAccessControls.Update(bucket, string(entity), acl)
+	configureACLCall(ctx, s.userProject, req)
+	return run(ctx, func() error {
+		_, err = req.Do()
+		return err
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(req))
 }
 
 // Bucket ACL methods.
@@ -577,7 +597,7 @@ func (c *httpStorageClient) ListBucketACLs(ctx context.Context, bucket string, o
 	return toBucketACLRules(acls.Items), nil
 }
 
-func (c *httpStorageClient) UpdateBucketACL(ctx context.Context, bucket string, entity ACLEntity, role ACLRole, opts ...storageOption) (*ACLRule, error) {
+func (c *httpStorageClient) UpdateBucketACL(ctx context.Context, bucket string, entity ACLEntity, role ACLRole, opts ...storageOption) error {
 	s := callSettings(c.settings, opts...)
 	acl := &raw.BucketAccessControl{
 		Bucket: bucket,
@@ -586,17 +606,11 @@ func (c *httpStorageClient) UpdateBucketACL(ctx context.Context, bucket string, 
 	}
 	req := c.raw.BucketAccessControls.Update(bucket, string(entity), acl)
 	configureACLCall(ctx, s.userProject, req)
-	var aclRule ACLRule
 	var err error
-	err = run(ctx, func() error {
-		acl, err = req.Do()
-		aclRule = toBucketACLRule(acl)
+	return run(ctx, func() error {
+		_, err = req.Do()
 		return err
 	}, s.retry, s.idempotent, setRetryHeaderHTTP(req))
-	if err != nil {
-		return nil, err
-	}
-	return &aclRule, nil
 }
 
 // configureACLCall sets the context, user project and headers on the apiary library call.
@@ -613,7 +627,10 @@ func configureACLCall(ctx context.Context, userProject string, call interface{ H
 // Object ACL methods.
 
 func (c *httpStorageClient) DeleteObjectACL(ctx context.Context, bucket, object string, entity ACLEntity, opts ...storageOption) error {
-	return errMethodNotSupported
+	s := callSettings(c.settings, opts...)
+	req := c.raw.ObjectAccessControls.Delete(bucket, object, string(entity))
+	configureACLCall(ctx, s.userProject, req)
+	return run(ctx, func() error { return req.Context(ctx).Do() }, s.retry, s.idempotent, setRetryHeaderHTTP(req))
 }
 
 // ListObjectACLs retrieves object ACL entries. By default, it operates on the latest generation of this object.
@@ -634,17 +651,129 @@ func (c *httpStorageClient) ListObjectACLs(ctx context.Context, bucket, object s
 	return toObjectACLRules(acls.Items), nil
 }
 
-func (c *httpStorageClient) UpdateObjectACL(ctx context.Context, bucket, object string, entity ACLEntity, role ACLRole, opts ...storageOption) (*ACLRule, error) {
-	return nil, errMethodNotSupported
+func (c *httpStorageClient) UpdateObjectACL(ctx context.Context, bucket, object string, entity ACLEntity, role ACLRole, opts ...storageOption) error {
+	s := callSettings(c.settings, opts...)
+	type setRequest interface {
+		Do(opts ...googleapi.CallOption) (*raw.ObjectAccessControl, error)
+		Header() http.Header
+	}
+
+	acl := &raw.ObjectAccessControl{
+		Bucket: bucket,
+		Entity: string(entity),
+		Role:   string(role),
+	}
+	var req setRequest
+	var err error
+	req = c.raw.ObjectAccessControls.Update(bucket, object, string(entity), acl)
+	configureACLCall(ctx, s.userProject, req)
+	return run(ctx, func() error {
+		_, err = req.Do()
+		return err
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(req))
 }
 
 // Media operations.
 
 func (c *httpStorageClient) ComposeObject(ctx context.Context, req *composeObjectRequest, opts ...storageOption) (*ObjectAttrs, error) {
-	return nil, errMethodNotSupported
+	s := callSettings(c.settings, opts...)
+	rawReq := &raw.ComposeRequest{}
+	// Compose requires a non-empty Destination, so we always set it,
+	// even if the caller-provided ObjectAttrs is the zero value.
+	rawReq.Destination = req.dstObject.attrs.toRawObject(req.dstBucket)
+	if req.sendCRC32C {
+		rawReq.Destination.Crc32c = encodeUint32(req.dstObject.attrs.CRC32C)
+	}
+	for _, src := range req.srcs {
+		srcObj := &raw.ComposeRequestSourceObjects{
+			Name: src.name,
+		}
+		if err := applyConds("ComposeFrom source", src.gen, src.conds, composeSourceObj{srcObj}); err != nil {
+			return nil, err
+		}
+		rawReq.SourceObjects = append(rawReq.SourceObjects, srcObj)
+	}
+
+	call := c.raw.Objects.Compose(req.dstBucket, req.dstObject.name, rawReq).Context(ctx)
+	if err := applyConds("ComposeFrom destination", defaultGen, req.dstObject.conds, call); err != nil {
+		return nil, err
+	}
+	if s.userProject != "" {
+		call.UserProject(s.userProject)
+	}
+	if req.predefinedACL != "" {
+		call.DestinationPredefinedAcl(req.predefinedACL)
+	}
+	if err := setEncryptionHeaders(call.Header(), req.dstObject.encryptionKey, false); err != nil {
+		return nil, err
+	}
+	var obj *raw.Object
+	setClientHeader(call.Header())
+
+	var err error
+	retryCall := func() error { obj, err = call.Do(); return err }
+
+	if err := run(ctx, retryCall, s.retry, s.idempotent, setRetryHeaderHTTP(call)); err != nil {
+		return nil, err
+	}
+	return newObject(obj), nil
 }
 func (c *httpStorageClient) RewriteObject(ctx context.Context, req *rewriteObjectRequest, opts ...storageOption) (*rewriteObjectResponse, error) {
-	return nil, errMethodNotSupported
+	s := callSettings(c.settings, opts...)
+	rawObject := req.dstObject.attrs.toRawObject("")
+	call := c.raw.Objects.Rewrite(req.srcObject.bucket, req.srcObject.name, req.dstObject.bucket, req.dstObject.name, rawObject)
+
+	call.Context(ctx).Projection("full")
+	if req.token != "" {
+		call.RewriteToken(req.token)
+	}
+	if req.dstObject.keyName != "" {
+		call.DestinationKmsKeyName(req.dstObject.keyName)
+	}
+	if req.predefinedACL != "" {
+		call.DestinationPredefinedAcl(req.predefinedACL)
+	}
+	if err := applyConds("Copy destination", defaultGen, req.dstObject.conds, call); err != nil {
+		return nil, err
+	}
+	if err := applySourceConds(req.srcObject.gen, req.srcObject.conds, call); err != nil {
+		return nil, err
+	}
+	if s.userProject != "" {
+		call.UserProject(s.userProject)
+	}
+	// Set destination encryption headers.
+	if err := setEncryptionHeaders(call.Header(), req.dstObject.encryptionKey, false); err != nil {
+		return nil, err
+	}
+	// Set source encryption headers.
+	if err := setEncryptionHeaders(call.Header(), req.srcObject.encryptionKey, true); err != nil {
+		return nil, err
+	}
+
+	if req.maxBytesRewrittenPerCall != 0 {
+		call.MaxBytesRewrittenPerCall(req.maxBytesRewrittenPerCall)
+	}
+
+	var res *raw.RewriteResponse
+	var err error
+	setClientHeader(call.Header())
+
+	retryCall := func() error { res, err = call.Do(); return err }
+
+	if err := run(ctx, retryCall, s.retry, s.idempotent, setRetryHeaderHTTP(call)); err != nil {
+		return nil, err
+	}
+
+	r := &rewriteObjectResponse{
+		done:     res.Done,
+		written:  res.TotalBytesRewritten,
+		size:     res.ObjectSize,
+		token:    res.RewriteToken,
+		resource: newObject(res.Resource),
+	}
+
+	return r, nil
 }
 
 func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRangeReaderParams, opts ...storageOption) (r *Reader, err error) {
@@ -653,14 +782,13 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 
 	s := callSettings(c.settings, opts...)
 
-	if params.offset < 0 && params.length >= 0 {
-		return nil, fmt.Errorf("storage: invalid offset %d < 0 requires negative length", params.offset)
+	if c.config.useJSONforReads {
+		return c.newRangeReaderJSON(ctx, params, s)
 	}
-	if params.conds != nil {
-		if err := params.conds.validate("NewRangeReader"); err != nil {
-			return nil, err
-		}
-	}
+	return c.newRangeReaderXML(ctx, params, s)
+}
+
+func (c *httpStorageClient) newRangeReaderXML(ctx context.Context, params *newRangeReaderParams, s *settings) (r *Reader, err error) {
 	u := &url.URL{
 		Scheme: c.scheme,
 		Host:   c.readHost,
@@ -675,187 +803,51 @@ func (c *httpStorageClient) NewRangeReader(ctx context.Context, params *newRange
 		return nil, err
 	}
 	req = req.WithContext(ctx)
+
 	if s.userProject != "" {
 		req.Header.Set("X-Goog-User-Project", s.userProject)
 	}
-	// TODO(noahdietz): add option for readCompressed.
-	// if o.readCompressed {
-	// 	req.Header.Set("Accept-Encoding", "gzip")
-	// }
-	if err := setEncryptionHeaders(req.Header, params.encryptionKey, false); err != nil {
+
+	if err := setRangeReaderHeaders(req.Header, params); err != nil {
 		return nil, err
 	}
 
-	// Define a function that initiates a Read with offset and length, assuming we
-	// have already read seen bytes.
-	reopen := func(seen int64) (*http.Response, error) {
-		// If the context has already expired, return immediately without making a
-		// call.
-		if err := ctx.Err(); err != nil {
-			return nil, err
-		}
-		start := params.offset + seen
-		if params.length < 0 && start < 0 {
-			req.Header.Set("Range", fmt.Sprintf("bytes=%d", start))
-		} else if params.length < 0 && start > 0 {
-			req.Header.Set("Range", fmt.Sprintf("bytes=%d-", start))
-		} else if params.length > 0 {
-			// The end character isn't affected by how many bytes we've seen.
-			req.Header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, params.offset+params.length-1))
-		}
-		// We wait to assign conditions here because the generation number can change in between reopen() runs.
-		if err := setConditionsHeaders(req.Header, params.conds); err != nil {
-			return nil, err
-		}
-		// If an object generation is specified, include generation as query string parameters.
-		if params.gen >= 0 {
-			req.URL.RawQuery = fmt.Sprintf("generation=%d", params.gen)
-		}
-
-		var res *http.Response
-		err = run(ctx, func() error {
-			res, err = c.hc.Do(req)
-			if err != nil {
-				return err
-			}
-			if res.StatusCode == http.StatusNotFound {
-				res.Body.Close()
-				return ErrObjectNotExist
-			}
-			if res.StatusCode < 200 || res.StatusCode > 299 {
-				body, _ := ioutil.ReadAll(res.Body)
-				res.Body.Close()
-				return &googleapi.Error{
-					Code:   res.StatusCode,
-					Header: res.Header,
-					Body:   string(body),
-				}
-			}
-
-			partialContentNotSatisfied :=
-				!decompressiveTranscoding(res) &&
-					start > 0 && params.length != 0 &&
-					res.StatusCode != http.StatusPartialContent
-
-			if partialContentNotSatisfied {
-				res.Body.Close()
-				return errors.New("storage: partial request not satisfied")
-			}
-
-			// With "Content-Encoding": "gzip" aka decompressive transcoding, GCS serves
-			// back the whole file regardless of the range count passed in as per:
-			//      https://cloud.google.com/storage/docs/transcoding#range,
-			// thus we have to manually move the body forward by seen bytes.
-			if decompressiveTranscoding(res) && seen > 0 {
-				_, _ = io.CopyN(ioutil.Discard, res.Body, seen)
-			}
-
-			// If a generation hasn't been specified, and this is the first response we get, let's record the
-			// generation. In future requests we'll use this generation as a precondition to avoid data races.
-			if params.gen < 0 && res.Header.Get("X-Goog-Generation") != "" {
-				gen64, err := strconv.ParseInt(res.Header.Get("X-Goog-Generation"), 10, 64)
-				if err != nil {
-					return err
-				}
-				params.gen = gen64
-			}
-			return nil
-		}, s.retry, s.idempotent, setRetryHeaderHTTP(nil))
-		if err != nil {
-			return nil, err
-		}
-		return res, nil
-	}
+	reopen := readerReopen(ctx, req.Header, params, s,
+		func() (*http.Response, error) { return c.hc.Do(req) },
+		func() error { return setConditionsHeaders(req.Header, params.conds) },
+		func() { req.URL.RawQuery = fmt.Sprintf("generation=%d", params.gen) })
 
 	res, err := reopen(0)
 	if err != nil {
 		return nil, err
 	}
-	var (
-		size        int64 // total size of object, even if a range was requested.
-		checkCRC    bool
-		crc         uint32
-		startOffset int64 // non-zero if range request.
-	)
-	if res.StatusCode == http.StatusPartialContent {
-		cr := strings.TrimSpace(res.Header.Get("Content-Range"))
-		if !strings.HasPrefix(cr, "bytes ") || !strings.Contains(cr, "/") {
-			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
-		}
-		// Content range is formatted <first byte>-<last byte>/<total size>. We take
-		// the total size.
-		size, err = strconv.ParseInt(cr[strings.LastIndex(cr, "/")+1:], 10, 64)
-		if err != nil {
-			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
-		}
+	return parseReadResponse(res, params, reopen)
+}
 
-		dashIndex := strings.Index(cr, "-")
-		if dashIndex >= 0 {
-			startOffset, err = strconv.ParseInt(cr[len("bytes="):dashIndex], 10, 64)
-			if err != nil {
-				return nil, fmt.Errorf("storage: invalid Content-Range %q: %v", cr, err)
-			}
-		}
-	} else {
-		size = res.ContentLength
-		// Check the CRC iff all of the following hold:
-		// - We asked for content (length != 0).
-		// - We got all the content (status != PartialContent).
-		// - The server sent a CRC header.
-		// - The Go http stack did not uncompress the file.
-		// - We were not served compressed data that was uncompressed on download.
-		// The problem with the last two cases is that the CRC will not match -- GCS
-		// computes it on the compressed contents, but we compute it on the
-		// uncompressed contents.
-		if params.length != 0 && !res.Uncompressed && !uncompressedByServer(res) {
-			crc, checkCRC = parseCRC32c(res)
-		}
+func (c *httpStorageClient) newRangeReaderJSON(ctx context.Context, params *newRangeReaderParams, s *settings) (r *Reader, err error) {
+	call := c.raw.Objects.Get(params.bucket, params.object)
+
+	setClientHeader(call.Header())
+	call.Context(ctx)
+	call.Projection("full")
+
+	if s.userProject != "" {
+		call.UserProject(s.userProject)
 	}
 
-	remain := res.ContentLength
-	body := res.Body
-	if params.length == 0 {
-		remain = 0
-		body.Close()
-		body = emptyBody
-	}
-	var metaGen int64
-	if res.Header.Get("X-Goog-Metageneration") != "" {
-		metaGen, err = strconv.ParseInt(res.Header.Get("X-Goog-Metageneration"), 10, 64)
-		if err != nil {
-			return nil, err
-		}
+	if err := setRangeReaderHeaders(call.Header(), params); err != nil {
+		return nil, err
 	}
 
-	var lm time.Time
-	if res.Header.Get("Last-Modified") != "" {
-		lm, err = http.ParseTime(res.Header.Get("Last-Modified"))
-		if err != nil {
-			return nil, err
-		}
-	}
+	reopen := readerReopen(ctx, call.Header(), params, s, func() (*http.Response, error) { return call.Download() },
+		func() error { return applyConds("NewReader", params.gen, params.conds, call) },
+		func() { call.Generation(params.gen) })
 
-	attrs := ReaderObjectAttrs{
-		Size:            size,
-		ContentType:     res.Header.Get("Content-Type"),
-		ContentEncoding: res.Header.Get("Content-Encoding"),
-		CacheControl:    res.Header.Get("Cache-Control"),
-		LastModified:    lm,
-		StartOffset:     startOffset,
-		Generation:      params.gen,
-		Metageneration:  metaGen,
+	res, err := reopen(0)
+	if err != nil {
+		return nil, err
 	}
-	return &Reader{
-		Attrs:    attrs,
-		size:     size,
-		remain:   remain,
-		wantCRC:  crc,
-		checkCRC: checkCRC,
-		reader: &httpReader{
-			reopen: reopen,
-			body:   body,
-		},
-	}, nil
+	return parseReadResponse(res, params, reopen)
 }
 
 func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storageOption) (*io.PipeWriter, error) {
@@ -906,7 +898,7 @@ func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storage
 			return
 		}
 		var resp *raw.Object
-		err := applyConds("NewWriter", params.attrs.Generation, params.conds, call)
+		err := applyConds("NewWriter", defaultGen, params.conds, call)
 		if err == nil {
 			if s.userProject != "" {
 				call.UserProject(s.userProject)
@@ -921,9 +913,8 @@ func (c *httpStorageClient) OpenWriter(params *openWriterParams, opts ...storage
 			// there is no need to add retries here.
 
 			// Retry only when the operation is idempotent or the retry policy is RetryAlways.
-			isIdempotent := params.conds != nil && (params.conds.GenerationMatch >= 0 || params.conds.DoesNotExist == true)
 			var useRetry bool
-			if (s.retry == nil || s.retry.policy == RetryIdempotent) && isIdempotent {
+			if (s.retry == nil || s.retry.policy == RetryIdempotent) && s.idempotent {
 				useRetry = true
 			} else if s.retry != nil && s.retry.policy == RetryAlways {
 				useRetry = true
@@ -1006,20 +997,139 @@ func (c *httpStorageClient) TestIamPermissions(ctx context.Context, resource str
 
 // HMAC Key methods.
 
-func (c *httpStorageClient) GetHMACKey(ctx context.Context, desc *hmacKeyDesc, opts ...storageOption) (*HMACKey, error) {
-	return nil, errMethodNotSupported
+func (c *httpStorageClient) GetHMACKey(ctx context.Context, project, accessID string, opts ...storageOption) (*HMACKey, error) {
+	s := callSettings(c.settings, opts...)
+	call := c.raw.Projects.HmacKeys.Get(project, accessID)
+	if s.userProject != "" {
+		call = call.UserProject(s.userProject)
+	}
+
+	var metadata *raw.HmacKeyMetadata
+	var err error
+	if err := run(ctx, func() error {
+		metadata, err = call.Context(ctx).Do()
+		return err
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(call)); err != nil {
+		return nil, err
+	}
+	hk := &raw.HmacKey{
+		Metadata: metadata,
+	}
+	return toHMACKeyFromRaw(hk, false)
 }
-func (c *httpStorageClient) ListHMACKey(ctx context.Context, desc *hmacKeyDesc, opts ...storageOption) *HMACKeysIterator {
-	return &HMACKeysIterator{}
+
+func (c *httpStorageClient) ListHMACKeys(ctx context.Context, project, serviceAccountEmail string, showDeletedKeys bool, opts ...storageOption) *HMACKeysIterator {
+	s := callSettings(c.settings, opts...)
+	it := &HMACKeysIterator{
+		ctx:       ctx,
+		raw:       c.raw.Projects.HmacKeys,
+		projectID: project,
+		retry:     s.retry,
+	}
+	fetch := func(pageSize int, pageToken string) (token string, err error) {
+		call := c.raw.Projects.HmacKeys.List(project)
+		setClientHeader(call.Header())
+		if pageToken != "" {
+			call = call.PageToken(pageToken)
+		}
+		if pageSize > 0 {
+			call = call.MaxResults(int64(pageSize))
+		}
+		if showDeletedKeys {
+			call = call.ShowDeletedKeys(true)
+		}
+		if s.userProject != "" {
+			call = call.UserProject(s.userProject)
+		}
+		if serviceAccountEmail != "" {
+			call = call.ServiceAccountEmail(serviceAccountEmail)
+		}
+
+		var resp *raw.HmacKeysMetadata
+		err = run(it.ctx, func() error {
+			resp, err = call.Context(it.ctx).Do()
+			return err
+		}, s.retry, s.idempotent, setRetryHeaderHTTP(call))
+		if err != nil {
+			return "", err
+		}
+
+		for _, metadata := range resp.Items {
+			hk := &raw.HmacKey{
+				Metadata: metadata,
+			}
+			hkey, err := toHMACKeyFromRaw(hk, true)
+			if err != nil {
+				return "", err
+			}
+			it.hmacKeys = append(it.hmacKeys, hkey)
+		}
+		return resp.NextPageToken, nil
+	}
+
+	it.pageInfo, it.nextFunc = iterator.NewPageInfo(
+		fetch,
+		func() int { return len(it.hmacKeys) - it.index },
+		func() interface{} {
+			prev := it.hmacKeys
+			it.hmacKeys = it.hmacKeys[:0]
+			it.index = 0
+			return prev
+		})
+	return it
 }
-func (c *httpStorageClient) UpdateHMACKey(ctx context.Context, desc *hmacKeyDesc, attrs *HMACKeyAttrsToUpdate, opts ...storageOption) (*HMACKey, error) {
-	return nil, errMethodNotSupported
+
+func (c *httpStorageClient) UpdateHMACKey(ctx context.Context, project, serviceAccountEmail, accessID string, attrs *HMACKeyAttrsToUpdate, opts ...storageOption) (*HMACKey, error) {
+	s := callSettings(c.settings, opts...)
+	call := c.raw.Projects.HmacKeys.Update(project, accessID, &raw.HmacKeyMetadata{
+		Etag:  attrs.Etag,
+		State: string(attrs.State),
+	})
+	if s.userProject != "" {
+		call = call.UserProject(s.userProject)
+	}
+
+	var metadata *raw.HmacKeyMetadata
+	var err error
+	if err := run(ctx, func() error {
+		metadata, err = call.Context(ctx).Do()
+		return err
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(call)); err != nil {
+		return nil, err
+	}
+	hk := &raw.HmacKey{
+		Metadata: metadata,
+	}
+	return toHMACKeyFromRaw(hk, false)
 }
-func (c *httpStorageClient) CreateHMACKey(ctx context.Context, desc *hmacKeyDesc, opts ...storageOption) (*HMACKey, error) {
-	return nil, errMethodNotSupported
+
+func (c *httpStorageClient) CreateHMACKey(ctx context.Context, project, serviceAccountEmail string, opts ...storageOption) (*HMACKey, error) {
+	s := callSettings(c.settings, opts...)
+	call := c.raw.Projects.HmacKeys.Create(project, serviceAccountEmail)
+	if s.userProject != "" {
+		call = call.UserProject(s.userProject)
+	}
+
+	var hk *raw.HmacKey
+	if err := run(ctx, func() error {
+		h, err := call.Context(ctx).Do()
+		hk = h
+		return err
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(call)); err != nil {
+		return nil, err
+	}
+	return toHMACKeyFromRaw(hk, true)
 }
-func (c *httpStorageClient) DeleteHMACKey(ctx context.Context, desc *hmacKeyDesc, opts ...storageOption) error {
-	return errMethodNotSupported
+
+func (c *httpStorageClient) DeleteHMACKey(ctx context.Context, project string, accessID string, opts ...storageOption) error {
+	s := callSettings(c.settings, opts...)
+	call := c.raw.Projects.HmacKeys.Delete(project, accessID)
+	if s.userProject != "" {
+		call = call.UserProject(s.userProject)
+	}
+	return run(ctx, func() error {
+		return call.Context(ctx).Do()
+	}, s.retry, s.idempotent, setRetryHeaderHTTP(call))
 }
 
 // Notification methods.
@@ -1113,4 +1223,196 @@ func (r *httpReader) Read(p []byte) (int, error) {
 
 func (r *httpReader) Close() error {
 	return r.body.Close()
+}
+
+func setRangeReaderHeaders(h http.Header, params *newRangeReaderParams) error {
+	if params.readCompressed {
+		h.Set("Accept-Encoding", "gzip")
+	}
+	if err := setEncryptionHeaders(h, params.encryptionKey, false); err != nil {
+		return err
+	}
+	return nil
+}
+
+// readerReopen initiates a Read with offset and length, assuming we
+// have already read seen bytes.
+func readerReopen(ctx context.Context, header http.Header, params *newRangeReaderParams, s *settings,
+	doDownload func() (*http.Response, error), applyConditions func() error, setGeneration func()) func(int64) (*http.Response, error) {
+	return func(seen int64) (*http.Response, error) {
+		// If the context has already expired, return immediately without making a
+		// call.
+		if err := ctx.Err(); err != nil {
+			return nil, err
+		}
+		start := params.offset + seen
+		if params.length < 0 && start < 0 {
+			header.Set("Range", fmt.Sprintf("bytes=%d", start))
+		} else if params.length < 0 && start > 0 {
+			header.Set("Range", fmt.Sprintf("bytes=%d-", start))
+		} else if params.length > 0 {
+			// The end character isn't affected by how many bytes we've seen.
+			header.Set("Range", fmt.Sprintf("bytes=%d-%d", start, params.offset+params.length-1))
+		}
+		// We wait to assign conditions here because the generation number can change in between reopen() runs.
+		if err := applyConditions(); err != nil {
+			return nil, err
+		}
+		// If an object generation is specified, include generation as query string parameters.
+		if params.gen >= 0 {
+			setGeneration()
+		}
+
+		var err error
+		var res *http.Response
+		err = run(ctx, func() error {
+			res, err = doDownload()
+			if err != nil {
+				var e *googleapi.Error
+				if errors.As(err, &e) {
+					if e.Code == http.StatusNotFound {
+						return ErrObjectNotExist
+					}
+				}
+				return err
+			}
+
+			if res.StatusCode == http.StatusNotFound {
+				// this check is necessary only for XML
+				res.Body.Close()
+				return ErrObjectNotExist
+			}
+			if res.StatusCode < 200 || res.StatusCode > 299 {
+				body, _ := ioutil.ReadAll(res.Body)
+				res.Body.Close()
+				return &googleapi.Error{
+					Code:   res.StatusCode,
+					Header: res.Header,
+					Body:   string(body),
+				}
+			}
+
+			partialContentNotSatisfied :=
+				!decompressiveTranscoding(res) &&
+					start > 0 && params.length != 0 &&
+					res.StatusCode != http.StatusPartialContent
+
+			if partialContentNotSatisfied {
+				res.Body.Close()
+				return errors.New("storage: partial request not satisfied")
+			}
+
+			// With "Content-Encoding": "gzip" aka decompressive transcoding, GCS serves
+			// back the whole file regardless of the range count passed in as per:
+			//      https://cloud.google.com/storage/docs/transcoding#range,
+			// thus we have to manually move the body forward by seen bytes.
+			if decompressiveTranscoding(res) && seen > 0 {
+				_, _ = io.CopyN(ioutil.Discard, res.Body, seen)
+			}
+
+			// If a generation hasn't been specified, and this is the first response we get, let's record the
+			// generation. In future requests we'll use this generation as a precondition to avoid data races.
+			if params.gen < 0 && res.Header.Get("X-Goog-Generation") != "" {
+				gen64, err := strconv.ParseInt(res.Header.Get("X-Goog-Generation"), 10, 64)
+				if err != nil {
+					return err
+				}
+				params.gen = gen64
+			}
+			return nil
+		}, s.retry, s.idempotent, setRetryHeaderHTTP(nil))
+		if err != nil {
+			return nil, err
+		}
+		return res, nil
+	}
+}
+
+func parseReadResponse(res *http.Response, params *newRangeReaderParams, reopen func(int64) (*http.Response, error)) (*Reader, error) {
+	var err error
+	var (
+		size        int64 // total size of object, even if a range was requested.
+		checkCRC    bool
+		crc         uint32
+		startOffset int64 // non-zero if range request.
+	)
+	if res.StatusCode == http.StatusPartialContent {
+		cr := strings.TrimSpace(res.Header.Get("Content-Range"))
+		if !strings.HasPrefix(cr, "bytes ") || !strings.Contains(cr, "/") {
+			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
+		}
+		// Content range is formatted <first byte>-<last byte>/<total size>. We take
+		// the total size.
+		size, err = strconv.ParseInt(cr[strings.LastIndex(cr, "/")+1:], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("storage: invalid Content-Range %q", cr)
+		}
+
+		dashIndex := strings.Index(cr, "-")
+		if dashIndex >= 0 {
+			startOffset, err = strconv.ParseInt(cr[len("bytes="):dashIndex], 10, 64)
+			if err != nil {
+				return nil, fmt.Errorf("storage: invalid Content-Range %q: %w", cr, err)
+			}
+		}
+	} else {
+		size = res.ContentLength
+		// Check the CRC iff all of the following hold:
+		// - We asked for content (length != 0).
+		// - We got all the content (status != PartialContent).
+		// - The server sent a CRC header.
+		// - The Go http stack did not uncompress the file.
+		// - We were not served compressed data that was uncompressed on download.
+		// The problem with the last two cases is that the CRC will not match -- GCS
+		// computes it on the compressed contents, but we compute it on the
+		// uncompressed contents.
+		if params.length != 0 && !res.Uncompressed && !uncompressedByServer(res) {
+			crc, checkCRC = parseCRC32c(res)
+		}
+	}
+
+	remain := res.ContentLength
+	body := res.Body
+	if params.length == 0 {
+		remain = 0
+		body.Close()
+		body = emptyBody
+	}
+	var metaGen int64
+	if res.Header.Get("X-Goog-Metageneration") != "" {
+		metaGen, err = strconv.ParseInt(res.Header.Get("X-Goog-Metageneration"), 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var lm time.Time
+	if res.Header.Get("Last-Modified") != "" {
+		lm, err = http.ParseTime(res.Header.Get("Last-Modified"))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	attrs := ReaderObjectAttrs{
+		Size:            size,
+		ContentType:     res.Header.Get("Content-Type"),
+		ContentEncoding: res.Header.Get("Content-Encoding"),
+		CacheControl:    res.Header.Get("Cache-Control"),
+		LastModified:    lm,
+		StartOffset:     startOffset,
+		Generation:      params.gen,
+		Metageneration:  metaGen,
+	}
+	return &Reader{
+		Attrs:    attrs,
+		size:     size,
+		remain:   remain,
+		wantCRC:  crc,
+		checkCRC: checkCRC,
+		reader: &httpReader{
+			reopen: reopen,
+			body:   body,
+		},
+	}, nil
 }

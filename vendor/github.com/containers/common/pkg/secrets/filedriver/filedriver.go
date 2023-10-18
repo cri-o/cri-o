@@ -26,7 +26,7 @@ type Driver struct {
 	// secretsDataFilePath is the path to the secretsfile
 	secretsDataFilePath string
 	// lockfile is the filedriver lockfile
-	lockfile lockfile.Locker
+	lockfile *lockfile.LockFile
 }
 
 // NewDriver creates a new file driver.
@@ -39,7 +39,7 @@ func NewDriver(rootPath string) (*Driver, error) {
 		return nil, err
 	}
 
-	lock, err := lockfile.GetLockfile(filepath.Join(rootPath, "secretsdata.lock"))
+	lock, err := lockfile.GetLockFile(filepath.Join(rootPath, "secretsdata.lock"))
 	if err != nil {
 		return nil, err
 	}

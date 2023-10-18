@@ -46,7 +46,7 @@ type Github struct {
 // LatestVersion returns the latest non-draft, non-prerelease Github Release
 // for the given repository (depending on the Constraints if set).
 //
-// Authentication
+// # Authentication
 //
 // The Github API allows unauthenticated requests, but the API limits are very
 // strict: https://developer.github.com/v3/#rate-limiting

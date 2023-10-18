@@ -21,21 +21,17 @@ import (
 	"crypto/hmac"
 	"crypto/rsa"
 	"crypto/x509"
-	"encoding/asn1"
-	"errors"
 	"fmt"
-	"math/big"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sassoftware/relic/lib/x509tools"
-	"github.com/sassoftware/relic/signers/sigerrors"
 )
 
 type Signature struct {
 	SignerInfo    *SignerInfo
 	Certificate   *x509.Certificate
 	Intermediates []*x509.Certificate
-	CertError     error
 }
 
 // Verify the content in a SignedData structure. External content may be
@@ -63,29 +59,20 @@ func (sd *SignedData) Verify(externalContent []byte, skipDigests bool) (Signatur
 			}
 		}
 	}
-	if len(sd.SignerInfos) == 0 {
-		return Signature{}, sigerrors.NotSignedError{Type: "pkcs7"}
+	certs, err := sd.Certificates.Parse()
+	if err != nil {
+		return Signature{}, fmt.Errorf("pkcs7: %s", err)
+	} else if len(certs) == 0 {
+		return Signature{}, errors.New("pkcs7: certificate missing from signedData")
 	}
-	certs, certErr := sd.Certificates.Parse()
-	// postpone handling of cert parse error until something is actually missing
 	var cert *x509.Certificate
 	var sig Signature
 	for _, si := range sd.SignerInfos {
-		var err error
 		cert, err = si.Verify(content, skipDigests, certs)
 		if err != nil {
-			if errors.As(err, &MissingCertificateError{}) && certErr != nil {
-				// now surface the parse error
-				err = certErr
-			}
 			return Signature{}, err
 		}
-		sig = Signature{
-			SignerInfo:    &si,
-			Certificate:   cert,
-			Intermediates: certs,
-			CertError:     certErr,
-		}
+		sig = Signature{&si, cert, certs}
 	}
 	return sig, nil
 }
@@ -98,17 +85,7 @@ func (si *SignerInfo) FindCertificate(certs []*x509.Certificate) (*x509.Certific
 			return cert, nil
 		}
 	}
-	return nil, MissingCertificateError{Issuer: is.IssuerName, SerialNumber: is.SerialNumber}
-}
-
-type MissingCertificateError struct {
-	Issuer       asn1.RawValue
-	SerialNumber *big.Int
-}
-
-func (e MissingCertificateError) Error() string {
-	name := x509tools.FormatPkixName(e.Issuer.FullBytes, x509tools.NameStyleLdap)
-	return fmt.Sprintf("certificate missing from signedData: serial=%x issuer: %s", e.SerialNumber, name)
+	return nil, errors.New("pkcs7: certificate missing from signedData")
 }
 
 // Verify the signature contained in this SignerInfo and return the leaf
@@ -116,7 +93,7 @@ func (e MissingCertificateError) Error() string {
 func (si *SignerInfo) Verify(content []byte, skipDigests bool, certs []*x509.Certificate) (*x509.Certificate, error) {
 	hash, err := x509tools.PkixDigestToHashE(si.DigestAlgorithm)
 	if err != nil {
-		return nil, fmt.Errorf("pkcs7: %w", err)
+		return nil, errors.Wrap(err, "pkcs7")
 	}
 	var digest []byte
 	if !skipDigests {
@@ -134,9 +111,9 @@ func (si *SignerInfo) Verify(content []byte, skipDigests bool, certs []*x509.Cer
 		}
 		// now pivot to verifying the hash over the authenticated attributes
 		w := hash.New()
-		attrbytes, err := si.AuthenticatedAttributesBytes()
+		attrbytes, err := si.AuthenticatedAttributes.Bytes()
 		if err != nil {
-			return nil, fmt.Errorf("verifying authenticated attributes: %w", err)
+			return nil, err
 		}
 		w.Write(attrbytes)
 		digest = w.Sum(nil)
@@ -181,12 +158,5 @@ func (info Signature) VerifyChain(roots *x509.CertPool, extraCerts []*x509.Certi
 		KeyUsages:     []x509.ExtKeyUsage{usage},
 	}
 	_, err := info.Certificate.Verify(opts)
-	if err == nil {
-		return nil
-	}
-	if e := new(x509.UnknownAuthorityError); errors.As(err, e) && info.CertError != nil {
-		// surface a saved cert parse error
-		return fmt.Errorf("%w: after failing to parse a bundled certificate: %s", err, info.CertError)
-	}
 	return err
 }

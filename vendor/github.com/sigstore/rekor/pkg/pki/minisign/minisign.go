@@ -182,3 +182,13 @@ func (k PublicKey) EmailAddresses() []string {
 func (k PublicKey) Subjects() []string {
 	return nil
 }
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	// returns base64-encoded key (sig alg, key ID, and public key)
+	key, err := k.CanonicalValue()
+	if err != nil {
+		return nil, err
+	}
+	return []string{string(key)}, nil
+}

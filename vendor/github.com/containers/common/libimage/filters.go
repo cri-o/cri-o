@@ -81,7 +81,7 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 	var tree *layerTree
 	getTree := func() (*layerTree, error) {
 		if tree == nil {
-			t, err := r.layerTree()
+			t, err := r.layerTree(nil)
 			if err != nil {
 				return nil, err
 			}
@@ -145,6 +145,9 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 
 		case "id":
 			filter = filterID(value)
+
+		case "digest":
+			filter = filterDigest(value)
 
 		case "intermediate":
 			intermediate, err := r.bool(duplicate, key, value)
@@ -380,6 +383,13 @@ func filterDangling(ctx context.Context, value bool, tree *layerTree) filterFunc
 func filterID(value string) filterFunc {
 	return func(img *Image) (bool, error) {
 		return img.ID() == value, nil
+	}
+}
+
+// filterDigest creates an digest filter for matching the specified value.
+func filterDigest(value string) filterFunc {
+	return func(img *Image) (bool, error) {
+		return string(img.Digest()) == value, nil
 	}
 }
 

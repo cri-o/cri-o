@@ -212,7 +212,7 @@ func createBasicSlirp4netnsCmdArgs(options *slirp4netnsNetworkOptions, features 
 }
 
 // setupSlirp4netns can be called in rootful as well as in rootless
-func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
+func (r *Runtime) setupSlirp4netns(ctr *Container, netns string) error {
 	path := r.config.Engine.NetworkCmdPath
 	if path == "" {
 		var err error
@@ -249,7 +249,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 		return err
 	}
 
-	// the slirp4netns arguments being passed are describes as follows:
+	// the slirp4netns arguments being passed are described as follows:
 	// from the slirp4netns documentation: https://github.com/rootless-containers/slirp4netns
 	// -c, --configure Brings up the tap interface
 	// -e, --exit-fd=FD specify the FD for terminating slirp4netns
@@ -267,7 +267,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 		if err != nil {
 			return fmt.Errorf("failed to create rootless network sync pipe: %w", err)
 		}
-		netnsPath = netns.Path()
+		netnsPath = netns
 		cmdArgs = append(cmdArgs, "--netns-type=path", netnsPath, "tap0")
 	} else {
 		defer errorhandling.CloseQuiet(ctr.rootlessSlirpSyncR)
@@ -317,7 +317,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 		go func() {
 			err := ns.WithNetNSPath(netnsPath, func(_ ns.NetNS) error {
 				// Duplicate Address Detection slows the ipv6 setup down for 1-2 seconds.
-				// Since slirp4netns is run it is own namespace and not directly routed
+				// Since slirp4netns is run in its own namespace and not directly routed
 				// we can skip this to make the ipv6 address immediately available.
 				// We change the default to make sure the slirp tap interface gets the
 				// correct value assigned so DAD is disabled for it
@@ -326,7 +326,7 @@ func (r *Runtime) setupSlirp4netns(ctr *Container, netns ns.NetNS) error {
 				orgValue, err := os.ReadFile(ipv6ConfDefaultAcceptDadSysctl)
 				if err != nil {
 					netnsReadyWg.Done()
-					// on ipv6 disabled systems the sysctl does not exists
+					// on ipv6 disabled systems the sysctl does not exist
 					// so we should not error
 					if errors.Is(err, os.ErrNotExist) {
 						return nil

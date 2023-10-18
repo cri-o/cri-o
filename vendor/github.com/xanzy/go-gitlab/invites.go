@@ -107,10 +107,11 @@ func (s *InvitesService) ListPendingProjectInvitations(pid interface{}, opt *Lis
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 type InvitesOptions struct {
 	ID          interface{}       `url:"id,omitempty" json:"id,omitempty"`
 	Email       *string           `url:"email,omitempty" json:"email,omitempty"`
+	UserID      interface{}       `url:"user_id,omitempty" json:"user_id,omitempty"`
 	AccessLevel *AccessLevelValue `url:"access_level,omitempty" json:"access_level,omitempty"`
 	ExpiresAt   *ISOTime          `url:"expires_at,omitempty" json:"expires_at,omitempty"`
 }
@@ -118,7 +119,7 @@ type InvitesOptions struct {
 // InvitesResult represents an invitations result.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 type InvitesResult struct {
 	Status  string            `json:"status"`
 	Message map[string]string `json:"message,omitempty"`
@@ -127,7 +128,7 @@ type InvitesResult struct {
 // GroupInvites invites new users by email to join a group.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 func (s *InvitesService) GroupInvites(gid interface{}, opt *InvitesOptions, options ...RequestOptionFunc) (*InvitesResult, *Response, error) {
 	group, err := parseID(gid)
 	if err != nil {
@@ -152,7 +153,7 @@ func (s *InvitesService) GroupInvites(gid interface{}, opt *InvitesOptions, opti
 // ProjectInvites invites new users by email to join a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/invitations.html#invite-by-email-to-group-or-project
+// https://docs.gitlab.com/ee/api/invitations.html#add-a-member-to-a-group-or-project
 func (s *InvitesService) ProjectInvites(pid interface{}, opt *InvitesOptions, options ...RequestOptionFunc) (*InvitesResult, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

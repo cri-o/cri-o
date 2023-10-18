@@ -12,7 +12,22 @@ import (
 	"sort"
 
 	"github.com/open-policy-agent/opa/ast"
+	"github.com/open-policy-agent/opa/internal/future"
 )
+
+// Opts lets you control the code formatting via `AstWithOpts()`.
+type Opts struct {
+	// IgnoreLocations instructs the formatter not to use the AST nodes' locations
+	// into account when laying out the code: notably, when the input is the result
+	// of partial evaluation, arguments maybe have been shuffled around, but still
+	// carry along their original source locations.
+	IgnoreLocations bool
+}
+
+// defaultLocationFile is the file name used in `Ast()` for terms
+// without a location, as could happen when pretty-printing the
+// results of partial eval.
+const defaultLocationFile = "__format_default__"
 
 // Source formats a Rego source file. The bytes provided must describe a complete
 // Rego module. If they don't, Source will return an error resulting from the attempt
@@ -43,13 +58,33 @@ func MustAst(x interface{}) []byte {
 // element, Ast returns nil and an error. If AST nodes are missing locations
 // an arbitrary location will be used.
 func Ast(x interface{}) ([]byte, error) {
+	return AstWithOpts(x, Opts{})
+}
 
+func AstWithOpts(x interface{}, opts Opts) ([]byte, error) {
 	// The node has to be deep copied because it may be mutated below. Alternatively,
 	// we could avoid the copy by checking if mutation will occur first. For now,
 	// since format is not latency sensitive, just deep copy in all cases.
 	x = ast.Copy(x)
 
 	wildcards := map[ast.Var]*ast.Term{}
+
+	// NOTE(sr): When the formatter encounters a call to internal.member_2
+	// or internal.member_3, it will sugarize them into usage of the `in`
+	// operator. It has to ensure that the proper future keyword import is
+	// present.
+	extraFutureKeywordImports := map[string]struct{}{}
+
+	// When the future keyword "contains" is imported, all the pretty-printed
+	// modules will use that format for partial sets.
+	// NOTE(sr): For ref-head rules, this will be the default behaviour, since
+	// we need "contains" to disambiguate complete rules from partial sets.
+	useContainsKW := false
+
+	// Same logic applies as for "contains": if `future.keywords.if` (or all
+	// future keywords) is imported, we'll render rules that can use `if` with
+	// `if`.
+	useIf := false
 
 	// Preprocess the AST. Set any required defaults and calculate
 	// values required for printing the formatted output.
@@ -61,8 +96,28 @@ func Ast(x interface{}) ([]byte, error) {
 			}
 		case *ast.Term:
 			unmangleWildcardVar(wildcards, n)
+
+		case *ast.Expr:
+			switch {
+			case n.IsCall() && ast.Member.Ref().Equal(n.Operator()) || ast.MemberWithKey.Ref().Equal(n.Operator()):
+				extraFutureKeywordImports["in"] = struct{}{}
+			case n.IsEvery():
+				extraFutureKeywordImports["every"] = struct{}{}
+			}
+
+		case *ast.Import:
+			switch {
+			case future.IsAllFutureKeywords(n):
+				useContainsKW = true
+				useIf = true
+			case future.IsFutureKeyword(n, "contains"):
+				useContainsKW = true
+			case future.IsFutureKeyword(n, "if"):
+				useIf = true
+			}
 		}
-		if x.Loc() == nil {
+
+		if opts.IgnoreLocations || x.Loc() == nil {
 			x.SetLoc(defaultLocation(x))
 		}
 		return false
@@ -74,21 +129,29 @@ func Ast(x interface{}) ([]byte, error) {
 
 	switch x := x.(type) {
 	case *ast.Module:
-		w.writeModule(x)
+		for kw := range extraFutureKeywordImports {
+			x.Imports = ensureFutureKeywordImport(x.Imports, kw)
+		}
+		w.writeModule(x, useContainsKW, useIf)
 	case *ast.Package:
 		w.writePackage(x, nil)
 	case *ast.Import:
 		w.writeImports([]*ast.Import{x}, nil)
 	case *ast.Rule:
-		w.writeRule(x, false, nil)
+		w.writeRule(x, false /* isElse */, useContainsKW, useIf, nil)
 	case *ast.Head:
-		w.writeHead(x, false, false, nil)
+		w.writeHead(x,
+			false, // isDefault
+			false, // isExpandedConst
+			useContainsKW,
+			useIf,
+			nil)
 	case ast.Body:
 		w.writeBody(x, nil)
 	case *ast.Expr:
 		w.writeExpr(x, nil)
 	case *ast.With:
-		w.writeWith(x, nil)
+		w.writeWith(x, nil, false)
 	case *ast.Term:
 		w.writeTerm(x, nil)
 	case ast.Value:
@@ -138,7 +201,7 @@ func squashTrailingNewlines(bs []byte) []byte {
 }
 
 func defaultLocation(x ast.Node) *ast.Location {
-	return ast.NewLocation([]byte(x.String()), "", 1, 1)
+	return ast.NewLocation([]byte(x.String()), defaultLocationFile, 1, 1)
 }
 
 type writer struct {
@@ -151,7 +214,7 @@ type writer struct {
 	delay     bool
 }
 
-func (w *writer) writeModule(module *ast.Module) {
+func (w *writer) writeModule(module *ast.Module, useContainsKW, useIf bool) {
 	var pkg *ast.Package
 	var others []interface{}
 	var comments []*ast.Comment
@@ -190,7 +253,7 @@ func (w *writer) writeModule(module *ast.Module) {
 		imports, others = gatherImports(others)
 		comments = w.writeImports(imports, comments)
 		rules, others = gatherRules(others)
-		comments = w.writeRules(rules, comments)
+		comments = w.writeRules(rules, useContainsKW, useIf, comments)
 	}
 
 	for i, c := range comments {
@@ -220,16 +283,16 @@ func (w *writer) writeComments(comments []*ast.Comment) {
 	}
 }
 
-func (w *writer) writeRules(rules []*ast.Rule, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRules(rules []*ast.Rule, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
 	for _, rule := range rules {
 		comments = w.insertComments(comments, rule.Location)
-		comments = w.writeRule(rule, false, comments)
+		comments = w.writeRule(rule, false, useContainsKW, useIf, comments)
 		w.blankLine()
 	}
 	return comments
 }
 
-func (w *writer) writeRule(rule *ast.Rule, isElse bool, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeRule(rule *ast.Rule, isElse, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
 	if rule == nil {
 		return comments
 	}
@@ -248,13 +311,30 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, comments []*ast.Comment)
 	// pretend that the rule has no body in this case.
 	isExpandedConst := rule.Body.Equal(ast.NewBody(ast.NewExpr(ast.BooleanTerm(true)))) && rule.Else == nil
 
-	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, comments)
+	comments = w.writeHead(rule.Head, rule.Default, isExpandedConst, useContainsKW, useIf, comments)
+
+	// this excludes partial sets UNLESS `contains` is used
+	partialSetException := useContainsKW || rule.Head.Value != nil
 
 	if (len(rule.Body) == 0 || isExpandedConst) && !isElse {
 		w.endLine()
 		return comments
 	}
 
+	if useIf && partialSetException {
+		w.write(" if")
+		if len(rule.Body) == 1 {
+			if rule.Body[0].Location.Row == rule.Head.Location.Row {
+				w.write(" ")
+				comments = w.writeExpr(rule.Body[0], comments)
+				w.endLine()
+				if rule.Else != nil {
+					comments = w.writeElse(rule, useContainsKW, useIf, comments)
+				}
+				return comments
+			}
+		}
+	}
 	w.write(" {")
 	w.endLine()
 	w.up()
@@ -265,8 +345,10 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, comments []*ast.Comment)
 
 	if len(rule.Head.Args) > 0 {
 		closeLoc = closingLoc('(', ')', '{', '}', rule.Location)
-	} else {
+	} else if rule.Head.Key != nil {
 		closeLoc = closingLoc('[', ']', '{', '}', rule.Location)
+	} else {
+		closeLoc = closingLoc(0, 0, '{', '}', rule.Location)
 	}
 
 	comments = w.insertComments(comments, closeLoc)
@@ -275,12 +357,12 @@ func (w *writer) writeRule(rule *ast.Rule, isElse bool, comments []*ast.Comment)
 	w.startLine()
 	w.write("}")
 	if rule.Else != nil {
-		comments = w.writeElse(rule, comments)
+		comments = w.writeElse(rule, useContainsKW, useIf, comments)
 	}
 	return comments
 }
 
-func (w *writer) writeElse(rule *ast.Rule, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeElse(rule *ast.Rule, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
 	// If there was nothing else on the line before the "else" starts
 	// then preserve this style of else block, otherwise it will be
 	// started as an "inline" else eg:
@@ -341,10 +423,10 @@ func (w *writer) writeElse(rule *ast.Rule, comments []*ast.Comment) []*ast.Comme
 		rule.Else.Head.Value.Location = rule.Else.Head.Location
 	}
 
-	return w.writeRule(rule.Else, true, comments)
+	return w.writeRule(rule.Else, true, useContainsKW, useIf, comments)
 }
 
-func (w *writer) writeHead(head *ast.Head, isDefault bool, isExpandedConst bool, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeHead(head *ast.Head, isDefault, isExpandedConst, useContainsKW, useIf bool, comments []*ast.Comment) []*ast.Comment {
 	w.write(head.Name.String())
 	if len(head.Args) > 0 {
 		w.write("(")
@@ -356,9 +438,14 @@ func (w *writer) writeHead(head *ast.Head, isDefault bool, isExpandedConst bool,
 		w.write(")")
 	}
 	if head.Key != nil {
-		w.write("[")
-		comments = w.writeTerm(head.Key, comments)
-		w.write("]")
+		if useContainsKW && head.Value == nil {
+			w.write(" contains ")
+			comments = w.writeTerm(head.Key, comments)
+		} else { // no `if` for p[x] notation
+			w.write("[")
+			comments = w.writeTerm(head.Key, comments)
+			w.write("]")
+		}
 	}
 	if head.Value != nil && (head.Key != nil || ast.Compare(head.Value, ast.BooleanTerm(true)) != 0 || isExpandedConst || isDefault) {
 		if head.Assign {
@@ -384,10 +471,19 @@ func (w *writer) insertComments(comments []*ast.Comment, loc *ast.Location) []*a
 
 func (w *writer) writeBody(body ast.Body, comments []*ast.Comment) []*ast.Comment {
 	comments = w.insertComments(comments, body.Loc())
-	offset := 0
 	for i, expr := range body {
-		if i > 0 && expr.Location.Row-body[i-1].Location.Row-offset > 1 {
-			w.blankLine()
+		// Insert a blank line in before the expression if it was not right
+		// after the previous expression.
+		if i > 0 {
+			lastRow := body[i-1].Location.Row
+			for _, c := range body[i-1].Location.Text {
+				if c == '\n' {
+					lastRow++
+				}
+			}
+			if expr.Location.Row > lastRow+1 {
+				w.blankLine()
+			}
 		}
 		w.startLine()
 
@@ -410,6 +506,8 @@ func (w *writer) writeExpr(expr *ast.Expr, comments []*ast.Comment) []*ast.Comme
 	switch t := expr.Terms.(type) {
 	case *ast.SomeDecl:
 		comments = w.writeSomeDecl(t, comments)
+	case *ast.Every:
+		comments = w.writeEvery(t, comments)
 	case []*ast.Term:
 		comments = w.writeFunctionCall(expr, comments)
 	case *ast.Term:
@@ -418,7 +516,9 @@ func (w *writer) writeExpr(expr *ast.Expr, comments []*ast.Comment) []*ast.Comme
 
 	var indented bool
 	for i, with := range expr.With {
-		if i > 0 && with.Location.Row-expr.With[i-1].Location.Row > 0 {
+		if i == 0 || with.Location.Row == expr.With[i-1].Location.Row { // we're on the same line
+			comments = w.writeWith(with, comments, false)
+		} else { // we're on a new line
 			if !indented {
 				indented = true
 
@@ -427,8 +527,8 @@ func (w *writer) writeExpr(expr *ast.Expr, comments []*ast.Comment) []*ast.Comme
 			}
 			w.endLine()
 			w.startLine()
+			comments = w.writeWith(with, comments, true)
 		}
-		comments = w.writeWith(with, comments)
 	}
 
 	return comments
@@ -462,6 +562,27 @@ func (w *writer) writeSomeDecl(decl *ast.SomeDecl, comments []*ast.Comment) []*a
 		}
 	}
 
+	return comments
+}
+
+func (w *writer) writeEvery(every *ast.Every, comments []*ast.Comment) []*ast.Comment {
+	comments = w.insertComments(comments, every.Location)
+	w.write("every ")
+	if every.Key != nil {
+		comments = w.writeTerm(every.Key, comments)
+		w.write(", ")
+	}
+	comments = w.writeTerm(every.Value, comments)
+	w.write(" in ")
+	comments = w.writeTerm(every.Domain, comments)
+	w.write(" {")
+	comments = w.writeComprehensionBody('{', '}', every.Body, every.Loc(), every.Loc(), comments)
+
+	if len(every.Body) == 1 &&
+		every.Body[0].Location.Row == every.Location.Row {
+		w.write(" ")
+	}
+	w.write("}")
 	return comments
 }
 
@@ -511,9 +632,12 @@ func (w *writer) writeFunctionCallPlain(terms []*ast.Term, comments []*ast.Comme
 	return w.writeIterable(args, loc, closingLoc(0, 0, '(', ')', loc), comments, w.listWriter())
 }
 
-func (w *writer) writeWith(with *ast.With, comments []*ast.Comment) []*ast.Comment {
+func (w *writer) writeWith(with *ast.With, comments []*ast.Comment, indented bool) []*ast.Comment {
 	comments = w.insertComments(comments, with.Location)
-	w.write(" with ")
+	if !indented {
+		w.write(" ")
+	}
+	w.write("with ")
 	comments = w.writeTerm(with.Target, comments)
 	w.write(" as ")
 	return w.writeTerm(with.Value, comments)
@@ -570,14 +694,16 @@ func (w *writer) writeRef(x ast.Ref) {
 	if len(x) > 0 {
 		w.writeTerm(x[0], nil)
 		path := x[1:]
-		for _, p := range path {
-			switch p := p.Value.(type) {
+		for _, t := range path {
+			switch p := t.Value.(type) {
 			case ast.String:
 				w.writeRefStringPath(p)
 			case ast.Var:
 				w.writeBracketed(w.formatVar(p))
 			default:
-				w.writeBracketed(p.String())
+				w.write("[")
+				w.writeTerm(t, nil)
+				w.write("]")
 			}
 		}
 	}
@@ -737,7 +863,7 @@ func (w *writer) writeComprehension(open, close byte, term *ast.Term, body ast.B
 }
 
 func (w *writer) writeComprehensionBody(open, close byte, body ast.Body, term, compr *ast.Location, comments []*ast.Comment) []*ast.Comment {
-	var exprs []interface{}
+	exprs := make([]interface{}, 0, len(body))
 	for _, expr := range body {
 		exprs = append(exprs, expr)
 	}
@@ -854,24 +980,40 @@ func (w *writer) listWriter() entryWriter {
 // location: anything on the same line will be put into a slice.
 func groupIterable(elements []interface{}, last *ast.Location) [][]interface{} {
 	// Generated vars occur in the AST when we're rendering the result of
-	// partial evaluation in a bundle build with optimization. For those vars,
-	// there is no location, and the grouping based on source location will
-	// yield a bad result. So if there's a generated variable among elements,
-	// we'll render the elements all in one line.
-	vis := ast.NewVarVisitor()
+	// partial evaluation in a bundle build with optimization.
+	// Those variables, and wildcard variables have the "default location",
+	// set in `Ast()`). That is no proper file location, and the grouping
+	// based on source location will yield a bad result.
+	// Another case is generated variables: they do have proper file locations,
+	// but their row/col information may no longer match their AST location.
+	// So, for generated variables, we also don't trust the location, but
+	// keep them ungrouped.
+	def := false // default location found?
 	for _, elem := range elements {
-		vis.Walk(elem)
-	}
-	for v := range vis.Vars() {
-		if v.IsGenerated() {
+		ast.WalkTerms(elem, func(t *ast.Term) bool {
+			if t.Location.File == defaultLocationFile {
+				def = true
+				return true
+			}
+			return false
+		})
+		ast.WalkVars(elem, func(v ast.Var) bool {
+			if v.IsGenerated() {
+				def = true
+				return true
+			}
+			return false
+		})
+		if def { // return as-is
 			return [][]interface{}{elements}
 		}
 	}
 	sort.Slice(elements, func(i, j int) bool {
 		return locLess(elements[i], elements[j])
 	})
+
 	var lines [][]interface{}
-	var cur []interface{}
+	cur := make([]interface{}, 0, len(elements))
 	for i, t := range elements {
 		elem := t
 		loc := getLoc(elem)
@@ -908,20 +1050,30 @@ func mapImportsToComments(imports []*ast.Import, comments []*ast.Comment) (map[*
 	return m, leftovers
 }
 
-func groupImports(imports []*ast.Import) (groups [][]*ast.Import) {
-	if len(imports) == 0 {
+func groupImports(imports []*ast.Import) [][]*ast.Import {
+	switch len(imports) { // shortcuts
+	case 0:
 		return nil
+	case 1:
+		return [][]*ast.Import{imports}
 	}
+	// there are >=2 imports to group
 
-	last := imports[0]
-	var group []*ast.Import
-	for _, i := range imports {
-		if i.Loc().Row-last.Loc().Row > 1 {
+	var groups [][]*ast.Import
+	group := []*ast.Import{imports[0]}
+
+	for _, i := range imports[1:] {
+		last := group[len(group)-1]
+
+		// nil-location imports have been sorted up to come first
+		if i.Loc() != nil && last.Loc() != nil && // first import with a location, or
+			i.Loc().Row-last.Loc().Row > 1 { // more than one row apart from previous import
+
+			// start a new group
 			groups = append(groups, group)
 			group = []*ast.Import{}
 		}
 		group = append(group, i)
-		last = i
 	}
 	if len(group) > 0 {
 		groups = append(groups, group)
@@ -980,21 +1132,29 @@ func locLess(a, b interface{}) bool {
 func locCmp(a, b interface{}) int {
 	al := getLoc(a)
 	bl := getLoc(b)
+	switch {
+	case al == nil && bl == nil:
+		return 0
+	case al == nil:
+		return -1
+	case bl == nil:
+		return 1
+	}
+
 	if cmp := al.Row - bl.Row; cmp != 0 {
 		return cmp
+
 	}
 	return al.Col - bl.Col
 }
 
 func getLoc(x interface{}) *ast.Location {
 	switch x := x.(type) {
-	case ast.Statement:
-		// Implicitly matches *ast.Head, *ast.Expr, *ast.With, *ast.Term.
+	case ast.Node: // *ast.Head, *ast.Expr, *ast.With, *ast.Term
 		return x.Loc()
 	case *ast.Location:
 		return x
-	case [2]*ast.Term:
-		// Special case to allow for easy printing of objects.
+	case [2]*ast.Term: // Special case to allow for easy printing of objects.
 		return x[0].Location
 	default:
 		panic("Not reached")
@@ -1151,4 +1311,19 @@ func (w *writer) down() {
 		panic("negative indentation level")
 	}
 	w.level--
+}
+
+func ensureFutureKeywordImport(imps []*ast.Import, kw string) []*ast.Import {
+	for _, imp := range imps {
+		if future.IsAllFutureKeywords(imp) ||
+			future.IsFutureKeyword(imp, kw) ||
+			(future.IsFutureKeyword(imp, "every") && kw == "in") { // "every" implies "in", so we don't need to add both
+			return imps
+		}
+	}
+	imp := &ast.Import{
+		Path: ast.MustParseTerm("future.keywords." + kw),
+	}
+	imp.Location = defaultLocation(imp)
+	return append(imps, imp)
 }

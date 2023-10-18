@@ -16,6 +16,7 @@ import (
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
 	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
@@ -109,6 +110,10 @@ type ContainersConfig struct {
 	// Default cgroup configuration
 	Cgroups string `toml:"cgroups,omitempty"`
 
+	// CgroupConf entries specifies a list of cgroup files to write to and their values. For example
+	// "memory.high=1073741824" sets the memory.high limit to 1GB.
+	CgroupConf []string `toml:"cgroup_conf,omitempty"`
+
 	// Capabilities to add to all containers.
 	DefaultCapabilities []string `toml:"default_capabilities,omitempty"`
 
@@ -180,6 +185,10 @@ type ContainersConfig struct {
 	// NoHosts tells container engine whether to create its own /etc/hosts
 	NoHosts bool `toml:"no_hosts,omitempty"`
 
+	// OOMScoreAdj tunes the host's OOM preferences for containers
+	// (accepts values from -1000 to 1000).
+	OOMScoreAdj *int `toml:"oom_score_adj,omitempty"`
+
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit,omitempty,omitzero"`
@@ -193,6 +202,9 @@ type ContainersConfig struct {
 	// the container is started. Setting it to true may have negative
 	// performance implications.
 	PrepareVolumeOnCreate bool `toml:"prepare_volume_on_create,omitempty"`
+
+	// ReadOnly causes engine to run all containers with root file system mounted read-only
+	ReadOnly bool `toml:"read_only,omitempty"`
 
 	// SeccompProfile is the seccomp.json profile path which is used as the
 	// default for the runtime.
@@ -214,6 +226,7 @@ type ContainersConfig struct {
 	UserNS string `toml:"userns,omitempty"`
 
 	// UserNSSize how many UIDs to allocate for automatically created UserNS
+	// Deprecated: no user of this field is known.
 	UserNSSize int `toml:"userns_size,omitempty,omitzero"`
 }
 
@@ -247,6 +260,9 @@ type EngineConfig struct {
 	// in containers-registries.conf(5).
 	CompatAPIEnforceDockerHub bool `toml:"compat_api_enforce_docker_hub,omitempty"`
 
+	// DBBackend is the database backend to be used by Podman.
+	DBBackend string `toml:"database_backend,omitempty"`
+
 	// DetachKeys is the sequence of keys used to detach a container.
 	DetachKeys string `toml:"detach_keys,omitempty"`
 
@@ -271,6 +287,11 @@ type EngineConfig struct {
 
 	// EventsLogger determines where events should be logged.
 	EventsLogger string `toml:"events_logger,omitempty"`
+
+	// EventsContainerCreateInspectData creates a more verbose
+	// container-create event which includes a JSON payload with detailed
+	// information about the container.
+	EventsContainerCreateInspectData bool `toml:"events_container_create_inspect_data,omitempty"`
 
 	// graphRoot internal stores the location of the graphroot
 	graphRoot string
@@ -303,7 +324,7 @@ type EngineConfig struct {
 	// Building/committing defaults to OCI.
 	ImageDefaultFormat string `toml:"image_default_format,omitempty"`
 
-	// ImageVolumeMode Tells container engines how to handle the builtin
+	// ImageVolumeMode Tells container engines how to handle the built-in
 	// image volumes.  Acceptable values are "bind", "tmpfs", and "ignore".
 	ImageVolumeMode string `toml:"image_volume_mode,omitempty"`
 
@@ -316,6 +337,10 @@ type EngineConfig struct {
 
 	// InitPath is the path to the container-init binary.
 	InitPath string `toml:"init_path,omitempty"`
+
+	// KubeGenerateType sets the Kubernetes kind/specification to generate by default
+	// with the podman kube generate command
+	KubeGenerateType string `toml:"kube_generate_type,omitempty"`
 
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
@@ -357,6 +382,9 @@ type EngineConfig struct {
 
 	// OCIRuntimes are the set of configured OCI runtimes (default is runc).
 	OCIRuntimes map[string][]string `toml:"runtimes,omitempty"`
+
+	// PlatformToOCIRuntime requests specific OCI runtime for a specified platform of image.
+	PlatformToOCIRuntime map[string]string `toml:"platform_to_oci_runtime,omitempty"`
 
 	// PodExitPolicy determines the behaviour when the last container of a pod exits.
 	PodExitPolicy PodExitPolicy `toml:"pod_exit_policy,omitempty"`
@@ -530,6 +558,9 @@ type NetworkConfig struct {
 	// CNIPluginDirs is where CNI plugin binaries are stored.
 	CNIPluginDirs []string `toml:"cni_plugin_dirs,omitempty"`
 
+	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
+	NetavarkPluginDirs []string `toml:"netavark_plugin_dirs,omitempty"`
+
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
@@ -597,7 +628,7 @@ type MachineConfig struct {
 	CPUs uint64 `toml:"cpus,omitempty,omitzero"`
 	// DiskSize is the size of the disk in GB created when init-ing a podman-machine VM
 	DiskSize uint64 `toml:"disk_size,omitempty,omitzero"`
-	// MachineImage is the image used when init-ing a podman-machine VM
+	// Image is the image used when init-ing a podman-machine VM
 	Image string `toml:"image,omitempty"`
 	// Memory in MB a machine is created with.
 	Memory uint64 `toml:"memory,omitempty,omitzero"`
@@ -605,6 +636,8 @@ type MachineConfig struct {
 	User string `toml:"user,omitempty"`
 	// Volumes are host directories mounted into the VM by default.
 	Volumes []string `toml:"volumes"`
+	// Provider is the virtualization provider used to run podman-machine VM
+	Provider string `toml:"provider,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -617,6 +650,16 @@ type Destination struct {
 
 	// isMachine describes if the remote destination is a machine.
 	IsMachine bool `toml:"is_machine,omitempty"`
+}
+
+// Consumes container image's os and arch and returns if any dedicated runtime was
+// configured otherwise returns default runtime.
+func (c *EngineConfig) ImagePlatformToRuntime(os string, arch string) string {
+	platformString := os + "/" + arch
+	if val, ok := c.PlatformToOCIRuntime[platformString]; ok {
+		return val
+	}
+	return c.OCIRuntime
 }
 
 // NewConfig creates a new Config. It starts with an empty config and, if
@@ -730,11 +773,21 @@ func addConfigs(dirPath string, configs []string) ([]string, error) {
 // Returns the list of configuration files, if they exist in order of hierarchy.
 // The files are read in order and each new file can/will override previous
 // file settings.
-func systemConfigs() ([]string, error) {
-	var err error
-	configs := []string{}
-	path := os.Getenv("CONTAINERS_CONF")
-	if path != "" {
+func systemConfigs() (configs []string, finalErr error) {
+	if path := os.Getenv("CONTAINERS_CONF_OVERRIDE"); path != "" {
+		if _, err := os.Stat(path); err != nil {
+			return nil, fmt.Errorf("CONTAINERS_CONF_OVERRIDE file: %w", err)
+		}
+		// Add the override config last to make sure it can override any
+		// previous settings.
+		defer func() {
+			if finalErr == nil {
+				configs = append(configs, path)
+			}
+		}()
+	}
+
+	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
 		if _, err := os.Stat(path); err != nil {
 			return nil, fmt.Errorf("CONTAINERS_CONF file: %w", err)
 		}
@@ -746,12 +799,14 @@ func systemConfigs() ([]string, error) {
 	if _, err := os.Stat(OverrideContainersConfig); err == nil {
 		configs = append(configs, OverrideContainersConfig)
 	}
+
+	var err error
 	configs, err = addConfigs(OverrideContainersConfig+".d", configs)
 	if err != nil {
 		return nil, err
 	}
 
-	path, err = ifRootlessConfigPath()
+	path, err := ifRootlessConfigPath()
 	if err != nil {
 		return nil, err
 	}
@@ -789,7 +844,7 @@ func (c *Config) CheckCgroupsAndAdjustConfig() {
 
 	if !hasSession && unshare.GetRootlessUID() != 0 {
 		logrus.Warningf("The cgroupv2 manager is set to systemd but there is no systemd user session available")
-		logrus.Warningf("For using systemd, you may need to login using an user session")
+		logrus.Warningf("For using systemd, you may need to log in using a user session")
 		logrus.Warningf("Alternatively, you can enable lingering with: `loginctl enable-linger %d` (possibly as root)", unshare.GetRootlessUID())
 		logrus.Warningf("Falling back to --cgroup-manager=cgroupfs")
 		c.Engine.CgroupManager = CgroupfsCgroupsManager
@@ -874,6 +929,11 @@ func (c *EngineConfig) Validate() error {
 	if _, err := ValidatePullPolicy(pullPolicy); err != nil {
 		return fmt.Errorf("invalid pull type from containers.conf %q: %w", c.PullPolicy, err)
 	}
+
+	if _, err := ParseDBBackend(c.DBBackend); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -945,11 +1005,10 @@ func (c *NetworkConfig) Validate() error {
 // to first (version) matching conmon binary. If non is found, we try
 // to do a path lookup of "conmon".
 func (c *Config) FindConmon() (string, error) {
-	return findConmonPath(c.Engine.ConmonPath, "conmon", _conmonMinMajorVersion, _conmonMinMinorVersion, _conmonMinPatchVersion)
+	return findConmonPath(c.Engine.ConmonPath, "conmon")
 }
 
-func findConmonPath(paths []string, binaryName string, major int, minor int, patch int) (string, error) {
-	foundOutdatedConmon := false
+func findConmonPath(paths []string, binaryName string) (string, error) {
 	for _, path := range paths {
 		stat, err := os.Stat(path)
 		if err != nil {
@@ -958,29 +1017,14 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 		if stat.IsDir() {
 			continue
 		}
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s invalid: %v", path, err)
-			foundOutdatedConmon = true
-			continue
-		}
 		logrus.Debugf("Using conmon: %q", path)
 		return path, nil
 	}
 
 	// Search the $PATH as last fallback
 	if path, err := exec.LookPath(binaryName); err == nil {
-		if err := probeConmon(path); err != nil {
-			logrus.Warnf("Conmon at %s is invalid: %v", path, err)
-			foundOutdatedConmon = true
-		} else {
-			logrus.Debugf("Using conmon from $PATH: %q", path)
-			return path, nil
-		}
-	}
-
-	if foundOutdatedConmon {
-		return "", fmt.Errorf("please update to v%d.%d.%d or later: %w",
-			major, minor, patch, ErrConmonOutdated)
+		logrus.Debugf("Using conmon from $PATH: %q", path)
+		return path, nil
 	}
 
 	return "", fmt.Errorf("could not find a working conmon binary (configured options: %v: %w)",
@@ -991,7 +1035,7 @@ func findConmonPath(paths []string, binaryName string, major int, minor int, pat
 // to first (version) matching conmonrs binary. If non is found, we try
 // to do a path lookup of "conmonrs".
 func (c *Config) FindConmonRs() (string, error) {
-	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs", _conmonrsMinMajorVersion, _conmonrsMinMinorVersion, _conmonrsMinPatchVersion)
+	return findConmonPath(c.Engine.ConmonRsPath, "conmonrs")
 }
 
 // GetDefaultEnv returns the environment variables for the container.
@@ -1219,16 +1263,21 @@ func (c *Config) Write() error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	configFile, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR|os.O_TRUNC, 0o644)
+
+	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
+	configFile, err := ioutils.NewAtomicFileWriterWithOpts(path, 0o644, opts)
 	if err != nil {
 		return err
 	}
 	defer configFile.Close()
+
 	enc := toml.NewEncoder(configFile)
 	if err := enc.Encode(c); err != nil {
 		return err
 	}
-	return nil
+
+	// If no errors commit the changes to the config file
+	return configFile.Commit()
 }
 
 // Reload clean the cached config and reloads the configuration from containers.conf files
@@ -1324,9 +1373,13 @@ func (c *Config) FindHelperBinary(name string, searchPATH bool) (string, error) 
 				path = filepath.Join(bindirPath, strings.TrimPrefix(path, bindirPrefix+string(filepath.Separator)))
 			}
 		}
-		fullpath := filepath.Join(path, name)
-		if fi, err := os.Stat(fullpath); err == nil && fi.Mode().IsRegular() {
-			return fullpath, nil
+		// Absolute path will force exec.LookPath to check for binary existence instead of lookup everywhere in PATH
+		if abspath, err := filepath.Abs(filepath.Join(path, name)); err == nil {
+			// exec.LookPath from absolute path on Unix is equal to os.Stat + IsNotDir + check for executable bits in FileMode
+			// exec.LookPath from absolute path on Windows is equal to os.Stat + IsNotDir for `file.ext` or loops through extensions from PATHEXT for `file`
+			if lp, err := exec.LookPath(abspath); err == nil {
+				return lp, nil
+			}
 		}
 	}
 	if searchPATH {
