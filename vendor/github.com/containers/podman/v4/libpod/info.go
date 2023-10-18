@@ -100,22 +100,23 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		return nil, err
 	}
 	info := define.HostInfo{
-		Arch:           runtime.GOARCH,
-		BuildahVersion: buildah.Version,
-		Linkmode:       linkmode.Linkmode(),
-		CPUs:           runtime.NumCPU(),
-		CPUUtilization: cpuUtil,
-		Distribution:   hostDistributionInfo,
-		LogDriver:      r.config.Containers.LogDriver,
-		EventLogger:    r.eventer.String(),
-		Hostname:       host,
-		Kernel:         kv,
-		MemFree:        mi.MemFree,
-		MemTotal:       mi.MemTotal,
-		NetworkBackend: r.config.Network.NetworkBackend,
-		OS:             runtime.GOOS,
-		SwapFree:       mi.SwapFree,
-		SwapTotal:      mi.SwapTotal,
+		Arch:            runtime.GOARCH,
+		BuildahVersion:  buildah.Version,
+		DatabaseBackend: r.config.Engine.DBBackend,
+		Linkmode:        linkmode.Linkmode(),
+		CPUs:            runtime.NumCPU(),
+		CPUUtilization:  cpuUtil,
+		Distribution:    hostDistributionInfo,
+		LogDriver:       r.config.Containers.LogDriver,
+		EventLogger:     r.eventer.String(),
+		Hostname:        host,
+		Kernel:          kv,
+		MemFree:         mi.MemFree,
+		MemTotal:        mi.MemTotal,
+		NetworkBackend:  r.config.Network.NetworkBackend,
+		OS:              runtime.GOOS,
+		SwapFree:        mi.SwapFree,
+		SwapTotal:       mi.SwapTotal,
 	}
 	if err := r.setPlatformHostInfo(&info); err != nil {
 		return nil, err
@@ -226,6 +227,7 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 		GraphOptions:       nil,
 		VolumePath:         r.config.Engine.VolumePath,
 		ConfigFile:         configFile,
+		TransientStore:     r.store.TransientStore(),
 	}
 
 	graphOptions := map[string]interface{}{}

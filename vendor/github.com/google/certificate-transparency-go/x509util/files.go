@@ -17,9 +17,10 @@ package x509util
 import (
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/google/certificate-transparency-go/x509"
@@ -28,7 +29,7 @@ import (
 // ReadPossiblePEMFile loads data from a file which may be in DER format
 // or may be in PEM format (with the given blockname).
 func ReadPossiblePEMFile(filename, blockname string) ([][]byte, error) {
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("%s: failed to read data: %v", filename, err)
 	}
@@ -48,9 +49,9 @@ func ReadPossiblePEMURL(target, blockname string) ([][]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to http.Get(%q): %v", target, err)
 	}
-	data, err := ioutil.ReadAll(rsp.Body)
+	data, err := io.ReadAll(rsp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("failed to ioutil.ReadAll(%q): %v", target, err)
+		return nil, fmt.Errorf("failed to io.ReadAll(%q): %v", target, err)
 	}
 	return dePEM(data, blockname), nil
 }
@@ -80,14 +81,14 @@ func dePEM(data []byte, blockname string) [][]byte {
 func ReadFileOrURL(target string, client *http.Client) ([]byte, error) {
 	u, err := url.Parse(target)
 	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
-		return ioutil.ReadFile(target)
+		return os.ReadFile(target)
 	}
 
 	rsp, err := client.Get(u.String())
 	if err != nil {
 		return nil, fmt.Errorf("failed to http.Get(%q): %v", target, err)
 	}
-	return ioutil.ReadAll(rsp.Body)
+	return io.ReadAll(rsp.Body)
 }
 
 // GetIssuer attempts to retrieve the issuer for a certificate, by examining
@@ -103,7 +104,7 @@ func GetIssuer(cert *x509.Certificate, client *http.Client) (*x509.Certificate, 
 		return nil, fmt.Errorf("failed to get issuer from %q: %v", issuerURL, err)
 	}
 	defer rsp.Body.Close()
-	body, err := ioutil.ReadAll(rsp.Body)
+	body, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read issuer from %q: %v", issuerURL, err)
 	}

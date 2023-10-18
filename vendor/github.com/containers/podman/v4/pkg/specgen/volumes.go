@@ -27,9 +27,11 @@ type NamedVolume struct {
 	// IsAnonymous sets the named volume as anonymous even if it has a name
 	// This is used for emptyDir volumes from a kube yaml
 	IsAnonymous bool
+	// SubPath stores the sub directory of the named volume to be mounted in the container
+	SubPath string
 }
 
-// OverlayVolume holds information about a overlay volume that will be mounted into
+// OverlayVolume holds information about an overlay volume that will be mounted into
 // the container.
 type OverlayVolume struct {
 	// Destination is the absolute path where the mount will be placed in the container.
@@ -139,7 +141,7 @@ func GenVolumeMounts(volumeFlag []string) (map[string]spec.Mount, map[string]*Na
 				}
 			}
 			if overlayFlag {
-				// This is a overlay volume
+				// This is an overlay volume
 				newOverlayVol := new(OverlayVolume)
 				newOverlayVol.Destination = dest
 				// convert src to absolute path so we don't end up passing

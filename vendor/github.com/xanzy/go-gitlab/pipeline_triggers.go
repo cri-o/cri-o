@@ -25,7 +25,7 @@ import (
 // PipelineTriggersService handles Project pipeline triggers.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html
 type PipelineTriggersService struct {
 	client *Client
 }
@@ -33,7 +33,7 @@ type PipelineTriggersService struct {
 // PipelineTrigger represents a project pipeline trigger.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#pipeline-triggers
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html
 type PipelineTrigger struct {
 	ID          int        `json:"id"`
 	Description string     `json:"description"`
@@ -48,13 +48,13 @@ type PipelineTrigger struct {
 // ListPipelineTriggersOptions represents the available ListPipelineTriggers() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#list-project-triggers
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#list-project-trigger-tokens
 type ListPipelineTriggersOptions ListOptions
 
 // ListPipelineTriggers gets a list of project triggers.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#list-project-triggers
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#list-project-trigger-tokens
 func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *ListPipelineTriggersOptions, options ...RequestOptionFunc) ([]*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *PipelineTriggersService) ListPipelineTriggers(pid interface{}, opt *Lis
 // GetPipelineTrigger gets a specific pipeline trigger for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#get-trigger-details
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#get-trigger-token-details
 func (s *PipelineTriggersService) GetPipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *PipelineTriggersService) GetPipelineTrigger(pid interface{}, trigger in
 // AddPipelineTriggerOptions represents the available AddPipelineTrigger() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#create-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#create-a-trigger-token
 type AddPipelineTriggerOptions struct {
 	Description *string `url:"description,omitempty" json:"description,omitempty"`
 }
@@ -112,7 +112,7 @@ type AddPipelineTriggerOptions struct {
 // AddPipelineTrigger adds a pipeline trigger to a specified project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#create-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#create-a-trigger-token
 func (s *PipelineTriggersService) AddPipelineTrigger(pid interface{}, opt *AddPipelineTriggerOptions, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *PipelineTriggersService) AddPipelineTrigger(pid interface{}, opt *AddPi
 // EditPipelineTriggerOptions represents the available EditPipelineTrigger() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#update-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#update-a-project-trigger-token
 type EditPipelineTriggerOptions struct {
 	Description *string `url:"description,omitempty" json:"description,omitempty"`
 }
@@ -145,7 +145,7 @@ type EditPipelineTriggerOptions struct {
 // EditPipelineTrigger edits a trigger for a specified project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#update-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#update-a-project-trigger-token
 func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger int, opt *EditPipelineTriggerOptions, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -171,7 +171,7 @@ func (s *PipelineTriggersService) EditPipelineTrigger(pid interface{}, trigger i
 // pipeline trigger to the user issuing the request.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#take-ownership-of-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#take-ownership-of-a-project-trigger
 func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*PipelineTrigger, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *PipelineTriggersService) TakeOwnershipOfPipelineTrigger(pid interface{}
 // DeletePipelineTrigger removes a trigger from a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/pipeline_triggers.html#remove-a-project-trigger
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#remove-a-project-trigger-token
 func (s *PipelineTriggersService) DeletePipelineTrigger(pid interface{}, trigger int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -215,7 +215,7 @@ func (s *PipelineTriggersService) DeletePipelineTrigger(pid interface{}, trigger
 // RunPipelineTriggerOptions represents the available RunPipelineTrigger() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/ci/triggers/README.html#triggering-a-pipeline
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#trigger-a-pipeline-with-a-token
 type RunPipelineTriggerOptions struct {
 	Ref       *string           `url:"ref" json:"ref"`
 	Token     *string           `url:"token" json:"token"`
@@ -225,7 +225,7 @@ type RunPipelineTriggerOptions struct {
 // RunPipelineTrigger starts a trigger from a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/ci/triggers/README.html#triggering-a-pipeline
+// https://docs.gitlab.com/ee/api/pipeline_triggers.html#trigger-a-pipeline-with-a-token
 func (s *PipelineTriggersService) RunPipelineTrigger(pid interface{}, opt *RunPipelineTriggerOptions, options ...RequestOptionFunc) (*Pipeline, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

@@ -33,7 +33,7 @@ import (
 
 // HashedrekordV001Schema Hashed Rekor v0.0.1 Schema
 //
-// Schema for Hashed Rekord object
+// # Schema for Hashed Rekord object
 //
 // swagger:model hashedrekordV001Schema
 type HashedrekordV001Schema struct {
@@ -462,12 +462,12 @@ func (m *HashedrekordV001SchemaSignature) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// HashedrekordV001SchemaSignaturePublicKey The public key that can verify the signature
+// HashedrekordV001SchemaSignaturePublicKey The public key that can verify the signature; this can also be an X509 code signing certificate that contains the raw public key information
 //
 // swagger:model HashedrekordV001SchemaSignaturePublicKey
 type HashedrekordV001SchemaSignaturePublicKey struct {
 
-	// Specifies the content of the public key inline within the document
+	// Specifies the content of the public key or code signing certificate inline within the document
 	// Format: byte
 	Content strfmt.Base64 `json:"content,omitempty"`
 }

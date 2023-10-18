@@ -46,6 +46,9 @@ type netavarkNetwork struct {
 	// dnsBindPort is set the the port to pass to netavark for aardvark
 	dnsBindPort uint16
 
+	// pluginDirs list of directories were netavark plugins are located
+	pluginDirs []string
+
 	// ipamDBPath is the path to the ip allocation bolt db
 	ipamDBPath string
 
@@ -54,7 +57,7 @@ type netavarkNetwork struct {
 	syslog bool
 
 	// lock is a internal lock for critical operations
-	lock lockfile.Locker
+	lock *lockfile.LockFile
 
 	// modTime is the timestamp when the config dir was modified
 	modTime time.Time
@@ -86,6 +89,9 @@ type InitConfig struct {
 	// DNSBindPort is set the the port to pass to netavark for aardvark
 	DNSBindPort uint16
 
+	// PluginDirs list of directories were netavark plugins are located
+	PluginDirs []string
+
 	// Syslog describes whenever the netavark debbug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
 	Syslog bool
@@ -94,8 +100,13 @@ type InitConfig struct {
 // NewNetworkInterface creates the ContainerNetwork interface for the netavark backend.
 // Note: The networks are not loaded from disk until a method is called.
 func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
-	// TODO: consider using a shared memory lock
-	lock, err := lockfile.GetLockfile(filepath.Join(conf.NetworkConfigDir, "netavark.lock"))
+	// root needs to use a globally unique lock because there is only one host netns
+	lockPath := defaultRootLockPath
+	if unshare.IsRootless() {
+		lockPath = filepath.Join(conf.NetworkConfigDir, "netavark.lock")
+	}
+
+	lock, err := lockfile.GetLockFile(lockPath)
 	if err != nil {
 		return nil, err
 	}
@@ -138,6 +149,7 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 		defaultSubnet:      defaultNet,
 		defaultsubnetPools: defaultSubnetPools,
 		dnsBindPort:        conf.DNSBindPort,
+		pluginDirs:         conf.PluginDirs,
 		lock:               lock,
 		syslog:             conf.Syslog,
 	}
@@ -145,10 +157,13 @@ func NewNetworkInterface(conf *InitConfig) (types.ContainerNetwork, error) {
 	return n, nil
 }
 
+var builtinDrivers = []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver, types.IPVLANNetworkDriver}
+
 // Drivers will return the list of supported network drivers
 // for this interface.
 func (n *netavarkNetwork) Drivers() []string {
-	return []string{types.BridgeNetworkDriver, types.MacVLANNetworkDriver}
+	paths := getAllPlugins(n.pluginDirs)
+	return append(builtinDrivers, paths...)
 }
 
 // DefaultNetworkName will return the default netavark network name.

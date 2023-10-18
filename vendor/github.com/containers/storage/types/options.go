@@ -19,6 +19,7 @@ import (
 type TomlConfig struct {
 	Storage struct {
 		Driver              string            `toml:"driver,omitempty"`
+		DriverPriority      []string          `toml:"driver_priority,omitempty"`
 		RunRoot             string            `toml:"runroot,omitempty"`
 		GraphRoot           string            `toml:"graphroot,omitempty"`
 		RootlessStoragePath string            `toml:"rootless_storage_path,omitempty"`
@@ -151,20 +152,24 @@ func defaultStoreOptionsIsolated(rootless bool, rootlessUID int, storageConf str
 			}
 		}
 	}
-	if storageOpts.RunRoot != "" {
-		runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
-		if err != nil {
-			return storageOpts, err
-		}
-		storageOpts.RunRoot = runRoot
+	if storageOpts.RunRoot == "" {
+		return storageOpts, fmt.Errorf("runroot must be set")
 	}
-	if storageOpts.GraphRoot != "" {
-		graphRoot, err := expandEnvPath(storageOpts.GraphRoot, rootlessUID)
-		if err != nil {
-			return storageOpts, err
-		}
-		storageOpts.GraphRoot = graphRoot
+	runRoot, err := expandEnvPath(storageOpts.RunRoot, rootlessUID)
+	if err != nil {
+		return storageOpts, err
 	}
+	storageOpts.RunRoot = runRoot
+
+	if storageOpts.GraphRoot == "" {
+		return storageOpts, fmt.Errorf("graphroot must be set")
+	}
+	graphRoot, err := expandEnvPath(storageOpts.GraphRoot, rootlessUID)
+	if err != nil {
+		return storageOpts, err
+	}
+	storageOpts.GraphRoot = graphRoot
+
 	if storageOpts.RootlessStoragePath != "" {
 		storagePath, err := expandEnvPath(storageOpts.RootlessStoragePath, rootlessUID)
 		if err != nil {
@@ -185,7 +190,7 @@ func loadStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	return defaultStoreOptionsIsolated(rootless, rootlessUID, storageConf)
 }
 
-// UpdateOptions should be called iff container engine recieved a SIGHUP,
+// UpdateOptions should be called iff container engine received a SIGHUP,
 // otherwise use DefaultStoreOptions
 func UpdateStoreOptions(rootless bool, rootlessUID int) (StoreOptions, error) {
 	storeOptions, storeError = loadStoreOptions(rootless, rootlessUID)
@@ -213,10 +218,16 @@ type StoreOptions struct {
 	// RootlessStoragePath is the storage path for rootless users
 	// default $HOME/.local/share/containers/storage
 	RootlessStoragePath string `toml:"rootless_storage_path"`
-	// GraphDriverName is the underlying storage driver that we'll be
-	// using.  It only needs to be specified the first time a Store is
-	// initialized for a given RunRoot and GraphRoot.
+	// If the driver is not specified, the best suited driver will be picked
+	// either from GraphDriverPriority, if specified, or from the platform
+	// dependent priority list (in that order).
 	GraphDriverName string `json:"driver,omitempty"`
+	// GraphDriverPriority is a list of storage drivers that will be tried
+	// to initialize the Store for a given RunRoot and GraphRoot unless a
+	// GraphDriverName is set.
+	// This list can be used to define a custom order in which the drivers
+	// will be tried.
+	GraphDriverPriority []string `json:"driver-priority,omitempty"`
 	// GraphDriverOptions are driver-specific options.
 	GraphDriverOptions []string `json:"driver-options,omitempty"`
 	// UIDMap and GIDMap are used for setting up a container's root filesystem
@@ -293,7 +304,11 @@ func getRootlessStorageOpts(rootlessUID int, systemOpts StoreOptions) (StoreOpti
 		}
 	}
 	if opts.GraphDriverName == "" {
-		opts.GraphDriverName = "vfs"
+		if len(systemOpts.GraphDriverPriority) == 0 {
+			opts.GraphDriverName = "vfs"
+		} else {
+			opts.GraphDriverPriority = systemOpts.GraphDriverPriority
+		}
 	}
 
 	if os.Getenv("STORAGE_OPTS") != "" {
@@ -380,8 +395,9 @@ func ReloadConfigurationFile(configFile string, storeOptions *StoreOptions) erro
 		logrus.Warnf("Switching default driver from overlay2 to the equivalent overlay driver")
 		storeOptions.GraphDriverName = overlayDriver
 	}
-	if storeOptions.GraphDriverName == "" {
-		logrus.Errorf("The storage 'driver' option must be set in %s to guarantee proper operation", configFile)
+	storeOptions.GraphDriverPriority = config.Storage.DriverPriority
+	if storeOptions.GraphDriverName == "" && len(storeOptions.GraphDriverPriority) == 0 {
+		logrus.Warnf("The storage 'driver' option should be set in %s. A driver was picked automatically.", configFile)
 	}
 	if config.Storage.RunRoot != "" {
 		storeOptions.RunRoot = config.Storage.RunRoot

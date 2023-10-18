@@ -50,9 +50,9 @@ type ClientService interface {
 }
 
 /*
-  GetPublicKey retrieves the public key that can be used to validate the signed tree head
+GetPublicKey retrieves the public key that can be used to validate the signed tree head
 
-  Returns the public key that can be used to validate the signed tree head
+Returns the public key that can be used to validate the signed tree head
 */
 func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) (*GetPublicKeyOK, error) {
 	// TODO: Validate the params before sending
@@ -64,7 +64,7 @@ func (a *Client) GetPublicKey(params *GetPublicKeyParams, opts ...ClientOption) 
 		Method:             "GET",
 		PathPattern:        "/api/v1/log/publicKey",
 		ProducesMediaTypes: []string{"application/x-pem-file"},
-		ConsumesMediaTypes: []string{"application/json", "application/yaml"},
+		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &GetPublicKeyReader{formats: a.formats},

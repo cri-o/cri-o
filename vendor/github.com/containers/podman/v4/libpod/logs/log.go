@@ -143,7 +143,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 				nllCounter++
 			}
 		}
-		// if we have enough log lines, we can hangup
+		// if we have enough log lines, we can hang up
 		if nllCounter >= tail {
 			break
 		}
@@ -239,36 +239,6 @@ func NewLogLine(line string) (*LogLine, error) {
 		Device:       splitLine[1],
 		ParseLogType: splitLine[2],
 		Msg:          strings.Join(splitLine[3:], " "),
-	}
-	return &l, nil
-}
-
-// NewJournaldLogLine creates a LogLine from the specified line from journald.
-// Note that if withID is set, the first item of the message is considerred to
-// be the container ID and set as such.
-func NewJournaldLogLine(line string, withID bool) (*LogLine, error) {
-	splitLine := strings.Split(line, " ")
-	if len(splitLine) < 4 {
-		return nil, fmt.Errorf("'%s' is not a valid container log line", line)
-	}
-	logTime, err := time.Parse(LogTimeFormat, splitLine[0])
-	if err != nil {
-		return nil, fmt.Errorf("unable to convert time %s from container log: %w", splitLine[0], err)
-	}
-	var msg, id string
-	if withID {
-		id = splitLine[3]
-		msg = strings.Join(splitLine[4:], " ")
-	} else {
-		msg = strings.Join(splitLine[3:], " ")
-		// NO ID
-	}
-	l := LogLine{
-		Time:         logTime,
-		Device:       splitLine[1],
-		ParseLogType: splitLine[2],
-		Msg:          msg,
-		CID:          id,
 	}
 	return &l, nil
 }

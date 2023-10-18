@@ -17,11 +17,17 @@ package util
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
+
+	"github.com/google/trillian/types"
+	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/signature/options"
 )
 
 // heavily borrowed from https://github.com/google/trillian-examples/blob/master/formats/log/checkpoint.go
@@ -159,4 +165,25 @@ func (r *SignedCheckpoint) GetTimestamp() uint64 {
 		}
 	}
 	return ts
+}
+
+// CreateAndSignCheckpoint creates a signed checkpoint as a commitment to the current root hash
+func CreateAndSignCheckpoint(ctx context.Context, hostname string, treeID int64, root *types.LogRootV1, signer signature.Signer) ([]byte, error) {
+	sth, err := CreateSignedCheckpoint(Checkpoint{
+		Origin: fmt.Sprintf("%s - %d", hostname, treeID),
+		Size:   root.TreeSize,
+		Hash:   root.RootHash,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating checkpoint: %v", err)
+	}
+	sth.SetTimestamp(uint64(time.Now().UnixNano()))
+	if _, err := sth.Sign(hostname, signer, options.WithContext(ctx)); err != nil {
+		return nil, fmt.Errorf("error signing checkpoint: %v", err)
+	}
+	scBytes, err := sth.SignedNote.MarshalText()
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling checkpoint: %v", err)
+	}
+	return scBytes, nil
 }

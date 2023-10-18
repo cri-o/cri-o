@@ -42,14 +42,18 @@ LDFLAGS=-buildid= -X sigs.k8s.io/release-utils/version.gitVersion=$(GIT_VERSION)
         -X sigs.k8s.io/release-utils/version.gitTreeState=$(GIT_TREESTATE) \
         -X sigs.k8s.io/release-utils/version.buildDate=$(BUILD_DATE)
 
-KO_DOCKER_REPO ?= ghcr.io/kubernetes-sigs
+KO_PREFIX ?= gcr.io/k8s-staging-zeitgeist
+KO_DOCKER_REPO=$(KO_PREFIX)
 
 build: ## Build zeitgeist
-	go build -trimpath -ldflags "$(LDFLAGS)"
+	go build -trimpath -ldflags "$(LDFLAGS)" -o ./output/zeitgeist .
+	cd buoy && go build -trimpath -ldflags "$(LDFLAGS)"  -o ../output/buoy .
 
-ko-local: ## Build zeitgeist image locally (does not push it)
-	LDFLAGS="$(LDFLAGS)" \
-	ko build --local --tags $(GIT_VERSION),latest --base-import-paths --platform=all .
+ko-local: ## Build zeitgeist/buoy image locally (does not push it)
+	LDFLAGS="$(LDFLAGS)" KO_DOCKER_REPO=ko.local \
+	ko build --bare sigs.k8s.io/zeitgeist
+	LDFLAGS="$(LDFLAGS)" KO_DOCKER_REPO=ko.local \
+	ko build --bare sigs.k8s.io/zeitgeist/buoy
 
 .PHONY: snapshot
 snapshot: ## Build zeitgeist binaries with goreleaser in snapshot mode
@@ -71,7 +75,7 @@ test-results: test
 generate: ## Generate go code for the fake clients
 	go generate ./...
 
-verify: verify-boilerplate verify-golangci-lint verify-go-mod  ## Runs verification scripts to ensure correct execution
+verify: verify-boilerplate verify-go-mod  ## Runs verification scripts to ensure correct execution
 
 verify-boilerplate: ## Runs the file header check
 	./hack/verify-boilerplate.sh
@@ -90,12 +94,23 @@ goreleaser: ## Build zeitgeist binaries with goreleaser
 	goreleaser release --rm-dist
 
 .PHONY: ko-release
-ko-release: ## Build zeitgeist image
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	ko build --base-import-paths \
-	--platform=all --tags $(GIT_VERSION),$(GIT_HASH),latest --image-refs imagerefs .
+ko-release: ko-release-zeitgeist ko-release-buoy
 
-imagerefs := $(shell cat imagerefs testimagerefs)
+.PHONY: ko-release-zeitgeist
+ko-release-zeitgeist: ## Build zeitgeist image
+	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
+	KO_DOCKER_REPO=$(KO_PREFIX)/zeitgeist \
+	ko build --bare \
+	--platform=all --tags $(GIT_VERSION),$(GIT_HASH),latest --image-refs imagerefs sigs.k8s.io/zeitgeist
+
+.PHONY: ko-release-buoy
+ko-release-buoy: ## Build zeitgeist image
+	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
+	KO_DOCKER_REPO=$(KO_PREFIX)/bouy \
+	ko build --bare \
+	--platform=all --tags $(GIT_VERSION),$(GIT_HASH),latest --image-refs imagerefs_buoy sigs.k8s.io/zeitgeist/buoy
+
+imagerefs := $(shell cat imagerefs imagerefs_buoy)
 sign-refs := $(foreach ref,$(imagerefs),$(ref))
 .PHONY: sign-images
 sign-images:

@@ -77,39 +77,39 @@ func CRLToString(crl *x509.CertificateList) string {
 
 	count, critical := OIDInExtensions(x509.OIDExtensionAuthorityKeyId, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Authority Key Identifier:"))
+		result.WriteString("            X509v3 Authority Key Identifier:")
 		showCritical(critical)
 		result.WriteString(fmt.Sprintf("                keyid:%v\n", hex.EncodeToString(crl.TBSCertList.AuthorityKeyID)))
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionIssuerAltName, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Issuer Alt Name:"))
+		result.WriteString("            X509v3 Issuer Alt Name:")
 		showCritical(critical)
 		result.WriteString(fmt.Sprintf("                %s\n", GeneralNamesToString(&crl.TBSCertList.IssuerAltNames)))
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionCRLNumber, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 CRLNumber:"))
+		result.WriteString("            X509v3 CRLNumber:")
 		showCritical(critical)
 		result.WriteString(fmt.Sprintf("                %d\n", crl.TBSCertList.CRLNumber))
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionDeltaCRLIndicator, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Delta CRL Indicator:"))
+		result.WriteString("            X509v3 Delta CRL Indicator:")
 		showCritical(critical)
 		result.WriteString(fmt.Sprintf("                %d\n", crl.TBSCertList.BaseCRLNumber))
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionIssuingDistributionPoint, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Issuing Distribution Point:"))
+		result.WriteString("            X509v3 Issuing Distribution Point:")
 		showCritical(critical)
 		result.WriteString(fmt.Sprintf("                %s\n", GeneralNamesToString(&crl.TBSCertList.IssuingDPFullNames)))
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionFreshestCRL, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            X509v3 Freshest CRL:"))
+		result.WriteString("            X509v3 Freshest CRL:")
 		showCritical(critical)
-		result.WriteString(fmt.Sprintf("                Full Name:\n"))
+		result.WriteString("                Full Name:\n")
 		var buf bytes.Buffer
 		for _, pt := range crl.TBSCertList.FreshestCRLDistributionPoint {
 			commaAppend(&buf, "URI:"+pt)
@@ -118,7 +118,7 @@ func CRLToString(crl *x509.CertificateList) string {
 	}
 	count, critical = OIDInExtensions(x509.OIDExtensionAuthorityInfoAccess, crl.TBSCertList.Extensions)
 	if count > 0 {
-		result.WriteString(fmt.Sprintf("            Authority Information Access:"))
+		result.WriteString("            Authority Information Access:")
 		showCritical(critical)
 		var issuerBuf bytes.Buffer
 		for _, issuer := range crl.TBSCertList.IssuingCertificateURL {
@@ -144,19 +144,19 @@ func CRLToString(crl *x509.CertificateList) string {
 		result.WriteString(fmt.Sprintf("        Revocation Date : %v\n", c.RevocationTime))
 		count, critical = OIDInExtensions(x509.OIDExtensionCRLReasons, c.Extensions)
 		if count > 0 {
-			result.WriteString(fmt.Sprintf("            X509v3 CRL Reason Code:"))
+			result.WriteString("            X509v3 CRL Reason Code:")
 			showCritical(critical)
 			result.WriteString(fmt.Sprintf("                %s\n", RevocationReasonToString(c.RevocationReason)))
 		}
 		count, critical = OIDInExtensions(x509.OIDExtensionInvalidityDate, c.Extensions)
 		if count > 0 {
-			result.WriteString(fmt.Sprintf("        Invalidity Date:"))
+			result.WriteString("        Invalidity Date:")
 			showCritical(critical)
 			result.WriteString(fmt.Sprintf("                %s\n", c.InvalidityDate))
 		}
 		count, critical = OIDInExtensions(x509.OIDExtensionCertificateIssuer, c.Extensions)
 		if count > 0 {
-			result.WriteString(fmt.Sprintf("        Issuer:"))
+			result.WriteString("        Issuer:")
 			showCritical(critical)
 			result.WriteString(fmt.Sprintf("                %s\n", GeneralNamesToString(&c.Issuer)))
 		}

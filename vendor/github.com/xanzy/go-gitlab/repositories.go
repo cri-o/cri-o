@@ -27,14 +27,14 @@ import (
 // RepositoriesService handles communication with the repositories related
 // methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/repositories.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/repositories.html
 type RepositoriesService struct {
 	client *Client
 }
 
 // TreeNode represents a GitLab repository file or directory.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/repositories.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/repositories.html
 type TreeNode struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
@@ -50,7 +50,7 @@ func (t TreeNode) String() string {
 // ListTreeOptions represents the available ListTree() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#list-repository-tree
+// https://docs.gitlab.com/ee/api/repositories.html#list-repository-tree
 type ListTreeOptions struct {
 	ListOptions
 	Path      *string `url:"path,omitempty" json:"path,omitempty"`
@@ -61,7 +61,7 @@ type ListTreeOptions struct {
 // ListTree gets a list of repository files and directories in a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#list-repository-tree
+// https://docs.gitlab.com/ee/api/repositories.html#list-repository-tree
 func (s *RepositoriesService) ListTree(pid interface{}, opt *ListTreeOptions, options ...RequestOptionFunc) ([]*TreeNode, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -87,7 +87,7 @@ func (s *RepositoriesService) ListTree(pid interface{}, opt *ListTreeOptions, op
 // that blob content is Base64 encoded.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#get-a-blob-from-repository
+// https://docs.gitlab.com/ee/api/repositories.html#get-a-blob-from-repository
 func (s *RepositoriesService) Blob(pid interface{}, sha string, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -112,7 +112,7 @@ func (s *RepositoriesService) Blob(pid interface{}, sha string, options ...Reque
 // RawBlobContent gets the raw file contents for a blob by blob SHA.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#raw-blob-content
+// https://docs.gitlab.com/ee/api/repositories.html#raw-blob-content
 func (s *RepositoriesService) RawBlobContent(pid interface{}, sha string, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -137,7 +137,7 @@ func (s *RepositoriesService) RawBlobContent(pid interface{}, sha string, option
 // ArchiveOptions represents the available Archive() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#get-file-archive
+// https://docs.gitlab.com/ee/api/repositories.html#get-file-archive
 type ArchiveOptions struct {
 	Format *string `url:"-" json:"-"`
 	SHA    *string `url:"sha,omitempty" json:"sha,omitempty"`
@@ -146,7 +146,7 @@ type ArchiveOptions struct {
 // Archive gets an archive of the repository.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#get-file-archive
+// https://docs.gitlab.com/ee/api/repositories.html#get-file-archive
 func (s *RepositoriesService) Archive(pid interface{}, opt *ArchiveOptions, options ...RequestOptionFunc) ([]byte, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *RepositoriesService) Archive(pid interface{}, opt *ArchiveOptions, opti
 // io.Writer.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#get-file-archive
+// https://docs.gitlab.com/ee/api/repositories.html#get-file-archive
 func (s *RepositoriesService) StreamArchive(pid interface{}, w io.Writer, opt *ArchiveOptions, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -201,7 +201,7 @@ func (s *RepositoriesService) StreamArchive(pid interface{}, w io.Writer, opt *A
 // Compare represents the result of a comparison of branches, tags or commits.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#compare-branches-tags-or-commits
+// https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
 type Compare struct {
 	Commit         *Commit   `json:"commit"`
 	Commits        []*Commit `json:"commits"`
@@ -217,7 +217,7 @@ func (c Compare) String() string {
 // CompareOptions represents the available Compare() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#compare-branches-tags-or-commits
+// https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
 type CompareOptions struct {
 	From     *string `url:"from,omitempty" json:"from,omitempty"`
 	To       *string `url:"to,omitempty" json:"to,omitempty"`
@@ -227,7 +227,7 @@ type CompareOptions struct {
 // Compare compares branches, tags or commits.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#compare-branches-tags-or-commits
+// https://docs.gitlab.com/ee/api/repositories.html#compare-branches-tags-or-commits
 func (s *RepositoriesService) Compare(pid interface{}, opt *CompareOptions, options ...RequestOptionFunc) (*Compare, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -251,7 +251,7 @@ func (s *RepositoriesService) Compare(pid interface{}, opt *CompareOptions, opti
 
 // Contributor represents a GitLap contributor.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/repositories.html#contributors
+// GitLab API docs: https://docs.gitlab.com/ee/api/repositories.html#contributors
 type Contributor struct {
 	Name      string `json:"name"`
 	Email     string `json:"email"`
@@ -266,7 +266,7 @@ func (c Contributor) String() string {
 
 // ListContributorsOptions represents the available ListContributors() options.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/repositories.html#contributors
+// GitLab API docs: https://docs.gitlab.com/ee/api/repositories.html#contributors
 type ListContributorsOptions struct {
 	ListOptions
 	OrderBy *string `url:"order_by,omitempty" json:"order_by,omitempty"`
@@ -275,7 +275,7 @@ type ListContributorsOptions struct {
 
 // Contributors gets the repository contributors list.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/repositories.html#contributors
+// GitLab API docs: https://docs.gitlab.com/ee/api/repositories.html#contributors
 func (s *RepositoriesService) Contributors(pid interface{}, opt *ListContributorsOptions, options ...RequestOptionFunc) ([]*Contributor, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -300,7 +300,7 @@ func (s *RepositoriesService) Contributors(pid interface{}, opt *ListContributor
 // MergeBaseOptions represents the available MergeBase() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#merge-base
+// https://docs.gitlab.com/ee/api/repositories.html#merge-base
 type MergeBaseOptions struct {
 	Ref *[]string `url:"refs[],omitempty" json:"refs,omitempty"`
 }
@@ -309,7 +309,7 @@ type MergeBaseOptions struct {
 // names or tags).
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/repositories.html#merge-base
+// https://docs.gitlab.com/ee/api/repositories.html#merge-base
 func (s *RepositoriesService) MergeBase(pid interface{}, opt *MergeBaseOptions, options ...RequestOptionFunc) (*Commit, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -329,4 +329,91 @@ func (s *RepositoriesService) MergeBase(pid interface{}, opt *MergeBaseOptions, 
 	}
 
 	return c, resp, err
+}
+
+// AddChangelogOptions represents the available AddChangelog() options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/repositories.html#add-changelog-data-to-a-changelog-file
+type AddChangelogOptions struct {
+	Version    *string  `url:"version,omitempty" json:"version,omitempty"`
+	Branch     *string  `url:"branch,omitempty" json:"branch,omitempty"`
+	ConfigFile *string  `url:"config_file,omitempty" json:"config_file,omitempty"`
+	Date       *ISOTime `url:"date,omitempty" json:"date,omitempty"`
+	File       *string  `url:"file,omitempty" json:"file,omitempty"`
+	From       *string  `url:"from,omitempty" json:"from,omitempty"`
+	Message    *string  `url:"message,omitempty" json:"message,omitempty"`
+	To         *string  `url:"to,omitempty" json:"to,omitempty"`
+	Trailer    *string  `url:"trailer,omitempty" json:"trailer,omitempty"`
+}
+
+// AddChangelog generates changelog data based on commits in a repository.
+//
+// Gitlab API docs:
+// https://docs.gitlab.com/ee/api/repositories.html#add-changelog-data-to-a-changelog-file
+func (s *RepositoriesService) AddChangelog(pid interface{}, opt *AddChangelogOptions, options ...RequestOptionFunc) (*Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, err
+	}
+	u := fmt.Sprintf("projects/%s/repository/changelog", PathEscape(project))
+
+	req, err := s.client.NewRequest(http.MethodPost, u, opt, options)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.client.Do(req, nil)
+}
+
+// ChangelogData represents the generated changelog data.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/repositories.html#generate-changelog-data
+type ChangelogData struct {
+	Notes string `json:"notes"`
+}
+
+func (c ChangelogData) String() string {
+	return Stringify(c)
+}
+
+// GenerateChangelogDataOptions represents the available GenerateChangelogData()
+// options.
+//
+// GitLab API docs:
+// https://docs.gitlab.com/ee/api/repositories.html#generate-changelog-data
+type GenerateChangelogDataOptions struct {
+	Version    *string  `url:"version,omitempty" json:"version,omitempty"`
+	ConfigFile *string  `url:"config_file,omitempty" json:"config_file,omitempty"`
+	Date       *ISOTime `url:"date,omitempty" json:"date,omitempty"`
+	From       *string  `url:"from,omitempty" json:"from,omitempty"`
+	To         *string  `url:"to,omitempty" json:"to,omitempty"`
+	Trailer    *string  `url:"trailer,omitempty" json:"trailer,omitempty"`
+}
+
+// GenerateChangelogData generates changelog data based on commits in a
+// repository, without committing them to a changelog file.
+//
+// Gitlab API docs:
+// https://docs.gitlab.com/ee/api/repositories.html#generate-changelog-data
+func (s *RepositoriesService) GenerateChangelogData(pid interface{}, opt GenerateChangelogDataOptions, options ...RequestOptionFunc) (*ChangelogData, *Response, error) {
+	project, err := parseID(pid)
+	if err != nil {
+		return nil, nil, err
+	}
+	u := fmt.Sprintf("projects/%s/repository/changelog", project)
+
+	req, err := s.client.NewRequest(http.MethodGet, u, opt, options)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	cd := new(ChangelogData)
+	resp, err := s.client.Do(req, cd)
+	if err != nil {
+		return nil, resp, err
+	}
+
+	return cd, resp, err
 }

@@ -67,6 +67,8 @@ type VolumeConfig struct {
 	// StorageImageID is the ID of the image the volume was based off of.
 	// Only used for image volumes.
 	StorageImageID string `json:"storageImageID,omitempty"`
+	// MountLabel is the SELinux label to assign to mount points
+	MountLabel string `json:"mountlabel,omitempty"`
 }
 
 // VolumeState holds the volume's mutable state.
@@ -134,7 +136,7 @@ func (v *Volume) Labels() map[string]string {
 // MountPoint returns the volume's mountpoint on the host
 func (v *Volume) MountPoint() (string, error) {
 	// For the sake of performance, avoid locking unless we have to.
-	if v.UsesVolumeDriver() {
+	if v.UsesVolumeDriver() || v.config.Driver == define.VolumeDriverImage {
 		v.lock.Lock()
 		defer v.lock.Unlock()
 

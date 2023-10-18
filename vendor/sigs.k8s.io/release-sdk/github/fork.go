@@ -99,8 +99,8 @@ func VerifyFork(branchName, forkOwner, forkRepo, parentOwner, parentRepo string)
 
 	if branchExists {
 		return fmt.Errorf(
-			"a branch named %s already exists in %s/%s: %w",
-			branchName, forkOwner, forkRepo, err,
+			"a branch named %s already exists in %s/%s",
+			branchName, forkOwner, forkRepo,
 		)
 	}
 	return nil

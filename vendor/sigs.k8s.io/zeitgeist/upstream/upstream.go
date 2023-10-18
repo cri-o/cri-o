@@ -20,8 +20,8 @@ limitations under the License.
 //
 // Different Upstream types can have their own parameters, but they must:
 //
-//	- Include the BaseUpstream type
-//	- Define a LatestVersion() function that returns the latest available version as a string
+//   - Include the BaseUpstream type
+//   - Define a LatestVersion() function that returns the latest available version as a string
 package upstream
 
 import (

@@ -29,7 +29,7 @@ func TryJoinPauseProcess(pausePidPath string) (bool, int, error) {
 	}
 
 	// It could not join the pause process, let's lock the file before trying to delete it.
-	pidFileLock, err := lockfile.GetLockfile(pausePidPath)
+	pidFileLock, err := lockfile.GetLockFile(pausePidPath)
 	if err != nil {
 		// The file was deleted by another process.
 		if os.IsNotExist(err) {
@@ -135,7 +135,7 @@ func GetAvailableGids() (int64, error) {
 	return countAvailableIDs(gids), nil
 }
 
-// findIDInMappings find the the mapping that contains the specified ID.
+// findIDInMappings find the mapping that contains the specified ID.
 // It assumes availableMappings is sorted by ID.
 func findIDInMappings(id int64, availableMappings []user.IDMap) *user.IDMap {
 	i := sort.Search(len(availableMappings), func(i int) bool {

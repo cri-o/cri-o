@@ -34,6 +34,7 @@ type HostInfo struct {
 	Conmon            *ConmonInfo      `json:"conmon"`
 	CPUs              int              `json:"cpus"`
 	CPUUtilization    *CPUUsage        `json:"cpuUtilization"`
+	DatabaseBackend   string           `json:"databaseBackend"`
 	Distribution      DistributionInfo `json:"distribution"`
 	EventLogger       string           `json:"eventLogger"`
 	Hostname          string           `json:"hostname"`
@@ -118,6 +119,7 @@ type StoreInfo struct {
 	ImageStore      ImageStore        `json:"imageStore"`
 	RunRoot         string            `json:"runRoot"`
 	VolumePath      string            `json:"volumePath"`
+	TransientStore  bool              `json:"transientStore"`
 }
 
 // ImageStore describes the image store.  Right now only the number

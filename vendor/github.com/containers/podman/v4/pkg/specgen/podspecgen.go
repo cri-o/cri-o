@@ -53,6 +53,9 @@ type PodBasicConfig struct {
 	// Conflicts with NoInfra=true.
 	// Optional.
 	InfraName string `json:"infra_name,omitempty"`
+	// Ipc sets the IPC namespace of the pod, set to private by default.
+	// This configuration will then be shared with the entire pod if PID namespace sharing is enabled via --share
+	Ipc Namespace `json:"ipcns,omitempty"`
 	// SharedNamespaces instructs the pod to share a set of namespaces.
 	// Shared namespaces will be joined (by default) by every container
 	// which joins the pod.
@@ -98,7 +101,7 @@ type PodNetworkConfig struct {
 	// PortMappings is a set of ports to map into the infra container.
 	// As, by default, containers share their network with the infra
 	// container, this will forward the ports to the entire pod.
-	// Only available if NetNS is set to Bridge or Slirp.
+	// Only available if NetNS is set to Bridge, Slirp, or Pasta.
 	// Optional.
 	PortMappings []types.PortMapping `json:"portmappings,omitempty"`
 	// Map of networks names to ids the container should join to.
@@ -189,6 +192,10 @@ type PodStorageConfig struct {
 	// Conflicts with ShmSize if IpcNS is not private.
 	// Optional.
 	ShmSize *int64 `json:"shm_size,omitempty"`
+	// ShmSizeSystemd is the size of systemd-specific tmpfs mounts
+	// specifically /run, /run/lock, /var/log/journal and /tmp.
+	// Optional
+	ShmSizeSystemd *int64 `json:"shm_size_systemd,omitempty"`
 }
 
 // PodCgroupConfig contains configuration options about a pod's cgroups.

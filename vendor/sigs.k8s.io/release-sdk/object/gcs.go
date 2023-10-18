@@ -185,7 +185,8 @@ func (g *GCS) bucketCopy(src, dst string) error {
 // GetReleasePath returns a GCS path to retrieve builds from or push builds to
 //
 // Expected destination format:
-//   gs://<bucket>/<gcsRoot>[/fast][/<version>]
+//
+//	gs://<bucket>/<gcsRoot>[/fast][/<version>]
 func (g *GCS) GetReleasePath(
 	bucket, gcsRoot, version string,
 	fast bool,
@@ -208,7 +209,8 @@ func (g *GCS) GetReleasePath(
 // GetMarkerPath returns a GCS path where version markers should be stored
 //
 // Expected destination format:
-//   gs://<bucket>/<gcsRoot>
+//
+//	gs://<bucket>/<gcsRoot>
 func (g *GCS) GetMarkerPath(
 	bucket, gcsRoot string,
 ) (string, error) {
@@ -230,7 +232,9 @@ func (g *GCS) GetMarkerPath(
 // GetReleasePath returns a GCS path to retrieve builds from or push builds to
 //
 // Expected destination format:
-//   gs://<bucket>/<gcsRoot>[/fast][/<version>]
+//
+//	gs://<bucket>/<gcsRoot>[/fast][/<version>]
+//
 // TODO: Support "release" buildType
 func (g *GCS) getPath(
 	bucket, gcsRoot, version, pathType string,
@@ -265,7 +269,8 @@ func (g *GCS) getPath(
 // NormalizePath takes a GCS path and ensures that the `GcsPrefix` is
 // prepended to it.
 // TODO: Should there be an append function for paths to prevent multiple calls
-//       like in build.checkBuildExists()?
+//
+//	like in build.checkBuildExists()?
 func (g *GCS) NormalizePath(gcsPathParts ...string) (string, error) {
 	gcsPath := ""
 

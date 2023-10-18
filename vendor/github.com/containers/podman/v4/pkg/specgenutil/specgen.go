@@ -13,7 +13,6 @@ import (
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/cmd/podman/parse"
 	"github.com/containers/podman/v4/libpod/define"
-	ann "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/domain/entities"
 	envLib "github.com/containers/podman/v4/pkg/env"
 	"github.com/containers/podman/v4/pkg/namespaces"
@@ -22,6 +21,10 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
+)
+
+const (
+	rlimitPrefix = "rlimit_"
 )
 
 func getCPULimits(c *entities.ContainerCreateOptions) *specs.LinuxCPU {
@@ -234,6 +237,32 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	return nil
 }
 
+func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
+	rlimits := make([]specs.POSIXRlimit, 0, len(ulimits))
+	// Rlimits/Ulimits
+	for _, ulimit := range ulimits {
+		if ulimit == "host" {
+			rlimits = nil
+			break
+		}
+		// `ulimitNameMapping` from go-units uses lowercase and names
+		// without prefixes, e.g. `RLIMIT_NOFILE` should be converted to `nofile`.
+		// https://github.com/containers/podman/issues/9803
+		u := strings.TrimPrefix(strings.ToLower(ulimit), rlimitPrefix)
+		ul, err := units.ParseUlimit(u)
+		if err != nil {
+			return nil, fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
+		}
+		rl := specs.POSIXRlimit{
+			Type: ul.Name,
+			Hard: uint64(ul.Hard),
+			Soft: uint64(ul.Soft),
+		}
+		rlimits = append(rlimits, rl)
+	}
+	return rlimits, nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
 	rtc, err := config.Default()
 	if err != nil {
@@ -256,7 +285,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		if c.NoHealthCheck {
 			return errors.New("cannot specify both --no-healthcheck and --health-cmd")
 		}
-		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod)
+		s.HealthConfig, err = makeHealthCheckFromCli(c.HealthCmd, c.HealthInterval, c.HealthRetries, c.HealthTimeout, c.HealthStartPeriod, false)
 		if err != nil {
 			return err
 		}
@@ -271,6 +300,25 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		return err
 	}
 	s.HealthCheckOnFailureAction = onFailureAction
+
+	if c.StartupHCCmd != "" {
+		if c.NoHealthCheck {
+			return errors.New("cannot specify both --no-healthcheck and --health-startup-cmd")
+		}
+		// The hardcoded "1s" will be discarded, as the startup
+		// healthcheck does not have a period. So just hardcode
+		// something that parses correctly.
+		tmpHcConfig, err := makeHealthCheckFromCli(c.StartupHCCmd, c.StartupHCInterval, c.StartupHCRetries, c.StartupHCTimeout, "1s", true)
+		if err != nil {
+			return err
+		}
+		s.StartupHealthConfig = new(define.StartupHealthCheck)
+		s.StartupHealthConfig.Test = tmpHcConfig.Test
+		s.StartupHealthConfig.Interval = tmpHcConfig.Interval
+		s.StartupHealthConfig.Timeout = tmpHcConfig.Timeout
+		s.StartupHealthConfig.Retries = tmpHcConfig.Retries
+		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
+	}
 
 	if err := setNamespaces(s, c); err != nil {
 		return err
@@ -414,12 +462,6 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// ANNOTATIONS
 	annotations := make(map[string]string)
 
-	// First, add our default annotations
-	annotations[ann.TTY] = "false"
-	if c.TTY {
-		annotations[ann.TTY] = "true"
-	}
-
 	// Last, add user annotations
 	for _, annotation := range c.Annotation {
 		splitAnnotation := strings.SplitN(annotation, "=", 2)
@@ -474,6 +516,16 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		}
 
 		s.ShmSize = &val
+	}
+
+	// SHM Size Systemd
+	if c.ShmSizeSystemd != "" {
+		val, err := units.RAMInBytes(c.ShmSizeSystemd)
+		if err != nil {
+			return fmt.Errorf("unable to translate --shm-size-systemd: %w", err)
+		}
+
+		s.ShmSizeSystemd = &val
 	}
 
 	if c.Net != nil {
@@ -574,10 +626,11 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.DependencyContainers = c.Requires
 	}
 
-	// TODO
-	// outside of specgen and oci though
-	// defaults to true, check spec/storage
-	// s.readonly = c.ReadOnlyTmpFS
+	// Only add ReadWrite tmpfs mounts iff the container is
+	// being run ReadOnly and ReadWriteTmpFS is not disabled,
+	// (user specifying --read-only-tmpfs=false.)
+	s.ReadWriteTmpfs = c.ReadOnly && c.ReadWriteTmpFS
+
 	//  TODO convert to map?
 	// check if key=value and convert
 	sysmap := make(map[string]string)
@@ -597,53 +650,57 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 
 	for _, opt := range c.SecurityOpt {
-		if opt == "no-new-privileges" {
-			s.ContainerSecurityConfig.NoNewPrivileges = true
+		// Docker deprecated the ":" syntax but still supports it,
+		// so we need to as well
+		var con []string
+		if strings.Contains(opt, "=") {
+			con = strings.SplitN(opt, "=", 2)
 		} else {
-			// Docker deprecated the ":" syntax but still supports it,
-			// so we need to as well
-			var con []string
-			if strings.Contains(opt, "=") {
-				con = strings.SplitN(opt, "=", 2)
-			} else {
-				con = strings.SplitN(opt, ":", 2)
+			con = strings.SplitN(opt, ":", 2)
+		}
+		if len(con) != 2 &&
+			con[0] != "no-new-privileges" {
+			return fmt.Errorf("invalid --security-opt 1: %q", opt)
+		}
+		switch con[0] {
+		case "apparmor":
+			s.ContainerSecurityConfig.ApparmorProfile = con[1]
+			s.Annotations[define.InspectAnnotationApparmor] = con[1]
+		case "label":
+			if con[1] == "nested" {
+				s.ContainerSecurityConfig.LabelNested = true
+				continue
 			}
-			if len(con) != 2 {
-				return fmt.Errorf("invalid --security-opt 1: %q", opt)
-			}
-			switch con[0] {
-			case "apparmor":
-				s.ContainerSecurityConfig.ApparmorProfile = con[1]
-				s.Annotations[define.InspectAnnotationApparmor] = con[1]
-			case "label":
-				// TODO selinux opts and label opts are the same thing
-				s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
-				s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
-			case "mask":
-				s.ContainerSecurityConfig.Mask = append(s.ContainerSecurityConfig.Mask, strings.Split(con[1], ":")...)
-			case "proc-opts":
-				s.ProcOpts = strings.Split(con[1], ",")
-			case "seccomp":
-				s.SeccompProfilePath = con[1]
-				s.Annotations[define.InspectAnnotationSeccomp] = con[1]
+			// TODO selinux opts and label opts are the same thing
+			s.ContainerSecurityConfig.SelinuxOpts = append(s.ContainerSecurityConfig.SelinuxOpts, con[1])
+			s.Annotations[define.InspectAnnotationLabel] = strings.Join(s.ContainerSecurityConfig.SelinuxOpts, ",label=")
+		case "mask":
+			s.ContainerSecurityConfig.Mask = append(s.ContainerSecurityConfig.Mask, strings.Split(con[1], ":")...)
+		case "proc-opts":
+			s.ProcOpts = strings.Split(con[1], ",")
+		case "seccomp":
+			s.SeccompProfilePath = con[1]
+			s.Annotations[define.InspectAnnotationSeccomp] = con[1]
 			// this option is for docker compatibility, it is the same as unmask=ALL
-			case "systempaths":
-				if con[1] == "unconfined" {
-					s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
-				} else {
-					return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
-				}
-			case "unmask":
-				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
-			case "no-new-privileges":
-				noNewPrivileges, err := strconv.ParseBool(con[1])
+		case "systempaths":
+			if con[1] == "unconfined" {
+				s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, []string{"ALL"}...)
+			} else {
+				return fmt.Errorf("invalid systempaths option %q, only `unconfined` is supported", con[1])
+			}
+		case "unmask":
+			s.ContainerSecurityConfig.Unmask = append(s.ContainerSecurityConfig.Unmask, con[1:]...)
+		case "no-new-privileges":
+			noNewPrivileges := true
+			if len(con) == 2 {
+				noNewPrivileges, err = strconv.ParseBool(con[1])
 				if err != nil {
 					return fmt.Errorf("invalid --security-opt 2: %q", opt)
 				}
-				s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
-			default:
-				return fmt.Errorf("invalid --security-opt 2: %q", opt)
 			}
+			s.ContainerSecurityConfig.NoNewPrivileges = noNewPrivileges
+		default:
+			return fmt.Errorf("invalid --security-opt 2: %q", opt)
 		}
 	}
 
@@ -657,7 +714,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS, c.ReadOnlyTmpFS && c.ReadOnly)
+	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS)
 	if err != nil {
 		return err
 	}
@@ -666,6 +723,17 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	}
 	if len(s.Volumes) == 0 || len(c.Volume) != 0 {
 		s.Volumes = volumes
+	}
+
+	if s.ContainerSecurityConfig.LabelNested {
+		// Need to unmask the SELinux file system
+		s.Unmask = append(s.Unmask, "/sys/fs/selinux", "/proc")
+		s.Mounts = append(s.Mounts, specs.Mount{
+			Source:      "/sys/fs/selinux",
+			Destination: "/sys/fs/selinux",
+			Type:        define.TypeBind,
+		})
+		s.Annotations[define.RunOCIMountContextType] = "rootcontext"
 	}
 	// TODO make sure these work in clone
 	if len(s.OverlayVolumes) == 0 {
@@ -700,21 +768,9 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 	// DeviceCgroupRules: c.StringSlice("device-cgroup-rule"),
 
 	// Rlimits/Ulimits
-	for _, u := range c.Ulimit {
-		if u == "host" {
-			s.Rlimits = nil
-			break
-		}
-		ul, err := units.ParseUlimit(u)
-		if err != nil {
-			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
-		}
-		rl := specs.POSIXRlimit{
-			Type: ul.Name,
-			Hard: uint64(ul.Hard),
-			Soft: uint64(ul.Soft),
-		}
-		s.Rlimits = append(s.Rlimits, rl)
+	s.Rlimits, err = GenRlimits(c.Ulimit)
+	if err != nil {
+		return err
 	}
 
 	logOpts := make(map[string]string)
@@ -835,10 +891,14 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.PasswdEntry = c.PasswdEntry
 	}
 
+	if len(s.GroupEntry) == 0 || len(c.GroupEntry) != 0 {
+		s.GroupEntry = c.GroupEntry
+	}
+
 	return nil
 }
 
-func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string) (*manifest.Schema2HealthConfig, error) {
+func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, startPeriod string, isStartup bool) (*manifest.Schema2HealthConfig, error) {
 	cmdArr := []string{}
 	isArr := true
 	err := json.Unmarshal([]byte(inCmd), &cmdArr) // array unmarshalling
@@ -886,7 +946,7 @@ func makeHealthCheckFromCli(inCmd, interval string, retries uint, timeout, start
 
 	hc.Interval = intervalDuration
 
-	if retries < 1 {
+	if retries < 1 && !isStartup {
 		return nil, errors.New("healthcheck-retries must be greater than 0")
 	}
 	hc.Retries = int(retries)

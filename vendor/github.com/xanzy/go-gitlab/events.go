@@ -25,7 +25,7 @@ import (
 // EventsService handles communication with the event related methods of
 // the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/events.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/events.html
 type EventsService struct {
 	client *Client
 }
@@ -33,7 +33,7 @@ type EventsService struct {
 // ContributionEvent represents a user's contribution
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/events.html#get-user-contribution-events
+// https://docs.gitlab.com/ee/api/events.html#get-user-contribution-events
 type ContributionEvent struct {
 	ID          int        `json:"id"`
 	Title       string     `json:"title"`
@@ -69,7 +69,7 @@ type ContributionEvent struct {
 // ListContributionEventsOptions represents the options for GetUserContributionEvents
 //
 // GitLap API docs:
-// https://docs.gitlab.com/ce/api/events.html#get-user-contribution-events
+// https://docs.gitlab.com/ee/api/events.html#get-user-contribution-events
 type ListContributionEventsOptions struct {
 	ListOptions
 	Action     *EventTypeValue       `url:"action,omitempty" json:"action,omitempty"`
@@ -83,7 +83,7 @@ type ListContributionEventsOptions struct {
 // for the specified user, sorted from newest to oldest.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/events.html#get-user-contribution-events
+// https://docs.gitlab.com/ee/api/events.html#get-user-contribution-events
 func (s *UsersService) ListUserContributionEvents(uid interface{}, opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	user, err := parseID(uid)
 	if err != nil {
@@ -107,7 +107,7 @@ func (s *UsersService) ListUserContributionEvents(uid interface{}, opt *ListCont
 
 // ListCurrentUserContributionEvents gets a list currently authenticated user's events
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/events.html#list-currently-authenticated-user-39-s-events
+// GitLab API docs: https://docs.gitlab.com/ee/api/events.html#list-currently-authenticated-users-events
 func (s *EventsService) ListCurrentUserContributionEvents(opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	req, err := s.client.NewRequest(http.MethodGet, "events", opt, options)
 	if err != nil {
@@ -125,7 +125,7 @@ func (s *EventsService) ListCurrentUserContributionEvents(opt *ListContributionE
 
 // ListProjectVisibleEvents gets a list of visible events for a particular project
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/events.html#list-a-project-s-visible-events
+// GitLab API docs: https://docs.gitlab.com/ee/api/events.html#list-a-projects-visible-events
 func (s *EventsService) ListProjectVisibleEvents(pid interface{}, opt *ListContributionEventsOptions, options ...RequestOptionFunc) ([]*ContributionEvent, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

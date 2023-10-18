@@ -82,7 +82,7 @@ func (c *Container) validate() error {
 		return fmt.Errorf("cannot set static IP or MAC address if not creating a network namespace: %w", define.ErrInvalidArg)
 	}
 
-	// Cannot set static IP or MAC if joining >1 CNI network.
+	// Cannot set static IP or MAC if joining >1 network.
 	if len(c.config.Networks) > 1 && (c.config.StaticIP != nil || c.config.StaticMAC != nil) {
 		return fmt.Errorf("cannot set static IP or MAC address if joining more than one network: %w", define.ErrInvalidArg)
 	}
@@ -131,7 +131,7 @@ func (c *Container) validate() error {
 		return fmt.Errorf("please set User explicitly via WithUser() instead of in OCI spec directly: %w", define.ErrInvalidArg)
 	}
 
-	// Init-ctrs must be used inside a Pod.  Check if a init container type is
+	// Init-ctrs must be used inside a Pod.  Check if an init container type is
 	// passed and if no pod is passed
 	if len(c.config.InitContainerType) > 0 && len(c.config.Pod) < 1 {
 		return fmt.Errorf("init containers must be created in a pod: %w", define.ErrInvalidArg)
@@ -154,6 +154,11 @@ func (c *Container) validate() error {
 				return err
 			}
 		}
+	}
+
+	// Cannot set startup HC without a healthcheck
+	if c.config.HealthCheckConfig == nil && c.config.StartupHealthCheckConfig != nil {
+		return fmt.Errorf("cannot set a startup healthcheck when there is no regular healthcheck: %w", define.ErrInvalidArg)
 	}
 
 	return nil

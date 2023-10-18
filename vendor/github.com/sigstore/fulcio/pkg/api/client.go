@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -38,11 +39,33 @@ type RootResponse struct {
 	ChainPEM []byte
 }
 
+type Key struct {
+	// +required
+	Content   []byte `json:"content"`
+	Algorithm string `json:"algorithm,omitempty"`
+}
+
+type CertificateRequest struct {
+	// +optional
+	PublicKey Key `json:"publicKey"`
+
+	// +optional
+	SignedEmailAddress []byte `json:"signedEmailAddress"`
+
+	// +optional
+	CertificateSigningRequest []byte `json:"certificateSigningRequest"`
+}
+
+const (
+	signingCertPath = "/api/v1/signingCert"
+	rootCertPath    = "/api/v1/rootCert"
+)
+
 // SigstorePublicServerURL is the URL of Sigstore's public Fulcio service.
 const SigstorePublicServerURL = "https://fulcio.sigstore.dev"
 
-// Client is the interface for accessing the Fulcio API.
-type Client interface {
+// LegacyClient is the interface for accessing the Fulcio API.
+type LegacyClient interface {
 	// SigningCert sends the provided CertificateRequest to the /api/v1/signingCert
 	// endpoint of a Fulcio API, authenticated with the provided bearer token.
 	SigningCert(cr CertificateRequest, token string) (*CertificateResponse, error)
@@ -54,7 +77,7 @@ type Client interface {
 type ClientOption func(*clientOptions)
 
 // NewClient creates a new Fulcio API client talking to the provided URL.
-func NewClient(url *url.URL, opts ...ClientOption) Client {
+func NewClient(url *url.URL, opts ...ClientOption) LegacyClient {
 	o := makeOptions(opts...)
 
 	return &client{
@@ -71,7 +94,7 @@ type client struct {
 	client  *http.Client
 }
 
-var _ Client = (*client)(nil)
+var _ LegacyClient = (*client)(nil)
 
 // SigningCert implements Client
 func (c *client) SigningCert(cr CertificateRequest, token string) (*CertificateResponse, error) {
@@ -81,12 +104,12 @@ func (c *client) SigningCert(cr CertificateRequest, token string) (*CertificateR
 
 	b, err := json.Marshal(cr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("marshal: %w", err)
 	}
 
 	req, err := http.NewRequest(http.MethodPost, endpoint.String(), bytes.NewBuffer(b))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("request: %w", err)
 	}
 	// Set the authorization header to our OIDC bearer token.
 	req.Header.Set("Authorization", "Bearer "+token)
@@ -95,25 +118,25 @@ func (c *client) SigningCert(cr CertificateRequest, token string) (*CertificateR
 
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("client: %w", err)
 	}
 	defer resp.Body.Close()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%s read: %w", endpoint.String(), err)
 	}
 
 	// The API should return a 201 Created on success.  If we see anything else,
 	// then turn the response body into an error.
 	if resp.StatusCode != http.StatusCreated {
-		return nil, errors.New(string(body))
+		return nil, fmt.Errorf("%s %s returned %s: %q", http.MethodPost, endpoint.String(), resp.Status, body)
 	}
 
 	// Extract the SCT from the response header.
 	sct, err := base64.StdEncoding.DecodeString(resp.Header.Get("SCT"))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("decode: %w", err)
 	}
 
 	// Split the cert and the chain
@@ -134,7 +157,11 @@ func (c *client) RootCert() (*RootResponse, error) {
 	endpoint := *c.baseURL
 	endpoint.Path = path.Join(endpoint.Path, rootCertPath)
 
-	resp, err := http.Get(endpoint.String())
+	req, err := http.NewRequest(http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("request: %w", err)
+	}
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err
 	}

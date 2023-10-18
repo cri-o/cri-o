@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/coreos/go-systemd/v22/journal"
 	"github.com/coreos/go-systemd/v22/sdjournal"
@@ -63,6 +64,10 @@ func (e EventJournalD) Write(ee Event) error {
 			m["PODMAN_LABELS"] = string(b)
 		}
 		m["PODMAN_HEALTH_STATUS"] = ee.HealthStatus
+
+		if len(ee.Details.ContainerInspectData) > 0 {
+			m["PODMAN_CONTAINER_INSPECT_DATA"] = ee.Details.ContainerInspectData
+		}
 	case Network:
 		m["PODMAN_ID"] = ee.ID
 		m["PODMAN_NETWORK_NAME"] = ee.Network
@@ -97,10 +102,20 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 			logrus.Errorf("Unable to close journal :%v", err)
 		}
 	}()
+	err = j.SetDataThreshold(0)
+	if err != nil {
+		logrus.Warnf("cannot set data threshold: %v", err)
+	}
 	// match only podman journal entries
 	podmanJournal := sdjournal.Match{Field: "SYSLOG_IDENTIFIER", Value: "podman"}
 	if err := j.AddMatch(podmanJournal.String()); err != nil {
-		return fmt.Errorf("failed to add journal filter for event log: %w", err)
+		return fmt.Errorf("failed to add SYSLOG_IDENTIFIER journal filter for event log: %w", err)
+	}
+
+	// make sure we only read events for the current user
+	uidMatch := sdjournal.Match{Field: "_UID", Value: strconv.Itoa(rootless.GetRootlessUID())}
+	if err := j.AddMatch(uidMatch.String()); err != nil {
+		return fmt.Errorf("failed to add _UID journal filter for event log: %w", err)
 	}
 
 	if len(options.Since) == 0 && len(options.Until) == 0 && options.Stream {
@@ -113,10 +128,19 @@ func (e EventJournalD) Read(ctx context.Context, options ReadOptions) error {
 		if _, err := j.Previous(); err != nil {
 			return fmt.Errorf("failed to move journal cursor to previous entry: %w", err)
 		}
+	} else if len(options.Since) > 0 {
+		since, err := util.ParseInputTime(options.Since, true)
+		if err != nil {
+			return err
+		}
+		// seek based on time which helps to reduce unnecessary event reads
+		if err := j.SeekRealtimeUsec(uint64(since.UnixMicro())); err != nil {
+			return err
+		}
 	}
 
 	for {
-		entry, err := getNextEntry(ctx, j, options.Stream, untilTime)
+		entry, err := GetNextEntry(ctx, j, options.Stream, untilTime)
 		if err != nil {
 			return err
 		}
@@ -187,6 +211,7 @@ func newEventFromJournalEntry(entry *sdjournal.JournalEntry) (*Event, error) {
 			}
 		}
 		newEvent.HealthStatus = entry.Fields["PODMAN_HEALTH_STATUS"]
+		newEvent.Details.ContainerInspectData = entry.Fields["PODMAN_CONTAINER_INSPECT_DATA"]
 	case Network:
 		newEvent.ID = entry.Fields["PODMAN_ID"]
 		newEvent.Network = entry.Fields["PODMAN_NETWORK_NAME"]
@@ -201,10 +226,10 @@ func (e EventJournalD) String() string {
 	return Journald.String()
 }
 
-// getNextEntry returns the next entry in the journal. If the end  of the
+// GetNextEntry returns the next entry in the journal. If the end  of the
 // journal is reached and stream is not set or the current time is after
 // the until time this function return nil,nil.
-func getNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
+func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
 	for {
 		select {
 		case <-ctx.Done():

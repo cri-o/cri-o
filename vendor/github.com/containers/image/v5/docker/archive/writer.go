@@ -19,7 +19,7 @@ type Writer struct {
 	archive     *tarfile.Writer
 	writer      io.Closer
 
-	// The following state can only be acccessed with the mutex held.
+	// The following state can only be accessed with the mutex held.
 	mutex     sync.Mutex
 	hadCommit bool // At least one successful commit has happened
 }
@@ -64,7 +64,7 @@ func NewWriter(sys *types.SystemContext, path string) (*Writer, error) {
 	}, nil
 }
 
-// imageCommitted notifies the Writer that at least one image was successfully commited to the stream.
+// imageCommitted notifies the Writer that at least one image was successfully committed to the stream.
 func (w *Writer) imageCommitted() {
 	w.mutex.Lock()
 	defer w.mutex.Unlock()
