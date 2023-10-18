@@ -153,6 +153,21 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		return "", err
 	}
 
+	cgroup := ""
+	if s.config.SeparatePullCgroup != "" {
+		if !s.config.CgroupManager().IsSystemd() {
+			return "", errors.New("--separate-pull-cgroup is supported only with systemd")
+		}
+		if s.config.SeparatePullCgroup == utils.PodCgroupName {
+			cgroup = pullArgs.sandboxCgroup
+		} else {
+			cgroup = s.config.SeparatePullCgroup
+			if !strings.Contains(cgroup, ".slice") {
+				return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
+			}
+		}
+	}
+
 	remoteCandidates, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
@@ -210,22 +225,6 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		progress := make(chan imageTypes.ProgressProperties)
 		defer close(progress) // nolint:gocritic
 		go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName, tmpImg)
-
-		cgroup := ""
-
-		if s.config.SeparatePullCgroup != "" {
-			if !s.config.CgroupManager().IsSystemd() {
-				return "", errors.New("--separate-pull-cgroup is supported only with systemd")
-			}
-			if s.config.SeparatePullCgroup == utils.PodCgroupName {
-				cgroup = pullArgs.sandboxCgroup
-			} else {
-				cgroup = s.config.SeparatePullCgroup
-				if !strings.Contains(cgroup, ".slice") {
-					return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
-				}
-			}
-		}
 
 		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, remoteCandidateName, &storage.ImageCopyOptions{
 			SourceCtx:        &sourceCtx,
