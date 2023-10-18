@@ -10,9 +10,6 @@ else
     echo "$GCS_CRIO_SA" >/tmp/key.json
     gcloud auth activate-service-account --key-file=/tmp/key.json
 
-    BUCKET=gs://cri-o
-    gsutil cp -n build/bundle/*.tar.gz* $BUCKET/artifacts
-
     # update the latest version marker file for the branch
     MARKER=$(git rev-parse --abbrev-ref HEAD)
     VERSION=$(git rev-parse HEAD)
@@ -24,5 +21,7 @@ else
         MARKER=$(echo "$VERSION" | cut -c 2-5)
     fi
     echo "$VERSION" >"latest-$MARKER.txt"
+
+    BUCKET=gs://cri-o
     gsutil cp "latest-$MARKER.txt" $BUCKET
 fi

@@ -90,7 +90,7 @@ dependencies:
   - name: bom
     version: 0.5.1
     refPaths:
-      - path: Makefile
+      - path: .github/workflows/verify.yml
         match: BOM_VERSION
 
   - name: release-notes
