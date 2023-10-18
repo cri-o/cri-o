@@ -325,7 +325,8 @@ yum install -y \
   libseccomp \
   libselinux \
   pkgconf-pkg-config \
-  gpgme-devel
+  gpgme-devel \
+  gcc-go
 ```
 
 #### Debian - Raspbian - Ubuntu
