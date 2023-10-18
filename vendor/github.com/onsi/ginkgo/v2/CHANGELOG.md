@@ -1,3 +1,18 @@
+## 2.13.0
+
+### Features
+
+Add PreviewSpect() to enable programmatic preview access to the suite report (fixes #1225)
+
+## 2.12.1
+
+### Fixes
+- Print logr prefix if it exists (#1275) [90d4846]
+
+### Maintenance
+- Bump actions/checkout from 3 to 4 (#1271) [555f543]
+- Bump golang.org/x/sys from 0.11.0 to 0.12.0 (#1270) [d867b7d]
+
 ## 2.12.0
 
 ### Features
