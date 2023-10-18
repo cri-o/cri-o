@@ -258,7 +258,7 @@ ${ZEITGEIST}:
 	$(call go-build,./vendor/sigs.k8s.io/zeitgeist)
 
 ${GOLANGCI_LINT}:
-	export VERSION=v1.40.1 \
+	export VERSION=v1.53.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
