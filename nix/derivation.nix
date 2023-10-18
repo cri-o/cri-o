@@ -1,5 +1,5 @@
 { pkgs }:
-with pkgs; buildGo117Module {
+with pkgs; buildGo120Module {
   name = "cri-o";
   src = ./..;
   vendorSha256 = null;
@@ -31,6 +31,7 @@ with pkgs; buildGo117Module {
     export EXTRA_LDFLAGS='-s -w -linkmode external -extldflags "-static -lm"'
     export BUILDTAGS='static netgo osusergo exclude_graphdriver_btrfs exclude_graphdriver_devicemapper seccomp apparmor selinux'
     export CGO_ENABLED=1
+    export CGO_LDFLAGS='-lgpgme -lassuan -lgpg-error'
   '';
   buildPhase = ''
     patchShebangs .
