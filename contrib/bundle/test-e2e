@@ -59,7 +59,7 @@ systemctl is-active --quiet crio && echo CRI-O is running
 journalctl --no-pager -u crio
 
 # Start Kubernetes
-GOROOT="$GOROOT_1_16_X64"
+GOROOT="$(go env GOROOT)"
 GOPATH="$HOME/go"
 PATH="$GOROOT/bin:$PATH"
 K8SPATH="$GOPATH/src/k8s.io"
