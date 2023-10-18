@@ -1,5 +1,5 @@
 { pkgs }:
-with pkgs; buildGo119Module {
+with pkgs; buildGo120Module {
   name = "cri-o";
   src = ./..;
   vendorSha256 = null;

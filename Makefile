@@ -292,7 +292,7 @@ ${BOM}:
 bom: ${BOM}
 
 ${GOLANGCI_LINT}:
-	export VERSION=v1.50.1 \
+	export VERSION=v1.53.2 \
 		URL=https://raw.githubusercontent.com/golangci/golangci-lint \
 		BINDIR=${BUILD_BIN_PATH} && \
 	curl -sSfL $$URL/$$VERSION/install.sh | sh -s $$VERSION
