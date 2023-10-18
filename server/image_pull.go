@@ -209,49 +209,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		// Collect pull progress metrics
 		progress := make(chan imageTypes.ProgressProperties)
 		defer close(progress) // nolint:gocritic
-		go func() {
-			for p := range progress {
-				if p.Event == imageTypes.ProgressEventSkipped {
-					// Skipped digests metrics
-					tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
-				}
-				if p.Artifact.Size > 0 {
-					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
-						p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
-						float64(p.Offset)/float64(p.Artifact.Size)*100,
-					)
-				} else {
-					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
-						p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
-					)
-				}
-
-				// Metrics for every digest
-				metrics.Instance().MetricImagePullsByDigestAdd(
-					float64(p.OffsetUpdate),
-					remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
-					strconv.FormatInt(p.Artifact.Size, 10),
-				)
-
-				// Metrics for the overall image
-				metrics.Instance().MetricImagePullsByNameAdd(
-					float64(p.OffsetUpdate),
-					remoteCandidateName, strconv.FormatInt(imageSize(tmpImg), 10),
-				)
-
-				// Metrics for image pulls bytes
-				metrics.Instance().MetricImagePullsBytesAdd(
-					float64(p.OffsetUpdate),
-					p.Artifact.MediaType,
-					p.Artifact.Size,
-				)
-
-				// Metrics for size histogram
-				if p.Event == imageTypes.ProgressEventDone {
-					metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
-				}
-			}
-		}()
+		go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName, tmpImg)
 
 		cgroup := ""
 
@@ -308,6 +266,51 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	return imageRef, nil
 }
 
+// metricsFromProgressGoroutine consumes progress and turns it into metrics updates.
+func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference, remoteImage imageTypes.Image) {
+	for p := range progress {
+		if p.Event == imageTypes.ProgressEventSkipped {
+			// Skipped digests metrics
+			tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
+		}
+		if p.Artifact.Size > 0 {
+			log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
+				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
+				float64(p.Offset)/float64(p.Artifact.Size)*100,
+			)
+		} else {
+			log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
+				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
+			)
+		}
+
+		// Metrics for every digest
+		metrics.Instance().MetricImagePullsByDigestAdd(
+			float64(p.OffsetUpdate),
+			remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
+			strconv.FormatInt(p.Artifact.Size, 10),
+		)
+
+		// Metrics for the overall image
+		metrics.Instance().MetricImagePullsByNameAdd(
+			float64(p.OffsetUpdate),
+			remoteCandidateName, strconv.FormatInt(imageSize(remoteImage), 10),
+		)
+
+		// Metrics for image pulls bytes
+		metrics.Instance().MetricImagePullsBytesAdd(
+			float64(p.OffsetUpdate),
+			p.Artifact.MediaType,
+			p.Artifact.Size,
+		)
+
+		// Metrics for size histogram
+		if p.Event == imageTypes.ProgressEventDone {
+			metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
+		}
+	}
+}
+
 func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err error) {
 	// We try to cover some basic use-cases
 	const labelUnknown = "UNKNOWN"
@@ -359,7 +362,7 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	return user, password, nil
 }
 
-func imageSize(img imageTypes.ImageCloser) (size int64) {
+func imageSize(img imageTypes.Image) (size int64) {
 	for _, layer := range img.LayerInfos() {
 		if layer.Size > 0 {
 			size += layer.Size
