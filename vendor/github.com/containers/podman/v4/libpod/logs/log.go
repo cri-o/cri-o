@@ -143,7 +143,7 @@ func getTailLog(path string, tail int) ([]*LogLine, error) {
 				nllCounter++
 			}
 		}
-		// if we have enough log lines, we can hangup
+		// if we have enough log lines, we can hang up
 		if nllCounter >= tail {
 			break
 		}

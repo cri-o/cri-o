@@ -134,7 +134,9 @@ func Extract(tarFilePath, destinationPath string) error {
 				if err := os.Symlink(header.Linkname, targetFile); err != nil {
 					return false, fmt.Errorf("create symlink: %w", err)
 				}
-			case tar.TypeReg, tar.TypeRegA:
+				// tar.TypeRegA has been deprecated since Go 1.11
+				// should we just remove?
+			case tar.TypeReg, tar.TypeRegA: //nolint: staticcheck
 				targetFile := filepath.Join(destinationPath, header.Name)
 				logrus.Tracef("Creating file %s", targetFile)
 

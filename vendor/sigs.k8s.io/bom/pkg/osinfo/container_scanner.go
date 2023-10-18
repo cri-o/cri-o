@@ -24,7 +24,10 @@ import (
 
 	purl "github.com/package-url/packageurl-go"
 	"github.com/sirupsen/logrus"
+	apk "gitlab.alpinelinux.org/alpine/go/repository"
 )
+
+const apkDBPath = "lib/apk/db/installed"
 
 // TODO: Move functions to its own implementation
 type ContainerScanner struct{}
@@ -55,6 +58,9 @@ func (ct *ContainerScanner) ReadOSPackages(layers []string) (
 	case OSDebian, OSUbuntu:
 		layerNum, packages, err = ct.ReadDebianPackages(layers)
 		purlType = purl.TypeDebian
+	case OSAlpine, OSWolfi:
+		layerNum, packages, err = ct.ReadApkPackages(layers)
+		purlType = "apk"
 	default:
 		return 0, nil, nil
 	}
@@ -75,7 +81,7 @@ func (ct *ContainerScanner) setPurlData(ptype, pnamespace string, packages *[]Pa
 }
 
 // ReadDebianPackages scans through a set of container layers looking for the
-// last update to the debian package datgabase. If found, extracts it and
+// last update to the debian package database. If found, extracts it and
 // sends it to parseDpkgDB to extract the package information from the file.
 func (ct *ContainerScanner) ReadDebianPackages(layers []string) (layer int, pk *[]PackageDBEntry, err error) {
 	// Cycle the layers in order, trying to extract the dpkg database
@@ -87,8 +93,8 @@ func (ct *ContainerScanner) ReadDebianPackages(layers []string) (layer int, pk *
 			return 0, pk, fmt.Errorf("opening temp dpkg file: %w", err)
 		}
 		dpkgPath := dpkgDB.Name()
-		defer os.Remove(dpkgDB.Name())
 		if err := loss.extractFileFromTar(lp, "var/lib/dpkg/status", dpkgPath); err != nil {
+			os.Remove(dpkgDB.Name())
 			if _, ok := err.(ErrFileNotFoundInTar); ok {
 				continue
 			}
@@ -103,8 +109,43 @@ func (ct *ContainerScanner) ReadDebianPackages(layers []string) (layer int, pk *
 		logrus.Info("dbdata is blank")
 		return layer, nil, nil
 	}
-
+	defer os.Remove(dpkgDatabase)
 	pk, err = ct.parseDpkgDB(dpkgDatabase)
+	return layer, pk, err
+}
+
+// ReadApkPackages reads the last known changed copy of the apk database
+func (ct *ContainerScanner) ReadApkPackages(layers []string) (layer int, pk *[]PackageDBEntry, err error) {
+	apkDatabase := ""
+	loss := LayerScanner{}
+	for i, lp := range layers {
+		tmpDB, err := os.CreateTemp("", "apkdb-")
+		if err != nil {
+			return 0, pk, fmt.Errorf("opening temporary apkdb file: %w", err)
+		}
+		tmpDBPath := tmpDB.Name()
+		if err := loss.extractFileFromTar(lp, apkDBPath, tmpDBPath); err != nil {
+			os.Remove(tmpDBPath)
+			if _, ok := err.(ErrFileNotFoundInTar); ok {
+				continue
+			}
+			return 0, pk, fmt.Errorf("extracting apk database: %w", err)
+		}
+		logrus.Debugf("Layer %d has a newer version of apk database", i)
+		apkDatabase = tmpDBPath
+		layer = i
+	}
+
+	if apkDatabase == "" {
+		logrus.Info("apk database data is empty")
+		return layer, nil, nil
+	}
+	defer os.Remove(apkDatabase)
+
+	pk, err = ct.parseApkDB(apkDatabase)
+	if err != nil {
+		return layer, nil, fmt.Errorf("parsing apk database: %w", err)
+	}
 	return layer, pk, err
 }
 
@@ -117,6 +158,8 @@ type PackageDBEntry struct {
 	MaintainerName  string
 	MaintainerEmail string
 	HomePage        string
+	License         string // License expression
+	Checksums       map[string]string
 }
 
 // PackageURL returns a purl representing the db entry. If the entry
@@ -199,4 +242,36 @@ func (ct *ContainerScanner) parseDpkgDB(dbPath string) (*[]PackageDBEntry, error
 	}
 
 	return &db, err
+}
+
+func (ct *ContainerScanner) parseApkDB(dbPath string) (*[]PackageDBEntry, error) {
+	f, err := os.Open(dbPath)
+	if err != nil {
+		return nil, fmt.Errorf("opening apkdb: %w", err)
+	}
+	apks, err := apk.ParsePackageIndex(f)
+	if err != nil {
+		return nil, fmt.Errorf("parsing apk db: %w", err)
+	}
+
+	packages := []PackageDBEntry{}
+	for _, p := range apks {
+		cs := map[string]string{}
+		if strings.HasPrefix(p.ChecksumString(), "Q1") {
+			cs["SHA1"] = fmt.Sprintf("%x", p.Checksum)
+		} else if p.ChecksumString() != "" {
+			cs["MD5"] = fmt.Sprintf("%x", p.Checksum)
+		}
+
+		packages = append(packages, PackageDBEntry{
+			Package:        p.Name,
+			Version:        p.Version,
+			Architecture:   p.Arch,
+			Type:           "apk",
+			MaintainerName: p.Maintainer,
+			License:        p.License,
+			Checksums:      cs,
+		})
+	}
+	return &packages, nil
 }

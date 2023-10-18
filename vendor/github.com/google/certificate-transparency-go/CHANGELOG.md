@@ -13,16 +13,27 @@
 
 ### Cleanup
 
- * `WithBalancerName` is deprecated and removed, using the recommended way
+ * `WithBalancerName` is deprecated and removed, using the recommended way.
  * `ctfe.PEMCertPool` type has been moved to `x509util.PEMCertPool` to reduce
    dependencies (#903).
+ * Remove log list v1 package and its dependencies.
+
+### Migrillian
+
+* #960: Skip consistency check when root is size zero.
 
 ### Misc
 
+ * updated golangci-lint to v1.46.1 (developers should update to this version)
  * update `google.golang.org/grpc` to v1.46.0
  * `ctclient` tool now uses Cobra for better CLI experience (#901).
  * #800: Remove dependency from `ratelimit`.
  * #927: Add read-only mode to CTFE config.
+ * Update Trillian to [0a389c4](https://github.com/google/trillian/commit/0a389c4bb8d97fb3be8f55d7e5b428cf4304986f)
+ * Migrate loglist dependency from v1 to v3 in ctclient cmd.
+ * Migrate loglist dependency from v1 to v3 in ctutil/loginfo.go
+ * Migrate loglist dependency from v1 to v3 in ctutil/sctscan.go
+ * Migrate loglist dependency from v1 to v3 in trillian/integration/ct_hammer/main.go
 
 ## v1.1.2
 

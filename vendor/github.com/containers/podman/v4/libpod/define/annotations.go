@@ -1,6 +1,12 @@
 package define
 
 const (
+	// RunOCIMountContextType tells the OCI runtime which context mount
+	// type to use. context, rootcontext, fscontext, defcontext
+	RunOCIMountContextType = "run.oci.mount_context_type"
+	// RunOCIKeepOriginalGroups tells the OCI runtime to leak the users
+	// current groups into the container
+	RunOCIKeepOriginalGroups = "run.oci.keep_original_groups"
 	// InspectAnnotationCIDFile is used by Inspect to determine if a
 	// container ID file was created for the container.
 	// If an annotation with this key is found in the OCI spec, it will be
@@ -58,7 +64,6 @@ const (
 	// If an annotation with this key is found in the OCI spec, it will be
 	// used in the output of Inspect().
 	InspectAnnotationApparmor = "io.podman.annotations.apparmor"
-
 	// InspectResponseTrue is a boolean True response for an inspect
 	// annotation.
 	InspectResponseTrue = "TRUE"
@@ -139,6 +144,10 @@ const (
 	// InitContainerType is used by play kube when playing a kube yaml to specify the type
 	// of the init container.
 	InitContainerType = "io.podman.annotations.init.container.type"
+
+	// UlimitAnnotation is used by kube play when playing a kube yaml to specify the ulimits
+	// of the container
+	UlimitAnnotation = "io.podman.annotations.ulimit"
 
 	// MaxKubeAnnotation is the max length of annotations allowed by Kubernetes.
 	MaxKubeAnnotation = 63

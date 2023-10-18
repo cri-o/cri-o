@@ -21,6 +21,8 @@ var ErrSymCycle = errors.New("symlink cycle detected")
 // ErrUnsupportedHashAlgorithm signals a missing hash mapping in getHashMapping
 var ErrUnsupportedHashAlgorithm = errors.New("unsupported hash algorithm detected")
 
+var ErrEmptyCommandArgs = errors.New("the command args are empty")
+
 // visitedSymlinks is a hashset that contains all paths that we have visited.
 var visitedSymlinks Set
 
@@ -90,10 +92,10 @@ the following format:
 If recording an artifact fails the first return value is nil and the second
 return value is the error.
 */
-func RecordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns []string, lStripPaths []string, lineNormalization bool) (evalArtifacts map[string]interface{}, err error) {
+func RecordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns []string, lStripPaths []string, lineNormalization bool, followSymlinkDirs bool) (evalArtifacts map[string]interface{}, err error) {
 	// Make sure to initialize a fresh hashset for every RecordArtifacts call
 	visitedSymlinks = NewSet()
-	evalArtifacts, err = recordArtifacts(paths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+	evalArtifacts, err = recordArtifacts(paths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 	// pass result and error through
 	return evalArtifacts, err
 }
@@ -116,7 +118,7 @@ the following format:
 If recording an artifact fails the first return value is nil and the second
 return value is the error.
 */
-func recordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns []string, lStripPaths []string, lineNormalization bool) (map[string]interface{}, error) {
+func recordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns []string, lStripPaths []string, lineNormalization bool, followSymlinkDirs bool) (map[string]interface{}, error) {
 	artifacts := make(map[string]interface{})
 	for _, path := range paths {
 		err := filepath.Walk(path,
@@ -158,18 +160,35 @@ func recordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns 
 					if err != nil {
 						return err
 					}
+					info, err := os.Stat(evalSym)
+					if err != nil {
+						return err
+					}
+					targetIsDir := false
+					if info.IsDir() {
+						if !followSymlinkDirs {
+							// We don't follow symlinked directories
+							return nil
+						}
+						targetIsDir = true
+					}
 					// add symlink to visitedSymlinks set
 					// this way, we know which link we have visited already
 					// if we visit a symlink twice, we have detected a symlink cycle
 					visitedSymlinks.Add(path)
-					// We recursively call RecordArtifacts() to follow
+					// We recursively call recordArtifacts() to follow
 					// the new path.
-					evalArtifacts, evalErr := recordArtifacts([]string{evalSym}, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+					evalArtifacts, evalErr := recordArtifacts([]string{evalSym}, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 					if evalErr != nil {
 						return evalErr
 					}
 					for key, value := range evalArtifacts {
-						artifacts[key] = value
+						if targetIsDir {
+							symlinkPath := filepath.Join(path, strings.TrimPrefix(key, evalSym))
+							artifacts[symlinkPath] = value
+						} else {
+							artifacts[path] = value
+						}
 					}
 					return nil
 				}
@@ -187,8 +206,7 @@ func recordArtifacts(paths []string, hashAlgorithms []string, gitignorePatterns 
 					}
 				}
 				// Check if path is unique
-				_, existingPath := artifacts[path]
-				if existingPath {
+				if _, exists := artifacts[path]; exists {
 					return fmt.Errorf("left stripping has resulted in non unique dictionary key: %s", path)
 				}
 				artifacts[path] = artifact
@@ -247,6 +265,9 @@ NOTE: Since stdout and stderr are captured, they cannot be seen during the
 command execution.
 */
 func RunCommand(cmdArgs []string, runDir string) (map[string]interface{}, error) {
+	if len(cmdArgs) == 0 {
+		return nil, ErrEmptyCommandArgs
+	}
 
 	cmd := exec.Command(cmdArgs[0], cmdArgs[1:]...)
 
@@ -290,20 +311,24 @@ return value is an empty Metablock and the second return value is the error.
 */
 func InTotoRun(name string, runDir string, materialPaths []string, productPaths []string,
 	cmdArgs []string, key Key, hashAlgorithms []string, gitignorePatterns []string,
-	lStripPaths []string, lineNormalization bool) (Metablock, error) {
+	lStripPaths []string, lineNormalization bool, followSymlinkDirs bool) (Metablock, error) {
 	var linkMb Metablock
 
-	materials, err := RecordArtifacts(materialPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+	materials, err := RecordArtifacts(materialPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 	if err != nil {
 		return linkMb, err
 	}
 
-	byProducts, err := RunCommand(cmdArgs, runDir)
-	if err != nil {
-		return linkMb, err
+	// make sure that we only run RunCommand if cmdArgs is not nil or empty
+	byProducts := map[string]interface{}{}
+	if len(cmdArgs) != 0 {
+		byProducts, err = RunCommand(cmdArgs, runDir)
+		if err != nil {
+			return linkMb, err
+		}
 	}
 
-	products, err := RecordArtifacts(productPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+	products, err := RecordArtifacts(productPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 	if err != nil {
 		return linkMb, err
 	}
@@ -338,9 +363,9 @@ in order to provide evidence for supply chain steps that cannot be carries out
 by a single command.  InTotoRecordStart collects the hashes of the materials
 before any commands are run, signs the unfinished link, and returns the link.
 */
-func InTotoRecordStart(name string, materialPaths []string, key Key, hashAlgorithms, gitignorePatterns []string, lStripPaths []string, lineNormalization bool) (Metablock, error) {
+func InTotoRecordStart(name string, materialPaths []string, key Key, hashAlgorithms, gitignorePatterns []string, lStripPaths []string, lineNormalization bool, followSymlinkDirs bool) (Metablock, error) {
 	var linkMb Metablock
-	materials, err := RecordArtifacts(materialPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+	materials, err := RecordArtifacts(materialPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 	if err != nil {
 		return linkMb, err
 	}
@@ -371,7 +396,7 @@ created by InTotoRecordStart and records the hashes of any products creted by
 commands run between InTotoRecordStart and InTotoRecordStop.  The resultant
 finished link metablock is then signed by the provided key and returned.
 */
-func InTotoRecordStop(prelimLinkMb Metablock, productPaths []string, key Key, hashAlgorithms, gitignorePatterns []string, lStripPaths []string, lineNormalization bool) (Metablock, error) {
+func InTotoRecordStop(prelimLinkMb Metablock, productPaths []string, key Key, hashAlgorithms, gitignorePatterns []string, lStripPaths []string, lineNormalization bool, followSymlinkDirs bool) (Metablock, error) {
 	var linkMb Metablock
 	if err := prelimLinkMb.VerifySignature(key); err != nil {
 		return linkMb, err
@@ -382,7 +407,7 @@ func InTotoRecordStop(prelimLinkMb Metablock, productPaths []string, key Key, ha
 		return linkMb, errors.New("invalid metadata block")
 	}
 
-	products, err := RecordArtifacts(productPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization)
+	products, err := RecordArtifacts(productPaths, hashAlgorithms, gitignorePatterns, lStripPaths, lineNormalization, followSymlinkDirs)
 	if err != nil {
 		return linkMb, err
 	}

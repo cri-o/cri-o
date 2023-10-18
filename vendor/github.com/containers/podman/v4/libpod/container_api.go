@@ -79,8 +79,8 @@ func (c *Container) Init(ctx context.Context, recursive bool) error {
 // ContainerStatePaused via Pause(), or to ContainerStateStopped by the process
 // stopping (either due to exit, or being forced to stop by the Kill or Stop API
 // calls).
-// Start requites that all dependency containers (e.g. pod infra containers) be
-// running before being run. The recursive parameter, if set, will start all
+// Start requires that all dependency containers (e.g. pod infra containers) are
+// running before starting the container. The recursive parameter, if set, will start all
 // dependencies before starting this container.
 func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) {
 	defer func() {
@@ -252,14 +252,6 @@ func (c *Container) StopWithTimeout(timeout uint) (finalErr error) {
 		if err := c.syncContainer(); err != nil {
 			return err
 		}
-	}
-
-	if c.ensureState(define.ContainerStateStopped, define.ContainerStateExited) {
-		return define.ErrCtrStopped
-	}
-
-	if !c.ensureState(define.ContainerStateCreated, define.ContainerStateRunning, define.ContainerStateStopping) {
-		return fmt.Errorf("can only stop created or running containers. %s is in state %s: %w", c.ID(), c.state.State.String(), define.ErrCtrStateInvalid)
 	}
 
 	return c.stop(timeout)
@@ -788,10 +780,12 @@ func (c *Container) Cleanup(ctx context.Context) error {
 
 	// make sure all the container processes are terminated if we are running without a pid namespace.
 	hasPidNs := false
-	for _, i := range c.config.Spec.Linux.Namespaces {
-		if i.Type == spec.PIDNamespace {
-			hasPidNs = true
-			break
+	if c.config.Spec.Linux != nil {
+		for _, i := range c.config.Spec.Linux.Namespaces {
+			if i.Type == spec.PIDNamespace {
+				hasPidNs = true
+				break
+			}
 		}
 	}
 	if !hasPidNs {
@@ -850,7 +844,7 @@ func (c *Container) Batch(batchFunc func(*Container) error) error {
 // Most of the time, Podman does not explicitly query the OCI runtime for
 // container status, and instead relies upon exit files created by conmon.
 // This can cause a disconnect between running state and what Podman sees in
-// cases where Conmon was killed unexpected, or runc was upgraded.
+// cases where Conmon was killed unexpectedly, or runc was upgraded.
 // Running a manual Sync() ensures that container state will be correct in
 // such situations.
 func (c *Container) Sync() error {

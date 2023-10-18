@@ -24,14 +24,14 @@ import (
 // ValidateService handles communication with the validation related methods of
 // the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/lint.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/lint.html
 type ValidateService struct {
 	client *Client
 }
 
 // LintResult represents the linting results.
 //
-// GitLab API docs: https://docs.gitlab.com/ce/api/lint.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/lint.html
 type LintResult struct {
 	Status     string   `json:"status"`
 	Errors     []string `json:"errors"`
