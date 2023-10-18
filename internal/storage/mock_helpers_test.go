@@ -1,49 +1,15 @@
 package storage_test
 
 import (
-	"fmt"
-
 	cstorage "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/mockutils"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
 )
 
-type mockSequence struct {
-	first, last *gomock.Call // may be both nil (= the default value of mockSequence) to mean empty sequence
-}
-
-// like gomock.inOrder, but can be nested
-func inOrder(calls ...interface{}) mockSequence {
-	var first, last *gomock.Call
-	// This implementation does a few more assignments and checks than strictly necessary, but it is O(N) and reasonably easy to read, so, whatever.
-	for i := 0; i < len(calls); i++ {
-		var elem mockSequence
-		switch e := calls[i].(type) {
-		case mockSequence:
-			elem = e
-		case *gomock.Call:
-			elem = mockSequence{e, e}
-		default:
-			Fail(fmt.Sprintf("Invalid inOrder parameter %#v", e))
-		}
-
-		if elem.first == nil {
-			continue
-		}
-		if first == nil {
-			first = elem.first
-		} else if last != nil {
-			elem.first.After(last)
-		}
-		last = elem.last
-	}
-	return mockSequence{first, last}
-}
-
 // containers/image/storage.storageReference.StringWithinTransport
-func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.MockStore) mockSequence {
-	return inOrder(
+func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
+	return mockutils.InOrder(
 		storeMock.EXPECT().GraphOptions().Return([]string{}),
 		storeMock.EXPECT().GraphDriverName().Return(""),
 		storeMock.EXPECT().GraphRoot().Return(""),
@@ -54,14 +20,14 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 // containers/image/storage.Transport.GetStoreImage
 // expectedImageName must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image
-func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
+func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockutils.MockSequence {
 	if resolvedImageID == "" {
-		return inOrder(
+		return mockutils.InOrder(
 			storeMock.EXPECT().Image(expectedImageName).Return(nil, cstorage.ErrImageUnknown),
 			mockResolveImage(storeMock, expectedImageName, ""),
 		)
 	}
-	return inOrder(
+	return mockutils.InOrder(
 		storeMock.EXPECT().Image(expectedImageName).
 			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageName}}, nil),
 	)
@@ -70,24 +36,24 @@ func mockGetStoreImage(storeMock *containerstoragemock.MockStore, expectedImageN
 // containers/image/storage.storageReference.resolveImage
 // expectedImageNameOrID, if a name, must be in the fully normalized format (reference.Named.String())!
 // resolvedImageID may be "" to simulate a missing image
-func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNameOrID, resolvedImageID string) mockSequence {
+func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNameOrID, resolvedImageID string) mockutils.MockSequence {
 	if resolvedImageID == "" {
-		return inOrder(
+		return mockutils.InOrder(
 			storeMock.EXPECT().Image(expectedImageNameOrID).Return(nil, cstorage.ErrImageUnknown),
 			// Assuming expectedImageNameOrID does not have a digest, so resolveName does not call ImagesByDigest
 			mockStorageReferenceStringWithinTransport(storeMock),
 			mockStorageReferenceStringWithinTransport(storeMock),
 		)
 	}
-	return inOrder(
+	return mockutils.InOrder(
 		storeMock.EXPECT().Image(expectedImageNameOrID).
 			Return(&cstorage.Image{ID: resolvedImageID, Names: []string{expectedImageNameOrID}}, nil),
 	)
 }
 
 // containers/image/storage.storageImageSource.getSize
-func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mockSequence {
-	return inOrder(
+func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
+	return mockutils.InOrder(
 		storeMock.EXPECT().ListImageBigData(gomock.Any()).
 			Return([]string{""}, nil), // A single entry
 		storeMock.EXPECT().ImageBigDataSize(gomock.Any(), gomock.Any()).
@@ -97,8 +63,8 @@ func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mo
 }
 
 // containers/image/storage.storageReference.newImage
-func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockSequence {
-	return inOrder(
+func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, resolvedImageID string) mockutils.MockSequence {
+	return mockutils.InOrder(
 		mockResolveImage(storeMock, expectedImageName, resolvedImageID),
 		storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 			Return(testManifest, nil),
