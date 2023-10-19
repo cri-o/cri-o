@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
+_Generated on Thu, 19 Oct 2023 22:03:57 UTC for commit [4452c75][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6fe755442b9855ed4dc6ede3ff1cfd2425e220e3
+[0]: https://github.com/cri-o/cri-o/commit/4452c751390f2dc9d05856fe63f4932101f9a74b
 
 ## Outdated Dependencies
 
@@ -40,7 +40,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | bazil.org/fuse                                                                          | v0.0.0-20160811212531-371fbbdaa898                | v0.0.0-20230120002735-62a210ff1fd5 | false  | true             |
 | capnproto.org/go/capnp/v3                                                               | v3.0.0-alpha.25                                   | v3.0.0-alpha-29                    | false  | true             |
 | chainguard.dev/go-grpc-kit                                                              | v0.16.0                                           | v0.17.2                            | false  | true             |
-| cloud.google.com/go                                                                     | v0.110.4                                          | v0.110.8                           | false  | true             |
+| cloud.google.com/go                                                                     | v0.110.4                                          | v0.110.9                           | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.1                                            | v1.7.2                             | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                                | v1.8.1                                            | v1.8.2                             | false  | true             |
 | cloud.google.com/go/aiplatform                                                          | v1.45.0                                           | v1.51.1                            | false  | true             |
@@ -80,7 +80,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | cloud.google.com/go/dataqna                                                             | v0.8.1                                            | v0.8.2                             | false  | true             |
 | cloud.google.com/go/datastore                                                           | v1.12.1                                           | v1.15.0                            | false  | true             |
 | cloud.google.com/go/datastream                                                          | v1.9.1                                            | v1.10.1                            | false  | true             |
-| cloud.google.com/go/deploy                                                              | v1.11.0                                           | v1.13.1                            | false  | true             |
+| cloud.google.com/go/deploy                                                              | v1.11.0                                           | v1.14.0                            | false  | true             |
 | cloud.google.com/go/dialogflow                                                          | v1.38.0                                           | v1.44.1                            | false  | true             |
 | cloud.google.com/go/dlp                                                                 | v1.10.1                                           | v1.10.2                            | false  | true             |
 | cloud.google.com/go/documentai                                                          | v1.20.0                                           | v1.23.3                            | false  | true             |
@@ -90,7 +90,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | cloud.google.com/go/essentialcontacts                                                   | v1.6.2                                            | v1.6.3                             | false  | true             |
 | cloud.google.com/go/eventarc                                                            | v1.12.1                                           | v1.13.1                            | false  | true             |
 | cloud.google.com/go/filestore                                                           | v1.7.1                                            | v1.7.2                             | false  | true             |
-| cloud.google.com/go/firestore                                                           | v1.11.0                                           | v1.13.0                            | false  | true             |
+| cloud.google.com/go/firestore                                                           | v1.11.0                                           | v1.14.0                            | false  | true             |
 | cloud.google.com/go/functions                                                           | v1.15.1                                           | v1.15.2                            | false  | true             |
 | cloud.google.com/go/gkebackup                                                           | v0.4.0                                            | v1.3.2                             | false  | true             |
 | cloud.google.com/go/gkeconnect                                                          | v0.8.1                                            | v0.8.2                             | false  | true             |
@@ -137,7 +137,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | cloud.google.com/go/scheduler                                                           | v1.10.1                                           | v1.10.2                            | false  | true             |
 | cloud.google.com/go/secretmanager                                                       | v1.11.1                                           | v1.11.2                            | false  | true             |
 | cloud.google.com/go/security                                                            | v1.15.1                                           | v1.15.2                            | false  | true             |
-| cloud.google.com/go/securitycenter                                                      | v1.23.0                                           | v1.23.1                            | false  | true             |
+| cloud.google.com/go/securitycenter                                                      | v1.23.0                                           | v1.24.0                            | false  | true             |
 | cloud.google.com/go/servicedirectory                                                    | v1.10.1                                           | v1.11.1                            | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.1                                            | v1.7.2                             | false  | true             |
 | cloud.google.com/go/spanner                                                             | v1.47.0                                           | v1.51.0                            | false  | true             |
@@ -231,7 +231,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.45.28                           | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.0                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.0                            | false  | true             |
@@ -563,7 +563,7 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231012220842-d250a3d7e9ee | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231019155258-1aa304063d62 | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -809,9 +809,9 @@ _Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 | golang.org/x/time                                                                       | v0.3.0                                            |                                    | false  | true             |
 | golang.org/x/tools                                                                      | v0.12.0                                           | v0.14.0                            | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20220907171357-04be3eba64a2                | v0.0.0-20231012003039-104605ab7028 | false  | true             |
-| google.golang.org/api                                                                   | v0.128.0                                          | v0.147.0                           | false  | true             |
+| google.golang.org/api                                                                   | v0.128.0                                          | v0.148.0                           | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.7                                            | v1.6.8                             | false  | true             |
-| google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.110.8                           | false  | true             |
+| google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.110.9                           | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20230711160842-782d3b101e98                | v0.0.0-20231016165738-49dd2c1f3d0b | false  | true             |
