@@ -920,10 +920,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		sb = s.GetSandbox(c.Sandbox())
 	}
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
-	if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
-		log.Warnf(ctx, "Failed to update %s status %s: %v", resource, containerID, err)
-		return
-	}
+
 	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}
