@@ -322,7 +322,7 @@ yum install -y \
   libassuan \
   libassuan-devel \
   libgpg-error \
-  libseccomp \
+  libseccomp-devel \
   libselinux \
   pkgconf-pkg-config \
   gpgme-devel \
