@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Oct 2023 13:14:14 UTC for commit [11bda93][0]._
+_Generated on Thu, 19 Oct 2023 15:52:52 UTC for commit [6fe7554][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/11bda9322fe8ed60cba7bb46feb7ca469bea75c0
+[0]: https://github.com/cri-o/cri-o/commit/6fe755442b9855ed4dc6ede3ff1cfd2425e220e3
 
 ## Outdated Dependencies
 
@@ -288,7 +288,7 @@ _Generated on Thu, 19 Oct 2023 13:14:14 UTC for commit [11bda93][0]._
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                    | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                            |                                    | false  | true             |
 | github.com/chzyer/test                                                                  | v1.0.0                                            |                                    | false  | true             |
-| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.0                            | false  | true             |
+| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.1                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.5.6                                            | v2.7.0                             | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                    | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.3                                            | v1.3.5                             | false  | true             |
