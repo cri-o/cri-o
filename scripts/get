@@ -171,9 +171,9 @@ if command -v cosign >/dev/null; then
     for BLOB in "${BLOBS[@]}"; do
         echo "Verifying blob $BLOB"
         COSIGN_EXPERIMENTAL=1 cosign verify-blob "$BLOB" \
-            --certificate-identity "https://github.com/cri-o/cri-o/.github/workflows/test.yml@$GIT_REF" \
+            --certificate-identity "https://github.com/cri-o/packaging/.github/workflows/obs.yml@$GIT_REF" \
             --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-            --certificate-github-workflow-repository cri-o/cri-o \
+            --certificate-github-workflow-repository cri-o/packaging \
             --certificate-github-workflow-ref "$GIT_REF" \
             --signature "$BLOB.sig" \
             --certificate "$BLOB.cert"
@@ -197,10 +197,10 @@ fi
 
 echo Installing CRI-O
 
-# In this section we include the contents of
-# contrib/bundle/install-paths and contrib/bundle/install
+# Sync with
+# https://github.com/cri-o/packaging/blob/main/templates/latest/cri-o/bundle/install
+# if the `get-script{-with-verification}` CI test fails.
 
-# INCLUDE
 DESTDIR=${DESTDIR:-}
 PREFIX=${PREFIX:-/usr/local}
 ETCDIR=${ETCDIR:-/etc}
@@ -245,7 +245,6 @@ install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio-status
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crio
 install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR" etc/crictl.yaml
 install $SELINUX -D -m 644 -t "$DESTDIR$OCIDIR" etc/crio-umount.conf
-install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR/crio" etc/crio.conf
 install $SELINUX -D -m 644 -t "$DESTDIR$ETCDIR/crio/crio.conf.d" etc/10-crun.conf
 install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man5" man/crio.conf.5
 install $SELINUX -D -m 644 -t "$DESTDIR$MANDIR/man5" man/crio.conf.d.5
@@ -257,7 +256,7 @@ install $SELINUX -D -m 644 -t "$DESTDIR$ZSHINSTALLDIR" completions/zsh/_crio
 install $SELINUX -D -m 644 -t "$DESTDIR$SYSTEMDDIR" contrib/crio.service
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/pinns
 install $SELINUX -D -m 755 -t "$DESTDIR$BINDIR" bin/crun
-install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_REGISTRIES_CONFD_DIR" contrib/crio-registries.conf
+install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_REGISTRIES_CONFD_DIR" contrib/registries.conf
 
 if [ ! -f "$DESTDIR$CONTAINERS_DIR/policy.json" ]; then
     install $SELINUX -D -m 644 -t "$DESTDIR$CONTAINERS_DIR" contrib/policy.json

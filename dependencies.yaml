@@ -102,7 +102,7 @@ dependencies:
   - name: bom
     version: 0.5.1
     refPaths:
-      - path: Makefile
+      - path: .github/workflows/verify.yml
         match: BOM_VERSION
 
   - name: release-notes
@@ -134,9 +134,3 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
-
-  - name: Kubernetes
-    version: v1.28
-    refPaths:
-      - path: contrib/bundle/Vagrantfile
-        match: KUBERNETES_VERSION
