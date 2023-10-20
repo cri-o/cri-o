@@ -35,7 +35,6 @@ It is assumed you are running a Linux machine.
       - [Install with Ansible](#install-with-ansible)
       - [Build Tags](#build-tags)
     - [Static builds](#static-builds)
-      - [Creating a release archive](#creating-a-release-archive)
     - [Download conmon](#download-conmon)
   - [Setup CNI networking](#setup-cni-networking)
   - [CRI-O configuration](#cri-o-configuration)
@@ -519,18 +518,6 @@ Similarly, the ppc64le variant of binaries can be built using:
 
 ```shell
 nix build -f nix/default-ppc64le.nix
-```
-
-#### Creating a release archive
-
-A release bundle consists of all static binaries, the man pages and
-configuration files like `00-default.conf`. The `release-bundle` target can be
-used to build a new release archive within the current repository:
-
-```shell
-make release-bundle
-…
-Created ./bundle/cri-o.amd64.v1.20.0.tar.gz
 ```
 
 ### Download conmon

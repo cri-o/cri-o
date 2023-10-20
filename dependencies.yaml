@@ -87,12 +87,6 @@ dependencies:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
 
-  - name: bom
-    version: 0.5.1
-    refPaths:
-      - path: Makefile
-        match: BOM_VERSION
-
   - name: release-notes
     version: 0.15.1
     refPaths:
