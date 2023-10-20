@@ -150,7 +150,8 @@ To install `CRI-O`, you can follow our [installation guide](install.md).
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](install.md#build-and-install-cri-o-from-source).
 We also provide a way in building
-[static binaries of `CRI-O`](install.md#static-builds) via nix.
+[static binaries of `CRI-O`](install.md#static-builds) via nix as part of the
+[cri-o/packaging repository](https://github.com/cri-o/packaging).
 Those binaries are available for every successfully built commit on our
 [Google Cloud Storage Bucket][bucket].
 This means that the latest commit can be installed via our convenience script:
@@ -158,7 +159,7 @@ This means that the latest commit can be installed via our convenience script:
 [bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
 
 ```console
-> curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash
+> curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash
 ```
 
 The script automatically verifies the uploaded sigstore signatures as well, if
@@ -172,13 +173,13 @@ This can be selected via the script, too:
 
 <!-- markdownlint-disable MD013 -->
 ```shell
-curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -a arm64
+curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -a arm64
 ```
 
 It is also possible to select a specific git SHA or tag by:
 
 ```shell
-curl https://raw.githubusercontent.com/cri-o/cri-o/main/scripts/get | bash -s -- -t v1.21.0
+curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -t v1.21.0
 ```
 <!-- markdownlint-enable MD013 -->
 

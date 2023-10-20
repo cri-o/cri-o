@@ -103,31 +103,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - run: make check-config-template
 
-  get-script:
-    if: ${{ github.base_ref == 'main' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo scripts/get
-      - run: crio version
-
-  get-script-with-verification:
-    if: ${{ github.base_ref == 'main' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: sigstore/cosign-installer@v3
-      - run: |
-          BOM_VERSION=v0.5.1
-          curl -sSfL --retry 5 --retry-delay 3 https://github.com/kubernetes-sigs/bom/releases/download/$BOM_VERSION/bom-amd64-linux -o bom
-          chmod +x bom
-          sudo cp bom /usr/bin
-      - run: sudo -E PATH=$PATH scripts/get
-      - run: crio version
-
   dependencies:
     runs-on: ubuntu-latest
     steps:
