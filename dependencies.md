@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Oct 2023 22:03:57 UTC for commit [4452c75][0]._
+_Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4452c751390f2dc9d05856fe63f4932101f9a74b
+[0]: https://github.com/cri-o/cri-o/commit/297d07c1c86f251fcb9c8c491a56508e6835cccb
 
 ## Outdated Dependencies
 
@@ -270,7 +270,7 @@ _Generated on Thu, 19 Oct 2023 22:03:57 UTC for commit [4452c75][0]._
 | github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.0+incompatible                | false  | true             |
 | github.com/bugsnag/osext                                                                | v0.0.0-20130617224835-0dd3f918b21b                |                                    | false  | true             |
 | github.com/bugsnag/panicwrap                                                            | v0.0.0-20151223152923-e2c28503fcd0                | v1.3.4                             | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.49.0                                           | v3.56.0                            | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.49.0                                           | v3.57.0                            | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                            |                                    | false  | true             |
 | github.com/cavaliercoder/badio                                                          | v0.0.0-20160213150051-ce5280129e9e                |                                    | false  | true             |
 | github.com/cavaliercoder/go-cpio                                                        | v0.0.0-20180626203310-925f9528c45e                | v1.0.1                             | false  | true             |
@@ -288,7 +288,7 @@ _Generated on Thu, 19 Oct 2023 22:03:57 UTC for commit [4452c75][0]._
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                    | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                            |                                    | false  | true             |
 | github.com/chzyer/test                                                                  | v1.0.0                                            |                                    | false  | true             |
-| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.1                            | false  | true             |
+| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.2                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.5.6                                            | v2.7.0                             | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                    | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.3                                            | v1.3.5                             | false  | true             |
@@ -336,7 +336,7 @@ _Generated on Thu, 19 Oct 2023 22:03:57 UTC for commit [4452c75][0]._
 | github.com/coreos/etcd                                                                  | v3.3.10+incompatible                              | v3.3.27+incompatible               | false  | true             |
 | github.com/coreos/go-iptables                                                           | v0.6.0                                            | v0.7.0                             | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                               |                                    | false  | true             |
-| github.com/coreos/go-oidc/v3                                                            | v3.6.0                                            |                                    | false  | true             |
+| github.com/coreos/go-oidc/v3                                                            | v3.6.0                                            | v3.7.0                             | false  | true             |
 | github.com/coreos/go-semver                                                             | v0.3.1                                            |                                    | false  | true             |
 | github.com/coreos/go-systemd                                                            | v0.0.0-20190719114852-fd7a80b32e1f                | v0.0.0-20191104093116-d3cd4ed1dbcf | false  | true             |
 | github.com/coreos/go-systemd/v22                                                        | v22.5.0                                           |                                    | true   | true             |
