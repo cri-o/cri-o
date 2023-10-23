@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
+_Generated on Mon, 23 Oct 2023 08:01:35 UTC for commit [b345191][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/297d07c1c86f251fcb9c8c491a56508e6835cccb
+[0]: https://github.com/cri-o/cri-o/commit/b3451915f9d60414ba06ca09740f9b58ee18798f
 
 ## Outdated Dependencies
 
@@ -17,8 +17,9 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/containers/podman/v4                                             | v4.6.2                               | v4.7.1              | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
 | github.com/docker/distribution                                              | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
+| github.com/fsnotify/fsnotify                                                | v1.6.0                               | v1.7.0              | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.12.0                              | v2.13.0             | true   | true             |
-| github.com/onsi/gomega                                                      | v1.27.10                             | v1.28.0             | true   | true             |
+| github.com/onsi/gomega                                                      | v1.27.10                             | v1.28.1             | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.16.0                              | v1.17.0             | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.2                               | v0.2.3              | true   | true             |
@@ -199,7 +200,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
 | github.com/PaesslerAG/jsonpath                                                          | v0.1.1                                            |                                    | false  | true             |
 | github.com/ProtonMail/go-crypto                                                         | v0.0.0-20230528122434-6f98819771a1                | v0.0.0-20230923063757-afb1ddc0824c | false  | true             |
-| github.com/PuerkitoBio/purell                                                           | v1.1.1                                            | v1.2.0                             | false  | true             |
+| github.com/PuerkitoBio/purell                                                           | v1.1.1                                            | v1.2.1                             | false  | true             |
 | github.com/PuerkitoBio/urlesc                                                           | v0.0.0-20170810143723-de5bf2ad4578                |                                    | false  | true             |
 | github.com/Shopify/logrus-bugsnag                                                       | v0.0.0-20171204204709-577dee27f20d                | v0.0.0-20230117174420-439a4b8ba167 | false  | true             |
 | github.com/ThalesIgnite/crypto11                                                        | v1.2.5                                            |                                    | false  | true             |
@@ -231,7 +232,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.0                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.0                            | false  | true             |
@@ -398,7 +399,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/flynn/go-docopt                                                              | v0.0.0-20140912013429-f6dd2ebbb31e                |                                    | false  | true             |
 | github.com/form3tech-oss/jwt-go                                                         | v3.2.2+incompatible                               | v3.2.5+incompatible                | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.0                                           | v1.14.6                            | false  | true             |
-| github.com/fsnotify/fsnotify                                                            | v1.6.0                                            |                                    | true   | true             |
+| github.com/fsnotify/fsnotify                                                            | v1.6.0                                            | v1.7.0                             | true   | true             |
 | github.com/fsouza/go-dockerclient                                                       | v1.9.7                                            | v1.10.0                            | false  | true             |
 | github.com/fullsailor/pkcs7                                                             | v0.0.0-20190404230743-d7302db945fa                |                                    | false  | true             |
 | github.com/fxamacker/cbor/v2                                                            | v2.4.0                                            | v2.5.0                             | false  | true             |
@@ -546,7 +547,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                    | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                             | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                    | false  | true             |
-| github.com/klauspost/compress                                                           | v1.16.7                                           | v1.17.1                            | false  | true             |
+| github.com/klauspost/compress                                                           | v1.16.7                                           | v1.17.2                            | false  | true             |
 | github.com/klauspost/cpuid/v2                                                           | v2.0.4                                            | v2.2.5                             | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6                                            |                                    | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.3                                            |                                    | false  | true             |
@@ -622,7 +623,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                            |                                    | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.12.0                                           | v2.13.0                            | true   | true             |
-| github.com/onsi/gomega                                                                  | v1.27.10                                          | v1.28.0                            | true   | true             |
+| github.com/onsi/gomega                                                                  | v1.27.10                                          | v1.28.1                            | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.52.0                                           | v0.57.1                            | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                    | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc4                                        | v1.1.0-rc5                         | true   | true             |
@@ -734,7 +735,7 @@ _Generated on Fri, 20 Oct 2023 15:45:55 UTC for commit [297d07c][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.10.0                            | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                    | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.93.1                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.86.0                                           | v0.93.2                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                    | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                    | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.1                                            | v1.1.2                             | false  | true             |
