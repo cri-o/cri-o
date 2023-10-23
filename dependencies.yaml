@@ -99,12 +99,6 @@ dependencies:
       - path: .github/workflows/nixpkgs.yml
         match: NIX_VERSION
 
-  - name: bom
-    version: 0.5.1
-    refPaths:
-      - path: .github/workflows/verify.yml
-        match: BOM_VERSION
-
   - name: release-notes
     version: 0.16.1
     refPaths:
