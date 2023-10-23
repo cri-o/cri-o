@@ -501,10 +501,13 @@ func StreamServerInterceptor(opts ...Option) grpc.StreamServerInterceptor {
 // spanInfo returns a span name and all appropriate attributes from the gRPC
 // method and peer address.
 func spanInfo(fullMethod, peerAddress string) (string, []attribute.KeyValue) {
-	attrs := []attribute.KeyValue{RPCSystemGRPC}
 	name, mAttrs := internal.ParseFullMethod(fullMethod)
+	peerAttrs := peerAttr(peerAddress)
+
+	attrs := make([]attribute.KeyValue, 0, 1+len(mAttrs)+len(peerAttrs))
+	attrs = append(attrs, RPCSystemGRPC)
 	attrs = append(attrs, mAttrs...)
-	attrs = append(attrs, peerAttr(peerAddress)...)
+	attrs = append(attrs, peerAttrs...)
 	return name, attrs
 }
 
@@ -512,7 +515,7 @@ func spanInfo(fullMethod, peerAddress string) (string, []attribute.KeyValue) {
 func peerAttr(addr string) []attribute.KeyValue {
 	host, p, err := net.SplitHostPort(addr)
 	if err != nil {
-		return []attribute.KeyValue(nil)
+		return nil
 	}
 
 	if host == "" {
@@ -520,7 +523,7 @@ func peerAttr(addr string) []attribute.KeyValue {
 	}
 	port, err := strconv.Atoi(p)
 	if err != nil {
-		return []attribute.KeyValue(nil)
+		return nil
 	}
 
 	var attr []attribute.KeyValue
