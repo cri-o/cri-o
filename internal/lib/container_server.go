@@ -339,7 +339,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		}
 	}
 
-	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
+	if err := scontainer.FromDisk(); err != nil {
 		return sb, fmt.Errorf("error reading sandbox state from disk %q: %w", scontainer.ID(), err)
 	}
 
@@ -484,7 +484,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	spp := m.Annotations[annotations.SeccompProfilePath]
 	ctr.SetSeccompProfilePath(spp)
 
-	if err := c.ContainerStateFromDisk(ctx, ctr); err != nil {
+	if err := ctr.FromDisk(); err != nil {
 		return fmt.Errorf("error reading container state from disk %q: %w", ctr.ID(), err)
 	}
 
@@ -504,21 +504,6 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 func isTrue(annotaton string) bool {
 	return annotaton == "true"
-}
-
-// ContainerStateFromDisk retrieves information on the state of a running container
-// from the disk
-func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.Container) error {
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-	if err := ctr.FromDisk(); err != nil {
-		return err
-	}
-	if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ContainerStateToDisk writes the container's state information to a JSON file
