@@ -24,6 +24,7 @@ import (
 	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/utils/cpuset"
 )
@@ -33,9 +34,6 @@ const (
 	HighPerformance = "high-performance"
 	// IrqSmpAffinityProcFile contains the default smp affinity mask configuration
 	IrqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
-
-	cpusetCpus          = "cpuset.cpus"
-	cpusetCpusExclusive = "cpuset.cpus.exclusive"
 )
 
 const (
@@ -48,12 +46,27 @@ const (
 	irqBalancedName      = "irqbalance"
 	sysCPUDir            = "/sys/devices/system/cpu"
 	sysCPUSaveDir        = "/var/run/crio/cpu"
+	milliCPUToCPU        = 1000
+)
+
+const (
+	cpusetPartition      = "cpuset.cpus.partition"
+	cpusetExclusive      = "cpuset.cpus.exclusive"
+	cgroupSubTreeControl = "cgroup.subtree_control"
+	cpusetCpus           = "cpuset.cpus"
+	cpusetCpusExclusive  = "cpuset.cpus.exclusive"
+)
+
+const (
+	IsolatedCPUsEnvVar = "OPENSHIFT_ISOLATED_CPUS"
+	SharedCPUsEnvVar   = "OPENSHIFT_SHARED_CPUS"
 )
 
 // HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
 type HighPerformanceHooks struct {
 	irqBalanceConfigFile string
 	cpusetLock           sync.Mutex
+	sharedCPUs           string
 }
 
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
@@ -74,6 +87,15 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
 		if err := h.setCPULoadBalancing(c, podManager, containerManagers, false); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
+		}
+	}
+
+	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
+		if h.sharedCPUs == "" {
+			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
+		}
+		if err = setSharedCPUs(ctx, c, podManager, containerManagers, h.sharedCPUs, shouldCPULoadBalancingBeDisabled(s.Annotations())); err != nil {
+			return fmt.Errorf("set shared CPUs: %w", err)
 		}
 	}
 
@@ -219,6 +241,12 @@ func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value
 
 func annotationValueDeprecationWarning(annotation string) string {
 	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, "true")
+}
+
+func requestedSharedCPUs(annotations fields.Set, cName string) bool {
+	key := crioannotations.CPUSharedAnnotation + "/" + cName
+	v, ok := annotations[key]
+	return ok && v == annotationEnable
 }
 
 // setCPULoadBalancing relies on the cpuset cgroup to disable load balancing for containers.
@@ -937,4 +965,115 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 	}
 
 	return "", fmt.Errorf("invalid annotation value %s", annotation)
+}
+
+func setSharedCPUs(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string, isLoadBalancingDisabled bool) error {
+	if isContainerCPUsSpecEmpty(c) {
+		return fmt.Errorf("no cpus found for container %q", c.Name())
+	}
+	cpuSpec := c.Spec().Linux.Resources.CPU
+	isolatedCPUSet, err := cpuset.Parse(cpuSpec.Cpus)
+	if err != nil {
+		return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
+	}
+	sharedCPUSet, err := cpuset.Parse(sharedCPUs)
+	if err != nil {
+		return fmt.Errorf("failed to parse shared cpus: %w", err)
+	}
+	if sharedCPUSet.IsEmpty() {
+		return fmt.Errorf("shared CPU set is empty")
+	}
+	// pod level operations
+	podCgroup, err := podManager.GetCgroups()
+	if err != nil {
+		return err
+	}
+	newPodQuota, err := calculatePodQuota(&sharedCPUSet, podCgroup.Resources.CpuQuota, podCgroup.Resources.CpuPeriod)
+	if err != nil {
+		return fmt.Errorf("failed to calculate pod quota: %w", err)
+	}
+	err = podManager.Set(&configs.Resources{
+		SkipDevices: true,
+		CpuQuota:    newPodQuota,
+	})
+	if err != nil {
+		return err
+	}
+	// container level operations
+	ctrCPUSet := isolatedCPUSet.Union(sharedCPUSet)
+	ctrQuota, err := calculateMaximalQuota(&ctrCPUSet, *(cpuSpec.Period))
+	if err != nil {
+		return fmt.Errorf("failed to calculate container %s quota: %w", c.ID(), err)
+	}
+	err = containerManagers[len(containerManagers)-1].Set(&configs.Resources{
+		SkipDevices: true,
+		CpuQuota:    ctrQuota,
+		CpusetCpus:  ctrCPUSet.String(),
+	})
+	if err != nil {
+		return err
+	}
+	if isLoadBalancingDisabled && node.CgroupIsV2() {
+		// we need to move the isolated cpus into a separate child cgroup
+		// on V2 all controllers are under the same path
+		ctrCgroup := containerManagers[len(containerManagers)-1].Path("")
+		if err := cgroups.WriteFile(ctrCgroup, cgroupSubTreeControl, "+cpu +cpuset"); err != nil {
+			return err
+		}
+		if err := cgroups.WriteFile(ctrCgroup, cpusetPartition, "member"); err != nil {
+			return err
+		}
+		cgroupChildDir := filepath.Join(ctrCgroup, "cgroup-child")
+		if err := os.Mkdir(cgroupChildDir, 0o755); err != nil {
+			return err
+		}
+		if err != nil {
+			return err
+		}
+		if err := cgroups.WriteFile(cgroupChildDir, cpusetCpus, isolatedCPUSet.String()); err != nil {
+			return err
+		}
+		if err := cgroups.WriteFile(cgroupChildDir, cpusetExclusive, isolatedCPUSet.String()); err != nil {
+			return err
+		}
+		if err := cgroups.WriteFile(cgroupChildDir, cpusetPartition, "isolated"); err != nil {
+			return err
+		}
+	}
+	injectCpusetEnv(c, &isolatedCPUSet, &sharedCPUSet)
+	log.Infof(ctx, "Shared cpus ids %s were added to container %q", sharedCPUSet.String(), c.Name())
+	return nil
+}
+
+func isContainerCPUsSpecEmpty(c *oci.Container) bool {
+	return c.Spec().Linux == nil ||
+		c.Spec().Linux.Resources == nil ||
+		c.Spec().Linux.Resources.CPU == nil ||
+		c.Spec().Linux.Resources.CPU.Cpus == ""
+}
+
+func calculateMaximalQuota(cpus *cpuset.CPUSet, period uint64) (quota int64, err error) {
+	quan, err := resource.ParseQuantity(strconv.Itoa(cpus.Size()))
+	if err != nil {
+		return
+	}
+	// after we divide in milliCPUToCPU, it's safe to convert into int64
+	quota = int64((uint64(quan.MilliValue()) * period) / milliCPUToCPU)
+	return
+}
+
+func calculatePodQuota(sharedCpus *cpuset.CPUSet, existingQuota int64, period uint64) (int64, error) {
+	additionalQuota, err := calculateMaximalQuota(sharedCpus, period)
+	if err != nil {
+		return 0, err
+	}
+	return existingQuota + additionalQuota, err
+}
+
+func injectCpusetEnv(c *oci.Container, isolated, shared *cpuset.CPUSet) {
+	spec := c.Spec()
+	spec.Process.Env = append(spec.Process.Env,
+		fmt.Sprintf("%s=%s", IsolatedCPUsEnvVar, isolated.String()),
+		fmt.Sprintf("%s=%s", SharedCPUsEnvVar, shared.String()))
+	c.SetSpec(&spec)
 }

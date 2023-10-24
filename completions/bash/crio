@@ -113,6 +113,7 @@ h
 --seccomp-use-default-when-empty
 --selinux
 --separate-pull-cgroup
+--shared-cpuset
 --signature-policy
 --signature-policy-dir
 --stats-collection-period

@@ -426,6 +426,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.InfraCtrCPUSet, c.InfraCtrCPUSet),
 		},
 		{
+			templateString: templateStringCrioRuntimeSharedCpuset,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.SharedCPUSet, c.SharedCPUSet),
+		},
+		{
 			templateString: templateStringCrioRuntimeNamespacesDir,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.NamespacesDir, c.NamespacesDir),
@@ -1151,6 +1156,14 @@ const templateStringCrioRuntimeInfraCtrCpuset = `# infra_ctr_cpuset determines w
 # You can use linux CPU list format to specify desired CPUs.
 # To get better isolation for guaranteed pods, set this parameter to be equal to kubelet reserved-cpus.
 {{ $.Comment }}infra_ctr_cpuset = "{{ .InfraCtrCPUSet }}"
+
+`
+
+const templateStringCrioRuntimeSharedCpuset = `# shared_cpuset  determines the CPU set which is allowed to be shared between guaranteed containers,
+# regardless of, and in addition to, the exclusiveness of their CPUs.
+# This field is optional and would not be used if not specified.
+# You can specify CPUs in the Linux CPU list format.
+{{ $.Comment }}shared_cpuset = "{{ .SharedCPUSet }}"
 
 `
 
