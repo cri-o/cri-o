@@ -1,31 +1,28 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 24 Oct 2023 00:29:49 UTC for commit [0bf94aa][0]._
+_Generated on Tue, 24 Oct 2023 11:28:24 UTC for commit [cdb6caf][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0bf94aa4f370d440bac3f0ccdf5099892f5d4f2a
+[0]: https://github.com/cri-o/cri-o/commit/cdb6caf02a462edff972f6bd5b7d762412112629
 
 ## Outdated Dependencies
 
-|                                   MODULE                                    |               VERSION                |     NEW VERSION     | DIRECT | VALID TIMESTAMPS |
-|-----------------------------------------------------------------------------|--------------------------------------|---------------------|--------|------------------|
-| github.com/checkpoint-restore/checkpointctl                                 | v0.1.0                               | v1.1.0              | true   | true             |
-| github.com/container-orchestrated-devices/container-device-interface        | v0.6.0                               | v0.6.1              | true   | true             |
-| github.com/containerd/containerd                                            | v1.7.5                               | v1.7.7              | true   | true             |
-| github.com/containerd/nri                                                   | v0.3.1-0.20230504231226-94185418e253 | v0.5.0              | true   | true             |
-| github.com/containers/common                                                | v0.55.4                              | v0.56.0             | true   | true             |
-| github.com/containers/image/v5                                              | v5.27.0                              | v5.28.0             | true   | true             |
-| github.com/containers/podman/v4                                             | v4.6.2                               | v4.7.1              | true   | true             |
-| github.com/cri-o/ocicni                                                     | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
-| github.com/docker/distribution                                              | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
-| github.com/fsnotify/fsnotify                                                | v1.6.0                               | v1.7.0              | true   | true             |
-| github.com/onsi/gomega                                                      | v1.28.0                              | v1.28.1             | true   | true             |
-| github.com/opencontainers/image-spec                                        | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
-| github.com/prometheus/client_golang                                         | v1.16.0                              | v1.17.0             | true   | true             |
-| github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.2                               | v0.2.3              | true   | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.43.0                              | v0.45.0             | true   | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.17.0                              | v1.19.0             | true   | true             |
-| golang.org/x/sync                                                           | v0.3.0                               | v0.4.0              | true   | true             |
-| google.golang.org/grpc                                                      | v1.58.3                              | v1.59.0             | true   | true             |
+|                                MODULE                                |               VERSION                |     NEW VERSION     | DIRECT | VALID TIMESTAMPS |
+|----------------------------------------------------------------------|--------------------------------------|---------------------|--------|------------------|
+| github.com/checkpoint-restore/checkpointctl                          | v0.1.0                               | v1.1.0              | true   | true             |
+| github.com/container-orchestrated-devices/container-device-interface | v0.6.0                               | v0.6.1              | true   | true             |
+| github.com/containerd/containerd                                     | v1.7.5                               | v1.7.7              | true   | true             |
+| github.com/containerd/nri                                            | v0.3.1-0.20230504231226-94185418e253 | v0.5.0              | true   | true             |
+| github.com/containers/common                                         | v0.55.4                              | v0.56.0             | true   | true             |
+| github.com/containers/image/v5                                       | v5.27.0                              | v5.28.0             | true   | true             |
+| github.com/containers/podman/v4                                      | v4.6.2                               | v4.7.1              | true   | true             |
+| github.com/cri-o/ocicni                                              | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
+| github.com/docker/distribution                                       | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
+| github.com/fsnotify/fsnotify                                         | v1.6.0                               | v1.7.0              | true   | true             |
+| github.com/onsi/gomega                                               | v1.28.0                              | v1.28.1             | true   | true             |
+| github.com/opencontainers/image-spec                                 | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
+| github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
+| golang.org/x/sync                                                    | v0.3.0                               | v0.4.0              | true   | true             |
+| google.golang.org/grpc                                               | v1.58.3                              | v1.59.0             | true   | true             |
 
 ## All Dependencies
 
@@ -712,8 +709,8 @@ _Generated on Tue, 24 Oct 2023 00:29:49 UTC for commit [0bf94aa][0]._
 | github.com/transparency-dev/merkle                                                      | v0.0.2                                            |                                    | false  | true             |
 | github.com/ugorji/go                                                                    | v1.1.4                                            | v1.2.11                            | false  | true             |
 | github.com/ulikunitz/xz                                                                 | v0.5.11                                           |                                    | false  | true             |
-| github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.2.2                                            | v0.2.3                             | true   | true             |
-| github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.2.2                                            | v0.2.3                             | false  | true             |
+| github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.2.3                                            |                                    | true   | true             |
+| github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.2.3                                            |                                    | false  | true             |
 | github.com/urfave/cli                                                                   | v1.22.14                                          |                                    | false  | true             |
 | github.com/urfave/cli/v2                                                                | v2.25.7                                           |                                    | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                                           |                                    | false  | true             |
@@ -769,12 +766,12 @@ _Generated on Tue, 24 Oct 2023 00:29:49 UTC for commit [0bf94aa][0]._
 | go.mongodb.org/mongo-driver                                                             | v1.11.3                                           | v1.12.1                            | false  | true             |
 | go.mozilla.org/pkcs7                                                                    | v0.0.0-20210826202110-33d05740a352                |                                    | false  | true             |
 | go.opencensus.io                                                                        | v0.24.0                                           |                                    | false  | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.43.0                                           | v0.45.0                            | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.45.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.35.1                                           | v0.45.0                            | false  | true             |
 | go.opentelemetry.io/otel                                                                | v1.19.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/internal/retry                                  | v1.15.0                                           | v1.17.0                            | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                       | v1.17.0                                           | v1.19.0                            | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                         | v1.17.0                                           | v1.19.0                            | true   | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                       | v1.19.0                                           |                                    | false  | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                         | v1.19.0                                           |                                    | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp                         | v1.14.0                                           | v1.19.0                            | false  | true             |
 | go.opentelemetry.io/otel/metric                                                         | v1.19.0                                           |                                    | false  | true             |
 | go.opentelemetry.io/otel/sdk                                                            | v1.19.0                                           |                                    | true   | true             |
