@@ -12,6 +12,8 @@ import (
 
 var from string
 
+const mdSep = "```"
+
 var ConfigCommand = &cli.Command{
 	Name: "config",
 	Usage: `Outputs a commented version of the configuration file that could be used
@@ -32,9 +34,9 @@ it later with **--config**. Global options will modify the output.`,
 
     To run a config migration, just select the input config via the global
     '--config,-c' command line argument, for example:
-    `+"```"+`
+    `+mdSep+`
     crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.17
-    `+"```"+`
+    `+mdSep+`
     The migration will print converted configuration options to stderr and will
     output the resulting configuration to stdout.
     Please note that the migration will overwrite any fields that have changed

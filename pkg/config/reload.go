@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -224,7 +225,7 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 	}
 	if c.BlockIOReload != newConfig.BlockIOReload {
 		c.BlockIOReload = newConfig.BlockIOReload
-		logConfig("blockio_reload", fmt.Sprintf("%v", c.BlockIOReload))
+		logConfig("blockio_reload", strconv.FormatBool(c.BlockIOReload))
 	}
 	return nil
 }

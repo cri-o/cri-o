@@ -348,7 +348,7 @@ func (c *container) SetNameAndID(oldID string) error {
 		c.sboxConfig.Metadata.Name,
 		c.sboxConfig.Metadata.Namespace,
 		c.sboxConfig.Metadata.Uid,
-		fmt.Sprintf("%d", c.config.Metadata.Attempt),
+		strconv.FormatUint(uint64(c.config.Metadata.Attempt), 10),
 	}, "_")
 
 	c.id = id
