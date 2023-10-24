@@ -19,7 +19,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const defaultSystemdParent = "system.slice"
@@ -66,15 +65,14 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 	return parent + ":" + CrioPrefix + ":" + containerID
 }
 
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *SystemdManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
+// ContainerCgroupStats returns a stats object with information from the cgroup found
+// given a cgroup parent and container ID.
+func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
 	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
+	return cgroupStatsFromPath(cgPath)
 }
 
 func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
@@ -166,14 +164,14 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 	return cgParent, cgPath, nil
 }
 
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *SystemdManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
+// SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
+// It returns an object with information from the cgroup found given that parent.
+func (m *SystemdManager) SandboxCgroupStats(sbParent string) (*CgroupStats, error) {
 	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
+	return cgroupStatsFromPath(cgPath)
 }
 
 // nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.

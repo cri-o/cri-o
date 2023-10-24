@@ -13,6 +13,7 @@ import (
 	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -237,7 +238,7 @@ func (r *runtimePod) UnpauseContainer(ctx context.Context, c *Container) error {
 	return r.oci.UnpauseContainer(ctx, c)
 }
 
-func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
+func (r *runtimePod) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	return r.oci.ContainerStats(ctx, c, cgroup)
 }
 

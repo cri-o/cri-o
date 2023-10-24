@@ -10,6 +10,7 @@ import (
 	reflect "reflect"
 	syscall "syscall"
 
+	cgmgr "github.com/cri-o/cri-o/internal/config/cgmgr"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	gomock "github.com/golang/mock/gomock"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -69,10 +70,10 @@ func (mr *MockRuntimeImplMockRecorder) CheckpointContainer(arg0, arg1, arg2, arg
 }
 
 // ContainerStats mocks base method.
-func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*v1.ContainerStats, error) {
+func (m *MockRuntimeImpl) ContainerStats(arg0 context.Context, arg1 *oci.Container, arg2 string) (*cgmgr.CgroupStats, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ContainerStats", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*v1.ContainerStats)
+	ret0, _ := ret[0].(*cgmgr.CgroupStats)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

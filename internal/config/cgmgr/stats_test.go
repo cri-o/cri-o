@@ -7,27 +7,18 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
 var _ = t.Describe("Stats", func() {
 	t.Describe("UpdateWithMemoryStatsFromFile", func() {
-		var (
-			file   string
-			memory *types.MemoryUsage
-		)
+		var file string
 		BeforeEach(func() {
 			file = t.MustTempFile("memoryStatFile")
-			memory = &types.MemoryUsage{
-				WorkingSetBytes: &types.UInt64Value{},
-				RssBytes:        &types.UInt64Value{},
-				PageFaults:      &types.UInt64Value{},
-				MajorPageFaults: &types.UInt64Value{},
-			}
 		})
 		It("fail if invalid file", func() {
-			Expect(cgmgr.UpdateWithMemoryStatsFromFile("invalid", "", nil, 0)).NotTo(BeNil())
+			_, err := cgmgr.MemoryStatsFromFile("invalid", "", 0)
+			Expect(err).ToNot(BeNil())
 		})
 		It("should get stats from file", func() {
 			var (
@@ -43,12 +34,14 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, inactiveFileVal+expectedUsage)).To(BeNil())
-			Expect(memory.RssBytes.Value).To(Equal(rssVal))
-			Expect(memory.PageFaults.Value).To(Equal(pgFaultVal))
-			Expect(memory.MajorPageFaults.Value).To(Equal(pgMajFaultVal))
-			Expect(memory.MajorPageFaults.Value).To(Equal(pgMajFaultVal))
-			Expect(memory.WorkingSetBytes.Value).To(Equal(expectedUsage))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)
+			Expect(err).To(BeNil())
+			Expect(memStats).NotTo(BeNil())
+
+			Expect(memStats.Rss).To(Equal(rssVal))
+			Expect(memStats.PgFault).To(Equal(pgFaultVal))
+			Expect(memStats.PgMajFault).To(Equal(pgMajFaultVal))
+			Expect(memStats.WorkingSet).To(Equal(expectedUsage))
 		})
 		It("should get stats from file with different inactive search string", func() {
 			var (
@@ -60,8 +53,11 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, inactiveFileVal+expectedUsage)).To(BeNil())
-			Expect(memory.WorkingSetBytes.Value).To(Equal(expectedUsage))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, inactiveFileVal+expectedUsage)
+			Expect(err).To(BeNil())
+			Expect(memStats).NotTo(BeNil())
+
+			Expect(memStats.WorkingSet).To(Equal(expectedUsage))
 		})
 		It("should fail from invalid", func() {
 			var (
@@ -72,7 +68,9 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, 0)).NotTo(BeNil())
+			_, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, 0)
+
+			Expect(err).NotTo(BeNil())
 		})
 		It("should not set WorkingSetBytes if negative", func() {
 			var (
@@ -84,8 +82,10 @@ var _ = t.Describe("Stats", func() {
 
 			Expect(os.WriteFile(file, []byte(data), 0o600)).To(BeNil())
 
-			Expect(cgmgr.UpdateWithMemoryStatsFromFile(file, inactiveFileSearch, memory, usage)).To(BeNil())
-			Expect(memory.WorkingSetBytes.Value).To(Equal(uint64(0)))
+			memStats, err := cgmgr.MemoryStatsFromFile(file, inactiveFileSearch, usage)
+
+			Expect(err).To(BeNil())
+			Expect(memStats.WorkingSet).To(Equal(uint64(0)))
 		})
 	})
 })
