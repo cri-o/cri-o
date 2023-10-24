@@ -53,6 +53,10 @@ It is assumed you are running a Linux machine.
 
 ## Install packaged versions of CRI-O
 
+**The following instructions apply to CRI-O versions  `< 1.29`. Please follow
+the instructions in the [cri-o/packaging repository](https://github.com/cri-o/packaging)
+for newer versions.**
+
 CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
 ### Supported versions

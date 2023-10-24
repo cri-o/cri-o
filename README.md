@@ -6,6 +6,7 @@
 <!-- markdownlint-disable-next-line MD042 -->
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 [![codecov](https://codecov.io/gh/cri-o/cri-o/branch/main/graph/badge.svg)](https://codecov.io/gh/cri-o/cri-o)
+[![Packages](https://img.shields.io/badge/deb%2frpm-packages-blue.svg)](https://github.com/cri-o/packaging)
 [![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![Dependencies](https://img.shields.io/badge/report-dependencies-blue.svg)](https://cri-o.github.io/cri-o/dependencies)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
