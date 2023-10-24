@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 23 Oct 2023 19:17:49 UTC for commit [31febae][0]._
+_Generated on Tue, 24 Oct 2023 00:29:49 UTC for commit [0bf94aa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/31febaeaf7a20c3a7d6a9eb4acf46be5830d9982
+[0]: https://github.com/cri-o/cri-o/commit/0bf94aa4f370d440bac3f0ccdf5099892f5d4f2a
 
 ## Outdated Dependencies
 
@@ -187,7 +187,7 @@ _Generated on Mon, 23 Oct 2023 19:17:49 UTC for commit [31febae][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231023180007-725bceed5e6a | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231023191041-434adf355ffe | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -485,7 +485,7 @@ _Generated on Mon, 23 Oct 2023 19:17:49 UTC for commit [31febae][0]._
 | github.com/google/trillian                                                              | v1.5.2                                            |                                    | false  | true             |
 | github.com/google/uuid                                                                  | v1.3.1                                            |                                    | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                            |                                    | false  | true             |
-| github.com/googleapis/enterprise-certificate-proxy                                      | v0.2.5                                            | v0.3.1                             | false  | true             |
+| github.com/googleapis/enterprise-certificate-proxy                                      | v0.2.5                                            | v0.3.2                             | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.11.0                                           | v2.12.0                            | false  | true             |
 | github.com/googleapis/gnostic                                                           | v0.4.1                                            | v0.7.0                             | false  | true             |
 | github.com/gopherjs/gopherjs                                                            | v0.0.0-20181017120253-0766667cb4d1                | v1.17.2                            | false  | true             |
@@ -513,7 +513,7 @@ _Generated on Mon, 23 Oct 2023 19:17:49 UTC for commit [31febae][0]._
 | github.com/honeycombio/libhoney-go                                                      | v1.16.0                                           | v1.20.0                            | false  | true             |
 | github.com/howeyc/gopass                                                                | v0.0.0-20210920133722-c8aef6fb66ef                |                                    | false  | true             |
 | github.com/hpcloud/tail                                                                 | v1.0.0                                            |                                    | false  | true             |
-| github.com/ianlancetaylor/demangle                                                      | v0.0.0-20220517205856-0058ec4f073c                | v0.0.0-20230524184225-eabc099b10ab | false  | true             |
+| github.com/ianlancetaylor/demangle                                                      | v0.0.0-20220517205856-0058ec4f073c                | v0.0.0-20231023195312-e2daf7ba7156 | false  | true             |
 | github.com/imdario/mergo                                                                | v0.3.15                                           | v1.0.0                             | false  | true             |
 | github.com/in-toto/in-toto-golang                                                       | v0.9.0                                            |                                    | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.1.0                                            |                                    | false  | true             |
