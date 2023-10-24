@@ -507,6 +507,7 @@ func pullImageChild() {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
+	args.Options.SourceCtx = srcSystemContext
 
 	progress := make(chan types.ProgressProperties)
 	go func() {
@@ -520,11 +521,9 @@ func pullImageChild() {
 			}
 		}
 	}()
+	args.Options.Progress = progress
 
-	options := toCopyOptions(args.Options, progress)
-	options.SourceCtx = srcSystemContext
-
-	if err := pullImageImplementation(context.Background(), destRef, srcRef, options); err != nil {
+	if err := pullImageImplementation(context.Background(), destRef, srcRef, args.Options); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
@@ -632,9 +631,7 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 			return nil, err
 		}
 	} else {
-		copyOptions := toCopyOptions(&options, inputOptions.Progress)
-
-		if err := pullImageImplementation(svc.ctx, destRef, srcRef, copyOptions); err != nil {
+		if err := pullImageImplementation(svc.ctx, destRef, srcRef, &options); err != nil {
 			return nil, err
 		}
 	}
@@ -643,7 +640,7 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
 // NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
-func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *copy.Options) error {
+func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *ImageCopyOptions) error {
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
 		return err
@@ -653,7 +650,9 @@ func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageRef
 		return err
 	}
 
-	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, options); err != nil {
+	copyOptions := toCopyOptions(options, options.Progress)
+
+	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
 		return err
 	}
 	return nil
