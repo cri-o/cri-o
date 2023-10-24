@@ -478,6 +478,10 @@ type pullImageArgs struct {
 	StoreOptions storage.StoreOptions
 }
 
+type pullImageOutputItem struct {
+	Progress *types.ProgressProperties `json:",omitempty"`
+}
+
 func pullImageChild() {
 	var args pullImageArgs
 
@@ -509,16 +513,14 @@ func pullImageChild() {
 	}
 	args.Options.SourceCtx = srcSystemContext
 
+	output := make(chan pullImageOutputItem)
+	go formatPullImageOutputItemGoroutine(os.Stdout, output)
+
 	progress := make(chan types.ProgressProperties)
 	go func() {
-		stream := json.NewStream(json.ConfigDefault, os.Stdout, 4096)
 		for p := range progress {
-			stream.WriteVal(p)
-			stream.WriteRaw("\n")
-			if err := stream.Flush(); err != nil {
-				fmt.Fprintf(os.Stderr, "%v", err)
-				os.Exit(1)
-			}
+			p := p
+			output <- pullImageOutputItem{Progress: &p}
 		}
 	}()
 	args.Options.Progress = progress
@@ -529,6 +531,18 @@ func pullImageChild() {
 	}
 
 	os.Exit(0)
+}
+
+func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOutputItem) {
+	stream := json.NewStream(json.ConfigDefault, dest, 4096)
+	for item := range items {
+		stream.WriteVal(item)
+		stream.WriteRaw("\n")
+		if err := stream.Flush(); err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
+			os.Exit(1)
+		}
+	}
 }
 
 func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
@@ -587,13 +601,13 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 			defer close(progress)
 		}
 		for decoder.More() {
-			var p types.ProgressProperties
-			if err := decoder.Decode(&p); err != nil {
+			var item pullImageOutputItem
+			if err := decoder.Decode(&item); err != nil {
 				break
 			}
 
-			if progress != nil {
-				progress <- p
+			if item.Progress != nil && progress != nil {
+				progress <- *item.Progress
 			}
 		}
 	}()
