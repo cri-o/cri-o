@@ -17,6 +17,10 @@ import (
 var _ = t.Describe("ImagePull", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
+	otherImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("3a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -36,7 +40,7 @@ var _ = t.Describe("ImagePull", func() {
 					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
-					Return(&storage.ImageResult{ID: "id"}, nil),
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
@@ -45,7 +49,7 @@ var _ = t.Describe("ImagePull", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:          "image",
+						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
 				imageCloserMock.EXPECT().Close().Return(nil),
@@ -73,7 +77,7 @@ var _ = t.Describe("ImagePull", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:           "id",
+						ID:           imageID,
 						ConfigDigest: digest.Digest("digest"),
 					}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
@@ -81,7 +85,7 @@ var _ = t.Describe("ImagePull", func() {
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:          "image",
+						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
 				imageCloserMock.EXPECT().Close().Return(nil),
@@ -113,7 +117,7 @@ var _ = t.Describe("ImagePull", func() {
 					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
-					Return(&storage.ImageResult{ID: "id"}, nil),
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(
@@ -167,7 +171,7 @@ var _ = t.Describe("ImagePull", func() {
 					imageCandidate).Return(imageCloserMock, nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
-					Return(&storage.ImageResult{ID: "id"}, nil),
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
 				imageServerMock.EXPECT().PullImage(

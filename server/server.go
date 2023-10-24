@@ -185,10 +185,10 @@ func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwa
 // For every sandbox it fails to restore, it starts a cleanup routine attempting to call CNI DEL
 // For every container it fails to restore, it returns that containers image, so that
 // it can be cleaned up (if we're using internal_wipe).
-func (s *Server) restore(ctx context.Context) []string {
+func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	containersAndTheirImages := map[string]string{}
+	containersAndTheirImages := map[string]storage.StorageImageID{}
 	containers, err := s.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Warnf(ctx, "Could not read containers and sandboxes: %v", err)
@@ -212,7 +212,12 @@ func (s *Server) restore(ctx context.Context) []string {
 			pods[containers[i].ID] = &metadata
 		} else {
 			podContainers[containers[i].ID] = &metadata
-			containersAndTheirImages[containers[i].ID] = containers[i].ImageID
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(containers[i].ImageID)
+			if err != nil {
+				log.Warnf(ctx, "Error parsing image ID %q of container %q: %v, ignoring", containers[i].ImageID, containers[i].ID, err)
+				continue
+			}
+			containersAndTheirImages[containers[i].ID] = imageID
 		}
 	}
 
@@ -310,7 +315,7 @@ func (s *Server) restore(ctx context.Context) []string {
 	}
 
 	// Return a slice of images to remove, if internal_wipe is set.
-	imagesOfDeletedContainers := []string{}
+	imagesOfDeletedContainers := []storage.StorageImageID{}
 	for _, image := range containersAndTheirImages {
 		imagesOfDeletedContainers = append(imagesOfDeletedContainers, image)
 	}
@@ -610,7 +615,7 @@ func useDefaultUmask() {
 // wipeIfAppropriate takes a list of images. If the config's VersionFilePersist
 // indicates an upgrade has happened, it attempts to wipe that list of images.
 // This attempt is best-effort.
-func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string) {
+func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage.StorageImageID) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	if !s.config.InternalWipe {
@@ -641,7 +646,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	}
 
 	// Translate to a map so the images are only attempted to be deleted once.
-	imageMapToDelete := make(map[string]struct{})
+	imageMapToDelete := make(map[storage.StorageImageID]struct{})
 	for _, img := range imagesToDelete {
 		imageMapToDelete[img] = struct{}{}
 	}
@@ -651,7 +656,9 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 		// Best-effort append to imageMapToDelete
 		if ctrs, err := s.ContainerServer.ListContainers(); err == nil {
 			for _, ctr := range ctrs {
-				imageMapToDelete[ctr.ImageRef()] = struct{}{}
+				if id := ctr.ImageID(); id != nil {
+					imageMapToDelete[*id] = struct{}{}
+				}
 			}
 		}
 		for _, sb := range s.ContainerServer.ListSandboxes() {
@@ -666,7 +673,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	// disk usage gets too high.
 	if shouldWipeImages {
 		for img := range imageMapToDelete {
-			if err := s.removeImage(ctx, img); err != nil {
+			if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}

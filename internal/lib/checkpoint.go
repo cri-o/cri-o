@@ -178,12 +178,20 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
 
+	rootFSImageRef := ""
+	if id := ctr.ImageID(); id != nil {
+		rootFSImageRef = id.IDStringForOutOfProcessConsumptionOnly()
+	}
+	rootFSImageName := ""
+	if imageName := ctr.ImageName(); imageName != nil {
+		rootFSImageName = imageName.StringForOutOfProcessConsumptionOnly()
+	}
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
-		RootfsImage:     ctr.Image(),
-		RootfsImageRef:  ctr.ImageRef(),
-		RootfsImageName: ctr.ImageName(),
+		RootfsImage:     ctr.UserRequestedImage(),
+		RootfsImageRef:  rootFSImageRef,
+		RootfsImageName: rootFSImageName,
 		CreatedTime:     ctr.CreatedAt(),
 		OCIRuntime: func() string {
 			runtimeHandler := c.GetSandbox(ctr.Sandbox()).RuntimeHandler()

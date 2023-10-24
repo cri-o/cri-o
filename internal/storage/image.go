@@ -43,19 +43,21 @@ const (
 // ImageResult wraps a subset of information about an image: its ID, its names,
 // and the size, if known, or nil if it isn't.
 type ImageResult struct {
-	ID           string
-	Name         string
-	RepoTags     []string
-	RepoDigests  []string
-	Size         *uint64
-	Digest       digest.Digest
-	ConfigDigest digest.Digest
-	User         string
-	PreviousName string
-	Labels       map[string]string
-	OCIConfig    *specs.Image
-	Annotations  map[string]string
-	Pinned       bool // pinned image to prevent it from garbage collection
+	ID StorageImageID
+	// May be nil if the image was referenced by ID and has no names.
+	// It also has NO RELATIONSHIP to user input when returned by ImageStatusByName.
+	SomeNameOfThisImage *RegistryImageReference
+	RepoTags            []string
+	RepoDigests         []string
+	Size                *uint64
+	Digest              digest.Digest
+	ConfigDigest        digest.Digest
+	User                string
+	PreviousName        string
+	Labels              map[string]string
+	OCIConfig           *specs.Image
+	Annotations         map[string]string
+	Pinned              bool // pinned image to prevent it from garbage collection
 }
 
 type indexInfo struct {
@@ -149,24 +151,36 @@ type ImageServer interface {
 	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error)
 }
 
-func sortNamesByType(names []string) (bestName string, tags, digests []string) {
-	for _, name := range names {
-		if len(name) > 72 && name[len(name)-72:len(name)-64] == "@sha256:" {
+func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
+	for _, nameString := range image.Names {
+		name, err := reference.ParseNormalizedNamed(nameString)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("invalid name %q in image %q: %w", nameString, image.ID, err)
+		}
+		if reference.IsNameOnly(name) {
+			return nil, nil, nil, fmt.Errorf("invalid name %q in image %q, it has neither a tag nor a digest", nameString, image.ID)
+		}
+		switch name := name.(type) {
+		case reference.Canonical:
 			digests = append(digests, name)
-		} else {
+		case reference.NamedTagged:
 			tags = append(tags, name)
+		default:
+			return nil, nil, nil, fmt.Errorf("internal error, invalid name %q in image %q is !IsNameOnly but neither Canonical nor NamedTagged", nameString, image.ID)
 		}
 	}
 	if len(digests) > 0 {
-		bestName = digests[0]
+		best := references.RegistryImageReferenceFromRaw(digests[0])
+		someName = &best
 	}
 	if len(tags) > 0 {
-		bestName = tags[0]
+		best := references.RegistryImageReferenceFromRaw(tags[0])
+		someName = &best
 	}
-	return bestName, tags, digests
+	return someName, tags, digests, nil
 }
 
-func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *storage.Image) (imageDigest digest.Digest, repoDigests []string) {
+func (svc *imageService) makeRepoDigests(knownRepoDigests []reference.Canonical, tags []reference.NamedTagged, img *storage.Image) (imageDigest digest.Digest, repoDigests []reference.Canonical) {
 	// Look up the image's digests.
 	imageDigest = img.Digest
 	if imageDigest == "" {
@@ -187,19 +201,24 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests, tags []string, img *s
 	digestMap := make(map[string]struct{})
 	repoDigests = knownRepoDigests
 	for _, repoDigest := range knownRepoDigests {
-		digestMap[repoDigest] = struct{}{}
+		digestMap[repoDigest.String()] = struct{}{}
 	}
-	// For each tagged name, parse the name, and if we can extract a named reference, convert
-	// it into a canonical reference using the digest and add it to the list.
-	for _, name := range append(tags, knownRepoDigests...) {
-		if ref, err2 := reference.ParseNormalizedNamed(name); err2 == nil {
-			trimmed := reference.TrimNamed(ref)
-			for _, imageDigest := range imageDigests {
-				if imageRef, err3 := reference.WithDigest(trimmed, imageDigest); err3 == nil {
-					if _, ok := digestMap[imageRef.String()]; !ok {
-						repoDigests = append(repoDigests, imageRef.String())
-						digestMap[imageRef.String()] = struct{}{}
-					}
+	// Collect all known repos...
+	repos := []reference.Named{}
+	for _, tagged := range tags {
+		repos = append(repos, reference.TrimNamed(tagged))
+	}
+	for _, digested := range knownRepoDigests {
+		repos = append(repos, reference.TrimNamed(digested))
+	}
+	// ... and combine each repo with each digest.
+	// Note that this may create digested references that never existed on those registries.
+	for _, repo := range repos {
+		for _, imageDigest := range imageDigests {
+			if imageRef, err3 := reference.WithDigest(repo, imageDigest); err3 == nil {
+				if _, ok := digestMap[imageRef.String()]; !ok {
+					repoDigests = append(repoDigests, imageRef)
+					digestMap[imageRef.String()] = struct{}{}
 				}
 			}
 		}
@@ -251,11 +270,24 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}, nil
 }
 
-func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageCacheItem) ImageResult {
-	name, tags, digests := sortNamesByType(image.Names)
+func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageCacheItem) (ImageResult, error) {
+	someName, tags, digests, err := parseImageNames(image)
+	if err != nil {
+		return ImageResult{}, err
+	}
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
-	sort.Strings(tags)
-	sort.Strings(repoDigests)
+
+	repoTagStrings := make([]string, 0, len(tags))
+	for _, t := range tags {
+		repoTagStrings = append(repoTagStrings, t.String())
+	}
+	sort.Strings(repoTagStrings)
+	repoDigestStrings := make([]string, 0, len(repoDigests))
+	for _, d := range repoDigests {
+		repoDigestStrings = append(repoDigestStrings, d.String())
+	}
+	sort.Strings(repoDigestStrings)
+
 	previousName := ""
 	if len(image.NamesHistory) > 0 {
 		// Remove the tag because we can only keep the name as indicator
@@ -273,20 +305,20 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		}
 	}
 	return ImageResult{
-		ID:           image.ID,
-		Name:         name,
-		RepoTags:     tags,
-		RepoDigests:  repoDigests,
-		Size:         cacheItem.size,
-		Digest:       imageDigest,
-		ConfigDigest: cacheItem.configDigest,
-		User:         cacheItem.config.Config.User,
-		PreviousName: previousName,
-		Labels:       cacheItem.info.Labels,
-		OCIConfig:    cacheItem.config,
-		Annotations:  cacheItem.annotations,
-		Pinned:       imagePinned,
-	}
+		ID:                  storageImageIDFromImage(image),
+		SomeNameOfThisImage: someName,
+		RepoTags:            repoTagStrings,
+		RepoDigests:         repoDigestStrings,
+		Size:                cacheItem.size,
+		Digest:              imageDigest,
+		ConfigDigest:        cacheItem.configDigest,
+		User:                cacheItem.config.Config.User,
+		PreviousName:        previousName,
+		Labels:              cacheItem.info.Labels,
+		OCIConfig:           cacheItem.config,
+		Annotations:         cacheItem.annotations,
+		Pinned:              imagePinned,
+	}, nil
 }
 
 func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]ImageResult, error) {
@@ -316,7 +348,11 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 		}
 
 		newImageCache[image.ID] = cacheItem
-		results = append(results, svc.buildImageResult(image, cacheItem))
+		res, err := svc.buildImageResult(image, cacheItem)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, res)
 	}
 	// replace image cache with cache we just built
 	// this invalidates all stale entries in cache
@@ -376,7 +412,10 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, ref typ
 		}
 	}
 
-	result := svc.buildImageResult(image, cacheItem)
+	result, err := svc.buildImageResult(image, cacheItem)
+	if err != nil {
+		return nil, err
+	}
 	return &result, nil
 }
 

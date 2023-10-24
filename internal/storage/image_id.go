@@ -17,6 +17,7 @@ import (
 // to an image in the first place).
 //
 // This is intended to be a value type; if a value exists, it is a correctly-formatted ID.
+// The values can be compared for equality, or used as map keys.
 type StorageImageID struct {
 	// privateID is INTENTIONALLY ENCAPSULATED to provide strong type safety and strong syntax/semantics guarantees.
 	// Use typed values, not strings, everywhere it is even remotely possible.

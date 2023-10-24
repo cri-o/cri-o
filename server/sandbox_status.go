@@ -102,7 +102,7 @@ func createSandboxInfo(c *oci.Container) (map[string]string, error) {
 			Pid         int       `json:"pid"`
 			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
 		}{
-			c.Image(),
+			c.UserRequestedImage(),
 			c.State().Pid,
 			c.Spec(),
 		}

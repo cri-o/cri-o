@@ -18,6 +18,8 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -54,9 +56,11 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir                string
-	stopSignal         string
-	imageName          string
+	dir        string
+	stopSignal string
+	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+	imageName          *references.RegistryImageReference
+	imageID            *storage.StorageImageID // nil for infra containers.
 	mountPoint         string
 	seccompProfilePath string
 	conmonCgroupfsPath string
@@ -120,9 +124,17 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+// userRequestedImage is the users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!)
+// at any future time.
+// imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+// imageID is nil for infra containers.
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
+	externalImageRef := ""
+	if imageID != nil {
+		externalImageRef = imageID.IDStringForOutOfProcessConsumptionOnly()
+	}
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -132,9 +144,9 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			Metadata:     md,
 			Annotations:  annotations,
 			Image: &types.ImageSpec{
-				Image: image,
+				Image: userRequestedImage,
 			},
-			ImageRef: imageRef,
+			ImageRef: externalImageRef,
 		},
 		name:            name,
 		bundlePath:      bundlePath,
@@ -145,6 +157,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		runtimeHandler:  runtimeHandler,
 		crioAnnotations: crioAnnotations,
 		imageName:       imageName,
+		imageID:         imageID,
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
@@ -171,6 +184,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			Image: &types.ImageSpec{},
 		},
 		name:    name,
+		imageID: nil,
 		spoofed: true,
 		state:   state,
 		dir:     dir,
@@ -375,19 +389,21 @@ func (c *Container) CrioAnnotations() map[string]string {
 	return c.crioAnnotations
 }
 
-// Image returns the image of the container.
-func (c *Container) Image() string {
+// UserRequestedImage returns the users' input originally used to find imageID; it might evaluate to a different image
+// (or to a different kind of reference!) at any future time.
+func (c *Container) UserRequestedImage() string {
 	return c.criContainer.Image.Image
 }
 
-// ImageName returns the image name of the container.
-func (c *Container) ImageName() string {
+// ImageName returns _some_ name of the image imageID, if any;
+// it may have NO RELATIONSHIP to the users’ requested image name.
+func (c *Container) ImageName() *references.RegistryImageReference {
 	return c.imageName
 }
 
-// ImageRef returns the image ref of the container.
-func (c *Container) ImageRef() string {
-	return c.criContainer.ImageRef
+// ImageID returns the image ID of the container, or nil for infra containers.
+func (c *Container) ImageID() *storage.StorageImageID {
+	return c.imageID
 }
 
 // Sandbox returns the sandbox name of the container.

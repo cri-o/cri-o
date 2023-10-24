@@ -13,6 +13,8 @@ import (
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -327,10 +329,14 @@ var _ = t.Describe("ContainerRestore", func() {
 })
 
 func setupInfraContainerWithPid(pid int, bundle string) {
+	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
 	testContainer, err := oci.NewContainer("testid", "testname", bundle,
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		"imageName", "imageRef", &types.ContainerMetadata{},
+		&imageName, &imageID, &types.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	Expect(err).To(BeNil())

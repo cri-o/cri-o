@@ -7,6 +7,7 @@ import (
 
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -304,7 +305,7 @@ var _ = t.Describe("Image", func() {
 	t.Describe("UntagImage", func() {
 		It("should succeed to untag an image", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
 				storeMock.EXPECT().Image(testSHA256).
 					Return(&cs.Image{ID: testSHA256}, nil),
@@ -323,7 +324,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to untag an image that can't be found", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
 			)
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
@@ -338,7 +339,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to untag an image with multiple names", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				// storage.Transport.GetStoreImage:
 				storeMock.EXPECT().Image(testNormalizedImageName).
 					Return(&cs.Image{
@@ -363,7 +364,7 @@ var _ = t.Describe("Image", func() {
 	t.Describe("ImageStatusByName", func() {
 		It("should succeed to get the image status with digest", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				// storage.Transport.GetStoreImage:
 				storeMock.EXPECT().Image(testNormalizedImageName).
 					Return(&cs.Image{
@@ -406,7 +407,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on missing store image", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
 			)
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
@@ -422,7 +423,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on corrupt image", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
 				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
 				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
@@ -458,8 +459,8 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to list multiple images without filter", func() {
 			// Given
-			mockLoop := func() mockSequence {
-				return inOrder(
+			mockLoop := func() mockutils.MockSequence {
+				return mockutils.InOrder(
 					// buildImageCacheItem:
 					mockNewImage(storeMock, testSHA256, testSHA256),
 					storeMock.EXPECT().Image(gomock.Any()).
@@ -476,10 +477,10 @@ var _ = t.Describe("Image", func() {
 						Return(digest.Digest(""), nil),
 				)
 			}
-			inOrder(
+			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
-						{ID: testSHA256, Names: []string{"a", "b", "c@sha256:" + testSHA256}},
+						{ID: testSHA256, Names: []string{"a:latest", "b:notlatest", "c@sha256:" + testSHA256}},
 						{ID: testSHA256},
 					},
 					nil),
@@ -526,7 +527,7 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to list multiple images without filter on append", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{{ID: testSHA256}}, nil),
 				storeMock.EXPECT().Image(gomock.Any()).

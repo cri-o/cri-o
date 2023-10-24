@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -207,19 +208,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	image, err := ctr.Image()
+	userRequestedImage, err := ctr.UserRequestedImage()
 	if err != nil {
 		return nil, err
 	}
-	// Get imageName and imageRef that are later requested in container status
+	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(image); id != nil {
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
 		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, image)
+		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
@@ -234,9 +235,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			return nil, imgResultErr
 		}
 	}
+	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if userRequestedImage == "" {
+		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
+	}
 
-	imageName := imgResult.Name
-	imageRef := imgResult.ID
+	imageName := imgResult.SomeNameOfThisImage
+	imageID := imgResult.ID
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
@@ -258,7 +264,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imageRef,
+		userRequestedImage, imageID,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
@@ -545,7 +551,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", image)
+		err = fmt.Errorf("empty image config for %s", userRequestedImage)
 		return nil, err
 	}
 
@@ -777,7 +783,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, imageRef, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, imageName, &imageID, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

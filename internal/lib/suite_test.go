@@ -65,9 +65,9 @@ var _ = BeforeSuite(func() {
 			"io.kubernetes.cri-o.IP": "{}",
 			"io.kubernetes.cri-o.NamespaceOptions": "{}",
 			"io.kubernetes.cri-o.SeccompProfilePath": "{}",
-			"io.kubernetes.cri-o.Image": "{}",
-			"io.kubernetes.cri-o.ImageName": "{}",
-			"io.kubernetes.cri-o.ImageRef": "{}",
+			"io.kubernetes.cri-o.Image": "quay.io/image",
+			"io.kubernetes.cri-o.ImageName": "example.com/some-other/deduplicated-name:notlatest",
+			"io.kubernetes.cri-o.ImageRef": "1111111111111111111111111111111111111111111111111111111111111111",
 			"io.kubernetes.cri-o.KubeName": "{}",
 			"io.kubernetes.cri-o.PortMappings": "[]",
 			"io.kubernetes.cri-o.Labels": "{}",
@@ -160,7 +160,7 @@ func beforeEach() {
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
-		make(map[string]string), "", "", "",
+		make(map[string]string), "", nil, nil,
 		&types.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())

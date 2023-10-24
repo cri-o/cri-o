@@ -35,9 +35,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			&metadata.ContainerConfig{
 				ID: c.ID(),
 			},
-			&libpod.ContainerCheckpointOptions{
-				TargetFile: c.ImageName(),
-			},
+			&libpod.ContainerCheckpointOptions{},
 		)
 		if err != nil {
 			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())

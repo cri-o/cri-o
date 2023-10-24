@@ -14,6 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -86,7 +87,14 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(BeNil())
 			currentTime := time.Now()
 			volumes := []oci.ContainerVolume{}
-			imageResult := storage.ImageResult{}
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
+			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
+			Expect(err).To(BeNil())
+			imageResult := storage.ImageResult{
+				ID:                  imageID,
+				SomeNameOfThisImage: &imageName,
+			}
 			mountPoint := "test"
 			configStopSignal := "test"
 
@@ -96,7 +104,7 @@ var _ = t.Describe("Container", func() {
 				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
 			Expect(err).To(BeNil())
 
-			image, err := sut.Image()
+			image, err := sut.UserRequestedImage()
 			Expect(err).To(BeNil())
 
 			logpath, err := sut.LogPath(sb.LogDir())
@@ -121,8 +129,8 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(BeNil())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
-			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.Name))
-			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID))
+			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
+			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerID]).To(Equal(sut.ID()))
 			Expect(sut.Spec().Config.Annotations[annotations.SandboxID]).To(Equal(sb.ID()))
@@ -178,7 +186,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.DisableFips()).To(Equal(false))
 		})
 	})
-	t.Describe("Image", func() {
+	t.Describe("UserRequestedImage", func() {
 		It("should fail when spec not set", func() {
 			// Given
 
@@ -186,7 +194,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -198,7 +206,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).NotTo(BeNil())
 			Expect(img).To(BeEmpty())
 		})
@@ -213,7 +221,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
 
 			// Then
-			img, err := sut.Image()
+			img, err := sut.UserRequestedImage()
 			Expect(err).To(BeNil())
 			Expect(img).To(Equal(testImage))
 		})

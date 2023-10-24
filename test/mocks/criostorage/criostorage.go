@@ -209,7 +209,7 @@ func (m *MockRuntimeServer) EXPECT() *MockRuntimeServerMockRecorder {
 }
 
 // CreateContainer mocks base method.
-func (m *MockRuntimeServer) CreateContainer(arg0 *types.SystemContext, arg1, arg2, arg3, arg4, arg5, arg6, arg7 string, arg8 uint32, arg9 *types0.IDMappingOptions, arg10 []string, arg11 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreateContainer(arg0 *types.SystemContext, arg1, arg2, arg3 string, arg4 storage0.StorageImageID, arg5, arg6, arg7 string, arg8 uint32, arg9 *types0.IDMappingOptions, arg10 []string, arg11 bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateContainer", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
