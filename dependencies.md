@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 24 Oct 2023 11:28:24 UTC for commit [cdb6caf][0]._
+_Generated on Tue, 24 Oct 2023 15:37:15 UTC for commit [2ed6b3b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cdb6caf02a462edff972f6bd5b7d762412112629
+[0]: https://github.com/cri-o/cri-o/commit/2ed6b3b90ebd8ddc969b7b23c6b5eb03d7b09b13
 
 ## Outdated Dependencies
 
@@ -244,7 +244,7 @@ _Generated on Tue, 24 Oct 2023 11:28:24 UTC for commit [cdb6caf][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.14.12                                          | v1.17.3                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.19.2                                           | v1.23.2                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.13.5                                           | v1.15.0                            | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231003182221-725682229e60 | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231024151258-8ad49749abd0 | false  | true             |
 | github.com/beeker1121/goque                                                             | v1.0.3-0.20191103205551-d618510128af              |                                    | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                             | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                    | false  | true             |
@@ -311,7 +311,7 @@ _Generated on Tue, 24 Oct 2023 11:28:24 UTC for commit [cdb6caf][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                            | v1.2.0                             | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                            |                                    | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.3.0                                            |                                    | true   | true             |
-| github.com/containers/buildah                                                           | v1.31.2                                           | v1.32.0                            | false  | true             |
+| github.com/containers/buildah                                                           | v1.31.2                                           | v1.32.1                            | false  | true             |
 | github.com/containers/common                                                            | v0.55.4                                           | v0.56.0                            | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                    | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.1                                            |                                    | true   | true             |
