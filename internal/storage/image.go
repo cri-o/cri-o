@@ -531,16 +531,6 @@ func pullImageChild() {
 	os.Exit(0)
 }
 
-func toCopyOptions(options *ImageCopyOptions, progress chan types.ProgressProperties) *copy.Options {
-	return &copy.Options{
-		SourceCtx:        options.SourceCtx,
-		DestinationCtx:   options.DestinationCtx,
-		OciDecryptConfig: options.OciDecryptConfig,
-		ProgressInterval: options.ProgressInterval,
-		Progress:         progress,
-	}
-}
-
 func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
@@ -650,9 +640,13 @@ func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageRef
 		return err
 	}
 
-	copyOptions := toCopyOptions(options, options.Progress)
-
-	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
+	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+		SourceCtx:        options.SourceCtx,
+		DestinationCtx:   options.DestinationCtx,
+		OciDecryptConfig: options.OciDecryptConfig,
+		ProgressInterval: options.ProgressInterval,
+		Progress:         options.Progress,
+	}); err != nil {
 		return err
 	}
 	return nil
