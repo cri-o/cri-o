@@ -173,33 +173,29 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	if err != nil {
 		return "", err
 	}
-	var pulled *storage.RegistryImageReference // = nil
+	// CandidatesForPotentiallyShortImageName is defined never to return an empty slice on success, so if the loop considers all candidates
+	// and they all fail, this error value should be overwritten by a real failure.
+	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 	for _, remoteCandidateName := range remoteCandidates {
-		remoteCandidateName := remoteCandidateName // So that *&remoteCandidateName does not change as we iterate the loop.
-		err = s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
+		err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
 		if err == nil {
-			pulled = &remoteCandidateName
-			break
+			// Update metric for successful image pulls
+			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
+
+			status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
+			if err != nil {
+				return "", err
+			}
+			imageRef := status.ID.IDStringForOutOfProcessConsumptionOnly()
+			if len(status.RepoDigests) > 0 {
+				imageRef = status.RepoDigests[0]
+			}
+
+			return imageRef, nil
 		}
+		lastErr = err
 	}
-
-	if pulled == nil && err != nil {
-		return "", err
-	}
-
-	// Update metric for successful image pulls
-	metrics.Instance().MetricImagePullsSuccessesInc(*pulled)
-
-	status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, *pulled)
-	if err != nil {
-		return "", err
-	}
-	imageRef := status.ID.IDStringForOutOfProcessConsumptionOnly()
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
-	}
-
-	return imageRef, nil
+	return "", lastErr
 }
 
 func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) error {
