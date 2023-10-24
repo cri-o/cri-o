@@ -31,7 +31,6 @@ jobs:
           title: 'Update nixpkgs'
           body: Update nixpkgs to the latest HEAD commit.
           labels: kind/ci, release-note-none, ok-to-test
-          branch-suffix: timestamp
-          branch: update-nixpkgs
+          branch: nixpkgs
           delete-branch: true
           signoff: true
