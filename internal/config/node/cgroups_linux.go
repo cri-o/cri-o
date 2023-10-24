@@ -7,6 +7,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
@@ -25,6 +26,38 @@ var (
 
 	cgroupIsV2Err error
 )
+
+// CgroupHierarchy is a cgroup version agnostic struct that allows
+// access to controller paths
+type CgroupHierarchy struct {
+	controllers map[string]string
+}
+
+func (ch *CgroupHierarchy) GetAbsoluteControllerContainerPath(controller string) string {
+	if CgroupIsV2() {
+		return filepath.Join("/sys/fs/cgroup", ch.controllers[""])
+	} else {
+		return filepath.Join("/sys/fs/cgroup", controller, ch.controllers[controller])
+	}
+}
+
+func (ch *CgroupHierarchy) GetAbsoluteControllerPodPath(controller string) string {
+	if CgroupIsV2() {
+		selfPath := filepath.Join("/sys/fs/cgroup", ch.controllers[""])
+		return filepath.Dir(selfPath)
+	} else {
+		selfPath := filepath.Join("/sys/fs/cgroup", controller, ch.controllers[controller])
+		return filepath.Dir(selfPath)
+	}
+}
+
+func CgroupBuildHierarchyFrom(containerPid int) (*CgroupHierarchy, error) {
+	controllers, err := libctrcgroups.ParseCgroupFile("/proc/" + strconv.Itoa(containerPid) + "/cgroup")
+	if err != nil {
+		return nil, err
+	}
+	return &CgroupHierarchy{controllers: controllers}, nil
+}
 
 func CgroupIsV2() bool {
 	var cgroupIsV2 bool
