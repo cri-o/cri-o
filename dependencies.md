@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 25 Oct 2023 07:54:49 UTC for commit [6dd1679][0]._
+_Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6dd1679c9a1659bf611d438987b5093b06223e2a
+[0]: https://github.com/cri-o/cri-o/commit/c9ed2b7905a5f714356c510f857f8f3110a6fe20
 
 ## Outdated Dependencies
 
@@ -403,7 +403,7 @@ _Generated on Wed, 25 Oct 2023 07:54:49 UTC for commit [6dd1679][0]._
 | github.com/go-git/gcfg                                                                  | v1.5.1-0.20230307220236-3a3c6141e376              |                                    | false  | true             |
 | github.com/go-git/go-billy/v5                                                           | v5.4.1                                            | v5.5.0                             | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                                    | v4.3.2-0.20230305113008-0c11038e723f              |                                    | false  | true             |
-| github.com/go-git/go-git/v5                                                             | v5.7.0                                            | v5.9.0                             | false  | true             |
+| github.com/go-git/go-git/v5                                                             | v5.7.0                                            | v5.10.0                            | false  | true             |
 | github.com/go-gl/glfw                                                                   | v0.0.0-20190409004039-e6da0acd62b1                | v0.0.0-20221017161538-93cebf72946b | false  | true             |
 | github.com/go-gl/glfw/v3.3/glfw                                                         | v0.0.0-20200222043503-6f7a984d4dc4                | v0.0.0-20221017161538-93cebf72946b | false  | true             |
 | github.com/go-gorp/gorp/v3                                                              | v3.0.2                                            | v3.1.0                             | false  | true             |
