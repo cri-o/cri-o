@@ -36,3 +36,7 @@ const (
 	// DefaultPauseImage is default pause image
 	DefaultPauseImage string = "quay.io/dougrabson/pause:latest"
 )
+
+func selinuxEnabled() bool {
+	return false
+}
