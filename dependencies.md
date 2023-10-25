@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
+_Generated on Wed, 25 Oct 2023 07:54:49 UTC for commit [6dd1679][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6ab8bca8858220fef966477e44e7834c04d5bf53
+[0]: https://github.com/cri-o/cri-o/commit/6dd1679c9a1659bf611d438987b5093b06223e2a
 
 ## Outdated Dependencies
 
@@ -23,6 +23,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
 | golang.org/x/sync                                                    | v0.3.0                               | v0.4.0              | true   | true             |
 | google.golang.org/grpc                                               | v1.58.3                              | v1.59.0             | true   | true             |
+| sigs.k8s.io/yaml                                                     | v1.3.0                               | v1.4.0              | true   | true             |
 
 ## All Dependencies
 
@@ -155,7 +156,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | filippo.io/edwards25519                                                                 | v1.0.0                                            |                                    | false  | true             |
 | github.com/14rcole/gopopulate                                                           | v0.0.0-20180821133914-b175b219e774                |                                    | false  | true             |
 | github.com/AdaLogics/go-fuzz-headers                                                    | v0.0.0-20230811130428-ced1acdcaa24                |                                    | false  | true             |
-| github.com/AdamKorcz/go-118-fuzz-build                                                  | v0.0.0-20230306123547-8075edf89bb0                |                                    | false  | true             |
+| github.com/AdamKorcz/go-118-fuzz-build                                                  | v0.0.0-20230306123547-8075edf89bb0                | v0.0.0-20231024182747-cab165db8a0b | false  | true             |
 | github.com/AdamKorcz/go-fuzz-headers-1                                                  | v0.0.0-20230618160516-e936619f9f18                | v0.0.0-20230919221257-8b5d3ce2d11d | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper | v0.2.0                                            |                                    | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                              |                                    | false  | true             |
@@ -184,7 +185,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231023191041-434adf355ffe | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231024161856-a02b3b225e25 | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -222,10 +223,10 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.2                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.3                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.0                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.1                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.13.26                                          | v1.13.43                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.13.4                                           | v1.13.13                           | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.1.34                                           | v1.1.43                            | false  | true             |
@@ -244,7 +245,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.14.12                                          | v1.17.3                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.19.2                                           | v1.23.2                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.13.5                                           | v1.15.0                            | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231024151258-8ad49749abd0 | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20220228164355-396b2034c795                | v0.0.0-20231024185945-8841054dbdb8 | false  | true             |
 | github.com/beeker1121/goque                                                             | v1.0.3-0.20191103205551-d618510128af              |                                    | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                             | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                    | false  | true             |
@@ -742,7 +743,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            |                                    | false  | true             |
 | github.com/ysmood/goob                                                                  | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.36.3                            | false  | true             |
+| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.37.0                            | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                            |                                    | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                            |                                    | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.5.6                             | false  | true             |
@@ -779,7 +780,7 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | go.opentelemetry.io/proto/otlp                                                          | v1.0.0                                            |                                    | false  | true             |
 | go.step.sm/crypto                                                                       | v0.32.2                                           | v0.36.1                            | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                    | false  | true             |
-| go.uber.org/goleak                                                                      | v1.2.1                                            |                                    | false  | true             |
+| go.uber.org/goleak                                                                      | v1.2.1                                            | v1.3.0                             | false  | true             |
 | go.uber.org/mock                                                                        | v0.2.0                                            | v0.3.0                             | false  | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                                           |                                    | false  | true             |
 | go.uber.org/zap                                                                         | v1.24.0                                           | v1.26.0                            | false  | true             |
@@ -854,6 +855,6 @@ _Generated on Tue, 24 Oct 2023 15:44:49 UTC for commit [6ab8bca][0]._
 | sigs.k8s.io/release-sdk                                                                 | v0.10.3                                           |                                    | true   | true             |
 | sigs.k8s.io/release-utils                                                               | v0.7.5                                            |                                    | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.3.0                                            |                                    | false  | true             |
-| sigs.k8s.io/yaml                                                                        | v1.3.0                                            |                                    | true   | true             |
+| sigs.k8s.io/yaml                                                                        | v1.3.0                                            | v1.4.0                             | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                            | v0.2.1                             | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739                | v0.0.0-20230607025951-8b02fee814ae | false  | true             |
