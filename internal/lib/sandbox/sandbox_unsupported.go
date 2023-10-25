@@ -4,6 +4,7 @@
 package sandbox
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
@@ -52,4 +53,10 @@ func (n *NetNs) Remove() error {
 
 func hostNetNsPath() (string, error) {
 	return "", fmt.Errorf("netns is not implemented for this platform")
+}
+
+// UnmountShm removes the shared memory mount for the sandbox and returns an
+// error if any failure occurs.
+func (s *Sandbox) UnmountShm(ctx context.Context) error {
+	return nil
 }

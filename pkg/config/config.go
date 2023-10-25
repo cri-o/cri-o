@@ -48,9 +48,6 @@ import (
 
 // Defaults if none are specified
 const (
-	defaultRuntime             = "runc"
-	DefaultRuntimeType         = "oci"
-	DefaultRuntimeRoot         = "/run/runc"
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
@@ -59,7 +56,6 @@ const (
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 	tasksetBinary              = "taskset"
-	defaultMonitorCgroup       = "system.slice"
 	MonitorExecCgroupDefault   = ""
 	MonitorExecCgroupContainer = "container"
 )
@@ -103,9 +99,6 @@ const (
 	// ImageVolumesIgnore option is for ignoring image volumes altogether
 	ImageVolumesIgnore ImageVolumesType = "ignore"
 	// ImageVolumesBind option is for using bind mounted volumes
-	ImageVolumesBind ImageVolumesType = "bind"
-	// DefaultPauseImage is default pause image
-	DefaultPauseImage string = "registry.k8s.io/pause:3.9"
 )
 
 const (

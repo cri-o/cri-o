@@ -25,7 +25,7 @@ func (mgr *NamespaceManager) Initialize() error {
 
 // GetNamespace takes a path and type, checks if it is a namespace, and if so
 // returns an instance of the Namespace interface.
-func GetNamespace(_, _ string) (Namespace, error) {
+func GetNamespace(_ string, _ NSType) (Namespace, error) {
 	return nil, fmt.Errorf("GetNamespace not supported on %s", runtime.GOOS)
 }
 

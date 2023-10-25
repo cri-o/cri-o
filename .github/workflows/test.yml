@@ -43,6 +43,16 @@ jobs:
           name: config
           path: crio.conf
 
+  build-freebsd:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v4
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: scripts/github-actions-packages
+      - run: make bin/crio.cross.freebsd.amd64
+
   build-386:
     runs-on: ubuntu-latest
     steps:

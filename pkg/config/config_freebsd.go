@@ -1,20 +1,18 @@
-//go:build !windows && !freebsd
-// +build !windows,!freebsd
-
 package config
 
+// Defaults if none are specified
 // Defaults for linux/unix if none are specified
 const (
-	cniConfigDir             = "/etc/cni/net.d/"
-	cniBinDir                = "/opt/cni/bin/"
+	cniConfigDir             = "/usr/local/etc/cni/net.d/"
+	cniBinDir                = "/usr/local/libexec/cni/"
 	containerExitsDir        = "/var/run/crio/exits"
 	ContainerAttachSocketDir = "/var/run/crio"
 
 	// CrioConfigPath is the default location for the conf file
-	CrioConfigPath = "/etc/crio/crio.conf"
+	CrioConfigPath = "/usr/local/etc/crio/crio.conf"
 
 	// CrioConfigDropInPath is the default location for the drop-in config files
-	CrioConfigDropInPath = "/etc/crio/crio.conf.d"
+	CrioConfigDropInPath = "/usr/local/etc/crio/crio.conf.d"
 
 	// CrioSocketPath is where the unix socket is located
 	CrioSocketPath = "/var/run/crio/crio.sock"
@@ -26,5 +24,15 @@ const (
 	// CrioCleanShutdownFile is the location CRI-O will lay down the clean shutdown file
 	// that checks whether we've had time to sync before shutting down.
 	// If not, crio wipe will clear the storage directory.
-	CrioCleanShutdownFile = "/var/lib/crio/clean.shutdown"
+	CrioCleanShutdownFile = "/var/db/crio/clean.shutdown"
+
+	defaultRuntime       = "ocijail"
+	DefaultRuntimeType   = "oci"
+	DefaultRuntimeRoot   = "/var/run/ocijail"
+	defaultMonitorCgroup = ""
+
+	// ImageVolumesBind option is for using bind mounted volumes
+	ImageVolumesBind ImageVolumesType = "nullfs"
+	// DefaultPauseImage is default pause image
+	DefaultPauseImage string = "quay.io/dougrabson/pause:latest"
 )

@@ -8,7 +8,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -26,10 +25,8 @@ import (
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
@@ -477,25 +474,6 @@ type copyImageArgs struct {
 	Options       *ImageCopyOptions
 
 	StoreOptions storage.StoreOptions
-}
-
-// moveSelfToCgroup moves the current process to a new transient cgroup.
-func moveSelfToCgroup(cgroup string) error {
-	slice := "system.slice"
-	if rootless.IsRootless() {
-		slice = "user.slice"
-	}
-
-	if cgroup != "" {
-		if !strings.Contains(cgroup, ".slice") {
-			return fmt.Errorf("invalid systemd cgroup %q", cgroup)
-		}
-		slice = filepath.Base(cgroup)
-	}
-
-	unitName := fmt.Sprintf("crio-pull-image-%d.scope", os.Getpid())
-
-	return utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), os.Getpid(), slice, unitName)
 }
 
 func copyImageChild() {
