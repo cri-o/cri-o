@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
+_Generated on Thu, 26 Oct 2023 20:04:51 UTC for commit [ce33b4f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7d55719d06da58074d639a5e666e22c5d2924d67
+[0]: https://github.com/cri-o/cri-o/commit/ce33b4f88850961c29db71005da44bb41993a7e9
 
 ## Outdated Dependencies
 
@@ -18,6 +18,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/cri-o/ocicni                                              | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
 | github.com/docker/distribution                                       | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
 | github.com/fsnotify/fsnotify                                         | v1.6.0                               | v1.7.0              | true   | true             |
+| github.com/google/uuid                                               | v1.3.1                               | v1.4.0              | true   | true             |
 | github.com/onsi/gomega                                               | v1.28.0                              | v1.29.0             | true   | true             |
 | github.com/opencontainers/image-spec                                 | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
 | github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
@@ -223,7 +224,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.4                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.5                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.1                            | false  | true             |
@@ -324,7 +325,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/containers/podman/v4                                                         | v4.6.2                                            | v4.7.1                             | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                    | false  | true             |
 | github.com/containers/storage                                                           | v1.50.2                                           |                                    | true   | true             |
-| github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.7                             | false  | true             |
+| github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.8                             | false  | true             |
 | github.com/coreos/etcd                                                                  | v3.3.10+incompatible                              | v3.3.27+incompatible               | false  | true             |
 | github.com/coreos/go-iptables                                                           | v0.6.0                                            | v0.7.0                             | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                               |                                    | false  | true             |
@@ -359,9 +360,9 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                            |                                    | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                            |                                    | false  | true             |
 | github.com/dnaeon/go-vcr                                                                | v1.0.1                                            | v1.2.0                             | false  | true             |
-| github.com/docker/cli                                                                   | v23.0.5+incompatible                              | v24.0.6+incompatible               | false  | true             |
+| github.com/docker/cli                                                                   | v23.0.5+incompatible                              | v24.0.7+incompatible               | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.2+incompatible                               | v2.8.3+incompatible                | true   | true             |
-| github.com/docker/docker                                                                | v24.0.2+incompatible                              | v24.0.6+incompatible               | false  | true             |
+| github.com/docker/docker                                                                | v24.0.2+incompatible                              | v24.0.7+incompatible               | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.7.0                                            | v0.8.0                             | false  | true             |
 | github.com/docker/go-connections                                                        | v0.4.1-0.20210727194412-58542c764a11              |                                    | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c                |                                    | false  | true             |
@@ -481,7 +482,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/google/shlex                                                                 | v0.0.0-20191202100458-e7afc7fbc510                |                                    | false  | true             |
 | github.com/google/tink/go                                                               | v1.7.0                                            |                                    | false  | true             |
 | github.com/google/trillian                                                              | v1.5.2                                            |                                    | false  | true             |
-| github.com/google/uuid                                                                  | v1.3.1                                            |                                    | true   | true             |
+| github.com/google/uuid                                                                  | v1.3.1                                            | v1.4.0                             | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                            |                                    | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                      | v0.2.5                                            | v0.3.2                             | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.11.0                                           | v2.12.0                            | false  | true             |
@@ -555,7 +556,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231019155258-1aa304063d62 | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231026195912-1cde2e88613b | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -670,11 +671,11 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/sigstore/fulcio                                                              | v1.3.1                                            | v1.4.3                             | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.1.0                                            | v0.2.1                             | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.2.2                                            | v1.3.2                             | false  | true             |
-| github.com/sigstore/sigstore                                                            | v1.7.1                                            | v1.7.4                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.1                                            | v1.7.4                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.1                                            | v1.7.4                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.1                                            | v1.7.4                             | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.1                                            | v1.7.4                             | false  | true             |
+| github.com/sigstore/sigstore                                                            | v1.7.1                                            | v1.7.5                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.1                                            | v1.7.5                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.1                                            | v1.7.5                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.1                                            | v1.7.5                             | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.1                                            | v1.7.5                             | false  | true             |
 | github.com/sigstore/timestamp-authority                                                 | v1.1.1                                            | v1.2.0                             | false  | true             |
 | github.com/sirupsen/logrus                                                              | v1.9.3                                            |                                    | true   | true             |
 | github.com/skeema/knownhosts                                                            | v1.1.1                                            | v1.2.1                             | false  | true             |
@@ -743,7 +744,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            |                                    | false  | true             |
 | github.com/ysmood/goob                                                                  | v0.4.0                                            |                                    | false  | true             |
-| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.37.0                            | false  | true             |
+| github.com/ysmood/got                                                                   | v0.34.1                                           | v0.37.1                            | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                            |                                    | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                            |                                    | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.5.6                             | false  | true             |
@@ -754,7 +755,7 @@ _Generated on Thu, 26 Oct 2023 07:34:46 UTC for commit [7d55719][0]._
 | github.com/zeebo/errs                                                                   | v1.3.0                                            |                                    | false  | true             |
 | github.com/zmap/zcrypto                                                                 | v0.0.0-20220402174210-599ec18ecbac                | v0.0.0-20231018155041-c1c1128be414 | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.4.0                                            | v3.5.0                             | false  | true             |
-| go.etcd.io/bbolt                                                                        | v1.3.7                                            |                                    | false  | true             |
+| go.etcd.io/bbolt                                                                        | v1.3.7                                            | v1.3.8                             | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible               | false  | true             |
 | go.etcd.io/etcd/api/v3                                                                  | v3.5.9                                            |                                    | false  | true             |
 | go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.9                                            |                                    | false  | true             |
