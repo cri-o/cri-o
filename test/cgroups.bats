@@ -219,4 +219,7 @@ EOF
 	cgroup_file="cpu.cfs_quota_us"
 	[[ $(cat "$CTR_CGROUP"/"$cgroup_file") == "-1" ]]
 	[[ $(cat "$POD_CGROUP"/"$cgroup_file") == "-1" ]]
+	if [[ "$CONTAINER_DEFAULT_RUNTIME" == "crun" ]]; then
+		[[ $(cat "$CTR_CGROUP"/container/"$cgroup_file") == "-1" ]]
+	fi
 }
