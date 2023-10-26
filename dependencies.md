@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
+_Generated on Thu, 26 Oct 2023 06:25:12 UTC for commit [ebefd8f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c9ed2b7905a5f714356c510f857f8f3110a6fe20
+[0]: https://github.com/cri-o/cri-o/commit/ebefd8f9a0eb18f8c050734febca7ba031578fe7
 
 ## Outdated Dependencies
 
@@ -18,7 +18,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/cri-o/ocicni                                              | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
 | github.com/docker/distribution                                       | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
 | github.com/fsnotify/fsnotify                                         | v1.6.0                               | v1.7.0              | true   | true             |
-| github.com/onsi/gomega                                               | v1.28.0                              | v1.28.1             | true   | true             |
+| github.com/onsi/gomega                                               | v1.28.0                              | v1.29.0             | true   | true             |
 | github.com/opencontainers/image-spec                                 | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
 | github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
 | golang.org/x/sync                                                    | v0.3.0                               | v0.4.0              | true   | true             |
@@ -185,7 +185,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                    | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                    | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.0                                      |                                    | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231024161856-a02b3b225e25 | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231026000520-d8547ee4794c | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                    | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                    | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                             | false  | true             |
@@ -223,7 +223,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.3                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.4                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.1                            | false  | true             |
@@ -614,7 +614,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                            |                                    | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                    | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.13.0                                           |                                    | true   | true             |
-| github.com/onsi/gomega                                                                  | v1.28.0                                           | v1.28.1                            | true   | true             |
+| github.com/onsi/gomega                                                                  | v1.28.0                                           | v1.29.0                            | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.52.0                                           | v0.57.1                            | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                    | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc4                                        | v1.1.0-rc5                         | true   | true             |
@@ -643,7 +643,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/prometheus/common                                                            | v0.44.0                                           | v0.45.0                            | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.10.1                                           | v0.12.0                            | false  | true             |
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                            | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20220428173112-74888fd59c2b                | v0.0.0-20231016165630-1072508f7daa | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20220428173112-74888fd59c2b                | v0.0.0-20231025115547-084445ff1adf | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475                |                                    | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.0.5                                            | v9.2.1                             | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.4                                            |                                    | false  | true             |
@@ -721,7 +721,7 @@ _Generated on Wed, 25 Oct 2023 11:06:28 UTC for commit [c9ed2b7][0]._
 | github.com/veraison/go-cose                                                             | v1.1.0                                            |                                    | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                                     |                                    | true   | true             |
 | github.com/vishvananda/netns                                                            | v0.0.4                                            |                                    | false  | true             |
-| github.com/vmihailenco/msgpack/v5                                                       | v5.3.5                                            | v5.4.0                             | false  | true             |
+| github.com/vmihailenco/msgpack/v5                                                       | v5.3.5                                            | v5.4.1                             | false  | true             |
 | github.com/vmihailenco/tagparser/v2                                                     | v2.0.0                                            |                                    | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.20.1-0.20221209102050-40d9c30084b3             | v0.30.1                            | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.10.0                            | false  | true             |
