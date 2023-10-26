@@ -640,13 +640,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.ContainerName, containerName)
 	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.ShmPath, shmPath)
-	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
+	g.AddAnnotation(annotations.PrivilegedRuntime, strconv.FormatBool(privileged))
 	g.AddAnnotation(annotations.RuntimeHandler, runtimeHandler)
 	g.AddAnnotation(annotations.ResolvPath, sbox.ResolvPath())
 	g.AddAnnotation(annotations.HostName, hostname)
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
-	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
+	g.AddAnnotation(annotations.HostNetwork, strconv.FormatBool(hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57

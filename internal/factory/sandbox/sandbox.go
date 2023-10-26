@@ -2,7 +2,7 @@ package sandbox
 
 import (
 	"errors"
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
@@ -114,7 +114,7 @@ func (s *sandbox) SetNameAndID() error {
 		s.config.Metadata.Name,
 		s.config.Metadata.Namespace,
 		s.config.Metadata.Uid,
-		fmt.Sprintf("%d", s.config.Metadata.Attempt),
+		strconv.FormatUint(uint64(s.config.Metadata.Attempt), 10),
 	}, "_")
 
 	return nil

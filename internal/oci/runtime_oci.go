@@ -122,7 +122,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		args = append(args, "-s")
 	}
 	if r.config.LogSizeMax >= 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", r.config.LogSizeMax))
+		args = append(args, "--log-size-max", strconv.FormatInt(r.config.LogSizeMax, 10))
 	}
 	if r.config.LogToJournald {
 		args = append(args, "--log-path", "journald:")
@@ -543,7 +543,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		args = append(args, "-t")
 	}
 	if timeout > 0 {
-		args = append(args, "-T", fmt.Sprintf("%d", timeout))
+		args = append(args, "-T", strconv.FormatInt(timeout, 10))
 	}
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")

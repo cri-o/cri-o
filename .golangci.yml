@@ -32,6 +32,7 @@ linters:
     - forcetypeassert
     - gocheckcompilerdirectives
     - gochecknoinits
+    - gochecksumtype
     - goconst
     - gocritic
     - gocyclo
@@ -53,9 +54,11 @@ linters:
     - musttag
     - nakedret
     - nosprintfhostport
+    - perfsprint
     - prealloc
     - reassign
     - rowserrcheck
+    - sloglint
     - sqlclosecheck
     - staticcheck
     - stylecheck
@@ -91,6 +94,7 @@ linters:
     # - gomoddirectives
     # - gomodguard
     # - gosec
+    # - inamedparam
     # - interfacebloat
     # - ireturn
     # - lll
@@ -105,8 +109,10 @@ linters:
     # - paralleltest
     # - predeclared
     # - promlinter
+    # - protogetter
     # - revive
     # - tagliatelle
+    # - testifylint
     # - testpackage
     # - thelper
     # - varnamelen
@@ -230,3 +236,5 @@ linters-settings:
     min-complexity: 154
   nakedret:
     max-func-lines: 15
+  goconst:
+    min-occurrences: 6

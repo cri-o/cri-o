@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -229,13 +230,13 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 				metrics.Instance().MetricImagePullsByDigestAdd(
 					float64(p.OffsetUpdate),
 					remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
-					fmt.Sprintf("%d", p.Artifact.Size),
+					strconv.FormatInt(p.Artifact.Size, 10),
 				)
 
 				// Metrics for the overall image
 				metrics.Instance().MetricImagePullsByNameAdd(
 					float64(p.OffsetUpdate),
-					remoteCandidateName, fmt.Sprintf("%d", imageSize(tmpImg)),
+					remoteCandidateName, strconv.FormatInt(imageSize(tmpImg), 10),
 				)
 
 				// Metrics for image pulls bytes
