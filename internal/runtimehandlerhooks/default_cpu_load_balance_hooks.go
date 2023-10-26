@@ -2,12 +2,9 @@ package runtimehandlerhooks
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 )
 
 // DefaultCPULoadBalanceHooks is used to run additional hooks that will configure containers for CPU load balancing.
@@ -31,20 +28,14 @@ func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *san
 func (*DefaultCPULoadBalanceHooks) PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	// Disable cpuset.sched_load_balance for all stale cgroups.
 	// This way, cpumanager can ignore stopped containers, but the running ones will still have exclusive access.
-	if node.CgroupIsV2() || c.Spoofed() {
+	if c.Spoofed() {
 		return nil
 	}
-	containerCgroup, containerCgroupParent, systemd, err := containerCgroupAndParent(s.CgroupParent(), c)
+
+	_, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
 	if err != nil {
 		return err
 	}
-	mgr, err := libctrManager(containerCgroup, containerCgroupParent, systemd)
-	if err != nil {
-		return err
-	}
-	path := mgr.Path("cpuset")
-	if path == "" {
-		return fmt.Errorf("failed to find cpuset for newly created cgroup")
-	}
-	return cgroups.WriteFile(path, "cpuset.sched_load_balance", "0")
+
+	return disableCPULoadBalancing(containerManagers)
 }
