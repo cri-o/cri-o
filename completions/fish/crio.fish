@@ -204,6 +204,7 @@ complete -c crio -n '__fish_seen_subcommand_from version' -f -l verbose -s v -d 
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'wipe' -d 'wipe CRI-O\'s container and image storage'
 complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l force -s f -d 'force wipe by skipping the version check'
+complete -c crio -n '__fish_seen_subcommand_from status' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'status' -d 'Display status information'
 complete -c crio -n '__fish_seen_subcommand_from status' -l socket -s s -r -d 'absolute path to the unix socket'
 complete -c crio -n '__fish_seen_subcommand_from config c' -f -l help -s h -d 'show help'

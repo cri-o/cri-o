@@ -35,13 +35,10 @@ with pkgs; buildGo121Module {
     export SOURCE_DATE_EPOCH=0
   '';
   buildPhase = ''
-    make bin/crio
-    make bin/crio-status
-    make bin/pinns
+    make binaries
   '';
   installPhase = ''
     install -Dm755 bin/crio $out/bin/crio
-    install -Dm755 bin/crio-status $out/bin/crio-status
     install -Dm755 bin/pinns $out/bin/pinns
   '';
 }

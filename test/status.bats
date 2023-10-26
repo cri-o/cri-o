@@ -11,8 +11,8 @@ function teardown() {
 	cleanup_test
 }
 
-@test "status should fail if no subcommand is provided" {
-	run -1 "${CRIO_BINARY_PATH}" status
+@test "status not should fail if no subcommand is provided" {
+	run -0 "${CRIO_BINARY_PATH}" status
 }
 
 @test "status should succeed to retrieve the config" {
