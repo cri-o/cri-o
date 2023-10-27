@@ -1210,9 +1210,11 @@ func (c *Container) HostNetwork() bool {
 	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
 		return false
 	}
-	for _, ns := range c.config.Spec.Linux.Namespaces {
-		if ns.Type == spec.NetworkNamespace {
-			return false
+	if c.config.Spec.Linux != nil {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return false
+			}
 		}
 	}
 	return true
@@ -1352,6 +1354,21 @@ func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (st
 		return "", exists
 	}
 	return fmt.Sprintf("eth%d", val), exists
+}
+
+// GetNetworkStatus returns the current network status for this container.
+// This returns a map without deep copying which means this should only ever
+// be used as read only access, do not modify this status.
+func (c *Container) GetNetworkStatus() (map[string]types.StatusBlock, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	return c.getNetworkStatus(), nil
 }
 
 // getNetworkStatus get the current network status from the state. If the container

@@ -1,4 +1,5 @@
-//go:build freebsd
+//go:build !remote
+// +build !remote
 
 package generate
 
@@ -46,6 +47,28 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 
 	for key, val := range s.Annotations {
 		g.AddAnnotation(key, val)
+	}
+
+	// Devices
+	var userDevices []spec.LinuxDevice
+	if !s.Privileged {
+		// add default devices from containers.conf
+		for _, device := range rtc.Containers.Devices {
+			if err = DevicesFromPath(&g, device); err != nil {
+				return nil, err
+			}
+		}
+		if len(compatibleOptions.HostDeviceList) > 0 && len(s.Devices) == 0 {
+			userDevices = compatibleOptions.HostDeviceList
+		} else {
+			userDevices = s.Devices
+		}
+		// add default devices specified by caller
+		for _, device := range userDevices {
+			if err = DevicesFromPath(&g, device.Path); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	g.ClearProcessEnv()

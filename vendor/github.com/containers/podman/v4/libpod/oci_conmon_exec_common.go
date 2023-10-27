@@ -569,7 +569,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	hijackDone <- true
 
 	// Write a header to let the client know what happened
-	writeHijackHeader(r, httpBuf)
+	writeHijackHeader(r, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
@@ -741,6 +741,14 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		}
 
 		pspec.User = processUser
+	}
+
+	if c.config.Umask != "" {
+		umask, err := c.umask()
+		if err != nil {
+			return nil, err
+		}
+		pspec.User.Umask = &umask
 	}
 
 	if err := c.setProcessCapabilitiesExec(options, user, execUser, pspec); err != nil {

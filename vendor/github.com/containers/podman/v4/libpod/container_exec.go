@@ -321,9 +321,7 @@ func (c *Container) execStartAndAttach(sessionID string, streams *define.AttachS
 		return err
 	}
 
-	if isHealthcheck {
-		c.newContainerEvent(events.HealthStatus)
-	} else {
+	if !isHealthcheck {
 		c.newContainerEvent(events.Exec)
 	}
 
@@ -862,7 +860,7 @@ func (c *Container) cleanupExecBundle(sessionID string) (err error) {
 	return
 }
 
-// the path to a containers exec session bundle
+// the path to a container's exec session bundle
 func (c *Container) execBundlePath(sessionID string) string {
 	return filepath.Join(c.bundlePath(), sessionID)
 }

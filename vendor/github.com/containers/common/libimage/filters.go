@@ -11,6 +11,7 @@ import (
 	filtersPkg "github.com/containers/common/pkg/filters"
 	"github.com/containers/common/pkg/timetype"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
 
@@ -109,7 +110,6 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 		key = split[0]
 		value = split[1]
 		switch key {
-
 		case "after", "since":
 			img, err := r.time(key, value)
 			if err != nil {
@@ -147,7 +147,11 @@ func (r *Runtime) compileImageFilters(ctx context.Context, options *ListImagesOp
 			filter = filterID(value)
 
 		case "digest":
-			filter = filterDigest(value)
+			f, err := filterDigest(value)
+			if err != nil {
+				return nil, err
+			}
+			filter = f
 
 		case "intermediate":
 			intermediate, err := r.bool(duplicate, key, value)
@@ -239,7 +243,7 @@ func (r *Runtime) until(value string) (time.Time, error) {
 func (r *Runtime) time(key, value string) (*Image, error) {
 	img, _, err := r.LookupImage(value, nil)
 	if err != nil {
-		return nil, fmt.Errorf("could not find local image for filter filter %q=%q: %w", key, value, err)
+		return nil, fmt.Errorf("could not find local image for filter %q=%q: %w", key, value, err)
 	}
 	return img, nil
 }
@@ -395,12 +399,14 @@ func filterID(value string) filterFunc {
 }
 
 // filterDigest creates a digest filter for matching the specified value.
-func filterDigest(value string) filterFunc {
-	// TODO: return an error if value is not a digest
-	// if _, err := digest.Parse(value); err != nil {...}
-	return func(img *Image) (bool, error) {
-		return img.hasDigest(value), nil
+func filterDigest(value string) (filterFunc, error) {
+	d, err := digest.Parse(value)
+	if err != nil {
+		return nil, fmt.Errorf("invalid value %q for digest filter: %w", value, err)
 	}
+	return func(img *Image) (bool, error) {
+		return img.hasDigest(d), nil
+	}, nil
 }
 
 // filterIntermediate creates an intermediate filter for images.  An image is

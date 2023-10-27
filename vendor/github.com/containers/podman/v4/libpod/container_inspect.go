@@ -140,6 +140,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			CheckpointPath: runtimeInfo.CheckpointPath,
 			CheckpointLog:  runtimeInfo.CheckpointLog,
 			RestoreLog:     runtimeInfo.RestoreLog,
+			StoppedByUser:  c.state.StoppedByUser,
 		},
 		Image:                   config.RootfsImageID,
 		ImageName:               config.RootfsImageName,
@@ -312,6 +313,10 @@ func (c *Container) GetSecurityOptions() []string {
 	if apparmor, ok := ctrSpec.Annotations[define.InspectAnnotationApparmor]; ok {
 		SecurityOpt = append(SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
 	}
+	if c.config.Spec.Linux.MaskedPaths == nil {
+		SecurityOpt = append(SecurityOpt, "unmask=all")
+	}
+
 	return SecurityOpt
 }
 
@@ -506,6 +511,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 		if ctrSpec.Annotations[define.InspectAnnotationInit] == define.InspectResponseTrue {
 			hostConfig.Init = true
+		}
+		if ctrSpec.Annotations[define.InspectAnnotationPublishAll] == define.InspectResponseTrue {
+			hostConfig.PublishAllPorts = true
 		}
 	}
 

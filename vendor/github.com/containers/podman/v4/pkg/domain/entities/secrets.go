@@ -14,6 +14,11 @@ type SecretCreateOptions struct {
 	Driver     string
 	DriverOpts map[string]string
 	Labels     map[string]string
+	Replace    bool
+}
+
+type SecretInspectOptions struct {
+	ShowSecret bool
 }
 
 type SecretListRequest struct {
@@ -29,7 +34,8 @@ type SecretListReport struct {
 }
 
 type SecretRmOptions struct {
-	All bool
+	All    bool
+	Ignore bool
 }
 
 type SecretRmReport struct {
@@ -38,10 +44,11 @@ type SecretRmReport struct {
 }
 
 type SecretInfoReport struct {
-	ID        string
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Spec      SecretSpec
+	ID         string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Spec       SecretSpec
+	SecretData string `json:"SecretData,omitempty"`
 }
 
 type SecretInfoReportCompat struct {

@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (
@@ -9,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/container-orchestrated-devices/container-device-interface/pkg/parser"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/slirp4netns"
@@ -341,7 +344,7 @@ func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 
 // isCDIDevice checks whether the specified device is a CDI device.
 func isCDIDevice(device string) bool {
-	return cdi.IsQualifiedName(device)
+	return parser.IsQualifiedName(device)
 }
 
 func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
@@ -559,6 +562,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		}
 	}
 	options = append(options, libpod.WithPrivileged(s.Privileged))
+	options = append(options, libpod.WithReadWriteTmpfs(s.ReadWriteTmpfs))
 
 	// Get namespace related options
 	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
@@ -601,16 +605,23 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
+	healthCheckSet := false
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
+		healthCheckSet = true
 	}
 	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
 		options = append(options, libpod.WithStartupHealthcheck(s.ContainerHealthCheckConfig.StartupHealthConfig))
+		healthCheckSet = true
 	}
 
 	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
 		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
+	}
+
+	if s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
+		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, s.SdNotifyMode)
 	}
 
 	if len(s.Secrets) != 0 {

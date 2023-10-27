@@ -20,7 +20,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v6/stats"
+	"github.com/checkpoint-restore/go-criu/v7/stats"
 	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/chrootuser"
@@ -384,7 +384,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			Destination: dstPath,
 			Options:     bindOptions,
 		}
-		if c.IsReadOnly() && dstPath != "/dev/shm" {
+		if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
@@ -477,11 +477,10 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if c.config.Umask != "" {
-		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+		umask, err := c.umask()
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid Umask Value: %w", err)
+			return nil, nil, err
 		}
-		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
 	}
 
@@ -634,6 +633,13 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	nprocSet := false
 	isRootless := rootless.IsRootless()
 	if isRootless {
+		if g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
+			var err error
+			*g.Config.Process.OOMScoreAdj, err = maybeClampOOMScoreAdj(*g.Config.Process.OOMScoreAdj)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 		for _, rlimit := range c.config.Spec.Process.Rlimits {
 			if rlimit.Type == "RLIMIT_NOFILE" {
 				nofileSet = true
@@ -822,12 +828,12 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	if err != nil {
 		return &execUser, err
 	}
-	uid, err := strconv.ParseUint(u.Uid, 8, 32)
+	uid, err := strconv.ParseUint(u.Uid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
 
-	gid, err := strconv.ParseUint(u.Gid, 8, 32)
+	gid, err := strconv.ParseUint(u.Gid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
@@ -1603,7 +1609,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				Destination: dstPath,
 				Options:     []string{define.TypeBind, "private"},
 			}
-			if c.IsReadOnly() && dstPath != "/dev/shm" {
+			if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 			}
 			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
@@ -1953,16 +1959,22 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
+	runPath, err := c.getPlatformRunPath()
+	if err != nil {
+		return fmt.Errorf("cannot determine run directory for container: %w", err)
+	}
+	containerenvPath := filepath.Join(runPath, ".containerenv")
+
+	_, hasRunContainerenv := c.state.BindMounts[containerenvPath]
 	if !hasRunContainerenv {
 	Loop:
 		// check in the spec mounts
 		for _, m := range c.config.Spec.Mounts {
 			switch {
-			case m.Destination == "/run/.containerenv":
+			case m.Destination == containerenvPath:
 				hasRunContainerenv = true
 				break Loop
-			case m.Destination == "/run" && m.Type != define.TypeTmpfs:
+			case m.Destination == runPath && m.Type != define.TypeTmpfs:
 				hasRunContainerenv = true
 				break Loop
 			}
@@ -1988,11 +2000,11 @@ imageid=%q
 rootless=%d
 %s`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless, containerenv)
 		}
-		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
+		containerenvHostPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
 			return fmt.Errorf("creating containerenv file for container %s: %w", c.ID(), err)
 		}
-		c.state.BindMounts["/run/.containerenv"] = containerenvPath
+		c.state.BindMounts[containerenvPath] = containerenvHostPath
 	}
 
 	// Add Subscription Mounts
@@ -2010,12 +2022,12 @@ rootless=%d
 	// creates the /run/secrets dir in the container where we mount as well.
 	if len(c.Secrets()) > 0 {
 		// create /run/secrets if subscriptions did not create
-		if err := c.createSecretMountDir(); err != nil {
+		if err := c.createSecretMountDir(runPath); err != nil {
 			return fmt.Errorf("creating secrets mount: %w", err)
 		}
 		for _, secret := range c.Secrets() {
 			secretFileName := secret.Name
-			base := "/run/secrets"
+			base := filepath.Join(runPath, "secrets")
 			if secret.Target != "" {
 				secretFileName = secret.Target
 				// If absolute path for target given remove base.
@@ -2797,7 +2809,7 @@ func (c *Container) cleanupOverlayMounts() error {
 }
 
 // Creates and mounts an empty dir to mount secrets into, if it does not already exist
-func (c *Container) createSecretMountDir() error {
+func (c *Container) createSecretMountDir(runPath string) error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
 	_, err := os.Stat(src)
 	if os.IsNotExist(err) {
@@ -2810,7 +2822,7 @@ func (c *Container) createSecretMountDir() error {
 		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		c.state.BindMounts["/run/secrets"] = src
+		c.state.BindMounts[filepath.Join(runPath, "secrets")] = src
 		return nil
 	}
 
@@ -2924,4 +2936,28 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 		}
 	}
 	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
+}
+
+func (c *Container) umask() (uint32, error) {
+	decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid Umask Value: %w", err)
+	}
+	return uint32(decVal), nil
+}
+
+func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
+	v, err := os.ReadFile("/proc/self/oom_score_adj")
+	if err != nil {
+		return oomScoreValue, err
+	}
+	currentValue, err := strconv.Atoi(strings.TrimRight(string(v), "\n"))
+	if err != nil {
+		return oomScoreValue, err
+	}
+	if currentValue > oomScoreValue {
+		logrus.Warnf("Requested oom_score_adj=%d is lower than the current one, changing to %d", oomScoreValue, currentValue)
+		return currentValue, nil
+	}
+	return oomScoreValue, nil
 }
