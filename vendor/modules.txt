@@ -158,6 +158,7 @@ github.com/container-orchestrated-devices/container-device-interface/specs-go
 # github.com/containerd/cgroups v1.1.0
 ## explicit; go 1.17
 github.com/containerd/cgroups/stats/v1
+github.com/containerd/cgroups/v2/stats
 # github.com/containerd/cgroups/v3 v3.0.2
 ## explicit; go 1.18
 github.com/containerd/cgroups/v3/cgroup1/stats
