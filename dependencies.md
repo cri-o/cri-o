@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
+_Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3029d9fc21181df481ff961ae984cc9f2924aed8
+[0]: https://github.com/cri-o/cri-o/commit/5633698da2814bc4e97f56f701d747853069a91c
 
 ## Outdated Dependencies
 
@@ -24,6 +24,7 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
 | golang.org/x/sync                                                    | v0.3.0                               | v0.4.0              | true   | true             |
 | google.golang.org/grpc                                               | v1.58.3                              | v1.59.0             | true   | true             |
+| sigs.k8s.io/release-utils                                            | v0.7.5                               | v0.7.6              | true   | true             |
 | sigs.k8s.io/yaml                                                     | v1.3.0                               | v1.4.0              | true   | true             |
 
 ## All Dependencies
@@ -224,7 +225,7 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                    | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                    | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                    | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.5                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.44.248                                         | v1.46.6                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.18.1                                           | v1.21.2                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.10                                           | v1.4.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.18.27                                          | v1.19.1                            | false  | true             |
@@ -502,7 +503,7 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                            |                                    | false  | true             |
 | github.com/hashicorp/go-retryablehttp                                                   | v0.7.4                                            |                                    | false  | true             |
 | github.com/hashicorp/go-rootcerts                                                       | v1.0.2                                            |                                    | false  | true             |
-| github.com/hashicorp/go-secure-stdlib/parseutil                                         | v0.1.7                                            |                                    | false  | true             |
+| github.com/hashicorp/go-secure-stdlib/parseutil                                         | v0.1.7                                            | v0.1.8                             | false  | true             |
 | github.com/hashicorp/go-secure-stdlib/strutil                                           | v0.1.2                                            |                                    | false  | true             |
 | github.com/hashicorp/go-sockaddr                                                        | v1.0.2                                            | v1.0.5                             | false  | true             |
 | github.com/hashicorp/golang-lru                                                         | v0.5.4                                            | v1.0.2                             | false  | true             |
@@ -556,7 +557,7 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                            |                                    | false  | true             |
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           |                                    | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                    | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231026200631-000cd05d5491 | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20230213213521-fdfea0d469b6                | v0.0.0-20231027161254-50ec4786e4de | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                    | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                    | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20201010232012-f8cee7dfc7a3                | v0.0.0-20220523201153-1a23e78aa7a2 | false  | true             |
@@ -704,7 +705,7 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/thales-e-security/pool                                                       | v0.0.2                                            |                                    | false  | true             |
 | github.com/theupdateframework/go-tuf                                                    | v0.5.2                                            | v0.6.1                             | false  | true             |
 | github.com/tidwall/pretty                                                               | v1.2.0                                            | v1.2.1                             | false  | true             |
-| github.com/tinylib/msgp                                                                 | v1.1.5                                            | v1.1.8                             | false  | true             |
+| github.com/tinylib/msgp                                                                 | v1.1.5                                            | v1.1.9                             | false  | true             |
 | github.com/titanous/rocacheck                                                           | v0.0.0-20171023193734-afe73141d399                |                                    | false  | true             |
 | github.com/tjfoc/gmsm                                                                   | v1.3.2                                            | v1.4.1                             | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75                |                                    | false  | true             |
@@ -757,13 +758,13 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | github.com/zmap/zlint/v3                                                                | v3.4.0                                            | v3.5.0                             | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.7                                            | v1.3.8                             | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible               | false  | true             |
-| go.etcd.io/etcd/api/v3                                                                  | v3.5.9                                            |                                    | false  | true             |
-| go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.9                                            |                                    | false  | true             |
-| go.etcd.io/etcd/client/v2                                                               | v2.305.9                                          |                                    | false  | true             |
-| go.etcd.io/etcd/client/v3                                                               | v3.5.9                                            |                                    | false  | true             |
-| go.etcd.io/etcd/pkg/v3                                                                  | v3.5.9                                            |                                    | false  | true             |
-| go.etcd.io/etcd/raft/v3                                                                 | v3.5.9                                            |                                    | false  | true             |
-| go.etcd.io/etcd/server/v3                                                               | v3.5.9                                            |                                    | false  | true             |
+| go.etcd.io/etcd/api/v3                                                                  | v3.5.9                                            | v3.5.10                            | false  | true             |
+| go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.9                                            | v3.5.10                            | false  | true             |
+| go.etcd.io/etcd/client/v2                                                               | v2.305.9                                          | v2.305.10                          | false  | true             |
+| go.etcd.io/etcd/client/v3                                                               | v3.5.9                                            | v3.5.10                            | false  | true             |
+| go.etcd.io/etcd/pkg/v3                                                                  | v3.5.9                                            | v3.5.10                            | false  | true             |
+| go.etcd.io/etcd/raft/v3                                                                 | v3.5.9                                            | v3.5.10                            | false  | true             |
+| go.etcd.io/etcd/server/v3                                                               | v3.5.9                                            | v3.5.10                            | false  | true             |
 | go.etcd.io/gofail                                                                       | v0.1.0                                            |                                    | false  | true             |
 | go.mongodb.org/mongo-driver                                                             | v1.11.3                                           | v1.12.1                            | false  | true             |
 | go.mozilla.org/pkcs7                                                                    | v0.0.0-20210826202110-33d05740a352                |                                    | false  | true             |
@@ -851,11 +852,11 @@ _Generated on Fri, 27 Oct 2023 09:41:28 UTC for commit [3029d9f][0]._
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
-| sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.28.0                                           |                                    | false  | true             |
+| sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.28.0                                           | v0.28.1                            | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd                |                                    | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.10.3                                           |                                    | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.7.5                                            |                                    | true   | true             |
-| sigs.k8s.io/structured-merge-diff/v4                                                    | v4.3.0                                            |                                    | false  | true             |
+| sigs.k8s.io/release-utils                                                               | v0.7.5                                            | v0.7.6                             | true   | true             |
+| sigs.k8s.io/structured-merge-diff/v4                                                    | v4.3.0                                            | v4.4.0                             | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.3.0                                            | v1.4.0                             | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                            | v0.3.0                             | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739                | v0.0.0-20230607025951-8b02fee814ae | false  | true             |
