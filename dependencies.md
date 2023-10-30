@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 30 Oct 2023 10:07:30 UTC for commit [35e99c2][0]._
+_Generated on Mon, 30 Oct 2023 12:31:25 UTC for commit [91727ad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/35e99c2714558614bc45242cf931894c2607fc5d
+[0]: https://github.com/cri-o/cri-o/commit/91727ad3cd55343c1ea8b788b76729570a0e42e8
 
 ## Outdated Dependencies
 
@@ -22,7 +22,6 @@ _Generated on Mon, 30 Oct 2023 10:07:30 UTC for commit [35e99c2][0]._
 | github.com/google/uuid                                               | v1.3.1                               | v1.4.0              | true   | true             |
 | github.com/opencontainers/image-spec                                 | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
 | github.com/prometheus/client_golang                                  | v1.16.0                              | v1.17.0             | true   | true             |
-| golang.org/x/sync                                                    | v0.3.0                               | v0.4.0              | true   | true             |
 | google.golang.org/grpc                                               | v1.58.3                              | v1.59.0             | true   | true             |
 | sigs.k8s.io/release-utils                                            | v0.7.5                               | v0.7.6              | true   | true             |
 | sigs.k8s.io/yaml                                                     | v1.3.0                               | v1.4.0              | true   | true             |
@@ -796,7 +795,7 @@ _Generated on Mon, 30 Oct 2023 10:07:30 UTC for commit [35e99c2][0]._
 | golang.org/x/mod                                                                        | v0.12.0                                           | v0.13.0                            | false  | true             |
 | golang.org/x/net                                                                        | v0.17.0                                           |                                    | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.10.0                                           | v0.13.0                            | false  | true             |
-| golang.org/x/sync                                                                       | v0.3.0                                            | v0.4.0                             | true   | true             |
+| golang.org/x/sync                                                                       | v0.4.0                                            |                                    | true   | true             |
 | golang.org/x/sys                                                                        | v0.13.0                                           |                                    | true   | true             |
 | golang.org/x/term                                                                       | v0.13.0                                           |                                    | false  | true             |
 | golang.org/x/text                                                                       | v0.13.0                                           |                                    | false  | true             |
