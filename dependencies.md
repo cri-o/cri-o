@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
+_Generated on Mon, 30 Oct 2023 10:07:30 UTC for commit [35e99c2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5633698da2814bc4e97f56f701d747853069a91c
+[0]: https://github.com/cri-o/cri-o/commit/35e99c2714558614bc45242cf931894c2607fc5d
 
 ## Outdated Dependencies
 
@@ -15,9 +15,9 @@ _Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 | github.com/containers/common                                         | v0.55.4                              | v0.56.0             | true   | true             |
 | github.com/containers/image/v5                                       | v5.27.0                              | v5.28.0             | true   | true             |
 | github.com/containers/podman/v4                                      | v4.6.2                               | v4.7.1              | true   | true             |
+| github.com/creack/pty                                                | v1.1.18                              | v1.1.20             | true   | true             |
 | github.com/cri-o/ocicni                                              | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1              | true   | true             |
 | github.com/docker/distribution                                       | v2.8.2+incompatible                  | v2.8.3+incompatible | true   | true             |
-| github.com/fsnotify/fsnotify                                         | v1.6.0                               | v1.7.0              | true   | true             |
 | github.com/go-logr/logr                                              | v1.2.4                               | v1.3.0              | true   | true             |
 | github.com/google/uuid                                               | v1.3.1                               | v1.4.0              | true   | true             |
 | github.com/opencontainers/image-spec                                 | v1.1.0-rc4                           | v1.1.0-rc5          | true   | true             |
@@ -285,7 +285,7 @@ _Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 | github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.2                            | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.5.6                                            | v2.7.0                             | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                    | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.3                                            | v1.3.5                             | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.3                                            | v1.3.6                             | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe                |                                    | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20230607035331-e9ce68804cb4                | v0.0.0-20231016030527-8bd2eac9fb4a | false  | true             |
 | github.com/cockroachdb/apd/v2                                                           | v2.0.2                                            |                                    | false  | true             |
@@ -339,7 +339,7 @@ _Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 | github.com/cpuguy83/go-md2man                                                           | v1.0.10                                           |                                    | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.2                                            | v2.0.3                             | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.0.5-0.20230602131541-3d57f09010c9              | v0.1.1                             | false  | true             |
-| github.com/creack/pty                                                                   | v1.1.18                                           |                                    | true   | true             |
+| github.com/creack/pty                                                                   | v1.1.18                                           | v1.1.20                            | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.1-0.20230504062519-ad62f4ea0c11              | v0.4.1                             | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20230514072755-504adb8a8af1                | v0.0.0-20231011164504-785e29786b46 | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                            |                                    | true   | true             |
@@ -392,7 +392,7 @@ _Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 | github.com/flynn/go-docopt                                                              | v0.0.0-20140912013429-f6dd2ebbb31e                |                                    | false  | true             |
 | github.com/form3tech-oss/jwt-go                                                         | v3.2.2+incompatible                               | v3.2.5+incompatible                | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.0                                           | v1.14.6                            | false  | true             |
-| github.com/fsnotify/fsnotify                                                            | v1.6.0                                            | v1.7.0                             | true   | true             |
+| github.com/fsnotify/fsnotify                                                            | v1.7.0                                            |                                    | true   | true             |
 | github.com/fsouza/go-dockerclient                                                       | v1.9.7                                            | v1.10.0                            | false  | true             |
 | github.com/fullsailor/pkcs7                                                             | v0.0.0-20190404230743-d7302db945fa                |                                    | false  | true             |
 | github.com/fxamacker/cbor/v2                                                            | v2.4.0                                            | v2.5.0                             | false  | true             |
@@ -748,7 +748,7 @@ _Generated on Fri, 27 Oct 2023 19:53:02 UTC for commit [5633698][0]._
 | github.com/ysmood/got                                                                   | v0.34.1                                           | v0.37.1                            | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                            |                                    | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                            |                                    | false  | true             |
-| github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.5.6                             | false  | true             |
+| github.com/yuin/goldmark                                                                | v1.4.13                                           | v1.6.0                             | false  | true             |
 | github.com/yvasiyarov/go-metrics                                                        | v0.0.0-20140926110328-57bccd1ccd43                | v0.0.0-20150112132944-c25f46c4b940 | false  | true             |
 | github.com/yvasiyarov/gorelic                                                           | v0.0.0-20141212073537-a9bba5b9ab50                | v0.0.7                             | false  | true             |
 | github.com/yvasiyarov/newrelic_platform_go                                              | v0.0.0-20140908184405-b21fdbd4370f                | v0.0.0-20160601141957-9c099fbc30e9 | false  | true             |
