@@ -27,12 +27,7 @@ var StatusCommand = &cli.Command{
 			TakesFile: true,
 		},
 	},
-	HideHelp:     true,
-	Hidden:       false,
 	OnUsageError: func(c *cli.Context, e error, b bool) error { return e },
-	Action: func(c *cli.Context) error {
-		return fmt.Errorf("expecting a valid subcommand")
-	},
 	Subcommands: []*cli.Command{{
 		Action:  configSubCommand,
 		Aliases: []string{"c"},

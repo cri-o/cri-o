@@ -258,12 +258,12 @@ The following API entry points are currently supported:
 | `/unpause/:id`    | `application/json` | Unpause a paused container.                                                        |
 <!-- markdownlint-enable MD013 -->
 
-The tool `crio-status` can be used to access the API with a dedicated command
+The subcommand `crio status` can be used to access the API with a dedicated command
 line tool. It supports all API endpoints via the dedicated subcommands `config`,
 `info` and `containers`, for example:
 
 ```console
-$ sudo go run cmd/crio-status/main.go info
+$ sudo crio status info
 cgroup driver: systemd
 storage driver: btrfs
 storage root: /var/lib/containers/storage

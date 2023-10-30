@@ -184,9 +184,6 @@ test/nri/nri.test: $(wildcard test/nri/*.go)
 bin/crio: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
-
 build-static:
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
@@ -391,7 +388,8 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/crio-status bin/pinns
+binaries: bin/crio bin/pinns
+
 test-binaries: test/copyimg/copyimg test/checkseccomp/checkseccomp test/checkcriu/checkcriu \
 	test/nri/nri.test
 
@@ -410,15 +408,10 @@ completions-generation:
 	bin/crio complete bash > completions/bash/crio
 	bin/crio complete fish > completions/fish/crio.fish
 	bin/crio complete zsh  > completions/zsh/_crio
-	bin/crio-status complete bash > completions/bash/crio-status
-	bin/crio-status complete fish > completions/fish/crio-status.fish
-	bin/crio-status complete zsh  > completions/zsh/_crio-status
 
 docs: $(MANPAGES)
 
 docs-generation:
-	bin/crio-status md  > docs/crio-status.8.md
-	bin/crio-status man > docs/crio-status.8
 	bin/crio -d "" --config="" md  > docs/crio.8.md
 	bin/crio -d "" --config="" man > docs/crio.8
 
@@ -435,7 +428,6 @@ install: install.bin install.man install.completions install.systemd install.con
 
 install.bin-nobuild:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/pinns $(BINDIR)/pinns
 
 install.bin: binaries install.bin-nobuild
@@ -464,9 +456,6 @@ install.completions:
 	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio
 	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio.fish
 	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio
-	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio-status
-	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio-status.fish
-	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio-status
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
@@ -474,7 +463,6 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(BINDIR)/crio-status
 	rm -f $(BINDIR)/pinns
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
@@ -485,9 +473,6 @@ uninstall:
 	rm -f ${BASHINSTALLDIR}/crio
 	rm -f ${FISHINSTALLDIR}/crio.fish
 	rm -f ${ZSHINSTALLDIR}/_crio
-	rm -f ${BASHINSTALLDIR}/crio-status
-	rm -f ${FISHINSTALLDIR}/crio-status.fish
-	rm -f ${ZSHINSTALLDIR}/_crio-status
 	rm -f $(PREFIX)/lib/systemd/system/crio-wipe.service
 	rm -f $(PREFIX)/lib/systemd/system/crio.service
 	rm -f $(PREFIX)/lib/systemd/system/cri-o.service

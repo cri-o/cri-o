@@ -29,12 +29,10 @@ jobs:
           name: build
           path: |
             bin/crio
-            bin/crio-status
       - uses: actions/upload-artifact@v3
         with:
           name: docs
           path: |
-            docs/crio-status.8
             docs/crio.8
             docs/crio.conf.5
             docs/crio.conf.d.5
@@ -145,7 +143,6 @@ jobs:
           name: build-static-amd64
           path: |
             result/bin/crio
-            result/bin/crio-status
             result/bin/pinns
 
   build-static-arm64:
@@ -167,7 +164,6 @@ jobs:
           name: build-static-arm64
           path: |
             result/bin/crio
-            result/bin/crio-status
             result/bin/pinns
 
   build-static-ppc64le:
@@ -189,7 +185,6 @@ jobs:
           name: build-static-ppc64le
           path: |
             result/bin/crio
-            result/bin/crio-status
             result/bin/pinns
 
   static-build-upload:
