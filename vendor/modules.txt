@@ -1789,7 +1789,7 @@ sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal
 sigs.k8s.io/release-sdk/regex
-# sigs.k8s.io/release-utils v0.7.5
+# sigs.k8s.io/release-utils v0.7.6
 ## explicit; go 1.20
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env
@@ -1802,9 +1802,10 @@ sigs.k8s.io/structured-merge-diff/v4/merge
 sigs.k8s.io/structured-merge-diff/v4/schema
 sigs.k8s.io/structured-merge-diff/v4/typed
 sigs.k8s.io/structured-merge-diff/v4/value
-# sigs.k8s.io/yaml v1.3.0
+# sigs.k8s.io/yaml v1.4.0
 ## explicit; go 1.12
 sigs.k8s.io/yaml
+sigs.k8s.io/yaml/goyaml.v2
 # zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739
 ## explicit; go 1.19
 zenhack.net/go/util
