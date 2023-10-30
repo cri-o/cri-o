@@ -29,7 +29,7 @@ require (
 	github.com/containers/storage v1.50.2
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
-	github.com/creack/pty v1.1.18
+	github.com/creack/pty v1.1.20
 	github.com/cri-o/ocicni v0.4.1-0.20230504062519-ad62f4ea0c11
 	github.com/cyphar/filepath-securejoin v0.2.4
 	github.com/docker/distribution v2.8.2+incompatible

@@ -25,9 +25,9 @@ cross() {
 
 set -e
 
-cross linux     amd64 386 arm arm64 ppc64 ppc64le s390x mips mipsle mips64 mips64le
+cross linux     amd64 386 arm arm64 ppc64 ppc64le s390x mips mipsle mips64 mips64le riscv64
 cross darwin    amd64 arm64
-cross freebsd   amd64 386 arm arm64
+cross freebsd   amd64 386 arm arm64 riscv64
 cross netbsd    amd64 386 arm arm64
 cross openbsd   amd64 386 arm arm64
 cross dragonfly amd64

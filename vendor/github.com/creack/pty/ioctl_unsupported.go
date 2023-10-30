@@ -8,6 +8,6 @@ const (
 	TIOCSWINSZ = 0
 )
 
-func ioctl(fd, cmd, ptr uintptr) error {
+func ioctl_inner(fd, cmd, ptr uintptr) error {
 	return ErrUnsupported
 }

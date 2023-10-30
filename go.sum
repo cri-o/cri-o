@@ -336,8 +336,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.2 h1:p1EgwI/C7NhT0JmVkwCD2ZBK8j4aeHQX2pMHH
 github.com/cpuguy83/go-md2man/v2 v2.0.2/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
 github.com/creack/pty v1.1.7/go.mod h1:lj5s0c3V2DBrqTV7llrYr5NG6My20zk30Fl46Y7DoTY=
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
-github.com/creack/pty v1.1.18 h1:n56/Zwd5o6whRC5PMGretI4IdRLlmBXYNjScPaBgsbY=
-github.com/creack/pty v1.1.18/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
+github.com/creack/pty v1.1.20 h1:VIPb/a2s17qNeQgDnkfZC35RScx+blkKF8GV68n80J4=
+github.com/creack/pty v1.1.20/go.mod h1:MOBLtS5ELjhRRrroQr9kyvTxUAFNvYEK993ew/Vr4O4=
 github.com/cri-o/ocicni v0.4.1-0.20230504062519-ad62f4ea0c11 h1:tNECj3vbJTpiieCM4wK7VcgzUrhZGXZhEf7iLHlBe14=
 github.com/cri-o/ocicni v0.4.1-0.20230504062519-ad62f4ea0c11/go.mod h1:/i3DeaXVuw12dwFUXeXzrp68osVAzNi4s5jCRKTGZKE=
 github.com/cyberphone/json-canonicalization v0.0.0-20230514072755-504adb8a8af1 h1:8Pq5UNTC+/UfvcOPKQGZoKCkeF+ZaKa4wJ9OS2gsQQM=
