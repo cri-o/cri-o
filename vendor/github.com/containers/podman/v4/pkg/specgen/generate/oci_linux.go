@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (
@@ -26,6 +29,15 @@ func setProcOpts(s *specgen.SpecGenerator, g *generate.Generator) {
 	for i := range g.Config.Mounts {
 		if g.Config.Mounts[i].Destination == "/proc" {
 			g.Config.Mounts[i].Options = s.ProcOpts
+			return
+		}
+	}
+}
+
+func setDevOptsReadOnly(g *generate.Generator) {
+	for i := range g.Config.Mounts {
+		if g.Config.Mounts[i].Destination == "/dev" {
+			g.Config.Mounts[i].Options = append(g.Config.Mounts[i].Options, "ro")
 			return
 		}
 	}
@@ -113,11 +125,12 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 		}
 		g.AddMount(sysMnt)
 		g.RemoveMount("/sys/fs/cgroup")
+
 		sysFsCgroupMnt := spec.Mount{
 			Destination: "/sys/fs/cgroup",
-			Type:        define.TypeBind,
+			Type:        "cgroup",
 			Source:      "/sys/fs/cgroup",
-			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r, "rbind"},
+			Options:     []string{"rprivate", "nosuid", "noexec", "nodev", r},
 		}
 		g.AddMount(sysFsCgroupMnt)
 		if !s.Privileged && isRootless {
@@ -314,7 +327,11 @@ func SpecGenToOCI(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Runt
 	if s.OOMScoreAdj != nil {
 		g.SetProcessOOMScoreAdj(*s.OOMScoreAdj)
 	}
+
 	setProcOpts(s, &g)
+	if s.ReadOnlyFilesystem && !s.ReadWriteTmpfs {
+		setDevOptsReadOnly(&g)
+	}
 
 	return configSpec, nil
 }

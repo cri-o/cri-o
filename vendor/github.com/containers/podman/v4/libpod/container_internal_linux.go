@@ -801,3 +801,13 @@ func (c *Container) makePlatformMtabLink(etcInTheContainerFd, rootUID, rootGID i
 	}
 	return nil
 }
+
+func (c *Container) getPlatformRunPath() (string, error) {
+	return "/run", nil
+}
+
+func (c *Container) addMaskedPaths(g *generate.Generator) {
+	if !c.config.Privileged {
+		g.AddLinuxMaskedPaths("/sys/devices/virtual/powercap")
+	}
+}

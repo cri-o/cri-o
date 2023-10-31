@@ -420,22 +420,6 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 	killCtr := func(signal uint) (bool, error) {
 		stderr, err := r.killContainer(ctr, signal, all, true)
-
-		// Before handling error from KillContainer, convert STDERR to a []string
-		// (one string per line of output) and print it, ignoring known OCI runtime
-		// errors that we don't care about
-		stderrLines := strings.Split(stderr.String(), "\n")
-		for _, line := range stderrLines {
-			if line == "" {
-				continue
-			}
-			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") || strings.Contains(line, "kill container: No such process") {
-				logrus.Debugf("Failure to kill container (already stopped?): logged %s", line)
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", line)
-		}
-
 		if err != nil {
 			// There's an inherent race with the cleanup process (see
 			// #16142, #17142). If the container has already been marked as
@@ -461,6 +445,16 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 			return false, err
 		}
+
+		// Before handling error from KillContainer, convert STDERR to a []string
+		// (one string per line of output) and print it.
+		stderrLines := strings.Split(stderr.String(), "\n")
+		for _, line := range stderrLines {
+			if line != "" {
+				fmt.Fprintf(os.Stderr, "%s\n", line)
+			}
+		}
+
 		return false, nil
 	}
 
@@ -478,9 +472,13 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 			return nil
 		}
 
-		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), unix.SignalName(syscall.Signal(stopSignal)), err)
-			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", unix.SignalName(syscall.Signal(stopSignal)), ctr.Name(), timeout)
+		if err := waitContainerStop(ctr, time.Duration(util.ConvertTimeout(int(timeout)))*time.Second); err != nil {
+			sigName := unix.SignalName(syscall.Signal(stopSignal))
+			if sigName == "" {
+				sigName = fmt.Sprintf("(%d)", stopSignal)
+			}
+			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), sigName, err)
+			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", sigName, ctr.Name(), timeout)
 		} else {
 			// No error, the container is dead
 			return nil
@@ -614,7 +612,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	hijackDone <- true
 
-	writeHijackHeader(req, httpBuf)
+	writeHijackHeader(req, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
@@ -1000,6 +998,7 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
 	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
@@ -1108,7 +1107,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "--no-pivot")
 	}
 
-	exitCommand, err := specgenutil.CreateExitCommandArgs(ctr.runtime.storageConfig, ctr.runtime.config, logrus.IsLevelEnabled(logrus.DebugLevel), ctr.AutoRemove(), false)
+	exitCommand, err := specgenutil.CreateExitCommandArgs(ctr.runtime.storageConfig, ctr.runtime.config, ctr.runtime.syslog || logrus.IsLevelEnabled(logrus.DebugLevel), ctr.AutoRemove(), false)
 	if err != nil {
 		return 0, err
 	}
@@ -1260,12 +1259,20 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, err
 	}
 	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
-		return 0, err
+		// The child likely already exited in which case the cmd.Wait() below should return the proper error.
+		// EPIPE is expected if the child already exited so not worth to log and kill the process.
+		if !errors.Is(err, syscall.EPIPE) {
+			logrus.Errorf("Failed to signal conmon to start: %v", err)
+			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, syscall.ESRCH) {
+				logrus.Errorf("Failed to kill conmon after error: %v", err)
+			}
+		}
 	}
+
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("conmon failed: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)
@@ -1308,6 +1315,9 @@ func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
 	var env []string
 	for _, e := range os.Environ() {
 		if strings.HasPrefix(e, "LC_") {
+			env = append(env, e)
+		}
+		if strings.HasPrefix(e, "LANG=") {
 			env = append(env, e)
 		}
 	}

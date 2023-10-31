@@ -87,6 +87,16 @@ var (
 	// should be set during link-time, if different packagers put their
 	// helper binary in a different location.
 	additionalHelperBinariesDir string
+
+	defaultUnixComposeProviders = []string{
+		"docker-compose",
+		"$HOME/.docker/cli-plugins/docker-compose",
+		"/usr/local/lib/docker/cli-plugins/docker-compose",
+		"/usr/local/libexec/docker/cli-plugins/docker-compose",
+		"/usr/lib/docker/cli-plugins/docker-compose",
+		"/usr/libexec/docker/cli-plugins/docker-compose",
+		"podman-compose",
+	}
 )
 
 // nolint:unparam
@@ -147,9 +157,11 @@ const (
 	DefaultVolumePluginTimeout = 5
 )
 
-// DefaultConfig defines the default values from containers.conf.
-func DefaultConfig() (*Config, error) {
-	defaultEngineConfig, err := defaultConfigFromMemory()
+// defaultConfig returns Config with builtin defaults and minimal adjustments
+// to the current host only. It does not read any config files from the host or
+// the environment.
+func defaultConfig() (*Config, error) {
+	defaultEngineConfig, err := defaultEngineConfig()
 	if err != nil {
 		return nil, err
 	}
@@ -176,41 +188,41 @@ func DefaultConfig() (*Config, error) {
 
 	return &Config{
 		Containers: ContainersConfig{
-			Devices:             []string{},
-			Volumes:             []string{},
 			Annotations:         []string{},
 			ApparmorProfile:     DefaultApparmorProfile,
 			BaseHostsFile:       "",
 			CgroupNS:            cgroupNS,
 			Cgroups:             getDefaultCgroupsMode(),
+			DNSOptions:          []string{},
+			DNSSearches:         []string{},
+			DNSServers:          []string{},
 			DefaultCapabilities: DefaultCapabilities,
 			DefaultSysctls:      []string{},
 			DefaultUlimits:      getDefaultProcessLimits(),
-			DNSServers:          []string{},
-			DNSOptions:          []string{},
-			DNSSearches:         []string{},
+			Devices:             []string{},
 			EnableKeyring:       true,
 			EnableLabeling:      selinuxEnabled(),
 			Env: []string{
 				"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-				"TERM=xterm",
 			},
 			EnvHost:    false,
 			HTTPProxy:  true,
+			IPCNS:      "shareable",
 			Init:       false,
 			InitPath:   "",
-			IPCNS:      "shareable",
 			LogDriver:  defaultLogDriver(),
 			LogSizeMax: DefaultLogSizeMax,
+			Mounts:     []string{},
 			NetNS:      "private",
 			NoHosts:    false,
-			PidsLimit:  DefaultPidsLimit,
 			PidNS:      "private",
+			PidsLimit:  DefaultPidsLimit,
 			ShmSize:    DefaultShmSize,
 			TZ:         "",
-			Umask:      "0022",
 			UTSNS:      "private",
+			Umask:      "0022",
 			UserNSSize: DefaultUserNSSize, // Deprecated
+			Volumes:    []string{},
 		},
 		Network: NetworkConfig{
 			DefaultNetwork:            "podman",
@@ -224,6 +236,7 @@ func DefaultConfig() (*Config, error) {
 		Engine:  *defaultEngineConfig,
 		Secrets: defaultSecretConfig(),
 		Machine: defaultMachineConfig(),
+		Farms:   defaultFarmConfig(),
 	}, nil
 }
 
@@ -247,9 +260,17 @@ func defaultMachineConfig() MachineConfig {
 	}
 }
 
-// defaultConfigFromMemory returns a default engine configuration. Note that the
+// defaultFarmConfig returns the default farms configuration.
+func defaultFarmConfig() FarmConfig {
+	emptyList := make(map[string][]string)
+	return FarmConfig{
+		List: emptyList,
+	}
+}
+
+// defaultEngineConfig eturns a default engine configuration. Note that the
 // config is different for root and rootless. It also parses the storage.conf.
-func defaultConfigFromMemory() (*EngineConfig, error) {
+func defaultEngineConfig() (*EngineConfig, error) {
 	c := new(EngineConfig)
 	tmp, err := defaultTmpDir()
 	if err != nil {
@@ -260,6 +281,8 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.EventsLogFileMaxSize = eventsLogMaxSize(DefaultEventsLogSizeMax)
 
 	c.CompatAPIEnforceDockerHub = true
+	c.ComposeProviders = getDefaultComposeProviders() // may vary across supported platforms
+	c.ComposeWarningLogs = true
 
 	if path, ok := os.LookupEnv("CONTAINERS_STORAGE_CONF"); ok {
 		if err := types.SetDefaultConfigFilePath(path); err != nil {
@@ -298,6 +321,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 	c.CgroupManager = defaultCgroupManager()
 	c.ServiceTimeout = uint(5)
 	c.StopTimeout = uint(10)
+	c.PodmanshTimeout = uint(30)
 	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
 	c.OCIRuntimes = map[string][]string{
@@ -405,6 +429,7 @@ func defaultConfigFromMemory() (*EngineConfig, error) {
 		"runsc",
 		"youki",
 		"krun",
+		"ocijail",
 	}
 	c.RuntimeSupportsNoCgroups = []string{"crun", "krun"}
 	c.RuntimeSupportsKVM = []string{"kata", "kata-runtime", "kata-qemu", "kata-fc", "krun"}
@@ -484,6 +509,11 @@ func (c *Config) Sysctls() []string {
 // Volumes returns the default set of volumes that should be mounted in containers.
 func (c *Config) Volumes() []string {
 	return c.Containers.Volumes
+}
+
+// Mounts returns the default set of mounts that should be mounted in containers.
+func (c *Config) Mounts() []string {
+	return c.Containers.Mounts
 }
 
 // Devices returns the default additional devices for containers.
@@ -624,4 +654,17 @@ func useUserConfigLocations() bool {
 	// NOTE: For now we want Windows to use system locations.
 	// GetRootlessUID == -1 on Windows, so exclude negative range
 	return unshare.GetRootlessUID() > 0
+}
+
+// getDefaultImage returns the default machine image stream
+// On Windows this refers to the Fedora major release number
+func getDefaultMachineImage() string {
+	return "testing"
+}
+
+// getDefaultMachineUser returns the user to use for rootless podman
+// This is only for the apple, hyperv, and qemu implementations.
+// WSL's user will be hardcoded in podman to "user"
+func getDefaultMachineUser() string {
+	return "core"
 }

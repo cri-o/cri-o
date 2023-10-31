@@ -113,7 +113,7 @@ func (c *Container) Start(ctx context.Context, recursive bool) (finalErr error) 
 	}
 
 	// Start the container
-	return c.start()
+	return c.start(ctx)
 }
 
 // Update updates the given container.
@@ -292,7 +292,7 @@ func (c *Container) Kill(signal uint) error {
 		return c.waitForConmonToExitAndSave()
 	}
 
-	return nil
+	return c.save()
 }
 
 // Attach attaches to a container.
@@ -797,7 +797,7 @@ func (c *Container) Cleanup(ctx context.Context) error {
 		defer c.lock.Unlock()
 
 		if err := c.syncContainer(); err != nil {
-			// When the container has already been removed, the OCI runtime directory remain.
+			// When the container has already been removed, the OCI runtime directory remains.
 			if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
 				if err := c.cleanupRuntime(ctx); err != nil {
 					return fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
