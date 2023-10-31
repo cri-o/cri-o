@@ -463,10 +463,10 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 
 // nolint: gochecknoinits
 func init() {
-	reexec.Register("crio-copy-image", copyImageChild)
+	reexec.Register("crio-pull-image", pullImageChild)
 }
 
-type copyImageArgs struct {
+type pullImageArgs struct {
 	Lookup        *imageLookupService
 	ImageName     string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
 	ParentCgroup  string
@@ -476,8 +476,8 @@ type copyImageArgs struct {
 	StoreOptions storage.StoreOptions
 }
 
-func copyImageChild() {
-	var args copyImageArgs
+func pullImageChild() {
+	var args pullImageArgs
 
 	if err := json.NewDecoder(os.NewFile(0, "stdin")).Decode(&args); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
@@ -550,11 +550,11 @@ func toCopyOptions(options *ImageCopyOptions, progress chan types.ProgressProper
 	}
 }
 
-func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
+func (svc *imageService) pullImageParent(systemContext *types.SystemContext, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
-	cmd := reexec.CommandContext(svc.ctx, "crio-copy-image", imageName.StringForOutOfProcessConsumptionOnly())
+	cmd := reexec.CommandContext(svc.ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
@@ -572,7 +572,7 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 		return fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
-	stdinArguments := copyImageArgs{
+	stdinArguments := pullImageArgs{
 		Lookup:        svc.lookup,
 		SystemContext: systemContext,
 		Options:       options,
@@ -637,7 +637,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	options.SourceCtx = srcSystemContext
 
 	if inputOptions.CgroupPull.UseNewCgroup {
-		if err := svc.copyImage(systemContext, imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
+		if err := svc.pullImageParent(systemContext, imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
 			return nil, err
 		}
 	} else {
