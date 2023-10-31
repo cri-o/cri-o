@@ -987,7 +987,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 
-		if isSubDirectoryOf(storageRoot, m.HostPath) {
+		if isSubDirectoryOf(storageRoot, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
 			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
