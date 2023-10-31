@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -480,6 +481,7 @@ type pullImageArgs struct {
 
 type pullImageOutputItem struct {
 	Progress *types.ProgressProperties `json:",omitempty"`
+	Result   string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
 }
 
 func pullImageChild() {
@@ -514,7 +516,8 @@ func pullImageChild() {
 	args.Options.SourceCtx = srcSystemContext
 
 	output := make(chan pullImageOutputItem)
-	go formatPullImageOutputItemGoroutine(os.Stdout, output)
+	outputWritten := make(chan struct{})
+	go formatPullImageOutputItemGoroutine(os.Stdout, output, outputWritten)
 
 	progress := make(chan types.ProgressProperties)
 	go func() {
@@ -529,42 +532,53 @@ func pullImageChild() {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
+	output <- pullImageOutputItem{Result: transports.ImageName(destRef)}
+
+	close(output)
+	<-outputWritten
 
 	os.Exit(0)
 }
 
-func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOutputItem) {
+func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOutputItem, outputWritten chan<- struct{}) {
+	defer func() {
+		outputWritten <- struct{}{}
+	}()
+
 	stream := json.NewStream(json.ConfigDefault, dest, 4096)
 	for item := range items {
 		stream.WriteVal(item)
 		stream.WriteRaw("\n")
 		if err := stream.Flush(); err != nil {
 			fmt.Fprintf(os.Stderr, "%v", err)
+			//nolint:gocritic // “exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run”
+			// If we fail writing output, outputWritten can never really be set, and it is no longer relevant.
+			// Just abort.
 			os.Exit(1)
 		}
 	}
 }
 
-func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
+func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, error) {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
 	cmd := reexec.CommandContext(svc.ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
 	stdinArguments := pullImageArgs{
@@ -584,18 +598,23 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 
 	stdinArguments.Options.Progress = nil
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return fmt.Errorf("%v: %w", waitErr, err)
+			return nil, fmt.Errorf("%v: %w", waitErr, err)
 		}
-		return fmt.Errorf("json encode to pipe failed: %w", err)
+		return nil, fmt.Errorf("json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 
+	resultChan := make(chan string)
 	go func() {
+		defer func() {
+			close(resultChan) // Future reads, if any, will get "".
+		}()
+
 		decoder := json.NewDecoder(bufio.NewReader(stdout))
 		if progress != nil {
 			defer close(progress)
@@ -609,16 +628,31 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 			if item.Progress != nil && progress != nil {
 				progress <- *item.Progress
 			}
+			if item.Result != "" {
+				resultChan <- item.Result
+			}
 		}
 	}()
+
+	result := <-resultChan // Possibly "" if the process terminates before sending a result
+
 	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
-			return fmt.Errorf("pull image: %s", string(errOutput))
+			return nil, fmt.Errorf("pull image: %s", string(errOutput))
 		}
-		return err
+		return nil, err
 	}
-	return nil
+
+	if result == "" {
+		return nil, errors.New("pull child finished successfully but didn’t send a result")
+	}
+
+	destRef, err := alltransports.ParseImageName(result)
+	if err != nil {
+		return nil, err
+	}
+	return destRef, nil
 }
 
 func (svc *imageService) PullImage(imageName RegistryImageReference, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
@@ -631,7 +665,8 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 	options.SourceCtx = srcSystemContext
 
 	if inputOptions.CgroupPull.UseNewCgroup {
-		if err := svc.pullImageParent(imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
+		destRef, err = svc.pullImageParent(imageName, inputOptions.CgroupPull.ParentCgroup, &options)
+		if err != nil {
 			return nil, err
 		}
 	} else {
