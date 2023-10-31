@@ -673,7 +673,11 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, options *Im
 //
 // It returns a c/storage ImageReference for the destination.
 func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
-	srcSystemContext, srcRef, destRef, err := lookup.getReferences(options.SourceCtx, store, imageName)
+	srcSystemContext, srcRef, err := lookup.prepareReference(options.SourceCtx, imageName)
+	if err != nil {
+		return nil, err
+	}
+	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
 	if err != nil {
 		return nil, err
 	}
@@ -698,19 +702,6 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return nil, err
 	}
 	return destRef, err
-}
-
-func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName RegistryImageReference) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
-	srcSystemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	destRef, err = istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return srcSystemContext, srcRef, destRef, nil
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
