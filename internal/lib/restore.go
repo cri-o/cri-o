@@ -58,16 +58,18 @@ func (c *ContainerServer) ContainerRestore(
 		return "", err
 	}
 
-	if ctr.RestoreArchive() != "" {
-		if ctr.RestoreIsOCIImage() {
-			log.Debugf(ctx, "Restoring from %v", ctr.RestoreArchive())
-			imageMountPoint, err := c.StorageImageServer().GetStore().MountImage(ctr.RestoreArchive(), nil, "")
+	if ctr.RestoreArchivePath() != "" || ctr.RestoreStorageImageID() != nil {
+		if ctr.RestoreStorageImageID() != nil {
+			log.Debugf(ctx, "Restoring from %v", ctr.RestoreStorageImageID())
+			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+			imageMountPoint, err := c.StorageImageServer().GetStore().MountImage(ctr.RestoreStorageImageID().IDStringForOutOfProcessConsumptionOnly(), nil, "")
 			if err != nil {
 				return "", err
 			}
 			logrus.Debugf("Checkpoint image mounted at %v", imageMountPoint)
 			defer func() {
-				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreArchive(), true)
+				// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreStorageImageID().IDStringForOutOfProcessConsumptionOnly(), true)
 				if err != nil {
 					log.Errorf(ctx, "Failed to unmount checkpoint image: %q", err)
 				}
@@ -95,7 +97,7 @@ func (c *ContainerServer) ContainerRestore(
 				}
 			}
 		} else {
-			if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchive()); err != nil {
+			if err := crutils.CRImportCheckpointWithoutConfig(ctr.Dir(), ctr.RestoreArchivePath()); err != nil {
 				return "", err
 			}
 		}

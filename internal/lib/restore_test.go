@@ -211,7 +211,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 
-			myContainer.SetRestoreArchive("archive.tar")
+			myContainer.SetRestoreArchivePath("archive.tar")
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).To(BeNil())
 			setupInfraContainerWithPid(42, "bundle")
@@ -233,6 +233,9 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI images", func() {
 		It("should fail with failed to restore", func() {
 			// Given
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
+
 			config := &metadata.ContainerConfig{
 				ID: containerID,
 			}
@@ -250,17 +253,17 @@ var _ = t.Describe("ContainerRestore", func() {
 				Linux:   &specs.Linux{},
 			})
 
-			myContainer.SetRestoreIsOCIImage(true)
+			myContainer.SetRestoreStorageImageID(&imageID)
 
 			gomock.InOrder(
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
+				storeMock.EXPECT().MountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any()).
 					Return("", nil),
-				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
+				storeMock.EXPECT().UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
 					Return(false, nil),
 			)
 
-			err := os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
+			err = os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
@@ -307,7 +310,6 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("bind.mounts")
 
-			myContainer.SetRestoreArchive("localhost/checkpoint-image:tag1")
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).To(BeNil())
 			setupInfraContainerWithPid(42, "bundle")

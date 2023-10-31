@@ -65,6 +65,8 @@ func (s *Server) CRImportCheckpoint(
 		return "", err
 	}
 
+	var restoreArchivePath string
+	var restoreStorageImageID *storage.StorageImageID
 	if checkpointIsOCIImage {
 		log.Debugf(ctx, "Restoring from oci image %s\n", input)
 
@@ -76,17 +78,23 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", err
 		}
-		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(img.ID, nil, "")
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(img.ID) // This violates API rules, and will be replaced immediately.
 		if err != nil {
 			return "", err
 		}
-		input = img.ID
+		restoreStorageImageID = &id
+		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
+		if err != nil {
+			return "", err
+		}
 
-		logrus.Debugf("Checkpoint image %s mounted at %v\n", input, mountPoint)
+		logrus.Debugf("Checkpoint image %s mounted at %v\n", restoreStorageImageID, mountPoint)
 
 		defer func() {
-			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(input, true); err != nil {
-				logrus.Errorf("Could not unmount checkpoint image %s: %q", input, err)
+			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
+				logrus.Errorf("Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
 			}
 		}()
 	} else {
@@ -97,6 +105,7 @@ func (s *Server) CRImportCheckpoint(
 			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
 		}
 		defer errorhandling.CloseQuiet(archiveFile)
+		restoreArchivePath = input
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
 			ExcludePatterns: []string{
@@ -400,8 +409,8 @@ func (s *Server) CRImportCheckpoint(
 
 	newContainer.SetCreated()
 	newContainer.SetRestore(true)
-	newContainer.SetRestoreArchive(input)
-	newContainer.SetRestoreIsOCIImage(checkpointIsOCIImage)
+	newContainer.SetRestoreArchivePath(restoreArchivePath)
+	newContainer.SetRestoreStorageImageID(restoreStorageImageID)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {

@@ -56,31 +56,31 @@ type Container struct {
 	dir        string
 	stopSignal string
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
-	imageName          *references.RegistryImageReference
-	imageID            *storage.StorageImageID // nil for infra containers.
-	mountPoint         string
-	seccompProfilePath string
-	conmonCgroupfsPath string
-	crioAnnotations    fields.Set
-	state              *ContainerState
-	opLock             sync.RWMutex
-	spec               *specs.Spec
-	idMappings         *idtools.IDMappings
-	terminal           bool
-	stdin              bool
-	stdinOnce          bool
-	created            bool
-	spoofed            bool
-	stopping           bool
-	stopLock           sync.Mutex
-	stopTimeoutChan    chan int64
-	stopWatchers       []chan struct{}
-	pidns              nsmgr.Namespace
-	restore            bool
-	restoreArchive     string
-	restoreIsOCIImage  bool
-	resources          *types.ContainerResources
-	runtimePath        string // runtime path for a given platform
+	imageName             *references.RegistryImageReference
+	imageID               *storage.StorageImageID // nil for infra containers.
+	mountPoint            string
+	seccompProfilePath    string
+	conmonCgroupfsPath    string
+	crioAnnotations       fields.Set
+	state                 *ContainerState
+	opLock                sync.RWMutex
+	spec                  *specs.Spec
+	idMappings            *idtools.IDMappings
+	terminal              bool
+	stdin                 bool
+	stdinOnce             bool
+	created               bool
+	spoofed               bool
+	stopping              bool
+	stopLock              sync.Mutex
+	stopTimeoutChan       chan int64
+	stopWatchers          []chan struct{}
+	pidns                 nsmgr.Namespace
+	restore               bool
+	restoreArchivePath    string
+	restoreStorageImageID *storage.StorageImageID
+	resources             *types.ContainerResources
+	runtimePath           string // runtime path for a given platform
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -635,20 +635,22 @@ func (c *Container) SetRestore(restore bool) {
 	c.restore = restore
 }
 
-func (c *Container) RestoreArchive() string {
-	return c.restoreArchive
+// If Restore(), and the container is being restored from a local path, RestoreArchivePath returns that path.
+func (c *Container) RestoreArchivePath() string {
+	return c.restoreArchivePath
 }
 
-func (c *Container) SetRestoreArchive(restoreArchive string) {
-	c.restoreArchive = restoreArchive
+func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
+	c.restoreArchivePath = restoreArchivePath
 }
 
-func (c *Container) RestoreIsOCIImage() bool {
-	return c.restoreIsOCIImage
+// If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.
+func (c *Container) RestoreStorageImageID() *storage.StorageImageID {
+	return c.restoreStorageImageID
 }
 
-func (c *Container) SetRestoreIsOCIImage(restoreIsOCIImage bool) {
-	c.restoreIsOCIImage = restoreIsOCIImage
+func (c *Container) SetRestoreStorageImageID(restoreStorageImageID *storage.StorageImageID) {
+	c.restoreStorageImageID = restoreStorageImageID
 }
 
 // SetResources loads the OCI Spec.Linux.Resources in the container struct
