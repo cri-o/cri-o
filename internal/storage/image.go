@@ -651,21 +651,11 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 }
 
 func (svc *imageService) PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
-	var destRef types.ImageReference
 	if options.CgroupPull.UseNewCgroup {
-		dr, err := svc.pullImageParent(imageName, options.CgroupPull.ParentCgroup, options)
-		if err != nil {
-			return nil, err
-		}
-		destRef = dr
+		return svc.pullImageParent(imageName, options.CgroupPull.ParentCgroup, options)
 	} else {
-		dr, err := pullImageImplementation(svc.ctx, svc.lookup, svc.store, imageName, options)
-		if err != nil {
-			return nil, err
-		}
-		destRef = dr
+		return pullImageImplementation(svc.ctx, svc.lookup, svc.store, imageName, options)
 	}
-	return destRef, nil
 }
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
