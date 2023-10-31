@@ -77,6 +77,7 @@ type imageCacheItem struct {
 
 type imageCache map[string]imageCacheItem
 
+// WARNING: All of imageLookupService must be JSON-representable because it is included in pullImageArgs.
 type imageLookupService struct {
 	DefaultTransport      string
 	InsecureRegistryCIDRs []*net.IPNet
@@ -97,12 +98,14 @@ type imageService struct {
 var ImageBeingPulled sync.Map
 
 // CgroupPullConfiguration
+// WARNING: All of imageLookupService must be JSON-representable because it is included in pullImageArgs.
 type CgroupPullConfiguration struct {
 	UseNewCgroup bool
 	ParentCgroup string
 }
 
 // subset of copy.Options that is supported by reexec.
+// WARNING: All ofImageCopyOptions must be JSON-representable because it is included in pullImageArgs.
 type ImageCopyOptions struct {
 	SourceCtx        *types.SystemContext
 	DestinationCtx   *types.SystemContext
@@ -494,17 +497,6 @@ func pullImageChild() {
 		os.Exit(1)
 	}
 
-	policy, err := signature.DefaultPolicy(args.Options.SourceCtx)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-
 	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(args.ImageName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
@@ -531,7 +523,8 @@ func pullImageChild() {
 
 	options := toCopyOptions(args.Options, progress)
 	options.SourceCtx = srcSystemContext
-	if _, err := copy.Image(context.Background(), policyContext, destRef, srcRef, options); err != nil {
+
+	if err := pullImageImplementation(context.Background(), destRef, srcRef, options); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
@@ -639,22 +632,31 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 			return nil, err
 		}
 	} else {
-		policy, err := signature.DefaultPolicy(inputOptions.SourceCtx)
-		if err != nil {
-			return nil, err
-		}
-		policyContext, err := signature.NewPolicyContext(policy)
-		if err != nil {
-			return nil, err
-		}
-
 		copyOptions := toCopyOptions(&options, inputOptions.Progress)
 
-		if _, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
+		if err := pullImageImplementation(svc.ctx, destRef, srcRef, copyOptions); err != nil {
 			return nil, err
 		}
 	}
 	return destRef, nil
+}
+
+// pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
+// NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
+func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *copy.Options) error {
+	policy, err := signature.DefaultPolicy(options.SourceCtx)
+	if err != nil {
+		return err
+	}
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return err
+	}
+
+	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, options); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName RegistryImageReference) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
