@@ -26,26 +26,18 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (b
 	if _, err := os.Stat(input); err == nil {
 		return false, nil
 	}
-	imageStatusResponse, err := s.ImageStatus(
-		ctx,
-		&types.ImageStatusRequest{
-			Image: &types.ImageSpec{
-				Image: input,
-			},
-		},
-	)
+	status, err := s.storageImageStatus(ctx, types.ImageSpec{
+		Image: input,
+	})
 	if err != nil {
 		return false, err
 	}
 
-	if imageStatusResponse == nil ||
-		imageStatusResponse.Image == nil ||
-		imageStatusResponse.Image.Spec == nil ||
-		imageStatusResponse.Image.Spec.Annotations == nil {
+	if status == nil || status.Annotations == nil {
 		return false, nil
 	}
 
-	ann, ok := imageStatusResponse.Image.Spec.Annotations[crioann.CheckpointAnnotationName]
+	ann, ok := status.Annotations[crioann.CheckpointAnnotationName]
 	if !ok {
 		return false, nil
 	}
