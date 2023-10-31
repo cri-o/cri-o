@@ -508,12 +508,6 @@ func pullImageChild() {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
-	srcSystemContext, srcRef, destRef, err := args.Lookup.getReferences(args.Options.SourceCtx, store, imageName)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-	args.Options.SourceCtx = srcSystemContext
 
 	output := make(chan pullImageOutputItem)
 	outputWritten := make(chan struct{})
@@ -528,7 +522,7 @@ func pullImageChild() {
 	}()
 	args.Options.Progress = progress
 
-	destRef, err = pullImageImplementation(context.Background(), destRef, srcRef, args.Options)
+	destRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
@@ -656,22 +650,16 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 	return destRef, nil
 }
 
-func (svc *imageService) PullImage(imageName RegistryImageReference, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
-	options := *inputOptions // A shallow copy
-
-	srcSystemContext, srcRef, destRef, err := svc.lookup.getReferences(options.SourceCtx, svc.store, imageName)
-	if err != nil {
-		return nil, err
-	}
-	options.SourceCtx = srcSystemContext
-
-	if inputOptions.CgroupPull.UseNewCgroup {
-		destRef, err = svc.pullImageParent(imageName, inputOptions.CgroupPull.ParentCgroup, &options)
+func (svc *imageService) PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+	var destRef types.ImageReference
+	if options.CgroupPull.UseNewCgroup {
+		dr, err := svc.pullImageParent(imageName, options.CgroupPull.ParentCgroup, options)
 		if err != nil {
 			return nil, err
 		}
+		destRef = dr
 	} else {
-		dr, err := pullImageImplementation(svc.ctx, destRef, srcRef, &options)
+		dr, err := pullImageImplementation(svc.ctx, svc.lookup, svc.store, imageName, options)
 		if err != nil {
 			return nil, err
 		}
@@ -684,7 +672,12 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 // NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
 //
 // It returns a c/storage ImageReference for the destination.
-func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+	srcSystemContext, srcRef, destRef, err := lookup.getReferences(options.SourceCtx, store, imageName)
+	if err != nil {
+		return nil, err
+	}
+
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
 		return nil, err
@@ -695,7 +688,7 @@ func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageRef
 	}
 
 	_, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
-		SourceCtx:        options.SourceCtx,
+		SourceCtx:        srcSystemContext,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
 		ProgressInterval: options.ProgressInterval,
