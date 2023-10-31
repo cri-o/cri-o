@@ -959,6 +959,42 @@ function check_oci_annotation() {
 	run ! crictl create "$pod_id" "$TESTDIR/config" "$TESTDATA"/sandbox_config.json
 }
 
+@test "ctr that mounts container storage as shared should keep shared" {
+	# parent of `--root`, keep in sync with test/helpers.bash
+	PARENT_DIR="$TESTDIR"
+	CTR_DIR="/host"
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			propagation: 2
+		} ]' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR/config"
+
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDIR/config" "$TESTDATA"/sandbox_config.json)
+	crictl exec --sync "$ctr_id" findmnt -no TARGET,PROPAGATION "$CTR_DIR" | grep shared
+}
+
+@test "ctr that mounts container storage as private should not be private" {
+	# parent of `--root`, keep in sync with test/helpers.bash
+	PARENT_DIR="$TESTDIR"
+	CTR_DIR="/host"
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			propagation: 1
+		} ]' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR/config"
+
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDIR/config" "$TESTDATA"/sandbox_config.json)
+	crictl exec --sync "$ctr_id" findmnt -no TARGET,PROPAGATION "$CTR_DIR" | grep -v private
+}
+
 @test "ctr has containerenv" {
 	start_crio
 	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
