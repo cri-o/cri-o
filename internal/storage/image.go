@@ -528,7 +528,8 @@ func pullImageChild() {
 	}()
 	args.Options.Progress = progress
 
-	if err := pullImageImplementation(context.Background(), destRef, srcRef, args.Options); err != nil {
+	destRef, err = pullImageImplementation(context.Background(), destRef, srcRef, args.Options)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
@@ -670,35 +671,40 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, inputOption
 			return nil, err
 		}
 	} else {
-		if err := pullImageImplementation(svc.ctx, destRef, srcRef, &options); err != nil {
+		dr, err := pullImageImplementation(svc.ctx, destRef, srcRef, &options)
+		if err != nil {
 			return nil, err
 		}
+		destRef = dr
 	}
 	return destRef, nil
 }
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
 // NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
-func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *ImageCopyOptions) error {
+//
+// It returns a c/storage ImageReference for the destination.
+func pullImageImplementation(ctx context.Context, destRef, srcRef types.ImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if _, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+	_, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
 		SourceCtx:        options.SourceCtx,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
 		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
-	}); err != nil {
-		return err
+	})
+	if err != nil {
+		return nil, err
 	}
-	return nil
+	return destRef, err
 }
 
 func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName RegistryImageReference) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
