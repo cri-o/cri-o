@@ -126,7 +126,7 @@ type ImageServer interface {
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
-	PullImage(systemContext *types.SystemContext, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
+	PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
 
 	// DeleteImage deletes a storage image (impacting all its tags)
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
@@ -467,11 +467,10 @@ func init() {
 }
 
 type pullImageArgs struct {
-	Lookup        *imageLookupService
-	ImageName     string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
-	ParentCgroup  string
-	SystemContext *types.SystemContext
-	Options       *ImageCopyOptions
+	Lookup       *imageLookupService
+	ImageName    string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
+	ParentCgroup string
+	Options      *ImageCopyOptions
 
 	StoreOptions storage.StoreOptions
 }
@@ -495,7 +494,7 @@ func pullImageChild() {
 		os.Exit(1)
 	}
 
-	policy, err := signature.DefaultPolicy(args.SystemContext)
+	policy, err := signature.DefaultPolicy(args.Options.SourceCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
@@ -550,7 +549,7 @@ func toCopyOptions(options *ImageCopyOptions, progress chan types.ProgressProper
 	}
 }
 
-func (svc *imageService) pullImageParent(systemContext *types.SystemContext, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
+func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
@@ -573,11 +572,10 @@ func (svc *imageService) pullImageParent(systemContext *types.SystemContext, ima
 	}
 
 	stdinArguments := pullImageArgs{
-		Lookup:        svc.lookup,
-		SystemContext: systemContext,
-		Options:       options,
-		ImageName:     imageName.StringForOutOfProcessConsumptionOnly(),
-		ParentCgroup:  parentCgroup,
+		Lookup:       svc.lookup,
+		Options:      options,
+		ImageName:    imageName.StringForOutOfProcessConsumptionOnly(),
+		ParentCgroup: parentCgroup,
 		StoreOptions: storage.StoreOptions{
 			RunRoot:            svc.store.RunRoot(),
 			GraphRoot:          svc.store.GraphRoot(),
@@ -627,7 +625,7 @@ func (svc *imageService) pullImageParent(systemContext *types.SystemContext, ima
 	return nil
 }
 
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName RegistryImageReference, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
+func (svc *imageService) PullImage(imageName RegistryImageReference, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
 	options := *inputOptions // A shallow copy
 
 	srcSystemContext, srcRef, destRef, err := svc.lookup.getReferences(options.SourceCtx, svc.store, imageName)
@@ -637,7 +635,7 @@ func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName
 	options.SourceCtx = srcSystemContext
 
 	if inputOptions.CgroupPull.UseNewCgroup {
-		if err := svc.pullImageParent(systemContext, imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
+		if err := svc.pullImageParent(imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
 			return nil, err
 		}
 	} else {

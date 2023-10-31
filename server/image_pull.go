@@ -246,7 +246,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	defer close(progress) // nolint:gocritic
 	go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName, tmpImg)
 
-	_, err = s.StorageImageServer().PullImage(s.config.SystemContext, remoteCandidateName, &storage.ImageCopyOptions{
+	_, err = s.StorageImageServer().PullImage(remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,

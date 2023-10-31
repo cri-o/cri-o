@@ -314,7 +314,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, err = r.storageImageServer.PullImage(systemContext, pauseImage, &ImageCopyOptions{
+		ref, err = r.storageImageServer.PullImage(pauseImage, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
