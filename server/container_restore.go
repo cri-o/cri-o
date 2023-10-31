@@ -6,7 +6,6 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage/pkg/archive"
@@ -22,29 +21,31 @@ import (
 	kubetypes "k8s.io/kubelet/pkg/types"
 )
 
-func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (bool, error) {
+// checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.
+// It returns the StorageImageID of the image the input resolves to, nil otherwise.
+func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*storage.StorageImageID, error) {
 	if _, err := os.Stat(input); err == nil {
-		return false, nil
+		return nil, nil
 	}
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{
 		Image: input,
 	})
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
 	if status == nil || status.Annotations == nil {
-		return false, nil
+		return nil, nil
 	}
 
 	ann, ok := status.Annotations[crioann.CheckpointAnnotationName]
 	if !ok {
-		return false, nil
+		return nil, nil
 	}
 
 	logrus.Debugf("Found checkpoint of container %v in %v", ann, input)
 
-	return true, nil
+	return &status.ID, nil
 }
 
 // taken from Podman
@@ -60,29 +61,15 @@ func (s *Server) CRImportCheckpoint(
 	createAnnotations := createConfig.Annotations
 	createLabels := createConfig.Labels
 
-	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
+	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, input)
 	if err != nil {
 		return "", err
 	}
 
 	var restoreArchivePath string
-	var restoreStorageImageID *storage.StorageImageID
-	if checkpointIsOCIImage {
+	if restoreStorageImageID != nil {
 		log.Debugf(ctx, "Restoring from oci image %s\n", input)
 
-		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse image name: %s: %w", input, err)
-		}
-		img, err := istorage.Transport.GetStoreImage(s.ContainerServer.StorageImageServer().GetStore(), imageRef)
-		if err != nil {
-			return "", err
-		}
-		id, err := storage.ParseStorageImageIDFromOutOfProcessData(img.ID) // This violates API rules, and will be replaced immediately.
-		if err != nil {
-			return "", err
-		}
-		restoreStorageImageID = &id
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
 		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
 		if err != nil {

@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/containers/podman/v4/pkg/criu"
-	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -600,19 +599,6 @@ var _ = t.Describe("ContainerRestore", func() {
 						User: "10", Size: &size,
 						Annotations: map[string]string{
 							crioann.CheckpointAnnotationName: "foo",
-						},
-					}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Image("localhost/checkpoint-image:tag1").
-					Return(&cs.Image{
-						ID: imageID.IDStringForOutOfProcessConsumptionOnly(),
-						Names: []string{
-							"localhost/checkpoint-image:tag1",
 						},
 					}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
