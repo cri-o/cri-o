@@ -1,5 +1,8 @@
+//go:build go1.21
+// +build go1.21
+
 /*
-Copyright 2020 The Kubernetes Authors.
+Copyright 2021 The Kubernetes Authors.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -14,26 +17,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package command
+package klog
 
 import (
-	"sync/atomic"
+	"log/slog"
 )
 
-// atomicInt is the global variable for storing the globally set verbosity
-// level. It should never be used directly to avoid data races.
-var atomicInt int32
-
-// SetGlobalVerbose sets the global command verbosity to the specified value
-func SetGlobalVerbose(to bool) {
-	var i int32
-	if to {
-		i = 1
+func (ref ObjectRef) LogValue() slog.Value {
+	if ref.Namespace != "" {
+		return slog.GroupValue(slog.String("name", ref.Name), slog.String("namespace", ref.Namespace))
 	}
-	atomic.StoreInt32(&atomicInt, i)
+	return slog.GroupValue(slog.String("name", ref.Name))
 }
 
-// GetGlobalVerbose returns the globally set command verbosity
-func GetGlobalVerbose() bool {
-	return atomic.LoadInt32(&atomicInt) != 0
+var _ slog.LogValuer = ObjectRef{}
+
+func (ks kobjSlice) LogValue() slog.Value {
+	return slog.AnyValue(ks.MarshalLog())
 }
+
+var _ slog.LogValuer = kobjSlice{}
