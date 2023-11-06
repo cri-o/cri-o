@@ -157,4 +157,4 @@ kata_skip_pod_tests:
   - 'test "systemd cgroup_parent correctly set"'
   - 'test "kubernetes pod terminationGracePeriod passthru"'
 
-runc_git_version: v1.1.9
+runc_git_version: main
