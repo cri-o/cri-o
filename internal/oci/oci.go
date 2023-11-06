@@ -199,7 +199,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	}
 
 	if rh.RuntimeType == config.RuntimeTypeVM {
-		return newRuntimeVM(rh.RuntimePath, rh.RuntimeRoot, rh.RuntimeConfigPath, r.config.RuntimeConfig.ContainerExitsDir), nil
+		return newRuntimeVM(rh, r.config.RuntimeConfig.ContainerExitsDir), nil
 	}
 
 	if rh.RuntimeType == config.RuntimeTypePod {
