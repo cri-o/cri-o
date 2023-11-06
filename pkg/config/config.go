@@ -224,6 +224,10 @@ type RuntimeHandler struct {
 	// the runtime paths for different platforms.
 	PlatformRuntimePaths map[string]string `toml:"platform_runtime_paths,omitempty"`
 
+	// Marks the runtime as performing image pulling on its own, and doesn't
+	// require crio to do it.
+	RuntimePullImage bool `toml:"runtime_pull_image,omitempty"`
+
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
 	features features.Features

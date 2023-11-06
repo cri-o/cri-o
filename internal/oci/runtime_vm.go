@@ -2,6 +2,8 @@ package oci
 
 import (
 	"bytes"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +18,7 @@ import (
 	cgroupsV1 "github.com/containerd/cgroups/stats/v1"
 	cgroupsV2 "github.com/containerd/cgroups/v2/stats"
 	"github.com/containerd/containerd/api/runtime/task/v2"
+	containerdTypes "github.com/containerd/containerd/api/types"
 	tasktypes "github.com/containerd/containerd/api/types/task"
 	ctrio "github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
@@ -28,11 +31,14 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
+	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/errdefs"
+	katavolume "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
@@ -50,6 +56,7 @@ type runtimeVM struct {
 	fifoDir    string
 	configPath string
 	exitsPath  string
+	pullImage  bool
 	ctx        context.Context
 	client     *ttrpc.Client
 	task       task.TaskService
@@ -63,12 +70,16 @@ type containerInfo struct {
 }
 
 const (
+	KataVirtualVolumeOptionName = "io.katacontainers.volume"
+)
+
+const (
 	execError   = -1
 	execTimeout = -2
 )
 
 // newRuntimeVM creates a new runtimeVM instance
-func newRuntimeVM(path, root, configPath, exitsPath string) RuntimeImpl {
+func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
 
@@ -85,13 +96,49 @@ func newRuntimeVM(path, root, configPath, exitsPath string) RuntimeImpl {
 	typeurl.Register(&rspec.WindowsResources{}, prefix, "opencontainers/runtime-spec", major, "WindowsResources")
 
 	return &runtimeVM{
-		path:       path,
-		configPath: configPath,
+		path:       handler.RuntimePath,
+		configPath: handler.RuntimeConfigPath,
 		exitsPath:  exitsPath,
-		fifoDir:    filepath.Join(root, "crio", "fifo"),
+		pullImage:  handler.RuntimePullImage,
+		fifoDir:    filepath.Join(handler.RuntimeRoot, "crio", "fifo"),
 		ctx:        context.Background(),
 		ctrs:       make(map[string]containerInfo),
 	}
+}
+
+func addVolumeMountsToCreateRequest(ctx context.Context, request *task.CreateTaskRequest, c *Container) error {
+	// To make the kata agent pull the image{"volume_type":"image_guest_pull","source":"quay.io/kata-containers/confidential-containers:unsigned","fs_type":"overlayfs","image_pull":{"metadata":{}}}
+
+	imageSource := c.Spec().Annotations[annotations.ImageName]
+	log.Infof(ctx, "Adding mount info to pull image %s", imageSource)
+
+	volume := &katavolume.KataVirtualVolume{
+		VolumeType: katavolume.KataVirtualVolumeImageGuestPullType,
+		Source:     imageSource,
+		FSType:     "overlay_fs",
+		ImagePull:  &katavolume.ImagePullVolume{Metadata: c.Spec().Annotations},
+	}
+	if !volume.IsValid() {
+		return fmt.Errorf("got invalid kata volume, %v", volume)
+	}
+
+	info, err := EncodeKataVirtualVolumeToBase64(ctx, volume)
+	if err != nil {
+		return fmt.Errorf("failed to encode Kata Volume info %v: %w", volume, err)
+	}
+
+	log.Infof(ctx, "CoCo : Mount volume information: %v (encoded: %v)", volume, info)
+
+	opt := fmt.Sprintf("%s=%s", KataVirtualVolumeOptionName, info)
+
+	request.Rootfs = append(request.Rootfs, &containerdTypes.Mount{
+		// we don't actually use nydus, but this string is what makes the kata
+		// shim check for the extended options and ignore the mount, passing the
+		// information to the kata agent instead.
+		Type:    "fuse.nydus-overlayfs",
+		Options: []string{opt},
+	})
+	return nil
 }
 
 // CreateContainer creates a container.
@@ -152,6 +199,13 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		Stderr:   containerIO.Config().Stderr,
 		Terminal: containerIO.Config().Terminal,
 		Options:  opts,
+	}
+
+	if r.pullImage {
+		err := addVolumeMountsToCreateRequest(ctx, request, c)
+		if err != nil {
+			log.Warnf(ctx, "Failed to add KataVirtualVolume information to CreateContainer: %v", err)
+		}
 	}
 
 	createdCh := make(chan error)
@@ -1175,4 +1229,14 @@ func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupPa
 	defer log.Debugf(ctx, "RuntimeVM.RestoreContainer() end")
 
 	return errors.New("restoring not implemented for runtimeVM")
+}
+
+func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.KataVirtualVolume) (string, error) {
+	validKataVirtualVolumeJSON, err := json.Marshal(volume)
+	if err != nil {
+		return "", fmt.Errorf("marshal KataVirtualVolume object; error=%w", err)
+	}
+	log.Infof(ctx, "Encode kata volume %v", validKataVirtualVolumeJSON)
+	option := base64.StdEncoding.EncodeToString(validKataVirtualVolumeJSON)
+	return option, nil
 }
