@@ -24,9 +24,9 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
 	ocigen "github.com/opencontainers/runtime-tools/generate"
+	"tags.cncf.io/container-device-interface/specs-go"
 )
 
 const (
@@ -238,7 +238,7 @@ func (d *DeviceNode) Validate() error {
 	}
 	for _, bit := range d.Permissions {
 		if bit != 'r' && bit != 'w' && bit != 'm' {
-			return fmt.Errorf("device %q: invalid persmissions %q",
+			return fmt.Errorf("device %q: invalid permissions %q",
 				d.Path, d.Permissions)
 		}
 	}

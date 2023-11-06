@@ -19,18 +19,16 @@ package cdi
 import (
 	"sync"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/specs-go"
 	oci "github.com/opencontainers/runtime-spec/specs-go"
+	cdi "tags.cncf.io/container-device-interface/specs-go"
 )
 
-//
 // Registry keeps a cache of all CDI Specs installed or generated on
 // the host. Registry is the primary interface clients should use to
 // interact with CDI.
 //
 // The most commonly used Registry functions are for refreshing the
 // registry and injecting CDI devices into an OCI Spec.
-//
 type Registry interface {
 	RegistryResolver
 	RegistryRefresher

@@ -156,7 +156,7 @@ the container runtime configuration.
   If true, the runtime reloads blockio_config_file and rescans block devices in the system before applying blockio parameters.
 
 **cdi_spec_dirs**=[]
-  Directories to scan for Container Device Interface Specifications to enable CDI device injection. For more details about CDI and the syntax of CDI Spec files please refer to https://github.com/container-orchestrated-devices/container-device-interface.
+  Directories to scan for Container Device Interface Specifications to enable CDI device injection. For more details about CDI and the syntax of CDI Spec files please refer to https://tags.cncf.io/container-device-interface.
 
   Directories later in the list have precedence over earlier ones. The default directory list is:
 ```
