@@ -22,7 +22,8 @@ LimitNPROC=1048576
 LimitCORE=infinity
 OOMScoreAdjust=-999
 TimeoutStartSec=0
-Restart=on-abnormal
+Restart=on-failure
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
