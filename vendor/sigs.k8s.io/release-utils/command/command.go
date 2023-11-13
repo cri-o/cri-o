@@ -58,7 +58,7 @@ type Status struct {
 }
 
 // Stream combines standard output and error
-type Stream struct {
+type Stream struct { //nolint: errname
 	stdOut string
 	stdErr string
 }
@@ -195,7 +195,7 @@ func (c *Command) RunSuccessOutput() (output *Stream, err error) {
 // RunSuccess starts the command and waits for it to finish. It returns an
 // error if the command execution was not successful.
 func (c *Command) RunSuccess() error {
-	_, err := c.RunSuccessOutput() // nolint: errcheck
+	_, err := c.RunSuccessOutput() //nolint: errcheck
 	return err
 }
 
@@ -242,7 +242,7 @@ func (c *Command) RunSilentSuccessOutput() (output *Stream, err error) {
 // an error if the command execution was not successful. This method does not
 // print the output of the command during its execution.
 func (c *Command) RunSilentSuccess() error {
-	_, err := c.RunSilentSuccessOutput() // nolint: errcheck
+	_, err := c.RunSilentSuccessOutput() //nolint: errcheck
 	return err
 }
 
