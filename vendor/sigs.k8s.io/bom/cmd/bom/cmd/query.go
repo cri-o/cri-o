@@ -52,12 +52,12 @@ Example:
   bom document query sbom.spdx "depth:2 name:log4j"
 
 `,
-		Use:           "query SPDX_FILE \"query expression\" ",
+		Use:           "query SPDX_FILE|URL \"query expression\" ",
 		SilenceUsage:  true,
 		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) < 2 {
-				cmd.Help() // nolint:errcheck
+				cmd.Help() //nolint:errcheck
 				return errors.New("you should only specify one file")
 			}
 

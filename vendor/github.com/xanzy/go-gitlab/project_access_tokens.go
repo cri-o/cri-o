@@ -25,14 +25,14 @@ import (
 // ProjectAccessTokensService handles communication with the
 // project access tokens related methods of the GitLab API.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/resource_access_tokens.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/project_access_tokens.html
 type ProjectAccessTokensService struct {
 	client *Client
 }
 
 // ProjectAccessToken represents a GitLab project access token.
 //
-// GitLab API docs: https://docs.gitlab.com/ee/api/resource_access_tokens.html
+// GitLab API docs: https://docs.gitlab.com/ee/api/project_access_tokens.html
 type ProjectAccessToken struct {
 	ID          int              `json:"id"`
 	UserID      int              `json:"user_id"`
@@ -55,14 +55,14 @@ func (v ProjectAccessToken) String() string {
 // ListProjectAccessTokens() options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/resource_access_tokens.html#list-project-access-tokens
+// https://docs.gitlab.com/ee/api/project_access_tokens.html#list-project-access-tokens
 type ListProjectAccessTokensOptions ListOptions
 
 // ListProjectAccessTokens gets a list of all project access tokens in a
 // project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/resource_access_tokens.html#list-project-access-tokens
+// https://docs.gitlab.com/ee/api/project_access_tokens.html#list-project-access-tokens
 func (s *ProjectAccessTokensService) ListProjectAccessTokens(pid interface{}, opt *ListProjectAccessTokensOptions, options ...RequestOptionFunc) ([]*ProjectAccessToken, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -113,7 +113,7 @@ func (s *ProjectAccessTokensService) GetProjectAccessToken(pid interface{}, id i
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/resource_access_tokens.html#create-a-project-access-token
+// https://docs.gitlab.com/ee/api/project_access_tokens.html#create-a-project-access-token
 type CreateProjectAccessTokenOptions struct {
 	Name        *string           `url:"name,omitempty" json:"name,omitempty"`
 	Scopes      *[]string         `url:"scopes,omitempty" json:"scopes,omitempty"`
@@ -124,7 +124,7 @@ type CreateProjectAccessTokenOptions struct {
 // CreateProjectAccessToken creates a new project access token.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/resource_access_tokens.html#create-a-project-access-token
+// https://docs.gitlab.com/ee/api/project_access_tokens.html#create-a-project-access-token
 func (s *ProjectAccessTokensService) CreateProjectAccessToken(pid interface{}, opt *CreateProjectAccessTokenOptions, options ...RequestOptionFunc) (*ProjectAccessToken, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -149,7 +149,7 @@ func (s *ProjectAccessTokensService) CreateProjectAccessToken(pid interface{}, o
 // RevokeProjectAccessToken revokes a project access token.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ee/api/resource_access_tokens.html#revoke-a-project-access-token
+// https://docs.gitlab.com/ee/api/project_access_tokens.html#revoke-a-project-access-token
 func (s *ProjectAccessTokensService) RevokeProjectAccessToken(pid interface{}, id int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

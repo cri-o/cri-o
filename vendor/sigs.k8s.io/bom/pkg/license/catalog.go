@@ -21,9 +21,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sync"
 
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
 
 	"sigs.k8s.io/release-utils/util"
 )
@@ -31,16 +31,26 @@ import (
 // CatalogOptions are the spdx settings
 type CatalogOptions struct {
 	CacheDir string // Directrory to catch the license we download from SPDX.org
+	Version  string // Version of the licenses to download  (eg v3.19) or blank for latest
 }
 
 // DefaultCatalogOpts are the predetermined settings. License and cache directories
-// are in the temporary OS directory and are created if the do not exist
-var DefaultCatalogOpts = &CatalogOptions{}
+// are in the temporary OS directory and are created if the do not exist.
+//
+// The version included here is hardcoded and is intended to be the latest. The
+// magefile in the project takes care of replacing this value when updating the
+// license zip file.
+//
+//	DO NOT RENAME OR MOVE THIS OPTION WITHOUT MODIFYING THE MAGEFILE
+var DefaultCatalogOpts = CatalogOptions{
+	Version: "v3.20",
+}
 
 // NewCatalogWithOptions returns a SPDX object with the specified options
-func NewCatalogWithOptions(opts *CatalogOptions) (catalog *Catalog, err error) {
+func NewCatalogWithOptions(opts CatalogOptions) (catalog *Catalog, err error) {
 	// Create the license downloader
 	doptions := DefaultDownloaderOpts
+	doptions.Version = opts.Version
 	doptions.CacheDir = opts.CacheDir
 	downloader, err := NewDownloaderWithOptions(doptions)
 	if err != nil {
@@ -55,7 +65,7 @@ func NewCatalogWithOptions(opts *CatalogOptions) (catalog *Catalog, err error) {
 }
 
 // Options returns  a pointer to the catlog options
-func (catalog *Catalog) Options() *CatalogOptions {
+func (catalog *Catalog) Options() CatalogOptions {
 	return catalog.opts
 }
 
@@ -73,9 +83,9 @@ func (catalog *Catalog) LoadLicenses() error {
 
 // Catalog is an objec to interact with licenses and manifest creation
 type Catalog struct {
-	Downloader *Downloader     // License Downloader
-	List       *List           // List of licenses
-	opts       *CatalogOptions // SPDX Options
+	Downloader *Downloader    // License Downloader
+	List       *List          // List of licenses
+	opts       CatalogOptions // SPDX Options
 }
 
 // WriteLicensesAsText writes the SPDX license collection to text files
@@ -89,28 +99,28 @@ func (catalog *Catalog) WriteLicensesAsText(targetDir string) error {
 			return fmt.Errorf("creating license data dir: %w", err)
 		}
 	}
-	wg := sync.WaitGroup{}
-	var err error
+
+	var wg errgroup.Group
 	for _, l := range catalog.List.Licenses {
-		wg.Add(1)
-		go func(l *License) {
-			defer wg.Done()
+		l := l
+		wg.Go(func() error {
 			if l.IsDeprecatedLicenseID {
-				return
+				return nil
 			}
-			if lerr := l.WriteText(filepath.Join(targetDir, l.LicenseID+".txt")); err != nil {
-				if err == nil {
-					err = lerr
-				} else {
-					err = fmt.Errorf("%v: %w", lerr, err)
+			licPath := filepath.Join(targetDir, "assets", l.LicenseID)
+			if !util.Exists(licPath) {
+				if err := os.MkdirAll(licPath, 0o755); err != nil {
+					return fmt.Errorf("creating license directory: %w", err)
 				}
 			}
-		}(l)
+			if err := l.WriteText(filepath.Join(licPath, "license.txt")); err != nil {
+				return fmt.Errorf("wriiting license text: %w", err)
+			}
+			return nil
+		})
 	}
-	wg.Wait()
-
-	if err != nil {
-		return fmt.Errorf("caught errors while writing license files: %w", err)
+	if err := wg.Wait(); err != nil {
+		return fmt.Errorf("while writing license files: %w", err)
 	}
 	return nil
 }
@@ -120,6 +130,6 @@ func (catalog *Catalog) GetLicense(label string) *License {
 	if lic, ok := catalog.List.Licenses[label]; ok {
 		return lic
 	}
-	logrus.Warn("Label %s is not an identifier of a known license " + label)
+	logrus.Warnf("Label %s is not an identifier of a known license ", label)
 	return nil
 }

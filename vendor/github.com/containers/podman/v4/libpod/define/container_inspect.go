@@ -238,7 +238,7 @@ func (s *InspectContainerState) Healthcheck() HealthCheckResults {
 
 // HealthCheckResults describes the results/logs from a healthcheck
 type HealthCheckResults struct {
-	// Status healthy or unhealthy
+	// Status starting, healthy or unhealthy
 	Status string `json:"Status"`
 	// FailingStreak is the number of consecutive failed healthchecks
 	FailingStreak int `json:"FailingStreak"`
@@ -341,7 +341,7 @@ type InspectContainerHostConfig struct {
 	// DnsSearch is a list of DNS search domains that will be set in the
 	// container's resolv.conf
 	DnsSearch []string `json:"DnsSearch"`
-	// ExtraHosts contains hosts that will be aded to the container's
+	// ExtraHosts contains hosts that will be added to the container's
 	// /etc/hosts.
 	ExtraHosts []string `json:"ExtraHosts"`
 	// GroupAdd contains groups that the user inside the container will be
@@ -606,7 +606,7 @@ type InspectBasicNetworkConfig struct {
 	AdditionalMacAddresses []string `json:"AdditionalMACAddresses,omitempty"`
 }
 
-// InspectAdditionalNetwork holds information about non-default CNI networks the
+// InspectAdditionalNetwork holds information about non-default networks the
 // container has been connected to.
 // As with InspectNetworkSettings, many fields are unused and maintained only
 // for compatibility with Docker.
@@ -642,7 +642,7 @@ type InspectNetworkSettings struct {
 	LinkLocalIPv6PrefixLen int                          `json:"LinkLocalIPv6PrefixLen"`
 	Ports                  map[string][]InspectHostPort `json:"Ports"`
 	SandboxKey             string                       `json:"SandboxKey"`
-	// Networks contains information on non-default CNI networks this
+	// Networks contains information on non-default networks this
 	// container has joined.
 	// It is a map of network name to network information.
 	Networks map[string]*InspectAdditionalNetwork `json:"Networks,omitempty"`

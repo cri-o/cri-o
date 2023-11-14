@@ -61,6 +61,7 @@ func (o *AttachSBOMOptions) AddFlags(cmd *cobra.Command) {
 
 	cmd.Flags().StringVar(&o.SBOM, "sbom", "",
 		"path to the sbom, or {-} for stdin")
+	_ = cmd.Flags().SetAnnotation("sbom", cobra.BashCompFilenameExt, []string{})
 
 	cmd.Flags().StringVar(&o.SBOMType, "type", "spdx",
 		"type of sbom (spdx|cyclonedx|syft)")
@@ -104,14 +105,14 @@ func (o *AttachSBOMOptions) MediaType() (types.MediaType, error) {
 
 // AttachAttestationOptions is the top level wrapper for the attach attestation command.
 type AttachAttestationOptions struct {
-	Attestation string
-	Registry    RegistryOptions
+	Attestations []string
+	Registry     RegistryOptions
 }
 
 // AddFlags implements Interface
 func (o *AttachAttestationOptions) AddFlags(cmd *cobra.Command) {
 	o.Registry.AddFlags(cmd)
 
-	cmd.Flags().StringVar(&o.Attestation, "attestation", "",
+	cmd.Flags().StringArrayVarP(&o.Attestations, "attestation", "", nil,
 		"path to the attestation envelope")
 }

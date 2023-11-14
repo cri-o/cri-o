@@ -19,8 +19,18 @@ package sign
 // SignedObject contains additional metadata from the signing and verification
 // process.
 type SignedObject struct {
-	Image *SignedImage
-	File  *SignedFile
+	image *SignedImage
+	file  *SignedFile
+}
+
+// Image returns the image of the signed object and nil if it's a file.
+func (s *SignedObject) Image() *SignedImage {
+	return s.image
+}
+
+// File returns the file of the signed object and nil if it's an image.
+func (s *SignedObject) File() *SignedFile {
+	return s.file
 }
 
 // SignedFile contains additional metadata from the signing and verification
@@ -32,24 +42,24 @@ type SignedFile struct {
 	certificatePath string
 }
 
-// Path return the path hash of the signed file.
-func (f *SignedFile) Path() string {
-	return f.path
+// Path returns the path hash of the signed file.
+func (s *SignedFile) Path() string {
+	return s.path
 }
 
-// SHA256 return the SHA256 hash of the signed file.
-func (f *SignedFile) SHA256() string {
-	return f.sha256
+// SHA256 returns the SHA256 hash of the signed file.
+func (s *SignedFile) SHA256() string {
+	return s.sha256
 }
 
-// SignaturePath return the path to the Signature output of the signed file.
-func (f *SignedFile) SignaturePath() string {
-	return f.signaturePath
+// SignaturePath returns the path to the Signature output of the signed file.
+func (s *SignedFile) SignaturePath() string {
+	return s.signaturePath
 }
 
-// CertificatePath return the path to the Certificate output of the signed file.
-func (f *SignedFile) CertificatePath() string {
-	return f.certificatePath
+// CertificatePath returns the path to the Certificate output of the signed file.
+func (s *SignedFile) CertificatePath() string {
+	return s.certificatePath
 }
 
 // SignedImage contains additional metadata from the signing and verification
@@ -61,16 +71,16 @@ type SignedImage struct {
 }
 
 // Reference returns the OCI registry reference of the object.
-func (m *SignedImage) Reference() string {
-	return m.reference
+func (s *SignedImage) Reference() string {
+	return s.reference
 }
 
 // Digest returns the digest of the signed object.
-func (m *SignedImage) Digest() string {
-	return m.digest
+func (s *SignedImage) Digest() string {
+	return s.digest
 }
 
 // Signature returns the signature of the signed object.
-func (m *SignedImage) Signature() string {
-	return m.signature
+func (s *SignedImage) Signature() string {
+	return s.signature
 }

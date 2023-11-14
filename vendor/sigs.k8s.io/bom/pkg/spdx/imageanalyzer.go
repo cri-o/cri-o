@@ -26,9 +26,9 @@ import (
 )
 
 // ImageAnalyzer is an object that checks images to see if we can add more
-//  information to a spdx package based on its content. Each analyzer is
-//  written specifically for a layer type. The idea is to be able to enrich
-//  common base images with more data to have the most common images covered.
+// information to a spdx package based on its content. Each analyzer is
+// written specifically for a layer type. The idea is to be able to enrich
+// common base images with more data to have the most common images covered.
 type ImageAnalyzer struct {
 	Analyzers map[string]ContainerLayerAnalyzer
 }
@@ -53,9 +53,10 @@ func NewImageAnalyzer() *ImageAnalyzer {
 }
 
 // AnalyzeLayer is the main method of the analyzer
-//  it will query each of the analyzers to see if we can
-//  extract more image from the layer and enrich the
-//  spdx package referenced by pkg
+//
+//	it will query each of the analyzers to see if we can
+//	extract more image from the layer and enrich the
+//	spdx package referenced by pkg
 func (ia *ImageAnalyzer) AnalyzeLayer(layerPath string, pkg *Package) error {
 	if pkg == nil {
 		return errors.New("unable to analyze layer, package is null")

@@ -25,7 +25,7 @@ import (
 // FreezePeriodsService handles the communication with the freeze periods
 // related methods of the GitLab API.
 //
-// https://docs.gitlab.com/ce/api/freeze_periods.html
+// https://docs.gitlab.com/ee/api/freeze_periods.html
 type FreezePeriodsService struct {
 	client *Client
 }
@@ -33,7 +33,7 @@ type FreezePeriodsService struct {
 // FreezePeriod represents a freeze period object.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#list-freeze-periods
+// https://docs.gitlab.com/ee/api/freeze_periods.html#list-freeze-periods
 type FreezePeriod struct {
 	ID           int        `json:"id"`
 	FreezeStart  string     `json:"freeze_start"`
@@ -47,13 +47,13 @@ type FreezePeriod struct {
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#list-freeze-periods
+// https://docs.gitlab.com/ee/api/freeze_periods.html#list-freeze-periods
 type ListFreezePeriodsOptions ListOptions
 
 // ListFreezePeriods gets a list of project project freeze periods.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#list-freeze-periods
+// https://docs.gitlab.com/ee/api/freeze_periods.html#list-freeze-periods
 func (s *FreezePeriodsService) ListFreezePeriods(pid interface{}, opt *ListFreezePeriodsOptions, options ...RequestOptionFunc) ([]*FreezePeriod, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -78,7 +78,7 @@ func (s *FreezePeriodsService) ListFreezePeriods(pid interface{}, opt *ListFreez
 // GetFreezePeriod gets a specific freeze period for a project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#get-a-freeze-period-by-a-freeze_period_id
+// https://docs.gitlab.com/ee/api/freeze_periods.html#get-a-freeze-period-by-a-freeze_period_id
 func (s *FreezePeriodsService) GetFreezePeriod(pid interface{}, freezePeriod int, options ...RequestOptionFunc) (*FreezePeriod, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -104,7 +104,7 @@ func (s *FreezePeriodsService) GetFreezePeriod(pid interface{}, freezePeriod int
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#create-a-freeze-period
+// https://docs.gitlab.com/ee/api/freeze_periods.html#create-a-freeze-period
 type CreateFreezePeriodOptions struct {
 	FreezeStart  *string `url:"freeze_start,omitempty" json:"freeze_start,omitempty"`
 	FreezeEnd    *string `url:"freeze_end,omitempty" json:"freeze_end,omitempty"`
@@ -114,7 +114,7 @@ type CreateFreezePeriodOptions struct {
 // CreateFreezePeriodOptions adds a freeze period to a specified project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#create-a-freeze-period
+// https://docs.gitlab.com/ee/api/freeze_periods.html#create-a-freeze-period
 func (s *FreezePeriodsService) CreateFreezePeriodOptions(pid interface{}, opt *CreateFreezePeriodOptions, options ...RequestOptionFunc) (*FreezePeriod, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -140,7 +140,7 @@ func (s *FreezePeriodsService) CreateFreezePeriodOptions(pid interface{}, opt *C
 // options.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#update-a-freeze-period
+// https://docs.gitlab.com/ee/api/freeze_periods.html#update-a-freeze-period
 type UpdateFreezePeriodOptions struct {
 	FreezeStart  *string `url:"freeze_start,omitempty" json:"freeze_start,omitempty"`
 	FreezeEnd    *string `url:"freeze_end,omitempty" json:"freeze_end,omitempty"`
@@ -150,7 +150,7 @@ type UpdateFreezePeriodOptions struct {
 // UpdateFreezePeriodOptions edits a freeze period for a specified project.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#update-a-freeze-period
+// https://docs.gitlab.com/ee/api/freeze_periods.html#update-a-freeze-period
 func (s *FreezePeriodsService) UpdateFreezePeriodOptions(pid interface{}, freezePeriod int, opt *UpdateFreezePeriodOptions, options ...RequestOptionFunc) (*FreezePeriod, *Response, error) {
 	project, err := parseID(pid)
 	if err != nil {
@@ -177,7 +177,7 @@ func (s *FreezePeriodsService) UpdateFreezePeriodOptions(pid interface{}, freeze
 // available or not.
 //
 // GitLab API docs:
-// https://docs.gitlab.com/ce/api/freeze_periods.html#delete-a-freeze-period
+// https://docs.gitlab.com/ee/api/freeze_periods.html#delete-a-freeze-period
 func (s *FreezePeriodsService) DeleteFreezePeriod(pid interface{}, freezePeriod int, options ...RequestOptionFunc) (*Response, error) {
 	project, err := parseID(pid)
 	if err != nil {

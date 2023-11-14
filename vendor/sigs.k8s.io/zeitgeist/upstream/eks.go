@@ -19,7 +19,7 @@ package upstream
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"regexp"
 
@@ -55,7 +55,7 @@ func (upstream EKS) LatestVersion() (string, error) {
 		return "", fmt.Errorf("invalid semver constraints range: %v: %w", upstream.Constraints, err)
 	}
 
-	const docsURL = "https://docs.aws.amazon.com/eks/latest/userguide/kubernetes-versions.html"
+	const docsURL = "https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html"
 	log.Debugf("Retrieving EKS releases from  %s...", docsURL)
 
 	resp, err := http.Get(docsURL)
@@ -63,14 +63,14 @@ func (upstream EKS) LatestVersion() (string, error) {
 		return "", err
 	}
 	defer resp.Body.Close()
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
 	// fmt.Println(string(body))
 	// Versions are listed as semver within a `<p><code class="code">` tag
-	r := regexp.MustCompile(`<p><code class="code">([0-9]+.[0-9]+.[0-9]+)</code></p>`)
+	r := regexp.MustCompile(`<p><code class="code">(\d+.\d+.\d+)</code></p>`)
 	matches := r.FindAllSubmatch(body, -1)
 	for _, match := range matches {
 		versionString := string(match[1])

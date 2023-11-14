@@ -85,6 +85,21 @@ type Config struct {
 	// when producing a generic certification signature onto an existing user ID.
 	// The identity must be present in the signer Entity.
 	SigningIdentity string
+	// InsecureAllowUnauthenticatedMessages controls, whether it is tolerated to read
+	// encrypted messages without Modification Detection Code (MDC).
+	// MDC is mandated by the IETF OpenPGP Crypto Refresh draft and has long been implemented
+	// in most OpenPGP implementations. Messages without MDC are considered unnecessarily
+	// insecure and should be prevented whenever possible.
+	// In case one needs to deal with messages from very old OpenPGP implementations, there
+	// might be no other way than to tolerate the missing MDC. Setting this flag, allows this
+	// mode of operation. It should be considered a measure of last resort.
+	InsecureAllowUnauthenticatedMessages bool
+	// KnownNotations is a map of Notation Data names to bools, which controls
+	// the notation names that are allowed to be present in critical Notation Data
+	// signature subpackets.
+	KnownNotations map[string]bool
+	// SignatureNotations is a list of Notations to be added to any signatures.
+	SignatureNotations []*Notation
 }
 
 func (c *Config) Random() io.Reader {
@@ -185,4 +200,25 @@ func (c *Config) SigningUserId() string {
 		return ""
 	}
 	return c.SigningIdentity
+}
+
+func (c *Config) AllowUnauthenticatedMessages() bool {
+	if c == nil {
+		return false
+	}
+	return c.InsecureAllowUnauthenticatedMessages
+}
+
+func (c *Config) KnownNotation(notationName string) bool {
+	if c == nil {
+		return false
+	}
+	return c.KnownNotations[notationName]
+}
+
+func (c *Config) Notations() []*Notation {
+	if c == nil {
+		return nil
+	}
+	return c.SignatureNotations
 }

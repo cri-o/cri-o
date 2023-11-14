@@ -6,6 +6,7 @@ package topdown
 
 import (
 	"net"
+	"strings"
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/topdown/builtins"
@@ -17,7 +18,13 @@ type lookupIPAddrCacheKey string
 var resolv = &net.Resolver{}
 
 func builtinLookupIPAddr(bctx BuiltinContext, operands []*ast.Term, iter func(*ast.Term) error) error {
-	name, err := builtins.StringOperand(operands[0].Value, 1)
+	a, err := builtins.StringOperand(operands[0].Value, 1)
+	if err != nil {
+		return err
+	}
+	name := string(a)
+
+	err = verifyHost(bctx, name)
 	if err != nil {
 		return err
 	}
@@ -27,10 +34,10 @@ func builtinLookupIPAddr(bctx BuiltinContext, operands []*ast.Term, iter func(*a
 		return iter(val.(*ast.Term))
 	}
 
-	addrs, err := resolv.LookupIPAddr(bctx.Context, string(name))
+	addrs, err := resolv.LookupIPAddr(bctx.Context, name)
 	if err != nil {
 		// NOTE(sr): We can't do better than this right now, see https://github.com/golang/go/issues/36208
-		if err.Error() == "operation was canceled" || err.Error() == "i/o timeout" {
+		if strings.Contains(err.Error(), "operation was canceled") || strings.Contains(err.Error(), "i/o timeout") {
 			return Halt{
 				Err: &Error{
 					Code:     CancelErr,

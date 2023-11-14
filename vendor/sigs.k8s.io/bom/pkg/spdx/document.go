@@ -14,12 +14,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//nolint:gosec
 // SHA1 is the currently accepted hash algorithm for SPDX documents, used for
 // file integrity checks, NOT security.
 // Instances of G401 and G505 can be safely ignored in this file.
 //
 // ref: https://github.com/spdx/spdx-spec/issues/11
+//
+//nolint:gosec
 package spdx
 
 import (
@@ -44,6 +45,7 @@ import (
 	"sigs.k8s.io/bom/pkg/provenance"
 	"sigs.k8s.io/release-utils/hash"
 	"sigs.k8s.io/release-utils/util"
+	"sigs.k8s.io/release-utils/version"
 )
 
 var docTemplate = `{{ if .Version }}SPDXVersion: {{.Version}}
@@ -69,6 +71,8 @@ ExternalDocumentRef:{{ extDocFormat $value }}
 {{- range $key, $value := .Creator.Tool }}Creator: Tool: {{ $value }}
 {{ end -}}
 {{- end -}}
+{{ end -}}
+{{ if .LicenseListVersion }}LicenseListVersion: {{ .LicenseListVersion }}
 {{ end -}}
 {{ if .Created }}Created: {{ dateFormat .Created }}
 {{ end }}
@@ -123,6 +127,8 @@ type DrawingOptions struct {
 	SkipName    bool
 	OnlyIDs     bool
 	ASCIIOnly   bool
+	Purls       bool
+	Version     bool
 }
 
 // String returns the SPDX string of the external document ref
@@ -158,7 +164,7 @@ func (ed *ExternalDocumentRef) ReadSourceFile(path string) error {
 func NewDocument() *Document {
 	return &Document{
 		ID:          "SPDXRef-DOCUMENT",
-		Version:     "SPDX-2.2",
+		Version:     "SPDX-2.3",
 		DataLicense: "CC0-1.0",
 		Created:     time.Now().UTC(),
 		Creator: struct {
@@ -168,7 +174,9 @@ func NewDocument() *Document {
 		}{
 			Person:       defaultDocumentAuthor,
 			Organization: "Kubernetes Release Engineering",
-			Tool:         []string{"sigs.k8s.io/bom/pkg/spdx"},
+			Tool: []string{
+				fmt.Sprintf("%s-%s", "bom", version.GetVersionInfo().GitVersion),
+			},
 		},
 	}
 }
@@ -394,7 +402,7 @@ func (d *Document) ToProvenanceStatement(opts *ProvenanceOptions) *provenance.St
 	return statement
 }
 
-//  WriteProvenanceStatement writes the sbom as an in-toto provenance statement
+// WriteProvenanceStatement writes the sbom as an in-toto provenance statement
 func (d *Document) WriteProvenanceStatement(opts *ProvenanceOptions, path string) error {
 	statement := d.ToProvenanceStatement(opts)
 	data, err := json.Marshal(statement)

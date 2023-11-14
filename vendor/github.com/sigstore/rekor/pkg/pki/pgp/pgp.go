@@ -25,14 +25,16 @@ import (
 	"net/http"
 
 	validator "github.com/go-playground/validator/v10"
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/armor"
-	"golang.org/x/crypto/openpgp/packet"
+
+	//TODO: https://github.com/sigstore/rekor/issues/286
+	"golang.org/x/crypto/openpgp"        //nolint:staticcheck
+	"golang.org/x/crypto/openpgp/armor"  //nolint:staticcheck
+	"golang.org/x/crypto/openpgp/packet" //nolint:staticcheck
 
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
 )
 
-// Signature Signature that follows the PGP standard; supports both armored & binary detached signatures
+// Signature that follows the PGP standard; supports both armored & binary detached signatures
 type Signature struct {
 	isArmored bool
 	signature []byte
@@ -300,4 +302,17 @@ func (k PublicKey) EmailAddresses() []string {
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
 	return k.EmailAddresses()
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	// returns the email addresses and armored public key
+	var identities []string
+	identities = append(identities, k.Subjects()...)
+	key, err := k.CanonicalValue()
+	if err != nil {
+		return nil, err
+	}
+	identities = append(identities, string(key))
+	return identities, nil
 }

@@ -42,20 +42,35 @@ func (d *ReaderDefaultImpl) ClassifyFile(path string) (licenseTag string, moreTa
 	defer file.Close()
 
 	// Get the classsification
-	matches, err := d.Classifier().MatchFrom(file)
-	if len(matches) == 0 {
+	res, err := d.Classifier().MatchFrom(file)
+	if res.Matches.Len() == 0 {
 		logrus.Debugf("File does not match a known license: %s", path)
+		return "", moreTags, nil
 	}
 	var highestConf float64
 	moreTags = []string{}
-	for _, match := range matches {
+	allTags := map[string]struct{}{}
+	for _, match := range res.Matches {
+		// As of v2.0.0, the license classifier returns "Copyright"
+		// as one of the license tags. If we let it go the license module
+		// will ignore it but it will write it to the debug output.
+		// So we simply skip it.
+		if match.Name == "Copyright" {
+			continue
+		}
 		if match.Confidence > highestConf {
 			highestConf = match.Confidence
 			licenseTag = match.Name
-			moreTags = append(moreTags, match.Name)
+		}
+		allTags[match.Name] = struct{}{}
+	}
+
+	for t := range allTags {
+		if t != licenseTag {
+			moreTags = append(moreTags, t)
 		}
 	}
-	return licenseTag, []string{}, nil
+	return licenseTag, moreTags, nil
 }
 
 // ClassifyLicenseFiles takes a list of paths and tries to find return all licenses found in it
@@ -76,8 +91,9 @@ func (d *ReaderDefaultImpl) ClassifyLicenseFiles(paths []string) (
 		// Get the license corresponding to the ID label
 		license := d.catalog.GetLicense(label)
 		if license == nil {
-			return nil, unrecognizedPaths,
-				fmt.Errorf("ID does not correspond to a valid license: '%s'", label)
+			logrus.Debugf("Got an unknown license label from classifier: %s", label)
+			unrecognizedPaths = append(unrecognizedPaths, f)
+			continue
 		}
 		licenseText, err := os.ReadFile(f)
 		if err != nil {
@@ -87,7 +103,7 @@ func (d *ReaderDefaultImpl) ClassifyLicenseFiles(paths []string) (
 		licenseList = append(licenseList, &ClassifyResult{f, string(licenseText), license})
 	}
 	if len(paths) != len(licenseList) {
-		logrus.Infof(
+		logrus.Debugf(
 			"License classifier recognized %d/%d (%d%%) of the license files",
 			len(licenseList), len(paths), (len(licenseList)/len(paths))*100,
 		)
@@ -116,7 +132,8 @@ func (d *ReaderDefaultImpl) LicenseFromFile(path string) (license *License, err 
 	// Get the license corresponding to the ID label
 	license = d.catalog.GetLicense(label)
 	if license == nil {
-		return nil, fmt.Errorf("ID does not correspond to a valid license: %s", label)
+		logrus.Debugf("ID returned by classifier does not correspond to a valid license tag: %s", label)
+		return nil, nil
 	}
 
 	return license, nil
@@ -124,7 +141,7 @@ func (d *ReaderDefaultImpl) LicenseFromFile(path string) (license *License, err 
 
 // FindLicenseFiles will scan a directory and return files that may be licenses
 func (d *ReaderDefaultImpl) FindLicenseFiles(path string) ([]string, error) {
-	logrus.Infof("Scanning %s for license files", path)
+	logrus.Debugf("Scanning %s for license files", path)
 	licenseList := []string{}
 	re := regexp.MustCompile(licenseFilanameRe)
 	if err := filepath.Walk(path,
@@ -150,7 +167,7 @@ func (d *ReaderDefaultImpl) FindLicenseFiles(path string) ([]string, error) {
 		}); err != nil {
 		return nil, fmt.Errorf("scanning the directory for license files: %w", err)
 	}
-	logrus.Infof("%d license files found in directory", len(licenseList))
+	logrus.Debugf("%d license files found in directory %s", len(licenseList), path)
 	return licenseList, nil
 }
 
@@ -164,6 +181,8 @@ func (d *ReaderDefaultImpl) Initialize(opts *ReaderOptions) error {
 	// Create the implementation's SPDX object
 	catalogOpts := DefaultCatalogOpts
 	catalogOpts.CacheDir = opts.CachePath()
+	catalogOpts.Version = opts.LicenseListVersion
+
 	catalog, err := NewCatalogWithOptions(catalogOpts)
 	if err != nil {
 		return fmt.Errorf("creating SPDX object: %w", err)
@@ -176,7 +195,7 @@ func (d *ReaderDefaultImpl) Initialize(opts *ReaderOptions) error {
 
 	logrus.Infof("Writing license data to %s", opts.CachePath())
 
-	// Write the licenses to disk as th classifier will need them
+	// Write the licenses to disk as the classifier will need them
 	if err := catalog.WriteLicensesAsText(opts.LicensesPath()); err != nil {
 		return fmt.Errorf("writing license data to disk: %w", err)
 	}

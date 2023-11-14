@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"time"
 
 	sigsig "github.com/sigstore/sigstore/pkg/signature"
@@ -43,7 +42,7 @@ type signedMeta struct {
 
 // NewSignature creates and validates a TUF signed manifest
 func NewSignature(r io.Reader) (*Signature, error) {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +102,7 @@ type PublicKey struct {
 
 // NewPublicKey implements the pki.PublicKey interface
 func NewPublicKey(r io.Reader) (*PublicKey, error) {
-	rawRoot, err := ioutil.ReadAll(r)
+	rawRoot, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}
@@ -170,4 +169,17 @@ func (k PublicKey) EmailAddresses() []string {
 // Subjects implements the pki.PublicKey interface
 func (k PublicKey) Subjects() []string {
 	return nil
+}
+
+// Identities implements the pki.PublicKey interface
+func (k PublicKey) Identities() ([]string, error) {
+	root := &data.Root{}
+	if err := json.Unmarshal(k.root.Signed, root); err != nil {
+		return nil, err
+	}
+	identity, err := json.Marshal(root.Keys)
+	if err != nil {
+		return nil, err
+	}
+	return []string{string(identity)}, nil
 }

@@ -23,7 +23,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -143,7 +142,7 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 			// devian copyright files. We have to read the files so...
 			if spdxlicense == nil {
 				// ...open the file
-				fileData, err := ioutil.ReadFile(filepath.Join(dir, packageName+".license"))
+				fileData, err := os.ReadFile(filepath.Join(dir, packageName+".license"))
 				if err != nil {
 					return fmt.Errorf("reading license file: %w", err)
 				}
@@ -185,7 +184,8 @@ func (h *distrolessHandler) ReadPackageData(layerPath string, pkg *Package) erro
 }
 
 // fetchDistrolessPackages retrieves the package list published at the
-//  distroless repository keyed by package name and version
+//
+//	distroless repository keyed by package name and version
 func (h *distrolessHandler) fetchDistrolessPackages() (pkgInfo map[string]string, err error) {
 	logrus.Info("Fetching distroless image package list")
 	body, err := http.NewAgent().Get(distrolessBundleURL + distrolessBundle)

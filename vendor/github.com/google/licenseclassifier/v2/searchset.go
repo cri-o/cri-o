@@ -190,6 +190,9 @@ func (c *Classifier) findPotentialMatches(src, target *searchSet, confidence flo
 		}
 	}
 
+	if c.tc.traceSearchset(src.origin) {
+		c.tc.trace("finalized matchedRanges for %s: %d = %s", src.origin, len(src.Tokens), spew.Sdump(matchedRanges))
+	}
 	return matchedRanges
 }
 
@@ -206,7 +209,11 @@ func (c *Classifier) fuseRanges(origin string, matched matchRanges, confidence f
 	filter := make([]bool, targetSize)
 	for _, m := range runs {
 		for i := m.SrcStart; i < m.SrcEnd; i++ {
-			filter[i] = true
+			// Only consider these offsets if they fit into the target document, since
+			// the target may be smaller than the source being analyzed
+			if i < targetSize {
+				filter[i] = true
+			}
 		}
 	}
 
@@ -215,7 +222,7 @@ func (c *Classifier) fuseRanges(origin string, matched matchRanges, confidence f
 
 	// For each hit detected, compare it against all other previous hits to see if it can be part of match
 	// or represents a group that is eligible for matching and having other hits contribute to it.
-	for i, m := range matched {
+	for _, m := range matched {
 		off := m.TargetStart - m.SrcStart
 
 		// If the offset is negative, but within error margins, we associate it
@@ -296,9 +303,6 @@ func (c *Classifier) fuseRanges(origin string, matched matchRanges, confidence f
 		// this around.
 		if unclaimed && m.TokensClaimed*10 > matched[0].TokensClaimed {
 			claimed = append(claimed, m)
-		}
-		if c.tc.traceSearchset(origin) {
-			c.tc.trace("after %d ranges, claimed is %s", i, spew.Sdump(claimed))
 		}
 	}
 	sort.Sort(claimed)
