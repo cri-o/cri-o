@@ -14,10 +14,10 @@ dependencies:
       match: golang_version
 
   - name: golangci-lint
-    version: v1.50.1
+    version: v1.53.2
     refPaths:
     - path: .github/workflows/verify.yml
-      match: version
+      match: GOLANGCI_LINT_VERSION
     - path: Makefile
       match: VERSION
 

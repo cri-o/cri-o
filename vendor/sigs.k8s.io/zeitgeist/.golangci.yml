@@ -1,7 +1,6 @@
 ---
 run:
-  concurrency: 6
-  deadline: 5m
+  deadline: 10m
 issues:
   exclude-rules:
     # counterfeiter fakes are usually named 'fake_<something>.go'

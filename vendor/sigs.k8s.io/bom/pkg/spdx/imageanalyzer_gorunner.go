@@ -41,7 +41,7 @@ type goRunnerHandler struct {
 	Options *ContainerLayerAnalyzerOptions
 }
 
-func (h *goRunnerHandler) ReadPackageData(layerPath string, pkg *Package) error {
+func (h *goRunnerHandler) ReadPackageData(layerPath string, pkg *Package) error { //nolint: revive
 	pkg.Supplier.Person = "Kubernetes Release Managers (release-managers@kubernetes.io)"
 	pkg.Name = "go-runner"
 

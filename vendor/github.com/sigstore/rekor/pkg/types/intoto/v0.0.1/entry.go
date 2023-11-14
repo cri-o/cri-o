@@ -185,7 +185,16 @@ func (v *V001Entry) Unmarshal(pe models.ProposedEntry) error {
 
 func (v *V001Entry) Canonicalize(ctx context.Context) ([]byte, error) {
 	if v.keyObj == nil {
-		return nil, errors.New("cannot canonicalze empty key")
+		return nil, errors.New("cannot canonicalize empty key")
+	}
+	if v.IntotoObj.Content == nil {
+		return nil, errors.New("missing content")
+	}
+	if v.IntotoObj.Content.Hash == nil {
+		return nil, errors.New("missing envelope hash")
+	}
+	if v.IntotoObj.Content.PayloadHash == nil {
+		return nil, errors.New("missing payload hash")
 	}
 	pk, err := v.keyObj.CanonicalValue()
 	if err != nil {
@@ -219,10 +228,24 @@ func (v *V001Entry) validate() error {
 	// TODO handle multiple
 	pk := v.keyObj.(*x509.PublicKey)
 
-	// This also gets called in the CLI, where we won't have this data
+	// one of two cases must be true:
+	// - ProposedEntry: client gives an envelope; (client provided hash/payloadhash are ignored as they are computed server-side) OR
+	// - CommittedEntry: NO envelope and hash/payloadHash must be present
 	if v.IntotoObj.Content.Envelope == "" {
+		if v.IntotoObj.Content.Hash == nil {
+			return fmt.Errorf("missing hash value for envelope")
+		} else if err := v.IntotoObj.Content.Hash.Validate(strfmt.Default); err != nil {
+			return fmt.Errorf("validation error on envelope hash: %w", err)
+		}
+		if v.IntotoObj.Content.PayloadHash == nil {
+			return fmt.Errorf("missing hash value for payload")
+		} else if err := v.IntotoObj.Content.PayloadHash.Validate(strfmt.Default); err != nil {
+			return fmt.Errorf("validation error on payload hash: %w", err)
+		}
+		// if there is no envelope, and hash/payloadHash are valid, then there's nothing else to do here
 		return nil
 	}
+
 	vfr, err := signature.LoadVerifier(pk.CryptoPubKey(), crypto.SHA256)
 	if err != nil {
 		return err
@@ -325,4 +348,11 @@ func (v V001Entry) CreateFromArtifactProperties(_ context.Context, props types.A
 	returnVal.APIVersion = swag.String(re.APIVersion())
 
 	return &returnVal, nil
+}
+
+func (v V001Entry) Verifier() (pki.PublicKey, error) {
+	if v.IntotoObj.PublicKey == nil {
+		return nil, errors.New("intoto v0.0.1 entry not initialized")
+	}
+	return x509.NewPublicKey(bytes.NewReader(*v.IntotoObj.PublicKey))
 }

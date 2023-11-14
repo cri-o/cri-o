@@ -35,6 +35,7 @@ const (
 	OSCentos     = "centos"
 	OSRHEL       = "rhel"
 	OSAlpine     = "alpine"
+	OSWolfi      = "wolfi"
 	OSDistroless = "distroless"
 )
 
@@ -80,6 +81,10 @@ func (loss *LayerScanner) OSType(layerPath string) (ostype string, err error) {
 
 	if strings.Contains(osrelease, "NAME=\"Alpine Linux\"") {
 		return OSAlpine, nil
+	}
+
+	if strings.Contains(osrelease, "NAME=\"Wolfi\"") {
+		return OSWolfi, nil
 	}
 
 	if strings.Contains(osrelease, "PRETTY_NAME=\"Distroless") {

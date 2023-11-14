@@ -114,7 +114,7 @@ func (pkg *GoPackage) ToSPDXPackage() (*Package, error) {
 	spdxPackage.CopyrightText = pkg.CopyrightText
 	if packageurl := pkg.PackageURL(); packageurl != "" {
 		spdxPackage.ExternalRefs = append(spdxPackage.ExternalRefs, ExternalRef{
-			Category: "PACKAGE-MANAGER",
+			Category: CatPackageManager,
 			Type:     "purl",
 			Locator:  packageurl,
 		})
@@ -122,16 +122,20 @@ func (pkg *GoPackage) ToSPDXPackage() (*Package, error) {
 	return spdxPackage, nil
 }
 
+func nsAndNameFromImportPath(importPath string) (namespace, packageName string) {
+	lastSlashIndex := strings.LastIndex(importPath, "/")
+	if lastSlashIndex == -1 {
+		return "", ""
+	}
+	namespace = importPath[0:lastSlashIndex]
+	packageName = importPath[lastSlashIndex+1:]
+	return namespace, packageName
+}
+
 // PackageURL returns a purl if the go package has enough data to generate
 // one. If data is missing, it will return an empty string
 func (pkg *GoPackage) PackageURL() string {
-	parts := strings.Split(pkg.ImportPath, "/")
-	if len(parts) < 2 {
-		return ""
-	}
-	pname := parts[len(parts)-1]
-	namespace := strings.TrimSuffix(parts[0], "/"+pname)
-
+	namespace, pname := nsAndNameFromImportPath(pkg.ImportPath)
 	// We require type, package, namespace and version at the very
 	// least to generate a purl
 	if pname == "" || pkg.Revision == "" || namespace == "" {
@@ -254,7 +258,7 @@ func (mod *GoModule) ScanLicenses() error {
 // BuildFullPackageList return the complete of packages imported into
 // the module, instead of reading go.mod, this functions calls
 // go list and works from there
-func (mod *GoModule) BuildFullPackageList(g *modfile.File) (packageList []*GoPackage, err error) {
+func (mod *GoModule) BuildFullPackageList(_ *modfile.File) (packageList []*GoPackage, err error) {
 	packageList = []*GoPackage{}
 
 	// If no go.sum is found, then there are no deps
@@ -397,7 +401,7 @@ func (di *GoModDefaultImpl) BuildPackageList(gomod *modfile.File) ([]*GoPackage,
 // DownloadPackage takes a pkg, downloads it from its src and sets
 //
 //	the download dir in the LocalDir field
-func (di *GoModDefaultImpl) DownloadPackage(pkg *GoPackage, opts *GoModuleOptions, force bool) error {
+func (di *GoModDefaultImpl) DownloadPackage(pkg *GoPackage, _ *GoModuleOptions, force bool) error {
 	if pkg.LocalDir != "" && util.Exists(pkg.LocalDir) && !force {
 		logrus.WithField("package", pkg.ImportPath).Infof("Not downloading %s as it already has local data", pkg.ImportPath)
 		return nil
@@ -489,7 +493,7 @@ func (di *GoModDefaultImpl) LicenseReader() (*license.Reader, error) {
 
 // ScanPackageLicense scans a package for licensing info
 func (di *GoModDefaultImpl) ScanPackageLicense(
-	pkg *GoPackage, reader *license.Reader, opts *GoModuleOptions,
+	pkg *GoPackage, reader *license.Reader, _ *GoModuleOptions,
 ) error {
 	dir := pkg.LocalDir
 	if dir == "" && pkg.LocalInstall != "" {

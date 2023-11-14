@@ -46,6 +46,7 @@ type options struct {
 	pageSize                       int
 	retryBackoff                   Backoff
 	retryPredicate                 retry.Predicate
+	filter                         map[string]string
 }
 
 var defaultPlatform = v1.Platform{
@@ -74,6 +75,22 @@ var defaultRetryBackoff = Backoff{
 	Steps:    3,
 }
 
+// Useful for tests
+var fastBackoff = Backoff{
+	Duration: 1.0 * time.Millisecond,
+	Factor:   3.0,
+	Jitter:   0.1,
+	Steps:    3,
+}
+
+var retryableStatusCodes = []int{
+	http.StatusRequestTimeout,
+	http.StatusInternalServerError,
+	http.StatusBadGateway,
+	http.StatusServiceUnavailable,
+	http.StatusGatewayTimeout,
+}
+
 const (
 	defaultJobs = 4
 
@@ -87,10 +104,7 @@ const (
 var DefaultTransport http.RoundTripper = &http.Transport{
 	Proxy: http.ProxyFromEnvironment,
 	DialContext: (&net.Dialer{
-		// By default we wrap the transport in retries, so reduce the
-		// default dial timeout to 5s to avoid 5x 30s of connection
-		// timeouts when doing the "ping" on certain http registries.
-		Timeout:   5 * time.Second,
+		Timeout:   30 * time.Second,
 		KeepAlive: 30 * time.Second,
 	}).DialContext,
 	ForceAttemptHTTP2:     true,
@@ -143,7 +157,7 @@ func makeOptions(target authn.Resource, opts ...Option) (*options, error) {
 		}
 
 		// Wrap the transport in something that can retry network flakes.
-		o.transport = transport.NewRetry(o.transport)
+		o.transport = transport.NewRetry(o.transport, transport.WithRetryPredicate(defaultRetryPredicate), transport.WithRetryStatusCodes(retryableStatusCodes...))
 
 		// Wrap this last to prevent transport.New from double-wrapping.
 		if o.userAgent != "" {
@@ -287,6 +301,17 @@ func WithRetryBackoff(backoff Backoff) Option {
 func WithRetryPredicate(predicate retry.Predicate) Option {
 	return func(o *options) error {
 		o.retryPredicate = predicate
+		return nil
+	}
+}
+
+// WithFilter sets the filter querystring for HTTP operations.
+func WithFilter(key string, value string) Option {
+	return func(o *options) error {
+		if o.filter == nil {
+			o.filter = map[string]string{}
+		}
+		o.filter[key] = value
 		return nil
 	}
 }

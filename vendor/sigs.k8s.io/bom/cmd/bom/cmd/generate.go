@@ -25,6 +25,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"sigs.k8s.io/bom/pkg/license"
 	"sigs.k8s.io/bom/pkg/serialize"
 	"sigs.k8s.io/bom/pkg/spdx"
 	"sigs.k8s.io/release-utils/util"
@@ -43,6 +44,7 @@ type generateOptions struct {
 	outputFile     string
 	configFile     string
 	license        string
+	licenseListVer string
 	provenancePath string // Path to export the SBOM as provenance statement
 	images         []string
 	imageArchives  []string
@@ -296,6 +298,13 @@ completed by a later stage in your CI/CD pipeline. See the
 		"name for the document, in contrast to URLs, intended for humans",
 	)
 
+	generateCmd.PersistentFlags().StringVar(
+		&genOpts.licenseListVer,
+		"license-list-version",
+		license.DefaultCatalogOpts.Version,
+		"version of the SPDX list to use, use 'latest' to download the latest",
+	)
+
 	if err := generateCmd.MarkPersistentFlagDirname("dirs"); err != nil {
 		logrus.Error("error marking flag as directory")
 	}
@@ -317,21 +326,22 @@ func generateBOM(opts *generateOptions) error {
 	newDocBuilderOpts := []spdx.NewDocBuilderOption{spdx.WithFormat(spdx.Format(opts.format))}
 	builder := spdx.NewDocBuilder(newDocBuilderOpts...)
 	builderOpts := &spdx.DocGenerateOptions{
-		Tarballs:         opts.imageArchives,
-		Archives:         opts.archives,
-		Files:            opts.files,
-		Images:           opts.images,
-		Directories:      opts.directories,
-		Format:           opts.format,
-		OutputFile:       opts.outputFile,
-		Namespace:        opts.namespace,
-		AnalyseLayers:    opts.analyze,
-		ProcessGoModules: !opts.noGoModules,
-		OnlyDirectDeps:   !opts.noGoTransient,
-		ConfigFile:       opts.configFile,
-		License:          opts.license,
-		ScanImages:       opts.scanImages,
-		Name:             opts.name,
+		Tarballs:           opts.imageArchives,
+		Archives:           opts.archives,
+		Files:              opts.files,
+		Images:             opts.images,
+		Directories:        opts.directories,
+		Format:             opts.format,
+		OutputFile:         opts.outputFile,
+		Namespace:          opts.namespace,
+		AnalyseLayers:      opts.analyze,
+		ProcessGoModules:   !opts.noGoModules,
+		OnlyDirectDeps:     !opts.noGoTransient,
+		ConfigFile:         opts.configFile,
+		License:            opts.license,
+		LicenseListVersion: opts.licenseListVer,
+		ScanImages:         opts.scanImages,
+		Name:               opts.name,
 	}
 
 	// We only replace the ignore patterns one or more where defined

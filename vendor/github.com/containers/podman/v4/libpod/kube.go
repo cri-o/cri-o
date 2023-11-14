@@ -18,6 +18,7 @@ import (
 	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/podman/v4/pkg/domain/entities"
 	"github.com/containers/podman/v4/pkg/env"
 	v1 "github.com/containers/podman/v4/pkg/k8s.io/api/core/v1"
 	"github.com/containers/podman/v4/pkg/k8s.io/apimachinery/pkg/api/resource"
@@ -33,14 +34,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctx, ctrs)
+	return simplePodWithV1Containers(ctx, ctrs, getService)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort
@@ -78,7 +79,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 				Hostnames: []string{hostSli[0]},
 			})
 		}
-		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings)
+		ports, err = portMappingToContainerPort(infraContainer.config.PortMappings, getService)
 		if err != nil {
 			return nil, servicePorts, err
 		}
@@ -90,7 +91,7 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -107,8 +108,8 @@ func (p *Pod) GenerateForKube(ctx context.Context) (*v1.Pod, []v1.ServicePort, e
 				pod.Spec.RestartPolicy = v1.RestartPolicyOnFailure
 			case define.RestartPolicyNo:
 				pod.Spec.RestartPolicy = v1.RestartPolicyNever
-			default: // some pod create from cmdline, such as "", so set it to Never
-				pod.Spec.RestartPolicy = v1.RestartPolicyNever
+			default: // some pod create from cmdline, such as "", so set it to "" as k8s automatically defaults to always
+				pod.Spec.RestartPolicy = ""
 			}
 			break
 		}
@@ -129,6 +130,65 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 		return nil, err
 	}
 	return p.runtime.GetContainer(infraID)
+}
+
+// GenerateForKubeDeployment returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Deployment
+// kind YAML.
+func GenerateForKubeDeployment(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDeployment, error) {
+	// Restart policy for Deployments can only be set to Always
+	if options.Type == define.K8sKindDeployment && !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == define.RestartPolicyAlways) {
+		return nil, fmt.Errorf("k8s Deployments can only have restartPolicy set to Always")
+	}
+
+	// Create label map that will be added to podSpec and Deployment metadata
+	// The matching label lets the deployment know which pods to manage
+	appKey := "app"
+	matchLabels := map[string]string{appKey: pod.Name}
+	// Add the key:value (app:pod-name) to the podSpec labels
+	if pod.Labels == nil {
+		pod.Labels = matchLabels
+	} else {
+		pod.Labels[appKey] = pod.Name
+	}
+
+	depSpec := YAMLDeploymentSpec{
+		DeploymentSpec: v1.DeploymentSpec{
+			Selector: &v12.LabelSelector{
+				MatchLabels: matchLabels,
+			},
+		},
+		Template: &YAMLPodTemplateSpec{
+			PodTemplateSpec: v1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+			},
+			Spec: pod.Spec,
+		},
+	}
+
+	// Add replicas count if user adds replica number with --replicas flag and is greater than 1
+	// If replicas is set to 1, no need to add it to the generated yaml as k8s automatically defaults
+	// to that. Podman as sets replicas to 1 by default.
+	if options.Replicas > 1 {
+		depSpec.Replicas = &options.Replicas
+	}
+
+	// Create the Deployment object
+	dep := YAMLDeployment{
+		Deployment: v1.Deployment{
+			ObjectMeta: v12.ObjectMeta{
+				Name:              pod.Name + "-deployment",
+				CreationTimestamp: pod.CreationTimestamp,
+				Labels:            pod.Labels,
+			},
+			TypeMeta: v12.TypeMeta{
+				Kind:       "Deployment",
+				APIVersion: "apps/v1",
+			},
+		},
+		Spec: &depSpec,
+	}
+
+	return &dep, nil
 }
 
 // GenerateForKube generates a v1.PersistentVolumeClaim from a libpod volume.
@@ -195,6 +255,37 @@ type YAMLPod struct {
 	Status *v1.PodStatus `json:"status,omitempty"`
 }
 
+// YAMLPodTemplateSpec represents the same k8s API core PodTemplateStruct with a
+// small change and that is having Spec as a pointer to YAMLPodSpec.
+// Because Go doesn't omit empty struct and we want to omit any empty structs in the
+// Pod yaml. This is used when generating a Deployment kind.
+type YAMLPodTemplateSpec struct {
+	v1.PodTemplateSpec
+	Spec *YAMLPodSpec `json:"spec,omitempty"`
+}
+
+// YAMLDeploymentSpec represents the same k8s API core DeploymentSpec with a small
+// change and that is having Template as a pointer to YAMLPodTemplateSpec and Strategy
+// as a pointer to k8s API core DeploymentStrategy.
+// Because Go doesn't omit empty struct and we want to omit Strategy and any fields in the Pod YAML
+// if it's empty.
+type YAMLDeploymentSpec struct {
+	v1.DeploymentSpec
+	Template *YAMLPodTemplateSpec   `json:"template,omitempty"`
+	Strategy *v1.DeploymentStrategy `json:"strategy,omitempty"`
+}
+
+// YAMLDeployment represents the same k8s API core Deployment with a small change
+// and that is having Spec as a pointer to YAMLDeploymentSpec and Status as a pointer to
+// k8s API core DeploymentStatus.
+// Because Go doesn't omit empty struct and we want to omit Status and any fields in the DeploymentSpec
+// if it's empty.
+type YAMLDeployment struct {
+	v1.Deployment
+	Spec   *YAMLDeploymentSpec  `json:"spec,omitempty"`
+	Status *v1.DeploymentStatus `json:"status,omitempty"`
+}
+
 // YAMLService represents the same k8s API core Service struct with a small
 // change and that is having Status as a pointer to k8s API core ServiceStatus.
 // Because Go doesn't omit empty struct and we want to omit Status in YAML
@@ -230,7 +321,7 @@ func ConvertV1PodToYAMLPod(pod *v1.Pod) *YAMLPod {
 			continue
 		}
 		selinuxOpts := ctr.SecurityContext.SELinuxOptions
-		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" {
+		if selinuxOpts.User == "" && selinuxOpts.Role == "" && selinuxOpts.Type == "" && selinuxOpts.Level == "" && selinuxOpts.FileType == "" {
 			ctr.SecurityContext.SELinuxOptions = nil
 		}
 	}
@@ -350,7 +441,7 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService bool) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
@@ -379,13 +470,13 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
 			if hostname == "" {
 				// Only set the hostname if it is not set to the truncated container ID, which we do by default if no
-				// hostname is specified for the container
-				if !strings.Contains(ctr.ID(), ctr.Hostname()) {
+				// hostname is specified for the container and if it is not set to the pod name.
+				if !strings.Contains(ctr.ID(), ctr.Hostname()) && ctr.Hostname() != p.Name() {
 					hostname = ctr.Hostname()
 				}
 			}
 
-			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr)
+			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
@@ -421,7 +512,7 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				deDupPodVolumes[vol.Name] = &vol
 			}
 		} else {
-			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr)
+			_, _, infraDNS, _, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
@@ -442,9 +533,10 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, vol := range deDupPodVolumes {
 		podVolumes = append(podVolumes, *vol)
 	}
+	podName := removeUnderscores(p.Name())
 
 	return newPodObject(
-		p.Name(),
+		podName,
 		podAnnotations,
 		podInitCtrs,
 		podContainers,
@@ -497,7 +589,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -531,13 +623,31 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 			}
 		}
 
+		if ctr.config.Spec.Process != nil {
+			var ulimitArr []string
+			defaultUlimits := util.DefaultContainerConfig().Ulimits()
+			for _, ulimit := range ctr.config.Spec.Process.Rlimits {
+				finalUlimit := strings.ToLower(strings.ReplaceAll(ulimit.Type, "RLIMIT_", "")) + "=" + strconv.Itoa(int(ulimit.Soft)) + ":" + strconv.Itoa(int(ulimit.Hard))
+				// compare ulimit with default list so we don't add it twice
+				if cutil.StringInSlice(finalUlimit, defaultUlimits) {
+					continue
+				}
+
+				ulimitArr = append(ulimitArr, finalUlimit)
+			}
+
+			if len(ulimitArr) > 0 {
+				kubeAnnotations[define.UlimitAnnotation] = strings.Join(ulimitArr, ",")
+			}
+		}
+
 		if !ctr.HostNetwork() {
 			hostNetwork = false
 		}
 		if !(ctr.IDMappings().HostUIDMapping && ctr.IDMappings().HostGIDMapping) {
 			hostUsers = false
 		}
-		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr)
+		kubeCtr, kubeVols, ctrDNS, annotations, err := containerToV1Container(ctx, ctr, getService)
 		if err != nil {
 			return nil, err
 		}
@@ -604,7 +714,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container) (*v1.Pod,
 
 // containerToV1Container converts information we know about a libpod container
 // to a V1.Container specification.
-func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
+func containerToV1Container(ctx context.Context, c *Container, getService bool) (v1.Container, []v1.Volume, *v1.PodDNSConfig, map[string]string, error) {
 	kubeContainer := v1.Container{}
 	kubeVolumes := []v1.Volume{}
 	annotations := make(map[string]string)
@@ -634,7 +744,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
-	ports, err := portMappingToContainerPort(portmappings)
+	ports, err := portMappingToContainerPort(portmappings, getService)
 	if err != nil {
 		return kubeContainer, kubeVolumes, nil, annotations, err
 	}
@@ -781,7 +891,7 @@ func containerToV1Container(ctx context.Context, c *Container) (v1.Container, []
 
 // portMappingToContainerPort takes an portmapping and converts
 // it to a v1.ContainerPort format for kube output
-func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.ContainerPort, error) {
+func portMappingToContainerPort(portMappings []types.PortMapping, getService bool) ([]v1.ContainerPort, error) {
 	containerPorts := make([]v1.ContainerPort, 0, len(portMappings))
 	for _, p := range portMappings {
 		protocols := strings.Split(p.Protocol, ",")
@@ -801,10 +911,12 @@ func portMappingToContainerPort(portMappings []types.PortMapping) ([]v1.Containe
 			for i := uint16(0); i < p.Range; i++ {
 				cp := v1.ContainerPort{
 					// Name will not be supported
-					HostPort:      int32(p.HostPort + i),
 					HostIP:        p.HostIP,
 					ContainerPort: int32(p.ContainerPort + i),
 					Protocol:      protocol,
+				}
+				if !getService {
+					cp.HostPort = int32(p.HostPort + i)
 				}
 				containerPorts = append(containerPorts, cp)
 			}
@@ -1043,27 +1155,33 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 		sc.Capabilities = capabilities
 	}
 	var selinuxOpts v1.SELinuxOptions
-	opts := strings.SplitN(c.config.Spec.Annotations[define.InspectAnnotationLabel], ":", 2)
-	switch len(opts) {
-	case 2:
-		switch opts[0] {
-		case "type":
-			selinuxOpts.Type = opts[1]
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
-		case "level":
-			selinuxOpts.Level = opts[1]
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
-		}
-	case 1:
-		if opts[0] == "disable" {
-			selinuxOpts.Type = "spc_t"
-			sc.SELinuxOptions = &selinuxOpts
-			scHasData = true
+	selinuxHasData := false
+	for _, label := range strings.Split(c.config.Spec.Annotations[define.InspectAnnotationLabel], ",label=") {
+		opts := strings.SplitN(label, ":", 2)
+		switch len(opts) {
+		case 2:
+			switch opts[0] {
+			case "filetype":
+				selinuxOpts.FileType = opts[1]
+				selinuxHasData = true
+			case "type":
+				selinuxOpts.Type = opts[1]
+				selinuxHasData = true
+			case "level":
+				selinuxOpts.Level = opts[1]
+				selinuxHasData = true
+			}
+		case 1:
+			if opts[0] == "disable" {
+				selinuxOpts.Type = "spc_t"
+				selinuxHasData = true
+			}
 		}
 	}
-
+	if selinuxHasData {
+		sc.SELinuxOptions = &selinuxOpts
+		scHasData = true
+	}
 	if !allowPrivEscalation {
 		scHasData = true
 		sc.AllowPrivilegeEscalation = &allowPrivEscalation
