@@ -31,6 +31,7 @@ type StatsServer struct {
 	collectionPeriod     time.Duration
 	sboxStats            map[string]*types.PodSandboxStats
 	ctrStats             map[string]*types.ContainerStats
+	ctrCgMgrs            map[string]cgroups.Manager
 	customSandboxMetrics map[string]*SandboxMetrics
 	parentServerIface
 	mutex sync.Mutex
@@ -55,6 +56,7 @@ func New(cs parentServerIface) *StatsServer {
 		collectionPeriod:     time.Duration(cs.Config().CollectionPeriod) * time.Second,
 		sboxStats:            make(map[string]*types.PodSandboxStats),
 		ctrStats:             make(map[string]*types.ContainerStats),
+		ctrCgMgrs:            make(map[string]cgroups.Manager),
 		customSandboxMetrics: make(map[string]*SandboxMetrics),
 		parentServerIface:    cs,
 	}
@@ -95,22 +97,6 @@ func (ss *StatsServer) update() {
 		ss.updateSandbox(sb)
 		ss.updatePodSandboxMetrics(sb)
 	}
-}
-
-func (ss *StatsServer) GetCgroupManager(sb *sandbox.Sandbox) (cgroups.Manager, error) {
-	cg := &cgcfgs.Cgroup{
-		Name:   filepath.Base(sb.CgroupParent()),
-		Parent: sb.CgroupParent(),
-		Resources: &cgcfgs.Resources{
-			SkipDevices: true,
-		},
-	}
-	mgr, err := libctrCgMgr.New(cg)
-	if err != nil {
-		return nil, err
-	}
-
-	return mgr, nil
 }
 
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
@@ -167,7 +153,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *oci.Container, sm *SandboxMetrics) []*types.Metric {
 	var metrics []*types.Metric
 
-	var sbCgroupStats *cgmgr.CgroupStats
+	var sbCgroupStats *cgroups.Stats
 	var err error
 
 	includedMetrics := ss.Config().IncludedPodMetrics
@@ -178,30 +164,32 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 			updatedIncludedMetrics = append(updatedIncludedMetrics, val)
 		}
 	}
-
+	// Create a cgroup manager for the container if it doesn't exist
+	if ss.ctrCgMgrs[c.ID()] == nil {
+		if err := ss.updateCgMgrs(sb, c); err != nil {
+			logrus.Errorf("Unable to Create a cgroup manager for the container %s: %v", c.ID(), err)
+			return nil
+		}
+	}
 	for _, metric := range updatedIncludedMetrics {
 		switch metric {
 		case "cpu", "memory":
 			if sbCgroupStats == nil {
-				sbCgroupStats, err = ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
+				sbCgroupStats, err = ss.ctrCgMgrs[c.ID()].GetStats()
 				if err != nil {
 					logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
 					return nil
 				}
-				if sbCgroupStats == nil {
-					logrus.Infof("Sandbox cgroup stats are not available for metric: %s", metric)
-					return nil
-				}
 			}
 			if metric == "cpu" {
-				cpuMetrics := GenerateSandboxCPUMetrics(sb, c, &sbCgroupStats.MostStats.CpuStats, sm)
+				cpuMetrics := GenerateSandboxCPUMetrics(sb, c, &sbCgroupStats.CpuStats, sm)
 				metrics = append(metrics, cpuMetrics...)
 			} else if metric == "memory" {
-				memoryMetrics := GenerateSandboxMemoryMetrics(sb, c, &sbCgroupStats.MostStats.MemoryStats, sm)
+				memoryMetrics := GenerateSandboxMemoryMetrics(sb, c, &sbCgroupStats.MemoryStats, sm)
 				metrics = append(metrics, memoryMetrics...)
 			}
 		case "oom":
-			cm, err := ss.GetCgroupManager(sb)
+			cm := ss.ctrCgMgrs[c.ID()]
 			if err != nil {
 				logrus.Errorf("Unable to fetch cgroup manager %s: %v", sb.ID(), err)
 				return nil
@@ -600,6 +588,7 @@ func (ss *StatsServer) RemoveStatsForContainer(c *oci.Container) {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	delete(ss.ctrStats, c.ID())
+	delete(ss.ctrCgMgrs, c.ID())
 }
 
 // MetricsForSandboxContainer returns the metrics for the given container
@@ -655,6 +644,28 @@ func (ss *StatsServer) RemoveContainerMetrics(c *oci.Container) {
 			}
 		}
 	}
+}
+
+func (ss *StatsServer) updateCgMgrs(sb *sandbox.Sandbox, c *oci.Container) error {
+	path, err := ss.Config().CgroupManager().ContainerCgroupAbsolutePath(sb.CgroupParent(), c.ID())
+	if err != nil {
+		return err
+	}
+	name, parentCgroup := filepath.Base(path), filepath.Dir(path)
+	// TODO: Add relevant config options
+	cg := &cgcfgs.Cgroup{
+		Name:   name,
+		Parent: parentCgroup,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	cm, err := libctrCgMgr.New(cg)
+	if err != nil {
+		return err
+	}
+	ss.ctrCgMgrs[c.ID()] = cm
+	return nil
 }
 
 // Shutdown tells the updateLoop to stop updating.
