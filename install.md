@@ -203,6 +203,30 @@ curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/
 apt-get update
 apt-get install cri-o cri-o-runc
 ```
+
+If apt doesn't allow redirection from 'https' -> 'http' mirror then modify the protocol as follows
+
+```shell
+
+# if something similar to the below log happens...
+
+Redirection from https to 'http://YOUR_MIRROR.com/opensuse/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:YOUR_VERSION/YOUR_OS' is forbidden
+
+# then please try the next lines
+
+```
+
+```shell
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+
+mkdir -p /usr/share/keyrings
+curl -L http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
+curl -L http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
+
+apt-get update
+apt-get install cri-o cri-o-runc
+```
 <!-- markdownlint-enable MD013 -->
 
 **Note: We include cri-o-runc because Ubuntu and Debian include their own packaged
