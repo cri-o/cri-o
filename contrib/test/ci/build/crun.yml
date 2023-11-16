@@ -17,7 +17,6 @@
       - autoconf
       - libcap-devel
       - systemd-devel
-      - yajl-devel
       - libseccomp-devel
       - libselinux-devel
       - glibc-static
