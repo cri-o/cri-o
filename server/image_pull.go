@@ -28,6 +28,20 @@ var localRegistryHostname = "localhost"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
+	// TODO: this is for demoing purposes, it could be any other location
+	// The call below will pull the OCI artifact `profile-linux-amd64.yaml`
+	// into the system temp directory.
+	if err := storage.PullArtifact(
+		ctx,
+		s.config.SystemContext,
+		"ghcr.io/security-profiles/crun:v1.11.1",
+		os.TempDir(),
+	); err != nil {
+		return nil, fmt.Errorf("pull artifact: %w", err)
+	}
+
+	return &types.PullImageResponse{ImageRef: "test"}, nil
+
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
