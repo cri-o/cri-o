@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/podman/v4/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -15,7 +16,10 @@ import (
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
+	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -27,12 +31,14 @@ const defaultSystemdParent = "system.slice"
 // it defines all of the common functionality between V1 and V2
 type SystemdManager struct {
 	memoryPath, memoryMaxFile string
+	cgManagers                map[string]cgroups.Manager
 	dbusMgr                   *dbusmgr.DbusConnManager
 }
 
 func NewSystemdManager() *SystemdManager {
 	systemdMgr := SystemdManager{
 		memoryPath:    cgroupMemoryPathV1,
+		cgManagers:    make(map[string]cgroups.Manager),
 		memoryMaxFile: cgroupMemoryMaxFileV1,
 	}
 	if node.CgroupIsV2() {
@@ -72,7 +78,64 @@ func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*Cg
 	if err != nil {
 		return nil, err
 	}
-	return cgroupStatsFromPath(cgPath)
+	cgMgr, err := m.getOrCreateCtrCgManager(cgPath, containerID)
+	if err != nil {
+		return nil, err
+	}
+	libCtrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	cgstats := &CgroupStats{
+		MostStats:     libCtrStats,
+		OtherMemStats: generateOtherMemoryStats(libCtrStats.MemoryStats),
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return cgstats, nil
+}
+
+func (m *SystemdManager) getOrCreateCtrCgManager(cgPath, containerID string) (cgroups.Manager, error) {
+	if cgMgr, ok := m.cgManagers[containerID]; ok {
+		return cgMgr, nil
+	}
+	ctrName, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+	// TODO: Add relevant config options
+	cg := &cgcfgs.Cgroup{
+		Name:   ctrName,
+		Parent: parentCgroup,
+		// The Systemd flag should be set to true. However, creating a cgroup manager will if this flag is set to true. (Possibly a Bug)
+		//Systemd: true,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	cgMgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		logrus.Errorf("Failed to create cgroup manager for container %s: %v", containerID, err)
+		return nil, err
+	}
+	m.cgManagers[containerID] = cgMgr
+	return cgMgr, nil
+
+}
+
+// GetCtrCgroupManager takes the cgroup parent, and container ID.
+// It returns the raw libcontainer cgroup manager for that container.
+func (m *SystemdManager) GetCtrCgroupManager(sbParent, containerID string) (cgroups.Manager, error) {
+	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	return m.getOrCreateCtrCgManager(cgPath, containerID)
+}
+
+func (m *SystemdManager) RemoveCtrCgManager(containerID string) {
+	if cgMgr, ok := m.cgManagers[containerID]; ok {
+		if err := cgMgr.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy cgroup manager for container %s: %v", containerID, err)
+		}
+		delete(m.cgManagers, containerID)
+	}
 }
 
 func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {

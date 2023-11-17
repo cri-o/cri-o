@@ -8,10 +8,12 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/cri-o/cri-o/utils"
+	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -21,6 +23,7 @@ import (
 // CgroupfsManager defines functionality whrn **** TODO: Update this
 type CgroupfsManager struct {
 	memoryPath, memoryMaxFile string
+	cgManagers                map[string]libctrCg.Manager
 }
 
 const (
@@ -55,7 +58,63 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 	if err != nil {
 		return nil, err
 	}
-	return cgroupStatsFromPath(cgPath)
+	cgMgr, err := m.getOrCreateCtrCgManager(cgPath, containerID)
+	if err != nil {
+		return nil, err
+	}
+	libCtrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	cgstats := &CgroupStats{
+		MostStats:     libCtrStats,
+		OtherMemStats: generateOtherMemoryStats(libCtrStats.MemoryStats),
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return cgstats, nil
+}
+
+func (m *CgroupfsManager) getOrCreateCtrCgManager(cgPath, containerID string) (libctrCg.Manager, error) {
+	if cgMgr, ok := m.cgManagers[containerID]; ok {
+		return cgMgr, nil
+	}
+	ctrName, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+	// TODO: Add relevant config options
+	cg := &cgcfgs.Cgroup{
+		Name:    ctrName,
+		Parent:  parentCgroup,
+		Systemd: false,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	cgMgr, err := libctrCgMgr.New(cg)
+	if err != nil {
+		logrus.Errorf("Failed to create cgroup manager for container %s: %v", containerID, err)
+		return nil, err
+	}
+	m.cgManagers[containerID] = cgMgr
+	return cgMgr, nil
+
+}
+
+// GetCtrCgroupManager takes the cgroup parent, and container ID.
+// It returns the raw libcontainer cgroup manager for that container.
+func (m *CgroupfsManager) GetCtrCgroupManager(sbParent, containerID string) (libctrCg.Manager, error) {
+	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	return m.getOrCreateCtrCgManager(cgPath, containerID)
+}
+
+func (m *CgroupfsManager) RemoveCtrCgManager(containerID string) {
+	if cgMgr, ok := m.cgManagers[containerID]; ok {
+		if err := cgMgr.Destroy(); err != nil {
+			logrus.Errorf("Failed to destroy cgroup manager for container %s: %v", containerID, err)
+		}
+		delete(m.cgManagers, containerID)
+	}
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,

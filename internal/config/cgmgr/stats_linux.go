@@ -150,3 +150,8 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	}
 	return cgroupLimit
 }
+
+func generateOtherMemoryStats(memstats libctrcgroups.MemoryStats) *CgroupMemoryStats {
+	// TODO
+	return &CgroupMemoryStats{}
+}

@@ -76,6 +76,11 @@ type CgroupManager interface {
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container.
 	RemoveSandboxCgroup(sbParent, containerID string) error
+	// GetCtrCgroupManager takes the cgroup parent, and container ID.
+	// It returns the raw libcontainer cgroup manager for that container.
+	GetCtrCgroupManager(sbParent, containerID string) (libctr.Manager, error)
+	// RemoveCtrCgManager removes the cgroup manager for the container
+	RemoveCtrCgManager(containerID string)
 }
 
 // New creates a new CgroupManager with defaults
