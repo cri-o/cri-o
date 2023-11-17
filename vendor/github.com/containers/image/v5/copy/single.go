@@ -161,7 +161,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		return copySingleImageResult{}, err
 	}
 
-	destRequiresOciEncryption := (isEncrypted(src) && ic.c.options.OciDecryptConfig != nil) || c.options.OciEncryptLayers != nil
+	destRequiresOciEncryption := (isEncrypted(src) && ic.c.options.OciDecryptConfig == nil) || c.options.OciEncryptLayers != nil
 
 	manifestConversionPlan, err := determineManifestConversion(determineManifestConversionInputs{
 		srcMIMEType:                    ic.src.ManifestMIMEType,
@@ -277,7 +277,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	if err != nil {
 		return copySingleImageResult{}, err
 	}
-	sigs = append(sigs, newSigs...)
+	sigs = append(slices.Clone(sigs), newSigs...)
 
 	if len(sigs) > 0 {
 		c.Printf("Storing signatures\n")
@@ -305,18 +305,18 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 		options := newOrderedSet()
 		match := false
 		for _, wantedPlatform := range wantedPlatforms {
-			// Waiting for https://github.com/opencontainers/image-spec/pull/777 :
-			// This currently can’t use image.MatchesPlatform because we don’t know what to use
-			// for image.Variant.
-			if wantedPlatform.OS == c.OS && wantedPlatform.Architecture == c.Architecture {
+			// For a transitional period, this might trigger warnings because the Variant
+			// field was added to OCI config only recently. If this turns out to be too noisy,
+			// revert this check to only look for (OS, Architecture).
+			if platform.MatchesPlatform(c.Platform, wantedPlatform) {
 				match = true
 				break
 			}
-			options.append(fmt.Sprintf("%s+%s", wantedPlatform.OS, wantedPlatform.Architecture))
+			options.append(fmt.Sprintf("%s+%s+%q", wantedPlatform.OS, wantedPlatform.Architecture, wantedPlatform.Variant))
 		}
 		if !match {
-			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q, expecting one of %q",
-				c.OS, c.Architecture, strings.Join(options.list, ", "))
+			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q+%q, expecting one of %q",
+				c.OS, c.Architecture, c.Variant, strings.Join(options.list, ", "))
 		}
 	}
 	return nil
@@ -360,6 +360,7 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 		logrus.Debugf("Unable to create destination image %s source: %v", ic.c.dest.Reference(), err)
 		return nil, nil
 	}
+	defer destImageSource.Close()
 
 	destManifest, destManifestType, err := destImageSource.GetManifest(ctx, targetInstance)
 	if err != nil {
@@ -379,8 +380,9 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 
 	compressionAlgos := set.New[string]()
 	for _, srcInfo := range ic.src.LayerInfos() {
-		compression := compressionAlgorithmFromMIMEType(srcInfo)
-		compressionAlgos.Add(compression.Name())
+		if c := compressionAlgorithmFromMIMEType(srcInfo); c != nil {
+			compressionAlgos.Add(c.Name())
+		}
 	}
 
 	algos, err := algorithmsByNames(compressionAlgos.Values())
@@ -459,8 +461,14 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		encryptAll = len(*ic.c.options.OciEncryptLayers) == 0
 		totalLayers := len(srcInfos)
 		for _, l := range *ic.c.options.OciEncryptLayers {
-			// if layer is negative, it is reverse indexed.
-			layersToEncrypt.Add((totalLayers + l) % totalLayers)
+			switch {
+			case l >= 0 && l < totalLayers:
+				layersToEncrypt.Add(l)
+			case l < 0 && l+totalLayers >= 0: // Implies (l + totalLayers) < totalLayers
+				layersToEncrypt.Add(l + totalLayers) // If l is negative, it is reverse indexed.
+			default:
+				return nil, fmt.Errorf("when choosing layers to encrypt, layer index %d out of range (%d layers exist)", l, totalLayers)
+			}
 		}
 
 		if encryptAll {
@@ -655,8 +663,12 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 
 	ic.c.printCopyInfo("blob", srcInfo)
 
-	cachedDiffID := ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
-	diffIDIsNeeded := ic.diffIDsAreNeeded && cachedDiffID == ""
+	diffIDIsNeeded := false
+	var cachedDiffID digest.Digest = ""
+	if ic.diffIDsAreNeeded {
+		cachedDiffID = ic.c.blobInfoCache.UncompressedDigest(srcInfo.Digest) // May be ""
+		diffIDIsNeeded = cachedDiffID == ""
+	}
 	// When encrypting to decrypting, only use the simple code path. We might be able to optimize more
 	// (e.g. if we know the DiffID of an encrypted compressed layer, it might not be necessary to pull, decrypt and decompress again),
 	// but it’s not trivially safe to do such things, so until someone takes the effort to make a comprehensive argument, let’s not.
@@ -732,7 +744,9 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
 			if err == nil {
 				if srcInfo.Size != -1 {
-					bar.SetRefill(srcInfo.Size - bar.Current())
+					refill := srcInfo.Size - bar.Current()
+					bar.SetCurrent(srcInfo.Size)
+					bar.SetRefill(refill)
 				}
 				bar.mark100PercentComplete()
 				hideProgressBar = false
