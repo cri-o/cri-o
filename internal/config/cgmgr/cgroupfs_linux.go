@@ -58,7 +58,7 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 	if err != nil {
 		return nil, err
 	}
-	cgMgr, err := m.getOrCreateCtrCgManager(cgPath, containerID)
+	cgMgr, err := m.getOrCreateCgManager(cgPath, containerID)
 	if err != nil {
 		return nil, err
 	}
@@ -74,14 +74,14 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 	return cgstats, nil
 }
 
-func (m *CgroupfsManager) getOrCreateCtrCgManager(cgPath, containerID string) (libctrCg.Manager, error) {
-	if cgMgr, ok := m.cgManagers[containerID]; ok {
+func (m *CgroupfsManager) getOrCreateCgManager(cgPath, id string) (libctrCg.Manager, error) {
+	if cgMgr, ok := m.cgManagers[id]; ok {
 		return cgMgr, nil
 	}
-	ctrName, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+	name, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
 	// TODO: Add relevant config options
 	cg := &cgcfgs.Cgroup{
-		Name:    ctrName,
+		Name:    name,
 		Parent:  parentCgroup,
 		Systemd: false,
 		Resources: &cgcfgs.Resources{
@@ -90,12 +90,11 @@ func (m *CgroupfsManager) getOrCreateCtrCgManager(cgPath, containerID string) (l
 	}
 	cgMgr, err := libctrCgMgr.New(cg)
 	if err != nil {
-		logrus.Errorf("Failed to create cgroup manager for container %s: %v", containerID, err)
+		logrus.Errorf("Failed to create cgroup manager for container/sandbox %s: %v", id, err)
 		return nil, err
 	}
-	m.cgManagers[containerID] = cgMgr
+	m.cgManagers[id] = cgMgr
 	return cgMgr, nil
-
 }
 
 // GetCtrCgroupManager takes the cgroup parent, and container ID.
@@ -105,15 +104,15 @@ func (m *CgroupfsManager) GetCtrCgroupManager(sbParent, containerID string) (lib
 	if err != nil {
 		return nil, err
 	}
-	return m.getOrCreateCtrCgManager(cgPath, containerID)
+	return m.getOrCreateCgManager(cgPath, containerID)
 }
 
-func (m *CgroupfsManager) RemoveCtrCgManager(containerID string) {
-	if cgMgr, ok := m.cgManagers[containerID]; ok {
+func (m *CgroupfsManager) RemoveCgManager(id string) {
+	if cgMgr, ok := m.cgManagers[id]; ok {
 		if err := cgMgr.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy cgroup manager for container %s: %v", containerID, err)
+			logrus.Errorf("Failed to destroy cgroup manager for container/sandbox %s: %v", id, err)
 		}
-		delete(m.cgManagers, containerID)
+		delete(m.cgManagers, id)
 	}
 }
 
@@ -139,12 +138,33 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 
 // SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
 // It returns an object with information from the cgroup found given that parent.
-func (m *CgroupfsManager) SandboxCgroupStats(sbParent string) (*CgroupStats, error) {
-	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
+func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	_, cgPath, err := m.SandboxCgroupPath(sbParent, sbID)
 	if err != nil {
 		return nil, err
 	}
-	return cgroupStatsFromPath(cgPath)
+	cgMgr, err := m.getOrCreateCgManager(cgPath, sbID)
+	if err != nil {
+		return nil, err
+	}
+	libCtrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	cgstats := &CgroupStats{
+		MostStats:     libCtrStats,
+		OtherMemStats: generateOtherMemoryStats(libCtrStats.MemoryStats),
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return cgstats, nil
+}
+
+func (m *CgroupfsManager) GetSbCgroupManager(sbParent, sbID string) (libctrCg.Manager, error) {
+	_, cgPath, err := m.SandboxCgroupPath(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	return m.getOrCreateCgManager(cgPath, sbID)
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID

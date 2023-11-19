@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
@@ -105,6 +106,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 		cgroupfsMgr := CgroupfsManager{
 			memoryPath:    cgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
+			cgManagers:    make(map[string]cgroups.Manager),
 		}
 		if node.CgroupIsV2() {
 			cgroupfsMgr.memoryPath = cgroupMemoryPathV2
