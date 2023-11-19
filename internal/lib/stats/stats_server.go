@@ -100,7 +100,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if sb == nil {
 		return nil
 	}
-	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent())
+	sbCgroupStats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent(), sb.ID())
 	if err != nil {
 		logrus.Warnf("Error getting sandbox stats %s: %v", sb.ID(), err)
 	}

@@ -64,7 +64,7 @@ type CgroupManager interface {
 	SandboxCgroupPath(string, string) (string, string, error)
 	// SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
 	// It returns an object with information from the cgroup found given that parent.
-	SandboxCgroupStats(sbParent string) (*CgroupStats, error)
+	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
 	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
 	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into
@@ -79,8 +79,11 @@ type CgroupManager interface {
 	// GetCtrCgroupManager takes the cgroup parent, and container ID.
 	// It returns the raw libcontainer cgroup manager for that container.
 	GetCtrCgroupManager(sbParent, containerID string) (libctr.Manager, error)
-	// RemoveCtrCgManager removes the cgroup manager for the container
-	RemoveCtrCgManager(containerID string)
+	// GetSbCgroupManager takes the cgroup parent, and sandbox ID.
+	// It returns the raw libcontainer cgroup manager for that sandbox.
+	GetSbCgroupManager(sbParent, sbID string) (libctr.Manager, error)
+	// RemoveCgManager removes and destroys the cgroup manager for the container/sandbox
+	RemoveCgManager(id string)
 }
 
 // New creates a new CgroupManager with defaults

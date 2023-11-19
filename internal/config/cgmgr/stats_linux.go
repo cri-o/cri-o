@@ -3,6 +3,7 @@ package cgmgr
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -152,6 +153,22 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 }
 
 func generateOtherMemoryStats(memstats libctrcgroups.MemoryStats) *CgroupMemoryStats {
-	// TODO
-	return &CgroupMemoryStats{}
+	// TODO: These calculations are for cgroupv2, and need to be updated to include cgroupv1
+	cgstats := &CgroupMemoryStats{}
+	cgstats.Rss = memstats.Stats["anon"]
+	cgstats.WorkingSet = memstats.Usage.Usage - memstats.Stats["inactive_file"]
+	cgstats.PgFault = memstats.Stats["pgfault"]
+	cgstats.PgMajFault = memstats.Stats["pgmajfault"]
+	if !isMemoryUnlimited(memstats.Usage.Limit) {
+		// https://github.com/kubernetes/kubernetes/blob/94f15bbbcbe952762b7f5e6e3f77d86ecec7d7c2/pkg/kubelet/stats/helper.go#L69
+		cgstats.AvailableBytes = memstats.Usage.Limit - memstats.Usage.Usage
+	}
+	return cgstats
+}
+
+func isMemoryUnlimited(v uint64) bool {
+	// if the container has unlimited memory, the value of memory.max (in cgroupv2) will be "max"
+	// or the value of memory.limit_in_bytes (in cgroupv1) will be -1
+	// either way, libcontainer/cgroups will return math.MaxUint64
+	return v == math.MaxUint64
 }

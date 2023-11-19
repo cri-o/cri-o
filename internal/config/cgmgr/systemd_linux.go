@@ -78,7 +78,7 @@ func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*Cg
 	if err != nil {
 		return nil, err
 	}
-	cgMgr, err := m.getOrCreateCtrCgManager(cgPath, containerID)
+	cgMgr, err := m.getOrCreateCgManager(cgPath, containerID)
 	if err != nil {
 		return nil, err
 	}
@@ -94,16 +94,19 @@ func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*Cg
 	return cgstats, nil
 }
 
-func (m *SystemdManager) getOrCreateCtrCgManager(cgPath, containerID string) (cgroups.Manager, error) {
-	if cgMgr, ok := m.cgManagers[containerID]; ok {
+// getOrCreateCtrCgManager takes the cgroup path, and an id
+// For Container: the cgPath is expected to follow the form: pod-123.slice/pod-123-456.slice/crio-<containerID>.scope
+// For Sandbox: the cgPath is expected to follow the form: pod-123.slice/pod-123-456.slice
+func (m *SystemdManager) getOrCreateCgManager(cgPath, id string) (cgroups.Manager, error) {
+	if cgMgr, ok := m.cgManagers[id]; ok {
 		return cgMgr, nil
 	}
-	ctrName, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+	name, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
 	// TODO: Add relevant config options
 	cg := &cgcfgs.Cgroup{
-		Name:   ctrName,
+		Name:   name,
 		Parent: parentCgroup,
-		// The Systemd flag should be set to true. However, creating a cgroup manager will if this flag is set to true. (Possibly a Bug)
+		// The Systemd flag should be set to true. However, creating a cgroup manager will fail if this flag is set to true. (Possibly a Bug)
 		//Systemd: true,
 		Resources: &cgcfgs.Resources{
 			SkipDevices: true,
@@ -111,10 +114,10 @@ func (m *SystemdManager) getOrCreateCtrCgManager(cgPath, containerID string) (cg
 	}
 	cgMgr, err := libctrCgMgr.New(cg)
 	if err != nil {
-		logrus.Errorf("Failed to create cgroup manager for container %s: %v", containerID, err)
+		logrus.Errorf("Failed to create cgroup manager for sandbox/container %s: %v", id, err)
 		return nil, err
 	}
-	m.cgManagers[containerID] = cgMgr
+	m.cgManagers[id] = cgMgr
 	return cgMgr, nil
 
 }
@@ -126,15 +129,15 @@ func (m *SystemdManager) GetCtrCgroupManager(sbParent, containerID string) (cgro
 	if err != nil {
 		return nil, err
 	}
-	return m.getOrCreateCtrCgManager(cgPath, containerID)
+	return m.getOrCreateCgManager(cgPath, containerID)
 }
 
-func (m *SystemdManager) RemoveCtrCgManager(containerID string) {
-	if cgMgr, ok := m.cgManagers[containerID]; ok {
+func (m *SystemdManager) RemoveCgManager(id string) {
+	if cgMgr, ok := m.cgManagers[id]; ok {
 		if err := cgMgr.Destroy(); err != nil {
-			logrus.Errorf("Failed to destroy cgroup manager for container %s: %v", containerID, err)
+			logrus.Errorf("Failed to destroy cgroup manager for container/sandbox %s: %v", id, err)
 		}
-		delete(m.cgManagers, containerID)
+		delete(m.cgManagers, id)
 	}
 }
 
@@ -229,12 +232,33 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 
 // SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
 // It returns an object with information from the cgroup found given that parent.
-func (m *SystemdManager) SandboxCgroupStats(sbParent string) (*CgroupStats, error) {
+func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
 	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
 	if err != nil {
 		return nil, err
 	}
-	return cgroupStatsFromPath(cgPath)
+	cgMgr, err := m.getOrCreateCgManager(cgPath, sbID)
+	if err != nil {
+		return nil, err
+	}
+	libCtrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	cgstats := &CgroupStats{
+		MostStats:     libCtrStats,
+		OtherMemStats: generateOtherMemoryStats(libCtrStats.MemoryStats),
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return cgstats, nil
+}
+
+func (m *SystemdManager) GetSbCgroupManager(sbParent, sbID string) (cgroups.Manager, error) {
+	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
+	if err != nil {
+		return nil, err
+	}
+	return m.getOrCreateCgManager(cgPath, sbID)
 }
 
 // nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
