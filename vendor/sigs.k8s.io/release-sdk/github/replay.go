@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v56/github"
 )
 
 func NewReplayer(replayDir string) Client {
@@ -67,7 +67,7 @@ func (c *githubNotesReplayClient) ListCommits(ctx context.Context, owner, repo s
 	return result, record.response(), nil
 }
 
-func (c *githubNotesReplayClient) ListPullRequestsWithCommit(ctx context.Context, owner, repo, sha string, opt *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error) { //nolint: revive
+func (c *githubNotesReplayClient) ListPullRequestsWithCommit(ctx context.Context, owner, repo, sha string, opt *github.ListOptions) ([]*github.PullRequest, *github.Response, error) { //nolint: revive
 	data, err := c.readRecordedData(gitHubAPIListPullRequestsWithCommit)
 	if err != nil {
 		return nil, nil, err
