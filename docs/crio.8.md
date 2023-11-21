@@ -356,7 +356,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image.
 
-**--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: 0)
+**--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: -1)
 
 **--pinned-images**="": A list of images that will be excluded from the kubelet's garbage collection.
 
