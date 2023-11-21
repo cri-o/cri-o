@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,7 +18,7 @@ import (
 	"github.com/containernetworking/cni/libcni"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -201,7 +202,10 @@ func (n *cniNetwork) loadNetworks() error {
 
 		net, err := createNetworkFromCNIConfigList(conf, file)
 		if err != nil {
-			logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			// ignore ENOENT as the config has been removed in the meantime so we can just ignore this case
+			if !errors.Is(err, fs.ErrNotExist) {
+				logrus.Errorf("CNI config list %s could not be converted to a libpod config, skipping: %v", file, err)
+			}
 			continue
 		}
 		logrus.Debugf("Successfully loaded network %s: %v", net.Name, net)
@@ -302,8 +306,8 @@ func (n *cniNetwork) NetworkInfo() types.NetworkInfo {
 	path := ""
 	packageVersion := ""
 	for _, p := range n.cniPluginDirs {
-		ver := cutil.PackageVersion(p)
-		if ver != cutil.UnknownPackage {
+		ver := version.Package(p)
+		if ver != version.UnknownPackage {
 			path = p
 			packageVersion = ver
 			break
@@ -317,8 +321,8 @@ func (n *cniNetwork) NetworkInfo() types.NetworkInfo {
 	}
 
 	dnsPath := filepath.Join(path, "dnsname")
-	dnsPackage := cutil.PackageVersion(dnsPath)
-	dnsProgram, err := cutil.ProgramVersionDnsname(dnsPath)
+	dnsPackage := version.Package(dnsPath)
+	dnsProgram, err := version.ProgramDnsname(dnsPath)
 	if err != nil {
 		logrus.Infof("Failed to get the dnsname plugin version: %v", err)
 	}

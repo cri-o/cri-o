@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -9,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/containerd/containerd/platforms"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	storageTransport "github.com/containers/image/v5/storage"
@@ -91,13 +96,14 @@ func (i *Image) isCorrupted(name string) error {
 		return err
 	}
 
-	if _, err := ref.NewImage(context.Background(), nil); err != nil {
+	img, err := ref.NewImage(context.Background(), nil)
+	if err != nil {
 		if name == "" {
 			name = i.ID()[:12]
 		}
 		return fmt.Errorf("Image %s exists in local storage but may be corrupted (remove the image to resolve the issue): %v", name, err)
 	}
-	return nil
+	return img.Close()
 }
 
 // Names returns associated names with the image which may be a mix of tags and
@@ -159,10 +165,20 @@ func (i *Image) Digests() []digest.Digest {
 
 // hasDigest returns whether the specified value matches any digest of the
 // image.
-func (i *Image) hasDigest(value string) bool {
-	// TODO: change the argument to a typed digest.Digest
+func (i *Image) hasDigest(wantedDigest digest.Digest) bool {
 	for _, d := range i.Digests() {
-		if string(d) == value {
+		if d == wantedDigest {
+			return true
+		}
+	}
+	return false
+}
+
+// containsDigestPrefix returns whether the specified value matches any digest of the
+// image. It checks for the prefix and not a full match.
+func (i *Image) containsDigestPrefix(wantedDigestPrefix string) bool {
+	for _, d := range i.Digests() {
+		if strings.HasPrefix(d.String(), wantedDigestPrefix) {
 			return true
 		}
 	}
@@ -567,8 +583,7 @@ func (i *Image) Tag(name string) error {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageTag})
 	}
 
-	newNames := append(i.Names(), ref.String())
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.AddNames(i.ID(), []string{ref.String()}); err != nil {
 		return err
 	}
 
@@ -592,7 +607,7 @@ func (i *Image) Untag(name string) error {
 
 	ref, err := NormalizeName(name)
 	if err != nil {
-		return fmt.Errorf("normalizing name %q: %w", name, err)
+		return err
 	}
 
 	// FIXME: this is breaking Podman CI but must be re-enabled once
@@ -607,26 +622,25 @@ func (i *Image) Untag(name string) error {
 
 	name = ref.String()
 
+	foundName := false
+	for _, n := range i.Names() {
+		if n == name {
+			foundName = true
+			break
+		}
+	}
+	// Return an error if the name is not found, the c/storage
+	// RemoveNames() API does not create one if no match is found.
+	if !foundName {
+		return fmt.Errorf("%s: %w", name, errTagUnknown)
+	}
+
 	logrus.Debugf("Untagging %q from image %s", ref.String(), i.ID())
 	if i.runtime.eventChannel != nil {
 		defer i.runtime.writeEvent(&Event{ID: i.ID(), Name: name, Time: time.Now(), Type: EventTypeImageUntag})
 	}
 
-	removedName := false
-	newNames := []string{}
-	for _, n := range i.Names() {
-		if n == name {
-			removedName = true
-			continue
-		}
-		newNames = append(newNames, n)
-	}
-
-	if !removedName {
-		return fmt.Errorf("%s: %w", name, errTagUnknown)
-	}
-
-	if err := i.runtime.store.SetNames(i.ID(), newNames); err != nil {
+	if err := i.runtime.store.RemoveNames(i.ID(), []string{name}); err != nil {
 		return err
 	}
 
@@ -686,24 +700,22 @@ func (i *Image) NamedRepoTags() ([]reference.Named, error) {
 	return repoTags, nil
 }
 
-// inRepoTags looks for the specified name/tag in the image's repo tags.  If
-// `ignoreTag` is set, only the repo must match and the tag is ignored.
-func (i *Image) inRepoTags(namedTagged reference.NamedTagged, ignoreTag bool) (reference.Named, error) {
+// referenceFuzzilyMatchingRepoAndTag checks if the image’s repo (and tag if requiredTag != "") matches a fuzzy short input,
+// and if so, returns the matching reference.
+//
+// DO NOT ADD ANY NEW USERS OF THIS SEMANTICS. Rely on existing libimage calls like LookupImage instead,
+// and handle unqualified the way it does (c/image/pkg/shortnames).
+func (i *Image) referenceFuzzilyMatchingRepoAndTag(requiredRepo reference.Named, requiredTag string) (reference.Named, error) {
 	repoTags, err := i.NamedRepoTags()
 	if err != nil {
 		return nil, err
 	}
 
-	name := namedTagged.Name()
-	tag := namedTagged.Tag()
+	name := requiredRepo.Name()
 	for _, r := range repoTags {
-		if !ignoreTag {
-			var repoTag string
+		if requiredTag != "" {
 			tagged, isTagged := r.(reference.NamedTagged)
-			if isTagged {
-				repoTag = tagged.Tag()
-			}
-			if !isTagged || tag != repoTag {
+			if !isTagged || tagged.Tag() != requiredTag {
 				continue
 			}
 		}
@@ -875,6 +887,7 @@ func (i *Image) hasDifferentDigestWithSystemContext(ctx context.Context, remoteR
 	if err != nil {
 		return false, err
 	}
+	defer remoteImg.Close()
 
 	rawManifest, rawManifestMIMEType, err := remoteImg.Manifest(ctx)
 	if err != nil {
@@ -1010,4 +1023,36 @@ func getImageID(ctx context.Context, src types.ImageReference, sys *types.System
 		return "", fmt.Errorf("getting config info: %w", err)
 	}
 	return "@" + imageDigest.Encoded(), nil
+}
+
+// Checks whether the image matches the specified platform.
+// Returns
+//   - 1) a matching error that can be used for logging (or returning) what does not match
+//   - 2) a bool indicating whether architecture, os or variant were set (some callers need that to decide whether they need to throw an error)
+//   - 3) a fatal error that occurred prior to check for matches (e.g., storage errors etc.)
+func (i *Image) matchesPlatform(ctx context.Context, os, arch, variant string) (error, bool, error) {
+	if err := i.isCorrupted(""); err != nil {
+		return err, false, nil
+	}
+	inspectInfo, err := i.inspectInfo(ctx)
+	if err != nil {
+		return nil, false, fmt.Errorf("inspecting image: %w", err)
+	}
+
+	customPlatform := len(os)+len(arch)+len(variant) != 0
+
+	expected, err := platforms.Parse(platform.ToString(os, arch, variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing host platform: %v", err)
+	}
+	fromImage, err := platforms.Parse(platform.ToString(inspectInfo.Os, inspectInfo.Architecture, inspectInfo.Variant))
+	if err != nil {
+		return nil, false, fmt.Errorf("parsing image platform: %v", err)
+	}
+
+	if platforms.NewMatcher(expected).Match(fromImage) {
+		return nil, customPlatform, nil
+	}
+
+	return fmt.Errorf("image platform (%s) does not match the expected platform (%s)", platforms.Format(fromImage), platforms.Format(expected)), customPlatform, nil
 }
