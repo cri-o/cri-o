@@ -8,7 +8,7 @@
     - "{{ playbook_dir }}/vars.yml"
   tasks:
     - name: run critest validation and benchmarks
-      include: "critest.yml"
+      include_tasks: "critest.yml"
 
     - name: changing permission of temp file
       become: yes

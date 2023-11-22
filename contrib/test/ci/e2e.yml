@@ -1,7 +1,7 @@
 ---
 
 - name: include base e2e setup
-  include: "e2e-base.yml"
+  include_tasks: "e2e-base.yml"
 
 - name: Buffer the e2e testing command to workaround Ansible YAML folding "feature"
   become: yes
