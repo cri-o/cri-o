@@ -217,6 +217,8 @@ github.com/alibabacloud-go/tea-xml v1.1.2/go.mod h1:Rq08vgCcCAjHyRi/M7xlHKUykZCE
 github.com/aliyun/credentials-go v1.1.2/go.mod h1:ozcZaMR5kLM7pwtCMEpVmQ242suV6qTJya2bDq4X1Tw=
 github.com/aliyun/credentials-go v1.2.3 h1:Vmodnr52Rz1mcbwn0kzMhLRKb6soizewuKXdfZiNemU=
 github.com/aliyun/credentials-go v1.2.3/go.mod h1:/KowD1cfGSLrLsH28Jr8W+xwoId0ywIy5lNzDz6O1vw=
+github.com/alvistack/containers-common v0.52.1-0.20231122050745-8a35fde18f5b h1:BhbBHNrh/KMD3MU1t+6bkJEp/kUrbLnPuaWW8AgXSEo=
+github.com/alvistack/containers-common v0.52.1-0.20231122050745-8a35fde18f5b/go.mod h1:dNJJVNBu1wJtAH+vFIMXV+fQHBdEVNmNP3ImjbKper4=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be h1:9AeTilPcZAjCFIImctFaOjnTIavg87rW78vTPkQqLI8=
 github.com/anmitsu/go-shlex v0.0.0-20200514113438-38f4b401e2be/go.mod h1:ySMOLuWl6zY27l47sB3qLNK6tF2fkHG55UZxx8oIVo4=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
@@ -497,8 +499,6 @@ github.com/containernetworking/plugins v1.2.0 h1:SWgg3dQG1yzUo4d9iD8cwSVh1VqI+bP
 github.com/containernetworking/plugins v1.2.0/go.mod h1:/VjX4uHecW5vVimFa1wkG4s+r/s9qIfPdqlLF4TW8c4=
 github.com/containers/buildah v1.30.0 h1:mdp2COGKFFEZNEGP8VZ5ITuUFVNPFoH+iK2sSesNfTA=
 github.com/containers/buildah v1.30.0/go.mod h1:lyMLZIevpAa6zSzjRl7z4lFJMCMQLFjfo56YIefaB/U=
-github.com/containers/common v0.52.0 h1:S5GApgpNEGBuPhDHTFgMc55y5gsuxHcQeElvUpO5kp4=
-github.com/containers/common v0.52.0/go.mod h1:dNJJVNBu1wJtAH+vFIMXV+fQHBdEVNmNP3ImjbKper4=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.4.0 h1:Nl8/xFsc2/dlQUdYi2GTZ+aPCqcedeqnOUld09eiZHc=
