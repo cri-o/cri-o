@@ -9,11 +9,11 @@
     - "{{ playbook_dir }}/vars.yml"
   tasks:
     - name: install kata
-      include: "build/kata.yml"
+      include_tasks: "build/kata.yml"
       when: "build_kata | default(False) | bool"
 
     - name: build and install cri-o
-      include: "build/cri-o.yml"
+      include_tasks: "build/cri-o.yml"
 
     - name: enable and start CRI-O
       become: yes
@@ -24,7 +24,7 @@
         daemon_reload: yes
 
     - name: run cri-o integration tests
-      include: "integration.yml"
+      include_tasks: "integration.yml"
 
     - name: changing permission of temp file
       become: yes

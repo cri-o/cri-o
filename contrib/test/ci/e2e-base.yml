@@ -1,6 +1,6 @@
 ---
 - name: build and install cri-o
-  include: "build/cri-o.yml"
+  include_tasks: "build/cri-o.yml"
 
 # only fixup paths for e2e tests which expect to be able to pass 'test-handler' as the runtime handler
 - name: add test-handler runtime handler for Runtimes test

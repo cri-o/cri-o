@@ -9,7 +9,7 @@
     - e2e
   tasks:
     - name: run k8s e2e tests
-      include: "e2e.yml"
+      include_tasks: "e2e.yml"
       environment: '{{ e2e_test_env }}'
 
     - name: changing permission of temp file
@@ -26,7 +26,7 @@
     - e2e-features
   tasks:
     - name: run k8s e2e features tests
-      include: "e2e-features.yml"
+      include_tasks: "e2e-features.yml"
       environment: '{{ e2e_test_env }}'
 
     - name: changing permission of temp file
