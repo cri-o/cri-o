@@ -13,6 +13,8 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -166,4 +168,22 @@ func createProcessUsage(systemNano int64, cgroupStats *libctrcgroups.Stats) *typ
 		Timestamp:    systemNano,
 		ProcessCount: &types.UInt64Value{Value: cgroupStats.PidsStats.Current},
 	}
+}
+
+func createCgManager(cgPath string, isSystemd bool) (libctrcgroups.Manager, error) { // nolint:staticcheck,unparam
+	// In the case of systemd, this flag should be set to true.
+	// But the cgroup creation currently fails if this flag is set to true
+	// probably due to a bug in libcontainer.
+	// Until we investigate this further, we hardcode this to false.
+	isSystemd = false //nolint:staticcheck
+	name, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+	cg := &cgcfgs.Cgroup{
+		Name:    name,
+		Parent:  parentCgroup,
+		Systemd: isSystemd,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+	}
+	return manager.New(cg)
 }
