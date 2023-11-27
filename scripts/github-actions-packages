@@ -9,6 +9,7 @@ echo "deb $CRIU_REPO/ /" | sudo tee /etc/apt/sources.list.d/criu.list
 
 sudo apt update
 sudo apt install -y \
+    conmon \
     criu \
     libaio-dev \
     libapparmor-dev \

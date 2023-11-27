@@ -267,7 +267,7 @@ $(ZEITGEIST): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64,$(BUILD_BIN_PATH)/zeitgeist)
 
 $(MOCKGEN): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
+	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_$(GO_ARCH).tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
 
 $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)

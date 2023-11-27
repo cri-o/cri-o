@@ -246,17 +246,35 @@ jobs:
           token: ${{ secrets.GH_TOKEN }}
 
   unit:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        runner:
+          - ubuntu-latest
+          - actuated-arm64-4cpu-16gb
+        arch:
+          - amd64
+          - arm64
+        exclude:
+          - runner: ubuntu-latest
+            arch: arm64
+          - runner: actuated-arm64-4cpu-16gb
+            arch: amd64
+    name: unit / ${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v4
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
-      - run: |
+      - name: Update mocks
+        run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
-      - run: sudo PATH="$PATH" make testunit
+      - name: Run unit tests
+        run: |
+          sudo PATH="$PATH" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" make testunit
+          sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)"
       - uses: actions/upload-artifact@v3
         with:
           name: unit
