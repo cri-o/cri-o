@@ -12,7 +12,7 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/cron.yml
       match: GO_VERSION
-    - path: contrib/test/integration/vars.yml
+    - path: contrib/test/ci/vars.yml
       match: golang_version
     - path: contrib/test/ci/vars.yml
       match: golang_version
@@ -36,7 +36,7 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: cni-plugins
-    - path: contrib/test/integration/build/plugins.yml
+    - path: contrib/test/ci/build/plugins.yml
       match: version
     - path: contrib/test/ci/build/plugins.yml
       match: version
@@ -58,7 +58,7 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: cri-tools
-    - path: contrib/test/integration/vars.yml
+    - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
     - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
@@ -80,7 +80,7 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: bats
-    - path: contrib/test/integration/build/bats.yml
+    - path: contrib/test/ci/build/bats.yml
       match: version
     - path: contrib/test/ci/build/bats.yml
       match: version
