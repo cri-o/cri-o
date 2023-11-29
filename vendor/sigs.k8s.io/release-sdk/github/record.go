@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v56/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -99,7 +99,7 @@ func (c *githubNotesRecordClient) ListCommits(ctx context.Context, owner, repo s
 	return commits, resp, nil
 }
 
-func (c *githubNotesRecordClient) ListPullRequestsWithCommit(ctx context.Context, owner, repo, sha string, opt *github.PullRequestListOptions) ([]*github.PullRequest, *github.Response, error) {
+func (c *githubNotesRecordClient) ListPullRequestsWithCommit(ctx context.Context, owner, repo, sha string, opt *github.ListOptions) ([]*github.PullRequest, *github.Response, error) {
 	prs, resp, err := c.client.ListPullRequestsWithCommit(ctx, owner, repo, sha, opt)
 	if err != nil {
 		return nil, nil, err

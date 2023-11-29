@@ -73,6 +73,17 @@ func advertisedReferences(ctx context.Context, s *session, serviceName string) (
 		return nil, err
 	}
 
+	// Git 2.41+ returns a zero-id plus capabilities when an empty
+	// repository is being cloned. This skips the existing logic within
+	// advrefs_decode.decodeFirstHash, which expects a flush-pkt instead.
+	//
+	// This logic aligns with plumbing/transport/internal/common/common.go.
+	if ar.IsEmpty() &&
+		// Empty repositories are valid for git-receive-pack.
+		transport.ReceivePackServiceName != serviceName {
+		return nil, transport.ErrEmptyRemoteRepository
+	}
+
 	transport.FilterUnsupportedCapabilities(ar.Capabilities)
 	s.advRefs = ar
 
@@ -395,12 +406,26 @@ func (a *TokenAuth) String() string {
 // Err is a dedicated error to return errors based on status code
 type Err struct {
 	Response *http.Response
+	Reason   string
 }
 
-// NewErr returns a new Err based on a http response
+// NewErr returns a new Err based on a http response and closes response body
+// if needed
 func NewErr(r *http.Response) error {
 	if r.StatusCode >= http.StatusOK && r.StatusCode < http.StatusMultipleChoices {
 		return nil
+	}
+
+	var reason string
+
+	// If a response message is present, add it to error
+	var messageBuffer bytes.Buffer
+	if r.Body != nil {
+		messageLength, _ := messageBuffer.ReadFrom(r.Body)
+		if messageLength > 0 {
+			reason = messageBuffer.String()
+		}
+		_ = r.Body.Close()
 	}
 
 	switch r.StatusCode {
@@ -412,7 +437,7 @@ func NewErr(r *http.Response) error {
 		return transport.ErrRepositoryNotFound
 	}
 
-	return plumbing.NewUnexpectedError(&Err{r})
+	return plumbing.NewUnexpectedError(&Err{r, reason})
 }
 
 // StatusCode returns the status code of the response

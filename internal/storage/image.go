@@ -373,7 +373,8 @@ func (svc *imageService) ImageStatusByName(systemContext *types.SystemContext, n
 	if err != nil {
 		return nil, err
 	}
-	image, err := istorage.Transport.GetStoreImage(svc.store, ref) //nolint: staticcheck
+	//nolint:staticcheck // TODO: fix deprecated usage
+	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -386,7 +387,8 @@ func (svc *imageService) ImageStatusByID(systemContext *types.SystemContext, id 
 	if err != nil {
 		return nil, err
 	}
-	image, err := istorage.Transport.GetStoreImage(svc.store, ref) //nolint: staticcheck
+	//nolint:staticcheck // TODO: fix deprecated usage
+	image, err := istorage.Transport.GetStoreImage(svc.store, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -677,6 +679,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, name Reg
 	if err != nil {
 		return err
 	}
+	//nolint:staticcheck // TODO: fix deprecated usage
 	img, err := istorage.Transport.GetStoreImage(svc.store, ref)
 	if err != nil {
 		return err
