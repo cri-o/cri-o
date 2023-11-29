@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 28 Nov 2023 21:40:14 UTC for commit [6e26c2a][0]._
+_Generated on Wed, 29 Nov 2023 12:58:32 UTC for commit [b886f78][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6e26c2a7386cdf107aa1bbbc94faff0be06d4160
+[0]: https://github.com/cri-o/cri-o/commit/b886f787e5f31f51e56c7918c1ea6e110fa50264
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Tue, 28 Nov 2023 21:40:14 UTC for commit [6e26c2a][0]._
 | github.com/docker/distribution                                              | v2.8.2+incompatible                  | v2.8.3+incompatible                | true   | true             |
 | github.com/go-logr/logr                                                     | v1.2.4                               | v1.3.0                             | true   | true             |
 | github.com/google/uuid                                                      | v1.3.1                               | v1.4.0                             | true   | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.13.0                              | v2.13.1                            | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.13.0                              | v2.13.2                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.29.0                              | v1.30.0                            | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc4                           | v1.1.0-rc5                         | true   | true             |
 | github.com/opencontainers/runc                                              | v1.1.9                               | v1.1.10                            | true   | true             |
@@ -635,7 +635,7 @@ _Generated on Tue, 28 Nov 2023 21:40:14 UTC for commit [6e26c2a][0]._
 | github.com/oklog/ulid                                                                   | v1.3.1                                            |                                    | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                            |                                    | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                    | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.13.0                                           | v2.13.1                            | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.13.0                                           | v2.13.2                            | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.29.0                                           | v1.30.0                            | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.52.0                                           | v0.58.0                            | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                    | true   | true             |
@@ -800,7 +800,7 @@ _Generated on Tue, 28 Nov 2023 21:40:14 UTC for commit [6e26c2a][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.19.0                                           | v1.21.0                            | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.19.0                                           | v1.21.0                            | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.0.0                                            |                                    | false  | true             |
-| go.step.sm/crypto                                                                       | v0.32.2                                           | v0.37.0                            | false  | true             |
+| go.step.sm/crypto                                                                       | v0.32.2                                           | v0.38.0                            | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                    | false  | true             |
 | go.uber.org/goleak                                                                      | v1.2.1                                            | v1.3.0                             | false  | true             |
 | go.uber.org/mock                                                                        | v0.2.0                                            | v0.3.0                             | false  | true             |
@@ -868,7 +868,7 @@ _Generated on Tue, 28 Nov 2023 21:40:14 UTC for commit [6e26c2a][0]._
 | k8s.io/kubelet                                                                          | v0.29.0-alpha.2                                   | v0.30.0-alpha.0                    | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.4                            | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20230726121419-3b25d923346b                | v0.0.0-20231127182322-b307cd553661 | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231128165226-33d95eac96e0 | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230404101938-ee73c9355c9d                | v0.0.0-20231129013332-6df4a9a2a222 | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                    | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                    | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                           | false  | true             |
