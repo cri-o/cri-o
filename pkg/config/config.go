@@ -1208,6 +1208,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		RuntimeRoot: DefaultRuntimeRoot,
 		AllowedAnnotations: []string{
 			annotations.OCISeccompBPFHookAnnotation,
+			annotations.DevicesAnnotation,
 		},
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
