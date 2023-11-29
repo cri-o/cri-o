@@ -26,7 +26,7 @@ var atomicInt int32
 
 // SetGlobalVerbose sets the global command verbosity to the specified value
 func SetGlobalVerbose(to bool) {
-	var i int32 = 0
+	var i int32
 	if to {
 		i = 1
 	}

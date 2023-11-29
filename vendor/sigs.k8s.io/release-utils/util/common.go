@@ -39,10 +39,10 @@ const (
 )
 
 var (
-	regexpCRLF       *regexp.Regexp = regexp.MustCompile(`\015$`)
-	regexpCtrlChar   *regexp.Regexp = regexp.MustCompile(`\x1B[\[(](\d{1,2}(;\d{1,2})?)?[mKB]`)
-	regexpOauthToken *regexp.Regexp = regexp.MustCompile(`[a-f0-9]{40}:x-oauth-basic`)
-	regexpGitToken   *regexp.Regexp = regexp.MustCompile(`git:[a-f0-9]{35,40}@github\.com`)
+	regexpCRLF       = regexp.MustCompile(`\015$`)
+	regexpCtrlChar   = regexp.MustCompile(`\x1B[\[(](\d{1,2}(;\d{1,2})?)?[mKB]`)
+	regexpOauthToken = regexp.MustCompile(`[a-f0-9]{40}:x-oauth-basic`)
+	regexpGitToken   = regexp.MustCompile(`git:[a-f0-9]{35,40}@github\.com`)
 )
 
 // UserInputError a custom error to handle more user input info

@@ -304,6 +304,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 	if err != nil {
 		return ContainerInfo{}, err
 	}
+	//nolint:staticcheck // TODO: fix deprecated usage
 	img, err := istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
 	if err != nil && errors.Is(err, storage.ErrImageUnknown) {
 		logrus.Debugf("Couldn't find image %q, retrieving it", pauseImage)
@@ -321,6 +322,7 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if err != nil {
 			return ContainerInfo{}, err
 		}
+		//nolint:staticcheck // TODO: fix deprecated usage
 		img, err = istorage.Transport.GetStoreImage(r.storageImageServer.GetStore(), ref)
 		if err != nil {
 			return ContainerInfo{}, err

@@ -172,6 +172,7 @@ func main() {
 				}
 			}
 			if addName != "" {
+				//nolint:staticcheck // TODO: fix deprecated usage
 				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
 				if err1 != nil {
 					log.Fatalf(ctx, "Error finding image: %v", err1)
