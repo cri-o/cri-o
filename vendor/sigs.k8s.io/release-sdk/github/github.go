@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v53/github"
+	"github.com/google/go-github/v56/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -94,7 +94,7 @@ type Client interface {
 		context.Context, string, string, *github.CommitsListOptions,
 	) ([]*github.RepositoryCommit, *github.Response, error)
 	ListPullRequestsWithCommit(
-		context.Context, string, string, string, *github.PullRequestListOptions,
+		context.Context, string, string, string, *github.ListOptions,
 	) ([]*github.PullRequest, *github.Response, error)
 	ListMilestones(
 		context.Context, string, string, *github.MilestoneListOptions,
@@ -214,7 +214,7 @@ func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
 		))
 	}
 	logrus.Debugf("Using %s Enterprise GitHub client", state)
-	ghclient, err := github.NewEnterpriseClient(baseURL, uploadURL, client)
+	ghclient, err := github.NewClient(client).WithEnterpriseURLs(baseURL, uploadURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to new github client: %s", err)
 	}
@@ -281,7 +281,7 @@ func (g *githubClient) ListCommits(
 
 func (g *githubClient) ListPullRequestsWithCommit(
 	ctx context.Context, owner, repo, sha string,
-	opt *github.PullRequestListOptions,
+	opt *github.ListOptions,
 ) ([]*github.PullRequest, *github.Response, error) {
 	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
 		prs, resp, err := g.PullRequests.ListPullRequestsWithCommit(
