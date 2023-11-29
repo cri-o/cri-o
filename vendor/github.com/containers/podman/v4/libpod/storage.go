@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -77,7 +80,7 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 		if err != nil {
 			return ContainerInfo{}, err
 		}
-		img, err := istorage.Transport.GetStoreImage(r.store, ref)
+		_, img, err := istorage.ResolveReference(ref)
 		if err != nil {
 			return ContainerInfo{}, err
 		}

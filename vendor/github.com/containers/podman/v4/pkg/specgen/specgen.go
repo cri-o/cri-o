@@ -6,7 +6,6 @@ import (
 	"strings"
 	"syscall"
 
-	"github.com/containers/common/libimage"
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/podman/v4/libpod/define"
@@ -515,6 +514,10 @@ type ContainerNetworkConfig struct {
 
 // ContainerResourceConfig contains information on container resource limits.
 type ContainerResourceConfig struct {
+	// IntelRdt defines the Intel RDT CAT Class of Service (COS) that all processes
+	// of the container should run in.
+	// Optional.
+	IntelRdt *spec.LinuxIntelRdt `json:"intelRdt,omitempty"`
 	// ResourceLimits are resource limits to apply to the container.,
 	// Can only be set as root on cgroups v1 systems, but can be set as
 	// rootless as well for cgroups v2.
@@ -570,20 +573,9 @@ type SpecGenerator struct {
 	ContainerResourceConfig
 	ContainerHealthCheckConfig
 
-	image             *libimage.Image `json:"-"`
-	resolvedImageName string          `json:"-"`
-}
-
-// SetImage sets the associated for the generator.
-func (s *SpecGenerator) SetImage(image *libimage.Image, resolvedImageName string) {
-	s.image = image
-	s.resolvedImageName = resolvedImageName
-}
-
-// Image returns the associated image for the generator.
-// May be nil if no image has been set yet.
-func (s *SpecGenerator) GetImage() (*libimage.Image, string) {
-	return s.image, s.resolvedImageName
+	//nolint:unused // this is needed for the local client but golangci-lint
+	// does not seems to happy when we test the remote stub
+	cacheLibImage
 }
 
 func (s *SpecGenerator) IsInitContainer() bool {

@@ -244,6 +244,13 @@ type ImagePushOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+	//  If necessary, add clones of existing instances with requested compression algorithms to manifest list
+	// Note: Following option is only valid for `manifest push`
+	AddCompression []string
+	// ForceCompressionFormat ensures that the compression algorithm set in
+	// CompressionFormat is used exclusively, and blobs of other compression
+	// algorithms are not reused.
+	ForceCompressionFormat bool
 }
 
 // ImagePushReport is the response from pushing an image.
@@ -470,4 +477,34 @@ type ImageMountReport struct {
 type ImageUnmountReport struct {
 	Err error
 	Id  string //nolint:revive,stylecheck
+}
+
+const (
+	LocalFarmImageBuilderName   = "(local)"
+	LocalFarmImageBuilderDriver = "local"
+)
+
+// FarmInspectReport describes the response from farm inspect
+type FarmInspectReport struct {
+	NativePlatforms   []string
+	EmulatedPlatforms []string
+	OS                string
+	Arch              string
+	Variant           string
+}
+
+// PullToFileOptions are the options for pulling the images from farm
+// nodes into a dir
+type PullToFileOptions struct {
+	ImageID    string
+	SaveFormat string
+	SaveFile   string
+}
+
+// PullToLocalOptions are the options for pulling the images from farm
+// nodes into containers-storage
+type PullToLocalOptions struct {
+	ImageID     string
+	SaveFormat  string
+	Destination ImageEngine
 }

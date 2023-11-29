@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (
@@ -9,7 +12,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/common/libimage"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/slirp4netns"
@@ -23,6 +25,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
+	"tags.cncf.io/container-device-interface/pkg/parser"
 )
 
 // MakeContainer creates a container based on the SpecGenerator.
@@ -44,14 +47,14 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		s.OOMScoreAdj = rtc.Containers.OOMScoreAdj
 	}
 
-	if len(rtc.Containers.CgroupConf) > 0 {
+	if len(rtc.Containers.CgroupConf.Get()) > 0 {
 		if s.ResourceLimits == nil {
 			s.ResourceLimits = &specs.LinuxResources{}
 		}
 		if s.ResourceLimits.Unified == nil {
 			s.ResourceLimits.Unified = make(map[string]string)
 		}
-		for _, cgroupConf := range rtc.Containers.CgroupConf {
+		for _, cgroupConf := range rtc.Containers.CgroupConf.Get() {
 			cgr := strings.SplitN(cgroupConf, "=", 2)
 			if len(cgr) != 2 {
 				return nil, nil, nil, fmt.Errorf("CgroupConf %q from containers.conf invalid, must be name=value", cgr)
@@ -224,12 +227,12 @@ func MakeContainer(ctx context.Context, rt *libpod.Runtime, s *specgen.SpecGener
 		options = append(options, libpod.WithHostUsers(s.HostUsers))
 	}
 
-	command, err := makeCommand(s, imageData, rtc)
+	command, err := makeCommand(s, imageData)
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	infraVol := (len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0)
+	infraVol := len(compatibleOptions.Mounts) > 0 || len(compatibleOptions.Volumes) > 0 || len(compatibleOptions.ImageVolumes) > 0 || len(compatibleOptions.OverlayVolumes) > 0
 	opts, err := createContainerOptions(rt, s, pod, finalVolumes, finalOverlays, imageData, command, infraVol, *compatibleOptions)
 	if err != nil {
 		return nil, nil, nil, err
@@ -341,7 +344,7 @@ func ExtractCDIDevices(s *specgen.SpecGenerator) []libpod.CtrCreateOption {
 
 // isCDIDevice checks whether the specified device is a CDI device.
 func isCDIDevice(device string) bool {
-	return cdi.IsQualifiedName(device)
+	return parser.IsQualifiedName(device)
 }
 
 func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *libpod.Pod, volumes []*specgen.NamedVolume, overlays []*specgen.OverlayVolume, imageData *libimage.ImageData, command []string, infraVolumes bool, compatibleOptions libpod.InfraInherit) ([]libpod.CtrCreateOption, error) {
@@ -559,6 +562,7 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 		}
 	}
 	options = append(options, libpod.WithPrivileged(s.Privileged))
+	options = append(options, libpod.WithReadWriteTmpfs(s.ReadWriteTmpfs))
 
 	// Get namespace related options
 	namespaceOpts, err := namespaceOptions(s, rt, pod, imageData)
@@ -601,16 +605,23 @@ func createContainerOptions(rt *libpod.Runtime, s *specgen.SpecGenerator, pod *l
 	}
 	options = append(options, libpod.WithRestartRetries(retries), libpod.WithRestartPolicy(restartPolicy))
 
+	healthCheckSet := false
 	if s.ContainerHealthCheckConfig.HealthConfig != nil {
 		options = append(options, libpod.WithHealthCheck(s.ContainerHealthCheckConfig.HealthConfig))
 		logrus.Debugf("New container has a health check")
+		healthCheckSet = true
 	}
 	if s.ContainerHealthCheckConfig.StartupHealthConfig != nil {
 		options = append(options, libpod.WithStartupHealthcheck(s.ContainerHealthCheckConfig.StartupHealthConfig))
+		healthCheckSet = true
 	}
 
 	if s.ContainerHealthCheckConfig.HealthCheckOnFailureAction != define.HealthCheckOnFailureActionNone {
 		options = append(options, libpod.WithHealthCheckOnFailureAction(s.ContainerHealthCheckConfig.HealthCheckOnFailureAction))
+	}
+
+	if s.SdNotifyMode == define.SdNotifyModeHealthy && !healthCheckSet {
+		return nil, fmt.Errorf("%w: sdnotify policy %q requires a healthcheck to be set", define.ErrInvalidArg, s.SdNotifyMode)
 	}
 
 	if len(s.Secrets) != 0 {

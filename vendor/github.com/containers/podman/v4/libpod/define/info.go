@@ -62,13 +62,14 @@ type HostInfo struct {
 	SwapFree  int64  `json:"swapFree"`
 	SwapTotal int64  `json:"swapTotal"`
 	Uptime    string `json:"uptime"`
+	Variant   string `json:"variant"`
 	Linkmode  string `json:"linkmode"`
 }
 
 // RemoteSocket describes information about the API socket
 type RemoteSocket struct {
 	Path   string `json:"path,omitempty"`
-	Exists bool   `json:"exists,omitempty"`
+	Exists bool   `json:"exists"`
 }
 
 // SlirpInfo describes the slirp executable that is being used

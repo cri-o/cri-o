@@ -1,4 +1,5 @@
-//go:build linux || freebsd
+//go:build !remote && (linux || freebsd)
+// +build !remote
 // +build linux freebsd
 
 package libpod
@@ -23,8 +24,9 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	conmonConfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/logs"
@@ -34,7 +36,6 @@ import (
 	"github.com/containers/podman/v4/pkg/specgenutil"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/podman/v4/utils"
-	"github.com/containers/storage/pkg/homedir"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -79,16 +80,16 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	}
 
 	// Make lookup tables for runtime support
-	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON))
-	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups))
-	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM))
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON {
+	supportsJSON := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsJSON.Get()))
+	supportsNoCgroups := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get()))
+	supportsKVM := make(map[string]bool, len(runtimeCfg.Engine.RuntimeSupportsKVM.Get()))
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsJSON.Get() {
 		supportsJSON[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsNoCgroups.Get() {
 		supportsNoCgroups[r] = true
 	}
-	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM {
+	for _, r := range runtimeCfg.Engine.RuntimeSupportsKVM.Get() {
 		supportsKVM[r] = true
 	}
 
@@ -97,7 +98,7 @@ func newConmonOCIRuntime(name string, paths []string, conmonPath string, runtime
 	runtime.conmonPath = conmonPath
 	runtime.runtimeFlags = runtimeFlags
 
-	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars
+	runtime.conmonEnv = runtimeCfg.Engine.ConmonEnvVars.Get()
 	runtime.tmpDir = runtimeCfg.Engine.TmpDir
 	runtime.logSizeMax = runtimeCfg.Containers.LogSizeMax
 	runtime.noPivot = runtimeCfg.Engine.NoPivotRoot
@@ -375,9 +376,9 @@ func (r *ConmonOCIRuntime) killContainer(ctr *Container, signal uint, all, captu
 	var args []string
 	args = append(args, r.runtimeFlags...)
 	if all {
-		args = append(args, "kill", "--all", ctr.ID(), fmt.Sprintf("%d", signal))
+		args = append(args, "kill", "--all", ctr.ID(), strconv.FormatUint(uint64(signal), 10))
 	} else {
-		args = append(args, "kill", ctr.ID(), fmt.Sprintf("%d", signal))
+		args = append(args, "kill", ctr.ID(), strconv.FormatUint(uint64(signal), 10))
 	}
 	var (
 		stderr       io.Writer = os.Stderr
@@ -420,22 +421,6 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 	killCtr := func(signal uint) (bool, error) {
 		stderr, err := r.killContainer(ctr, signal, all, true)
-
-		// Before handling error from KillContainer, convert STDERR to a []string
-		// (one string per line of output) and print it, ignoring known OCI runtime
-		// errors that we don't care about
-		stderrLines := strings.Split(stderr.String(), "\n")
-		for _, line := range stderrLines {
-			if line == "" {
-				continue
-			}
-			if strings.Contains(line, "container not running") || strings.Contains(line, "open pidfd: No such process") || strings.Contains(line, "kill container: No such process") {
-				logrus.Debugf("Failure to kill container (already stopped?): logged %s", line)
-				continue
-			}
-			fmt.Fprintf(os.Stderr, "%s\n", line)
-		}
-
 		if err != nil {
 			// There's an inherent race with the cleanup process (see
 			// #16142, #17142). If the container has already been marked as
@@ -461,6 +446,16 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 
 			return false, err
 		}
+
+		// Before handling error from KillContainer, convert STDERR to a []string
+		// (one string per line of output) and print it.
+		stderrLines := strings.Split(stderr.String(), "\n")
+		for _, line := range stderrLines {
+			if line != "" {
+				fmt.Fprintf(os.Stderr, "%s\n", line)
+			}
+		}
+
 		return false, nil
 	}
 
@@ -478,9 +473,13 @@ func (r *ConmonOCIRuntime) StopContainer(ctr *Container, timeout uint, all bool)
 			return nil
 		}
 
-		if err := waitContainerStop(ctr, time.Duration(timeout)*time.Second); err != nil {
-			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), unix.SignalName(syscall.Signal(stopSignal)), err)
-			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", unix.SignalName(syscall.Signal(stopSignal)), ctr.Name(), timeout)
+		if err := waitContainerStop(ctr, time.Duration(util.ConvertTimeout(int(timeout)))*time.Second); err != nil {
+			sigName := unix.SignalName(syscall.Signal(stopSignal))
+			if sigName == "" {
+				sigName = fmt.Sprintf("(%d)", stopSignal)
+			}
+			logrus.Debugf("Timed out stopping container %s with %s, resorting to SIGKILL: %v", ctr.ID(), sigName, err)
+			logrus.Warnf("StopSignal %s failed to stop container %s in %d seconds, resorting to SIGKILL", sigName, ctr.Name(), timeout)
 		} else {
 			// No error, the container is dead
 			return nil
@@ -585,7 +584,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	if detachKeys != nil {
 		detachString = *detachKeys
 	}
-	detach, err := processDetachKeys(detachString)
+	isDetach, err := processDetachKeys(detachString)
 	if err != nil {
 		return err
 	}
@@ -614,7 +613,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 
 	hijackDone <- true
 
-	writeHijackHeader(req, httpBuf)
+	writeHijackHeader(req, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
@@ -737,7 +736,7 @@ func (r *ConmonOCIRuntime) HTTPAttach(ctr *Container, req *http.Request, w http.
 	// Next, STDIN. Avoid entirely if attachStdin unset.
 	if attachStdin {
 		go func() {
-			_, err := cutil.CopyDetachable(conn, httpBuf, detach)
+			_, err := detach.Copy(conn, httpBuf, isDetach)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()
@@ -945,8 +944,8 @@ func (r *ConmonOCIRuntime) ExitFilePath(ctr *Container) (string, error) {
 
 // RuntimeInfo provides information on the runtime.
 func (r *ConmonOCIRuntime) RuntimeInfo() (*define.ConmonInfo, *define.OCIRuntimeInfo, error) {
-	runtimePackage := cutil.PackageVersion(r.path)
-	conmonPackage := cutil.PackageVersion(r.conmonPath)
+	runtimePackage := version.Package(r.path)
+	conmonPackage := version.Package(r.conmonPath)
 	runtimeVersion, err := r.getOCIRuntimeVersion()
 	if err != nil {
 		return nil, nil, fmt.Errorf("getting version of OCI runtime %s: %w", r.name, err)
@@ -1000,6 +999,7 @@ func waitContainerStop(ctr *Container, timeout time.Duration) error {
 // Wait for a given PID to stop
 func waitPidStop(pid int, timeout time.Duration) error {
 	timer := time.NewTimer(timeout)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
@@ -1041,11 +1041,6 @@ func (r *ConmonOCIRuntime) getLogTag(ctr *Container) (string, error) {
 // createOCIContainer generates this container's main conmon instance and prepares it for starting
 func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *ContainerCheckpointOptions) (int64, error) {
 	var stderrBuf bytes.Buffer
-
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return 0, err
-	}
 
 	parentSyncPipe, childSyncPipe, err := newPipe()
 	if err != nil {
@@ -1108,7 +1103,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		args = append(args, "--no-pivot")
 	}
 
-	exitCommand, err := specgenutil.CreateExitCommandArgs(ctr.runtime.storageConfig, ctr.runtime.config, logrus.IsLevelEnabled(logrus.DebugLevel), ctr.AutoRemove(), false)
+	exitCommand, err := specgenutil.CreateExitCommandArgs(ctr.runtime.storageConfig, ctr.runtime.config, ctr.runtime.syslog || logrus.IsLevelEnabled(logrus.DebugLevel), ctr.AutoRemove(), false)
 	if err != nil {
 		return 0, err
 	}
@@ -1134,7 +1129,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	if preserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", preserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(preserveFDs), 10))...)
 	}
 
 	if restoreOptions != nil {
@@ -1189,7 +1184,10 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	}
 
 	// 0, 1 and 2 are stdin, stdout and stderr
-	conmonEnv := r.configureConmonEnv(runtimeDir)
+	conmonEnv, err := r.configureConmonEnv()
+	if err != nil {
+		return 0, fmt.Errorf("configuring conmon env: %w", err)
+	}
 
 	var filesToClose []*os.File
 	if preserveFDs > 0 {
@@ -1251,7 +1249,7 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 	if restoreOptions != nil {
 		runtimeRestoreStarted = time.Now()
 	}
-	err = startCommand(cmd, ctr)
+	err = cmd.Start()
 
 	// regardless of whether we errored or not, we no longer need the children pipes
 	childSyncPipe.Close()
@@ -1260,12 +1258,20 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 		return 0, err
 	}
 	if err := r.moveConmonToCgroupAndSignal(ctr, cmd, parentStartPipe); err != nil {
-		return 0, err
+		// The child likely already exited in which case the cmd.Wait() below should return the proper error.
+		// EPIPE is expected if the child already exited so not worth to log and kill the process.
+		if !errors.Is(err, syscall.EPIPE) {
+			logrus.Errorf("Failed to signal conmon to start: %v", err)
+			if err := cmd.Process.Kill(); err != nil && !errors.Is(err, syscall.ESRCH) {
+				logrus.Errorf("Failed to kill conmon after error: %v", err)
+			}
+		}
 	}
+
 	/* Wait for initial setup and fork, and reap child */
 	err = cmd.Wait()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("conmon failed: %w", err)
 	}
 
 	pid, err := readConmonPipeData(r.name, parentSyncPipe, ociLog)
@@ -1303,32 +1309,28 @@ func (r *ConmonOCIRuntime) createOCIContainer(ctr *Container, restoreOptions *Co
 }
 
 // configureConmonEnv gets the environment values to add to conmon's exec struct
-// TODO this may want to be less hardcoded/more configurable in the future
-func (r *ConmonOCIRuntime) configureConmonEnv(runtimeDir string) []string {
-	var env []string
-	for _, e := range os.Environ() {
-		if strings.HasPrefix(e, "LC_") {
-			env = append(env, e)
+func (r *ConmonOCIRuntime) configureConmonEnv() ([]string, error) {
+	env := os.Environ()
+	res := make([]string, 0, len(env))
+	for _, v := range env {
+		if strings.HasPrefix(v, "NOTIFY_SOCKET=") {
+			// The NOTIFY_SOCKET must not leak into the environment.
+			continue
 		}
+		if strings.HasPrefix(v, "DBUS_SESSION_BUS_ADDRESS=") && !rootless.IsRootless() {
+			// The DBUS_SESSION_BUS_ADDRESS must not leak into the environment when running as root.
+			// This is because we want to use the system session for root containers, not the user session.
+			continue
+		}
+		res = append(res, v)
 	}
-	if path, ok := os.LookupEnv("PATH"); ok {
-		env = append(env, fmt.Sprintf("PATH=%s", path))
-	}
-	if conf, ok := os.LookupEnv("CONTAINERS_CONF"); ok {
-		env = append(env, fmt.Sprintf("CONTAINERS_CONF=%s", conf))
-	}
-	if conf, ok := os.LookupEnv("CONTAINERS_HELPER_BINARY_DIR"); ok {
-		env = append(env, fmt.Sprintf("CONTAINERS_HELPER_BINARY_DIR=%s", conf))
-	}
-	env = append(env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", runtimeDir))
-	env = append(env, fmt.Sprintf("_CONTAINERS_USERNS_CONFIGURED=%s", os.Getenv("_CONTAINERS_USERNS_CONFIGURED")))
-	env = append(env, fmt.Sprintf("_CONTAINERS_ROOTLESS_UID=%s", os.Getenv("_CONTAINERS_ROOTLESS_UID")))
-	home := homedir.Get()
-	if home != "" {
-		env = append(env, fmt.Sprintf("HOME=%s", home))
+	runtimeDir, err := util.GetRuntimeDir()
+	if err != nil {
+		return nil, err
 	}
 
-	return env
+	res = append(res, "XDG_RUNTIME_DIR="+runtimeDir)
+	return res, nil
 }
 
 // sharedConmonArgs takes common arguments for exec and create/restore and formats them for the conmon CLI
@@ -1392,7 +1394,7 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		size = ctr.config.LogSize
 	}
 	if size > 0 {
-		args = append(args, "--log-size-max", fmt.Sprintf("%v", size))
+		args = append(args, "--log-size-max", strconv.FormatInt(size, 10))
 	}
 
 	if ociLogPath != "" {
@@ -1406,25 +1408,6 @@ func (r *ConmonOCIRuntime) sharedConmonArgs(ctr *Container, cuuid, bundlePath, p
 		args = append(args, "--runtime-arg", "--cgroup-manager", "--runtime-arg", "disabled")
 	}
 	return args
-}
-
-func startCommand(cmd *exec.Cmd, ctr *Container) error {
-	// Make sure to unset the NOTIFY_SOCKET and reset it afterwards if needed.
-	switch ctr.config.SdNotifyMode {
-	case define.SdNotifyModeContainer, define.SdNotifyModeIgnore:
-		if prev := os.Getenv("NOTIFY_SOCKET"); prev != "" {
-			if err := os.Unsetenv("NOTIFY_SOCKET"); err != nil {
-				logrus.Warnf("Error unsetting NOTIFY_SOCKET %v", err)
-			}
-			defer func() {
-				if err := os.Setenv("NOTIFY_SOCKET", prev); err != nil {
-					logrus.Errorf("Resetting NOTIFY_SOCKET=%s", prev)
-				}
-			}()
-		}
-	}
-
-	return cmd.Start()
 }
 
 // newPipe creates a unix socket pair for communication.

@@ -59,6 +59,9 @@ type PlayKubeOptions struct {
 	Start types.OptionalBool
 	// ServiceContainer - creates a service container that is started before and is stopped after all pods.
 	ServiceContainer bool
+	// UseLongAnnotations - use annotations that were not truncated to the
+	// Kubernetes maximum length of 63 characters
+	UseLongAnnotations bool
 	// Userns - define the user namespace to use.
 	Userns string
 	// IsRemote - was the request triggered by running podman-remote
@@ -67,6 +70,9 @@ type PlayKubeOptions struct {
 	Force bool
 	// PublishPorts - configure how to expose ports configured inside the K8S YAML file
 	PublishPorts []string
+	// PublishAllPorts - whether to publish all ports defined in the K8S YAML file
+	// (containerPort, hostPort) otherwise only hostPort will be published
+	PublishAllPorts bool
 	// Wait - indicates whether to return after having created the pods
 	Wait bool
 }

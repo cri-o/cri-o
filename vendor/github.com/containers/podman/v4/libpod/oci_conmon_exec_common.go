@@ -1,3 +1,7 @@
+//go:build !remote && (linux || freebsd)
+// +build !remote
+// +build linux freebsd
+
 package libpod
 
 import (
@@ -7,17 +11,17 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/containers/common/pkg/config"
+	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/podman/v4/pkg/lookup"
-	"github.com/containers/podman/v4/pkg/util"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
@@ -374,11 +378,6 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		}
 	}()
 
-	runtimeDir, err := util.GetRuntimeDir()
-	if err != nil {
-		return nil, nil, err
-	}
-
 	finalEnv := make([]string, 0, len(options.Env))
 	for k, v := range options.Env {
 		finalEnv = append(finalEnv, fmt.Sprintf("%s=%s", k, v))
@@ -393,7 +392,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	args := r.sharedConmonArgs(c, sessionID, c.execBundlePath(sessionID), c.execPidPath(sessionID), c.execLogPath(sessionID), c.execExitFileDir(sessionID), ociLog, define.NoLogging, c.config.LogTag)
 
 	if options.PreserveFDs > 0 {
-		args = append(args, formatRuntimeOpts("--preserve-fds", fmt.Sprintf("%d", options.PreserveFDs))...)
+		args = append(args, formatRuntimeOpts("--preserve-fds", strconv.FormatUint(uint64(options.PreserveFDs), 10))...)
 	}
 
 	if options.Terminal {
@@ -416,7 +415,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 			args = append(args, []string{"--exit-command-arg", arg}...)
 		}
 		if options.ExitCommandDelay > 0 {
-			args = append(args, []string{"--exit-delay", fmt.Sprintf("%d", options.ExitCommandDelay)}...)
+			args = append(args, []string{"--exit-delay", strconv.FormatUint(uint64(options.ExitCommandDelay), 10)}...)
 		}
 	}
 
@@ -438,7 +437,10 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 	// 	}
 	// }
 
-	conmonEnv := r.configureConmonEnv(runtimeDir)
+	conmonEnv, err := r.configureConmonEnv()
+	if err != nil {
+		return nil, nil, fmt.Errorf("configuring conmon env: %w", err)
+	}
 
 	var filesToClose []*os.File
 	if options.PreserveFDs > 0 {
@@ -461,7 +463,7 @@ func (r *ConmonOCIRuntime) startExec(c *Container, sessionID string, options *Ex
 		Setpgid: true,
 	}
 
-	err = startCommand(execCmd, c)
+	err = execCmd.Start()
 
 	// We don't need children pipes  on the parent side
 	errorhandling.CloseQuiet(childSyncPipe)
@@ -569,7 +571,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	hijackDone <- true
 
 	// Write a header to let the client know what happened
-	writeHijackHeader(r, httpBuf)
+	writeHijackHeader(r, httpBuf, isTerminal)
 
 	// Force a flush after the header is written.
 	if err := httpBuf.Flush(); err != nil {
@@ -606,7 +608,7 @@ func attachExecHTTP(c *Container, sessionID string, r *http.Request, w http.Resp
 	if attachStdin {
 		go func() {
 			logrus.Debugf("Beginning STDIN copy")
-			_, err := cutil.CopyDetachable(conn, httpBuf, detachKeys)
+			_, err := detach.Copy(conn, httpBuf, detachKeys)
 			logrus.Debugf("STDIN copy completed")
 			stdinChan <- err
 		}()
@@ -741,6 +743,14 @@ func (c *Container) prepareProcessExec(options *ExecOptions, env []string, sessi
 		}
 
 		pspec.User = processUser
+	}
+
+	if c.config.Umask != "" {
+		umask, err := c.umask()
+		if err != nil {
+			return nil, err
+		}
+		pspec.User.Umask = &umask
 	}
 
 	if err := c.setProcessCapabilitiesExec(options, user, execUser, pspec); err != nil {

@@ -1,9 +1,16 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
-	"github.com/containers/podman/v4/pkg/specgen"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
-func (r *Runtime) platformMakePod(pod *Pod, p specgen.PodSpecGenerator) error {
+func (r *Runtime) platformMakePod(pod *Pod, resourceLimits *spec.LinuxResources) (string, error) {
+	return "", nil
+}
+
+func (p *Pod) removePodCgroup() error {
 	return nil
 }

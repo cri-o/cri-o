@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -49,11 +52,14 @@ const (
 
 // NewSqliteState creates a new SQLite-backed state database.
 func NewSqliteState(runtime *Runtime) (_ State, defErr error) {
+	logrus.Info("Using sqlite as database backend")
 	state := new(SQLiteState)
 
 	basePath := runtime.storageConfig.GraphRoot
 	if runtime.storageConfig.TransientStore {
 		basePath = runtime.storageConfig.RunRoot
+	} else if !runtime.storageSet.StaticDirSet {
+		basePath = runtime.config.Engine.StaticDir
 	}
 
 	// c/storage is set up *after* the DB - so even though we use the c/s

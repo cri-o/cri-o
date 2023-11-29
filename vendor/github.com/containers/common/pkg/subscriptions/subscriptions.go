@@ -242,7 +242,6 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 		// In the event of a restart, don't want to copy subscriptions over again as they already would exist in ctrDirOrFileOnHost
 		_, err = os.Stat(ctrDirOrFileOnHost)
 		if errors.Is(err, os.ErrNotExist) {
-
 			hostDirOrFile, err = resolveSymbolicLink(hostDirOrFile)
 			if err != nil {
 				return nil, err
@@ -358,6 +357,35 @@ func addFIPSModeSubscription(mounts *[]rspec.Mount, containerRunDir, mountPoint,
 		m := rspec.Mount{
 			Source:      srcOnHost,
 			Destination: destDir,
+			Type:        "bind",
+			Options:     []string{"bind", "rprivate"},
+		}
+		*mounts = append(*mounts, m)
+	}
+
+	// Make sure we set the config to FIPS so that the container does not overwrite
+	// /etc/crypto-policies/back-ends when crypto-policies-scripts is reinstalled.
+	cryptoPoliciesConfigFile := filepath.Join(containerRunDir, "fips-config")
+	file, err := os.Create(cryptoPoliciesConfigFile)
+	if err != nil {
+		return fmt.Errorf("creating fips config file in container for FIPS mode: %w", err)
+	}
+	defer file.Close()
+	if _, err := file.WriteString("FIPS\n"); err != nil {
+		return fmt.Errorf("writing fips config file in container for FIPS mode: %w", err)
+	}
+	if err = label.Relabel(cryptoPoliciesConfigFile, mountLabel, false); err != nil {
+		return fmt.Errorf("applying correct labels on fips-config file: %w", err)
+	}
+	if err := file.Chown(uid, gid); err != nil {
+		return fmt.Errorf("chown fips-config file: %w", err)
+	}
+
+	policyConfig := "/etc/crypto-policies/config"
+	if !mountExists(*mounts, policyConfig) {
+		m := rspec.Mount{
+			Source:      cryptoPoliciesConfigFile,
+			Destination: policyConfig,
 			Type:        "bind",
 			Options:     []string{"bind", "rprivate"},
 		}
