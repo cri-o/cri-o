@@ -72,7 +72,7 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	}
 
 	if config.Metadata.Name == "" {
-		return errors.New("PodSandboxConfig.Metadata.Name should not be empty")
+		return errors.New("metadata.Name should not be empty")
 	}
 
 	if config.Linux == nil {
@@ -106,6 +106,10 @@ func (s *sandbox) SetNameAndID() error {
 
 	if s.config.Metadata.Name == "" {
 		return errors.New("cannot generate pod name without name in metadata")
+	}
+
+	if s.config.Metadata.Uid == "" {
+		return errors.New("cannot generate pod name without uid in metadata")
 	}
 
 	s.id = stringid.GenerateNonCryptoID()
