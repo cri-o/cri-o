@@ -8,7 +8,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
@@ -22,7 +21,7 @@ import (
 func (c *ContainerServer) ContainerRestore(
 	ctx context.Context,
 	config *metadata.ContainerConfig,
-	opts *libpod.ContainerCheckpointOptions,
+	opts *ContainerCheckpointOptions,
 ) (string, error) {
 	var ctr *oci.Container
 	var err error

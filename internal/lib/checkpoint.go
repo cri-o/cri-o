@@ -10,7 +10,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
@@ -20,11 +19,23 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
+// ContainerCheckpointOptions is the relevant subset of libpod.ContainerCheckpointOptions
+type ContainerCheckpointOptions struct {
+	// Keep tells the API to not delete checkpoint artifacts
+	Keep bool
+	// KeepRunning tells the API to keep the container running
+	// after writing the checkpoint to disk
+	KeepRunning bool
+	// TargetFile tells the API to read (or write) the checkpoint image
+	// from (or to) the filename set in TargetFile
+	TargetFile string
+}
+
 // ContainerCheckpoint checkpoints a running container.
 func (c *ContainerServer) ContainerCheckpoint(
 	ctx context.Context,
 	config *metadata.ContainerConfig,
-	opts *libpod.ContainerCheckpointOptions,
+	opts *ContainerCheckpointOptions,
 ) (string, error) {
 	ctr, err := c.LookupContainer(ctx, config.ID)
 	if err != nil {

@@ -6,10 +6,10 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/criu"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -47,7 +47,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -78,7 +78,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -105,7 +105,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -154,7 +154,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			config := &metadata.ContainerConfig{
 				ID: containerID,
 			}
-			opts := &libpod.ContainerCheckpointOptions{
+			opts := &lib.ContainerCheckpointOptions{
 				TargetFile: "cp.tar",
 			}
 			defer os.RemoveAll("cp.tar")
@@ -202,7 +202,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			_, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -226,7 +226,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -247,7 +247,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then

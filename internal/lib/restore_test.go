@@ -9,9 +9,9 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
@@ -45,7 +45,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -71,7 +71,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -97,7 +97,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -141,7 +141,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			defer os.RemoveAll("restore.log")
@@ -221,7 +221,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -319,7 +319,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
