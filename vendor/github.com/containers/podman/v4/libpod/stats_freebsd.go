@@ -1,12 +1,13 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
 	"fmt"
 	"math"
-	"strings"
 	"time"
 
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/pkg/rctl"
 	"github.com/containers/storage/pkg/system"
@@ -20,9 +21,14 @@ import (
 func (c *Container) getPlatformContainerStats(stats *define.ContainerStats, previousStats *define.ContainerStats) error {
 	now := uint64(time.Now().UnixNano())
 
-	entries, err := rctl.GetRacct("jail:" + c.jailName())
+	jailName, err := c.jailName()
 	if err != nil {
-		return fmt.Errorf("unable to read accounting for %s: %w", c.jailName(), err)
+		return fmt.Errorf("getting jail name: %w", err)
+	}
+
+	entries, err := rctl.GetRacct("jail:" + jailName)
+	if err != nil {
+		return fmt.Errorf("unable to read accounting for %s: %w", jailName, err)
 	}
 
 	// If the current total usage is less than what was previously
@@ -134,18 +140,6 @@ func calculateCPUPercent(currentCPU, previousCPU, now, previousSystem uint64) fl
 		cpuPercent = (cpuDelta / systemDelta) * 100
 	}
 	return cpuPercent
-}
-
-func calculateBlockIO(stats *cgroups.Metrics) (read uint64, write uint64) {
-	for _, blkIOEntry := range stats.Blkio.IoServiceBytesRecursive {
-		switch strings.ToLower(blkIOEntry.Op) {
-		case "read":
-			read += blkIOEntry.Value
-		case "write":
-			write += blkIOEntry.Value
-		}
-	}
-	return
 }
 
 func getOnlineCPUs(container *Container) (int, error) {

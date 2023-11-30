@@ -1,5 +1,5 @@
-//go:build linux
-// +build linux
+//go:build !remote
+// +build !remote
 
 package libpod
 
@@ -368,7 +368,7 @@ func (r *Runtime) GetRootlessNetNs(new bool) (*RootlessNetNS, error) {
 
 		// When the netns is not valid but the file exists we have to remove it first,
 		// https://github.com/containers/common/pull/1381 changed the behavior from
-		// NewNSWithName()so it will now error whe the file already exists.
+		// NewNSWithName()so it will now error when the file already exists.
 		// https://github.com/containers/podman/issues/17903#issuecomment-1494329622
 		if errors.As(err, &ns.NSPathNotNSErr{}) {
 			logrus.Infof("rootless netns is no longer valid: %v", err)
@@ -694,13 +694,14 @@ func getContainerNetIO(ctr *Container) (*netlink.LinkStatistics, error) {
 	return netStats, err
 }
 
-func (c *Container) joinedNetworkNSPath() string {
+// joinedNetworkNSPath returns netns path and bool if netns was set
+func (c *Container) joinedNetworkNSPath() (string, bool) {
 	for _, namespace := range c.config.Spec.Linux.Namespaces {
 		if namespace.Type == specs.NetworkNamespace {
-			return namespace.Path
+			return namespace.Path, true
 		}
 	}
-	return ""
+	return "", false
 }
 
 func (c *Container) inspectJoinedNetworkNS(networkns string) (q types.StatusBlock, retErr error) {

@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -162,10 +165,7 @@ func (r *ConmonOCIRuntime) moveConmonToCgroupAndSignal(ctr *Container, cmd *exec
 	}
 
 	/* We set the cgroup, now the child can start creating children */
-	if err := writeConmonPipeData(startFd); err != nil {
-		return err
-	}
-	return nil
+	return writeConmonPipeData(startFd)
 }
 
 // GetLimits converts spec resource limits to cgroup consumable limits
@@ -324,6 +324,5 @@ func GetLimits(resource *spec.LinuxResources) (runcconfig.Resources, error) {
 
 	// Unified state
 	final.Unified = resource.Unified
-
 	return *final, nil
 }

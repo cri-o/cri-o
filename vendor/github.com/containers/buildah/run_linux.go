@@ -19,9 +19,11 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	internalParse "github.com/containers/buildah/internal/parse"
+	"github.com/containers/buildah/internal/tmpdir"
+	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/parse"
+	butil "github.com/containers/buildah/pkg/util"
 	"github.com/containers/buildah/util"
 	"github.com/containers/common/libnetwork/pasta"
 	"github.com/containers/common/libnetwork/resolvconf"
@@ -33,6 +35,7 @@ import (
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/common/pkg/hooks"
 	hooksExec "github.com/containers/common/pkg/hooks/exec"
+	cutil "github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/lockfile"
@@ -70,7 +73,7 @@ func setChildProcess() error {
 
 // Run runs the specified command in the container's root filesystem.
 func (b *Builder) Run(command []string, options RunOptions) error {
-	p, err := os.MkdirTemp("", define.Package)
+	p, err := os.MkdirTemp(tmpdir.GetTempDir(), define.Package)
 	if err != nil {
 		return err
 	}
@@ -259,7 +262,7 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 	rootIDPair := &idtools.IDPair{UID: int(rootUID), GID: int(rootGID)}
 
 	hostFile := ""
-	if !options.NoHosts && !contains(volumes, config.DefaultHostsFile) && options.ConfigureNetwork != define.NetworkDisabled {
+	if !options.NoHosts && !cutil.StringInSlice(config.DefaultHostsFile, volumes) && options.ConfigureNetwork != define.NetworkDisabled {
 		hostFile, err = b.generateHosts(path, rootIDPair, mountPoint, spec)
 		if err != nil {
 			return err
@@ -267,19 +270,16 @@ func (b *Builder) Run(command []string, options RunOptions) error {
 		bindFiles[config.DefaultHostsFile] = hostFile
 	}
 
-	// generate /etc/hostname if the user intentionally did not override
-	if !(contains(volumes, "/etc/hostname")) {
-		if _, ok := bindFiles["/etc/hostname"]; !ok {
-			hostFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
-			if err != nil {
-				return err
-			}
-			// Bind /etc/hostname
-			bindFiles["/etc/hostname"] = hostFile
+	if !options.NoHostname && !(cutil.StringInSlice("/etc/hostname", volumes)) {
+		hostFile, err := b.generateHostname(path, spec.Hostname, rootIDPair)
+		if err != nil {
+			return err
 		}
+		// Bind /etc/hostname
+		bindFiles["/etc/hostname"] = hostFile
 	}
 
-	if !contains(volumes, resolvconf.DefaultResolvConf) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
+	if !cutil.StringInSlice(resolvconf.DefaultResolvConf, volumes) && options.ConfigureNetwork != define.NetworkDisabled && !(len(b.CommonBuildOpts.DNSServers) == 1 && strings.ToLower(b.CommonBuildOpts.DNSServers[0]) == "none") {
 		resolvFile, err := b.addResolvConf(path, rootIDPair, b.CommonBuildOpts.DNSServers, b.CommonBuildOpts.DNSSearch, b.CommonBuildOpts.DNSOptions, spec.Linux.Namespaces)
 		if err != nil {
 			return err
@@ -463,7 +463,7 @@ func addCommonOptsToSpec(commonOpts *define.CommonBuildOptions, g *generate.Gene
 		return fmt.Errorf("failed to get container config: %w", err)
 	}
 	// Other process resource limits
-	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits); err != nil {
+	if err := addRlimits(commonOpts.Ulimit, g, defaultContainerConfig.Containers.DefaultUlimits.Get()); err != nil {
 		return err
 	}
 
@@ -498,7 +498,7 @@ func setupSlirp4netnsNetwork(config *config.Config, netns, cid string, options [
 		Mask: res.Subnet.Mask,
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: nettypes.StatusBlock{
+		slirp4netns.BinaryName: {
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
@@ -540,7 +540,7 @@ func setupPasta(config *config.Config, netns string, options []string) (func(), 
 		Mask: net.IPv4Mask(255, 255, 255, 0),
 	}}
 	netStatus := map[string]nettypes.StatusBlock{
-		slirp4netns.BinaryName: nettypes.StatusBlock{
+		slirp4netns.BinaryName: {
 			Interfaces: map[string]nettypes.NetInterface{
 				"tap0": {
 					Subnets: []nettypes.NetAddress{{IPNet: subnet}},
@@ -773,20 +773,6 @@ func setupNamespaces(logger *logrus.Logger, g *generate.Generator, namespaceOpti
 		if err := addSysctl([]string{"net"}); err != nil {
 			return false, "", false, err
 		}
-		for name, val := range define.DefaultNetworkSysctl {
-			// Check that the sysctl we are adding is actually supported
-			// by the kernel
-			p := filepath.Join("/proc/sys", strings.Replace(name, ".", "/", -1))
-			_, err := os.Stat(p)
-			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return false, "", false, err
-			}
-			if err == nil {
-				g.AddLinuxSysctl(name, val)
-			} else {
-				logger.Warnf("ignoring sysctl %s since %s doesn't exist", name, p)
-			}
-		}
 	}
 	return configureNetwork, networkString, configureUTS, nil
 }
@@ -873,7 +859,7 @@ func addRlimits(ulimit []string, g *generate.Generator, defaultUlimits []string)
 
 	ulimit = append(defaultUlimits, ulimit...)
 	for _, u := range ulimit {
-		if ul, err = units.ParseUlimit(u); err != nil {
+		if ul, err = butil.ParseUlimit(u); err != nil {
 			return fmt.Errorf("ulimit option %q requires name=SOFT:HARD, failed to be parsed: %w", u, err)
 		}
 
@@ -1023,32 +1009,13 @@ func (b *Builder) runSetupVolumeMounts(mountLabel string, volumeMounts []string,
 }
 
 func setupMaskedPaths(g *generate.Generator) {
-	for _, mp := range []string{
-		"/proc/acpi",
-		"/proc/kcore",
-		"/proc/keys",
-		"/proc/latency_stats",
-		"/proc/timer_list",
-		"/proc/timer_stats",
-		"/proc/sched_debug",
-		"/proc/scsi",
-		"/sys/firmware",
-		"/sys/fs/selinux",
-		"/sys/dev",
-	} {
+	for _, mp := range config.DefaultMaskedPaths {
 		g.AddLinuxMaskedPaths(mp)
 	}
 }
 
 func setupReadOnlyPaths(g *generate.Generator) {
-	for _, rp := range []string{
-		"/proc/asound",
-		"/proc/bus",
-		"/proc/fs",
-		"/proc/irq",
-		"/proc/sys",
-		"/proc/sysrq-trigger",
-	} {
+	for _, rp := range config.DefaultReadOnlyPaths {
 		g.AddLinuxReadonlyPaths(rp)
 	}
 }
@@ -1253,7 +1220,7 @@ func checkIdsGreaterThan5(ids []specs.LinuxIDMapping) bool {
 // If this function succeeds and returns a non-nil *lockfile.LockFile, the caller must unlock it (when??).
 func (b *Builder) getCacheMount(tokens []string, stageMountPoints map[string]internal.StageMountDetails, idMaps IDMaps, workDir string) (*specs.Mount, *lockfile.LockFile, error) {
 	var optionMounts []specs.Mount
-	mount, targetLock, err := internalParse.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
+	mount, targetLock, err := volumes.GetCacheMount(tokens, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, nil, err
 	}

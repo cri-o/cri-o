@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -5,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -137,7 +141,6 @@ func (r *Runtime) Pull(ctx context.Context, name string, pullPolicy config.PullP
 
 	// Dispatch the copy operation.
 	switch ref.Transport().Name() {
-
 	// DOCKER REGISTRY
 	case registryTransport.Transport.Name():
 		pulledImages, pullError = r.copyFromRegistry(ctx, ref, possiblyUnqualifiedName, pullPolicy, options)
@@ -217,7 +220,6 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 	// Figure out a name for the storage destination.
 	var storageName, imageName string
 	switch ref.Transport().Name() {
-
 	case dockerDaemonTransport.Transport.Name():
 		// Normalize to docker.io if needed (see containers/podman/issues/10998).
 		named, err := reference.ParseNormalizedNamed(ref.StringWithinTransport())
@@ -229,8 +231,18 @@ func (r *Runtime) copyFromDefault(ctx context.Context, ref types.ImageReference,
 
 	case ociTransport.Transport.Name():
 		split := strings.SplitN(ref.StringWithinTransport(), ":", 2)
-		storageName = toLocalImageName(split[0])
-		imageName = storageName
+		if len(split) == 1 || split[1] == "" {
+			// Same trick as for the dir transport: we cannot use
+			// the path to a directory as the name.
+			storageName, err = getImageID(ctx, ref, nil)
+			if err != nil {
+				return nil, err
+			}
+			imageName = "sha256:" + storageName[1:]
+		} else { // If the OCI-reference includes an image reference, use it
+			storageName = split[1]
+			imageName = storageName
+		}
 
 	case ociArchiveTransport.Transport.Name():
 		manifestDescriptor, err := ociArchiveTransport.LoadManifestDescriptorWithContext(r.SystemContext(), ref)
@@ -592,6 +604,9 @@ func (r *Runtime) copySingleImageFromRegistry(ctx context.Context, imageName str
 		return nil
 	}
 
+	if socketPath, ok := os.LookupEnv("NOTIFY_SOCKET"); ok {
+		options.extendTimeoutSocket = socketPath
+	}
 	c, err := r.newCopier(&options.CopyOptions)
 	if err != nil {
 		return nil, err

@@ -1,4 +1,5 @@
-//go:build linux || freebsd
+//go:build !remote && (linux || freebsd)
+// +build !remote
 // +build linux freebsd
 
 package libpod
@@ -20,8 +21,7 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/checkpoint-restore/go-criu/v6/stats"
-	cdi "github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
+	"github.com/checkpoint-restore/go-criu/v7/stats"
 	"github.com/containers/buildah"
 	"github.com/containers/buildah/pkg/chrootuser"
 	"github.com/containers/buildah/pkg/overlay"
@@ -57,6 +57,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+	cdi "tags.cncf.io/container-device-interface/pkg/cdi"
 )
 
 func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap, error) {
@@ -384,7 +385,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			Destination: dstPath,
 			Options:     bindOptions,
 		}
-		if c.IsReadOnly() && dstPath != "/dev/shm" {
+		if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 			newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 		}
 		if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
@@ -477,11 +478,10 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if c.config.Umask != "" {
-		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+		umask, err := c.umask()
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid Umask Value: %w", err)
+			return nil, nil, err
 		}
-		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
 	}
 
@@ -548,7 +548,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
-	g.AddAnnotation("org.opencontainers.image.stopSignal", fmt.Sprintf("%d", c.config.StopSignal))
+	g.AddAnnotation("org.opencontainers.image.stopSignal", strconv.FormatUint(uint64(c.config.StopSignal), 10))
 
 	if _, exists := g.Config.Annotations[annotations.ContainerManager]; !exists {
 		g.AddAnnotation(annotations.ContainerManager, annotations.ContainerManagerLibpod)
@@ -634,10 +634,18 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	nprocSet := false
 	isRootless := rootless.IsRootless()
 	if isRootless {
+		if g.Config.Process != nil && g.Config.Process.OOMScoreAdj != nil {
+			var err error
+			*g.Config.Process.OOMScoreAdj, err = maybeClampOOMScoreAdj(*g.Config.Process.OOMScoreAdj)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
 		for _, rlimit := range c.config.Spec.Process.Rlimits {
 			if rlimit.Type == "RLIMIT_NOFILE" {
 				nofileSet = true
-			} else if rlimit.Type == "RLIMIT_NPROC" {
+			}
+			if rlimit.Type == "RLIMIT_NPROC" {
 				nprocSet = true
 			}
 		}
@@ -672,6 +680,8 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			g.AddProcessRlimits("RLIMIT_NPROC", uint64(max), uint64(current))
 		}
 	}
+
+	c.addMaskedPaths(&g)
 
 	return g.Config, cleanupFunc, nil
 }
@@ -822,12 +832,12 @@ func lookupHostUser(name string) (*runcuser.ExecUser, error) {
 	if err != nil {
 		return &execUser, err
 	}
-	uid, err := strconv.ParseUint(u.Uid, 8, 32)
+	uid, err := strconv.ParseUint(u.Uid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
 
-	gid, err := strconv.ParseUint(u.Gid, 8, 32)
+	gid, err := strconv.ParseUint(u.Gid, 10, 32)
 	if err != nil {
 		return &execUser, err
 	}
@@ -1603,7 +1613,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 				Destination: dstPath,
 				Options:     []string{define.TypeBind, "private"},
 			}
-			if c.IsReadOnly() && dstPath != "/dev/shm" {
+			if c.IsReadOnly() && (dstPath != "/dev/shm" || !c.config.ReadWriteTmpfs) {
 				newMount.Options = append(newMount.Options, "ro", "nosuid", "noexec", "nodev")
 			}
 			if dstPath == "/dev/shm" && c.state.BindMounts["/dev/shm"] == c.config.ShmDir {
@@ -1953,16 +1963,22 @@ func (c *Container) makeBindMounts() error {
 		}
 	}
 
-	_, hasRunContainerenv := c.state.BindMounts["/run/.containerenv"]
+	runPath, err := c.getPlatformRunPath()
+	if err != nil {
+		return fmt.Errorf("cannot determine run directory for container: %w", err)
+	}
+	containerenvPath := filepath.Join(runPath, ".containerenv")
+
+	_, hasRunContainerenv := c.state.BindMounts[containerenvPath]
 	if !hasRunContainerenv {
 	Loop:
 		// check in the spec mounts
 		for _, m := range c.config.Spec.Mounts {
 			switch {
-			case m.Destination == "/run/.containerenv":
+			case m.Destination == containerenvPath:
 				hasRunContainerenv = true
 				break Loop
-			case m.Destination == "/run" && m.Type != define.TypeTmpfs:
+			case m.Destination == runPath && m.Type != define.TypeTmpfs:
 				hasRunContainerenv = true
 				break Loop
 			}
@@ -1988,11 +2004,11 @@ imageid=%q
 rootless=%d
 %s`, version.Version.String(), c.Name(), c.ID(), imageName, imageID, isRootless, containerenv)
 		}
-		containerenvPath, err := c.writeStringToRundir(".containerenv", containerenv)
+		containerenvHostPath, err := c.writeStringToRundir(".containerenv", containerenv)
 		if err != nil {
 			return fmt.Errorf("creating containerenv file for container %s: %w", c.ID(), err)
 		}
-		c.state.BindMounts["/run/.containerenv"] = containerenvPath
+		c.state.BindMounts[containerenvPath] = containerenvHostPath
 	}
 
 	// Add Subscription Mounts
@@ -2010,12 +2026,12 @@ rootless=%d
 	// creates the /run/secrets dir in the container where we mount as well.
 	if len(c.Secrets()) > 0 {
 		// create /run/secrets if subscriptions did not create
-		if err := c.createSecretMountDir(); err != nil {
+		if err := c.createSecretMountDir(runPath); err != nil {
 			return fmt.Errorf("creating secrets mount: %w", err)
 		}
 		for _, secret := range c.Secrets() {
 			secretFileName := secret.Name
-			base := "/run/secrets"
+			base := filepath.Join(runPath, "secrets")
 			if secret.Target != "" {
 				secretFileName = secret.Target
 				// If absolute path for target given remove base.
@@ -2073,7 +2089,7 @@ func (c *Container) addResolvConf() error {
 	ipv6 := c.checkForIPv6(netStatus)
 
 	networkBackend := c.runtime.config.Network.NetworkBackend
-	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers)+len(c.config.DNSServer))
+	nameservers := make([]string, 0, len(c.runtime.config.Containers.DNSServers.Get())+len(c.config.DNSServer))
 
 	// If NetworkBackend is `netavark` do not populate `/etc/resolv.conf`
 	// with custom dns server since after https://github.com/containers/netavark/pull/452
@@ -2083,7 +2099,7 @@ func (c *Container) addResolvConf() error {
 	// Exception: Populate `/etc/resolv.conf` if container is not connected to any network
 	// with dns enabled then we do not get any nameservers back.
 	if networkBackend != string(types.Netavark) || len(networkNameServers) == 0 {
-		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers...)
+		nameservers = append(nameservers, c.runtime.config.Containers.DNSServers.Get()...)
 		for _, ip := range c.config.DNSServer {
 			nameservers = append(nameservers, ip.String())
 		}
@@ -2106,15 +2122,15 @@ func (c *Container) addResolvConf() error {
 	// Set DNS search domains
 	search := networkSearchDomains
 
-	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches) > 0 {
-		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches))
-		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches...)
+	if len(c.config.DNSSearch) > 0 || len(c.runtime.config.Containers.DNSSearches.Get()) > 0 {
+		customSearch := make([]string, 0, len(c.config.DNSSearch)+len(c.runtime.config.Containers.DNSSearches.Get()))
+		customSearch = append(customSearch, c.runtime.config.Containers.DNSSearches.Get()...)
 		customSearch = append(customSearch, c.config.DNSSearch...)
 		search = customSearch
 	}
 
-	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions))
-	options = append(options, c.runtime.config.Containers.DNSOptions...)
+	options := make([]string, 0, len(c.config.DNSOption)+len(c.runtime.config.Containers.DNSOptions.Get()))
+	options = append(options, c.runtime.config.Containers.DNSOptions.Get()...)
 	options = append(options, c.config.DNSOption...)
 
 	var namespaces []spec.LinuxNamespace
@@ -2587,11 +2603,11 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	}
 
 	if c.config.PasswdEntry != "" {
-		entry := c.passwdEntry(fmt.Sprintf("%d", uid), fmt.Sprintf("%d", uid), fmt.Sprintf("%d", gid), "container user", c.WorkingDir())
+		entry := c.passwdEntry(strconv.FormatUint(uid, 10), strconv.FormatUint(uid, 10), strconv.FormatInt(int64(gid), 10), "container user", c.WorkingDir())
 		return entry, nil
 	}
 
-	u, err := user.LookupId(fmt.Sprintf("%d", uid))
+	u, err := user.LookupId(strconv.FormatUint(uid, 10))
 	if err == nil {
 		return fmt.Sprintf("%s:*:%d:%d:%s:%s:/bin/sh\n", u.Username, uid, gid, u.Name, c.WorkingDir()), nil
 	}
@@ -2797,7 +2813,7 @@ func (c *Container) cleanupOverlayMounts() error {
 }
 
 // Creates and mounts an empty dir to mount secrets into, if it does not already exist
-func (c *Container) createSecretMountDir() error {
+func (c *Container) createSecretMountDir(runPath string) error {
 	src := filepath.Join(c.state.RunDir, "/run/secrets")
 	_, err := os.Stat(src)
 	if os.IsNotExist(err) {
@@ -2810,7 +2826,7 @@ func (c *Container) createSecretMountDir() error {
 		if err := os.Chown(src, c.RootUID(), c.RootGID()); err != nil {
 			return err
 		}
-		c.state.BindMounts["/run/secrets"] = src
+		c.state.BindMounts[filepath.Join(runPath, "secrets")] = src
 		return nil
 	}
 
@@ -2924,4 +2940,28 @@ func (c *Container) ChangeHostPathOwnership(src string, recurse bool, uid, gid i
 		}
 	}
 	return chown.ChangeHostPathOwnership(src, recurse, uid, gid)
+}
+
+func (c *Container) umask() (uint32, error) {
+	decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
+	if err != nil {
+		return 0, fmt.Errorf("invalid Umask Value: %w", err)
+	}
+	return uint32(decVal), nil
+}
+
+func maybeClampOOMScoreAdj(oomScoreValue int) (int, error) {
+	v, err := os.ReadFile("/proc/self/oom_score_adj")
+	if err != nil {
+		return oomScoreValue, err
+	}
+	currentValue, err := strconv.Atoi(strings.TrimRight(string(v), "\n"))
+	if err != nil {
+		return oomScoreValue, err
+	}
+	if currentValue > oomScoreValue {
+		logrus.Warnf("Requested oom_score_adj=%d is lower than the current one, changing to %d", oomScoreValue, currentValue)
+		return currentValue, nil
+	}
+	return oomScoreValue, nil
 }

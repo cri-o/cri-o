@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (
@@ -37,9 +40,16 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// Supersede from --volumes-from.
 	for dest, mount := range volFromMounts {
 		baseMounts[dest] = mount
+
+		// Necessary to ensure that mounts override image volumes
+		// Ref: https://github.com/containers/podman/issues/19529
+		delete(baseVolumes, dest)
 	}
 	for dest, volume := range volFromVolumes {
 		baseVolumes[dest] = volume
+
+		// I don't think this can happen, but best to be safe.
+		delete(baseMounts, dest)
 	}
 
 	// Need to make map forms of specgen mounts/volumes.
@@ -121,8 +131,11 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	// If requested, add container init binary
 	if s.Init {
 		initPath := s.InitPath
-		if initPath == "" && rtc != nil {
-			initPath = rtc.Engine.InitPath
+		if initPath == "" {
+			initPath, err = rtc.FindInitBinary()
+			if err != nil {
+				return nil, nil, nil, fmt.Errorf("lookup init binary: %w", err)
+			}
 		}
 		initMount, err := addContainerInitBinary(s, initPath)
 		if err != nil {
@@ -169,7 +182,11 @@ func finalizeMounts(ctx context.Context, s *specgen.SpecGenerator, rt *libpod.Ru
 	}
 
 	if s.ReadWriteTmpfs {
-		baseMounts = addReadWriteTmpfsMounts(baseMounts, s.Volumes)
+		runPath, err := imageRunPath(ctx, img)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		baseMounts = addReadWriteTmpfsMounts(baseMounts, s.Volumes, runPath)
 	}
 
 	// Final step: maps to arrays
@@ -433,8 +450,8 @@ func InitFSMounts(mounts []spec.Mount) error {
 	return nil
 }
 
-func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.NamedVolume) map[string]spec.Mount {
-	readonlyTmpfs := []string{"/tmp", "/var/tmp", "/run"}
+func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.NamedVolume, runPath string) map[string]spec.Mount {
+	readonlyTmpfs := []string{"/tmp", "/var/tmp", runPath}
 	options := []string{"rw", "rprivate", "nosuid", "nodev", "tmpcopyup"}
 	for _, dest := range readonlyTmpfs {
 		if _, ok := mounts[dest]; ok {
@@ -450,9 +467,6 @@ func addReadWriteTmpfsMounts(mounts map[string]spec.Mount, volumes []*specgen.Na
 			Type:        define.TypeTmpfs,
 			Source:      define.TypeTmpfs,
 			Options:     options,
-		}
-		if dest != "/run" {
-			mnt.Options = append(mnt.Options, "noexec")
 		}
 		mounts[dest] = mnt
 	}

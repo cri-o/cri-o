@@ -146,6 +146,7 @@ type PodCreateOptions struct {
 	VolumesFrom        []string          `json:"volumes_from,omitempty"`
 	SecurityOpt        []string          `json:"security_opt,omitempty"`
 	Sysctl             []string          `json:"sysctl,omitempty"`
+	Uts                string            `json:"uts,omitempty"`
 }
 
 // PodLogsOptions describes the options to extract pod logs.
@@ -224,6 +225,7 @@ type ContainerCreateOptions struct {
 	Init               bool
 	InitContainerType  string
 	InitPath           string
+	IntelRdtClosID     string
 	Interactive        bool
 	IPC                string
 	Label              []string
@@ -361,6 +363,12 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 		return nil, err
 	}
 	s.Ipc = out
+
+	out, err = specgen.ParseNamespace(p.Uts)
+	if err != nil {
+		return nil, err
+	}
+	s.UtsNs = out
 	s.Hostname = p.Hostname
 	s.ExitPolicy = p.ExitPolicy
 	s.Labels = p.Labels

@@ -64,6 +64,9 @@ type CommonBuildOptions struct {
 	LabelOpts []string
 	// MemorySwap limits the amount of memory and swap together.
 	MemorySwap int64
+	// NoHostname tells the builder not to create /etc/hostname content when running
+	// containers.
+	NoHostname bool
 	// NoHosts tells the builder not to create /etc/hosts content when running
 	// containers.
 	NoHosts bool
@@ -163,6 +166,10 @@ type BuildOptions struct {
 	// It allows end user to export recently built rootfs into a directory or tar.
 	// See the documentation of 'buildah build --output' for the details of the format.
 	BuildOutput string
+	// ConfidentialWorkload controls whether or not, and if so, how, we produce an
+	// image that's meant to be run using krun as a VM instead of a conventional
+	// process-type container.
+	ConfidentialWorkload ConfidentialWorkloadOptions
 	// Additional tags to add to the image that we write, if we know of a
 	// way to add them.
 	AdditionalTags []string
@@ -244,6 +251,8 @@ type BuildOptions struct {
 	Squash bool
 	// Labels metadata for an image
 	Labels []string
+	// LayerLabels metadata for an intermediate image
+	LayerLabels []string
 	// Annotation metadata for an image
 	Annotations []string
 	// OnBuild commands to be run by images based on this image
@@ -312,6 +321,8 @@ type BuildOptions struct {
 	AllPlatforms bool
 	// UnsetEnvs is a list of environments to not add to final image.
 	UnsetEnvs []string
+	// UnsetLabels is a list of labels to not add to final image from base image.
+	UnsetLabels []string
 	// Envs is a list of environment variables to set in the final image.
 	Envs []string
 	// OSFeatures specifies operating system features the image requires.

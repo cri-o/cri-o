@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -34,14 +37,14 @@ import (
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description that includes just a single container.
-func GenerateForKube(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
+func GenerateForKube(ctx context.Context, ctrs []*Container, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
 	// Generate the v1.Pod yaml description
-	return simplePodWithV1Containers(ctx, ctrs, getService)
+	return simplePodWithV1Containers(ctx, ctrs, getService, useLongAnnotations, podmanOnly)
 }
 
 // GenerateForKube takes a slice of libpod containers and generates
 // one v1.Pod description
-func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []v1.ServicePort, error) {
+func (p *Pod) GenerateForKube(ctx context.Context, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, []v1.ServicePort, error) {
 	// Generate the v1.Pod yaml description
 	var (
 		ports        []v1.ContainerPort
@@ -64,6 +67,7 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []
 	extraHost := make([]v1.HostAlias, 0)
 	hostNetwork := false
 	hostUsers := true
+	infraName := ""
 	if p.HasInfraContainer() {
 		infraContainer, err := p.getInfraContainer()
 		if err != nil {
@@ -90,8 +94,9 @@ func (p *Pod) GenerateForKube(ctx context.Context, getService bool) (*v1.Pod, []
 		}
 		hostNetwork = infraContainer.NetworkMode() == string(namespaces.NetworkMode(specgen.Host))
 		hostUsers = infraContainer.IDMappings().HostUIDMapping && infraContainer.IDMappings().HostGIDMapping
+		infraName = infraContainer.config.Name
 	}
-	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService)
+	pod, err := p.podWithContainers(ctx, allContainers, ports, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly, infraName)
 	if err != nil {
 		return nil, servicePorts, err
 	}
@@ -115,6 +120,61 @@ func (p *Pod) getInfraContainer() (*Container, error) {
 		return nil, err
 	}
 	return p.runtime.GetContainer(infraID)
+}
+
+func GenerateForKubeDaemonSet(ctx context.Context, pod *YAMLPod, options entities.GenerateKubeOptions) (*YAMLDaemonSet, error) {
+	// Restart policy for DaemonSets can only be set to Always
+	if !(pod.Spec.RestartPolicy == "" || pod.Spec.RestartPolicy == v1.RestartPolicyAlways) {
+		return nil, fmt.Errorf("k8s DaemonSets can only have restartPolicy set to Always")
+	}
+
+	// Error out if the user tries to set replica count
+	if options.Replicas > 1 {
+		return nil, fmt.Errorf("k8s DaemonSets don't allow setting replicas")
+	}
+
+	// Create label map that will be added to podSpec and DaemonSet metadata
+	// The matching label lets the daemonset know which pod to manage
+	appKey := "app"
+	matchLabels := map[string]string{appKey: pod.Name}
+	// Add the key:value (app:pod-name) to the podSpec labels
+	if pod.Labels == nil {
+		pod.Labels = matchLabels
+	} else {
+		pod.Labels[appKey] = pod.Name
+	}
+
+	depSpec := YAMLDaemonSetSpec{
+		DaemonSetSpec: v1.DaemonSetSpec{
+			Selector: &v12.LabelSelector{
+				MatchLabels: matchLabels,
+			},
+		},
+		Template: &YAMLPodTemplateSpec{
+			PodTemplateSpec: v1.PodTemplateSpec{
+				ObjectMeta: pod.ObjectMeta,
+			},
+			Spec: pod.Spec,
+		},
+	}
+
+	// Create the DaemonSet object
+	dep := YAMLDaemonSet{
+		DaemonSet: v1.DaemonSet{
+			ObjectMeta: v12.ObjectMeta{
+				Name:              pod.Name + "-daemonset",
+				CreationTimestamp: pod.CreationTimestamp,
+				Labels:            pod.Labels,
+			},
+			TypeMeta: v12.TypeMeta{
+				Kind:       "DaemonSet",
+				APIVersion: "apps/v1",
+			},
+		},
+		Spec: &depSpec,
+	}
+
+	return &dep, nil
 }
 
 // GenerateForKubeDeployment returns a YAMLDeployment from a YAMLPod that is then used to create a kubernetes Deployment
@@ -260,6 +320,28 @@ type YAMLDeploymentSpec struct {
 	Strategy *v1.DeploymentStrategy `json:"strategy,omitempty"`
 }
 
+// YAMLDaemonSetSpec represents the same k8s API core DeploymentSpec with a small
+// change and that is having Template as a pointer to YAMLPodTemplateSpec and Strategy
+// as a pointer to k8s API core DaemonSetStrategy.
+// Because Go doesn't omit empty struct and we want to omit Strategy and any fields in the Pod YAML
+// if it's empty.
+type YAMLDaemonSetSpec struct {
+	v1.DaemonSetSpec
+	Template *YAMLPodTemplateSpec        `json:"template,omitempty"`
+	Strategy *v1.DaemonSetUpdateStrategy `json:"strategy,omitempty"`
+}
+
+// YAMLDaemonSet represents the same k8s API core DaemonSet with a small change
+// and that is having Spec as a pointer to YAMLDaemonSetSpec and Status as a pointer to
+// k8s API core DaemonSetStatus.
+// Because Go doesn't omit empty struct and we want to omit Status and any fields in the DaemonSetSpec
+// if it's empty.
+type YAMLDaemonSet struct {
+	v1.DaemonSet
+	Spec   *YAMLDaemonSetSpec  `json:"spec,omitempty"`
+	Status *v1.DaemonSetStatus `json:"status,omitempty"`
+}
+
 // YAMLDeployment represents the same k8s API core Deployment with a small change
 // and that is having Spec as a pointer to YAMLDeploymentSpec and Status as a pointer to
 // k8s API core DeploymentStatus.
@@ -370,9 +452,9 @@ func newServicePortState() servicePortState {
 	}
 }
 
-func TruncateKubeAnnotation(str string) string {
+func truncateKubeAnnotation(str string, useLongAnnotations bool) string {
 	str = strings.TrimSpace(str)
-	if utf8.RuneCountInString(str) < define.MaxKubeAnnotation {
+	if useLongAnnotations || utf8.RuneCountInString(str) < define.MaxKubeAnnotation {
 		return str
 	}
 	trunc := string([]rune(str)[:define.MaxKubeAnnotation])
@@ -426,14 +508,17 @@ func containersToServicePorts(containers []v1.Container) ([]v1.ServicePort, erro
 	return sps, nil
 }
 
-func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService bool) (*v1.Pod, error) {
+func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, ports []v1.ContainerPort, hostNetwork, hostUsers, getService, useLongAnnotations, podmanOnly bool, infraName string) (*v1.Pod, error) {
 	deDupPodVolumes := make(map[string]*v1.Volume)
 	first := true
 	podContainers := make([]v1.Container, 0, len(containers))
 	podInitCtrs := []v1.Container{}
 	podAnnotations := make(map[string]string)
 	dnsInfo := v1.PodDNSConfig{}
-	var hostname string
+	var (
+		hostname    string
+		stopTimeout *uint
+	)
 
 	// Let's sort the containers in order of created time
 	// This will ensure that the init containers are defined in the correct order in the kube yaml
@@ -442,14 +527,14 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 	for _, ctr := range containers {
 		if !ctr.IsInfra() {
 			for k, v := range ctr.config.Spec.Annotations {
-				if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+				if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
 					continue
 				}
-				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+				podAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
 			}
 			// Convert auto-update labels into kube annotations
-			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-				podAnnotations[k] = TruncateKubeAnnotation(v)
+			for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels(), useLongAnnotations) {
+				podAnnotations[k] = truncateKubeAnnotation(v, useLongAnnotations)
 			}
 			isInit := ctr.IsInitCtr()
 			// Since hostname is only set at pod level, set the hostname to the hostname of the first container we encounter
@@ -461,12 +546,18 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 				}
 			}
 
+			// Pick the first container that has a stop-timeout set and use that value
+			// Ignore podman's default
+			if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+				stopTimeout = &ctr.config.StopTimeout
+			}
+
 			ctr, volumes, _, annotations, err := containerToV1Container(ctx, ctr, getService)
 			if err != nil {
 				return nil, err
 			}
 			for k, v := range annotations {
-				podAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
+				podAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 			}
 			// Since port bindings for the pod are handled by the
 			// infra container, wipe them here only if we are sharing the net namespace
@@ -512,6 +603,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 					dnsInfo.Options = options
 				}
 			}
+			// If the infraName is not the podID-infra, that means the user set another infra name using
+			// --infra-name during pod creation
+			if infraName != "" && infraName != p.ID()[:12]+"-infra" {
+				podAnnotations[define.InfraNameAnnotation] = truncateKubeAnnotation(infraName, useLongAnnotations)
+			}
 		}
 	}
 	podVolumes := []v1.Volume{}
@@ -529,10 +625,11 @@ func (p *Pod) podWithContainers(ctx context.Context, containers []*Container, po
 		&dnsInfo,
 		hostNetwork,
 		hostUsers,
-		hostname), nil
+		hostname,
+		stopTimeout), nil
 }
 
-func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string) *v1.Pod {
+func newPodObject(podName string, annotations map[string]string, initCtrs, containers []v1.Container, volumes []v1.Volume, dnsOptions *v1.PodDNSConfig, hostNetwork, hostUsers bool, hostname string, stopTimeout *uint) *v1.Pod {
 	tm := v12.TypeMeta{
 		Kind:       "Pod",
 		APIVersion: "v1",
@@ -564,6 +661,10 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 	if dnsOptions != nil && (len(dnsOptions.Nameservers)+len(dnsOptions.Searches)+len(dnsOptions.Options) > 0) {
 		ps.DNSConfig = dnsOptions
 	}
+	if stopTimeout != nil {
+		terminationGracePeriod := int64(*stopTimeout)
+		ps.TerminationGracePeriodSeconds = &terminationGracePeriod
+	}
 	p := v1.Pod{
 		TypeMeta:   tm,
 		ObjectMeta: om,
@@ -574,7 +675,7 @@ func newPodObject(podName string, annotations map[string]string, initCtrs, conta
 
 // simplePodWithV1Containers is a function used by inspect when kube yaml needs to be generated
 // for a single container.  we "insert" that container description in a pod.
-func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService bool) (*v1.Pod, error) {
+func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getService, useLongAnnotations, podmanOnly bool) (*v1.Pod, error) {
 	kubeCtrs := make([]v1.Container, 0, len(ctrs))
 	kubeInitCtrs := []v1.Container{}
 	kubeVolumes := make([]v1.Volume, 0)
@@ -583,20 +684,23 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 	podDNS := v1.PodDNSConfig{}
 	kubeAnnotations := make(map[string]string)
 	ctrNames := make([]string, 0, len(ctrs))
-	var hostname string
-	var restartPolicy *string
+	var (
+		hostname      string
+		restartPolicy *string
+		stopTimeout   *uint
+	)
 	for _, ctr := range ctrs {
 		ctrNames = append(ctrNames, removeUnderscores(ctr.Name()))
 		for k, v := range ctr.config.Spec.Annotations {
-			if define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k) {
+			if !podmanOnly && (define.IsReservedAnnotation(k) || annotations.IsReservedAnnotation(k)) {
 				continue
 			}
-			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = TruncateKubeAnnotation(v)
+			kubeAnnotations[fmt.Sprintf("%s/%s", k, removeUnderscores(ctr.Name()))] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 
 		// Convert auto-update labels into kube annotations
-		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels()) {
-			kubeAnnotations[k] = TruncateKubeAnnotation(v)
+		for k, v := range getAutoUpdateAnnotations(ctr.Name(), ctr.Labels(), useLongAnnotations) {
+			kubeAnnotations[k] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 
 		isInit := ctr.IsInitCtr()
@@ -607,6 +711,12 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			if !strings.Contains(ctr.ID(), ctr.Hostname()) {
 				hostname = ctr.Hostname()
 			}
+		}
+
+		// Pick the first container that has a stop-timeout set and use that value
+		// Ignore podman's default
+		if ctr.config.StopTimeout != util.DefaultContainerConfig().Engine.StopTimeout && stopTimeout == nil {
+			stopTimeout = &ctr.config.StopTimeout
 		}
 
 		// Use the restart policy of the first non-init container
@@ -643,7 +753,7 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 			return nil, err
 		}
 		for k, v := range annotations {
-			kubeAnnotations[define.BindMountPrefix] = TruncateKubeAnnotation(k + ":" + v)
+			kubeAnnotations[define.BindMountPrefix] = truncateKubeAnnotation(k+":"+v, useLongAnnotations)
 		}
 		if isInit {
 			kubeInitCtrs = append(kubeInitCtrs, kubeCtr)
@@ -700,7 +810,8 @@ func simplePodWithV1Containers(ctx context.Context, ctrs []*Container, getServic
 		&podDNS,
 		hostNetwork,
 		hostUsers,
-		hostname)
+		hostname,
+		stopTimeout)
 
 	// Set the pod's restart policy
 	policy := ""
@@ -738,7 +849,7 @@ func containerToV1Container(ctx context.Context, c *Container, getService bool) 
 	}
 
 	// NOTE: a privileged container mounts all of /dev/*.
-	if !c.Privileged() && len(c.config.Spec.Linux.Devices) > 0 {
+	if !c.Privileged() && c.config.Spec.Linux != nil && len(c.config.Spec.Linux.Devices) > 0 {
 		// TODO Enable when we can support devices and their names
 		kubeContainer.VolumeDevices = generateKubeVolumeDeviceFromLinuxDevice(c.config.Spec.Linux.Devices)
 		return kubeContainer, kubeVolumes, nil, annotations, fmt.Errorf("linux devices: %w", define.ErrNotImplemented)
@@ -1134,6 +1245,11 @@ func determineCapAddDropFromCapabilities(defaultCaps, containerCaps []string) *v
 }
 
 func (c *Container) capAddDrop(caps *specs.LinuxCapabilities) *v1.Capabilities {
+	// FreeBSD containers don't have caps so don't dereference if it's nil
+	if caps == nil {
+		return nil
+	}
+
 	// Combine all the container's capabilities into a slice
 	containerCaps := make([]string, 0, len(caps.Ambient)+len(caps.Bounding)+len(caps.Effective)+len(caps.Inheritable)+len(caps.Permitted))
 	containerCaps = append(containerCaps, caps.Ambient...)
@@ -1142,7 +1258,7 @@ func (c *Container) capAddDrop(caps *specs.LinuxCapabilities) *v1.Capabilities {
 	containerCaps = append(containerCaps, caps.Inheritable...)
 	containerCaps = append(containerCaps, caps.Permitted...)
 
-	calculatedCaps := determineCapAddDropFromCapabilities(c.runtime.config.Containers.DefaultCapabilities, containerCaps)
+	calculatedCaps := determineCapAddDropFromCapabilities(c.runtime.config.Containers.DefaultCapabilities.Get(), containerCaps)
 	return calculatedCaps
 }
 
@@ -1208,6 +1324,12 @@ func generateKubeSecurityContext(c *Container) (*v1.SecurityContext, bool, error
 		scHasData = true
 		sc.ReadOnlyRootFilesystem = &ro
 	}
+	if c.config.Spec.Linux.MaskedPaths == nil {
+		scHasData = true
+		unmask := v1.UnmaskedProcMount
+		sc.ProcMount = &unmask
+	}
+
 	if c.User() != "" {
 		if !c.batched {
 			c.lock.Lock()
@@ -1266,7 +1388,7 @@ func removeUnderscores(s string) string {
 
 // getAutoUpdateAnnotations searches for auto-update container labels
 // and returns them as kube annotations
-func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[string]string {
+func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string, useLongAnnotations bool) map[string]string {
 	autoUpdateLabel := "io.containers.autoupdate"
 	annotations := make(map[string]string)
 
@@ -1276,7 +1398,7 @@ func getAutoUpdateAnnotations(ctrName string, ctrLabels map[string]string) map[s
 			// since labels can variate between containers within a pod, they will be
 			// identified with the container name when converted into kube annotations
 			kc := fmt.Sprintf("%s/%s", k, ctrName)
-			annotations[kc] = TruncateKubeAnnotation(v)
+			annotations[kc] = truncateKubeAnnotation(v, useLongAnnotations)
 		}
 	}
 

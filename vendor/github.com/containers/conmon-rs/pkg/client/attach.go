@@ -9,8 +9,8 @@ import (
 	"os"
 	"syscall"
 
+	"github.com/containers/common/pkg/detach"
 	"github.com/containers/common/pkg/resize"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/conmon-rs/internal/proto"
 	"github.com/google/uuid"
 )
@@ -229,7 +229,7 @@ func (c *ConmonClient) setupStdioChannels(
 		c.attachReaders.Store(id, value)
 
 		go func() {
-			_, err := util.CopyDetachable(conn, stdin, cfg.DetachKeys)
+			_, err := detach.Copy(conn, stdin, cfg.DetachKeys)
 			if !errors.Is(err, io.ErrClosedPipe) {
 				stdinDone <- err
 			}
@@ -426,7 +426,7 @@ func (c *ConmonClient) readStdio(
 
 		c.tryCloseAttachReaderForID(id)
 
-		if errors.Is(err, util.ErrDetach) {
+		if errors.Is(err, detach.ErrDetach) {
 			if closeErr := conn.CloseWrite(); closeErr != nil {
 				return errors.Join(closeErr, err)
 			}

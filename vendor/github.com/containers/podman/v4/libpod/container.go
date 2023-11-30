@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -683,6 +686,23 @@ func (c *Container) Hostname() string {
 		return c.config.Spec.Hostname
 	}
 
+	// if the container is not running in a private UTS namespace,
+	// return the host's hostname.
+	privateUTS := false
+	if c.config.Spec.Linux != nil {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.UTSNamespace {
+				privateUTS = true
+				break
+			}
+		}
+	}
+	if !privateUTS {
+		hostname, err := os.Hostname()
+		if err == nil {
+			return hostname
+		}
+	}
 	if len(c.ID()) < 11 {
 		return c.ID()
 	}
@@ -709,6 +729,14 @@ func (c *Container) Terminal() bool {
 func (c *Container) LinuxResources() *spec.LinuxResources {
 	if c.config.Spec != nil && c.config.Spec.Linux != nil {
 		return c.config.Spec.Linux.Resources
+	}
+	return nil
+}
+
+// Env returns the default environment variables defined for the container
+func (c *Container) Env() []string {
+	if c.config.Spec != nil && c.config.Spec.Process != nil {
+		return c.config.Spec.Process.Env
 	}
 	return nil
 }
@@ -1210,29 +1238,14 @@ func (c *Container) HostNetwork() bool {
 	if c.config.CreateNetNS || c.config.NetNsCtr != "" {
 		return false
 	}
-	for _, ns := range c.config.Spec.Linux.Namespaces {
-		if ns.Type == spec.NetworkNamespace {
-			return false
+	if c.config.Spec.Linux != nil {
+		for _, ns := range c.config.Spec.Linux.Namespaces {
+			if ns.Type == spec.NetworkNamespace {
+				return false
+			}
 		}
 	}
 	return true
-}
-
-// ContainerState returns containerstate struct
-func (c *Container) ContainerState() (*ContainerState, error) {
-	if !c.batched {
-		c.lock.Lock()
-		defer c.lock.Unlock()
-
-		if err := c.syncContainer(); err != nil {
-			return nil, err
-		}
-	}
-	returnConfig := new(ContainerState)
-	if err := JSONDeepCopy(c.state, returnConfig); err != nil {
-		return nil, fmt.Errorf("copying container %s state: %w", c.ID(), err)
-	}
-	return c.state, nil
 }
 
 // HasHealthCheck returns bool as to whether there is a health check
@@ -1352,6 +1365,21 @@ func (d ContainerNetworkDescriptions) getInterfaceByName(networkName string) (st
 		return "", exists
 	}
 	return fmt.Sprintf("eth%d", val), exists
+}
+
+// GetNetworkStatus returns the current network status for this container.
+// This returns a map without deep copying which means this should only ever
+// be used as read only access, do not modify this status.
+func (c *Container) GetNetworkStatus() (map[string]types.StatusBlock, error) {
+	if !c.batched {
+		c.lock.Lock()
+		defer c.lock.Unlock()
+
+		if err := c.syncContainer(); err != nil {
+			return nil, err
+		}
+	}
+	return c.getNetworkStatus(), nil
 }
 
 // getNetworkStatus get the current network status from the state. If the container

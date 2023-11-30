@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -424,6 +427,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		g.RemoveMount("/etc/hosts")
 		g.RemoveMount("/run/.containerenv")
 		g.RemoveMount("/run/secrets")
+		g.RemoveMount("/var/run/.containerenv")
+		g.RemoveMount("/var/run/secrets")
 
 		// Regenerate Cgroup paths so they don't point to the old
 		// container ID.
@@ -468,8 +473,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 	// Go through named volumes and add them.
 	// If they don't exist they will be created using basic options.
-	// Maintain an array of them - we need to lock them later.
-	ctrNamedVolumes := make([]*Volume, 0, len(ctr.config.NamedVolumes))
 	for _, vol := range ctr.config.NamedVolumes {
 		isAnonymous := false
 		if vol.Name == "" {
@@ -479,9 +482,8 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			isAnonymous = true
 		} else {
 			// Check if it already exists
-			dbVol, err := r.state.Volume(vol.Name)
+			_, err := r.state.Volume(vol.Name)
 			if err == nil {
-				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
 				// The volume exists, we're good
 				continue
 			} else if !errors.Is(err, define.ErrNoSuchVolume) {
@@ -536,12 +538,10 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			volOptions = append(volOptions, WithVolumeNoChown())
 		}
 
-		newVol, err := r.newVolume(ctx, false, volOptions...)
+		_, err = r.newVolume(ctx, false, volOptions...)
 		if err != nil {
 			return nil, fmt.Errorf("creating named volume %q: %w", vol.Name, err)
 		}
-
-		ctrNamedVolumes = append(ctrNamedVolumes, newVol)
 	}
 
 	switch ctr.config.LogDriver {
@@ -563,20 +563,6 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		ctr.config.Mounts = append(ctr.config.Mounts, ctr.config.ShmDir)
 	}
 
-	// Lock all named volumes we are adding ourself to, to ensure we can't
-	// use a volume being removed.
-	volsLocked := make(map[string]bool)
-	for _, namedVol := range ctrNamedVolumes {
-		toLock := namedVol
-		// Ensure that we don't double-lock a named volume that is used
-		// more than once.
-		if volsLocked[namedVol.Name()] {
-			continue
-		}
-		volsLocked[namedVol.Name()] = true
-		toLock.lock.Lock()
-		defer toLock.lock.Unlock()
-	}
 	// Add the container to the state
 	// TODO: May be worth looking into recovering from name/ID collisions here
 	if ctr.config.Pod != "" {
@@ -914,12 +900,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 			}
 			ctrs, pods, err := r.removeContainer(ctx, dep, recursiveOpts)
 			for rmCtr, err := range ctrs {
-				removedCtrs[rmCtr] = err
+				if errors.Is(err, define.ErrNoSuchCtr) || errors.Is(err, define.ErrCtrRemoved) {
+					removedCtrs[rmCtr] = nil
+				} else {
+					removedCtrs[rmCtr] = err
+				}
 			}
 			for rmPod, err := range pods {
 				removedPods[rmPod] = err
 			}
-			if err != nil {
+			if err != nil && !errors.Is(err, define.ErrNoSuchCtr) && !errors.Is(err, define.ErrCtrRemoved) {
 				retErr = err
 				return
 			}
@@ -945,7 +935,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, opts ctrRmO
 		// Do a quick ping of the database to check if the container
 		// still exists.
 		if ok, _ := r.state.HasContainer(c.ID()); !ok {
-			// When the container has already been removed, the OCI runtime directory remain.
+			// When the container has already been removed, the OCI runtime directory remains.
 			if err := c.cleanupRuntime(ctx); err != nil {
 				retErr = fmt.Errorf("cleaning up container %s from OCI runtime: %w", c.ID(), err)
 				return

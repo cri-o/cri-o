@@ -6,10 +6,10 @@ import (
 	"os"
 	"strconv"
 
-	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
 )
 
 // Reload reloads the configuration for the single crio.conf and the drop-in

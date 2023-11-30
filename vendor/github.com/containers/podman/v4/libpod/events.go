@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -69,7 +72,7 @@ func (c *Container) newContainerEventWithInspectData(status events.Status, inspe
 	if status == events.HealthStatus {
 		containerHealthStatus, err := c.healthCheckStatus()
 		if err != nil {
-			e.HealthStatus = fmt.Sprintf("%v", err)
+			e.HealthStatus = err.Error()
 		}
 		e.HealthStatus = containerHealthStatus
 	}
