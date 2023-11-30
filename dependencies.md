@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Nov 2023 07:32:55 UTC for commit [b3ef6f7][0]._
+_Generated on Thu, 30 Nov 2023 11:41:18 UTC for commit [7499cc2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b3ef6f767729bdd145f090594b1f11dd9eb37098
+[0]: https://github.com/cri-o/cri-o/commit/7499cc23d69bddc9a2e27e6b41f0fbabdaf4c535
 
 ## Outdated Dependencies
 
@@ -737,7 +737,7 @@ _Generated on Thu, 30 Nov 2023 07:32:55 UTC for commit [b3ef6f7][0]._
 | github.com/tjfoc/gmsm                                                                   | v1.4.1                                            |                                     | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75                |                                     | false  | true             |
 | github.com/transparency-dev/merkle                                                      | v0.0.2                                            |                                     | false  | true             |
-| github.com/ugorji/go                                                                    | v1.1.4                                            | v1.2.11                             | false  | true             |
+| github.com/ugorji/go                                                                    | v1.1.4                                            | v1.2.12                             | false  | true             |
 | github.com/ulikunitz/xz                                                                 | v0.5.11                                           |                                     | false  | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.2.3                                            |                                     | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.2.3                                            |                                     | false  | true             |
