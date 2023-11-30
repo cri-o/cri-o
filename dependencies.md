@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Nov 2023 14:07:16 UTC for commit [6aa7d41][0]._
+_Generated on Thu, 30 Nov 2023 15:45:38 UTC for commit [8bf710c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6aa7d410a07da8b6364b8047d5afdedf0fc77694
+[0]: https://github.com/cri-o/cri-o/commit/8bf710c747a67ad5173af823a31210e756060970
 
 ## Outdated Dependencies
 
@@ -636,7 +636,7 @@ _Generated on Thu, 30 Nov 2023 14:07:16 UTC for commit [6aa7d41][0]._
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.13.0                                           | v2.13.2                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.29.0                                           | v1.30.0                             | true   | true             |
-| github.com/open-policy-agent/opa                                                        | v0.58.0                                           |                                     | false  | true             |
+| github.com/open-policy-agent/opa                                                        | v0.58.0                                           | v0.59.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc5                                        |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.10                                           |                                     | true   | true             |
