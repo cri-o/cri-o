@@ -550,9 +550,9 @@ var _ = t.Describe("Image", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "/not-existing",
-			}, imageRef, &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "/not-existing"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -565,9 +565,9 @@ var _ = t.Describe("Image", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../test/policy.json",
-			}, imageRef, &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -580,9 +580,9 @@ var _ = t.Describe("Image", func() {
 			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../test/policy.json",
-			}, imageRef, &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())

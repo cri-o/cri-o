@@ -19,6 +19,7 @@ import (
 	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -77,6 +78,7 @@ type imageCacheItem struct {
 
 type imageCache map[string]imageCacheItem
 
+// WARNING: All of imageLookupService must be JSON-representable because it is included in pullImageArgs.
 type imageLookupService struct {
 	DefaultTransport      string
 	InsecureRegistryCIDRs []*net.IPNet
@@ -97,12 +99,14 @@ type imageService struct {
 var ImageBeingPulled sync.Map
 
 // CgroupPullConfiguration
+// WARNING: All of imageLookupService must be JSON-representable because it is included in pullImageArgs.
 type CgroupPullConfiguration struct {
 	UseNewCgroup bool
 	ParentCgroup string
 }
 
 // subset of copy.Options that is supported by reexec.
+// WARNING: All ofImageCopyOptions must be JSON-representable because it is included in pullImageArgs.
 type ImageCopyOptions struct {
 	SourceCtx        *types.SystemContext
 	DestinationCtx   *types.SystemContext
@@ -126,7 +130,7 @@ type ImageServer interface {
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
-	PullImage(systemContext *types.SystemContext, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
+	PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
 
 	// DeleteImage deletes a storage image (impacting all its tags)
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
@@ -465,21 +469,25 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 
 // nolint: gochecknoinits
 func init() {
-	reexec.Register("crio-copy-image", copyImageChild)
+	reexec.Register("crio-pull-image", pullImageChild)
 }
 
-type copyImageArgs struct {
-	Lookup        *imageLookupService
-	ImageName     string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
-	ParentCgroup  string
-	SystemContext *types.SystemContext
-	Options       *ImageCopyOptions
+type pullImageArgs struct {
+	Lookup       *imageLookupService
+	ImageName    string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
+	ParentCgroup string
+	Options      *ImageCopyOptions
 
 	StoreOptions storage.StoreOptions
 }
 
-func copyImageChild() {
-	var args copyImageArgs
+type pullImageOutputItem struct {
+	Progress *types.ProgressProperties `json:",omitempty"`
+	Result   string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
+}
+
+func pullImageChild() {
+	var args pullImageArgs
 
 	if err := json.NewDecoder(os.NewFile(0, "stdin")).Decode(&args); err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
@@ -497,89 +505,84 @@ func copyImageChild() {
 		os.Exit(1)
 	}
 
-	policy, err := signature.DefaultPolicy(args.SystemContext)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-	policyContext, err := signature.NewPolicyContext(policy)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
-
 	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData(args.ImageName)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
-	srcSystemContext, srcRef, destRef, err := args.Lookup.getReferences(args.Options.SourceCtx, store, imageName)
+
+	output := make(chan pullImageOutputItem)
+	outputWritten := make(chan struct{})
+	go formatPullImageOutputItemGoroutine(os.Stdout, output, outputWritten)
+
+	progress := make(chan types.ProgressProperties)
+	go func() {
+		for p := range progress {
+			p := p
+			output <- pullImageOutputItem{Progress: &p}
+		}
+	}()
+	args.Options.Progress = progress
+
+	destRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
+	output <- pullImageOutputItem{Result: transports.ImageName(destRef)}
 
-	progress := make(chan types.ProgressProperties)
-	go func() {
-		stream := json.NewStream(json.ConfigDefault, os.Stdout, 4096)
-		for p := range progress {
-			stream.WriteVal(p)
-			stream.WriteRaw("\n")
-			if err := stream.Flush(); err != nil {
-				fmt.Fprintf(os.Stderr, "%v", err)
-				os.Exit(1)
-			}
-		}
-	}()
-
-	options := toCopyOptions(args.Options, progress)
-	options.SourceCtx = srcSystemContext
-	if _, err := copy.Image(context.Background(), policyContext, destRef, srcRef, options); err != nil {
-		fmt.Fprintf(os.Stderr, "%v", err)
-		os.Exit(1)
-	}
+	close(output)
+	<-outputWritten
 
 	os.Exit(0)
 }
 
-func toCopyOptions(options *ImageCopyOptions, progress chan types.ProgressProperties) *copy.Options {
-	return &copy.Options{
-		SourceCtx:        options.SourceCtx,
-		DestinationCtx:   options.DestinationCtx,
-		OciDecryptConfig: options.OciDecryptConfig,
-		ProgressInterval: options.ProgressInterval,
-		Progress:         progress,
+func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOutputItem, outputWritten chan<- struct{}) {
+	defer func() {
+		outputWritten <- struct{}{}
+	}()
+
+	stream := json.NewStream(json.ConfigDefault, dest, 4096)
+	for item := range items {
+		stream.WriteVal(item)
+		stream.WriteRaw("\n")
+		if err := stream.Flush(); err != nil {
+			fmt.Fprintf(os.Stderr, "%v", err)
+			//nolint:gocritic // “exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run”
+			// If we fail writing output, outputWritten can never really be set, and it is no longer relevant.
+			// Just abort.
+			os.Exit(1)
+		}
 	}
 }
 
-func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) error {
+func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, error) {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
-	cmd := reexec.CommandContext(svc.ctx, "crio-copy-image", imageName.StringForOutOfProcessConsumptionOnly())
+	cmd := reexec.CommandContext(svc.ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
+		return nil, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
-	stdinArguments := copyImageArgs{
-		Lookup:        svc.lookup,
-		SystemContext: systemContext,
-		Options:       options,
-		ImageName:     imageName.StringForOutOfProcessConsumptionOnly(),
-		ParentCgroup:  parentCgroup,
+	stdinArguments := pullImageArgs{
+		Lookup:       svc.lookup,
+		Options:      options,
+		ImageName:    imageName.StringForOutOfProcessConsumptionOnly(),
+		ParentCgroup: parentCgroup,
 		StoreOptions: storage.StoreOptions{
 			RunRoot:            svc.store.RunRoot(),
 			GraphRoot:          svc.store.GraphRoot(),
@@ -592,86 +595,105 @@ func (svc *imageService) copyImage(systemContext *types.SystemContext, imageName
 
 	stdinArguments.Options.Progress = nil
 	if err := cmd.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return fmt.Errorf("%v: %w", waitErr, err)
+			return nil, fmt.Errorf("%v: %w", waitErr, err)
 		}
-		return fmt.Errorf("json encode to pipe failed: %w", err)
+		return nil, fmt.Errorf("json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 
+	resultChan := make(chan string)
 	go func() {
+		defer func() {
+			close(resultChan) // Future reads, if any, will get "".
+		}()
+
 		decoder := json.NewDecoder(bufio.NewReader(stdout))
 		if progress != nil {
 			defer close(progress)
 		}
 		for decoder.More() {
-			var p types.ProgressProperties
-			if err := decoder.Decode(&p); err != nil {
+			var item pullImageOutputItem
+			if err := decoder.Decode(&item); err != nil {
 				break
 			}
 
-			if progress != nil {
-				progress <- p
+			if item.Progress != nil && progress != nil {
+				progress <- *item.Progress
+			}
+			if item.Result != "" {
+				resultChan <- item.Result
 			}
 		}
 	}()
+
+	result := <-resultChan // Possibly "" if the process terminates before sending a result
+
 	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
-			return fmt.Errorf("pull image: %s", string(errOutput))
+			return nil, fmt.Errorf("pull image: %s", string(errOutput))
 		}
-		return err
-	}
-	return nil
-}
-
-func (svc *imageService) PullImage(systemContext *types.SystemContext, imageName RegistryImageReference, inputOptions *ImageCopyOptions) (types.ImageReference, error) {
-	options := *inputOptions // A shallow copy
-
-	srcSystemContext, srcRef, destRef, err := svc.lookup.getReferences(options.SourceCtx, svc.store, imageName)
-	if err != nil {
 		return nil, err
 	}
-	options.SourceCtx = srcSystemContext
 
-	if inputOptions.CgroupPull.UseNewCgroup {
-		if err := svc.copyImage(systemContext, imageName, inputOptions.CgroupPull.ParentCgroup, &options); err != nil {
-			return nil, err
-		}
-	} else {
-		policy, err := signature.DefaultPolicy(inputOptions.SourceCtx)
-		if err != nil {
-			return nil, err
-		}
-		policyContext, err := signature.NewPolicyContext(policy)
-		if err != nil {
-			return nil, err
-		}
+	if result == "" {
+		return nil, errors.New("pull child finished successfully but didn’t send a result")
+	}
 
-		copyOptions := toCopyOptions(&options, inputOptions.Progress)
-
-		if _, err = copy.Image(svc.ctx, policyContext, destRef, srcRef, copyOptions); err != nil {
-			return nil, err
-		}
+	destRef, err := alltransports.ParseImageName(result)
+	if err != nil {
+		return nil, err
 	}
 	return destRef, nil
 }
 
-func (svc *imageLookupService) getReferences(inputSystemContext *types.SystemContext, store storage.Store, imageName RegistryImageReference) (_ *types.SystemContext, srcRef, destRef types.ImageReference, _ error) {
-	srcSystemContext, srcRef, err := svc.prepareReference(inputSystemContext, imageName)
+func (svc *imageService) PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+	if options.CgroupPull.UseNewCgroup {
+		return svc.pullImageParent(imageName, options.CgroupPull.ParentCgroup, options)
+	} else {
+		return pullImageImplementation(svc.ctx, svc.lookup, svc.store, imageName, options)
+	}
+}
+
+// pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
+// NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
+//
+// It returns a c/storage ImageReference for the destination.
+func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+	srcSystemContext, srcRef, err := lookup.prepareReference(options.SourceCtx, imageName)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
+	}
+	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
+	if err != nil {
+		return nil, err
 	}
 
-	destRef, err = istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
+	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	return srcSystemContext, srcRef, destRef, nil
+	policyContext, err := signature.NewPolicyContext(policy)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+		SourceCtx:        srcSystemContext,
+		DestinationCtx:   options.DestinationCtx,
+		OciDecryptConfig: options.OciDecryptConfig,
+		ProgressInterval: options.ProgressInterval,
+		Progress:         options.Progress,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return destRef, err
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {

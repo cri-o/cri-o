@@ -43,16 +43,15 @@ var _ = t.Describe("ImagePull", func() {
 					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate, gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, nil),
+				imageCloserMock.EXPECT().Close().Return(nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
 						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
-				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -82,13 +81,13 @@ var _ = t.Describe("ImagePull", func() {
 					}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("digest")}),
+				imageCloserMock.EXPECT().Close().Return(nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
 						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
-				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -120,13 +119,12 @@ var _ = t.Describe("ImagePull", func() {
 					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate, gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, nil),
+				imageCloserMock.EXPECT().Close().Return(nil),
 				imageServerMock.EXPECT().ImageStatusByName(
 					gomock.Any(), imageCandidate).
 					Return(nil, t.TestError),
-				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
@@ -174,8 +172,7 @@ var _ = t.Describe("ImagePull", func() {
 					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), imageCandidate, gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, t.TestError),
 				imageCloserMock.EXPECT().Close().Return(nil),
 			)
