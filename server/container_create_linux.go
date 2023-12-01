@@ -477,6 +477,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				return nil, err
 			}
 		}
+
+		if securityContext.NoNewPrivs {
+			const sysAdminCap = "CAP_SYS_ADMIN"
+			for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+				if cap == sysAdminCap {
+					log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+				}
+			}
+
+			if ctr.Privileged() {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+			}
+		}
+
 		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
 
 		if !ctr.Privileged() {
