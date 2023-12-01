@@ -262,8 +262,12 @@ func (h *HighPerformanceHooks) setCPULoadBalancing(c *oci.Container, podManager 
 		return h.setCPULoadBalancingV2(c, podManager, containerManagers, enable, sharedCPUs)
 	}
 	if !enable {
-		// TODO FIXME add shared CPUs
-		return disableCPULoadBalancingV1(containerManagers)
+		if err := disableCPULoadBalancingV1(containerManagers); err != nil {
+			return err
+		}
+		if sharedCPUs != "" {
+			return setSharedCPUsV1(c, containerManagers, sharedCPUs)
+		}
 	}
 	// There is nothing to do in cgroupv1 to re-enable load balancing
 	return nil
@@ -513,8 +517,25 @@ func disableCPULoadBalancingV1(containerManagers []cgroups.Manager) error {
 			return err
 		}
 	}
-
 	return nil
+}
+
+func setSharedCPUsV1(c *oci.Container, containerManagers []cgroups.Manager, sharedCPUs string) error {
+	cpusString := c.Spec().Linux.Resources.CPU.Cpus
+	exclusiveCPUs, err := cpuset.Parse(cpusString)
+	if err != nil {
+		return err
+	}
+
+	sharedCPUSet, err := cpuset.Parse(sharedCPUs)
+	if err != nil {
+		return fmt.Errorf("failed to parse shared cpus: %w", err)
+	}
+
+	return containerManagers[len(containerManagers)-1].Set(&configs.Resources{
+		SkipDevices: true,
+		CpusetCpus:  exclusiveCPUs.Union(sharedCPUSet).String(),
+	})
 }
 
 func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irqSmpAffinityFile, irqBalanceConfigFile string) error {
