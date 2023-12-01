@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Dec 2023 07:01:39 UTC for commit [5569487][0]._
+_Generated on Fri, 01 Dec 2023 12:16:10 UTC for commit [78ad1cf][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/55694878eb0edae147bae91c55b9cbf9bc4d3f8f
+[0]: https://github.com/cri-o/cri-o/commit/78ad1cf2869d3c4ba5702d6e16ef38db83411cc1
 
 ## Outdated Dependencies
 
@@ -434,7 +434,7 @@ _Generated on Fri, 01 Dec 2023 07:01:39 UTC for commit [5569487][0]._
 | github.com/go-openapi/jsonreference                                                     | v0.20.2                                           |                                     | false  | true             |
 | github.com/go-openapi/loads                                                             | v0.21.2                                           |                                     | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           |                                     | false  | true             |
-| github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.10                            | false  | true             |
+| github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.11                            | false  | true             |
 | github.com/go-openapi/strfmt                                                            | v0.21.7                                           |                                     | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           |                                     | false  | true             |
 | github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.3                             | false  | true             |
@@ -553,7 +553,7 @@ _Generated on Fri, 01 Dec 2023 07:01:39 UTC for commit [5569487][0]._
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
-| github.com/klauspost/compress                                                           | v1.17.3                                           |                                     | false  | true             |
+| github.com/klauspost/compress                                                           | v1.17.3                                           | v1.17.4                             | false  | true             |
 | github.com/klauspost/cpuid/v2                                                           | v2.0.4                                            | v2.2.6                              | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6                                            |                                     | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.3                                            |                                     | false  | true             |
