@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 Nov 2023 18:35:26 UTC for commit [db08b7f][0]._
+_Generated on Fri, 01 Dec 2023 00:40:12 UTC for commit [798a86c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/db08b7f3b9dd2c10d3ae78a7b8443b18a6d1c19d
+[0]: https://github.com/cri-o/cri-o/commit/798a86c91f9f3447eee18dce7e570663c0bc354b
 
 ## Outdated Dependencies
 
@@ -235,7 +235,7 @@ _Generated on Thu, 30 Nov 2023 18:35:26 UTC for commit [db08b7f][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.48.9                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.48.10                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.3                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.25.10                            | false  | true             |
@@ -573,7 +573,7 @@ _Generated on Thu, 30 Nov 2023 18:35:26 UTC for commit [db08b7f][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.17                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231128193404-e59f59c21bbe  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231130210859-6445feb96b98  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
