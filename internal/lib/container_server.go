@@ -124,12 +124,12 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 	}
 
-	imageService, err := storage.GetImageService(ctx, store, config)
+	imageService, err := storage.GetImageService(ctx, store, nil, config)
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, nil)
 
 	runtime, err := oci.New(config)
 	if err != nil {

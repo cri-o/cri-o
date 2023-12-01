@@ -22,9 +22,10 @@ var _ = t.Describe("Runtime", func() {
 	Expect(err).To(BeNil())
 
 	var (
-		mockCtrl        *gomock.Controller
-		storeMock       *containerstoragemock.MockStore
-		imageServerMock *criostoragemock.MockImageServer
+		mockCtrl             *gomock.Controller
+		storeMock            *containerstoragemock.MockStore
+		storageTransportMock *criostoragemock.MockStorageTransport
+		imageServerMock      *criostoragemock.MockImageServer
 	)
 
 	// The system under test
@@ -38,9 +39,10 @@ var _ = t.Describe("Runtime", func() {
 		// Setup the mocks
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+		storageTransportMock = criostoragemock.NewMockStorageTransport(mockCtrl)
 		imageServerMock = criostoragemock.NewMockImageServer(mockCtrl)
 
-		sut = storage.GetRuntimeService(context.Background(), imageServerMock)
+		sut = storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 		Expect(sut).NotTo(BeNil())
 
 		ctx = context.TODO()
@@ -53,7 +55,7 @@ var _ = t.Describe("Runtime", func() {
 	mockCreateContainerImageExists := func() mockutils.MockSequence {
 		return mockutils.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+			mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -62,10 +64,11 @@ var _ = t.Describe("Runtime", func() {
 	mockCreatePodSandboxImageExists := func() mockutils.MockSequence {
 		return mockutils.InOrder(
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
+			mockResolveReference(storeMock, storageTransportMock,
+				"docker.io/library/imagename:latest", "",
+				imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockGetStoreImage(storeMock, "docker.io/library/imagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
-			imageServerMock.EXPECT().GetStore().Return(storeMock),
-			mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+			mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 			imageServerMock.EXPECT().GetStore().Return(storeMock),
 		)
 	}
@@ -726,7 +729,7 @@ var _ = t.Describe("Runtime", func() {
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				// storageReference.newImage:
-				mockResolveImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+				mockResolveImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 				storeMock.EXPECT().ImageBigData(gomock.Any(), gomock.Any()).
 					Return(testManifest, nil),
 				storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -760,13 +763,13 @@ var _ = t.Describe("Runtime", func() {
 			Expect(err).To(BeNil())
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", ""),
+				mockResolveReference(storeMock, storageTransportMock,
+					"docker.io/library/pauseimagename:latest", "", ""),
 				imageServerMock.EXPECT().PullImage(pauseImageRef, expectedCopyOptions).Return(pulledRef, nil),
+				mockResolveReference(storeMock, storageTransportMock,
+					"docker.io/library/pauseimagename:latest", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockGetStoreImage(storeMock, "docker.io/library/pauseimagename:latest", imageID.IDStringForOutOfProcessConsumptionOnly()),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				mockNewImage(storeMock, imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
+				mockNewImage(storeMock, "", imageID.IDStringForOutOfProcessConsumptionOnly(), imageID.IDStringForOutOfProcessConsumptionOnly()),
 
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
@@ -785,7 +788,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using default credentials", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
@@ -804,7 +807,7 @@ var _ = t.Describe("Runtime", func() {
 
 		It("should pull pauseImage if not available locally, using provided credential file", func() {
 			// The system under test
-			sut := storage.GetRuntimeService(context.Background(), imageServerMock)
+			sut := storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 			Expect(sut).NotTo(BeNil())
 
 			// Given
