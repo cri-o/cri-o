@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"path"
 	"path/filepath"
-	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -344,7 +343,10 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredMa
 
 	// Adding, we go top to bottom, when removing, bottom to top.
 	if !add {
-		slices.Reverse(states)
+		// Adapted from https://stackoverflow.com/questions/28058278/how-do-i-reverse-a-slice-in-go
+		for i, j := 0, len(states)-1; i < j; i, j = i+1, j-1 {
+			states[i], states[j] = states[j], states[i]
+		}
 	}
 	for _, state := range states {
 		// If we're updating a cpuset to be exclusive, we need to set cpuset.cpus first
