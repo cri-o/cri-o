@@ -92,6 +92,9 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 			}
 			// pass in sharedCPUs if valid for this container
 			sharedCPUs = h.sharedCPUs
+			if err := injectQuotaGivenSharedCPUs(c, podManager, containerManagers, sharedCPUs); err != nil {
+				return err
+			}
 		}
 		if err := h.setCPULoadBalancing(c, podManager, containerManagers, false, sharedCPUs); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
@@ -296,8 +299,6 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 	if err != nil {
 		return err
 	}
-	// TODO FIXME calculatePodQuota?
-
 	// We need to construct a slice of managers from top to bottom. We already have the container's manager,
 	// potentially the parent manager, and pod manager.
 	// So we can begin by constructing all the parents of the pod manager
@@ -368,6 +369,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 		// A manager process will move the exclusive process into the sub cgroup, which will
 		// only have the exclusiveCPUs, and be isolated
 		ctrCgroupCPUs = exclusiveCPUs.Union(sharedCPUSet)
+		injectCpusetEnv(c, &exclusiveCPUs, &sharedCPUSet)
 	}
 	for _, mgr := range containerManagers {
 		managers = append(managers, &desiredManagerCPUSetState{
@@ -1002,10 +1004,14 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 	return "", fmt.Errorf("invalid annotation value %s", annotation)
 }
 
-func setSharedCPUs(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string, isLoadBalancingDisabled bool) error {
-	if isContainerCPUsSpecEmpty(c) {
-		return fmt.Errorf("no cpus found for container %q", c.Name())
-	}
+func isContainerCPUsSpecEmpty(c *oci.Container) bool {
+	return c.Spec().Linux == nil ||
+		c.Spec().Linux.Resources == nil ||
+		c.Spec().Linux.Resources.CPU == nil ||
+		c.Spec().Linux.Resources.CPU.Cpus == ""
+}
+
+func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string) error {
 	cpuSpec := c.Spec().Linux.Resources.CPU
 	isolatedCPUSet, err := cpuset.Parse(cpuSpec.Cpus)
 	if err != nil {
@@ -1018,6 +1024,7 @@ func setSharedCPUs(ctx context.Context, c *oci.Container, podManager cgroups.Man
 	if sharedCPUSet.IsEmpty() {
 		return fmt.Errorf("shared CPU set is empty")
 	}
+
 	// pod level operations
 	podCgroup, err := podManager.GetCgroups()
 	if err != nil {
@@ -1040,51 +1047,10 @@ func setSharedCPUs(ctx context.Context, c *oci.Container, podManager cgroups.Man
 	if err != nil {
 		return fmt.Errorf("failed to calculate container %s quota: %w", c.ID(), err)
 	}
-	err = containerManagers[len(containerManagers)-1].Set(&configs.Resources{
+	return containerManagers[len(containerManagers)-1].Set(&configs.Resources{
 		SkipDevices: true,
 		CpuQuota:    ctrQuota,
-		CpusetCpus:  ctrCPUSet.String(),
 	})
-	if err != nil {
-		return err
-	}
-	if isLoadBalancingDisabled && node.CgroupIsV2() {
-		// we need to move the isolated cpus into a separate child cgroup
-		// on V2 all controllers are under the same path
-		ctrCgroup := containerManagers[len(containerManagers)-1].Path("")
-		if err := cgroups.WriteFile(ctrCgroup, cgroupSubTreeControl, "+cpu +cpuset"); err != nil {
-			return err
-		}
-		if err := cgroups.WriteFile(ctrCgroup, cpusetPartition, "member"); err != nil {
-			return err
-		}
-		cgroupChildDir := filepath.Join(ctrCgroup, "cgroup-child")
-		if err := os.Mkdir(cgroupChildDir, 0o755); err != nil {
-			return err
-		}
-		if err != nil {
-			return err
-		}
-		if err := cgroups.WriteFile(cgroupChildDir, cpusetCpus, isolatedCPUSet.String()); err != nil {
-			return err
-		}
-		if err := cgroups.WriteFile(cgroupChildDir, cpusetExclusive, isolatedCPUSet.String()); err != nil {
-			return err
-		}
-		if err := cgroups.WriteFile(cgroupChildDir, cpusetPartition, "isolated"); err != nil {
-			return err
-		}
-	}
-	injectCpusetEnv(c, &isolatedCPUSet, &sharedCPUSet)
-	log.Infof(ctx, "Shared cpus ids %s were added to container %q", sharedCPUSet.String(), c.Name())
-	return nil
-}
-
-func isContainerCPUsSpecEmpty(c *oci.Container) bool {
-	return c.Spec().Linux == nil ||
-		c.Spec().Linux.Resources == nil ||
-		c.Spec().Linux.Resources.CPU == nil ||
-		c.Spec().Linux.Resources.CPU.Cpus == ""
 }
 
 func calculateMaximalQuota(cpus *cpuset.CPUSet, period uint64) (quota int64, err error) {
