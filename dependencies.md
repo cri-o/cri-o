@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Dec 2023 00:40:12 UTC for commit [798a86c][0]._
+_Generated on Fri, 01 Dec 2023 07:01:39 UTC for commit [5569487][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/798a86c91f9f3447eee18dce7e570663c0bc354b
+[0]: https://github.com/cri-o/cri-o/commit/55694878eb0edae147bae91c55b9cbf9bc4d3f8f
 
 ## Outdated Dependencies
 
@@ -434,10 +434,10 @@ _Generated on Fri, 01 Dec 2023 00:40:12 UTC for commit [798a86c][0]._
 | github.com/go-openapi/jsonreference                                                     | v0.20.2                                           |                                     | false  | true             |
 | github.com/go-openapi/loads                                                             | v0.21.2                                           |                                     | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           |                                     | false  | true             |
-| github.com/go-openapi/spec                                                              | v0.20.9                                           |                                     | false  | true             |
+| github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.10                            | false  | true             |
 | github.com/go-openapi/strfmt                                                            | v0.21.7                                           |                                     | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           |                                     | false  | true             |
-| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.2                             | false  | true             |
+| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.3                             | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                     | false  | true             |
 | github.com/go-playground/universal-translator                                           | v0.18.1                                           |                                     | false  | true             |
@@ -876,7 +876,7 @@ _Generated on Fri, 01 Dec 2023 00:40:12 UTC for commit [798a86c][0]._
 | k8s.io/kubelet                                                                          | v0.29.0-rc.1                                      | v0.30.0-alpha.0                     | true   | false            |
 | k8s.io/kubernetes                                                                       | v1.13.0                                           | v1.28.4                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231130024214-ef12203b3ffe  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231201013645-f4e2c609b5a1  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
