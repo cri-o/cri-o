@@ -16,11 +16,11 @@ func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handl
 	defer span.End()
 	if strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile, sync.Mutex{}, config.SharedCPUSet}, nil
+		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
 	if highPerformanceAnnotationsSpecified(annotations) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile, sync.Mutex{}, config.SharedCPUSet}, nil
+		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
 	if cpuLoadBalancingAllowed(config) {
 		return &DefaultCPULoadBalanceHooks{}, nil

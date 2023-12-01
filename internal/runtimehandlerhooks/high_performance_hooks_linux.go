@@ -85,17 +85,16 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 	// disable the CPU load balancing for the container CPUs
 	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := h.setCPULoadBalancing(c, podManager, containerManagers, false); err != nil {
+		sharedCPUs := ""
+		if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
+			if h.sharedCPUs == "" {
+				return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
+			}
+			// pass in sharedCPUs if valid for this container
+			sharedCPUs = h.sharedCPUs
+		}
+		if err := h.setCPULoadBalancing(c, podManager, containerManagers, false, sharedCPUs); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
-		}
-	}
-
-	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
-		if h.sharedCPUs == "" {
-			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
-		}
-		if err = setSharedCPUs(ctx, c, podManager, containerManagers, h.sharedCPUs, shouldCPULoadBalancingBeDisabled(s.Annotations())); err != nil {
-			return fmt.Errorf("set shared CPUs: %w", err)
 		}
 	}
 
@@ -165,7 +164,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		if err != nil {
 			return err
 		}
-		if err := h.setCPULoadBalancing(c, podManager, containerManagers, true); err != nil {
+		if err := h.setCPULoadBalancing(c, podManager, containerManagers, true, h.sharedCPUs); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -255,11 +254,12 @@ func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 // Since CRI-O is the owner of the container cgroup, it must set this value for
 // the container. Some other entity (kubelet, external service) must ensure this is the case for all
 // other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
-func (h *HighPerformanceHooks) setCPULoadBalancing(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable bool) error {
+func (h *HighPerformanceHooks) setCPULoadBalancing(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable bool, sharedCPUs string) error {
 	if node.CgroupIsV2() {
-		return h.setCPULoadBalancingV2(c, podManager, containerManagers, enable)
+		return h.setCPULoadBalancingV2(c, podManager, containerManagers, enable, sharedCPUs)
 	}
 	if !enable {
+		// TODO FIXME add shared CPUs
 		return disableCPULoadBalancingV1(containerManagers)
 	}
 	// There is nothing to do in cgroupv1 to re-enable load balancing
@@ -274,6 +274,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancing(c *oci.Container, podManager 
 type desiredManagerCPUSetState struct {
 	manager       cgroups.Manager
 	exclusiveCPUs cpuset.CPUSet
+	cpus          cpuset.CPUSet
 	shared        bool
 }
 
@@ -289,12 +290,13 @@ type desiredManagerCPUSetState struct {
 // Thus, this implementation assumes a certain amount of ownership CRI-O takes over this field. This ownership may not apply in the future.
 // Another note on cgroup ownership: currently, CRI-O overwrites cpuset.cpus, which is a field managed by systemd.
 // To avoid systemd clobbering this value, a libcontainer cgroup manager object is created, and through it CRI-O will use dbus to make changes to the cgroup.
-func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable bool) (retErr error) {
+func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable bool, sharedCPUs string) (retErr error) {
 	cpusString := c.Spec().Linux.Resources.CPU.Cpus
-	cpus, err := cpuset.Parse(cpusString)
+	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return err
 	}
+	// TODO FIXME calculatePodQuota?
 
 	// We need to construct a slice of managers from top to bottom. We already have the container's manager,
 	// potentially the parent manager, and pod manager.
@@ -315,6 +317,11 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 	managers := make([]*desiredManagerCPUSetState, 0)
 	parent := ""
 
+	allCPUs, err := fullCPUSet()
+	if err != nil {
+		return err
+	}
+
 	for _, dir := range directories {
 		if dir == "" {
 			continue
@@ -326,16 +333,53 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 		managers = append(managers, &desiredManagerCPUSetState{
 			manager:       mgr,
 			shared:        true,
-			exclusiveCPUs: cpus,
+			exclusiveCPUs: exclusiveCPUs,
+			cpus:          allCPUs,
 		})
 		parent = filepath.Join(parent, dir)
+	}
+
+	var childState *desiredManagerCPUSetState
+	ctrCgroupCPUs := exclusiveCPUs
+
+	if sharedCPUs != "" {
+		// we need to move the isolated cpus into a separate child cgroup
+		// on V2 all controllers are under the same path
+		ctrCgroup := containerManagers[len(containerManagers)-1].Path("")
+		if err := cgroups.WriteFile(ctrCgroup, cgroupSubTreeControl, "+cpu +cpuset"); err != nil {
+			return err
+		}
+		// create a new cgroupfs manager
+		childCgroup, err := libctrManager(ctrCgroup, "cgroup-child", false)
+		if err != nil {
+			return err
+		}
+		sharedCPUSet, err := cpuset.Parse(sharedCPUs)
+		if err != nil {
+			return fmt.Errorf("failed to parse shared cpus: %w", err)
+		}
+		childState = &desiredManagerCPUSetState{
+			manager:       childCgroup,
+			shared:        false,
+			exclusiveCPUs: exclusiveCPUs,
+			cpus:          exclusiveCPUs,
+		}
+		// The container cgroup's cpuset.cpu should be the exclusive and the shared
+		// A manager process will move the exclusive process into the sub cgroup, which will
+		// only have the exclusiveCPUs, and be isolated
+		ctrCgroupCPUs = exclusiveCPUs.Union(sharedCPUSet)
 	}
 	for _, mgr := range containerManagers {
 		managers = append(managers, &desiredManagerCPUSetState{
 			manager:       mgr,
 			shared:        false,
-			exclusiveCPUs: cpus,
+			exclusiveCPUs: exclusiveCPUs,
+			cpus:          ctrCgroupCPUs,
 		})
+	}
+
+	if childState != nil {
+		managers = append(managers, childState)
 	}
 
 	if len(managers) == 0 {
@@ -365,11 +409,6 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 }
 
 func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredManagerCPUSetState, add bool) error {
-	allCPUs, err := fullCPUSet()
-	if err != nil {
-		return err
-	}
-
 	// Adding, we go top to bottom, when removing, bottom to top.
 	if !add {
 		slices.Reverse(states)
@@ -381,11 +420,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredMa
 			// we should write the full cpuset. This allows the kernel to toggle the cpuset
 			// based on whether the cgroup uses partition mode "isolated", and ensures children
 			// cgroups that don't have load balance disabled can use the remaining cpus.
-			if state.shared {
-				if err := h.addOrRemoveCpusetFromManager(state.manager, allCPUs, add, cpusetCpus); err != nil {
-					return err
-				}
-			} else if err := h.addOrRemoveCpusetFromManager(state.manager, state.exclusiveCPUs, add, cpusetCpus); err != nil {
+			if err := h.addOrRemoveCpusetFromManager(state.manager, state.cpus, add, cpusetCpus); err != nil {
 				return err
 			}
 		}
@@ -399,7 +434,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredMa
 		// Don't modify cpuset.cpus when shared. Not only is there no need, it doesn't even work because that cpuset has been
 		// written to the other children by the kernel.
 		if !add && !state.shared {
-			if err := h.addOrRemoveCpusetFromManager(state.manager, state.exclusiveCPUs, add, cpusetCpus); err != nil {
+			if err := h.addOrRemoveCpusetFromManager(state.manager, state.cpus, add, cpusetCpus); err != nil {
 				return err
 			}
 		}
