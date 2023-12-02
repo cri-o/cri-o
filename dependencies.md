@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Dec 2023 12:16:10 UTC for commit [78ad1cf][0]._
+_Generated on Sat, 02 Dec 2023 00:59:30 UTC for commit [87c53ac][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/78ad1cf2869d3c4ba5702d6e16ef38db83411cc1
+[0]: https://github.com/cri-o/cri-o/commit/87c53ac5366c2e7b6b062a8ee77c2a0df6008a97
 
 ## Outdated Dependencies
 
@@ -235,27 +235,27 @@ _Generated on Fri, 01 Dec 2023 12:16:10 UTC for commit [78ad1cf][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.48.10                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.23.4                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.48.11                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.23.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.3                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.25.10                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.13.43                                          | v1.16.8                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.13.13                                          | v1.14.8                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.1.43                                           | v1.2.7                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.4.37                                           | v2.5.7                              | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.25.11                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.13.43                                          | v1.16.9                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.13.13                                          | v1.14.9                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.1.43                                           | v1.2.8                              | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.4.37                                           | v2.5.8                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.3.45                                           | v1.7.1                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/v4a                                               | v1.1.4                                            | v1.2.7                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecr                                                | v1.20.2                                           | v1.24.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecrpublic                                          | v1.18.2                                           | v1.21.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/v4a                                               | v1.1.4                                            | v1.2.8                              | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecr                                                | v1.20.2                                           | v1.24.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecrpublic                                          | v1.18.2                                           | v1.21.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding                           | v1.9.14                                           | v1.10.3                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.1.36                                           | v1.2.7                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.9.37                                           | v1.10.7                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                                           | v1.16.7                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                           | v1.27.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                           | v1.47.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.15.2                                           | v1.18.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.17.3                                           | v1.21.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.23.2                                           | v1.26.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.1.36                                           | v1.2.8                              | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.9.37                                           | v1.10.8                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                                           | v1.16.8                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                           | v1.27.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                           | v1.47.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.15.2                                           | v1.18.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.17.3                                           | v1.21.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.23.2                                           | v1.26.2                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.15.0                                           | v1.18.1                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8                | v0.0.0-20231121224113-b6714ac5eb13  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                              | false  | true             |
@@ -471,7 +471,7 @@ _Generated on Fri, 01 Dec 2023 12:16:10 UTC for commit [78ad1cf][0]._
 | github.com/gogo/googleapis                                                              | v1.4.0                                            | v1.4.1                              | false  | true             |
 | github.com/gogo/protobuf                                                                | v1.3.2                                            |                                     | true   | true             |
 | github.com/golang-jwt/jwt/v4                                                            | v4.5.0                                            |                                     | false  | true             |
-| github.com/golang-jwt/jwt/v5                                                            | v5.0.0                                            | v5.1.0                              | false  | true             |
+| github.com/golang-jwt/jwt/v5                                                            | v5.0.0                                            | v5.2.0                              | false  | true             |
 | github.com/golang/glog                                                                  | v1.1.2                                            | v1.2.0                              | false  | true             |
 | github.com/golang/groupcache                                                            | v0.0.0-20210331224755-41bb18bfe9da                |                                     | false  | true             |
 | github.com/golang/mock                                                                  | v1.6.0                                            |                                     | true   | true             |
