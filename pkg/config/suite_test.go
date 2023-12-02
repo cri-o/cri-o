@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"errors"
 	"os/exec"
 	"testing"
 
@@ -29,6 +30,9 @@ const (
 
 func validConmonPath() string {
 	conmonPath, err := exec.LookPath("conmon")
+	if errors.Is(err, exec.ErrNotFound) {
+		Skip("conmon not found in $PATH")
+	}
 	Expect(err).To(BeNil())
 	return conmonPath
 }
