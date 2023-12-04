@@ -215,24 +215,31 @@ jobs:
   unit:
     strategy:
       matrix:
-        runner:
-          - ubuntu-latest
-          - actuated-arm64-4cpu-16gb
-        arch:
-          - amd64
-          - arm64
-        exclude:
+        run:
           - runner: ubuntu-latest
-            arch: arm64
-          - runner: actuated-arm64-4cpu-16gb
             arch: amd64
-    name: unit / ${{ matrix.arch }}
-    runs-on: ${{ matrix.runner }}
+          - runner: actuated-arm64-4cpu-16gb
+            arch: arm64
+    name: unit / ${{ matrix.run.arch }}
+    runs-on: ${{ matrix.run.runner }}
     steps:
+      - uses: alexellis/arkade-get@master
+        with:
+          crane: latest
+          print-summary: false
+      - name: Install vmmeter
+        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
+      - uses: self-actuated/vmmeter-action@master
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-unit-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}
       - run: scripts/github-actions-packages
       - name: Update mocks
         run: |

@@ -14,37 +14,101 @@ permissions:
   contents: read
 
 jobs:
-  critest:
-    runs-on: ubuntu-latest
+  test-binaries:
+    strategy:
+      matrix:
+        run:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: actuated-arm64-4cpu-16gb
+            arch: arm64
+    name: binaries / ${{ matrix.run.arch }}
+    runs-on: ${{ matrix.run.runner }}
     steps:
+      - uses: alexellis/arkade-get@master
+        with:
+          crane: latest
+          print-summary: false
+      - name: Install vmmeter
+        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
+      - uses: self-actuated/vmmeter-action@master
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-test-binaries-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('test') }}
       - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
       - run: make all test-binaries
-      - run: sudo -E test/test_runner.sh critest.bats
-        env:
-          JOBS: '1'
-          RUN_CRITEST: '1'
+      - uses: actions/upload-artifact@v3
+        with:
+          name: test-binaries-${{ matrix.run.arch }}
+          path: |
+            bin/crio
+            bin/pinns
+            test/checkcriu/checkcriu
+            test/checkseccomp/checkseccomp
+            test/copyimg/copyimg
+            test/nri/nri.test
 
-  critest-conmonrs:
-    runs-on: ubuntu-latest
+  critest:
+    needs: test-binaries
+    strategy:
+      matrix:
+        run:
+          - runner: ubuntu-latest
+            arch: amd64
+          - runner: actuated-arm64-8cpu-32gb
+            arch: arm64
+        runtime:
+          - name: conmon
+            type: oci
+          - name: conmon-rs
+            type: pod
+    name: critest / ${{ matrix.runtime.name }} / ${{ matrix.run.arch }}
+    runs-on: ${{ matrix.run.runner }}
     steps:
+      - uses: alexellis/arkade-get@master
+        with:
+          crane: latest
+          print-summary: false
+      - name: Install vmmeter
+        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
+      - uses: self-actuated/vmmeter-action@master
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
           go-version: ${{ env.GO_VERSION }}
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: go-critest-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
       - uses: sigstore/cosign-installer@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: test-binaries-${{ matrix.run.arch }}
+      - name: Fix artifact permissions
+        run: |
+          chmod +x \
+            bin/crio \
+            bin/pinns \
+            test/checkcriu/checkcriu \
+            test/checkseccomp/checkseccomp \
+            test/copyimg/copyimg \
+            test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
-      - run: make all test-binaries
       - run: sudo -E test/test_runner.sh critest.bats
         env:
           JOBS: '1'
           RUN_CRITEST: '1'
-          RUNTIME_TYPE: pod
+          RUNTIME_TYPE: ${{ matrix.runtime.type }}
 
   test:
     runs-on: ubuntu-latest
