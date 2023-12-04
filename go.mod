@@ -20,7 +20,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.3.0
 	github.com/containers/buildah v1.31.2
-	github.com/containers/common v0.55.3
+	github.com/containers/common v0.55.5-0.20231119144331-165b7a4dd43c
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.5.1
 	github.com/containers/image/v5 v5.27.0
