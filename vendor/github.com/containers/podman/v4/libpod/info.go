@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -13,8 +16,9 @@ import (
 	"time"
 
 	"github.com/containers/buildah"
+	"github.com/containers/buildah/pkg/parse"
 	"github.com/containers/buildah/pkg/util"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/podman/v4/libpod/define"
 	"github.com/containers/podman/v4/libpod/linkmode"
@@ -126,6 +130,11 @@ func (r *Runtime) hostInfo() (*define.HostInfo, error) {
 		OS:                 runtime.GOOS,
 		SwapFree:           mi.SwapFree,
 		SwapTotal:          mi.SwapTotal,
+	}
+	platform := parse.DefaultPlatform()
+	pArr := strings.Split(platform, "/")
+	if len(pArr) == 3 {
+		info.Variant = pArr[2]
 	}
 	if err := r.setPlatformHostInfo(&info); err != nil {
 		return nil, err
@@ -243,14 +252,14 @@ func (r *Runtime) storeInfo() (*define.StoreInfo, error) {
 	for _, o := range r.store.GraphOptions() {
 		split := strings.SplitN(o, "=", 2)
 		if strings.HasSuffix(split[0], "mount_program") {
-			version, err := cutil.ProgramVersion(split[1])
+			ver, err := version.Program(split[1])
 			if err != nil {
 				logrus.Warnf("Failed to retrieve program version for %s: %v", split[1], err)
 			}
 			program := map[string]interface{}{}
 			program["Executable"] = split[1]
-			program["Version"] = version
-			program["Package"] = cutil.PackageVersion(split[1])
+			program["Version"] = ver
+			program["Package"] = version.Package(split[1])
 			graphOptions[split[0]] = program
 		} else {
 			graphOptions[split[0]] = split[1]
@@ -287,7 +296,7 @@ func (r *Runtime) GetHostDistributionInfo() define.DistributionInfo {
 	l := bufio.NewScanner(f)
 	for l.Scan() {
 		if strings.HasPrefix(l.Text(), "ID=") {
-			dist.Distribution = strings.TrimPrefix(l.Text(), "ID=")
+			dist.Distribution = strings.Trim(strings.TrimPrefix(l.Text(), "ID="), "\"")
 		}
 		if strings.HasPrefix(l.Text(), "VARIANT_ID=") {
 			dist.Variant = strings.Trim(strings.TrimPrefix(l.Text(), "VARIANT_ID="), "\"")

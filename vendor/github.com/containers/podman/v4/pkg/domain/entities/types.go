@@ -2,6 +2,7 @@ package entities
 
 import (
 	"net"
+	"os"
 
 	buildahDefine "github.com/containers/buildah/define"
 	"github.com/containers/common/libnetwork/types"
@@ -110,12 +111,26 @@ type ContainerCreateResponse struct {
 // BuildOptions describe the options for building container images.
 type BuildOptions struct {
 	buildahDefine.BuildOptions
+	ContainerFiles []string
+	FarmBuildOptions
+	// Files that need to be closed after the build
+	// so need to pass this to the main build functions
+	LogFileToClose *os.File
+	TmpDirToClose  string
 }
 
 // BuildReport is the image-build report.
 type BuildReport struct {
 	// ID of the image.
 	ID string
+	// Format to save the image in
+	SaveFormat string
+}
+
+// FarmBuildOptions describes the options for building container images on farm nodes
+type FarmBuildOptions struct {
+	// Cleanup removes built images from farm nodes on success
+	Cleanup bool
 }
 
 type IDOrNameResponse struct {

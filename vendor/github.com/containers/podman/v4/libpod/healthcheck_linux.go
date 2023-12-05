@@ -1,5 +1,5 @@
-//go:build systemd
-// +build systemd
+//go:build !remote && systemd
+// +build !remote,systemd
 
 package libpod
 
@@ -27,7 +27,7 @@ func (c *Container) createTimer(interval string, isStartup bool) error {
 		return fmt.Errorf("failed to get path for podman for a health check timer: %w", err)
 	}
 
-	var cmd = []string{}
+	var cmd = []string{"--property", "LogLevelMax=notice"}
 	if rootless.IsRootless() {
 		cmd = append(cmd, "--user")
 	}

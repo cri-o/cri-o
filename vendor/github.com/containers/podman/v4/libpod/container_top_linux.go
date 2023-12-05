@@ -1,5 +1,5 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build !remote && linux && cgo
+// +build !remote,linux,cgo
 
 package libpod
 
@@ -214,10 +214,11 @@ func (c *Container) Top(descriptors []string) ([]string, error) {
 		return nil, psgoErr
 	}
 
-	// Note that the descriptors to ps(1) must be shlexed (see #12452).
-	psDescriptors := []string{}
-	for _, d := range descriptors {
-		shSplit, err := shlex.Split(d)
+	psDescriptors := descriptors
+	if len(descriptors) == 1 {
+		// Note that the descriptors to ps(1) must be shlexed (see #12452).
+		psDescriptors = make([]string, 0, len(descriptors))
+		shSplit, err := shlex.Split(descriptors[0])
 		if err != nil {
 			return nil, fmt.Errorf("parsing ps args: %w", err)
 		}
@@ -297,19 +298,24 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	defer wPipe.Close()
 	defer rPipe.Close()
 
+	outErrChan := make(chan error)
 	stdout := []string{}
 	go func() {
+		defer close(outErrChan)
 		scanner := bufio.NewScanner(rPipe)
 		for scanner.Scan() {
 			stdout = append(stdout, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			outErrChan <- err
 		}
 	}()
 
 	psPath, err := exec.LookPath("ps")
 	if err != nil {
+		wPipe.Close()
 		return nil, true, err
 	}
 	args := append([]string{podmanTopCommand, strconv.Itoa(c.state.PID), psPath}, psArgs...)
@@ -326,6 +332,7 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 
 	retryContainerExec := true
 	err = cmd.Run()
+	wPipe.Close()
 	if err != nil {
 		exitError := &exec.ExitError{}
 		if errors.As(err, &exitError) {
@@ -342,17 +349,20 @@ func (c *Container) execPS(psArgs []string) ([]string, bool, error) {
 			err = fmt.Errorf("could not reexec podman-top command: %w", err)
 		}
 	}
+
+	if err := <-outErrChan; err != nil {
+		return nil, retryContainerExec, fmt.Errorf("failed to read ps stdout: %w", err)
+	}
 	return stdout, retryContainerExec, err
 }
 
-// execPS executes ps(1) with the specified args in the container vie exec session.
+// execPS executes ps(1) with the specified args in the container via exec session.
 // This should be a bit safer then execPS() but it requires ps(1) to be installed in the container.
 func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	rPipe, wPipe, err := os.Pipe()
 	if err != nil {
 		return nil, err
 	}
-	defer wPipe.Close()
 	defer rPipe.Close()
 
 	var errBuf bytes.Buffer
@@ -362,11 +372,16 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	streams.AttachOutput = true
 	streams.AttachError = true
 
+	outErrChan := make(chan error)
 	stdout := []string{}
 	go func() {
+		defer close(outErrChan)
 		scanner := bufio.NewScanner(rPipe)
 		for scanner.Scan() {
 			stdout = append(stdout, scanner.Text())
+		}
+		if err := scanner.Err(); err != nil {
+			outErrChan <- err
 		}
 	}()
 
@@ -374,6 +389,7 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 	config := new(ExecConfig)
 	config.Command = cmd
 	ec, err := c.Exec(config, streams, nil)
+	wPipe.Close()
 	if err != nil {
 		return nil, err
 	} else if ec != 0 {
@@ -386,5 +402,8 @@ func (c *Container) execPSinContainer(args []string) ([]string, error) {
 		logrus.Debugf(errBuf.String())
 	}
 
+	if err := <-outErrChan; err != nil {
+		return nil, fmt.Errorf("failed to read ps stdout: %w", err)
+	}
 	return stdout, nil
 }

@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -360,9 +363,6 @@ func (p *Pod) CgroupPath() (string, error) {
 	defer p.lock.Unlock()
 	if err := p.updatePod(); err != nil {
 		return "", err
-	}
-	if p.state.InfraContainerID == "" {
-		return "", fmt.Errorf("pod has no infra container: %w", define.ErrNoSuchCtr)
 	}
 	return p.state.CgroupPath, nil
 }

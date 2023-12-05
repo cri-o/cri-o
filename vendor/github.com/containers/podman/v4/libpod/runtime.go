@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -5,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
@@ -294,6 +298,48 @@ func getLockManager(runtime *Runtime) (lock.Manager, error) {
 	return manager, nil
 }
 
+func getDBState(runtime *Runtime) (State, error) {
+	// TODO - if we further break out the state implementation into
+	// libpod/state, the config could take care of the code below.  It
+	// would further allow to move the types and consts into a coherent
+	// package.
+	backend, err := config.ParseDBBackend(runtime.config.Engine.DBBackend)
+	if err != nil {
+		return nil, err
+	}
+
+	// get default boltdb path
+	baseDir := runtime.config.Engine.StaticDir
+	if runtime.storageConfig.TransientStore {
+		baseDir = runtime.config.Engine.TmpDir
+	}
+	boltDBPath := filepath.Join(baseDir, "bolt_state.db")
+
+	switch backend {
+	case config.DBBackendDefault:
+		// for backwards compatibility check if boltdb exists, if it does not we use sqlite
+		if _, err := os.Stat(boltDBPath); err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				// need to set DBBackend string so podman info will show the backend name correctly
+				runtime.config.Engine.DBBackend = config.DBBackendSQLite.String()
+				return NewSqliteState(runtime)
+			}
+			// Return error here some other problem with the boltdb file, rather than silently
+			// switch to sqlite which would be hard to debug for the user return the error back
+			// as this likely a real bug.
+			return nil, err
+		}
+		runtime.config.Engine.DBBackend = config.DBBackendBoltDB.String()
+		fallthrough
+	case config.DBBackendBoltDB:
+		return NewBoltState(boltDBPath, runtime)
+	case config.DBBackendSQLite:
+		return NewSqliteState(runtime)
+	default:
+		return nil, fmt.Errorf("unrecognized database backend passed (%q): %w", backend.String(), define.ErrInvalidArg)
+	}
+}
+
 // Make a new runtime based on the given configuration
 // Sets up containers/storage, state store, OCI runtime
 func makeRuntime(runtime *Runtime) (retErr error) {
@@ -311,11 +357,21 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 		return fmt.Errorf("cannot perform system reset while renumbering locks: %w", define.ErrInvalidArg)
 	}
 
+	if runtime.config.Engine.StaticDir == "" {
+		runtime.config.Engine.StaticDir = filepath.Join(runtime.storageConfig.GraphRoot, "libpod")
+		runtime.storageSet.StaticDirSet = true
+	}
+
+	if runtime.config.Engine.VolumePath == "" {
+		runtime.config.Engine.VolumePath = filepath.Join(runtime.storageConfig.GraphRoot, "volumes")
+		runtime.storageSet.VolumePathSet = true
+	}
+
 	// Make the static files directory if it does not exist
 	if err := os.MkdirAll(runtime.config.Engine.StaticDir, 0700); err != nil {
 		// The directory is allowed to exist
 		if !errors.Is(err, os.ErrExist) {
-			return fmt.Errorf("creating runtime static files directory: %w", err)
+			return fmt.Errorf("creating runtime static files directory %q: %w", runtime.config.Engine.StaticDir, err)
 		}
 	}
 
@@ -325,39 +381,9 @@ func makeRuntime(runtime *Runtime) (retErr error) {
 	}
 
 	// Set up the state.
-	//
-	// TODO: We probably need a "default" type that will select BoltDB if
-	// a DB exists already, and SQLite otherwise.
-	//
-	// TODO - if we further break out the state implementation into
-	// libpod/state, the config could take care of the code below.  It
-	// would further allow to move the types and consts into a coherent
-	// package.
-	backend, err := config.ParseDBBackend(runtime.config.Engine.DBBackend)
+	runtime.state, err = getDBState(runtime)
 	if err != nil {
 		return err
-	}
-	switch backend {
-	case config.DBBackendBoltDB:
-		baseDir := runtime.config.Engine.StaticDir
-		if runtime.storageConfig.TransientStore {
-			baseDir = runtime.config.Engine.TmpDir
-		}
-		dbPath := filepath.Join(baseDir, "bolt_state.db")
-
-		state, err := NewBoltState(dbPath, runtime)
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	case config.DBBackendSQLite:
-		state, err := NewSqliteState(runtime)
-		if err != nil {
-			return err
-		}
-		runtime.state = state
-	default:
-		return fmt.Errorf("unrecognized state type passed (%v): %w", runtime.config.Engine.StateType, define.ErrInvalidArg)
 	}
 
 	// Grab config from the database so we can reset some defaults

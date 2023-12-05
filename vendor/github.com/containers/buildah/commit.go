@@ -3,7 +3,6 @@ package buildah
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -22,7 +21,6 @@ import (
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/stringid"
 	digest "github.com/opencontainers/go-digest"
@@ -105,9 +103,21 @@ type CommitOptions struct {
 	// integers in the slice represent 0-indexed layer indices, with support for negative
 	// indexing. i.e. 0 is the first layer, -1 is the last (top-most) layer.
 	OciEncryptLayers *[]int
+	// ConfidentialWorkloadOptions is used to force the output image's rootfs to contain a
+	// LUKS-compatibly encrypted disk image (for use with krun) instead of the usual
+	// contents of a rootfs.
+	ConfidentialWorkloadOptions ConfidentialWorkloadOptions
 	// UnsetEnvs is a list of environments to not add to final image.
 	// Deprecated: use UnsetEnv() before committing instead.
 	UnsetEnvs []string
+	// OverrideConfig is an optional Schema2Config which can override parts
+	// of the working container's configuration for the image that is being
+	// committed.
+	OverrideConfig *manifest.Schema2Config
+	// OverrideChanges is a slice of Dockerfile-style instructions to make
+	// to the configuration of the image that is being committed, after
+	// OverrideConfig is applied.
+	OverrideChanges []string
 }
 
 var (
@@ -354,7 +364,7 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 	if len(options.AdditionalTags) > 0 {
 		switch dest.Transport().Name() {
 		case is.Transport.Name():
-			img, err := is.Transport.GetStoreImage(b.store, dest)
+			_, img, err := is.ResolveReference(dest)
 			if err != nil {
 				return imgID, nil, "", fmt.Errorf("locating just-written image %q: %w", transports.ImageName(dest), err)
 			}
@@ -367,11 +377,12 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 		}
 	}
 
-	img, err := is.Transport.GetStoreImage(b.store, dest)
-	if err != nil && !errors.Is(err, storage.ErrImageUnknown) {
-		return imgID, nil, "", fmt.Errorf("locating image %q in local storage: %w", transports.ImageName(dest), err)
-	}
-	if err == nil {
+	if dest.Transport().Name() == is.Transport.Name() {
+		dest2, img, err := is.ResolveReference(dest)
+		if err != nil {
+			return imgID, nil, "", fmt.Errorf("locating image %q in local storage: %w", transports.ImageName(dest), err)
+		}
+		dest = dest2
 		imgID = img.ID
 		toPruneNames := make([]string, 0, len(img.Names))
 		for _, name := range img.Names {
@@ -384,11 +395,6 @@ func (b *Builder) Commit(ctx context.Context, dest types.ImageReference, options
 				return imgID, nil, "", fmt.Errorf("failed to remove temporary name from image %q: %w", imgID, err)
 			}
 			logrus.Debugf("removing %v from assigned names to image %q", nameToRemove, img.ID)
-			dest2, err := is.Transport.ParseStoreReference(b.store, "@"+imgID)
-			if err != nil {
-				return imgID, nil, "", fmt.Errorf("creating unnamed destination reference for image: %w", err)
-			}
-			dest = dest2
 		}
 		if options.IIDFile != "" {
 			if err = os.WriteFile(options.IIDFile, []byte("sha256:"+img.ID), 0644); err != nil {

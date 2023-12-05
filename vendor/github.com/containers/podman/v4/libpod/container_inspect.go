@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -9,7 +12,7 @@ import (
 	"github.com/containers/podman/v4/libpod/driver"
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/containers/storage/types"
-	units "github.com/docker/go-units"
+	"github.com/docker/go-units"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 )
@@ -140,6 +143,7 @@ func (c *Container) getContainerInspectData(size bool, driverData *define.Driver
 			CheckpointPath: runtimeInfo.CheckpointPath,
 			CheckpointLog:  runtimeInfo.CheckpointLog,
 			RestoreLog:     runtimeInfo.RestoreLog,
+			StoppedByUser:  c.state.StoppedByUser,
 		},
 		Image:                   config.RootfsImageID,
 		ImageName:               config.RootfsImageName,
@@ -312,6 +316,10 @@ func (c *Container) GetSecurityOptions() []string {
 	if apparmor, ok := ctrSpec.Annotations[define.InspectAnnotationApparmor]; ok {
 		SecurityOpt = append(SecurityOpt, fmt.Sprintf("apparmor=%s", apparmor))
 	}
+	if c.config.Spec.Linux.MaskedPaths == nil {
+		SecurityOpt = append(SecurityOpt, "unmask=all")
+	}
+
 	return SecurityOpt
 }
 
@@ -506,6 +514,9 @@ func (c *Container) generateInspectContainerHostConfig(ctrSpec *spec.Spec, named
 		}
 		if ctrSpec.Annotations[define.InspectAnnotationInit] == define.InspectResponseTrue {
 			hostConfig.Init = true
+		}
+		if ctrSpec.Annotations[define.InspectAnnotationPublishAll] == define.InspectResponseTrue {
+			hostConfig.PublishAllPorts = true
 		}
 	}
 

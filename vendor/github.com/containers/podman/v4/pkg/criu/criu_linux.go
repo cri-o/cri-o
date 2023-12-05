@@ -6,8 +6,8 @@ package criu
 import (
 	"fmt"
 
-	"github.com/checkpoint-restore/go-criu/v6"
-	"github.com/checkpoint-restore/go-criu/v6/rpc"
+	"github.com/checkpoint-restore/go-criu/v7"
+	"github.com/checkpoint-restore/go-criu/v7/rpc"
 
 	"google.golang.org/protobuf/proto"
 )
@@ -37,11 +37,7 @@ func MemTrack() bool {
 		return false
 	}
 
-	if features == nil || features.MemTrack == nil {
-		return false
-	}
-
-	return *features.MemTrack
+	return features.GetMemTrack()
 }
 
 func GetCriuVersion() (int, error) {

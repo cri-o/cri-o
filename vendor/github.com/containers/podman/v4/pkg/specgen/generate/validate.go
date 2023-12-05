@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package generate
 
 import (
@@ -30,6 +33,7 @@ func verifyContainerResourcesCgroupV1(s *specgen.SpecGenerator) ([]string, error
 
 	// Cgroups V1 rootless system does not support Resource limits
 	if rootless.IsRootless() {
+		s.ResourceLimits = nil
 		return []string{"Resource limits are not supported and ignored on cgroups V1 rootless systems"}, nil
 	}
 
