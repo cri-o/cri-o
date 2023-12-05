@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
@@ -42,9 +43,9 @@ var _ = t.Describe("Container", func() {
 		Expect(len(sut.Labels())).To(BeEquivalentTo(1))
 		Expect(len(sut.Annotations())).To(BeEquivalentTo(1))
 		Expect(len(sut.CrioAnnotations())).To(BeEquivalentTo(1))
-		Expect(sut.Image()).To(Equal("image"))
-		Expect(sut.ImageName()).To(Equal("imageName"))
-		Expect(sut.ImageRef()).To(Equal("imageRef"))
+		Expect(sut.UserRequestedImage()).To(Equal("image"))
+		Expect(sut.ImageName().StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/image-name:latest"))
+		Expect(sut.ImageID().IDStringForOutOfProcessConsumptionOnly()).To(Equal("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"))
 		Expect(sut.Sandbox()).To(Equal("sandbox"))
 		Expect(sut.Dir()).To(Equal("dir"))
 		Expect(sut.CheckpointPath()).To(Equal("dir/checkpoint"))
@@ -56,8 +57,8 @@ var _ = t.Describe("Container", func() {
 			To(BeNumerically("<", time.Now().UnixNano()))
 		Expect(sut.Spoofed()).To(Equal(false))
 		Expect(sut.Restore()).To(Equal(false))
-		Expect(sut.RestoreArchive()).To(Equal(""))
-		Expect(sut.RestoreIsOCIImage()).To(Equal(false))
+		Expect(sut.RestoreArchivePath()).To(Equal(""))
+		Expect(sut.RestoreStorageImageID()).To(BeNil())
 	})
 
 	It("should succeed to set the spec", func() {
@@ -151,13 +152,14 @@ var _ = t.Describe("Container", func() {
 
 	It("should succeed to set restore is oci image", func() {
 		// Given
-		restore := true
+		storageImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("1111111111111111111111111111111111111111111111111111111111111111")
+		Expect(err).To(BeNil())
 
 		// When
-		sut.SetRestoreIsOCIImage(restore)
+		sut.SetRestoreStorageImageID(&storageImageID)
 
 		// Then
-		Expect(sut.RestoreIsOCIImage()).To(Equal(restore))
+		Expect(sut.RestoreStorageImageID()).To(Equal(&storageImageID))
 	})
 
 	It("should succeed to set restore archive", func() {
@@ -165,10 +167,10 @@ var _ = t.Describe("Container", func() {
 		restoreArchive := "image-name"
 
 		// When
-		sut.SetRestoreArchive(restoreArchive)
+		sut.SetRestoreArchivePath(restoreArchive)
 
 		// Then
-		Expect(sut.RestoreArchive()).To(Equal(restoreArchive))
+		Expect(sut.RestoreArchivePath()).To(Equal(restoreArchive))
 	})
 
 	It("should succeed to set start failed with nil error", func() {
@@ -184,7 +186,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &types.ContainerMetadata{}, "",
+			"", nil, nil, &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGNO")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
@@ -200,7 +202,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &types.ContainerMetadata{}, "",
+			"", nil, nil, &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "RTMIN+1")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
@@ -216,7 +218,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", "", "", &types.ContainerMetadata{}, "",
+			"", nil, nil, &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGTRAP")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())

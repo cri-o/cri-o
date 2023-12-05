@@ -5,6 +5,7 @@ import (
 
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,6 +15,13 @@ import (
 
 // The actual test suite
 var _ = t.Describe("ImagePull", func() {
+	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
+	otherImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("3a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
+
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -25,32 +33,31 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed with pull", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageCloserMock, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{ID: "image"}, nil),
+					imageCandidate).Return(imageCloserMock, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageCloserMock.EXPECT().Close().Return(nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:          "image",
+						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
-				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{Image: &types.ImageSpec{
-					Image: "id",
+					Image: "image",
 				}})
 
 			// Then
@@ -61,32 +68,32 @@ var _ = t.Describe("ImagePull", func() {
 		It("should succeed when already pulled", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageCloserMock, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+					imageCandidate).Return(imageCloserMock, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:           "image",
+						ID:           imageID,
 						ConfigDigest: digest.Digest("digest"),
 					}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("digest")}),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageCloserMock.EXPECT().Close().Return(nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
 					Return(&storage.ImageResult{
-						ID:          "image",
+						ID:          imageID,
 						RepoDigests: []string{"digest"},
 					}, nil),
-				imageCloserMock.EXPECT().Close().Return(nil),
 			)
 
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{
-					Image: &types.ImageSpec{Image: "id"},
+					Image: &types.ImageSpec{Image: "image"},
 					Auth: &types.AuthConfig{
 						Username: "username",
 						Password: "password",
@@ -102,29 +109,28 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when second image status retrieval errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageCloserMock, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{ID: "image"}, nil),
+					imageCandidate).Return(imageCloserMock, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
-					Return(nil, t.TestError),
 				imageCloserMock.EXPECT().Close().Return(nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
+					Return(nil, t.TestError),
 			)
 
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{
-					Image: &types.ImageSpec{Image: "id"},
+					Image: &types.ImageSpec{Image: "image"},
 					Auth: &types.AuthConfig{
 						Username: "username",
 						Password: "password",
@@ -156,18 +162,17 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when image pull errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(imageCloserMock, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{ID: "image"}, nil),
+					imageCandidate).Return(imageCloserMock, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), imageCandidate).
+					Return(&storage.ImageResult{ID: otherImageID}, nil),
 				imageCloserMock.EXPECT().ConfigInfo().
 					Return(imageTypes.BlobInfo{Digest: digest.Digest("")}),
-				imageServerMock.EXPECT().PullImage(
-					gomock.Any(), gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().PullImage(imageCandidate, gomock.Any()).
 					Return(nil, t.TestError),
 				imageCloserMock.EXPECT().Close().Return(nil),
 			)
@@ -175,7 +180,7 @@ var _ = t.Describe("ImagePull", func() {
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{Image: &types.ImageSpec{
-					Image: "id",
+					Image: "image",
 				}})
 
 			// Then
@@ -186,17 +191,17 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when prepare image errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PrepareImage(gomock.Any(),
-					gomock.Any()).Return(nil, t.TestError),
+					imageCandidate).Return(nil, t.TestError),
 			)
 
 			// When
 			response, err := sut.PullImage(context.Background(),
 				&types.PullImageRequest{Image: &types.ImageSpec{
-					Image: "id",
+					Image: "image",
 				}})
 
 			// Then
@@ -207,8 +212,8 @@ var _ = t.Describe("ImagePull", func() {
 		It("should fail when resolve names errors", func() {
 			// Given
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "").
 					Return(nil, t.TestError),
 			)
 			// When

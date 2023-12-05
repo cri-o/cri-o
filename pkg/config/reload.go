@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/container-orchestrated-devices/container-device-interface/pkg/cdi"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
@@ -119,6 +120,9 @@ func (c *Config) ReloadLogFilter(newConfig *Config) error {
 
 func (c *Config) ReloadPauseImage(newConfig *Config) error {
 	if c.PauseImage != newConfig.PauseImage {
+		if _, err := newConfig.ParsePauseImage(); err != nil {
+			return err
+		}
 		c.PauseImage = newConfig.PauseImage
 		logConfig("pause_image", c.PauseImage)
 	}
@@ -218,6 +222,10 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 		}
 		c.BlockIOConfigFile = newConfig.BlockIOConfigFile
 		logConfig("blockio_config_file", c.BlockIOConfigFile)
+	}
+	if c.BlockIOReload != newConfig.BlockIOReload {
+		c.BlockIOReload = newConfig.BlockIOReload
+		logConfig("blockio_reload", strconv.FormatBool(c.BlockIOReload))
 	}
 	return nil
 }

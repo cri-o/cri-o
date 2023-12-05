@@ -60,9 +60,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 	if err := s.Runtime().StopContainer(ctx, ctr, timeout); err != nil {
 		return fmt.Errorf("failed to stop container %s: %w", ctr.ID(), err)
 	}
-	if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
-		return fmt.Errorf("failed to update container status %s: %w", ctr.ID(), err)
-	}
+
 	if err := s.StorageRuntimeServer().StopContainer(ctx, ctr.ID()); err != nil {
 		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 	}

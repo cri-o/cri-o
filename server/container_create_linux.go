@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -207,36 +208,41 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	image, err := ctr.Image()
+	userRequestedImage, err := ctr.UserRequestedImage()
 	if err != nil {
 		return nil, err
 	}
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
-	if err != nil {
-		if err == storage.ErrCannotParseImageID {
-			images = append(images, image)
-		} else {
+	// Get imageName and imageID that are later requested in container status
+	var imgResult *storage.ImageResult
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
 			return nil, err
 		}
-	}
-
-	// Get imageName and imageRef that are later requested in container status
-	var (
-		imgResult    *storage.ImageResult
-		imgResultErr error
-	)
-	for _, img := range images {
-		imgResult, imgResultErr = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
-		if imgResultErr == nil {
-			break
+	} else {
+		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
+		var imgResultErr error
+		for _, name := range potentialMatches {
+			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			if imgResultErr == nil {
+				break
+			}
+		}
+		if imgResultErr != nil {
+			return nil, imgResultErr
 		}
 	}
-	if imgResultErr != nil {
-		return nil, imgResultErr
+	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if userRequestedImage == "" {
+		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
 	}
 
-	imageName := imgResult.Name
-	imageRef := imgResult.ID
+	imageName := imgResult.SomeNameOfThisImage
+	imageID := imgResult.ID
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
@@ -258,7 +264,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
 	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
-		image, imgResult.ID,
+		userRequestedImage, imageID,
 		containerName, containerID,
 		metadata.Name,
 		metadata.Attempt,
@@ -321,7 +327,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, s.Config().Root)
+	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -382,6 +389,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	// Get blockio class
 	if s.Config().BlockIO().Enabled() {
 		if blockioClass, err := blockio.ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations()); blockioClass != "" && err == nil {
+			if s.Config().BlockIO().ReloadRequired() {
+				if err := s.Config().BlockIO().Reload(); err != nil {
+					log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
+				}
+			}
 			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
 				if specgen.Config.Linux.Resources == nil {
 					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
@@ -465,6 +477,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				return nil, err
 			}
 		}
+
+		if securityContext.NoNewPrivs {
+			const sysAdminCap = "CAP_SYS_ADMIN"
+			for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+				if cap == sysAdminCap {
+					log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+				}
+			}
+
+			if ctr.Privileged() {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+			}
+		}
+
 		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
 
 		if !ctr.Privileged() {
@@ -539,7 +565,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
-		err = fmt.Errorf("empty image config for %s", image)
+		err = fmt.Errorf("empty image config for %s", userRequestedImage)
 		return nil, err
 	}
 
@@ -655,7 +681,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), node.SystemdHasCollectMode(), seccompRef, runtimePath)
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
 	}
@@ -771,7 +797,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, image, imageName, imageRef, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, imageName, &imageID, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
@@ -919,7 +945,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -975,7 +1001,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 
-		if isSubDirectoryOf(storageRoot, m.HostPath) {
+		if isSubDirectoryOf(storageRoot, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
 			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
@@ -1064,12 +1090,17 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			SelinuxRelabel: m.SelinuxRelabel,
 		})
 
+		uidMappings := getOCIMappings(m.UidMappings)
+		gidMappings := getOCIMappings(m.GidMappings)
+		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
+			return nil, nil, fmt.Errorf("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
+		}
 		ociMounts = append(ociMounts, rspec.Mount{
 			Source:      src,
 			Destination: dest,
 			Options:     options,
-			UIDMappings: getOCIMappings(m.UidMappings),
-			GIDMappings: getOCIMappings(m.GidMappings),
+			UIDMappings: uidMappings,
+			GIDMappings: gidMappings,
 		})
 	}
 

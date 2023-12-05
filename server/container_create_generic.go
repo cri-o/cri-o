@@ -1,5 +1,5 @@
-//go:build windows || darwin
-// +build windows darwin
+//go:build windows || darwin || freebsd
+// +build windows darwin freebsd
 
 package server
 
@@ -12,5 +12,5 @@ import (
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
-	return s.Runtime().CreateContainer(ctx, container, cgroupParent)
+	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }

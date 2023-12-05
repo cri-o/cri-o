@@ -60,7 +60,7 @@ GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
 MOCKGEN_VERSION := 1.6.0
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
-GOLANGCI_LINT_VERSION := v1.53.2
+GOLANGCI_LINT_VERSION := v1.55.0
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
@@ -68,9 +68,7 @@ GOSEC_VERSION := 2.15.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.4.1
-RELEASE_NOTES_VERSION := v0.15.1
-BOM := ${BUILD_BIN_PATH}/bom
-BOM_VERSION := v0.5.1
+RELEASE_NOTES_VERSION := v0.16.1
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.6.0
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
@@ -160,7 +158,6 @@ shfmt: shellfiles
 
 shellcheck: shellfiles ${SHELLCHECK}
 	${SHELLCHECK} \
-		-P contrib/bundle \
 		-P scripts \
 		-P test \
 		-x \
@@ -187,9 +184,6 @@ test/nri/nri.test: $(wildcard test/nri/*.go)
 bin/crio: $(GO_FILES)
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
 
-bin/crio-status: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio-status
-
 build-static:
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
@@ -198,7 +192,6 @@ build-static:
 	mkdir -p bin
 	cp -r result/bin bin/static
 
-release-bundle: clean bin/pinns build-static docs crio.conf bundle
 
 crio.conf: bin/crio
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
@@ -265,7 +258,7 @@ define curl_to
 endef
 
 $(RELEASE_NOTES): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-linux-amd64,$(RELEASE_NOTES))
+	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes/release/$(RELEASE_NOTES_VERSION)/release-notes-amd64-linux,$(RELEASE_NOTES))
 
 $(SHFMT): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
@@ -273,11 +266,8 @@ $(SHFMT): $(BUILD_BIN_PATH)
 $(ZEITGEIST): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64,$(BUILD_BIN_PATH)/zeitgeist)
 
-$(BOM): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes-sigs/bom/releases/download/$(BOM_VERSION)/bom-amd64-linux,$(BUILD_BIN_PATH)/bom)
-
 $(MOCKGEN): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
+	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_$(GO_ARCH).tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
 
 $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
@@ -287,8 +277,6 @@ $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 $(GOSEC): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gosec.tar.gz -C $(BUILD_BIN_PATH)
-
-bom: $(BOM)
 
 $(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
@@ -367,7 +355,7 @@ mock-criostorage: ${MOCKGEN}
 	${MOCKGEN} \
 		-package criostoragemock \
 		-destination ${MOCK_PATH}/criostorage/criostorage.go \
-		github.com/cri-o/cri-o/internal/storage ImageServer,RuntimeServer
+		github.com/cri-o/cri-o/internal/storage ImageServer,RuntimeServer,StorageTransport
 
 mock-lib-config: ${MOCKGEN}
 	${MOCKGEN} \
@@ -400,7 +388,8 @@ codecov:
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
-binaries: bin/crio bin/crio-status bin/pinns
+binaries: bin/crio bin/pinns
+
 test-binaries: test/copyimg/copyimg test/checkseccomp/checkseccomp test/checkcriu/checkcriu \
 	test/nri/nri.test
 
@@ -419,41 +408,12 @@ completions-generation:
 	bin/crio complete bash > completions/bash/crio
 	bin/crio complete fish > completions/fish/crio.fish
 	bin/crio complete zsh  > completions/zsh/_crio
-	bin/crio-status complete bash > completions/bash/crio-status
-	bin/crio-status complete fish > completions/fish/crio-status.fish
-	bin/crio-status complete zsh  > completions/zsh/_crio-status
 
 docs: $(MANPAGES)
 
 docs-generation:
-	bin/crio-status md  > docs/crio-status.8.md
-	bin/crio-status man > docs/crio-status.8
 	bin/crio -d "" --config="" md  > docs/crio.8.md
 	bin/crio -d "" --config="" man > docs/crio.8
-
-bundle: ${BOM}
-	contrib/bundle/build
-
-bundle-test:
-	sudo contrib/bundle/test
-
-bundle-test-e2e:
-	sudo contrib/bundle/test-e2e
-
-bundle-test-e2e-conmonrs:
-	sudo contrib/bundle/test-e2e --use-conmonrs
-
-bundle-test-kubernetes:
-	cd contrib/bundle && vagrant up
-
-bundles: ${BOM}
-	contrib/bundle/build amd64
-	contrib/bundle/build arm64
-	contrib/bundle/build ppc64le
-
-get-script:
-	sed -i '/# INCLUDE/q' scripts/get
-	cat contrib/bundle/install-paths contrib/bundle/install >> scripts/get
 
 verify-dependencies: ${ZEITGEIST}
 	${BUILD_BIN_PATH}/zeitgeist validate --local-only --base-path . --config dependencies.yaml
@@ -468,7 +428,6 @@ install: install.bin install.man install.completions install.systemd install.con
 
 install.bin-nobuild:
 	install ${SELINUXOPT} -D -m 755 bin/crio $(BINDIR)/crio
-	install ${SELINUXOPT} -D -m 755 bin/crio-status $(BINDIR)/crio-status
 	install ${SELINUXOPT} -D -m 755 bin/pinns $(BINDIR)/pinns
 
 install.bin: binaries install.bin-nobuild
@@ -497,9 +456,6 @@ install.completions:
 	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio
 	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio.fish
 	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio
-	install ${SELINUXOPT} -D -m 644 -t ${BASHINSTALLDIR} completions/bash/crio-status
-	install ${SELINUXOPT} -D -m 644 -t ${FISHINSTALLDIR} completions/fish/crio-status.fish
-	install ${SELINUXOPT} -D -m 644 -t ${ZSHINSTALLDIR}  completions/zsh/_crio-status
 
 install.systemd:
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
@@ -507,7 +463,6 @@ install.systemd:
 
 uninstall:
 	rm -f $(BINDIR)/crio
-	rm -f $(BINDIR)/crio-status
 	rm -f $(BINDIR)/pinns
 	for i in $(filter %.5,$(MANPAGES)); do \
 		rm -f $(MANDIR)/man5/$$(basename $${i}); \
@@ -518,9 +473,6 @@ uninstall:
 	rm -f ${BASHINSTALLDIR}/crio
 	rm -f ${FISHINSTALLDIR}/crio.fish
 	rm -f ${ZSHINSTALLDIR}/_crio
-	rm -f ${BASHINSTALLDIR}/crio-status
-	rm -f ${FISHINSTALLDIR}/crio-status.fish
-	rm -f ${ZSHINSTALLDIR}/_crio-status
 	rm -f $(PREFIX)/lib/systemd/system/crio-wipe.service
 	rm -f $(PREFIX)/lib/systemd/system/crio.service
 	rm -f $(PREFIX)/lib/systemd/system/cri-o.service
@@ -539,9 +491,6 @@ release-branch-forward:
 upload-artifacts:
 	./scripts/upload-artifacts
 
-sign-artifacts:
-	./scripts/sign-artifacts
-
 bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
@@ -557,12 +506,6 @@ metrics-exporter: bin/metrics-exporter
 	.explicit_phony \
 	git-validation \
 	binaries \
-	bom \
-	bundle \
-	bundles \
-	bundle-test \
-	bundle-test-e2e \
-	bundle-test-e2e-conmonrs \
 	build-static \
 	clean \
 	completions \
@@ -576,7 +519,6 @@ metrics-exporter: bin/metrics-exporter
 	lint \
 	local-cross \
 	nixpkgs \
-	release-bundle \
 	shellfiles \
 	shfmt \
 	release-branch-forward \
@@ -590,10 +532,8 @@ metrics-exporter: bin/metrics-exporter
 	bin/pinns \
 	dependencies \
 	upload-artifacts \
-	sign-artifacts \
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \
-	get-script \
 	check-log-lines \
 	verify-dependencies

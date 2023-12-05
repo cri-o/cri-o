@@ -182,6 +182,19 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.PauseImage).To(Equal(newPauseImage))
 		})
 
+		It("should fail with invalid pause_image change", func() {
+			// Given
+			const newPauseImage = "//THIS=is!invalid"
+			newConfig := defaultConfig()
+			newConfig.PauseImage = newPauseImage
+
+			// When
+			err := sut.ReloadPauseImage(newConfig)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+		})
+
 		It("should succeed with pause_command change", func() {
 			// Given
 			const newPauseCommand = "/new-pause"

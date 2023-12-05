@@ -1,43 +1,43 @@
 ---
 - name: set up the system
-  include: "system-packages.yml"
+  include_tasks: "system-packages.yml"
 
 - name: install system packages
-  include: "system.yml"
+  include_tasks: "system.yml"
 
 - name: install Golang tools
-  include: "build/golang.yml"
+  include_tasks: "build/golang.yml"
 
 - name: clone build and install bats
-  include: "build/bats.yml"
+  include_tasks: "build/bats.yml"
 
 - name: clone build and install cri-tools
-  include: "build/cri-tools.yml"
+  include_tasks: "build/cri-tools.yml"
 
 - name: clone build and install runc
-  include: "build/runc.yml"
+  include_tasks: "build/runc.yml"
 
 - name: clone build and install crun
-  include: "build/crun.yml"
+  include_tasks: "build/crun.yml"
 
 - name: install Kata Containers
-  include: "build/kata.yml"
+  include_tasks: "build/kata.yml"
   when: "build_kata | bool"
 
 - name: clone build and install networking plugins
-  include: "build/plugins.yml"
+  include_tasks: "build/plugins.yml"
 
 - name: install conmon
-  include: "build/conmon.yml"
+  include_tasks: "build/conmon.yml"
 
 - name: install conmon-rs
   shell: "curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get | bash -s -- -o /usr/bin/conmonrs"
 
 - name: install jq
-  include: "build/jq.yml"
+  include_tasks: "build/jq.yml"
 
 - name: install kubernetes
-  include: "build/kubernetes.yml"
+  include_tasks: "build/kubernetes.yml"
   vars:
     force_clone: true
     k8s_git_version: "master"
@@ -45,7 +45,7 @@
     crio_socket: "/run/crio/crio.sock"
 
 - name: clone build and install kubetest
-  include: "build/kubetest.yml"
+  include_tasks: "build/kubetest.yml"
   vars:
     force_clone: true
 
@@ -75,4 +75,4 @@
       registries = [ "quay.io", "docker.io" ]
 
 - name: build parallel
-  include: "build/parallel.yml"
+  include_tasks: "build/parallel.yml"

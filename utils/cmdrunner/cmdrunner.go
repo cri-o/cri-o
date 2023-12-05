@@ -1,6 +1,7 @@
 package cmdrunner
 
 import (
+	"context"
 	"os/exec"
 )
 
@@ -13,6 +14,7 @@ var commandRunner CommandRunner
 // It gives the option to change the way commands are run server-wide.
 type CommandRunner interface {
 	Command(string, ...string) *exec.Cmd
+	CommandContext(context.Context, string, ...string) *exec.Cmd
 	CombinedOutput(string, ...string) ([]byte, error)
 }
 
@@ -55,6 +57,16 @@ func Command(cmd string, args ...string) *exec.Cmd {
 	return commandRunner.Command(cmd, args...)
 }
 
+// CommandContext calls CommandContext on the defined commandRunner,
+// or the default implementation in the exec package if there's no commandRunner defined.
+func CommandContext(ctx context.Context, cmd string, args ...string) *exec.Cmd {
+	if commandRunner == nil {
+		return exec.CommandContext(ctx, cmd, args...)
+	}
+
+	return commandRunner.CommandContext(ctx, cmd, args...)
+}
+
 // Command creates an exec.Cmd object. If prependCmd is defined, the command will be prependCmd
 // and the args will be prependArgs + cmd + args.
 // Otherwise, cmd and args will be as inputted.
@@ -68,6 +80,21 @@ func (c *prependableCommandRunner) Command(cmd string, args ...string) *exec.Cmd
 		realArgs = append(realArgs, args...)
 	}
 	return exec.Command(realCmd, realArgs...)
+}
+
+// CommandContext creates an exec.Cmd object. If prependCmd is defined, the command will be prependCmd
+// and the args will be prependArgs + cmd + args.
+// Otherwise, cmd and args will be as inputted.
+func (c *prependableCommandRunner) CommandContext(ctx context.Context, cmd string, args ...string) *exec.Cmd {
+	realCmd := cmd
+	realArgs := args
+	if c.prependCmd != "" {
+		realCmd = c.prependCmd
+		realArgs = c.prependArgs
+		realArgs = append(realArgs, cmd)
+		realArgs = append(realArgs, args...)
+	}
+	return exec.CommandContext(ctx, realCmd, realArgs...)
 }
 
 // GetPrependedCmd returns the prepended command if one is configured, else the empty string

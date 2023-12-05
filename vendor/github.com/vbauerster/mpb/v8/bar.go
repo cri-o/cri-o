@@ -61,7 +61,6 @@ type renderFrame struct {
 	shutdown     int
 	rmOnComplete bool
 	noPop        bool
-	done         bool
 	err          error
 }
 
@@ -82,10 +81,10 @@ func newBar(ctx context.Context, container *Progress, bs *bState) *Bar {
 	return bar
 }
 
-// ProxyReader wraps io.Reader with metrics required for progress tracking.
-// If `r` is 'unknown total/size' reader it's mandatory to call
-// (*Bar).SetTotal(-1, true) method after (io.Reader).Read returns io.EOF.
-// If bar is already completed or aborted, returns nil.
+// ProxyReader wraps io.Reader with metrics required for progress
+// tracking. If `r` is 'unknown total/size' reader it's mandatory
+// to call `(*Bar).SetTotal(-1, true)` after the wrapper returns
+// `io.EOF`. If bar is already completed or aborted, returns nil.
 // Panics if `r` is nil.
 func (b *Bar) ProxyReader(r io.Reader) io.ReadCloser {
 	if r == nil {
@@ -144,7 +143,13 @@ func (b *Bar) Current() int64 {
 // operation for example.
 func (b *Bar) SetRefill(amount int64) {
 	select {
-	case b.operateState <- func(s *bState) { s.refill = amount }:
+	case b.operateState <- func(s *bState) {
+		if amount < s.current {
+			s.refill = amount
+		} else {
+			s.refill = s.current
+		}
+	}:
 	case <-b.done:
 	}
 }
@@ -171,11 +176,10 @@ func (b *Bar) TraverseDecorators(cb func(decor.Decorator)) {
 	}
 }
 
-// EnableTriggerComplete enables triggering complete event. It's
-// effective only for bars which were constructed with `total <= 0` and
-// after total has been set with (*Bar).SetTotal(int64, false). If bar
-// has been incremented to the total, complete event is triggered right
-// away.
+// EnableTriggerComplete enables triggering complete event. It's effective
+// only for bars which were constructed with `total <= 0` and after total
+// has been set with `(*Bar).SetTotal(int64, false)`. If `curren >= total`
+// at the moment of call, complete event is triggered right away.
 func (b *Bar) EnableTriggerComplete() {
 	select {
 	case b.operateState <- func(s *bState) {
@@ -194,11 +198,11 @@ func (b *Bar) EnableTriggerComplete() {
 	}
 }
 
-// SetTotal sets total to an arbitrary value. It's effective only for
-// bar which was constructed with `total <= 0`. Setting total to negative
-// value is equivalent to (*Bar).SetTotal((*Bar).Current(), bool) but faster.
-// If triggerCompletion is true, total value is set to current and
-// complete event is triggered right away.
+// SetTotal sets total to an arbitrary value. It's effective only for bar
+// which was constructed with `total <= 0`. Setting total to negative value
+// is equivalent to `(*Bar).SetTotal((*Bar).Current(), bool)` but faster. If
+// triggerCompletion is true, total value is set to current and complete
+// event is triggered right away.
 func (b *Bar) SetTotal(total int64, triggerCompletion bool) {
 	select {
 	case b.operateState <- func(s *bState) {
@@ -332,13 +336,13 @@ func (b *Bar) DecoratorAverageAdjust(start time.Time) {
 // priority, i.e. bar will be on top. If you don't need to set priority
 // dynamically, better use BarPriority option.
 func (b *Bar) SetPriority(priority int) {
-	b.container.UpdateBarPriority(b, priority)
+	b.container.UpdateBarPriority(b, priority, false)
 }
 
 // Abort interrupts bar's running goroutine. Abort won't be engaged
 // if bar is already in complete state. If drop is true bar will be
 // removed as well. To make sure that bar has been removed call
-// (*Bar).Wait method.
+// `(*Bar).Wait()` method.
 func (b *Bar) Abort(drop bool) {
 	select {
 	case b.operateState <- func(s *bState) {
@@ -409,7 +413,6 @@ func (b *Bar) serve(ctx context.Context, bs *bState) {
 }
 
 func (b *Bar) render(tw int) {
-	var done bool
 	fn := func(s *bState) {
 		var rows []io.Reader
 		stat := newStatistics(tw, s)
@@ -431,7 +434,6 @@ func (b *Bar) render(tw int) {
 			shutdown:     s.shutdown,
 			rmOnComplete: s.rmOnComplete,
 			noPop:        s.noPop,
-			done:         done,
 		}
 		if s.completed || s.aborted {
 			// post increment makes sure OnComplete decorators are rendered
@@ -442,7 +444,6 @@ func (b *Bar) render(tw int) {
 	select {
 	case b.operateState <- fn:
 	case <-b.done:
-		done = true
 		fn(b.bs)
 	}
 }
@@ -497,47 +498,30 @@ func (s *bState) draw(stat decor.Statistics) (io.Reader, error) {
 }
 
 func (s *bState) drawImpl(stat decor.Statistics) (io.Reader, error) {
-	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (res struct {
-		width    int
-		truncate bool
-		err      error
-	}) {
-		res.width = stat.AvailableWidth
+	decorFiller := func(buf *bytes.Buffer, decorators []decor.Decorator) (err error) {
 		for _, d := range decorators {
-			str := d.Decor(stat)
-			if stat.AvailableWidth > 0 {
-				stat.AvailableWidth -= runewidth.StringWidth(stripansi.Strip(str))
-				if res.err == nil {
-					_, res.err = buf.WriteString(str)
-				}
+			// need to call Decor in any case becase of width synchronization
+			str, width := d.Decor(stat)
+			if err != nil {
+				continue
+			}
+			if w := stat.AvailableWidth - width; w >= 0 {
+				_, err = buf.WriteString(str)
+				stat.AvailableWidth = w
+			} else if stat.AvailableWidth > 0 {
+				trunc := runewidth.Truncate(stripansi.Strip(str), stat.AvailableWidth, "…")
+				_, err = buf.WriteString(trunc)
+				stat.AvailableWidth = 0
 			}
 		}
-		res.truncate = stat.AvailableWidth < 0
-		return res
+		return err
 	}
 
 	bufP, bufB, bufA := s.buffers[0], s.buffers[1], s.buffers[2]
 
-	resP := decorFiller(bufP, s.pDecorators)
-	resA := decorFiller(bufA, s.aDecorators)
-
-	for _, err := range []error{resP.err, resA.err} {
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	if resP.truncate {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufP.String()), resP.width, "…"))
-		bufP.Reset()
-		bufA.Reset()
-		return trunc, nil
-	}
-
-	if resA.truncate {
-		trunc := strings.NewReader(runewidth.Truncate(stripansi.Strip(bufA.String()), resA.width, "…"))
-		bufA.Reset()
-		return io.MultiReader(bufP, trunc), nil
+	err := eitherError(decorFiller(bufP, s.pDecorators), decorFiller(bufA, s.aDecorators))
+	if err != nil {
+		return nil, err
 	}
 
 	if !s.trimSpace && stat.AvailableWidth >= 2 {
@@ -661,4 +645,13 @@ func unwrap(d decor.Decorator) decor.Decorator {
 
 func writeSpace(buf *bytes.Buffer) error {
 	return buf.WriteByte(' ')
+}
+
+func eitherError(errors ...error) error {
+	for _, err := range errors {
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

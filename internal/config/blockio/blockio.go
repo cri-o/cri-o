@@ -13,6 +13,8 @@ import (
 
 type Config struct {
 	enabled bool
+	reload  bool
+	path    string
 	config  *blockio.Config
 }
 
@@ -29,16 +31,24 @@ func (c *Config) Enabled() bool {
 	return c.enabled
 }
 
-// Load loads and validates blockio config
-func (c *Config) Load(path string) error {
-	c.enabled = false
+// SetReload sets the blockio reload option
+func (c *Config) SetReload(reload bool) {
+	c.reload = reload
+}
 
-	if path == "" {
-		logrus.Info("No blockio config file specified, blockio not configured")
+// ReloadRequired returns true if reloading configuration and
+// rescanning devices is required
+func (c *Config) ReloadRequired() bool {
+	return c.reload
+}
+
+// Reload (re-)reads the configuration file and rescans block devices in the system
+func (c *Config) Reload() error {
+	if c.path == "" {
 		return nil
 	}
 
-	data, err := os.ReadFile(filepath.Clean(path))
+	data, err := os.ReadFile(c.path)
 	if err != nil {
 		return fmt.Errorf("reading blockio config file failed: %w", err)
 	}
@@ -51,9 +61,26 @@ func (c *Config) Load(path string) error {
 	if err := blockio.SetConfig(tmpCfg, true); err != nil {
 		return fmt.Errorf("configuring blockio failed: %w", err)
 	}
+	c.config = tmpCfg
+	return nil
+}
+
+// Load loads and validates blockio config
+func (c *Config) Load(path string) error {
+	c.enabled = false
+	c.path = ""
+
+	if path == "" {
+		logrus.Info("No blockio config file specified, blockio not configured")
+		return nil
+	}
+
+	c.path = filepath.Clean(path)
+	if err := c.Reload(); err != nil {
+		return err
+	}
 
 	logrus.Infof("Blockio config successfully loaded from %q", path)
-	c.config = tmpCfg
 	c.enabled = true
 	return nil
 }

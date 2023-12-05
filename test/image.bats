@@ -88,11 +88,37 @@ function teardown() {
 	imageid=$(crictl images --quiet "$IMAGE")
 	[ "$imageid" != "" ]
 
-	output=$(crictl images @"$imageid")
+	output=$(crictl images "$imageid")
 	[[ "$output" == *"$IMAGE"* ]]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
+	cleanup_images
+}
+
+@test "image pull and list using imagestore" {
+	# Start crio with imagestore
+	mkdir -p "$TESTDIR/imagestore"
+	CONTAINER_IMAGESTORE="$TESTDIR/imagestore" start_crio
+
+	FEDORA="registry.fedoraproject.org/fedora"
+	crictl pull $FEDORA
+	imageid=$(crictl images --quiet "$FEDORA")
+	[ "$imageid" != "" ]
+
+	output=$(crictl images "$imageid")
+	[[ "$output" == *"$FEDORA"* ]]
+
+	output=$(crictl images --quiet "$imageid")
+	[ "$output" != "" ]
+
+	stop_crio
+	unset CONTAINER_IMAGESTORE
+	# start crio without imagestore
+	start_crio
+	imageid=$(crictl images --quiet "$FEDORA")
+	# no image must be found on default root
+	[[ "$imageid" == "" ]]
 	cleanup_images
 }
 
@@ -110,9 +136,6 @@ function teardown() {
 	imageid=$(crictl images --quiet "$IMAGE:go")
 	[ "$imageid" != "" ]
 
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
-
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
@@ -126,8 +149,6 @@ function teardown() {
 
 	imageid=$(crictl images --quiet "$NGINX_IMAGE")
 	[ "$imageid" != "" ]
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -154,9 +175,6 @@ function teardown() {
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
 		;;
 	esac
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -187,9 +205,6 @@ function teardown() {
 		;;
 	esac
 
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
-
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
 
@@ -213,9 +228,6 @@ function teardown() {
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -241,9 +253,6 @@ function teardown() {
 
 	output=$(crictl images -v ${IMAGE_LIST_DIGEST})
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
-
-	output=$(crictl images --quiet @"$imageid")
-	[ "$output" != "" ]
 
 	output=$(crictl images --quiet "$imageid")
 	[ "$output" != "" ]
@@ -317,4 +326,15 @@ EOF
 	ctr_id=$(crictl run "$TESTDIR/wasm.json" "$TESTDATA/sandbox_config.json")
 	output=$(crictl logs "$ctr_id")
 	[[ "$output" == *"Hello, world!"* ]]
+}
+
+@test "check if image is pinned appropriately" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-pinned-image.conf"
+[crio.image]
+pinned_images = [ "quay.io/crio/hello-wasm:latest" ]
+EOF
+	start_crio
+	crictl pull quay.io/crio/hello-wasm:latest
+	output=$(crictl images -o json | jq '.images[] | select(.repoTags[] == "quay.io/crio/hello-wasm:latest") | .pinned')
+	[ "$output" == "true" ]
 }

@@ -172,7 +172,7 @@ func main() {
 				}
 			}
 			if addName != "" {
-				destImage, err1 := storage.Transport.GetStoreImage(store, ref)
+				_, destImage, err1 := storage.ResolveReference(ref)
 				if err1 != nil {
 					log.Fatalf(ctx, "Error finding image: %v", err1)
 				}

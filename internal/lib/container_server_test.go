@@ -610,23 +610,12 @@ var _ = t.Describe("ContainerServer", func() {
 		})
 	})
 
-	t.Describe("ContainerStateFromDisk", func() {
-		It("should fail when file not found", func() {
-			// Given
-			// When
-			err := sut.ContainerStateFromDisk(context.Background(), myContainer)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-	})
-
 	t.Describe("ContainerStateToDisk", func() {
 		It("should fail when state path invalid", func() {
 			// Given
 			container, err := oci.NewContainer(containerID, "", "", "",
 				make(map[string]string), make(map[string]string),
-				make(map[string]string), "", "", "",
+				make(map[string]string), "", nil, nil,
 				&types.ContainerMetadata{}, sandboxID, false,
 				false, false, "", "/invalid", time.Now(), "")
 			Expect(err).To(BeNil())

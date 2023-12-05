@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -32,12 +33,14 @@ import (
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/cpuset"
@@ -45,9 +48,6 @@ import (
 
 // Defaults if none are specified
 const (
-	defaultRuntime             = "runc"
-	DefaultRuntimeType         = "oci"
-	DefaultRuntimeRoot         = "/run/runc"
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
@@ -56,7 +56,6 @@ const (
 	defaultNamespacesDir       = "/var/run"
 	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
 	tasksetBinary              = "taskset"
-	defaultMonitorCgroup       = "system.slice"
 	MonitorExecCgroupDefault   = ""
 	MonitorExecCgroupContainer = "container"
 )
@@ -100,9 +99,6 @@ const (
 	// ImageVolumesIgnore option is for ignoring image volumes altogether
 	ImageVolumesIgnore ImageVolumesType = "ignore"
 	// ImageVolumesBind option is for using bind mounted volumes
-	ImageVolumesBind ImageVolumesType = "bind"
-	// DefaultPauseImage is default pause image
-	DefaultPauseImage string = "registry.k8s.io/pause:3.9"
 )
 
 const (
@@ -118,6 +114,8 @@ const (
 const (
 	// DefaultBlockIOConfigFile is the default value for blockio controller configuration file
 	DefaultBlockIOConfigFile = ""
+	// DefaultBlockIOReload is the default value for reloading blockio with changed config file and block devices.
+	DefaultBlockIOReload = false
 )
 
 const (
@@ -140,6 +138,10 @@ type RootConfig struct {
 	// RunRoot is a path to the "run directory" where state information not
 	// explicitly handled by other options will be stored.
 	RunRoot string `toml:"runroot"`
+
+	// ImageStore if set it will allow end-users to store newly pulled image
+	// in path provided by `ImageStore` instead of path provided in `Root`.
+	ImageStore string `toml:"imagestore"`
 
 	// Storage is the name of the storage driver which handles actually
 	// storing the contents of containers.
@@ -178,6 +180,7 @@ func (c *RootConfig) GetStore() (storage.Store, error) {
 	return storage.GetStore(storage.StoreOptions{
 		RunRoot:            c.RunRoot,
 		GraphRoot:          c.Root,
+		ImageStore:         c.ImageStore,
 		GraphDriverName:    c.Storage,
 		GraphDriverOptions: c.StorageOptions,
 	})
@@ -220,6 +223,10 @@ type RuntimeHandler struct {
 	// PlatformRuntimePaths defines a configuration option that specifies
 	// the runtime paths for different platforms.
 	PlatformRuntimePaths map[string]string `toml:"platform_runtime_paths,omitempty"`
+
+	// Output of the "features" subcommand.
+	// This is populated dynamically and not read from config.
+	features features.Features
 }
 
 // Multiple runtime Handlers in a map
@@ -318,6 +325,10 @@ type RuntimeConfig struct {
 	// BlockIOConfigFile is the path to the blockio class configuration
 	// file for configuring the cgroup blockio controller.
 	BlockIOConfigFile string `toml:"blockio_config_file"`
+
+	// BlockIOReload instructs the runtime to reload blockio configuration
+	// rescan block devices in the system before assigning blockio parameters.
+	BlockIOReload bool `toml:"blockio_reload"`
 
 	// IrqBalanceConfigFile is the irqbalance service config file which is used
 	// for configuring irqbalance daemon.
@@ -470,8 +481,9 @@ type ImageConfig struct {
 	// containing credentials necessary for pulling images from secure
 	// registries.
 	GlobalAuthFile string `toml:"global_auth_file"`
-	// PauseImage is the name of an image which we use to instantiate infra
-	// containers.
+	// PauseImage is the name of an image on a registry which we use to instantiate infra
+	// containers. It should start with a registry host name.
+	// Format is enforced by validation.
 	PauseImage string `toml:"pause_image"`
 	// PauseImageAuthFile, if not empty, is a path to a file like
 	// /var/lib/kubelet/config.json containing credentials necessary
@@ -807,6 +819,7 @@ func DefaultConfig() (*Config, error) {
 		RootConfig: RootConfig{
 			Root:              storeOpts.GraphRoot,
 			RunRoot:           storeOpts.RunRoot,
+			ImageStore:        storeOpts.ImageStore,
 			Storage:           storeOpts.GraphDriverName,
 			StorageOptions:    storeOpts.GraphDriverOptions,
 			LogDir:            "/var/log/crio/pods",
@@ -832,6 +845,7 @@ func DefaultConfig() (*Config, error) {
 			SELinux:                     selinuxEnabled(),
 			ApparmorProfile:             apparmor.DefaultProfile,
 			BlockIOConfigFile:           DefaultBlockIOConfigFile,
+			BlockIOReload:               DefaultBlockIOReload,
 			IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
 			RdtConfigFile:               rdt.DefaultRdtConfigFile,
 			CgroupManagerName:           cgroupManager.Name(),
@@ -1149,6 +1163,8 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			return fmt.Errorf("blockio configuration: %w", err)
 		}
 
+		c.blockioConfig.SetReload(c.BlockIOReload)
+
 		if err := c.rdtConfig.Load(c.RdtConfigFile); err != nil {
 			return fmt.Errorf("rdt configuration: %w", err)
 		}
@@ -1192,6 +1208,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		RuntimeRoot: DefaultRuntimeRoot,
 		AllowedAnnotations: []string{
 			annotations.OCISeccompBPFHookAnnotation,
+			annotations.DevicesAnnotation,
 		},
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -1219,8 +1236,25 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	for _, invalidHandlerName := range failedValidation {
 		delete(c.Runtimes, invalidHandlerName)
 	}
+	c.initializeRuntimeFeatures()
 
 	return nil
+}
+
+func (c *RuntimeConfig) initializeRuntimeFeatures() {
+	for _, handler := range c.Runtimes {
+		// If this returns an error, we just ignore it and assume the features sub-command is
+		// not supported by the runtime.
+		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
+		if err != nil {
+			logrus.Errorf("Getting OCI runtime features failed: %s", err)
+			continue
+		}
+		// Ignore errors to Unmarshal too, we can't populate it.
+		if err := json.Unmarshal(output, &handler.features); err != nil {
+			logrus.Errorf("Unmarshalling OCI features failed: %s", err)
+		}
+	}
 }
 
 func (c *RuntimeConfig) TranslateMonitorFields(onExecution bool) error {
@@ -1369,12 +1403,20 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 	if !filepath.IsAbs(c.SignaturePolicyDir) {
 		return fmt.Errorf("signature policy dir %q is not absolute", c.SignaturePolicyDir)
 	}
+	if _, err := c.ParsePauseImage(); err != nil {
+		return fmt.Errorf("invalid pause image %q: %w", c.PauseImage, err)
+	}
 	if onExecution {
 		if err := os.MkdirAll(c.SignaturePolicyDir, 0o755); err != nil {
 			return fmt.Errorf("cannot create signature policy dir: %w", err)
 		}
 	}
 	return nil
+}
+
+// ParsePauseImage parses the .PauseImage value as into a validated, well-typed value.
+func (c *ImageConfig) ParsePauseImage() (references.RegistryImageReference, error) {
+	return references.ParseRegistryImageReferenceFromOutOfProcessData(c.PauseImage)
 }
 
 // Validate is the main entry point for network configuration validation.
@@ -1518,6 +1560,18 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 	)
 	r.DisallowedAnnotations = disallowed
 	return nil
+}
+
+// RuntimeSupportsIDMap returns whether this runtime supports the "runtime features"
+// command, and that the output of that command advertises IDMap mounts as an option
+func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
+	if r.features.Linux == nil || r.features.Linux.MountExtensions == nil || r.features.Linux.MountExtensions.IDMap == nil {
+		return false
+	}
+	if enabled := r.features.Linux.MountExtensions.IDMap.Enabled; enabled == nil || !*enabled {
+		return false
+	}
+	return true
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {

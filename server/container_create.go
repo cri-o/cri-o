@@ -329,12 +329,12 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 			return true, nil
 		}
 		// Check if this is an OCI checkpoint image
-		ok, err := s.checkIfCheckpointOCIImage(ctx, req.Config.Image.Image)
+		imageID, err := s.checkIfCheckpointOCIImage(ctx, req.Config.Image.Image)
 		if err != nil {
 			return false, fmt.Errorf("failed to check if this is a checkpoint image: %w", err)
 		}
 
-		return ok, nil
+		return imageID != nil, nil
 	}()
 	if err != nil {
 		return nil, err

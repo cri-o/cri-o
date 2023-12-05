@@ -35,7 +35,6 @@ It is assumed you are running a Linux machine.
       - [Install with Ansible](#install-with-ansible)
       - [Build Tags](#build-tags)
     - [Static builds](#static-builds)
-      - [Creating a release archive](#creating-a-release-archive)
     - [Download conmon](#download-conmon)
   - [Setup CNI networking](#setup-cni-networking)
   - [CRI-O configuration](#cri-o-configuration)
@@ -53,6 +52,10 @@ It is assumed you are running a Linux machine.
 <!-- TOC end -->
 
 ## Install packaged versions of CRI-O
+
+**The following instructions apply to CRI-O versions  `< 1.29`. Please follow
+the instructions in the [cri-o/packaging repository](https://github.com/cri-o/packaging)
+for newer versions.**
 
 CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
@@ -83,8 +86,9 @@ xUbuntu 18.04
 To install, choose a supported version for your operating system, and export it
 as a variable, like so: `export VERSION=1.19`
 
-We also save releases as subprojects. If you'd, for instance, like to use `1.19.1`
-you can set `export VERSION=1.19:1.19.1`
+We also save releases as subprojects. If you'd, for instance, like to use `1.24.5`
+you can set `export VERSION=1.24.5` and
+`export SUBVERSION=$(echo $VERSION | awk -F'.' '{print $1"."$2}')`
 
 Packaging for CRI-O is done best-effort, and is largely driven by requests.
 If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
@@ -135,6 +139,11 @@ And then run the following as root:
 ```shell
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/devel:kubic:libcontainers:stable.repo
 curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/devel:kubic:libcontainers:stable:cri-o:$VERSION.repo
+
+or if you are using a subproject release:
+
+curl -L -o /etc/yum.repos.d/devel:kubic:libcontainers:stable:cri-o:${VERSION}.repo https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/${SUBVERSION}:/${VERSION}/$OS/devel:kubic:libcontainers:stable:cri-o:${SUBVERSION}:${VERSION}.repo
+
 yum install cri-o
 ```
 <!-- markdownlint-enable MD013 -->
@@ -316,10 +325,11 @@ yum install -y \
   libassuan \
   libassuan-devel \
   libgpg-error \
-  libseccomp \
+  libseccomp-devel \
   libselinux \
   pkgconf-pkg-config \
-  gpgme-devel
+  gpgme-devel \
+  gcc-go
 ```
 
 #### Debian - Raspbian - Ubuntu
@@ -337,7 +347,6 @@ apt install -y  \
   btrfs-tools \
   containers-common \
   git \
-  golang-go \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
@@ -364,7 +373,6 @@ apt-get update -qq && apt-get install -y \
   libbtrfs-dev \
   containers-common \
   git \
-  golang-go \
   libassuan-dev \
   libdevmapper-dev \
   libglib2.0-dev \
@@ -521,18 +529,6 @@ Similarly, the ppc64le variant of binaries can be built using:
 nix build -f nix/default-ppc64le.nix
 ```
 
-#### Creating a release archive
-
-A release bundle consists of all static binaries, the man pages and
-configuration files like `00-default.conf`. The `release-bundle` target can be
-used to build a new release archive within the current repository:
-
-```shell
-make release-bundle
-…
-Created ./bundle/cri-o.amd64.v1.20.0.tar.gz
-```
-
 ### Download conmon
 
 [conmon](https://github.com/containers/conmon) is a per-container daemon that
@@ -584,7 +580,7 @@ registries = []
 ```
 <!-- markdownlint-enable MD013 -->
 
-For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/master/docs/containers-registries.conf.5.md).
+For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md).
 
 ### Optional - Modify verbosity of logs
 

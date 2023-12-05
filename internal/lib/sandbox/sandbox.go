@@ -14,7 +14,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -501,25 +500,6 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 	}
 
 	return cState.Status == oci.ContainerStateRunning
-}
-
-// UnmountShm removes the shared memory mount for the sandbox and returns an
-// error if any failure occurs.
-func (s *Sandbox) UnmountShm(ctx context.Context) error {
-	_, span := log.StartSpan(ctx)
-	defer span.End()
-	fp := s.ShmPath()
-	if fp == DevShmPath {
-		return nil
-	}
-
-	// try to unmount, ignoring "not mounted" (EINVAL) error and
-	// "already unmounted" (ENOENT) error
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
-		return fmt.Errorf("unable to unmount %s: %w", fp, err)
-	}
-
-	return nil
 }
 
 // NeedsInfra is a function that returns whether the sandbox will need an infra container.

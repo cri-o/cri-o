@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/containers/storage"
+	istorage "github.com/containers/image/v5/storage"
 	"github.com/cri-o/cri-o/internal/log"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 	json "github.com/json-iterator/go"
@@ -19,85 +19,97 @@ import (
 func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	var resp *types.ImageStatusResponse
-	image := ""
 	img := req.Image
-	if img != nil {
-		image = img.Image
-	}
-	if image == "" {
+	if img == nil || img.Image == "" {
 		return nil, fmt.Errorf("no image specified")
 	}
 
-	log.Infof(ctx, "Checking image status: %s", image)
-	images, err := s.StorageImageServer().ResolveNames(s.config.SystemContext, image)
+	log.Infof(ctx, "Checking image status: %s", img.Image)
+	status, err := s.storageImageStatus(ctx, *img)
 	if err != nil {
-		if err == pkgstorage.ErrCannotParseImageID {
-			images = append(images, image)
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
-	var (
-		notfound bool
-		lastErr  error
-	)
-	for _, image := range images {
-		status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, image)
-		if err != nil {
-			if errors.Is(err, storage.ErrImageUnknown) {
-				log.Debugf(ctx, "Can't find %s", image)
-				notfound = true
-				continue
-			}
-			log.Warnf(ctx, "Error getting status from %s: %v", image, err)
-			lastErr = err
-			continue
-		}
-
-		// Ensure that size is already defined
-		var size uint64
-		if status.Size == nil {
-			size = 0
-		} else {
-			size = *status.Size
-		}
-
-		resp = &types.ImageStatusResponse{
-			Image: &types.Image{
-				Id:          status.ID,
-				RepoTags:    status.RepoTags,
-				RepoDigests: status.RepoDigests,
-				Size_:       size,
-				Spec: &types.ImageSpec{
-					Annotations: status.Annotations,
-				},
-			},
-		}
-		if req.Verbose {
-			info, err := createImageInfo(status)
-			if err != nil {
-				return nil, fmt.Errorf("creating image info: %w", err)
-			}
-			resp.Info = info
-		}
-		uid, username := getUserFromImage(status.User)
-		if uid != nil {
-			resp.Image.Uid = &types.Int64Value{Value: *uid}
-		}
-		resp.Image.Username = username
-		break
-	}
-	if lastErr != nil && resp == nil {
-		return nil, lastErr
-	}
-	if notfound && resp == nil {
-		log.Infof(ctx, "Image %s not found", image)
+	if status == nil {
+		log.Infof(ctx, "Image %s not found", img.Image)
 		return &types.ImageStatusResponse{}, nil
 	}
 
+	// Ensure that size is already defined
+	var size uint64
+	if status.Size == nil {
+		size = 0
+	} else {
+		size = *status.Size
+	}
+
+	resp := &types.ImageStatusResponse{
+		Image: &types.Image{
+			Id:          status.ID.IDStringForOutOfProcessConsumptionOnly(),
+			RepoTags:    status.RepoTags,
+			RepoDigests: status.RepoDigests,
+			Size_:       size,
+			Spec: &types.ImageSpec{
+				Annotations: status.Annotations,
+			},
+		},
+	}
+	if req.Verbose {
+		info, err := createImageInfo(status)
+		if err != nil {
+			return nil, fmt.Errorf("creating image info: %w", err)
+		}
+		resp.Info = info
+	}
+	uid, username := getUserFromImage(status.User)
+	if uid != nil {
+		resp.Image.Uid = &types.Int64Value{Value: *uid}
+	}
+	resp.Image.Username = username
 	log.Infof(ctx, "Image status: %v", resp)
 	return resp, nil
+}
+
+// storageImageStatus calls ImageStatus for a k8s ImageSpec.
+// Returns (nil, nil) if image was not found.
+func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (*pkgstorage.ImageResult, error) {
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
+		status, err := s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
+			if errors.Is(err, istorage.ErrNoSuchImage) {
+				log.Infof(ctx, "Image %s not found", spec.Image)
+				return nil, nil
+			}
+			log.Warnf(ctx, "Error getting status from %s: %v", spec.Image, err)
+			return nil, err
+		}
+		return status, nil
+	}
+
+	potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, spec.Image)
+	if err != nil {
+		return nil, err
+	}
+	var lastErr error
+	for _, name := range potentialMatches {
+		status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+		if err != nil {
+			if errors.Is(err, istorage.ErrNoSuchImage) {
+				log.Debugf(ctx, "Can't find %s", name)
+				continue
+			}
+			log.Warnf(ctx, "Error getting status from %s: %v", name, err)
+			lastErr = err
+			continue
+		}
+		return status, nil
+	}
+	if lastErr != nil {
+		return nil, lastErr
+	}
+	// CandidatesForPotentiallyShortImageName returns at least one value if it doesn't fail.
+	// So, if we got here, there was at least one ErrNoSuchImage, and no other errors.
+	log.Infof(ctx, "Image %s not found", spec.Image)
+	return nil, nil
 }
 
 // getUserFromImage gets uid or user name of the image user.

@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -39,7 +38,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/fsnotify/fsnotify"
-	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -185,10 +183,10 @@ func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwa
 // For every sandbox it fails to restore, it starts a cleanup routine attempting to call CNI DEL
 // For every container it fails to restore, it returns that containers image, so that
 // it can be cleaned up (if we're using internal_wipe).
-func (s *Server) restore(ctx context.Context) []string {
+func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	containersAndTheirImages := map[string]string{}
+	containersAndTheirImages := map[string]storage.StorageImageID{}
 	containers, err := s.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Warnf(ctx, "Could not read containers and sandboxes: %v", err)
@@ -212,7 +210,12 @@ func (s *Server) restore(ctx context.Context) []string {
 			pods[containers[i].ID] = &metadata
 		} else {
 			podContainers[containers[i].ID] = &metadata
-			containersAndTheirImages[containers[i].ID] = containers[i].ImageID
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(containers[i].ImageID)
+			if err != nil {
+				log.Warnf(ctx, "Error parsing image ID %q of container %q: %v, ignoring", containers[i].ImageID, containers[i].ID, err)
+				continue
+			}
+			containersAndTheirImages[containers[i].ID] = imageID
 		}
 	}
 
@@ -310,7 +313,7 @@ func (s *Server) restore(ctx context.Context) []string {
 	}
 
 	// Return a slice of images to remove, if internal_wipe is set.
-	imagesOfDeletedContainers := []string{}
+	imagesOfDeletedContainers := []storage.StorageImageID{}
 	for _, image := range containersAndTheirImages {
 		imagesOfDeletedContainers = append(imagesOfDeletedContainers, image)
 	}
@@ -610,7 +613,7 @@ func useDefaultUmask() {
 // wipeIfAppropriate takes a list of images. If the config's VersionFilePersist
 // indicates an upgrade has happened, it attempts to wipe that list of images.
 // This attempt is best-effort.
-func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string) {
+func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage.StorageImageID) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	if !s.config.InternalWipe {
@@ -641,7 +644,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	}
 
 	// Translate to a map so the images are only attempted to be deleted once.
-	imageMapToDelete := make(map[string]struct{})
+	imageMapToDelete := make(map[storage.StorageImageID]struct{})
 	for _, img := range imagesToDelete {
 		imageMapToDelete[img] = struct{}{}
 	}
@@ -651,7 +654,9 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 		// Best-effort append to imageMapToDelete
 		if ctrs, err := s.ContainerServer.ListContainers(); err == nil {
 			for _, ctr := range ctrs {
-				imageMapToDelete[ctr.ImageRef()] = struct{}{}
+				if id := ctr.ImageID(); id != nil {
+					imageMapToDelete[*id] = struct{}{}
+				}
 			}
 		}
 		for _, sb := range s.ContainerServer.ListSandboxes() {
@@ -666,7 +671,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []string)
 	// disk usage gets too high.
 	if shouldWipeImages {
 		for img := range imageMapToDelete {
-			if err := s.removeImage(ctx, img); err != nil {
+			if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}
@@ -753,111 +758,6 @@ func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
-func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
-	logrus.Info("Starting seccomp notifier watcher")
-	s.seccompNotifierChan = make(chan seccomp.Notification)
-
-	// Restore or cleanup
-	notifierPath := s.config.Seccomp().NotifierPath()
-	info, err := os.Stat(notifierPath)
-	if err == nil && info.IsDir() {
-		if err := filepath.Walk(notifierPath, func(path string, info fs.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if info.IsDir() {
-				return nil
-			}
-
-			id := info.Name()
-
-			if err := os.RemoveAll(path); err != nil {
-				logrus.Error("Unable to remove path: %w", err)
-				return nil
-			}
-
-			ctr, err := s.ContainerServer.GetContainerFromShortID(ctx, id)
-			if err != nil {
-				logrus.Warnf("Skipping not existing seccomp notifier container ID: %s", id)
-				return nil
-			}
-
-			if ctr.State().Status != specs.StateRunning {
-				logrus.Warnf("Skipping container %s because it is not running any more", id)
-				return nil
-			}
-
-			// Restart the notifier
-			notifier, err := seccomp.NewNotifier(context.Background(), s.seccompNotifierChan, id, path, ctr.Annotations())
-			if err != nil {
-				logrus.Errorf("Unable to run restored notifier: %v", err)
-				return nil
-			}
-
-			s.seccompNotifiers.Store(id, notifier)
-
-			return nil
-		}); err != nil {
-			return fmt.Errorf("unable to walk seccomp listener dir: %w", err)
-		}
-	} else {
-		if err := os.RemoveAll(notifierPath); err != nil {
-			return fmt.Errorf("unable to remove default seccomp listener dir: %w", err)
-		}
-
-		if err := os.MkdirAll(notifierPath, 0o700); err != nil {
-			return fmt.Errorf("unable to create default seccomp listener dir: %w", err)
-		}
-	}
-
-	// Start the notifier watcher
-	go func() {
-		for {
-			msg := <-s.seccompNotifierChan
-			ctx := msg.Ctx()
-			id := msg.ContainerID()
-			syscall := msg.Syscall()
-
-			log.Infof(ctx, "Got seccomp notifier message for container ID: %s (syscall = %s)", id, syscall)
-
-			result, ok := s.seccompNotifiers.Load(id)
-			if !ok {
-				log.Errorf(ctx, "Unable to get notifier for container ID")
-				continue
-			}
-			notifier, ok := result.(*seccomp.Notifier)
-			if !ok {
-				log.Errorf(ctx, "Notifier is not a seccomp notifier type")
-				continue
-			}
-			notifier.AddSyscall(syscall)
-
-			ctr := s.ContainerServer.GetContainer(ctx, id)
-			usedSyscalls := notifier.UsedSyscalls()
-
-			if notifier.StopContainers() {
-				// Stop the container only if the notifier timer has expired
-				// The timer will be refreshed after each call to OnExpired.
-				notifier.OnExpired(func() {
-					log.Infof(ctx, "Seccomp notifier timer expired, stopping container %s", id)
-
-					state := ctr.StateNoLock()
-					state.SeccompKilled = true
-					state.Error = "Used forbidden syscalls: " + usedSyscalls
-
-					if err := s.stopContainer(context.Background(), ctr, 0); err != nil {
-						log.Errorf(ctx, "Unable to stop container %s: %v", id, err)
-					}
-				})
-			}
-
-			metrics.Instance().MetricContainersSeccompNotifierCountTotalInc(ctr.Name(), syscall)
-		}
-	}()
-
-	return nil
-}
-
 // StartExitMonitor start a routine that monitors container exits
 // and updates the container status
 func (s *Server) StartExitMonitor(ctx context.Context) {
@@ -920,10 +820,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		sb = s.GetSandbox(c.Sandbox())
 	}
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
-	if err := s.Runtime().UpdateContainerStatus(ctx, c); err != nil {
-		log.Warnf(ctx, "Failed to update %s status %s: %v", resource, containerID, err)
-		return
-	}
+
 	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}

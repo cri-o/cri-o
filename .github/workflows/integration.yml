@@ -6,6 +6,7 @@ on:
     branches:
       - main
       - release-*
+      - update-nixpkgs-*
   pull_request:
 env:
   GO_VERSION: '1.21'

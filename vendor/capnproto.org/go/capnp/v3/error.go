@@ -4,10 +4,6 @@ import (
 	"capnproto.org/go/capnp/v3/exc"
 )
 
-var (
-	capnperr = exc.Annotator("capnp")
-)
-
 // TODO(someday):  progressively remove exported functions and instead
 //                 rely on package 'exc'.
 
@@ -31,12 +27,4 @@ func Disconnected(s string) error {
 // IsDisconnected reports whether e indicates a failure due to loss of a necessary capability.
 func IsDisconnected(e error) bool {
 	return exc.TypeOf(e) == exc.Disconnected
-}
-
-func errorf(format string, args ...interface{}) error {
-	return capnperr.Failedf(format, args...)
-}
-
-func annotatef(err error, format string, args ...interface{}) error {
-	return capnperr.Annotatef(err, format, args...)
 }

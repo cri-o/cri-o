@@ -6,10 +6,11 @@ on:
     branches:
       - main
       - release-*
+      - update-nixpkgs-*
   pull_request:
 env:
   GO_VERSION: '1.21'
-  GOLANGCI_LINT_VERSION: v1.53.2
+  GOLANGCI_LINT_VERSION: v1.55.0
 permissions:
   contents: read
 
@@ -34,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint the markdown
-        uses: DavidAnson/markdownlint-cli2-action@v12
+        uses: DavidAnson/markdownlint-cli2-action@v13
         with:
           globs: |
             **/*.md
@@ -102,32 +103,6 @@ jobs:
           go-version: ${{ env.GO_VERSION }}
       - run: make check-config-template
 
-  get-script:
-    if: ${{ github.base_ref == 'main' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: sudo scripts/get
-      - run: crio version
-
-  get-script-with-verification:
-    if: ${{ github.base_ref == 'main' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v4
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: sigstore/cosign-installer@v3
-      - run: |
-          make get-script
-          hack/tree_status.sh
-      - run: |
-          make bom
-          sudo cp build/bin/bom /usr/bin
-      - run: sudo -E PATH=$PATH scripts/get
-      - run: crio version
-
   dependencies:
     runs-on: ubuntu-latest
     steps:
@@ -141,6 +116,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: crate-ci/typos@v1.16.11
+      - uses: crate-ci/typos@v1.16.23
         with:
           config: .typos.toml

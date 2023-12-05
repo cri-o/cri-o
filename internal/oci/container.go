@@ -1,7 +1,6 @@
 package oci
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"os"
@@ -13,11 +12,11 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/common/pkg/signal"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
-	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
@@ -54,32 +53,34 @@ type Container struct {
 	// this is the /var/run/storage/... directory, erased on reboot
 	bundlePath string
 	// this is the /var/lib/storage/... directory
-	dir                string
-	stopSignal         string
-	imageName          string
-	mountPoint         string
-	seccompProfilePath string
-	conmonCgroupfsPath string
-	crioAnnotations    fields.Set
-	state              *ContainerState
-	opLock             sync.RWMutex
-	spec               *specs.Spec
-	idMappings         *idtools.IDMappings
-	terminal           bool
-	stdin              bool
-	stdinOnce          bool
-	created            bool
-	spoofed            bool
-	stopping           bool
-	stopLock           sync.Mutex
-	stopTimeoutChan    chan int64
-	stopWatchers       []chan struct{}
-	pidns              nsmgr.Namespace
-	restore            bool
-	restoreArchive     string
-	restoreIsOCIImage  bool
-	resources          *types.ContainerResources
-	runtimePath        string // runtime path for a given platform
+	dir        string
+	stopSignal string
+	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+	imageName             *references.RegistryImageReference
+	imageID               *storage.StorageImageID // nil for infra containers.
+	mountPoint            string
+	seccompProfilePath    string
+	conmonCgroupfsPath    string
+	crioAnnotations       fields.Set
+	state                 *ContainerState
+	opLock                sync.RWMutex
+	spec                  *specs.Spec
+	idMappings            *idtools.IDMappings
+	terminal              bool
+	stdin                 bool
+	stdinOnce             bool
+	created               bool
+	spoofed               bool
+	stopping              bool
+	stopLock              sync.Mutex
+	stopTimeoutChan       chan int64
+	stopWatchers          []chan struct{}
+	pidns                 nsmgr.Namespace
+	restore               bool
+	restoreArchivePath    string
+	restoreStorageImageID *storage.StorageImageID
+	resources             *types.ContainerResources
+	runtimePath           string // runtime path for a given platform
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -120,9 +121,17 @@ type ContainerState struct {
 }
 
 // NewContainer creates a container object.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, image, imageName, imageRef string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+// userRequestedImage is the users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!)
+// at any future time.
+// imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+// imageID is nil for infra containers.
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
+	externalImageRef := ""
+	if imageID != nil {
+		externalImageRef = imageID.IDStringForOutOfProcessConsumptionOnly()
+	}
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -132,9 +141,9 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			Metadata:     md,
 			Annotations:  annotations,
 			Image: &types.ImageSpec{
-				Image: image,
+				Image: userRequestedImage,
 			},
-			ImageRef: imageRef,
+			ImageRef: externalImageRef,
 		},
 		name:            name,
 		bundlePath:      bundlePath,
@@ -145,6 +154,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		runtimeHandler:  runtimeHandler,
 		crioAnnotations: crioAnnotations,
 		imageName:       imageName,
+		imageID:         imageID,
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
@@ -171,6 +181,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			Image: &types.ImageSpec{},
 		},
 		name:    name,
+		imageID: nil,
 		spoofed: true,
 		state:   state,
 		dir:     dir,
@@ -319,37 +330,6 @@ func (c *Container) ID() string {
 	return c.criContainer.Id
 }
 
-// CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
-func (c *Container) CleanupConmonCgroup(ctx context.Context) {
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-	if c.spoofed {
-		return
-	}
-	path := c.ConmonCgroupfsPath()
-	if path == "" {
-		return
-	}
-	cg, err := cgroups.Load(path)
-	if err != nil {
-		log.Infof(ctx, "Error loading conmon cgroup of container %s: %v", c.ID(), err)
-		return
-	}
-	if err := cg.Delete(); err != nil {
-		log.Infof(ctx, "Error deleting conmon cgroup of container %s: %v", c.ID(), err)
-	}
-}
-
-// SetSeccompProfilePath sets the seccomp profile path
-func (c *Container) SetSeccompProfilePath(pp string) {
-	c.seccompProfilePath = pp
-}
-
-// SeccompProfilePath returns the seccomp profile path
-func (c *Container) SeccompProfilePath() string {
-	return c.seccompProfilePath
-}
-
 // BundlePath returns the bundlePath of the container.
 func (c *Container) BundlePath() string {
 	return c.bundlePath
@@ -375,19 +355,21 @@ func (c *Container) CrioAnnotations() map[string]string {
 	return c.crioAnnotations
 }
 
-// Image returns the image of the container.
-func (c *Container) Image() string {
+// UserRequestedImage returns the users' input originally used to find imageID; it might evaluate to a different image
+// (or to a different kind of reference!) at any future time.
+func (c *Container) UserRequestedImage() string {
 	return c.criContainer.Image.Image
 }
 
-// ImageName returns the image name of the container.
-func (c *Container) ImageName() string {
+// ImageName returns _some_ name of the image imageID, if any;
+// it may have NO RELATIONSHIP to the users’ requested image name.
+func (c *Container) ImageName() *references.RegistryImageReference {
 	return c.imageName
 }
 
-// ImageRef returns the image ref of the container.
-func (c *Container) ImageRef() string {
-	return c.criContainer.ImageRef
+// ImageID returns the image ID of the container, or nil for infra containers.
+func (c *Container) ImageID() *storage.StorageImageID {
+	return c.imageID
 }
 
 // Sandbox returns the sandbox name of the container.
@@ -559,44 +541,6 @@ func (c *Container) verifyPid() error {
 	return nil
 }
 
-// getPidStartTime reads the kernel's /proc entry for stime for PID.
-// inspiration for this function came from https://github.com/containers/psgo/blob/master/internal/proc/stat.go
-// some credit goes to the psgo authors
-func getPidStartTime(pid int) (string, error) {
-	return GetPidStartTimeFromFile(fmt.Sprintf("/proc/%d/stat", pid))
-}
-
-// GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
-// It is abstracted out to allow for unit testing
-func GetPidStartTimeFromFile(file string) (string, error) {
-	data, err := os.ReadFile(file)
-	if err != nil {
-		return "", fmt.Errorf("%v: %w", err, ErrNotFound)
-	}
-	// The command (2nd field) can have spaces, but is wrapped in ()
-	// first, trim it
-	commEnd := bytes.LastIndexByte(data, ')')
-	if commEnd == -1 {
-		return "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
-	}
-
-	// start on the space after the command
-	iter := commEnd + 1
-	// for the number of fields between command and stime, trim the beginning word
-	for field := 0; field < statStartTimeLocation-statCommField; field++ {
-		// trim from the beginning to the character after the last space
-		data = data[iter+1:]
-		// find the next space
-		iter = bytes.IndexByte(data, ' ')
-		if iter == -1 {
-			return "", fmt.Errorf("invalid number of entries found in stat file %s: %d: %w", file, field-1, ErrNotFound)
-		}
-	}
-
-	// and return the startTime (not including the following space)
-	return string(data[:iter]), nil
-}
-
 // ShouldBeStopped checks whether the container state is in a place
 // where attempting to stop it makes sense
 // a container is not stoppable if it's paused or stopped
@@ -669,10 +613,12 @@ func (c *Container) IsInfra() bool {
 // a PID namespace specified. If not, it returns `true` (because the runtime spec
 // defines a node level namespace as being absent from the Namespaces list)
 func (c *Container) nodeLevelPIDNamespace() bool {
-	for i := range c.spec.Linux.Namespaces {
-		// If it's specified in the namespace list, then it is something other than Node level
-		if c.spec.Linux.Namespaces[i].Type == specs.PIDNamespace {
-			return false
+	if c.spec.Linux != nil {
+		for i := range c.spec.Linux.Namespaces {
+			// If it's specified in the namespace list, then it is something other than Node level
+			if c.spec.Linux.Namespaces[i].Type == specs.PIDNamespace {
+				return false
+			}
 		}
 	}
 	return true
@@ -689,20 +635,22 @@ func (c *Container) SetRestore(restore bool) {
 	c.restore = restore
 }
 
-func (c *Container) RestoreArchive() string {
-	return c.restoreArchive
+// If Restore(), and the container is being restored from a local path, RestoreArchivePath returns that path.
+func (c *Container) RestoreArchivePath() string {
+	return c.restoreArchivePath
 }
 
-func (c *Container) SetRestoreArchive(restoreArchive string) {
-	c.restoreArchive = restoreArchive
+func (c *Container) SetRestoreArchivePath(restoreArchivePath string) {
+	c.restoreArchivePath = restoreArchivePath
 }
 
-func (c *Container) RestoreIsOCIImage() bool {
-	return c.restoreIsOCIImage
+// If Restore(), and the container is being restored from a container image, restoreStorageImageID returns the ID of that image.
+func (c *Container) RestoreStorageImageID() *storage.StorageImageID {
+	return c.restoreStorageImageID
 }
 
-func (c *Container) SetRestoreIsOCIImage(restoreIsOCIImage bool) {
-	c.restoreIsOCIImage = restoreIsOCIImage
+func (c *Container) SetRestoreStorageImageID(restoreStorageImageID *storage.StorageImageID) {
+	c.restoreStorageImageID = restoreStorageImageID
 }
 
 // SetResources loads the OCI Spec.Linux.Resources in the container struct

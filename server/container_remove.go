@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -35,14 +34,8 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		return nil, err
 	}
 
-	if notifier, ok := s.seccompNotifiers.Load(c.ID()); ok {
-		n, ok := notifier.(*seccomp.Notifier)
-		if ok {
-			if err := n.Close(); err != nil {
-				log.Errorf(ctx, "Unable to close seccomp notifier: %v", err)
-			}
-		}
-	}
+	s.removeSeccompNotifier(ctx, c)
+
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_DELETED_EVENT)
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
 	return &types.RemoveContainerResponse{}, nil

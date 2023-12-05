@@ -5,11 +5,16 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/containers/image/v5/docker/reference"
+	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
+	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
+	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -34,8 +39,9 @@ var _ = t.Describe("Image", func() {
 	)
 
 	var (
-		mockCtrl  *gomock.Controller
-		storeMock *containerstoragemock.MockStore
+		mockCtrl             *gomock.Controller
+		storeMock            *containerstoragemock.MockStore
+		storageTransportMock *criostoragemock.MockStorageTransport
 
 		// The system under test
 		sut storage.ImageServer
@@ -49,6 +55,7 @@ var _ = t.Describe("Image", func() {
 		// Setup the mocks
 		mockCtrl = gomock.NewController(GinkgoT())
 		storeMock = containerstoragemock.NewMockStore(mockCtrl)
+		storageTransportMock = criostoragemock.NewMockStorageTransport(mockCtrl)
 
 		// Setup the SUT
 		var err error
@@ -66,7 +73,7 @@ var _ = t.Describe("Image", func() {
 		}
 
 		sut, err = storage.GetImageService(
-			context.Background(), storeMock, config,
+			context.Background(), storeMock, storageTransportMock, config,
 		)
 		Expect(err).To(BeNil())
 		Expect(sut).NotTo(BeNil())
@@ -76,22 +83,12 @@ var _ = t.Describe("Image", func() {
 		Expect(os.Remove(ctx.SystemRegistriesConfPath)).To(BeNil())
 	})
 
-	mockGetRef := func() mockSequence {
-		return inOrder(
-			// parseStoreReference ("@"+testImageName) will fail, recognizing it as an invalid image ID
-			storeMock.EXPECT().Image(testImageName).
-				Return(&cs.Image{ID: testSHA256}, nil),
-
-			mockParseStoreReference(storeMock, testImageName),
-		)
-	}
-
 	t.Describe("GetImageService", func() {
 		It("should succeed to retrieve an image service", func() {
 			// Given
 			// When
 			imageService, err := storage.GetImageService(
-				context.Background(), storeMock, &config.Config{},
+				context.Background(), storeMock, storageTransportMock, &config.Config{},
 			)
 
 			// Then
@@ -113,7 +110,7 @@ var _ = t.Describe("Image", func() {
 			}
 			imageService, err := storage.GetImageService(
 				context.Background(),
-				storeMock, config,
+				storeMock, storageTransportMock, config,
 			)
 
 			// Then
@@ -138,16 +135,51 @@ var _ = t.Describe("Image", func() {
 		})
 	})
 
-	t.Describe("ResolveNames", func() {
-		It("should succeed to resolve", func() {
+	t.Describe("HeuristicallyTryResolvingStringAsIDPrefix", func() {
+		It("should not match an unrelated name of an existing image", func() {
 			// Given
 			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
+				storeMock.EXPECT().Image(testImageName).
 					Return(&cs.Image{ID: "id"}, nil),
 			)
 
 			// When
-			names, err := sut.ResolveNames(
+			id := sut.HeuristicallyTryResolvingStringAsIDPrefix(
+				testImageName,
+			)
+
+			// Then
+			Expect(id).To(BeNil())
+		})
+
+		It("should match a locally-not-matching image id", func() {
+			// Given
+			gomock.InOrder()
+
+			// When
+			id := sut.HeuristicallyTryResolvingStringAsIDPrefix(testSHA256)
+
+			// Then
+			Expect(id).NotTo(BeNil())
+			Expect(id.IDStringForOutOfProcessConsumptionOnly()).To(Equal(testSHA256))
+		})
+	})
+
+	t.Describe("CandidatesForPotentiallyShortImageName", func() {
+		refsToNames := func(refs []storage.RegistryImageReference) []string {
+			names := []string{}
+			for _, ref := range refs {
+				names = append(names, ref.StringForOutOfProcessConsumptionOnly())
+			}
+			return names
+		}
+
+		It("should succeed to resolve", func() {
+			// Given
+			gomock.InOrder()
+
+			// When
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -156,7 +188,7 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + ":latest",
 				testRedHatRegistry + "/" + testImageName + ":latest",
 				testFedoraRegistry + "/" + testImageName + ":latest",
@@ -166,13 +198,10 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to resolve to a short-name alias", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -181,36 +210,31 @@ var _ = t.Describe("Image", func() {
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testImageAliasResolved + ":latest",
 			}))
 		})
+
 		It("should succeed to resolve with full qualified image name", func() {
 			// Given
 			const imageName = "docker.io/library/busybox:latest"
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, imageName)
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, imageName)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(imageName))
+			Expect(len(refs)).To(Equal(1))
+			Expect(refs[0].StringForOutOfProcessConsumptionOnly()).To(Equal(imageName))
 		})
 
 		It("should succeed to resolve image name with tag and digest", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "../../test/registries.conf",
 				},
@@ -218,7 +242,7 @@ var _ = t.Describe("Image", func() {
 			)
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testQuayRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testRedHatRegistry + "/" + testImageName + "@sha256:" + testSHA256,
 				testFedoraRegistry + "/" + testImageName + "@sha256:" + testSHA256,
@@ -228,74 +252,33 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to resolve fully qualified image name with tag and digest", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, testNormalizedImageWithTagAndDigest)
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, testNormalizedImageWithTagAndDigest)
 
 			// Then
 			Expect(err).To(BeNil())
-			Expect(names).To(Equal([]string{
+			Expect(refsToNames(refs)).To(Equal([]string{
 				testDockerRegistry + "/library/" + testImageName + "@sha256:" + testSHA256,
 			}))
 		})
 
-		It("should succeed to resolve with a local copy", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(nil, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(names)).To(Equal(1))
-			Expect(names[0]).To(Equal(testImageName))
-		})
-
-		It("should fail to resolve with invalid image id", func() {
-			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
-
-			// When
-			names, err := sut.ResolveNames(ctx, testSHA256)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(err).To(Equal(storage.ErrCannotParseImageID))
-			Expect(names).To(BeNil())
-		})
-
 		It("should fail to resolve with invalid registry name", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: testImageName}, nil),
-			)
+			gomock.InOrder()
 
 			// When
-			names, err := sut.ResolveNames(ctx, "camelCaseName")
+			refs, err := sut.CandidatesForPotentiallyShortImageName(ctx, "camelCaseName")
 
 			// Then
 			Expect(err).NotTo(BeNil())
-			Expect(names).To(BeNil())
+			Expect(refs).To(BeNil())
 		})
 
 		It("should fail to resolve without configured registries", func() {
 			// Given
-			gomock.InOrder(
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{ID: "id"}, nil),
-			)
+			gomock.InOrder()
 			config := &config.Config{
 				SystemContext: ctx,
 				ImageConfig: config.ImageConfig{
@@ -304,12 +287,12 @@ var _ = t.Describe("Image", func() {
 				},
 			}
 			// Create an empty file for the registries config path
-			sut, err := storage.GetImageService(context.Background(), storeMock, config)
+			sut, err := storage.GetImageService(context.Background(), storeMock, storageTransportMock, config)
 			Expect(err).To(BeNil())
 			Expect(sut).NotTo(BeNil())
 
 			// When
-			names, err := sut.ResolveNames(
+			refs, err := sut.CandidatesForPotentiallyShortImageName(
 				&types.SystemContext{
 					SystemRegistriesConfPath: "/dev/null",
 				},
@@ -320,121 +303,104 @@ var _ = t.Describe("Image", func() {
 			Expect(err).NotTo(BeNil())
 			errString := fmt.Sprintf("short-name %q did not resolve to an alias and no unqualified-search registries are defined in %q", testImageName, "/dev/null")
 			Expect(err.Error()).To(Equal(errString))
-			Expect(names).To(BeNil())
+			Expect(refs).To(BeNil())
 		})
 	})
 
 	t.Describe("UntagImage", func() {
 		It("should succeed to untag an image", func() {
 			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
+			mockutils.InOrder(
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", testSHA256),
+				storeMock.EXPECT().Image(testSHA256).
+					Return(&cs.Image{ID: testSHA256}, nil),
 				storeMock.EXPECT().DeleteImage(testSHA256, true).
 					Return(nil, nil),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).To(BeNil())
 		})
 
-		It("should fail to untag an image with invalid name", func() {
-			// Given
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
 		It("should fail to untag an image that can't be found", func() {
 			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
+			mockutils.InOrder(
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", ""),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail to untag an image with a docker:// reference", func() {
-			// Given
-			const imageName = "docker://localhost/busybox:latest"
-			inOrder(
-				mockGetStoreImage(storeMock, "localhost/busybox:latest", testSHA256),
-			)
-
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).NotTo(BeNil()) // FIXME: this actually fails because it tries to untag the image at the docker://localhost registry!
-		})
-
-		It("should fail to untag an image with a docker:// digest reference", func() {
-			// Given
-			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			inOrder(
-				mockGetStoreImage(storeMock, "localhost/busybox@sha256:"+testSHA256, testSHA256),
-			)
-
-			// When
-			err := sut.UntagImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).NotTo(BeNil()) // FIXME: this actually fails because it tries to untag the image at the docker://localhost registry!
 		})
 
 		It("should fail to untag an image with multiple names", func() {
 			// Given
-			inOrder(
-				mockGetRef(),
-				// storage.Transport.GetStoreImage:
-				storeMock.EXPECT().Image(testNormalizedImageName).
-					Return(&cs.Image{
-						ID:    testSHA256,
-						Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
-					}, nil),
+			namedRef, err := reference.ParseNormalizedNamed(testImageName)
+			Expect(err).To(BeNil())
+			namedRef = reference.TagNameOnly(namedRef)
+			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
+			Expect(err).To(BeNil())
+			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			Expect(err).To(BeNil())
+			mockutils.InOrder(
+				storageTransportMock.EXPECT().ResolveReference(expectedRef).
+					Return(resolvedRef,
+						&cs.Image{
+							ID:    testSHA256,
+							Names: []string{testNormalizedImageName, "localhost/b:latest", "localhost/c:latest"},
+						},
+						nil),
 
-				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest", "image"}).
+				storeMock.EXPECT().RemoveNames(testSHA256, []string{"docker.io/library/image:latest"}).
 					Return(t.TestError),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			err := sut.UntagImage(&types.SystemContext{}, testImageName)
+			err = sut.UntagImage(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
 	})
 
-	t.Describe("ImageStatus", func() {
+	t.Describe("ImageStatusByName", func() {
 		It("should succeed to get the image status with digest", func() {
+			namedRef, err := reference.ParseNormalizedNamed(testImageName)
+			Expect(err).To(BeNil())
+			namedRef = reference.TagNameOnly(namedRef)
+			expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, "")
+			Expect(err).To(BeNil())
+			resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, testSHA256)
+			Expect(err).To(BeNil())
 			// Given
-			inOrder(
-				mockGetRef(),
-				// storage.Transport.GetStoreImage:
-				storeMock.EXPECT().Image(testNormalizedImageName).
-					Return(&cs.Image{
-						ID: testSHA256,
-						Names: []string{
-							testNormalizedImageName,
-							"localhost/a@sha256:" + testSHA256,
-							"localhost/b@sha256:" + testSHA256,
-							"localhost/c:latest",
-						},
-					}, nil),
+			mockutils.InOrder(
+				storageTransportMock.EXPECT().ResolveReference(expectedRef).
+					Return(resolvedRef,
+						&cs.Image{
+							ID: testSHA256,
+							Names: []string{
+								testNormalizedImageName,
+								"localhost/a@sha256:" + testSHA256,
+								"localhost/b@sha256:" + testSHA256,
+								"localhost/c:latest",
+							},
+						}, nil),
 				// buildImageCacheItem
-				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-				storeMock.EXPECT().Image(testNormalizedImageName).
+				mockNewImage(storeMock, namedRef.String(), testSHA256, testSHA256),
+				storeMock.EXPECT().Image(testSHA256).
 					Return(&cs.Image{
 						ID: testSHA256,
 						Names: []string{
@@ -450,34 +416,28 @@ var _ = t.Describe("Image", func() {
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(res).NotTo(BeNil())
 		})
 
-		It("should fail to get on wrong reference", func() {
-			// Given
-			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
 		It("should fail to get on missing store image", func() {
 			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
+			mockutils.InOrder(
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", ""),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -486,17 +446,19 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to get on corrupt image", func() {
 			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
+			mockutils.InOrder(
+				mockResolveReference(storeMock, storageTransportMock,
+					testNormalizedImageName, "", testSHA256),
 				// In buildImageCacheItem, storageReference.NewImage fails reading the manifest:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
+				mockResolveImage(storeMock, testNormalizedImageName, testSHA256, testSHA256),
 				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
 					Return(nil, t.TestError),
 			)
+			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.ImageStatus(&types.SystemContext{}, testImageName)
+			res, err := sut.ImageStatusByName(&types.SystemContext{}, ref)
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -512,7 +474,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).To(BeNil())
@@ -521,10 +483,10 @@ var _ = t.Describe("Image", func() {
 
 		It("should succeed to list multiple images without filter", func() {
 			// Given
-			mockLoop := func() mockSequence {
-				return inOrder(
+			mockLoop := func() mockutils.MockSequence {
+				return mockutils.InOrder(
 					// buildImageCacheItem:
-					mockNewImage(storeMock, testSHA256, testSHA256),
+					mockNewImage(storeMock, "", testSHA256, testSHA256),
 					storeMock.EXPECT().Image(gomock.Any()).
 						Return(&cs.Image{
 							ID: testSHA256,
@@ -539,105 +501,23 @@ var _ = t.Describe("Image", func() {
 						Return(digest.Digest(""), nil),
 				)
 			}
-			inOrder(
+			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{
-						{ID: testSHA256, Names: []string{"a", "b", "c@sha256:" + testSHA256}},
+						{ID: testSHA256, Names: []string{"a:latest", "b:notlatest", "c@sha256:" + testSHA256}},
 						{ID: testSHA256},
 					},
 					nil),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				mockLoop(),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				mockLoop(),
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).To(BeNil())
 			Expect(len(res)).To(Equal(2))
-		})
-
-		It("should succeed to list images with filter", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				// buildImageCacheItem:
-				mockNewImage(storeMock, testNormalizedImageName, testSHA256),
-
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{
-						ID: testSHA256,
-						Names: []string{
-							testNormalizedImageName,
-						},
-					}, nil),
-				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-					Return(nil, nil),
-
-				// makeRepoDigests:
-				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
-					Return(digest.Digest(""), nil),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(res)).To(Equal(1))
-			Expect(res[0].ID).To(Equal(testSHA256))
-		})
-
-		It("should succeed to list images on failure to access an image", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, ""),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(len(res)).To(Equal(0))
-		})
-
-		It("should fail to list images with filter an invalid reference", func() {
-			// Given
-			gomock.InOrder(
-				// parseStoreReference("@wrong://image") tries this before failing in parseNormalizedNamed:
-				storeMock.EXPECT().Image("wrong://image").Return(nil, cs.ErrImageUnknown),
-			)
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "wrong://image")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
-		It("should fail to list images with filter on failing appendCachedResult", func() {
-			// Given
-			inOrder(
-				mockGetRef(),
-				mockGetStoreImage(storeMock, testNormalizedImageName, testSHA256),
-				// in buildImageCacheItem, NewImage is failing:
-				mockResolveImage(storeMock, testNormalizedImageName, testSHA256),
-				storeMock.EXPECT().ImageBigData(testSHA256, gomock.Any()).
-					Return(nil, t.TestError),
-			)
-
-			// When
-			res, err := sut.ListImages(&types.SystemContext{}, testImageName)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
 		})
 
 		It("should fail to list images without a filter on failing store", func() {
@@ -647,7 +527,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -662,7 +542,7 @@ var _ = t.Describe("Image", func() {
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -671,40 +551,15 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail to list multiple images without filter on append", func() {
 			// Given
-			inOrder(
+			mockutils.InOrder(
 				storeMock.EXPECT().Images().Return(
 					[]cs.Image{{ID: testSHA256}}, nil),
-				mockParseStoreReference(storeMock, "@"+testSHA256),
 				storeMock.EXPECT().Image(gomock.Any()).
 					Return(nil, t.TestError),
 			)
 
 			// When
-			res, err := sut.ListImages(&types.SystemContext{}, "")
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-	})
-
-	t.Describe("PrepareImage", func() {
-		It("should succeed with testimage", func() {
-			// Given
-			const imageName = "tarball:../../test/testdata/image.tar"
-
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, imageName)
-
-			// Then
-			Expect(err).To(BeNil())
-			Expect(res).NotTo(BeNil())
-		})
-
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PrepareImage(&types.SystemContext{}, "")
+			res, err := sut.ListImages(&types.SystemContext{})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -713,23 +568,15 @@ var _ = t.Describe("Image", func() {
 	})
 
 	t.Describe("PullImage", func() {
-		It("should fail on invalid image name", func() {
-			// Given
-			// When
-			res, err := sut.PullImage(&types.SystemContext{}, "",
-				&storage.ImageCopyOptions{})
-
-			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(res).To(BeNil())
-		})
-
 		It("should fail on invalid policy path", func() {
 			// Given
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
+
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "/not-existing",
-			}, "", &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "/not-existing"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -738,13 +585,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox:latest"
-			mockParseStoreReference(storeMock, "localhost/busybox:latest")
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())
@@ -753,13 +600,13 @@ var _ = t.Describe("Image", func() {
 
 		It("should fail on canonical copy image", func() {
 			// Given
-			const imageName = "docker://localhost/busybox@sha256:" + testSHA256
-			mockParseStoreReference(storeMock, "localhost/busybox@sha256:"+testSHA256)
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox@sha256:" + testSHA256)
+			Expect(err).To(BeNil())
 
 			// When
-			res, err := sut.PullImage(&types.SystemContext{
-				SignaturePolicyPath: "../../test/policy.json",
-			}, imageName, &storage.ImageCopyOptions{})
+			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
 
 			// Then
 			Expect(err).NotTo(BeNil())

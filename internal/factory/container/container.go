@@ -73,8 +73,8 @@ type Container interface {
 	// DisableFips returns whether the container should disable fips mode
 	DisableFips() bool
 
-	// Image returns the image specified in the container spec, or an error
-	Image() (string, error)
+	// UserRequestedImage returns the image specified in the container spec, or an error
+	UserRequestedImage() (string, error)
 
 	// ReadOnly returns whether the rootfs should be readonly
 	// it takes a bool as to whether crio was configured to
@@ -104,7 +104,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -162,7 +162,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec
-func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd, systemdHasCollectMode bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -172,7 +172,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	created := time.Now()
 	labels := c.Config().Labels
 
-	image, err := c.Image()
+	userRequestedImage, err := c.UserRequestedImage()
 	if err != nil {
 		return err
 	}
@@ -211,9 +211,13 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 		}
 	}
 
-	c.spec.AddAnnotation(annotations.Image, image)
-	c.spec.AddAnnotation(annotations.ImageName, imageResult.Name)
-	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID)
+	c.spec.AddAnnotation(annotations.Image, userRequestedImage)
+	imageName := ""
+	if imageResult.SomeNameOfThisImage != nil {
+		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
+	}
+	c.spec.AddAnnotation(annotations.ImageName, imageName)
+	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())
@@ -271,9 +275,6 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 			// https://github.com/opencontainers/runc/pull/2224
 			c.spec.AddAnnotation("org.systemd.property.TimeoutStopUSec", "uint64 "+t+"000000") // sec to usec
 		}
-		if systemdHasCollectMode {
-			c.spec.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
-		}
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
 		c.spec.AddAnnotation("org.systemd.property.After", "['crio.service']")
 	}
@@ -305,7 +306,7 @@ func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodS
 	}
 
 	if cfg.Metadata.Name == "" {
-		return errors.New("name is nil")
+		return errors.New("name is empty")
 	}
 
 	if sboxConfig == nil {
@@ -347,7 +348,7 @@ func (c *container) SetNameAndID(oldID string) error {
 		c.sboxConfig.Metadata.Name,
 		c.sboxConfig.Metadata.Namespace,
 		c.sboxConfig.Metadata.Uid,
-		fmt.Sprintf("%d", c.config.Metadata.Attempt),
+		strconv.FormatUint(uint64(c.config.Metadata.Attempt), 10),
 	}, "_")
 
 	c.id = id
@@ -463,8 +464,8 @@ func (c *container) DisableFips() bool {
 	return false
 }
 
-// Image returns the image specified in the container spec, or an error
-func (c *container) Image() (string, error) {
+// UserRequestedImage returns the image specified in the container spec, or an error
+func (c *container) UserRequestedImage() (string, error) {
 	imageSpec := c.config.Image
 	if imageSpec == nil {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image is nil")

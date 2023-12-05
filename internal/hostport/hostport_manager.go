@@ -134,7 +134,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 		// This avoids any leaking iptables rules that take up the same port
 		writeLine(natRules, "-I", string(kubeHostportsChain),
 			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
-			"-m", protocol, "-p", protocol, "--dport", fmt.Sprintf("%d", pm.HostPort),
+			"-m", protocol, "-p", protocol, "--dport", strconv.Itoa(int(pm.HostPort)),
 			"-j", string(hpChain),
 		)
 		writeLine(natRules, "-I", string(crioMasqueradeChain),
@@ -163,8 +163,8 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 		// worst case here is just that "-j MASQUERADE" gets called twice.
 		writeLine(natRules, "-A", string(masqChain),
 			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
-			"-m", "conntrack", "--ctorigdstport", fmt.Sprintf("%d", pm.HostPort),
-			"-m", protocol, "-p", protocol, "--dport", fmt.Sprintf("%d", pm.ContainerPort),
+			"-m", "conntrack", "--ctorigdstport", strconv.Itoa(int(pm.HostPort)),
+			"-m", protocol, "-p", protocol, "--dport", strconv.Itoa(int(pm.ContainerPort)),
 			"-s", podIP, "-d", podIP,
 			"-j", "MASQUERADE")
 	}
@@ -548,26 +548,6 @@ func writeLine(buf *bytes.Buffer, words ...string) {
 
 func (hp *hostport) String() string {
 	return fmt.Sprintf("%s:%d", hp.protocol, hp.port)
-}
-
-// deleteConntrackEntriesForDstPort delete the conntrack entries for the connections specified
-// by the given destination port, protocol and IP family
-func deleteConntrackEntriesForDstPort(port uint16, protocol uint8, family netlink.InetFamily) error {
-	filter := &netlink.ConntrackFilter{}
-	err := filter.AddProtocol(protocol)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-	err = filter.AddPort(netlink.ConntrackOrigDstPort, port)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-
-	_, err = netlink.ConntrackDeleteFilter(netlink.ConntrackTable, family, filter)
-	if err != nil {
-		return fmt.Errorf("error deleting connection tracking state for protocol: %d Port: %d, error: %w", protocol, port, err)
-	}
-	return nil
 }
 
 func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {

@@ -10,13 +10,15 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/test.yml
       match: GO_VERSION
-    - path: contrib/test/integration/vars.yml
+    - path: .github/workflows/cron.yml
+      match: GO_VERSION
+    - path: contrib/test/ci/vars.yml
       match: golang_version
     - path: contrib/test/ci/vars.yml
       match: golang_version
 
   - name: golangci-lint
-    version: v1.53.2
+    version: v1.55.0
     refPaths:
     - path: .github/workflows/verify.yml
       match: GOLANGCI_LINT_VERSION
@@ -34,7 +36,7 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: cni-plugins
-    - path: contrib/test/integration/build/plugins.yml
+    - path: contrib/test/ci/build/plugins.yml
       match: version
     - path: contrib/test/ci/build/plugins.yml
       match: version
@@ -45,12 +47,18 @@ dependencies:
     - path: scripts/versions
       match: conmon
 
+  - name: conmon-rs
+    version: v0.6.1
+    refPaths:
+    - path: scripts/versions
+      match: conmon-rs
+
   - name: cri-tools
     version: v1.28.0
     refPaths:
     - path: scripts/versions
       match: cri-tools
-    - path: contrib/test/integration/vars.yml
+    - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
     - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
@@ -62,7 +70,7 @@ dependencies:
       match: runc
 
   - name: crun
-    version: 1.8.7
+    version: 1.9.2
     refPaths:
     - path: scripts/versions
       match: crun
@@ -72,7 +80,7 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: bats
-    - path: contrib/test/integration/build/bats.yml
+    - path: contrib/test/ci/build/bats.yml
       match: version
     - path: contrib/test/ci/build/bats.yml
       match: version
@@ -84,19 +92,15 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.15.1
+    version: 2.18.0
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
-
-  - name: bom
-    version: 0.5.1
-    refPaths:
-      - path: Makefile
-        match: BOM_VERSION
+      - path: .github/workflows/nixpkgs.yml
+        match: NIX_VERSION
 
   - name: release-notes
-    version: 0.15.1
+    version: 0.16.1
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
@@ -124,9 +128,3 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
-
-  - name: Kubernetes
-    version: v1.28
-    refPaths:
-      - path: contrib/bundle/Vagrantfile
-        match: KUBERNETES_VERSION

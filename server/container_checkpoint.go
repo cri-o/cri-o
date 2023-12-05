@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v4/libpod"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
@@ -27,7 +27,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 	config := &metadata.ContainerConfig{
 		ID: req.ContainerId,
 	}
-	opts := &libpod.ContainerCheckpointOptions{
+	opts := &lib.ContainerCheckpointOptions{
 		TargetFile: req.Location,
 		// For the forensic container checkpointing use case we
 		// keep the container running after checkpointing it.

@@ -13,7 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	cgroups "github.com/containerd/cgroups/stats/v1"
+	cgroupsV1 "github.com/containerd/cgroups/stats/v1"
+	cgroupsV2 "github.com/containerd/cgroups/v2/stats"
 	"github.com/containerd/containerd/api/runtime/task/v2"
 	tasktypes "github.com/containerd/containerd/api/types/task"
 	ctrio "github.com/containerd/containerd/cio"
@@ -909,15 +910,22 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 		return nil, fmt.Errorf("failed to extract container metrics: %w", err)
 	}
 
-	m, ok := stats.(*cgroups.Metrics)
-	if !ok {
-		return nil, fmt.Errorf("unknown stats type %T", stats)
+	// We can't assume the version of metrics we will get based on the host system,
+	// because the guest VM may be using a different version.
+	// Trying to retrieve the V1 metrics first, and if it fails, try the v2
+	m, ok := stats.(*cgroupsV1.Metrics)
+	if ok {
+		return metricsV1ToCtrStats(ctx, c, m), nil
+	} else {
+		m, ok := stats.(*cgroupsV2.Metrics)
+		if ok {
+			return metricsV2ToCtrStats(ctx, c, m), nil
+		}
 	}
-
-	return metricsToCtrStats(ctx, c, m), nil
+	return nil, fmt.Errorf("unknown stats type %T", stats)
 }
 
-func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *types.ContainerStats {
+func metricsV1ToCtrStats(ctx context.Context, c *Container, m *cgroupsV1.Metrics) *types.ContainerStats {
 	var (
 		cpuNano         uint64
 		memLimit        uint64
@@ -960,6 +968,54 @@ func metricsToCtrStats(ctx context.Context, c *Container, m *cgroups.Metrics) *t
 			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
 			RssBytes:        &types.UInt64Value{Value: rssBytes},
 			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
+			UsageBytes:      &types.UInt64Value{Value: memUsage},
+		},
+	}
+}
+
+func metricsV2ToCtrStats(ctx context.Context, c *Container, m *cgroupsV2.Metrics) *types.ContainerStats {
+	var (
+		cpuNano         uint64
+		memLimit        uint64
+		memUsage        uint64
+		workingSetBytes uint64
+		pageFaults      uint64
+		majorPageFaults uint64
+	)
+
+	systemNano := time.Now().UnixNano()
+
+	if m != nil {
+		cpuNano = m.CPU.UsageUsec * 1000
+		memUsage = m.Memory.Usage
+		memLimit = cgmgr.MemLimitGivenSystem(m.Memory.UsageLimit)
+		if memUsage > m.Memory.InactiveFile {
+			workingSetBytes = memUsage - m.Memory.InactiveFile
+		} else {
+			log.Debugf(ctx,
+				"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
+				m.Memory.InactiveFile, memUsage,
+			)
+		}
+		pageFaults = m.Memory.Pgfault
+		majorPageFaults = m.Memory.Pgmajfault
+	}
+
+	return &types.ContainerStats{
+		Attributes: c.CRIAttributes(),
+		Cpu: &types.CpuUsage{
+			Timestamp:            systemNano,
+			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
+		},
+		Memory: &types.MemoryUsage{
+			Timestamp:       systemNano,
+			WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
+			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
+			UsageBytes:      &types.UInt64Value{Value: memUsage},
+			// FIXME: RssBytes do not exist in the cgroupV2 structure
+			//  RssBytes: &types.Uint64Value{Value: rssBytes},
+			PageFaults:      &types.UInt64Value{Value: pageFaults},
+			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
 		},
 	}
 }

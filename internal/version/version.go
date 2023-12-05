@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"text/tabwriter"
 
@@ -20,7 +21,7 @@ import (
 )
 
 // Version is the version of the build.
-const Version = "1.27.0"
+const Version = "1.29.0"
 
 // Variables injected during build-time
 var (
@@ -215,7 +216,7 @@ func (i *Info) String() string {
 		valueString := ""
 		switch field.Type.Kind() {
 		case reflect.Bool:
-			valueString = fmt.Sprint(value.Bool())
+			valueString = strconv.FormatBool(value.Bool())
 
 		case reflect.Slice:
 			// Only expecting []string here; ignore other slices.

@@ -6,13 +6,13 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -21,37 +21,31 @@ import (
 	kubetypes "k8s.io/kubelet/pkg/types"
 )
 
-func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (bool, error) {
+// checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.
+// It returns the StorageImageID of the image the input resolves to, nil otherwise.
+func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*storage.StorageImageID, error) {
 	if _, err := os.Stat(input); err == nil {
-		return false, nil
+		return nil, nil
 	}
-	imageStatusResponse, err := s.ImageStatus(
-		ctx,
-		&types.ImageStatusRequest{
-			Image: &types.ImageSpec{
-				Image: input,
-			},
-		},
-	)
+	status, err := s.storageImageStatus(ctx, types.ImageSpec{
+		Image: input,
+	})
 	if err != nil {
-		return false, err
+		return nil, err
 	}
 
-	if imageStatusResponse == nil ||
-		imageStatusResponse.Image == nil ||
-		imageStatusResponse.Image.Spec == nil ||
-		imageStatusResponse.Image.Spec.Annotations == nil {
-		return false, nil
+	if status == nil || status.Annotations == nil {
+		return nil, nil
 	}
 
-	ann, ok := imageStatusResponse.Image.Spec.Annotations[crioann.CheckpointAnnotationName]
+	ann, ok := status.Annotations[crioann.CheckpointAnnotationName]
 	if !ok {
-		return false, nil
+		return nil, nil
 	}
 
 	logrus.Debugf("Found checkpoint of container %v in %v", ann, input)
 
-	return true, nil
+	return &status.ID, nil
 }
 
 // taken from Podman
@@ -67,33 +61,27 @@ func (s *Server) CRImportCheckpoint(
 	createAnnotations := createConfig.Annotations
 	createLabels := createConfig.Labels
 
-	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
+	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, input)
 	if err != nil {
 		return "", err
 	}
 
-	if checkpointIsOCIImage {
+	var restoreArchivePath string
+	if restoreStorageImageID != nil {
 		log.Debugf(ctx, "Restoring from oci image %s\n", input)
 
-		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
-		if err != nil {
-			return "", fmt.Errorf("failed to parse image name: %s: %w", input, err)
-		}
-		img, err := istorage.Transport.GetStoreImage(s.ContainerServer.StorageImageServer().GetStore(), imageRef)
+		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
 		if err != nil {
 			return "", err
 		}
-		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(img.ID, nil, "")
-		if err != nil {
-			return "", err
-		}
-		input = img.ID
 
-		logrus.Debugf("Checkpoint image %s mounted at %v\n", input, mountPoint)
+		logrus.Debugf("Checkpoint image %s mounted at %v\n", restoreStorageImageID, mountPoint)
 
 		defer func() {
-			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(input, true); err != nil {
-				logrus.Errorf("Could not unmount checkpoint image %s: %q", input, err)
+			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
+			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
+				logrus.Errorf("Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
 			}
 		}()
 	} else {
@@ -104,6 +92,7 @@ func (s *Server) CRImportCheckpoint(
 			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
 		}
 		defer errorhandling.CloseQuiet(archiveFile)
+		restoreArchivePath = input
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
 			ExcludePatterns: []string{
@@ -237,31 +226,35 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("failed to create container: %w", err)
 	}
 
+	// Newer checkpoints archives have RootfsImageRef set
+	// and using it for the restore is more correct.
+	// For the Kubernetes use case the output of 'crictl ps'
+	// contains for the original container under 'IMAGE' something
+	// like 'registry/path/container@sha256:123444444...'.
+	// The restored container was, however, only displaying something
+	// like 'registry/path/container'.
+	// This had two problems, first, the output from the restored
+	// container was different, but the bigger problem was, that
+	// CRI-O might pull the wrong image from the registry.
+	// If the container in the registry was updated (new latest tag)
+	// all of a sudden the wrong base image would be downloaded.
+	rootFSImage := config.RootfsImageName
+	if config.RootfsImageRef != "" {
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(config.RootfsImageRef)
+		if err != nil {
+			return "", fmt.Errorf("invalid RootfsImageRef %q: %w", config.RootfsImageRef, err)
+		}
+		// This is not quite out-of-process consumption, but types.ContainerConfig is at least
+		// a cross-process API, and this value is correct in that API.
+		rootFSImage = id.IDStringForOutOfProcessConsumptionOnly()
+	}
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
 			Name:    ctrMetadata.Name,
 			Attempt: ctrMetadata.Attempt,
 		},
 		Image: &types.ImageSpec{
-			Image: func() string {
-				if config.RootfsImageRef != "" {
-					// Newer checkpoints archives have RootfsImageRef set
-					// and using it for the restore is more correct.
-					// For the Kubernetes use case the output of 'crictl ps'
-					// contains for the original container under 'IMAGE' something
-					// like 'registry/path/container@sha256:123444444...'.
-					// The restored container was, however, only displaying something
-					// like 'registry/path/container'.
-					// This had two problems, first, the output from the restored
-					// container was different, but the bigger problem was, that
-					// CRI-O might pull the wrong image from the registry.
-					// If the container in the registry was updated (new latest tag)
-					// all of a sudden the wrong base image would be downloaded.
-					return config.RootfsImageRef
-				}
-				// For an older checkpoint archive, let's fallback to the old behavior.
-				return config.RootfsImageName
-			}(),
+			Image: rootFSImage,
 		},
 		Linux: &types.LinuxContainerConfig{
 			Resources:       &types.LinuxContainerResources{},
@@ -403,8 +396,8 @@ func (s *Server) CRImportCheckpoint(
 
 	newContainer.SetCreated()
 	newContainer.SetRestore(true)
-	newContainer.SetRestoreArchive(input)
-	newContainer.SetRestoreIsOCIImage(checkpointIsOCIImage)
+	newContainer.SetRestoreArchivePath(restoreArchivePath)
+	newContainer.SetRestoreStorageImageID(restoreStorageImageID)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {

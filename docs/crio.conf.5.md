@@ -54,6 +54,9 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   It is used to check if crio wipe should wipe images, which should
   only happen when CRI-O has been upgraded
 
+**imagestore**=""
+  Store newly pulled images in the specified path, rather than the path provided by --root.
+
 **internal_wipe**=true
   **This option is currently DEPRECATED, and will be removed in the future.**
   Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
@@ -148,6 +151,9 @@ the container runtime configuration.
 
 **blockio_config_file**=""
   Path to the blockio class configuration file for configuring the cgroup blockio controller.
+
+**blockio_reload**=false
+  If true, the runtime reloads blockio_config_file and rescans block devices in the system before applying blockio parameters.
 
 **cdi_spec_dirs**=[]
   Directories to scan for Container Device Interface Specifications to enable CDI device injection. For more details about CDI and the syntax of CDI Spec files please refer to https://github.com/container-orchestrated-devices/container-device-interface.
@@ -409,7 +415,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   The path to a file like /var/lib/kubelet/config.json holding credentials necessary for pulling images from secure registries.
 
 **pause_image**="registry.k8s.io/pause:3.9"
-  The image used to instantiate infra containers. This option supports live configuration reload.
+  The on-registry image used to instantiate infra containers.
+  The value should start with a registry host name.
+  This option supports live configuration reload.
 
 **pause_image_auth_file**=""
  The path to a file like /var/lib/kubelet/config.json holding credentials specific to pulling the pause_image from above. This option supports live configuration reload.

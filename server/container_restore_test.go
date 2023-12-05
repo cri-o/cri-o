@@ -7,10 +7,11 @@ import (
 	"os"
 
 	"github.com/containers/podman/v4/pkg/criu"
-	cs "github.com/containers/storage"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -46,14 +47,20 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
 			size := uint64(100)
+			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/does-not-exist.tar:latest")
+			Expect(err).To(BeNil())
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("does-not-exist.tar").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "does-not-exist.tar").
+					Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), checkpointImageName).
 					Return(&storage.ImageResult{
-						ID:   "image",
+						ID:   imageID,
 						User: "10", Size: &size,
 					}, nil),
 			)
@@ -65,7 +72,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			}
 
 			// When
-			_, err := sut.CRImportCheckpoint(
+			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
 				"",
@@ -429,13 +436,16 @@ var _ = t.Describe("ContainerRestore", func() {
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
-		images := []string{
-			`{"rootfsImageName": "image"}`,
-			`{"rootfsImageRef": "image"}`,
+		images := []struct {
+			config string
+			byID   bool
+		}{
+			{`{"rootfsImageName": "image"}`, false},
+			{`{"rootfsImageRef": "8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b"}`, true},
 		}
 		for _, image := range images {
 			loopImage := image
-			It(fmt.Sprintf("should succeed (%s)", image), func() {
+			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
 				// Given
 				addContainerAndSandbox()
 				testContainer.SetStateAndSpoofPid(&oci.ContainerState{
@@ -460,7 +470,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				)
 				Expect(err).To(BeNil())
 				defer os.RemoveAll("spec.dump")
-				err = os.WriteFile("config.dump", []byte(loopImage), 0o644)
+				err = os.WriteFile("config.dump", []byte(loopImage.config), 0o644)
 				Expect(err).To(BeNil())
 				defer os.RemoveAll("config.dump")
 				outFile, err := os.Create("archive.tar")
@@ -496,23 +506,49 @@ var _ = t.Describe("ContainerRestore", func() {
 				}
 
 				size := uint64(100)
-				gomock.InOrder(
-					imageServerMock.EXPECT().ResolveNames(
-						gomock.Any(), gomock.Any()).
-						Return([]string{"image"}, nil),
+				imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+				Expect(err).To(BeNil())
+				var imageLookup mockutils.MockSequence
+				if loopImage.byID {
+					imageLookup = mockutils.InOrder(
+						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(imageID.IDStringForOutOfProcessConsumptionOnly()).
+							Return(&imageID),
 
-					imageServerMock.EXPECT().ImageStatus(
-						gomock.Any(), gomock.Any()).
-						Return(&storage.ImageResult{
-							ID:   "image",
-							User: "10", Size: &size,
-							Annotations: map[string]string{
-								crioann.CheckpointAnnotationName: "foo",
-							},
-						}, nil),
+						imageServerMock.EXPECT().ImageStatusByID(
+							gomock.Any(), imageID).
+							Return(&storage.ImageResult{
+								ID:   imageID,
+								User: "10", Size: &size,
+								Annotations: map[string]string{
+									crioann.CheckpointAnnotationName: "foo",
+								},
+							}, nil),
+					)
+				} else {
+					checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+					Expect(err).To(BeNil())
+					imageLookup = mockutils.InOrder(
+						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
+							Return(nil),
+						imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+							gomock.Any(), "image").
+							Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+						imageServerMock.EXPECT().ImageStatusByName(
+							gomock.Any(), checkpointImageName).
+							Return(&storage.ImageResult{
+								ID:   imageID,
+								User: "10", Size: &size,
+								Annotations: map[string]string{
+									crioann.CheckpointAnnotationName: "foo",
+								},
+							}, nil),
+					)
+				}
+				mockutils.InOrder(
+					imageLookup,
 
 					runtimeServerMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
-						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
+						gomock.Any(), gomock.Any(), imageID, gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any()).
 						Return(storage.ContainerInfo{
@@ -546,37 +582,30 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
 			size := uint64(100)
+			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/checkpoint-image:tag1")
+			Expect(err).To(BeNil())
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
 			gomock.InOrder(
-				imageServerMock.EXPECT().ResolveNames(
-					gomock.Any(), gomock.Any()).
-					Return([]string{"image"}, nil),
-				imageServerMock.EXPECT().ImageStatus(
-					gomock.Any(), gomock.Any()).
+				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("localhost/checkpoint-image:tag1").
+					Return(nil),
+				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
+					gomock.Any(), "localhost/checkpoint-image:tag1").
+					Return([]storage.RegistryImageReference{checkpointImageName}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(
+					gomock.Any(), checkpointImageName).
 					Return(&storage.ImageResult{
-						ID:   "image",
+						ID:   imageID,
 						User: "10", Size: &size,
 						Annotations: map[string]string{
 							crioann.CheckpointAnnotationName: "foo",
 						},
 					}, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().GraphOptions().Return([]string{}),
-				storeMock.EXPECT().GraphDriverName().Return(""),
-				storeMock.EXPECT().GraphRoot().Return(""),
-				storeMock.EXPECT().RunRoot().Return(""),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().Image(gomock.Any()).
-					Return(&cs.Image{
-						ID: "abcdef",
-						Names: []string{
-							"localhost/checkpoint-image:tag1",
-						},
-					}, nil),
-				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
+				storeMock.EXPECT().MountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any()).
 					Return("", nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
-				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
+				storeMock.EXPECT().UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
 					Return(false, nil),
 			)
 			containerConfig := &types.ContainerConfig{
@@ -585,7 +614,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				},
 			}
 			// When
-			_, err := sut.CRImportCheckpoint(
+			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
 				"",

@@ -2,12 +2,15 @@ package capnp
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"runtime"
 	"strconv"
 	"sync"
 
+	"capnproto.org/go/capnp/v3/exc"
+	"capnproto.org/go/capnp/v3/exp/bufferpool"
 	"capnproto.org/go/capnp/v3/flowcontrol"
+	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/internal/syncutil"
 )
 
@@ -93,12 +96,12 @@ type CapabilityID uint32
 
 // String returns the ID in the format "capability X".
 func (id CapabilityID) String() string {
-	return fmt.Sprintf("capability %d", id)
+	return "capability " + str.Utod(id)
 }
 
 // GoString returns the ID as a Go expression.
 func (id CapabilityID) GoString() string {
-	return fmt.Sprintf("capnp.CapabilityID(%d)", id)
+	return "capnp.CapabilityID(" + str.Utod(id) + ")"
 }
 
 // A Client is a reference to a Cap'n Proto capability.
@@ -114,14 +117,20 @@ type ClientKind = struct {
 }
 
 type client struct {
-	creatorFunc int
-	creatorFile string
-	creatorLine int
+	creatorFunc  int
+	creatorFile  string
+	creatorStack string
+	creatorLine  int
 
 	mu       sync.Mutex // protects the struct
 	limiter  flowcontrol.FlowLimiter
 	h        *clientHook // nil if resolved to nil or released
 	released bool
+
+	stream struct {
+		err error          // Last error from streaming calls.
+		wg  sync.WaitGroup // Outstanding calls.
+	}
 }
 
 // clientHook is a reference-counted wrapper for a ClientHook.
@@ -147,6 +156,19 @@ type clientHook struct {
 	resolvedHook *clientHook // valid only if resolved is closed
 }
 
+func (c Client) setupLeakReporting(creatorFunc int) {
+	if clientLeakFunc == nil {
+		return
+	}
+	c.creatorFunc = creatorFunc
+	_, c.creatorFile, c.creatorLine, _ = runtime.Caller(2)
+	buf := bufferpool.Default.Get(1e6)
+	n := runtime.Stack(buf, false)
+	c.creatorStack = string(buf[:n])
+	bufferpool.Default.Put(buf)
+	c.setFinalizer()
+}
+
 // NewClient creates the first reference to a capability.
 // If hook is nil, then NewClient returns nil.
 //
@@ -165,11 +187,7 @@ func NewClient(hook ClientHook) Client {
 	}
 	h.resolvedHook = h
 	c := Client{client: &client{h: h}}
-	if clientLeakFunc != nil {
-		c.creatorFunc = 1
-		_, c.creatorFile, c.creatorLine, _ = runtime.Caller(1)
-		c.setFinalizer()
-	}
+	c.setupLeakReporting(1)
 	return c
 }
 
@@ -180,7 +198,13 @@ func NewClient(hook ClientHook) Client {
 //
 // Typically the RPC system will create a client for the application.
 // Most applications will not need to use this directly.
-func NewPromisedClient(hook ClientHook) (Client, *ClientPromise) {
+func NewPromisedClient(hook ClientHook) (Client, Resolver[Client]) {
+	return newPromisedClient(hook)
+}
+
+// newPromisedClient is the same as NewPromisedClient, but the return
+// value exposes the concrete type of the fulfiller.
+func newPromisedClient(hook ClientHook) (Client, *clientPromise) {
 	if hook == nil {
 		panic("NewPromisedClient(nil)")
 	}
@@ -192,12 +216,8 @@ func NewPromisedClient(hook ClientHook) (Client, *ClientPromise) {
 		metadata:   *NewMetadata(),
 	}
 	c := Client{client: &client{h: h}}
-	if clientLeakFunc != nil {
-		c.creatorFunc = 2
-		_, c.creatorFile, c.creatorLine, _ = runtime.Caller(1)
-		c.setFinalizer()
-	}
-	return c, &ClientPromise{h: h}
+	c.setupLeakReporting(2)
+	return c, &clientPromise{h: h}
 }
 
 // startCall holds onto a hook to prevent it from shutting down until
@@ -306,10 +326,19 @@ func (c Client) SendCall(ctx context.Context, s Send) (*Answer, ReleaseFunc) {
 	h, _, released, finish := c.startCall()
 	defer finish()
 	if released {
-		return ErrorAnswer(s.Method, errorf("call on released client")), func() {}
+		return ErrorAnswer(s.Method, errors.New("call on released client")), func() {}
 	}
 	if h == nil {
-		return ErrorAnswer(s.Method, errorf("call on null client")), func() {}
+		return ErrorAnswer(s.Method, errors.New("call on null client")), func() {}
+	}
+
+	var err error
+	syncutil.With(&c.mu, func() {
+		err = c.stream.err
+	})
+
+	if err != nil {
+		return ErrorAnswer(s.Method, exc.WrapError("stream error", err)), func() {}
 	}
 
 	limiter := c.GetFlowLimiter()
@@ -372,6 +401,49 @@ func (c Client) SendCall(ctx context.Context, s Send) (*Answer, ReleaseFunc) {
 	return ans, rel
 }
 
+// SendStreamCall is like SendCall except that:
+//
+// 1. It does not return an answer for the eventual result.
+// 2. If the call returns an error, all future calls on this
+//    client will return the same error (without starting
+//    the method or calling PlaceArgs).
+func (c Client) SendStreamCall(ctx context.Context, s Send) error {
+	var streamError error
+	syncutil.With(&c.mu, func() {
+		streamError = c.stream.err
+		if streamError == nil {
+			c.stream.wg.Add(1)
+		}
+	})
+	if streamError != nil {
+		return streamError
+	}
+	ans, release := c.SendCall(ctx, s)
+	go func() {
+		defer c.stream.wg.Done()
+		_, err := ans.Future().Ptr()
+		release()
+		if err != nil {
+			syncutil.With(&c.mu, func() {
+				c.stream.err = err
+			})
+		}
+	}()
+	return nil
+}
+
+// WaitStreaming waits for all outstanding streaming calls (i.e. calls
+// started with SendStreamCall) to complete, and then returns an error
+// if any streaming call has failed.
+func (c Client) WaitStreaming() error {
+	c.stream.wg.Wait()
+	var ret error
+	syncutil.With(&c.mu, func() {
+		ret = c.stream.err
+	})
+	return ret
+}
+
 // RecvCall starts executing a method with the referenced arguments
 // and returns an answer that will hold the result.  The hook will call
 // a.Release when it no longer needs to reference the parameters.  The
@@ -384,11 +456,11 @@ func (c Client) RecvCall(ctx context.Context, r Recv) PipelineCaller {
 	h, _, released, finish := c.startCall()
 	defer finish()
 	if released {
-		r.Reject(errorf("call on released client"))
+		r.Reject(errors.New("call on released client"))
 		return nil
 	}
 	if h == nil {
-		r.Reject(errorf("call on null client"))
+		r.Reject(errors.New("call on null client"))
 		return nil
 	}
 	return h.Recv(ctx, r)
@@ -419,11 +491,13 @@ func (c Client) IsSame(c2 Client) bool {
 }
 
 // Resolve blocks until the capability is fully resolved or the Context is Done.
+// Resolve only returns an error if the context is canceled; it returns nil even
+// if the capability resolves to an error.
 func (c Client) Resolve(ctx context.Context) error {
 	for {
 		h, released, resolved := c.peek()
 		if released {
-			return errorf("cannot resolve released client")
+			return errors.New("cannot resolve released client")
 		}
 
 		if resolved {
@@ -460,11 +534,7 @@ func (c Client) AddRef() Client {
 	c.h.refs++
 	c.h.mu.Unlock()
 	d := Client{client: &client{h: c.h}}
-	if clientLeakFunc != nil {
-		d.creatorFunc = 3
-		_, d.creatorFile, d.creatorLine, _ = runtime.Caller(1)
-		d.setFinalizer()
-	}
+	d.setupLeakReporting(3)
 	return d
 }
 
@@ -492,13 +562,13 @@ func (c Client) State() ClientState {
 	return ClientState{
 		Brand:     h.Brand(),
 		IsPromise: !resolved,
-		Metadata:  &resolveHook(c.h).metadata,
+		Metadata:  &c.h.metadata,
 	}
 }
 
 // A Brand is an opaque value used to identify a capability.
 type Brand struct {
-	Value interface{}
+	Value any
 }
 
 // ClientState is a snapshot of a client's identity.
@@ -541,9 +611,9 @@ func (c Client) String() string {
 	}
 	var s string
 	if c.h.isResolved() {
-		s = fmt.Sprintf("<client %T@%p>", c.h.ClientHook, c.h)
+		s = "<client " + c.h.ClientHook.String() + ">"
 	} else {
-		s = fmt.Sprintf("<unresolved client %T@%p>", c.h.ClientHook, c.h)
+		s = "<unresolved client " + c.h.ClientHook.String() + ">"
 	}
 	c.h.mu.Unlock()
 	c.mu.Unlock()
@@ -649,9 +719,13 @@ func finalizeClient(c *client) {
 	}
 	var msg string
 	if c.creatorFile == "" {
-		msg = fmt.Sprintf("leaked client created by %s", fname)
+		msg = "leaked client created by " + fname
 	} else {
-		msg = fmt.Sprintf("leaked client created by %s on %s:%d", fname, c.creatorFile, c.creatorLine)
+		msg = "leaked client created by " + fname + " on " +
+			c.creatorFile + ":" + str.Itod(c.creatorLine)
+	}
+	if c.creatorStack != "" {
+		msg += "\nCreation stack trace:\n" + c.creatorStack + "\n"
 	}
 
 	// finalizeClient will only be called if clientLeakFunc != nil.
@@ -659,11 +733,11 @@ func finalizeClient(c *client) {
 }
 
 // A ClientPromise resolves the identity of a client created by NewPromisedClient.
-type ClientPromise struct {
+type clientPromise struct {
 	h *clientHook
 }
 
-func (cp *ClientPromise) Reject(err error) {
+func (cp *clientPromise) Reject(err error) {
 	cp.Fulfill(ErrorClient(err))
 }
 
@@ -673,7 +747,7 @@ func (cp *ClientPromise) Reject(err error) {
 // NewPromisedClient will be shut down after Fulfill returns, but the
 // hook may have been shut down earlier if the client ran out of
 // references.
-func (cp *ClientPromise) Fulfill(c Client) {
+func (cp *clientPromise) Fulfill(c Client) {
 	cp.fulfill(c)
 	cp.shutdown()
 }
@@ -681,14 +755,14 @@ func (cp *ClientPromise) Fulfill(c Client) {
 // shutdown waits for all outstanding calls on the hook to complete and
 // references to be dropped, and then shuts down the hook. The caller
 // must have previously invoked cp.fulfill().
-func (cp *ClientPromise) shutdown() {
+func (cp *clientPromise) shutdown() {
 	<-cp.h.done
 	cp.h.Shutdown()
 }
 
 // fulfill is like Fulfill, except that it does not wait for outsanding calls
 // to return answers or shut down the underlying hook.
-func (cp *ClientPromise) fulfill(c Client) {
+func (cp *clientPromise) fulfill(c Client) {
 	// Obtain next client hook.
 	var rh *clientHook
 	if (c != Client{}) {
@@ -769,12 +843,14 @@ func (wc *WeakClient) AddRef() (c Client, ok bool) {
 // Clients.  A ClientHook must be safe to use from multiple goroutines.
 //
 // Calls must be delivered to the capability in the order they are made.
-// This guarantee is based on the concept of a capability
-// acknowledging delivery of a call: this is specific to an
-// implementation of ClientHook.  A type that implements ClientHook
-// must guarantee that if foo() then bar() is called on a client, then
-// the capability acknowledging foo() happens before the capability
-// observing bar().
+// This guarantee is based on the concept of a capability acknowledging
+// delivery of a call: this is specific to an implementation of ClientHook.
+// A type that implements ClientHook must guarantee that if foo() then bar()
+// is called on a client, then the capability acknowledging foo() happens
+// before the capability observing bar().
+//
+// ClientHook is an internal interface.  Users generally SHOULD NOT supply
+// their own implementations.
 type ClientHook interface {
 	// Send allocates space for parameters, calls s.PlaceArgs to fill out
 	// the arguments, then starts executing a method, returning an answer
@@ -805,6 +881,9 @@ type ClientHook interface {
 	// Shutdown is undefined.  It is expected for the ClientHook to reject
 	// any outstanding call futures.
 	Shutdown()
+
+	// String formats the hook as a string (same as fmt.Stringer)
+	String() string
 }
 
 // Send is the input to ClientHook.Send.
@@ -846,7 +925,8 @@ func (r Recv) AllocResults(sz ObjectSize) (Struct, error) {
 // Return ends the method call successfully, releasing the arguments.
 func (r Recv) Return() {
 	r.ReleaseArgs()
-	r.Returner.Return(nil)
+	r.Returner.PrepareReturn(nil)
+	r.Returner.Return()
 }
 
 // Reject ends the method call with an error, releasing the arguments.
@@ -855,7 +935,8 @@ func (r Recv) Reject(e error) {
 		panic("Reject(nil)")
 	}
 	r.ReleaseArgs()
-	r.Returner.Return(e)
+	r.Returner.PrepareReturn(e)
+	r.Returner.Return()
 }
 
 // A Returner allocates and sends the results from a received
@@ -863,17 +944,35 @@ func (r Recv) Reject(e error) {
 type Returner interface {
 	// AllocResults allocates the results struct that will be sent using
 	// Return.  It can be called at most once, and only before calling
-	// Return.  The struct returned by AllocResults cannot be used after
-	// Return is called.
+	// Return.  The struct returned by AllocResults must not be mutated
+	// after Return is called, and may not be accessed after
+	// ReleaseResults is called.
 	AllocResults(sz ObjectSize) (Struct, error)
 
-	// Return resolves the method call successfully if e is nil, or failure
-	// otherwise.  Return must be called once.
+	// PrepareReturn finalizes the return message. The method call will
+	// resolve successfully if e is nil, or otherwise it will return an
+	// exception to the caller.
+	//
+	// PrepareReturn must be called once.
+	//
+	// After PrepareReturn is invoked, no goroutine may modify the message
+	// containing the results.
+	PrepareReturn(e error)
+
+	// Return resolves the method call, using the results finalized in
+	// PrepareReturn. Return must be called once.
 	//
 	// Return must wait for all ongoing pipelined calls to be delivered,
 	// and after it returns, no new calls can be sent to the PipelineCaller
 	// returned from Recv.
-	Return(e error)
+	Return()
+
+	// ReleaseResults relinquishes the caller's access to the message
+	// containing the results; once this is called the message may be
+	// released or reused, and it is not safe to access.
+	//
+	// If AllocResults has not been called, then this is a no-op.
+	ReleaseResults()
 }
 
 // A ReleaseFunc tells the RPC system that a parameter or result struct
@@ -956,6 +1055,10 @@ func (ec errorClient) Brand() Brand {
 }
 
 func (ec errorClient) Shutdown() {
+}
+
+func (ec errorClient) String() string {
+	return "errorClient{" + ec.e.Error() + "}"
 }
 
 var closedSignal = make(chan struct{})

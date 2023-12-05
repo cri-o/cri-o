@@ -1,5 +1,10 @@
 package capnp
 
+import (
+	"capnproto.org/go/capnp/v3/exc"
+	"capnproto.org/go/capnp/v3/internal/str"
+)
+
 // Canonicalize encodes a struct into its canonical form: a single-
 // segment blob without a segment table.  The result will be identical
 // for equivalent structs, even as the schema evolves.  The blob is
@@ -11,13 +16,13 @@ func Canonicalize(s Struct) ([]byte, error) {
 	}
 	root, err := NewRootStruct(seg, canonicalStructSize(s))
 	if err != nil {
-		return nil, errorf("canonicalize: %v", err)
+		return nil, exc.WrapError("canonicalize", err)
 	}
 	if err := msg.SetRoot(root.ToPtr()); err != nil {
-		return nil, errorf("canonicalize: %v", err)
+		return nil, exc.WrapError("canonicalize", err)
 	}
 	if err := fillCanonicalStruct(root, s); err != nil {
-		return nil, annotatef(err, "canonicalize")
+		return nil, exc.WrapError("canonicalize", err)
 	}
 	return seg.Data(), nil
 }
@@ -30,7 +35,7 @@ func canonicalPtr(dst *Segment, p Ptr) (Ptr, error) {
 	case structPtrType:
 		ss, err := NewStruct(dst, canonicalStructSize(p.Struct()))
 		if err != nil {
-			return Ptr{}, errorf("struct: %v", err)
+			return Ptr{}, exc.WrapError("struct", err)
 		}
 		if err := fillCanonicalStruct(ss, p.Struct()); err != nil {
 			return Ptr{}, err
@@ -55,14 +60,14 @@ func fillCanonicalStruct(dst, s Struct) error {
 	for i := uint16(0); i < dst.size.PointerCount; i++ {
 		p, err := s.Ptr(i)
 		if err != nil {
-			return annotatef(err, "struct pointer %d", i)
+			return exc.WrapError("struct pointer "+str.Utod(i), err)
 		}
 		cp, err := canonicalPtr(dst.seg, p)
 		if err != nil {
-			return annotatef(err, "struct pointer %d", i)
+			return exc.WrapError("struct pointer "+str.Utod(i), err)
 		}
 		if err := dst.SetPtr(i, cp); err != nil {
-			return annotatef(err, "struct pointer %d", i)
+			return exc.WrapError("struct pointer "+str.Utod(i), err)
 		}
 	}
 	return nil
@@ -98,7 +103,7 @@ func canonicalList(dst *Segment, l List) (List, error) {
 		sz := l.allocSize()
 		_, newAddr, err := alloc(dst, sz)
 		if err != nil {
-			return List{}, errorf("list: %v", err)
+			return List{}, exc.WrapError("list", err)
 		}
 		cl := List{
 			seg:        dst,
@@ -115,19 +120,19 @@ func canonicalList(dst *Segment, l List) (List, error) {
 	if l.flags&isCompositeList == 0 {
 		cl, err := NewPointerList(dst, l.length)
 		if err != nil {
-			return List{}, errorf("list: %v", err)
+			return List{}, exc.WrapError("list", err)
 		}
 		for i := 0; i < l.Len(); i++ {
 			p, err := PointerList(l).At(i)
 			if err != nil {
-				return List{}, errorf("list element %d: %v", i, err)
+				return List{}, exc.WrapError("list element "+str.Itod(i), err)
 			}
 			cp, err := canonicalPtr(dst, p)
 			if err != nil {
-				return List{}, annotatef(err, "list element %d", i)
+				return List{}, exc.WrapError("list element "+str.Itod(i), err)
 			}
 			if err := cl.Set(i, cp); err != nil {
-				return List{}, errorf("list element %d: %v", i, err)
+				return List{}, exc.WrapError("list element "+str.Itod(i), err)
 			}
 		}
 		return List(cl), nil
@@ -146,11 +151,11 @@ func canonicalList(dst *Segment, l List) (List, error) {
 	}
 	cl, err := NewCompositeList(dst, elemSize, l.length)
 	if err != nil {
-		return List{}, errorf("list: %v", err)
+		return List{}, exc.WrapError("list", err)
 	}
 	for i := 0; i < cl.Len(); i++ {
 		if err := fillCanonicalStruct(cl.Struct(i), l.Struct(i)); err != nil {
-			return List{}, annotatef(err, "list element %d", i)
+			return List{}, exc.WrapError("list element "+str.Itod(i), err)
 		}
 	}
 	return cl, nil

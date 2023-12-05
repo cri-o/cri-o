@@ -2,36 +2,40 @@ package flowcontrol
 
 import (
 	"context"
-	"fmt"
-	"math"
 
+	"capnproto.org/go/capnp/v3/internal/str"
 	"golang.org/x/sync/semaphore"
 )
 
 // Returns a FlowLimiter that enforces a fixed limit on the total size of
 // outstanding messages.
 func NewFixedLimiter(size int64) FlowLimiter {
-	return (*fixedLimiter)(semaphore.NewWeighted(size))
+	return &fixedLimiter{
+		size: size,
+		sem:  semaphore.NewWeighted(size),
+	}
 }
 
-type fixedLimiter semaphore.Weighted
+type fixedLimiter struct {
+	size int64
+	sem  *semaphore.Weighted
+}
 
 func (fl *fixedLimiter) StartMessage(ctx context.Context, size uint64) (gotResponse func(), err error) {
-	if size > math.MaxInt64 {
-		// semaphore.Weighted expects an int64, so we need to check the bounds.
-		return nil, fmt.Errorf(
-			"StartMessage(): limit %v is too large (max %v)",
-			size, int64(math.MaxInt64),
-		)
+	// HACK:  avoid dead-locking if the size of the message exceeds the maximum
+	//        reservation on the semaphore. We can't return an error because it
+	//        is currently ignored by the caller.
+	if int64(size) > fl.size {
+		panic("StartMessage(): message size " +
+			str.Utod(size) +
+			" is too large (max " + str.Itod(fl.size) + ")")
 	}
-	w := (*semaphore.Weighted)(fl)
-	err = w.Acquire(ctx, int64(size))
-	if err != nil {
-		return nil, err
+
+	if err = fl.sem.Acquire(ctx, int64(size)); err == nil {
+		gotResponse = func() { fl.sem.Release(int64(size)) }
 	}
-	return func() {
-		w.Release(int64(size))
-	}, nil
+
+	return
 }
 
 func (fixedLimiter) Release() {}

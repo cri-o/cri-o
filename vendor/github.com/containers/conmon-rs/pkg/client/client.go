@@ -15,7 +15,6 @@ import (
 	"syscall"
 	"time"
 
-	"capnproto.org/go/capnp/v3"
 	"capnproto.org/go/capnp/v3/rpc"
 	"github.com/blang/semver/v4"
 	"github.com/containers/conmon-rs/internal/proto"
@@ -51,6 +50,7 @@ type ConmonClient struct {
 	tracingEnabled bool
 	tracer         trace.Tracer
 	serverVersion  semver.Version
+	cgroupManager  CgroupManager
 }
 
 // ConmonServerConfig is the configuration for the conmon server instance.
@@ -153,6 +153,11 @@ func FromLogrusLevel(level logrus.Level) LogLevel {
 }
 
 // New creates a new conmon server, starts it and connects a new client to it.
+//
+// If a server is already started with the same `ServerRunDir` specified
+// the client connects to the existing server instead.
+// Note: Other options from the `ConmonServerConfig` will be ignored
+// and the settings of the existing server will remain unchanged.
 func New(config *ConmonServerConfig) (client *ConmonClient, retErr error) {
 	cl, err := config.toClient()
 	if err != nil {
@@ -222,6 +227,7 @@ func (c *ConmonServerConfig) toClient() (*ConmonClient, error) {
 		logger:        c.ClientLogger,
 		attachReaders: &sync.Map{},
 		tracer:        tracer,
+		cgroupManager: c.CgroupManager,
 	}, nil
 }
 
@@ -316,6 +322,9 @@ func (c *ConmonClient) toArgs(config *ConmonServerConfig) (entrypoint string, ar
 
 	case CgroupManagerCgroupfs:
 		args = append(args, cgroupManagerFlag, "cgroupfs")
+
+	case CgroupManagerPerCommand:
+		// nothing to do, will use the cgroup manager specified per command
 
 	default:
 		return "", args, errUndefinedCgroupManager
@@ -506,12 +515,8 @@ func (c *ConmonClient) Version(
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 
 		verbose := false
@@ -593,6 +598,23 @@ func (c *ConmonClient) Version(
 	}, nil
 }
 
+func (c *ConmonClient) setCgroupManager(
+	cfg CgroupManager,
+	req interface {
+		SetCgroupManager(proto.Conmon_CgroupManager)
+	},
+) {
+	cgroupManager := c.cgroupManager
+	if cgroupManager == CgroupManagerPerCommand {
+		cgroupManager = cfg
+	} else if cfg != CgroupManager(0) {
+		c.logger.Warnf(
+			"cgroup manager specified in per command config, but global cgroup manager is not set to CgroupManagerPerCommand",
+		)
+	}
+	req.SetCgroupManager(proto.Conmon_CgroupManager(cgroupManager))
+}
+
 // CreateContainerConfig is the configuration for calling the CreateContainer
 // method.
 type CreateContainerConfig struct {
@@ -627,6 +649,20 @@ type CreateContainerConfig struct {
 	// CommandArgs are the additional arguments passed to the create runtime call
 	// after the command. e.g: crun create --runtime-opt
 	CommandArgs []string
+
+	// EnvVars are the environment variables passed to the create runtime call.
+	EnvVars map[string]string
+
+	// CgroupManager can be use to select the cgroup manager.
+	//
+	// To use this option set `ConmonServerConfig.CgroupManager` to `CgroupManagerPerCommand`.
+	CgroupManager CgroupManager
+
+	// AdditionalFDs can be used to pass additional file descriptors to the container.
+	AdditionalFDs []RemoteFD
+
+	// LeakFDs can be used to keep file descriptors open as long as the container is running.
+	LeakFDs []RemoteFD
 }
 
 // ContainerLogDriver specifies a selected logging mechanism.
@@ -681,12 +717,8 @@ func (c *ConmonClient) CreateContainer(
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
@@ -702,9 +734,6 @@ func (c *ConmonClient) CreateContainer(
 		if err := stringSliceToTextList(cfg.OOMExitPaths, req.NewOomExitPaths); err != nil {
 			return fmt.Errorf("convert oom exit paths string slice to text list: %w", err)
 		}
-		if err := stringSliceToTextList(cfg.OOMExitPaths, req.NewOomExitPaths); err != nil {
-			return err
-		}
 
 		if err := c.initLogDrivers(&req, cfg.LogDrivers); err != nil {
 			return fmt.Errorf("init log drivers: %w", err)
@@ -715,15 +744,25 @@ func (c *ConmonClient) CreateContainer(
 		}
 
 		if err := stringSliceToTextList(cfg.GlobalArgs, req.NewGlobalArgs); err != nil {
-			return fmt.Errorf("convert cleanup command string slice to text list: %w", err)
+			return fmt.Errorf("convert global arguments string slice to text list: %w", err)
 		}
 
 		if err := stringSliceToTextList(cfg.CommandArgs, req.NewCommandArgs); err != nil {
-			return fmt.Errorf("convert cleanup command string slice to text list: %w", err)
+			return fmt.Errorf("convert command arguments string slice to text list: %w", err)
 		}
 
-		if err := p.SetRequest(req); err != nil {
-			return fmt.Errorf("set request: %w", err)
+		if err := stringStringMapToMapEntryList(cfg.EnvVars, req.NewEnvVars); err != nil {
+			return fmt.Errorf("convert environment variables string slice to text list: %w", err)
+		}
+
+		c.setCgroupManager(cfg.CgroupManager, req)
+
+		if err := remoteFDSliceToUInt64List(cfg.AdditionalFDs, req.NewAdditionalFds); err != nil {
+			return fmt.Errorf("convert file descriptor slice to slot list: %w", err)
+		}
+
+		if err := remoteFDSliceToUInt64List(cfg.LeakFDs, req.NewLeakFds); err != nil {
+			return fmt.Errorf("convert file descriptor slice to slot list: %w", err)
 		}
 
 		return nil
@@ -759,6 +798,14 @@ type ExecSyncConfig struct {
 
 	// Terminal specifies if a tty should be used.
 	Terminal bool
+
+	// EnvVars are the environment variables passed to the exec runtime call.
+	EnvVars map[string]string
+
+	// CgroupManager can be use to select the cgroup manager.
+	//
+	// To use this option set `ConmonServerConfig.CgroupManager` to `CgroupManagerPerCommand`.
+	CgroupManager CgroupManager
 }
 
 // ExecContainerResult is the result for calling the ExecSyncContainer method.
@@ -796,12 +843,8 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 		if err != nil {
 			return fmt.Errorf("create request: %w", err)
 		}
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
@@ -811,9 +854,10 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 			return err
 		}
 		req.SetTerminal(cfg.Terminal)
-		if err := p.SetRequest(req); err != nil {
-			return fmt.Errorf("set request: %w", err)
+		if err := stringStringMapToMapEntryList(cfg.EnvVars, req.NewEnvVars); err != nil {
+			return err
 		}
+		c.setCgroupManager(cfg.CgroupManager, req)
 
 		return nil
 	})
@@ -847,24 +891,6 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 	}
 
 	return execContainerResult, nil
-}
-
-func stringSliceToTextList(src []string, newFunc func(int32) (capnp.TextList, error)) error {
-	l := int32(len(src))
-	if l == 0 {
-		return nil
-	}
-	list, err := newFunc(l)
-	if err != nil {
-		return err
-	}
-	for i := 0; i < len(src); i++ {
-		if err := list.Set(i, src[i]); err != nil {
-			return fmt.Errorf("set list element: %w", err)
-		}
-	}
-
-	return nil
 }
 
 func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, logDrivers []ContainerLogDriver) error {
@@ -966,20 +992,12 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 
 		if err := req.SetId(cfg.ID); err != nil {
 			return fmt.Errorf("set ID: %w", err)
-		}
-
-		if err := p.SetRequest(req); err != nil {
-			return fmt.Errorf("set request: %w", err)
 		}
 
 		return nil
@@ -998,9 +1016,32 @@ func (c *ConmonClient) ReopenLogContainer(ctx context.Context, cfg *ReopenLogCon
 	return nil
 }
 
-func (c *ConmonClient) metadataBytes(ctx context.Context) ([]byte, error) {
+type RequestWithMetadata interface {
+	NewMetadata(n int32) (proto.Conmon_TextTextMapEntry_List, error)
+}
+
+type RequestWithMetadataOld interface {
+	RequestWithMetadata
+	SetMetadataOld(v []byte) error
+}
+
+var (
+	_ RequestWithMetadataOld = nil
+	// verify that all existing messages are compatible with old conmon-rs servers
+	// (new messages don't need to support the old encoding).
+	_ = proto.Conmon_VersionRequest{}
+	_ = proto.Conmon_CreateContainerRequest{}
+	_ = proto.Conmon_ExecSyncContainerRequest{}
+	_ = proto.Conmon_AttachRequest{}
+	_ = proto.Conmon_ReopenLogRequest{}
+	_ = proto.Conmon_SetWindowSizeRequest{}
+	_ = proto.Conmon_CreateNamespacesRequest{}
+)
+
+// setMetadata sets the tracing metadata properties on the request.
+func (c *ConmonClient) setMetadata(ctx context.Context, req RequestWithMetadata) error {
 	if !c.tracingEnabled {
-		return nil, nil
+		return nil
 	}
 
 	span := trace.SpanFromContext(ctx)
@@ -1009,17 +1050,29 @@ func (c *ConmonClient) metadataBytes(ctx context.Context) ([]byte, error) {
 		c.logger.Tracef("Injecting tracing span ID %v", span.SpanContext().SpanID())
 		otel.GetTextMapPropagator().Inject(ctx, propagation.MapCarrier(m))
 	}
-	metadata, err := json.Marshal(m)
-	if err != nil {
-		return nil, fmt.Errorf("marshal metadata: %w", err)
+
+	if err := stringStringMapToMapEntryList(m, req.NewMetadata); err != nil {
+		return fmt.Errorf("set metadata2: %w", err)
 	}
 
-	return metadata, nil
+	// support old conmon-rs servers with json encoded metadata field
+	if req, ok := req.(RequestWithMetadataOld); ok {
+		metadataBytes, err := json.Marshal(m)
+		if err != nil {
+			return fmt.Errorf("marshal metadata: %w", err)
+		}
+
+		if err := req.SetMetadataOld(metadataBytes); err != nil {
+			return fmt.Errorf("set metadata: %w", err)
+		}
+	}
+
+	return nil
 }
 
-// CreateaNamespacesConfig is the configuration for calling the
+// CreateNamespacesConfig is the configuration for calling the
 // CreateNamespaces method.
-type CreateaNamespacesConfig struct {
+type CreateNamespacesConfig struct {
 	// Namespaces are the list of namespaces to unshare.
 	Namespaces []Namespace
 
@@ -1035,12 +1088,12 @@ type CreateaNamespacesConfig struct {
 	PodID string
 }
 
-// CreateaNamespacesResponse is the response of the CreateNamespaces method.
-type CreateaNamespacesResponse struct {
+// CreateNamespacesResponse is the response of the CreateNamespaces method.
+type CreateNamespacesResponse struct {
 	Namespaces []*NamespacesResponse
 }
 
-// NamespacesResponse is the response data for the CreateaNamespacesResponse.
+// NamespacesResponse is the response data for the CreateNamespacesResponse.
 type NamespacesResponse struct {
 	// Namespace is the type of namespace.
 	Type Namespace
@@ -1052,16 +1105,16 @@ type NamespacesResponse struct {
 // CreateNamespaces can be used to create a new set of unshared namespaces by
 // bind mounting it to the local filesystem.
 //
-// If a namespace is not selected by the CreateaNamespacesConfig, then the
+// If a namespace is not selected by the CreateNamespacesConfig, then the
 // server will fallback to the host namespace and still create the bind mount
 // to it. All namespaces are mounted to /var/run/[ipc,pid,net,user,uts]ns/$POD_ID,
-// whereas the POD_ID is being used from the CreateaNamespacesConfig as well.
+// whereas the POD_ID is being used from the CreateNamespacesConfig as well.
 //
 // UID and GID mappings are required if unsharing of the user namespace is
 // requested.
 func (c *ConmonClient) CreateNamespaces(
-	ctx context.Context, cfg *CreateaNamespacesConfig,
-) (*CreateaNamespacesResponse, error) {
+	ctx context.Context, cfg *CreateNamespacesConfig,
+) (*CreateNamespacesResponse, error) {
 	ctx, span := c.startSpan(ctx, "CreateNamespaces")
 	if span != nil {
 		defer span.End()
@@ -1087,12 +1140,8 @@ func (c *ConmonClient) CreateNamespaces(
 			return fmt.Errorf("create request: %w", err)
 		}
 
-		metadata, err := c.metadataBytes(ctx)
-		if err != nil {
-			return fmt.Errorf("get metadata: %w", err)
-		}
-		if err := req.SetMetadata(metadata); err != nil {
-			return fmt.Errorf("set metadata: %w", err)
+		if err := c.setMetadata(ctx, req); err != nil {
+			return err
 		}
 
 		namespaces, err := req.NewNamespaces(int32(len(cfg.Namespaces)))
@@ -1209,7 +1258,7 @@ func (c *ConmonClient) CreateNamespaces(
 		)
 	}
 
-	return &CreateaNamespacesResponse{
+	return &CreateNamespacesResponse{
 		Namespaces: namespacesResponse,
 	}, nil
 }
