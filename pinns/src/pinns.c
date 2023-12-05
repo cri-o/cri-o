@@ -227,10 +227,10 @@ int main(int argc, char **argv) {
 
       /* Write user mappings */
       if (gid_mapping && write_mapping_file(pid, gid_mapping, true) < 0)
-        pexit("Cannot write gid mappings");
+        pexitf("Cannot write gid mappings: %s", gid_mapping);
 
       if (uid_mapping && write_mapping_file(pid, uid_mapping, false) < 0)
-        pexit("Cannot write gid mappings");
+        pexitf("Cannot write uid mappings: %s", uid_mapping);
 
       /* Notify that the mappings were written.  */
       if (TEMP_FAILURE_RETRY(write(p[0], "0", 1)) < 0)
