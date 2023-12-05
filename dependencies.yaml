@@ -14,8 +14,6 @@ dependencies:
       match: GO_VERSION
     - path: contrib/test/ci/vars.yml
       match: golang_version
-    - path: contrib/test/ci/vars.yml
-      match: golang_version
 
   - name: golangci-lint
     version: v1.55.0
@@ -32,12 +30,10 @@ dependencies:
       match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.3.0
+    version: v1.4.0
     refPaths:
     - path: scripts/versions
       match: cni-plugins
-    - path: contrib/test/ci/build/plugins.yml
-      match: version
     - path: contrib/test/ci/build/plugins.yml
       match: version
 
@@ -60,8 +56,6 @@ dependencies:
       match: cri-tools
     - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
-    - path: contrib/test/ci/vars.yml
-      match: cri_tools_git_version
 
   - name: runc
     version: v1.1.9
@@ -80,8 +74,6 @@ dependencies:
     refPaths:
     - path: scripts/versions
       match: bats
-    - path: contrib/test/ci/build/bats.yml
-      match: version
     - path: contrib/test/ci/build/bats.yml
       match: version
 
