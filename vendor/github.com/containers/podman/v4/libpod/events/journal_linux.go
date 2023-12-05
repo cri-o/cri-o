@@ -74,7 +74,19 @@ func (e EventJournalD) Write(ee Event) error {
 	case Volume:
 		m["PODMAN_NAME"] = ee.Name
 	}
-	return journal.Send(ee.ToHumanReadable(false), journal.PriInfo, m)
+
+	// starting with commit 7e6e267329 we set LogLevel=notice for the systemd healthcheck unit
+	// This so it doesn't log the started/stopped unit messages al the time which spam the
+	// journal if a small interval is used. That however broke the healthcheck event as it no
+	// longer showed up in podman events when running as root as we only send the event on info
+	// level. To fix this we have to send the event on notice level.
+	// https://github.com/containers/podman/issues/20342
+	prio := journal.PriInfo
+	if len(ee.HealthStatus) > 0 {
+		prio = journal.PriNotice
+	}
+
+	return journal.Send(ee.ToHumanReadable(false), prio, m)
 }
 
 // Read reads events from the journal and sends qualified events to the event channel
@@ -226,9 +238,9 @@ func (e EventJournalD) String() string {
 	return Journald.String()
 }
 
-// GetNextEntry returns the next entry in the journal. If the end  of the
+// GetNextEntry returns the next entry in the journal. If the end of the
 // journal is reached and stream is not set or the current time is after
-// the until time this function return nil,nil.
+// the until time this function returns nil,nil.
 func GetNextEntry(ctx context.Context, j *sdjournal.Journal, stream bool, untilTime time.Time) (*sdjournal.JournalEntry, error) {
 	for {
 		select {

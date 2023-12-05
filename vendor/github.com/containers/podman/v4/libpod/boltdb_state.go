@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -69,6 +72,7 @@ type BoltState struct {
 
 // NewBoltState creates a new bolt-backed state database
 func NewBoltState(path string, runtime *Runtime) (State, error) {
+	logrus.Info("Using boltdb as database backend")
 	state := new(BoltState)
 	state.dbPath = path
 	state.runtime = runtime

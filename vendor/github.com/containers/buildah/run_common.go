@@ -26,8 +26,8 @@ import (
 	"github.com/containers/buildah/copier"
 	"github.com/containers/buildah/define"
 	"github.com/containers/buildah/internal"
-	internalParse "github.com/containers/buildah/internal/parse"
 	internalUtil "github.com/containers/buildah/internal/util"
+	"github.com/containers/buildah/internal/volumes"
 	"github.com/containers/buildah/pkg/overlay"
 	"github.com/containers/buildah/pkg/sshagent"
 	"github.com/containers/buildah/util"
@@ -62,8 +62,8 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		return "", fmt.Errorf("failed to get config: %w", err)
 	}
 
-	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers)+len(dnsServers))
-	nameservers = append(nameservers, defaultConfig.Containers.DNSServers...)
+	nameservers := make([]string, 0, len(defaultConfig.Containers.DNSServers.Get())+len(dnsServers))
+	nameservers = append(nameservers, defaultConfig.Containers.DNSServers.Get()...)
 	nameservers = append(nameservers, dnsServers...)
 
 	keepHostServers := false
@@ -79,12 +79,12 @@ func (b *Builder) addResolvConf(rdir string, chownOpts *idtools.IDPair, dnsServe
 		}
 	}
 
-	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches)+len(dnsSearch))
-	searches = append(searches, defaultConfig.Containers.DNSSearches...)
+	searches := make([]string, 0, len(defaultConfig.Containers.DNSSearches.Get())+len(dnsSearch))
+	searches = append(searches, defaultConfig.Containers.DNSSearches.Get()...)
 	searches = append(searches, dnsSearch...)
 
-	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions)+len(dnsOptions))
-	options = append(options, defaultConfig.Containers.DNSOptions...)
+	options := make([]string, 0, len(defaultConfig.Containers.DNSOptions.Get())+len(dnsOptions))
+	options = append(options, defaultConfig.Containers.DNSOptions.Get()...)
 	options = append(options, dnsOptions...)
 
 	cfile := filepath.Join(rdir, "resolv.conf")
@@ -344,7 +344,7 @@ func getNetworkInterface(store storage.Store, cniConfDir, cniPluginPath string) 
 	}
 	if len(cniPluginPath) > 0 {
 		plugins := strings.Split(cniPluginPath, string(os.PathListSeparator))
-		newconf.Network.CNIPluginDirs = plugins
+		newconf.Network.CNIPluginDirs.Set(plugins)
 	}
 
 	_, netInt, err := network.NetworkBackend(store, &newconf, false)
@@ -421,15 +421,6 @@ func waitForSync(pipeR *os.File) error {
 	b := make([]byte, 16)
 	_, err := pipeR.Read(b)
 	return err
-}
-
-func contains(volumes []string, v string) bool {
-	for _, i := range volumes {
-		if i == v {
-			return true
-		}
-	}
-	return false
 }
 
 func runUsingRuntime(options RunOptions, configureNetwork bool, moreCreateArgs []string, spec *specs.Spec, bundlePath, containerName string,
@@ -1358,7 +1349,7 @@ func (b *Builder) setupMounts(mountPoint string, spec *specs.Spec, bundlePath st
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			internalParse.UnlockLockArray(mountArtifacts.TargetLocks)
+			volumes.UnlockLockArray(mountArtifacts.TargetLocks)
 		}
 	}()
 	// Add temporary copies of the contents of volume locations at the
@@ -1496,7 +1487,7 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 		// We created exact path for globbing so it will
 		// return only one result.
 		if statResults[0].Error != "" && len(statResults[0].Globbed) == 0 {
-			// Path do not exsits.
+			// Path do not exist.
 			return false, nil
 		}
 		// Path exists.
@@ -1509,8 +1500,6 @@ func checkIfMountDestinationPreExists(root string, dest string) (bool, error) {
 //
 // If this function succeeds, the caller must unlock runMountArtifacts.TargetLocks (when??)
 func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources runMountInfo, idMaps IDMaps) ([]specs.Mount, *runMountArtifacts, error) {
-	// If `type` is not set default to TypeBind
-	mountType := define.TypeBind
 	mountTargets := make([]string, 0, 10)
 	tmpFiles := make([]string, 0, len(mounts))
 	mountImages := make([]string, 0, 10)
@@ -1522,7 +1511,7 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 	succeeded := false
 	defer func() {
 		if !succeeded {
-			internalParse.UnlockLockArray(targetLocks)
+			volumes.UnlockLockArray(targetLocks)
 		}
 	}()
 	for _, mount := range mounts {
@@ -1532,6 +1521,10 @@ func (b *Builder) runSetupRunMounts(mountPoint string, mounts []string, sources 
 		var agent *sshagent.AgentServer
 		var tl *lockfile.LockFile
 		tokens := strings.Split(mount, ",")
+
+		// If `type` is not set default to TypeBind
+		mountType := define.TypeBind
+
 		for _, field := range tokens {
 			if strings.HasPrefix(field, "type=") {
 				kv := strings.Split(field, "=")
@@ -1626,7 +1619,7 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 		return nil, "", errors.New("Context Directory for current run invocation is not configured")
 	}
 	var optionMounts []specs.Mount
-	mount, image, err := internalParse.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
+	mount, image, err := volumes.GetBindMount(context, tokens, contextDir, b.store, b.MountLabel, stageMountPoints, workDir)
 	if err != nil {
 		return nil, image, err
 	}
@@ -1640,7 +1633,7 @@ func (b *Builder) getBindMount(tokens []string, context *imageTypes.SystemContex
 
 func (b *Builder) getTmpfsMount(tokens []string, idMaps IDMaps) (*specs.Mount, error) {
 	var optionMounts []specs.Mount
-	mount, err := internalParse.GetTmpfsMount(tokens)
+	mount, err := volumes.GetTmpfsMount(tokens)
 	if err != nil {
 		return nil, err
 	}
@@ -1953,7 +1946,7 @@ func (b *Builder) cleanupRunMounts(context *imageTypes.SystemContext, mountpoint
 		}
 	}
 	// unlock if any locked files from this RUN statement
-	internalParse.UnlockLockArray(artifacts.TargetLocks)
+	volumes.UnlockLockArray(artifacts.TargetLocks)
 	return prevErr
 }
 

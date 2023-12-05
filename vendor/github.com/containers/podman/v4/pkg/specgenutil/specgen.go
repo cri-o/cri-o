@@ -21,6 +21,7 @@ import (
 	"github.com/containers/podman/v4/pkg/util"
 	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/selinux/go-selinux"
 )
 
 const (
@@ -193,7 +194,7 @@ func getMemoryLimits(c *entities.ContainerCreateOptions) (*specs.LinuxMemory, er
 	return memory, nil
 }
 
-func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) error {
+func setNamespaces(rtc *config.Config, s *specgen.SpecGenerator, c *entities.ContainerCreateOptions) error {
 	var err error
 
 	if c.PID != "" {
@@ -222,7 +223,11 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	}
 	userns := c.UserNS
 	if userns == "" && c.Pod == "" {
-		userns = os.Getenv("PODMAN_USERNS")
+		if ns, ok := os.LookupEnv("PODMAN_USERNS"); ok {
+			userns = ns
+		} else {
+			userns = rtc.Containers.UserNS
+		}
 	}
 	// userns must be treated differently
 	if userns != "" {
@@ -234,6 +239,40 @@ func setNamespaces(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions)
 	if c.Net != nil {
 		s.NetNS = c.Net.Network
 	}
+
+	if s.IDMappings == nil {
+		userNS := namespaces.UsernsMode(s.UserNS.NSMode)
+		tempIDMap, err := util.ParseIDMapping(namespaces.UsernsMode(userns), []string{}, []string{}, "", "")
+		if err != nil {
+			return err
+		}
+		s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
+		if err != nil {
+			return err
+		}
+		if len(s.IDMappings.GIDMap) == 0 {
+			s.IDMappings.AutoUserNsOpts.AdditionalGIDMappings = tempIDMap.AutoUserNsOpts.AdditionalGIDMappings
+			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+				s.IDMappings.AutoUserNs = true
+			}
+		}
+		if len(s.IDMappings.UIDMap) == 0 {
+			s.IDMappings.AutoUserNsOpts.AdditionalUIDMappings = tempIDMap.AutoUserNsOpts.AdditionalUIDMappings
+			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
+				s.IDMappings.AutoUserNs = true
+			}
+		}
+		if tempIDMap.AutoUserNsOpts.Size != 0 {
+			s.IDMappings.AutoUserNsOpts.Size = tempIDMap.AutoUserNsOpts.Size
+		}
+		// If some mappings are specified, assume a private user namespace
+		if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
+			s.UserNS.NSMode = specgen.Private
+		} else {
+			s.UserNS.NSMode = specgen.NamespaceMode(userNS)
+		}
+	}
+
 	return nil
 }
 
@@ -263,12 +302,38 @@ func GenRlimits(ulimits []string) ([]specs.POSIXRlimit, error) {
 	return rlimits, nil
 }
 
+func currentLabelOpts() ([]string, error) {
+	label, err := selinux.CurrentLabel()
+	if err != nil {
+		return nil, err
+	}
+	if label == "" {
+		return nil, nil
+	}
+	con, err := selinux.NewContext(label)
+	if err != nil {
+		return nil, err
+	}
+	return []string{
+		fmt.Sprintf("label=user:%s", con["user"]),
+		fmt.Sprintf("label=role:%s", con["role"]),
+	}, nil
+}
+
 func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions, args []string) error {
 	rtc, err := config.Default()
 	if err != nil {
 		return err
 	}
 
+	if rtc.Containers.EnableLabeledUsers {
+		defSecurityOpts, err := currentLabelOpts()
+		if err != nil {
+			return err
+		}
+
+		c.SecurityOpt = append(defSecurityOpts, c.SecurityOpt...)
+	}
 	// validate flags as needed
 	if err := validate(c); err != nil {
 		return err
@@ -320,41 +385,8 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 		s.StartupHealthConfig.Successes = int(c.StartupHCSuccesses)
 	}
 
-	if err := setNamespaces(s, c); err != nil {
+	if err := setNamespaces(rtc, s, c); err != nil {
 		return err
-	}
-
-	if s.IDMappings == nil {
-		userNS := namespaces.UsernsMode(s.UserNS.NSMode)
-		tempIDMap, err := util.ParseIDMapping(namespaces.UsernsMode(c.UserNS), []string{}, []string{}, "", "")
-		if err != nil {
-			return err
-		}
-		s.IDMappings, err = util.ParseIDMapping(userNS, c.UIDMap, c.GIDMap, c.SubUIDName, c.SubGIDName)
-		if err != nil {
-			return err
-		}
-		if len(s.IDMappings.GIDMap) == 0 {
-			s.IDMappings.AutoUserNsOpts.AdditionalGIDMappings = tempIDMap.AutoUserNsOpts.AdditionalGIDMappings
-			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
-				s.IDMappings.AutoUserNs = true
-			}
-		}
-		if len(s.IDMappings.UIDMap) == 0 {
-			s.IDMappings.AutoUserNsOpts.AdditionalUIDMappings = tempIDMap.AutoUserNsOpts.AdditionalUIDMappings
-			if s.UserNS.NSMode == specgen.NamespaceMode("auto") {
-				s.IDMappings.AutoUserNs = true
-			}
-		}
-		if tempIDMap.AutoUserNsOpts.Size != 0 {
-			s.IDMappings.AutoUserNsOpts.Size = tempIDMap.AutoUserNsOpts.Size
-		}
-		// If some mappings are specified, assume a private user namespace
-		if userNS.IsDefaultValue() && (!s.IDMappings.HostUIDMapping || !s.IDMappings.HostGIDMapping) {
-			s.UserNS.NSMode = specgen.Private
-		} else {
-			s.UserNS.NSMode = specgen.NamespaceMode(userNS)
-		}
 	}
 
 	if !s.Terminal {
@@ -457,6 +489,12 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	if len(s.Labels) == 0 {
 		s.Labels = labels
+	}
+
+	// Intel RDT CAT
+	if c.IntelRdtClosID != "" {
+		s.IntelRdt = &specs.LinuxIntelRdt{}
+		s.IntelRdt.ClosID = c.IntelRdtClosID
 	}
 
 	// ANNOTATIONS
@@ -714,7 +752,7 @@ func FillOutSpecGen(s *specgen.SpecGenerator, c *entities.ContainerCreateOptions
 
 	// Only add read-only tmpfs mounts in case that we are read-only and the
 	// read-only tmpfs flag has been set.
-	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(c.Volume, c.Mount, c.TmpFS)
+	mounts, volumes, overlayVolumes, imageVolumes, err := parseVolumes(rtc, c.Volume, c.Mount, c.TmpFS)
 	if err != nil {
 		return err
 	}

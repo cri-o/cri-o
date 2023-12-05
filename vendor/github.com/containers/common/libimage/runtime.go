@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libimage
 
 import (
@@ -7,6 +10,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/common/libimage/define"
+	"github.com/containers/common/libimage/platform"
 	"github.com/containers/common/pkg/config"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/pkg/shortnames"
@@ -184,7 +189,7 @@ type LookupImageOptions struct {
 	Variant string
 
 	// Controls the behavior when checking the platform of an image.
-	PlatformPolicy PlatformPolicy
+	PlatformPolicy define.PlatformPolicy
 
 	// If set, do not look for items/instances in the manifest list that
 	// match the current platform but return the manifest list as is.
@@ -283,7 +288,7 @@ func (r *Runtime) LookupImage(name string, options *LookupImageOptions) (*Image,
 		options.Variant = r.systemContext.VariantChoice
 	}
 	// Normalize platform to be OCI compatible (e.g., "aarch64" -> "arm64").
-	options.OS, options.Architecture, options.Variant = NormalizePlatform(options.OS, options.Architecture, options.Variant)
+	options.OS, options.Architecture, options.Variant = platform.Normalize(options.OS, options.Architecture, options.Variant)
 
 	// Second, try out the candidates as resolved by shortnames. This takes
 	// "localhost/" prefixed images into account as well.
@@ -435,9 +440,9 @@ func (r *Runtime) lookupImageInLocalStorage(name, candidate string, namedCandida
 			return nil, nil
 		}
 		switch options.PlatformPolicy {
-		case PlatformPolicyDefault:
+		case define.PlatformPolicyDefault:
 			logrus.Debugf("%v", matchError)
-		case PlatformPolicyWarn:
+		case define.PlatformPolicyWarn:
 			logrus.Warnf("%v", matchError)
 		}
 	}
@@ -454,28 +459,20 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 	if possiblyUnqualifiedNamedReference == nil {
 		return nil, "", fmt.Errorf("%s: %w", originalName, storage.ErrImageUnknown)
 	}
-
-	// In case of a digested reference, we strip off the digest and require
-	// any image matching the repo/tag to also match the specified digest.
-	var requiredDigest digest.Digest
-	digested, isDigested := possiblyUnqualifiedNamedReference.(reference.Digested)
-	if isDigested {
-		requiredDigest = digested.Digest()
-		possiblyUnqualifiedNamedReference = reference.TrimNamed(possiblyUnqualifiedNamedReference)
-		name = possiblyUnqualifiedNamedReference.String()
-	}
-
 	if !shortnames.IsShortName(name) {
 		return nil, "", fmt.Errorf("%s: %w", originalName, storage.ErrImageUnknown)
 	}
 
-	// Docker compat: make sure to add the "latest" tag if needed.  The tag
-	// will be ignored if we're looking for a digest match.
-	possiblyUnqualifiedNamedReference = reference.TagNameOnly(possiblyUnqualifiedNamedReference)
-	namedTagged, isNamedTagged := possiblyUnqualifiedNamedReference.(reference.NamedTagged)
-	if !isNamedTagged {
-		// NOTE: this should never happen since we already stripped off
-		// the digest.
+	var requiredDigest digest.Digest // or ""
+	var requiredTag string           // or ""
+
+	possiblyUnqualifiedNamedReference = reference.TagNameOnly(possiblyUnqualifiedNamedReference) // Docker compat: make sure to add the "latest" tag if needed.
+	if digested, ok := possiblyUnqualifiedNamedReference.(reference.Digested); ok {
+		requiredDigest = digested.Digest()
+		name = reference.TrimNamed(possiblyUnqualifiedNamedReference).String()
+	} else if namedTagged, ok := possiblyUnqualifiedNamedReference.(reference.NamedTagged); ok {
+		requiredTag = namedTagged.Tag()
+	} else { // This should never happen after the reference.TagNameOnly above.
 		return nil, "", fmt.Errorf("%s: %w (could not cast to tagged)", originalName, storage.ErrImageUnknown)
 	}
 
@@ -485,7 +482,7 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 	}
 
 	for _, image := range allImages {
-		named, err := image.inRepoTags(namedTagged, isDigested)
+		named, err := image.referenceFuzzilyMatchingRepoAndTag(possiblyUnqualifiedNamedReference, requiredTag)
 		if err != nil {
 			return nil, "", err
 		}
@@ -497,8 +494,8 @@ func (r *Runtime) lookupImageInDigestsAndRepoTags(name string, possiblyUnqualifi
 			return nil, "", err
 		}
 		if img != nil {
-			if isDigested {
-				if !img.hasDigest(requiredDigest.String()) {
+			if requiredDigest != "" {
+				if !img.hasDigest(requiredDigest) {
 					continue
 				}
 				named = reference.TrimNamed(named)

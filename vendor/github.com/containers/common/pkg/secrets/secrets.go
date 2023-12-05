@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/containers/common/pkg/secrets/filedriver"
@@ -50,8 +49,8 @@ var errDataSize = errors.New("secret data must be larger than 0 and less than 51
 var secretsFile = "secrets.json"
 
 // secretNameRegexp matches valid secret names
-// Allowed: 253 [a-zA-Z0-9-_.] characters, and the start and end character must be [a-zA-Z0-9]
-var secretNameRegexp = regexp.Delayed(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
+// Allowed: 253 characters, excluding ,/=\0
+var secretNameRegexp = regexp.Delayed("^[^,/=\000]+$")
 
 // SecretsManager holds information on handling secrets
 //
@@ -217,9 +216,12 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 	}
 
 	if options.Replace {
-		err = driver.Delete(secr.ID)
-		if err != nil {
-			return "", fmt.Errorf("replacing secret %s: %w", name, err)
+		if err := driver.Delete(secr.ID); err != nil {
+			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
+		}
+
+		if err := s.delete(secr.ID); err != nil {
+			return "", fmt.Errorf("deleting secret %s: %w", secr.ID, err)
 		}
 	}
 
@@ -244,11 +246,6 @@ func (s *SecretsManager) Store(name string, data []byte, driverType string, opti
 // Delete removes all secret metadata and secret data associated with the specified secret.
 // Delete takes a name, ID, or partial ID.
 func (s *SecretsManager) Delete(nameOrID string) (string, error) {
-	err := validateSecretName(nameOrID)
-	if err != nil {
-		return "", err
-	}
-
 	s.lockfile.Lock()
 	defer s.lockfile.Unlock()
 
@@ -322,8 +319,10 @@ func (s *SecretsManager) LookupSecretData(nameOrID string) (*Secret, []byte, err
 
 // validateSecretName checks if the secret name is valid.
 func validateSecretName(name string) error {
-	if !secretNameRegexp.MatchString(name) || len(name) > 253 || strings.HasSuffix(name, "-") || strings.HasSuffix(name, ".") {
-		return fmt.Errorf("only 253 [a-zA-Z0-9-_.] characters allowed, and the start and end character must be [a-zA-Z0-9]: %s: %w", name, errInvalidSecretName)
+	if len(name) == 0 ||
+		len(name) > 253 ||
+		!secretNameRegexp.MatchString(name) {
+		return fmt.Errorf("secret name %q can not include '=', '/', ',', or the '\\0' (NULL) and be between 1 and 253 characters: %w", name, errInvalidSecretName)
 	}
 	return nil
 }

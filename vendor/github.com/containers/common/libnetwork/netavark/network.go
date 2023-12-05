@@ -15,7 +15,7 @@ import (
 	"github.com/containers/common/libnetwork/internal/util"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/config"
-	cutil "github.com/containers/common/pkg/util"
+	"github.com/containers/common/pkg/version"
 	"github.com/containers/storage/pkg/lockfile"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/sirupsen/logrus"
@@ -44,7 +44,7 @@ type netavarkNetwork struct {
 	// defaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
 	defaultsubnetPools []config.SubnetPool
 
-	// dnsBindPort is set the the port to pass to netavark for aardvark
+	// dnsBindPort is set the port to pass to netavark for aardvark
 	dnsBindPort uint16
 
 	// pluginDirs list of directories were netavark plugins are located
@@ -53,7 +53,7 @@ type netavarkNetwork struct {
 	// ipamDBPath is the path to the ip allocation bolt db
 	ipamDBPath string
 
-	// syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// syslog describes whenever the netavark debug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
 	syslog bool
 
@@ -87,13 +87,13 @@ type InitConfig struct {
 	// DefaultsubnetPools contains the subnets which must be used to allocate a free subnet by network create
 	DefaultsubnetPools []config.SubnetPool
 
-	// DNSBindPort is set the the port to pass to netavark for aardvark
+	// DNSBindPort is set the port to pass to netavark for aardvark
 	DNSBindPort uint16
 
 	// PluginDirs list of directories were netavark plugins are located
 	PluginDirs []string
 
-	// Syslog describes whenever the netavark debbug output should be log to the syslog as well.
+	// Syslog describes whenever the netavark debug output should be log to the syslog as well.
 	// This will use logrus to do so, make sure logrus is set up to log to the syslog.
 	Syslog bool
 }
@@ -341,8 +341,8 @@ func (n *netavarkNetwork) DefaultInterfaceName() string {
 // package version and program version.
 func (n *netavarkNetwork) NetworkInfo() types.NetworkInfo {
 	path := n.netavarkBinary
-	packageVersion := cutil.PackageVersion(path)
-	programVersion, err := cutil.ProgramVersion(path)
+	packageVersion := version.Package(path)
+	programVersion, err := version.Program(path)
 	if err != nil {
 		logrus.Infof("Failed to get the netavark version: %v", err)
 	}
@@ -354,8 +354,8 @@ func (n *netavarkNetwork) NetworkInfo() types.NetworkInfo {
 	}
 
 	dnsPath := n.aardvarkBinary
-	dnsPackage := cutil.PackageVersion(dnsPath)
-	dnsProgram, err := cutil.ProgramVersion(dnsPath)
+	dnsPackage := version.Package(dnsPath)
+	dnsProgram, err := version.Program(dnsPath)
 	if err != nil {
 		logrus.Infof("Failed to get the aardvark version: %v", err)
 	}

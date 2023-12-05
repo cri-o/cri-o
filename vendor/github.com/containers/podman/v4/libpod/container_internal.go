@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -288,6 +291,17 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 			}
 		}
 	}()
+
+	// Now this is a bit of a mess, normally we try to reuse the netns but if a userns
+	// is used this is not possible as it must be owned by the userns which is created
+	// by the oci runtime. Thus we need to teardown the netns so that the runtime
+	// creates the users+netns and then we setup in completeNetworkSetup() again.
+	if c.config.PostConfigureNetNS {
+		if err := c.cleanupNetwork(); err != nil {
+			return false, err
+		}
+	}
+
 	if err := c.prepare(); err != nil {
 		return false, err
 	}
@@ -308,7 +322,7 @@ func (c *Container) handleRestartPolicy(ctx context.Context) (_ bool, retErr err
 			return false, err
 		}
 	}
-	if err := c.start(); err != nil {
+	if err := c.start(ctx); err != nil {
 		return false, err
 	}
 	return true, nil
@@ -496,6 +510,11 @@ func (c *Container) setupStorage(ctx context.Context) error {
 		}
 	}
 	if containerInfoErr != nil {
+		if errors.Is(containerInfoErr, storage.ErrDuplicateName) {
+			if _, err := c.runtime.LookupContainer(c.config.Name); errors.Is(err, define.ErrNoSuchCtr) {
+				return fmt.Errorf("creating container storage: %w by an external entity", containerInfoErr)
+			}
+		}
 		return fmt.Errorf("creating container storage: %w", containerInfoErr)
 	}
 
@@ -1028,6 +1047,19 @@ func (c *Container) init(ctx context.Context, retainRetries bool) error {
 	shutdown.Inhibit()
 	defer shutdown.Uninhibit()
 
+	// If the container is part of a pod, make sure the pod cgroup is created before the container
+	// so the limits can be applied.
+	if c.PodID() != "" {
+		pod, err := c.runtime.LookupPod(c.PodID())
+		if err != nil {
+			return err
+		}
+
+		if _, err := c.runtime.platformMakePod(pod, &pod.config.ResourceLimits); err != nil {
+			return err
+		}
+	}
+
 	// With the spec complete, do an OCI create
 	if _, err = c.ociRuntime.CreateContainer(c, nil); err != nil {
 		return err
@@ -1198,11 +1230,11 @@ func (c *Container) initAndStart(ctx context.Context) (retErr error) {
 	}
 
 	// Now start the container
-	return c.start()
+	return c.start(ctx)
 }
 
 // Internal, non-locking function to start a container
-func (c *Container) start() error {
+func (c *Container) start(ctx context.Context) error {
 	if c.config.Spec.Process != nil {
 		logrus.Debugf("Starting container %s with command %v", c.ID(), c.config.Spec.Process.Args)
 	}
@@ -1214,9 +1246,11 @@ func (c *Container) start() error {
 
 	c.state.State = define.ContainerStateRunning
 
+	// Unless being ignored, set the MAINPID to conmon.
 	if c.config.SdNotifyMode != define.SdNotifyModeIgnore {
 		payload := fmt.Sprintf("MAINPID=%d", c.state.ConmonPID)
 		if c.config.SdNotifyMode == define.SdNotifyModeConmon {
+			// Also send the READY message for the "conmon" policy.
 			payload += "\n"
 			payload += daemon.SdNotifyReady
 		}
@@ -1239,9 +1273,34 @@ func (c *Container) start() error {
 		}
 	}
 
-	defer c.newContainerEvent(events.Start)
+	c.newContainerEvent(events.Start)
 
-	return c.save()
+	if err := c.save(); err != nil {
+		return err
+	}
+
+	if c.config.SdNotifyMode != define.SdNotifyModeHealthy {
+		return nil
+	}
+
+	// Wait for the container to turn healthy before sending the READY
+	// message.  This implies that we need to unlock and re-lock the
+	// container.
+	if !c.batched {
+		c.lock.Unlock()
+		defer c.lock.Lock()
+	}
+
+	if _, err := c.WaitForConditionWithInterval(ctx, DefaultWaitInterval, define.HealthCheckHealthy); err != nil {
+		return err
+	}
+
+	if err := notifyproxy.SendMessage(c.config.SdNotifySocket, daemon.SdNotifyReady); err != nil {
+		logrus.Errorf("Sending READY message after turning healthy: %s", err.Error())
+	} else {
+		logrus.Debugf("Notify sent successfully")
+	}
+	return nil
 }
 
 // Internal, non-locking function to stop container
@@ -1487,7 +1546,7 @@ func (c *Container) restartWithTimeout(ctx context.Context, timeout uint) (retEr
 			return err
 		}
 	}
-	return c.start()
+	return c.start(ctx)
 }
 
 // mountStorage sets up the container's root filesystem
@@ -1499,7 +1558,13 @@ func (c *Container) mountStorage() (_ string, deferredErr error) {
 	var err error
 	// Container already mounted, nothing to do
 	if c.state.Mounted {
-		return c.state.Mountpoint, nil
+		mounted := true
+		if c.ensureState(define.ContainerStateExited) {
+			mounted, _ = mount.Mounted(c.state.Mountpoint)
+		}
+		if mounted {
+			return c.state.Mountpoint, nil
+		}
 	}
 
 	if !c.config.NoShm {
@@ -1885,9 +1950,12 @@ func (c *Container) cleanupStorage() error {
 		// error
 		// We still want to be able to kick the container out of the
 		// state
-		if errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown) || errors.Is(err, storage.ErrLayerNotMounted) {
-			logrus.Errorf("Storage for container %s has been removed", c.ID())
-		} else {
+		switch {
+		case errors.Is(err, storage.ErrLayerNotMounted):
+			logrus.Infof("Storage for container %s is not mounted: %v", c.ID(), err)
+		case errors.Is(err, storage.ErrNotAContainer) || errors.Is(err, storage.ErrContainerUnknown):
+			logrus.Warnf("Storage for container %s has been removed: %v", c.ID(), err)
+		default:
 			reportErrorf("cleaning up container %s storage: %w", c.ID(), err)
 		}
 	}
@@ -2188,7 +2256,7 @@ func (c *Container) saveSpec(spec *spec.Spec) error {
 // Warning: precreate hooks may alter 'config' in place.
 func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[string][]spec.Hook, error) {
 	allHooks := make(map[string][]spec.Hook)
-	if c.runtime.config.Engine.HooksDir == nil {
+	if len(c.runtime.config.Engine.HooksDir.Get()) == 0 {
 		if rootless.IsRootless() {
 			return nil, nil
 		}
@@ -2212,7 +2280,7 @@ func (c *Container) setupOCIHooks(ctx context.Context, config *spec.Spec) (map[s
 			}
 		}
 	} else {
-		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir, []string{"precreate", "poststop"})
+		manager, err := hooks.New(ctx, c.runtime.config.Engine.HooksDir.Get(), []string{"precreate", "poststop"})
 		if err != nil {
 			return nil, err
 		}

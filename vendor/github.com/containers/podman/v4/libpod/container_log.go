@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -33,7 +36,7 @@ func (r *Runtime) Log(ctx context.Context, containers []*Container, options *log
 	return nil
 }
 
-// ReadLog reads a containers log based on the input options and returns log lines over a channel.
+// ReadLog reads a container's log based on the input options and returns log lines over a channel.
 func (c *Container) ReadLog(ctx context.Context, options *logs.LogOptions, logChannel chan *logs.LogLine, colorID int64) error {
 	switch c.LogDriver() {
 	case define.PassthroughLogging:
@@ -67,16 +70,6 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 		return fmt.Errorf("unable to read log file %s for %s : %w", c.ID(), c.LogPath(), err)
 	}
 	options.WaitGroup.Add(1)
-	if len(tailLog) > 0 {
-		for _, nll := range tailLog {
-			nll.CID = c.ID()
-			nll.CName = c.Name()
-			nll.ColorID = colorID
-			if nll.Since(options.Since) && nll.Until(options.Until) {
-				logChannel <- nll
-			}
-		}
-	}
 	go func() {
 		if options.Until.After(time.Now()) {
 			time.Sleep(time.Until(options.Until))
@@ -87,6 +80,14 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 	}()
 
 	go func() {
+		for _, nll := range tailLog {
+			nll.CID = c.ID()
+			nll.CName = c.Name()
+			nll.ColorID = colorID
+			if nll.Since(options.Since) && nll.Until(options.Until) {
+				logChannel <- nll
+			}
+		}
 		defer options.WaitGroup.Done()
 		var line *tail.Line
 		var ok bool
@@ -157,7 +158,7 @@ func (c *Container) readFromLogFile(ctx context.Context, options *logs.LogOption
 			// before stopping the file logger (see #10675).
 			time.Sleep(watch.POLL_DURATION)
 			tailError := t.StopAtEOF()
-			if tailError != nil && fmt.Sprintf("%v", tailError) != "tail: stop at eof" {
+			if tailError != nil && tailError.Error() != "tail: stop at eof" {
 				logrus.Errorf("Stopping logger: %v", tailError)
 			}
 		}()

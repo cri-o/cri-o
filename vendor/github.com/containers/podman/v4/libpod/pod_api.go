@@ -1,3 +1,6 @@
+//go:build !remote
+// +build !remote
+
 package libpod
 
 import (
@@ -206,6 +209,13 @@ func (p *Pod) stopWithTimeout(ctx context.Context, cleanup bool, timeout int) (m
 	}
 
 	if err := p.maybeStopServiceContainer(); err != nil {
+		return nil, err
+	}
+
+	if err := p.updatePod(); err != nil {
+		return nil, err
+	}
+	if err := p.removePodCgroup(); err != nil {
 		return nil, err
 	}
 
