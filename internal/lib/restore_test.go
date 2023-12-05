@@ -9,10 +9,12 @@ import (
 	"time"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -43,7 +45,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -69,7 +71,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -95,7 +97,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -139,7 +141,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			defer os.RemoveAll("restore.log")
@@ -209,7 +211,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 
-			myContainer.SetRestoreArchive("archive.tar")
+			myContainer.SetRestoreArchivePath("archive.tar")
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).To(BeNil())
 			setupInfraContainerWithPid(42, "bundle")
@@ -219,7 +221,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -231,6 +233,9 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI images", func() {
 		It("should fail with failed to restore", func() {
 			// Given
+			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
+			Expect(err).To(BeNil())
+
 			config := &metadata.ContainerConfig{
 				ID: containerID,
 			}
@@ -248,17 +253,17 @@ var _ = t.Describe("ContainerRestore", func() {
 				Linux:   &specs.Linux{},
 			})
 
-			myContainer.SetRestoreIsOCIImage(true)
+			myContainer.SetRestoreStorageImageID(&imageID)
 
 			gomock.InOrder(
 				storeMock.EXPECT().Mount(gomock.Any(), gomock.Any()).Return("/tmp/", nil),
-				storeMock.EXPECT().MountImage(gomock.Any(), gomock.Any(), gomock.Any()).
+				storeMock.EXPECT().MountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), gomock.Any(), gomock.Any()).
 					Return("", nil),
-				storeMock.EXPECT().UnmountImage(gomock.Any(), true).
+				storeMock.EXPECT().UnmountImage(imageID.IDStringForOutOfProcessConsumptionOnly(), true).
 					Return(false, nil),
 			)
 
-			err := os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
+			err = os.WriteFile("spec.dump", []byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`), 0o644)
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
@@ -305,7 +310,6 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("bind.mounts")
 
-			myContainer.SetRestoreArchive("localhost/checkpoint-image:tag1")
 			err = os.Mkdir("bundle", 0o700)
 			Expect(err).To(BeNil())
 			setupInfraContainerWithPid(42, "bundle")
@@ -315,7 +319,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			res, err := sut.ContainerRestore(
 				context.Background(),
 				config,
-				&libpod.ContainerCheckpointOptions{},
+				&lib.ContainerCheckpointOptions{},
 			)
 
 			// Then
@@ -327,10 +331,14 @@ var _ = t.Describe("ContainerRestore", func() {
 })
 
 func setupInfraContainerWithPid(pid int, bundle string) {
+	imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
+	Expect(err).To(BeNil())
+	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
+	Expect(err).To(BeNil())
 	testContainer, err := oci.NewContainer("testid", "testname", bundle,
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		"imageName", "imageRef", &types.ContainerMetadata{},
+		&imageName, &imageID, &types.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	Expect(err).To(BeNil())

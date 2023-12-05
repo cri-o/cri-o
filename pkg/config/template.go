@@ -116,6 +116,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.RunRoot, c.RunRoot),
 		},
 		{
+			templateString: templateStringCrioImageStore,
+			group:          crioRootConfig,
+			isDefaultValue: simpleEqual(dc.ImageStore, c.ImageStore),
+		},
+		{
 			templateString: templateStringCrioStorageDriver,
 			group:          crioRootConfig,
 			isDefaultValue: simpleEqual(dc.Storage, c.Storage),
@@ -264,6 +269,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioRuntimeBlockIOConfigFile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.BlockIOConfigFile, c.BlockIOConfigFile),
+		},
+		{
+			templateString: templateStringCrioRuntimeBlockIOReload,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.BlockIOReload, c.BlockIOReload),
 		},
 		{
 			templateString: templateStringCrioRuntimeIrqBalanceConfigFile,
@@ -723,6 +733,11 @@ const templateStringCrioRunroot = `# Path to the "run directory". CRI-O stores a
 
 `
 
+const templateStringCrioImageStore = `# Path to the "imagestore". If CRI-O stores all of its images in this directory differently than Root.
+{{ $.Comment }}imagestore = "{{ .ImageStore }}"
+
+`
+
 const templateStringCrioStorageDriver = `# Storage driver used to manage the storage of images and containers. Please
 # refer to containers-storage.conf(5) to see all available storage drivers.
 {{ $.Comment }}storage_driver = "{{ .Storage }}"
@@ -925,6 +940,12 @@ const templateStringCrioRuntimeApparmorProfile = `# Used to change the name of t
 const templateStringCrioRuntimeBlockIOConfigFile = `# Path to the blockio class configuration file for configuring
 # the cgroup blockio controller.
 {{ $.Comment }}blockio_config_file = "{{ .BlockIOConfigFile }}"
+
+`
+
+const templateStringCrioRuntimeBlockIOReload = `# Reload blockio-config-file and rescan blockio devices in the system before applying
+# blockio parameters.
+{{ $.Comment }}blockio_reload = {{ .BlockIOReload }}
 
 `
 

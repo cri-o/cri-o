@@ -11,6 +11,6 @@ type TypeParam[T any] interface {
 	EncodeAsPtr(seg *Segment) Ptr
 
 	// Decode the pointer as the type of the receiver. Generally,
-	// the reciever will be the zero value for the type.
+	// the receiver will be the zero value for the type.
 	DecodeFromPtr(p Ptr) T
 }

@@ -21,6 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
@@ -123,12 +124,12 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 	}
 
-	imageService, err := storage.GetImageService(ctx, store, config)
+	imageService, err := storage.GetImageService(ctx, store, nil, config)
 	if err != nil {
 		return nil, err
 	}
 
-	storageRuntimeService := storage.GetRuntimeService(ctx, imageService)
+	storageRuntimeService := storage.GetRuntimeService(ctx, imageService, nil)
 
 	runtime, err := oci.New(config)
 	if err != nil {
@@ -294,7 +295,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	if !wasSpoofed {
-		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], "", "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], nil, nil, nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 		if err != nil {
 			return sb, err
 		}
@@ -339,7 +340,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		}
 	}
 
-	if err := c.ContainerStateFromDisk(ctx, scontainer); err != nil {
+	if err := scontainer.FromDisk(); err != nil {
 		return sb, fmt.Errorf("error reading sandbox state from disk %q: %w", scontainer.ID(), err)
 	}
 
@@ -445,19 +446,27 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	img, ok := m.Annotations[annotations.Image]
+	userRequestedImage, ok := m.Annotations[annotations.Image]
 	if !ok {
-		img = ""
+		userRequestedImage = ""
 	}
 
-	imgName, ok := m.Annotations[annotations.ImageName]
-	if !ok {
-		imgName = ""
+	var imgName *references.RegistryImageReference
+	if s, ok := m.Annotations[annotations.ImageName]; ok && s != "" {
+		name, err := references.ParseRegistryImageReferenceFromOutOfProcessData(s)
+		if err != nil {
+			return fmt.Errorf("invalid %s annotation %q: %w", annotations.ImageName, s, err)
+		}
+		imgName = &name
 	}
 
-	imgRef, ok := m.Annotations[annotations.ImageRef]
-	if !ok {
-		imgRef = ""
+	var imageID *storage.StorageImageID
+	if s, ok := m.Annotations[annotations.ImageRef]; ok {
+		id, err := storage.ParseStorageImageIDFromOutOfProcessData(s)
+		if err != nil {
+			return fmt.Errorf("invalid %s annotation %q: %w", annotations.ImageRef, s, err)
+		}
+		imageID = &id
 	}
 
 	platformRuntimePath, ok := m.Annotations[crioann.PlatformRuntimePath]
@@ -475,7 +484,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, img, imgName, imgRef, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, imgName, imageID, &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
@@ -484,7 +493,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	spp := m.Annotations[annotations.SeccompProfilePath]
 	ctr.SetSeccompProfilePath(spp)
 
-	if err := c.ContainerStateFromDisk(ctx, ctr); err != nil {
+	if err := ctr.FromDisk(); err != nil {
 		return fmt.Errorf("error reading container state from disk %q: %w", ctr.ID(), err)
 	}
 
@@ -504,21 +513,6 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 func isTrue(annotaton string) bool {
 	return annotaton == "true"
-}
-
-// ContainerStateFromDisk retrieves information on the state of a running container
-// from the disk
-func (c *ContainerServer) ContainerStateFromDisk(ctx context.Context, ctr *oci.Container) error {
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-	if err := ctr.FromDisk(); err != nil {
-		return err
-	}
-	if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // ContainerStateToDisk writes the container's state information to a JSON file

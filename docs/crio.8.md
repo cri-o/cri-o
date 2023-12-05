@@ -19,6 +19,7 @@ crio
 [--big-files-temporary-dir]=[value]
 [--bind-mount-prefix]=[value]
 [--blockio-config-file]=[value]
+[--blockio-reload]
 [--cdi-spec-dirs]=[value]
 [--cgroup-manager]=[value]
 [--clean-shutdown-file]=[value]
@@ -58,6 +59,7 @@ crio
 [--hooks-dir]=[value]
 [--hostnetwork-disable-selinux]
 [--image-volumes]=[value]
+[--imagestore]=[value]
 [--infra-ctr-cpuset]=[value]
 [--insecure-registry]=[value]
 [--internal-repair]
@@ -163,9 +165,11 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--big-files-temporary-dir**="": Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.
 
-**--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had `/` mounted on `/host` in your container. Then if you ran CRI-O with the `--bind-mount-prefix=/host` option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have `/var/lib/foobar` bind mounted into the container, then CRI-O would bind mount `/host/var/lib/foobar`. Since CRI-O itself is running in a container with `/` or the host mounted on `/host`, the container would end up with `/var/lib/foobar` from the host mounted in the container rather then `/var/lib/foobar` from the CRI-O container.
+**--bind-mount-prefix**="": A prefix to use for the source of the bind mounts. This option would be useful if you were running CRI-O in a container. And had '/' mounted on '/host' in your container. Then if you ran CRI-O with the '--bind-mount-prefix=/host' option, CRI-O would add /host to any bind mounts it is handed over CRI. If Kubernetes asked to have '/var/lib/foobar' bind mounted into the container, then CRI-O would bind mount '/host/var/lib/foobar'. Since CRI-O itself is running in a container with '/' or the host mounted on '/host', the container would end up with '/var/lib/foobar' from the host mounted in the container rather then '/var/lib/foobar' from the CRI-O container.
 
 **--blockio-config-file**="": Path to the blockio class configuration file for configuring the cgroup blockio controller.
+
+**--blockio-reload**: Reload blockio-config-file and rescan blockio devices in the system before applying blockio parameters.
 
 **--cdi-spec-dirs**="": Directories to scan for CDI Spec files. (default: "/etc/cdi", "/var/run/cdi")
 
@@ -277,6 +281,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken. (default: "mkdir")
 
+**--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
+
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
@@ -292,7 +298,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--internal-repair**: If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.
 
-**--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run `crio wipe` to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.
+**--internal-wipe**: Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts. If set to false, one must run 'crio wipe' to wipe the containers and images in these situations. This option is deprecated, and will be removed in the future.
 
 **--irqbalance-config-file**="": The irqbalance service config file which is used by CRI-O. (default: "/etc/sysconfig/irqbalance")
 
@@ -330,7 +336,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true. (default: "/var/run")
 
-**--no-pivot**: If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
+**--no-pivot**: If true, the runtime will not use 'pivot_root', but instead use 'MS_MOVE'.
 
 **--nri-disable-connections**="": Disable connections from externally started NRI plugins. (default: false)
 
@@ -366,7 +372,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--rdt-config-file**="": Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
 
-**--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on `/run`, `/tmp` and `/var/tmp`.
+**--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on '/run', '/tmp' and '/var/tmp'.
 
 **--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times.
 

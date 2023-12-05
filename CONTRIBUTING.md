@@ -69,7 +69,7 @@ And you can run the test suite if you have access to elevated permissions:
 
 ```shell
 make testunit
-make integration  # or, if you don't want to use Docker, localintegration
+make localintegration
 ```
 
 PRs that fix issues should include a reference like `Closes #XXXX` in the

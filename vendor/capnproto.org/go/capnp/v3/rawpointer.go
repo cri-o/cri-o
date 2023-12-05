@@ -1,7 +1,7 @@
 package capnp
 
 import (
-	"fmt"
+	"capnproto.org/go/capnp/v3/internal/str"
 )
 
 // pointerOffset is an address offset in multiples of word size.
@@ -201,7 +201,11 @@ func (p rawPointer) GoString() string {
 	}
 	switch p.pointerType() {
 	case structPointer:
-		return fmt.Sprintf("rawStructPointer(%d, %#v)", p.offset(), p.structSize())
+		return "rawStructPointer(" +
+			str.Itod(p.offset()) +
+			" , " +
+			p.structSize().String() +
+			")"
 	case listPointer:
 		var lt string
 		switch p.listType() {
@@ -222,16 +226,30 @@ func (p rawPointer) GoString() string {
 		case compositeList:
 			lt = "compositeList"
 		}
-		return fmt.Sprintf("rawListPointer(%d, %s, %d)", p.offset(), lt, p.numListElements())
+		return "rawListPointer(" +
+			str.Itod(p.offset()) +
+			", " +
+			lt +
+			", " +
+			str.Itod(p.numListElements()) +
+			")"
 	case farPointer:
-		return fmt.Sprintf("rawFarPointer(%d, %v)", p.farSegment(), p.farAddress())
+		return "rawFarPointer(" +
+			str.Utod(p.farSegment()) +
+			", " +
+			p.farAddress().String() +
+			")"
 	case doubleFarPointer:
-		return fmt.Sprintf("rawDoubleFarPointer(%d, %v)", p.farSegment(), p.farAddress())
+		return "rawDoubleFarPointer(" +
+			str.Utod(p.farSegment()) +
+			", " +
+			p.farAddress().String() +
+			")"
 	default:
 		// other pointer
 		if p.otherPointerType() != 0 {
-			return fmt.Sprintf("rawPointer(%#016x)", uint64(p))
+			return "rawPointer(" + str.ZeroPad(16, str.UToHex(p)) + ")"
 		}
-		return fmt.Sprintf("rawInterfacePointer(%d)", p.capabilityIndex())
+		return "rawInterfacePointer(" + str.Utod(p.capabilityIndex()) + ")"
 	}
 }

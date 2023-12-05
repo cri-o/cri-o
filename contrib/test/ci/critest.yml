@@ -1,6 +1,6 @@
 ---
 - name: build and install cri-o
-  include: "build/cri-o.yml"
+  include_tasks: "build/cri-o.yml"
 
 # critest tests expect cgroupfs
 - name: set manage network ns lifecycle

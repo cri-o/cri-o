@@ -1,11 +1,12 @@
 package capnp
 
 import (
-	"bytes"
-	"fmt"
+	"errors"
 	"math"
 	"strconv"
 
+	"capnproto.org/go/capnp/v3/exc"
+	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/internal/strquote"
 )
 
@@ -27,14 +28,14 @@ type ListKind = struct {
 // newPrimitiveList allocates a new list of primitive values, preferring placement in s.
 func newPrimitiveList(s *Segment, sz Size, n int32) (List, error) {
 	if n < 0 || n >= 1<<29 {
-		return List{}, errorf("new list: length out of range")
+		return List{}, errors.New("new list: length out of range")
 	}
 	// sz is [0, 8] and n is [0, 1<<29).
 	// Range is [0, maxSegmentSize], thus there will never be overflow.
 	total := sz.timesUnchecked(n)
 	s, addr, err := alloc(s, total)
 	if err != nil {
-		return List{}, annotatef(err, "new list")
+		return List{}, exc.WrapError("new list", err)
 	}
 	return List{
 		seg:        s,
@@ -49,19 +50,19 @@ func newPrimitiveList(s *Segment, sz Size, n int32) (List, error) {
 // in s.
 func NewCompositeList(s *Segment, sz ObjectSize, n int32) (List, error) {
 	if !sz.isValid() {
-		return List{}, errorf("new composite list: invalid element size")
+		return List{}, errors.New("new composite list: invalid element size")
 	}
 	if n < 0 || n >= 1<<29 {
-		return List{}, errorf("new composite list: length out of range")
+		return List{}, errors.New("new composite list: length out of range")
 	}
 	sz.DataSize = sz.DataSize.padToWord()
 	total, ok := sz.totalSize().times(n)
 	if !ok || total > maxSegmentSize-wordSize {
-		return List{}, errorf("new composite list: size overflow")
+		return List{}, errors.New("new composite list: size overflow")
 	}
 	s, addr, err := alloc(s, wordSize+total)
 	if err != nil {
-		return List{}, annotatef(err, "new composite list")
+		return List{}, exc.WrapError("new composite list", err)
 	}
 	// Add tag word
 	s.writeRawPointer(addr, rawStructPointer(pointerOffset(n), sz))
@@ -188,12 +189,17 @@ func (p List) primitiveElem(i int, expectedSize ObjectSize) (address, error) {
 		// This is programmer error, not input error.
 		panic("list element out of bounds")
 	}
-	if p.flags&isBitList != 0 || p.flags&isCompositeList == 0 && p.size != expectedSize || p.flags&isCompositeList != 0 && (p.size.DataSize < expectedSize.DataSize || p.size.PointerCount < expectedSize.PointerCount) {
-		return 0, errorf("mismatched list element size")
+	if p.flags&isBitList != 0 ||
+		p.flags&isCompositeList == 0 && p.size != expectedSize ||
+		p.flags&isCompositeList != 0 &&
+			(p.size.DataSize < expectedSize.DataSize ||
+				p.size.PointerCount < expectedSize.PointerCount) {
+
+		return 0, errors.New("mismatched list element size")
 	}
 	addr, ok := p.off.element(int32(i), p.size.totalSize())
 	if !ok {
-		return 0, errorf("read list element %d: address overflow", i)
+		return 0, errors.New("read list element " + str.Itod(i) + ": address overflow")
 	}
 	return addr, nil
 }
@@ -223,10 +229,10 @@ func (p List) Struct(i int) Struct {
 // SetStruct set the i'th element to the value in s.
 func (p List) SetStruct(i int, s Struct) error {
 	if p.flags&isBitList != 0 {
-		return errorf("SetStruct called on bit list")
+		return errors.New("SetStruct called on bit list")
 	}
 	if err := copyStruct(p.Struct(i), s); err != nil {
-		return annotatef(err, "set list element %d", i)
+		return exc.WrapError("set list element "+str.Itod(i), err)
 	}
 	return nil
 }
@@ -248,11 +254,11 @@ var _ TypeParam[BitList] = BitList{}
 // NewBitList creates a new bit list, preferring placement in s.
 func NewBitList(s *Segment, n int32) (BitList, error) {
 	if n < 0 || n >= 1<<29 {
-		return BitList{}, errorf("new bit list: length out of range")
+		return BitList{}, errors.New("new bit list: length out of range")
 	}
 	s, addr, err := alloc(s, bitListSize(n))
 	if err != nil {
-		return BitList{}, annotatef(err, "new %d-element bit list", n)
+		return BitList{}, exc.WrapError("new "+str.Itod(n)+"-element bit list", err)
 	}
 	return BitList{
 		seg:        s,
@@ -330,11 +336,11 @@ var _ TypeParam[PointerList] = PointerList{}
 func NewPointerList(s *Segment, n int32) (PointerList, error) {
 	total, ok := wordSize.times(n)
 	if !ok {
-		return PointerList{}, errorf("new pointer list: size overflow")
+		return PointerList{}, errors.New("new pointer list: size overflow")
 	}
 	s, addr, err := alloc(s, total)
 	if err != nil {
-		return PointerList{}, annotatef(err, "new %d-element pointer list", n)
+		return PointerList{}, exc.WrapError("new "+str.Itod(n)+"-element pointer list", err)
 	}
 	return PointerList{
 		seg:        s,
@@ -351,6 +357,7 @@ func (p PointerList) At(i int) (Ptr, error) {
 	if err != nil {
 		return Ptr{}, err
 	}
+	addr += address(p.size.DataSize)
 	return p.seg.readPtr(addr, p.depthLimit)
 }
 
@@ -1069,20 +1076,6 @@ func (s StructList[T]) At(i int) T {
 // Set sets the i'th element to v.
 func (s StructList[T]) Set(i int, v T) error {
 	return List(s).SetStruct(i, Struct(v))
-}
-
-// String returns the list in Cap'n Proto schema format (e.g. "[(x = 1), (x = 2)]").
-func (s StructList[T]) String() string {
-	buf := &bytes.Buffer{}
-	buf.WriteByte('[')
-	for i := 0; i < s.Len(); i++ {
-		if i > 0 {
-			buf.WriteString(", ")
-		}
-		fmt.Fprint(buf, s.At(i))
-	}
-	buf.WriteByte(']')
-	return buf.String()
 }
 
 // A list of some Cap'n Proto capability type T.

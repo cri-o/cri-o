@@ -5,10 +5,19 @@
     path: /usr/local/go
     state: absent
 
+- name: get the latest Go version
+  command: "curl -s https://go.dev/VERSION?m=text"
+  register: go_version
+  changed_when: false
+
+- name: extract Go version
+  set_fact:
+    go_version_number: "{{ go_version.stdout_lines[0] | regex_replace('^go([0-9]+\\.[0-9]+\\.[0-9]+).*', '\\1') }}"
+
 - name: fetch Golang
   unarchive:
     remote_src: yes
-    src: "https://storage.googleapis.com/golang/go{{ golang_version }}.linux-amd64.tar.gz"
+    src: "https://storage.googleapis.com/golang/go{{ go_version_number }}.linux-amd64.tar.gz"
     dest: /usr/local
 
 - name: link go toolchain

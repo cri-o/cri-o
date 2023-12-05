@@ -27,12 +27,7 @@ var StatusCommand = &cli.Command{
 			TakesFile: true,
 		},
 	},
-	HideHelp:     true,
-	Hidden:       false,
 	OnUsageError: func(c *cli.Context, e error, b bool) error { return e },
-	Action: func(c *cli.Context) error {
-		return fmt.Errorf("expecting a valid subcommand")
-	},
 	Subcommands: []*cli.Command{{
 		Action:  configSubCommand,
 		Aliases: []string{"c"},
@@ -105,7 +100,7 @@ func containers(c *cli.Context) error {
 		fmt.Printf("  %s: %s\n", k, v)
 	}
 	fmt.Printf("log path: %s\n", info.LogPath)
-	fmt.Printf("root: %s\n", info.Root)
+	fmt.Printf("graph root: %s\n", info.Root)
 	fmt.Printf("sandbox: %s\n", info.Sandbox)
 	fmt.Printf("ips: %s\n", strings.Join(info.IPs, ", "))
 
@@ -125,7 +120,8 @@ func info(c *cli.Context) error {
 
 	fmt.Printf("cgroup driver: %s\n", info.CgroupDriver)
 	fmt.Printf("storage driver: %s\n", info.StorageDriver)
-	fmt.Printf("storage root: %s\n", info.StorageRoot)
+	fmt.Printf("storage graph root: %s\n", info.StorageRoot)
+	fmt.Printf("storage image: %s\n", info.StorageImage)
 
 	fmt.Printf("default GID mappings (format <container>:<host>:<size>):\n")
 	for _, m := range info.DefaultIDMappings.Gids {

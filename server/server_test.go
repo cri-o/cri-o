@@ -2,8 +2,6 @@ package server_test
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -83,17 +81,25 @@ var _ = t.Describe("Server", func() {
 
 		It("should succeed with container restore", func() {
 			// Given
-			testError := fmt.Errorf("error: %w", errors.New("/dev/null"))
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),
 				libMock.EXPECT().GetData().Return(serverConfig),
 				storeMock.EXPECT().Containers().
 					Return([]cstorage.Container{
-						{},
-						{},
-						{},
-					}, testError),
+						{
+							ID:      "1111111111111111111111111111111111111111111111111111111111111111",
+							ImageID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+						{
+							ID:      "2222222222222222222222222222222222222222222222222222222222222222",
+							ImageID: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+						},
+						{
+							ID:      "3333333333333333333333333333333333333333333333333333333333333333",
+							ImageID: "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+						},
+					}, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).
 					Return(`{"Pod": false, "pod-name": "name", "pod-id": "id" }`, nil),
 				storeMock.EXPECT().Metadata(gomock.Any()).

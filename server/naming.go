@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
@@ -21,7 +22,7 @@ func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 		sandboxConfig.Metadata.Name,
 		sandboxConfig.Metadata.Namespace,
 		sandboxConfig.Metadata.Uid,
-		fmt.Sprintf("%d", sandboxConfig.Metadata.Attempt),
+		strconv.FormatUint(uint64(sandboxConfig.Metadata.Attempt), 10),
 	}, nameDelimiter)
 }
 

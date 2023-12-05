@@ -671,6 +671,20 @@ func (mr *MockStoreMockRecorder) ImageSize(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageSize", reflect.TypeOf((*MockStore)(nil).ImageSize), arg0)
 }
 
+// ImageStore mocks base method.
+func (m *MockStore) ImageStore() string {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageStore")
+	ret0, _ := ret[0].(string)
+	return ret0
+}
+
+// ImageStore indicates an expected call of ImageStore.
+func (mr *MockStoreMockRecorder) ImageStore() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStore", reflect.TypeOf((*MockStore)(nil).ImageStore))
+}
+
 // Images mocks base method.
 func (m *MockStore) Images() ([]storage.Image, error) {
 	m.ctrl.T.Helper()

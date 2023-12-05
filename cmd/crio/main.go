@@ -326,9 +326,13 @@ func main() {
 				logrus.Error(err)
 			}
 
+			if err := os.MkdirAll(filepath.Dir(config.CleanShutdownSupportedFileName()), 0o755); err != nil {
+				logrus.Errorf("Creating clean shutdown supported parent directory: %v", err)
+			}
+
 			// Write "$CleanShutdownFile".supported to show crio-wipe that
 			// we should be wiping if the CleanShutdownFile wasn't found.
-			// This protects us from wiping after an upgrade from a version that don't support
+			// This protects us from wiping after an upgrade from a version that doesn't support
 			// CleanShutdownFile.
 			f, err := os.Create(config.CleanShutdownSupportedFileName())
 			if err != nil {

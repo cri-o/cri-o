@@ -85,7 +85,7 @@ popd
 ln -s vendor src
 export GOPATH=$(pwd)/_output:$(pwd)
 export BUILDTAGS="selinux seccomp exclude_graphdriver_devicemapper exclude_graphdriver_btrfs containers_image_ostree_stub containers_image_openpgp"
-make bin/crio bin/crio-status bin/pinns
+make bin/crio bin/pinns
 
 # build docs
 make GO_MD2MAN=go-md2man docs
@@ -141,7 +141,6 @@ rm -f %{_unitdir}/%{repo}.service
 %license LICENSE
 %doc README.md
 %{_bindir}/%{service_name}
-%{_bindir}/%{service_name}-status
 %{_bindir}/pinns
 %{_mandir}/man5/%{service_name}.conf.5*
 %{_mandir}/man5/%{service_name}.conf.d.5*
@@ -157,11 +156,8 @@ rm -f %{_unitdir}/%{repo}.service
 %dir %{_datadir}/oci-umount/oci-umount.d
 %{_datadir}/oci-umount/oci-umount.d/%{service_name}-umount.conf
 %{_unitdir}/%{service_name}-wipe.service
-%{_datadir}/bash-completion/completions/%{service_name}-status
 %{_datadir}/bash-completion/completions/%{service_name}
-%{_datadir}/fish/completions/%{service_name}-status.fish
 %{_datadir}/fish/completions/%{service_name}.fish
-%{_datadir}/zsh/site-functions/_%{service_name}-status
 %{_datadir}/zsh/site-functions/_%{service_name}
 
 

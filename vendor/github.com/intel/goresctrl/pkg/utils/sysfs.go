@@ -18,7 +18,6 @@ package utils
 
 import (
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"strings"
@@ -37,7 +36,7 @@ func setCPUFreqValue(cpu ID, setting string, value int) error {
 
 // GetCPUFreqValue returns information of the currently used CPU frequency
 func GetCPUFreqValue(cpu ID, setting string) (int, error) {
-	raw, err := ioutil.ReadFile(cpuFreqPath(cpu, setting))
+	raw, err := os.ReadFile(cpuFreqPath(cpu, setting))
 	if err != nil {
 		return 0, err
 	}
@@ -127,11 +126,11 @@ func setUncoreFreqValue(pkg, die ID, attribute string, value int) error {
 }
 
 func writeFileInt(path string, value int) error {
-	return ioutil.WriteFile(path, []byte(strconv.Itoa(value)), 0644)
+	return os.WriteFile(path, []byte(strconv.Itoa(value)), 0644)
 }
 
 func readFileInt(path string) (int, error) {
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return 0, err
 	}

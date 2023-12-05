@@ -10,4 +10,4 @@
     - "{{ playbook_dir }}/vars.yml"
   tasks:
     - name: set up the system
-      include: "setup.yml"
+      include_tasks: "setup.yml"

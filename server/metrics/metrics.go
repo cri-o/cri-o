@@ -14,9 +14,11 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/process"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/fsnotify/fsnotify"
+	"github.com/opencontainers/go-digest"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
@@ -483,8 +485,8 @@ func (m *Metrics) MetricImagePullsLayerSizeObserve(size int64) {
 	m.metricImagePullsLayerSize.Observe(float64(size))
 }
 
-func (m *Metrics) MetricImagePullsByNameSkippedAdd(add float64, name string) {
-	c, err := m.metricImagePullsByNameSkipped.GetMetricWithLabelValues(name) // deprecated metric name
+func (m *Metrics) MetricImagePullsByNameSkippedAdd(add float64, name references.RegistryImageReference) {
+	c, err := m.metricImagePullsByNameSkipped.GetMetricWithLabelValues(name.StringForOutOfProcessConsumptionOnly()) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by name skipped metric: %v", err)
 		return
@@ -501,8 +503,8 @@ func (m *Metrics) MetricImagePullsSkippedBytesAdd(add float64) {
 	c.Add(add)
 }
 
-func (m *Metrics) MetricImagePullsFailuresInc(image, label string) {
-	c, err := m.metricImagePullsFailures.GetMetricWithLabelValues(image, label) // deprecated metric name
+func (m *Metrics) MetricImagePullsFailuresInc(image references.RegistryImageReference, label string) {
+	c, err := m.metricImagePullsFailures.GetMetricWithLabelValues(image.StringForOutOfProcessConsumptionOnly(), label) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pull failures metric: %v", err)
 		return
@@ -533,8 +535,8 @@ func (m *Metrics) MetricImageLayerReuseInc(layer string) {
 	c.Inc()
 }
 
-func (m *Metrics) MetricImagePullsSuccessesInc(name string) {
-	c, err := m.metricImagePullsSuccesses.GetMetricWithLabelValues(name) // deprecated metric name
+func (m *Metrics) MetricImagePullsSuccessesInc(name references.RegistryImageReference) {
+	c, err := m.metricImagePullsSuccesses.GetMetricWithLabelValues(name.StringForOutOfProcessConsumptionOnly()) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pull successes metric: %v", err)
 		return
@@ -553,8 +555,8 @@ func (m *Metrics) MetricImagePullsBytesAdd(add float64, mediatype string, size i
 	c.Add(add)
 }
 
-func (m *Metrics) MetricImagePullsByDigestAdd(add float64, values ...string) {
-	c, err := m.metricImagePullsByDigest.GetMetricWithLabelValues(values...) // deprecated metric name
+func (m *Metrics) MetricImagePullsByDigestAdd(add float64, name references.RegistryImageReference, artifact digest.Digest, values ...string) {
+	c, err := m.metricImagePullsByDigest.GetMetricWithLabelValues(append([]string{name.StringForOutOfProcessConsumptionOnly(), artifact.String()}, values...)...) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by digest metric: %v", err)
 		return
@@ -562,8 +564,8 @@ func (m *Metrics) MetricImagePullsByDigestAdd(add float64, values ...string) {
 	c.Add(add)
 }
 
-func (m *Metrics) MetricImagePullsByNameAdd(add float64, values ...string) {
-	c, err := m.metricImagePullsByName.GetMetricWithLabelValues(values...) // deprecated metric name
+func (m *Metrics) MetricImagePullsByNameAdd(add float64, name references.RegistryImageReference, values ...string) {
+	c, err := m.metricImagePullsByName.GetMetricWithLabelValues(append([]string{name.StringForOutOfProcessConsumptionOnly()}, values...)...) // deprecated metric name
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls by name metric: %v", err)
 		return

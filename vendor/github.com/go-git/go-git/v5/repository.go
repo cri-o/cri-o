@@ -14,12 +14,15 @@ import (
 	"strings"
 	"time"
 
+	"dario.cat/mergo"
 	"github.com/ProtonMail/go-crypto/openpgp"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/osfs"
 	"github.com/go-git/go-billy/v5/util"
 	"github.com/go-git/go-git/v5/config"
+	"github.com/go-git/go-git/v5/internal/path_util"
 	"github.com/go-git/go-git/v5/internal/revision"
+	"github.com/go-git/go-git/v5/internal/url"
 	"github.com/go-git/go-git/v5/plumbing"
 	"github.com/go-git/go-git/v5/plumbing/cache"
 	formatcfg "github.com/go-git/go-git/v5/plumbing/format/config"
@@ -31,7 +34,6 @@ import (
 	"github.com/go-git/go-git/v5/storage/filesystem"
 	"github.com/go-git/go-git/v5/storage/filesystem/dotgit"
 	"github.com/go-git/go-git/v5/utils/ioutil"
-	"github.com/imdario/mergo"
 )
 
 // GitDirName this is a special folder where all the git stuff is.
@@ -61,6 +63,7 @@ var (
 	ErrUnableToResolveCommit     = errors.New("unable to resolve commit")
 	ErrPackedObjectsNotSupported = errors.New("packed objects not supported")
 	ErrSHA256NotSupported        = errors.New("go-git was not compiled with SHA256 support")
+	ErrAlternatePathNotSupported = errors.New("alternate path must use the file scheme")
 )
 
 // Repository represents a git repository
@@ -234,9 +237,19 @@ func CloneContext(
 // if the repository will have worktree (non-bare) or not (bare), if the path
 // is not empty ErrRepositoryAlreadyExists is returned.
 func PlainInit(path string, isBare bool) (*Repository, error) {
+	return PlainInitWithOptions(path, &PlainInitOptions{
+		Bare: isBare,
+	})
+}
+
+func PlainInitWithOptions(path string, opts *PlainInitOptions) (*Repository, error) {
+	if opts == nil {
+		opts = &PlainInitOptions{}
+	}
+
 	var wt, dot billy.Filesystem
 
-	if isBare {
+	if opts.Bare {
 		dot = osfs.New(path)
 	} else {
 		wt = osfs.New(path)
@@ -245,16 +258,7 @@ func PlainInit(path string, isBare bool) (*Repository, error) {
 
 	s := filesystem.NewStorage(dot, cache.NewObjectLRUDefault())
 
-	return Init(s, wt)
-}
-
-func PlainInitWithOptions(path string, opts *PlainInitOptions) (*Repository, error) {
-	wt := osfs.New(path)
-	dot, _ := wt.Chroot(GitDirName)
-
-	s := filesystem.NewStorage(dot, cache.NewObjectLRUDefault())
-
-	r, err := Init(s, wt)
+	r, err := InitWithOptions(s, wt, opts.InitOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +268,7 @@ func PlainInitWithOptions(path string, opts *PlainInitOptions) (*Repository, err
 		return nil, err
 	}
 
-	if opts != nil {
+	if opts.ObjectFormat != "" {
 		if opts.ObjectFormat == formatcfg.SHA256 && hash.CryptoType != crypto.SHA256 {
 			return nil, ErrSHA256NotSupported
 		}
@@ -322,6 +326,11 @@ func PlainOpenWithOptions(path string, o *PlainOpenOptions) (*Repository, error)
 }
 
 func dotGitToOSFilesystems(path string, detect bool) (dot, wt billy.Filesystem, err error) {
+	path, err = path_util.ReplaceTildeWithHome(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if path, err = filepath.Abs(path); err != nil {
 		return nil, nil, err
 	}
@@ -880,6 +889,30 @@ func (r *Repository) clone(ctx context.Context, o *CloneOptions) error {
 		return err
 	}
 
+	// When the repository to clone is on the local machine,
+	// instead of using hard links, automatically setup .git/objects/info/alternates
+	// to share the objects with the source repository
+	if o.Shared {
+		if !url.IsLocalEndpoint(o.URL) {
+			return ErrAlternatePathNotSupported
+		}
+		altpath := o.URL
+		remoteRepo, err := PlainOpen(o.URL)
+		if err != nil {
+			return fmt.Errorf("failed to open remote repository: %w", err)
+		}
+		conf, err := remoteRepo.Config()
+		if err != nil {
+			return fmt.Errorf("failed to read remote repository configuration: %w", err)
+		}
+		if !conf.Core.IsBare {
+			altpath = path.Join(altpath, GitDirName)
+		}
+		if err := r.Storer.AddAlternate(altpath); err != nil {
+			return fmt.Errorf("failed to add alternate file to git objects dir: %w", err)
+		}
+	}
+
 	ref, err := r.fetchAndUpdateReferences(ctx, &FetchOptions{
 		RefSpecs:        c.Fetch,
 		Depth:           o.Depth,
@@ -916,7 +949,13 @@ func (r *Repository) clone(ctx context.Context, o *CloneOptions) error {
 		if o.RecurseSubmodules != NoRecurseSubmodules {
 			if err := w.updateSubmodules(&SubmoduleUpdateOptions{
 				RecurseSubmodules: o.RecurseSubmodules,
-				Auth:              o.Auth,
+				Depth: func() int {
+					if o.ShallowSubmodules {
+						return 1
+					}
+					return 0
+				}(),
+				Auth: o.Auth,
 			}); err != nil {
 				return err
 			}
@@ -967,7 +1006,6 @@ func (r *Repository) cloneRefSpec(o *CloneOptions) []config.RefSpec {
 	case o.SingleBranch && o.ReferenceName == plumbing.HEAD:
 		return []config.RefSpec{
 			config.RefSpec(fmt.Sprintf(refspecSingleBranchHEAD, o.RemoteName)),
-			config.RefSpec(fmt.Sprintf(refspecSingleBranch, plumbing.Master.Short(), o.RemoteName)),
 		}
 	case o.SingleBranch:
 		return []config.RefSpec{
@@ -1029,21 +1067,9 @@ func (r *Repository) fetchAndUpdateReferences(
 		return nil, err
 	}
 
-	var resolvedRef *plumbing.Reference
-	// return error from checking the raw ref passed in
-	var rawRefError error
-	for _, rule := range append([]string{"%s"}, plumbing.RefRevParseRules...) {
-		resolvedRef, err = storer.ResolveReference(remoteRefs, plumbing.ReferenceName(fmt.Sprintf(rule, ref)))
-
-		if err == nil {
-			break
-		} else if rawRefError == nil {
-			rawRefError = err
-		}
-	}
-
+	resolvedRef, err := expand_ref(remoteRefs, ref)
 	if err != nil {
-		return nil, rawRefError
+		return nil, err
 	}
 
 	refsUpdated, err := r.updateReferences(remote.c.Fetch, resolvedRef)
@@ -1489,6 +1515,23 @@ func (r *Repository) Worktree() (*Worktree, error) {
 	return &Worktree{r: r, Filesystem: r.wt}, nil
 }
 
+func expand_ref(s storer.ReferenceStorer, ref plumbing.ReferenceName) (*plumbing.Reference, error) {
+	// For improving troubleshooting, this preserves the error for the provided `ref`,
+	// and returns the error for that specific ref in case all parse rules fails.
+	var ret error
+	for _, rule := range plumbing.RefRevParseRules {
+		resolvedRef, err := storer.ResolveReference(s, plumbing.ReferenceName(fmt.Sprintf(rule, ref)))
+
+		if err == nil {
+			return resolvedRef, nil
+		} else if ret == nil {
+			ret = err
+		}
+	}
+
+	return nil, ret
+}
+
 // ResolveRevision resolves revision to corresponding hash. It will always
 // resolve to a commit hash, not a tree or annotated tag.
 //
@@ -1518,13 +1561,9 @@ func (r *Repository) ResolveRevision(in plumbing.Revision) (*plumbing.Hash, erro
 
 			tryHashes = append(tryHashes, r.resolveHashPrefix(string(revisionRef))...)
 
-			for _, rule := range append([]string{"%s"}, plumbing.RefRevParseRules...) {
-				ref, err := storer.ResolveReference(r.Storer, plumbing.ReferenceName(fmt.Sprintf(rule, revisionRef)))
-
-				if err == nil {
-					tryHashes = append(tryHashes, ref.Hash())
-					break
-				}
+			ref, err := expand_ref(r.Storer, plumbing.ReferenceName(revisionRef))
+			if err == nil {
+				tryHashes = append(tryHashes, ref.Hash())
 			}
 
 			// in ambiguous cases, `git rev-parse` will emit a warning, but

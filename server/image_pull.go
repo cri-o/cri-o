@@ -7,22 +7,25 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
 
 	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
+	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
+	"github.com/opencontainers/go-digest"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
 )
 
-var localRegistryPrefix = "localhost/"
+var localRegistryHostname = "localhost"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
@@ -151,166 +154,163 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		return "", err
 	}
 
-	var (
-		images []string
-		pulled string
-	)
-	images, err = s.StorageImageServer().ResolveNames(s.config.SystemContext, pullArgs.image)
+	cgroup := ""
+	if s.config.SeparatePullCgroup != "" {
+		if !s.config.CgroupManager().IsSystemd() {
+			return "", errors.New("--separate-pull-cgroup is supported only with systemd")
+		}
+		if s.config.SeparatePullCgroup == utils.PodCgroupName {
+			cgroup = pullArgs.sandboxCgroup
+		} else {
+			cgroup = s.config.SeparatePullCgroup
+			if !strings.Contains(cgroup, ".slice") {
+				return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
+			}
+		}
+	}
+
+	remoteCandidates, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return "", err
 	}
-	for _, img := range images {
-		var tmpImg imageTypes.ImageCloser
-		tmpImg, err = s.StorageImageServer().PrepareImage(&sourceCtx, img)
-		if err != nil {
-			// We're not able to find the image remotely, check if it's
-			// available locally, but only for localhost/ prefixed ones.
-			// This allows pulling localhost/ prefixed images even if the
-			// `imagePullPolicy` is set to `Always`.
-			if strings.HasPrefix(img, localRegistryPrefix) {
-				if _, err := s.StorageImageServer().ImageStatus(
-					s.config.SystemContext, img,
-				); err == nil {
-					pulled = img
-					break
-				}
-			}
-			log.Debugf(ctx, "Error preparing image %s: %v", img, err)
-			tryIncrementImagePullFailureMetric(img, err)
-			continue
-		}
-		defer tmpImg.Close() // nolint:gocritic
-
-		var storedImage *storage.ImageResult
-		storedImage, err = s.StorageImageServer().ImageStatus(s.config.SystemContext, img)
+	// CandidatesForPotentiallyShortImageName is defined never to return an empty slice on success, so if the loop considers all candidates
+	// and they all fail, this error value should be overwritten by a real failure.
+	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
+	for _, remoteCandidateName := range remoteCandidates {
+		err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
 		if err == nil {
-			tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
-			if tmpImgConfigDigest.String() == "" {
-				// this means we are playing with a schema1 image, in which
-				// case, we're going to repull the image in any case
-				log.Debugf(ctx, "Image config digest is empty, re-pulling image")
-			} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
-				log.Debugf(ctx, "Image %s already in store, skipping pull", img)
-				pulled = img
+			// Update metric for successful image pulls
+			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
-				// Skipped digests metrics
-				tryRecordSkippedMetric(ctx, img, tmpImgConfigDigest.String())
-
-				// Skipped bytes metrics
-				if storedImage.Size != nil {
-					metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), img)
-					// Metrics for image pull skipped bytes
-					metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
-				}
-
-				break
+			status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
+			if err != nil {
+				return "", err
 			}
-			log.Debugf(ctx, "Image in store has different ID, re-pulling %s", img)
+			imageRef := status.ID.IDStringForOutOfProcessConsumptionOnly()
+			if len(status.RepoDigests) > 0 {
+				imageRef = status.RepoDigests[0]
+			}
+
+			return imageRef, nil
 		}
-
-		// Pull by collecting progress metrics
-		progress := make(chan imageTypes.ProgressProperties)
-		defer close(progress) // nolint:gocritic
-		go func() {
-			for p := range progress {
-				if p.Event == imageTypes.ProgressEventSkipped {
-					// Skipped digests metrics
-					tryRecordSkippedMetric(ctx, img, p.Artifact.Digest.String())
-				}
-				if p.Artifact.Size > 0 {
-					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
-						p.Event, img, p.Artifact.Digest, p.Offset,
-						float64(p.Offset)/float64(p.Artifact.Size)*100,
-					)
-				} else {
-					log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
-						p.Event, img, p.Artifact.Digest, p.Offset,
-					)
-				}
-
-				// Metrics for every digest
-				metrics.Instance().MetricImagePullsByDigestAdd(
-					float64(p.OffsetUpdate),
-					img, p.Artifact.Digest.String(), p.Artifact.MediaType,
-					fmt.Sprintf("%d", p.Artifact.Size),
-				)
-
-				// Metrics for the overall image
-				metrics.Instance().MetricImagePullsByNameAdd(
-					float64(p.OffsetUpdate),
-					img, fmt.Sprintf("%d", imageSize(tmpImg)),
-				)
-
-				// Metrics for image pulls bytes
-				metrics.Instance().MetricImagePullsBytesAdd(
-					float64(p.OffsetUpdate),
-					p.Artifact.MediaType,
-					p.Artifact.Size,
-				)
-
-				// Metrics for size histogram
-				if p.Event == imageTypes.ProgressEventDone {
-					metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
-				}
-			}
-		}()
-
-		cgroup := ""
-
-		if s.config.SeparatePullCgroup != "" {
-			if !s.config.CgroupManager().IsSystemd() {
-				return "", errors.New("--separate-pull-cgroup is supported only with systemd")
-			}
-			if s.config.SeparatePullCgroup == utils.PodCgroupName {
-				cgroup = pullArgs.sandboxCgroup
-			} else {
-				cgroup = s.config.SeparatePullCgroup
-				if !strings.Contains(cgroup, ".slice") {
-					return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
-				}
-			}
-		}
-
-		_, err = s.StorageImageServer().PullImage(s.config.SystemContext, img, &storage.ImageCopyOptions{
-			SourceCtx:        &sourceCtx,
-			DestinationCtx:   s.config.SystemContext,
-			OciDecryptConfig: decryptConfig,
-			ProgressInterval: time.Second,
-			Progress:         progress,
-			CgroupPull: storage.CgroupPullConfiguration{
-				UseNewCgroup: s.config.SeparatePullCgroup != "",
-				ParentCgroup: cgroup,
-			},
-		})
-		if err != nil {
-			log.Debugf(ctx, "Error pulling image %s: %v", img, err)
-			tryIncrementImagePullFailureMetric(img, err)
-			continue
-		}
-		pulled = img
-		break
+		lastErr = err
 	}
-
-	if pulled == "" && err != nil {
-		return "", err
-	}
-
-	// Update metric for successful image pulls
-	metrics.Instance().MetricImagePullsSuccessesInc(pulled)
-
-	status, err := s.StorageImageServer().ImageStatus(s.config.SystemContext, pulled)
-	if err != nil {
-		return "", err
-	}
-	imageRef := status.ID
-	if len(status.RepoDigests) > 0 {
-		imageRef = status.RepoDigests[0]
-	}
-
-	return imageRef, nil
+	return "", lastErr
 }
 
-func tryIncrementImagePullFailureMetric(img string, err error) {
+func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) error {
+	tmpImg, err := s.StorageImageServer().PrepareImage(sourceCtx, remoteCandidateName)
+	if err != nil {
+		// We're not able to find the image remotely, check if it's
+		// available locally, but only for localhost ones.
+		// This allows pulling localhost images even if the
+		// `imagePullPolicy` is set to `Always`.
+		if remoteCandidateName.Registry() == localRegistryHostname {
+			if _, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName); err == nil {
+				return nil
+			}
+		}
+		log.Debugf(ctx, "Error preparing image %s: %v", remoteCandidateName, err)
+		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
+		return err
+	}
+	defer tmpImg.Close()
+
+	storedImage, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
+	if err == nil {
+		tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
+		if tmpImgConfigDigest.String() == "" {
+			// this means we are playing with a schema1 image, in which
+			// case, we're going to repull the image in any case
+			log.Debugf(ctx, "Image config digest is empty, re-pulling image")
+		} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
+			log.Debugf(ctx, "Image %s already in store, skipping pull", remoteCandidateName)
+
+			// Skipped digests metrics
+			tryRecordSkippedMetric(ctx, remoteCandidateName, tmpImgConfigDigest)
+
+			// Skipped bytes metrics
+			if storedImage.Size != nil {
+				metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), remoteCandidateName)
+				// Metrics for image pull skipped bytes
+				metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
+			}
+
+			return nil
+		}
+		log.Debugf(ctx, "Image in store has different ID, re-pulling %s", remoteCandidateName)
+	}
+
+	// Collect pull progress metrics
+	progress := make(chan imageTypes.ProgressProperties)
+	defer close(progress) // nolint:gocritic
+	go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName, tmpImg)
+
+	_, err = s.StorageImageServer().PullImage(remoteCandidateName, &storage.ImageCopyOptions{
+		SourceCtx:        sourceCtx,
+		DestinationCtx:   s.config.SystemContext,
+		OciDecryptConfig: decryptConfig,
+		ProgressInterval: time.Second,
+		Progress:         progress,
+		CgroupPull: storage.CgroupPullConfiguration{
+			UseNewCgroup: s.config.SeparatePullCgroup != "",
+			ParentCgroup: cgroup,
+		},
+	})
+	if err != nil {
+		log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
+		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
+		return err
+	}
+	return nil
+}
+
+// metricsFromProgressGoroutine consumes progress and turns it into metrics updates.
+func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference, remoteImage imageTypes.Image) {
+	for p := range progress {
+		if p.Event == imageTypes.ProgressEventSkipped {
+			// Skipped digests metrics
+			tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
+		}
+		if p.Artifact.Size > 0 {
+			log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
+				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
+				float64(p.Offset)/float64(p.Artifact.Size)*100,
+			)
+		} else {
+			log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes",
+				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
+			)
+		}
+
+		// Metrics for every digest
+		metrics.Instance().MetricImagePullsByDigestAdd(
+			float64(p.OffsetUpdate),
+			remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
+			strconv.FormatInt(p.Artifact.Size, 10),
+		)
+
+		// Metrics for the overall image
+		metrics.Instance().MetricImagePullsByNameAdd(
+			float64(p.OffsetUpdate),
+			remoteCandidateName, strconv.FormatInt(imageSize(remoteImage), 10),
+		)
+
+		// Metrics for image pulls bytes
+		metrics.Instance().MetricImagePullsBytesAdd(
+			float64(p.OffsetUpdate),
+			p.Artifact.MediaType,
+			p.Artifact.Size,
+		)
+
+		// Metrics for size histogram
+		if p.Event == imageTypes.ProgressEventDone {
+			metrics.Instance().MetricImagePullsLayerSizeObserve(p.Artifact.Size)
+		}
+	}
+}
+
+func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err error) {
 	// We try to cover some basic use-cases
 	const labelUnknown = "UNKNOWN"
 	label := labelUnknown
@@ -336,8 +336,12 @@ func tryIncrementImagePullFailureMetric(img string, err error) {
 	metrics.Instance().MetricImagePullsFailuresInc(img, label)
 }
 
-func tryRecordSkippedMetric(ctx context.Context, name, digest string) {
-	layer := fmt.Sprintf("%s@%s", name, digest)
+func tryRecordSkippedMetric(ctx context.Context, name storage.RegistryImageReference, someBlobDigest digest.Digest) {
+	// NOTE: This "layer" identification looks like a digested image reference, but
+	// it isn’t one:
+	// - the digest references a layer or config, not a manifest
+	// - "name" may contain a digest already, so this results in name@manifestDigest@someOtherdigest
+	layer := fmt.Sprintf("%s@%s", name.StringForOutOfProcessConsumptionOnly(), someBlobDigest.String())
 	log.Debugf(ctx, "Skipped layer %s", layer)
 	metrics.Instance().MetricImageLayerReuseInc(layer)
 }
@@ -357,7 +361,7 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	return user, password, nil
 }
 
-func imageSize(img imageTypes.ImageCloser) (size int64) {
+func imageSize(img imageTypes.Image) (size int64) {
 	for _, layer := range img.LayerInfos() {
 		if layer.Size > 0 {
 			size += layer.Size

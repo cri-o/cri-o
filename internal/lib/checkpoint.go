@@ -10,7 +10,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v6/stats"
-	"github.com/containers/podman/v4/libpod"
 	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/podman/v4/pkg/checkpoint/crutils"
 	"github.com/containers/storage/pkg/archive"
@@ -20,11 +19,23 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 )
 
+// ContainerCheckpointOptions is the relevant subset of libpod.ContainerCheckpointOptions
+type ContainerCheckpointOptions struct {
+	// Keep tells the API to not delete checkpoint artifacts
+	Keep bool
+	// KeepRunning tells the API to keep the container running
+	// after writing the checkpoint to disk
+	KeepRunning bool
+	// TargetFile tells the API to read (or write) the checkpoint image
+	// from (or to) the filename set in TargetFile
+	TargetFile string
+}
+
 // ContainerCheckpoint checkpoints a running container.
 func (c *ContainerServer) ContainerCheckpoint(
 	ctx context.Context,
 	config *metadata.ContainerConfig,
-	opts *libpod.ContainerCheckpointOptions,
+	opts *ContainerCheckpointOptions,
 ) (string, error) {
 	ctr, err := c.LookupContainer(ctx, config.ID)
 	if err != nil {
@@ -42,6 +53,35 @@ func (c *ContainerServer) ContainerCheckpoint(
 		return "", fmt.Errorf("container %s is not running", ctr.ID())
 	}
 
+	// At this point the container needs to be paused. As we first checkpoint
+	// the processes in the container and the container will continue to run
+	// after checkpointing, there is a chance that the changed files we include
+	// in the checkpoint archive might change by the now again running processes
+	// in the container.
+	// Assuming this uses runc/crun (the OCI runtime is currently the only one
+	// supporting checkpointing), PauseContainer() will use the cgroup freezer
+	// to freeze the processes. CRIU will also use the cgroup freezer to freeze
+	// the processes if possible. If the cgroup is already frozen by runc/crun
+	// CRIU will not change the freezer status.
+	if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
+		return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
+	}
+	defer func() {
+		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
+			log.Errorf(ctx, "Failed to update container status: %q: %v", ctr.ID(), err)
+		}
+		if ctr.State().Status == oci.ContainerStatePaused {
+			err := c.runtime.UnpauseContainer(ctx, ctr)
+			if err != nil {
+				log.Errorf(ctx, "Failed to unpause container: %q: %v", ctr.ID(), err)
+			}
+		}
+		// container state needs to be written _after_ unpausing
+		if err = c.ContainerStateToDisk(ctx, ctr); err != nil {
+			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+		}
+	}()
+
 	if opts.TargetFile != "" {
 		if err := c.prepareCheckpointExport(ctr); err != nil {
 			return "", fmt.Errorf("failed to write config dumps for container %s: %w", ctr.ID(), err)
@@ -56,11 +96,10 @@ func (c *ContainerServer) ContainerCheckpoint(
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
 	}
-	if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
-		return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
-	}
-	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
-		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
+	if !opts.KeepRunning {
+		if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
+			return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
+		}
 	}
 
 	if !opts.Keep {
@@ -150,12 +189,20 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
 
+	rootFSImageRef := ""
+	if id := ctr.ImageID(); id != nil {
+		rootFSImageRef = id.IDStringForOutOfProcessConsumptionOnly()
+	}
+	rootFSImageName := ""
+	if imageName := ctr.ImageName(); imageName != nil {
+		rootFSImageName = imageName.StringForOutOfProcessConsumptionOnly()
+	}
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
-		RootfsImage:     ctr.Image(),
-		RootfsImageRef:  ctr.ImageRef(),
-		RootfsImageName: ctr.ImageName(),
+		RootfsImage:     ctr.UserRequestedImage(),
+		RootfsImageRef:  rootFSImageRef,
+		RootfsImageName: rootFSImageName,
 		CreatedTime:     ctr.CreatedAt(),
 		OCIRuntime: func() string {
 			runtimeHandler := c.GetSandbox(ctr.Sandbox()).RuntimeHandler()

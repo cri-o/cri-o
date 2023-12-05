@@ -181,6 +181,17 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	return rh.RuntimeType, nil
 }
 
+// RuntimeSupportsIDMap returns whether the runtime of runtimeHandler supports the "runtime features"
+// command, and that the output of that command advertises IDMapped mounts as an option
+func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
+	if err != nil {
+		return false
+	}
+
+	return rh.RuntimeSupportsIDMap()
+}
+
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {

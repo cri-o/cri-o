@@ -70,8 +70,6 @@
     name:
       - glibc-static
       - gpgme-devel
-      - yajl-devel
-      - libsemanage-devel
   when: ansible_distribution == 'RedHat'
 
 - name: Install optional packages For Fedora/CentOS 8

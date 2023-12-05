@@ -2,7 +2,7 @@ package sandbox
 
 import (
 	"errors"
-	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/containers/storage/pkg/stringid"
@@ -72,7 +72,7 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	}
 
 	if config.Metadata.Name == "" {
-		return errors.New("PodSandboxConfig.Metadata.Name should not be empty")
+		return errors.New("metadata.Name should not be empty")
 	}
 
 	if config.Linux == nil {
@@ -108,13 +108,17 @@ func (s *sandbox) SetNameAndID() error {
 		return errors.New("cannot generate pod name without name in metadata")
 	}
 
+	if s.config.Metadata.Uid == "" {
+		return errors.New("cannot generate pod name without uid in metadata")
+	}
+
 	s.id = stringid.GenerateNonCryptoID()
 	s.name = strings.Join([]string{
 		"k8s",
 		s.config.Metadata.Name,
 		s.config.Metadata.Namespace,
 		s.config.Metadata.Uid,
-		fmt.Sprintf("%d", s.config.Metadata.Attempt),
+		strconv.FormatUint(uint64(s.config.Metadata.Attempt), 10),
 	}, "_")
 
 	return nil

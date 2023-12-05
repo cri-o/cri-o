@@ -16,7 +16,6 @@ import (
 	selinux "github.com/containers/podman/v4/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
@@ -451,11 +450,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	privileged := s.privilegedSandbox(req)
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage creation")
+	pauseImage, err := s.config.ParsePauseImage()
+	if err != nil {
+		return nil, err
+	}
 	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sbox.Name(), sbox.ID(),
-		s.config.PauseImage,
+		pauseImage,
 		s.config.PauseImageAuthFile,
-		"",
 		containerName,
 		kubeName,
 		sbox.Config().Metadata.Uid,
@@ -633,26 +635,22 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.Namespace, namespace)
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
 	g.AddAnnotation(annotations.SandboxID, sbox.ID())
-	g.AddAnnotation(annotations.Image, s.config.PauseImage)
-	g.AddAnnotation(annotations.ImageName, s.config.PauseImage)
+	g.AddAnnotation(annotations.Image, pauseImage.StringForOutOfProcessConsumptionOnly())
+	g.AddAnnotation(annotations.ImageName, pauseImage.StringForOutOfProcessConsumptionOnly())
 	g.AddAnnotation(annotations.ContainerName, containerName)
 	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.ShmPath, shmPath)
-	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
+	g.AddAnnotation(annotations.PrivilegedRuntime, strconv.FormatBool(privileged))
 	g.AddAnnotation(annotations.RuntimeHandler, runtimeHandler)
 	g.AddAnnotation(annotations.ResolvPath, sbox.ResolvPath())
 	g.AddAnnotation(annotations.HostName, hostname)
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
-	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
+	g.AddAnnotation(annotations.HostNetwork, strconv.FormatBool(hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
-	}
-
-	if s.config.CgroupManager().IsSystemd() && node.SystemdHasCollectMode() {
-		g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 	}
 
 	created := time.Now()
@@ -914,7 +912,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// In the case of kernel separated containers, we need the infra container to create the VM for the pod
 	if sb.NeedsInfra(s.config.DropInfraCtr) || podIsKernelSeparated {
 		log.Debugf(ctx, "Keeping infra container for pod %s", sbox.ID())
-		container, err = oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, s.config.PauseImage, "", "", nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
+		// pauseImage, as the userRequestedImage parameter, only shows up in CRI values we return.
+		container, err = oci.NewContainer(sbox.ID(), containerName, podContainer.RunDir, logPath, labels, g.Config.Annotations, kubeAnnotations, pauseImage.StringForOutOfProcessConsumptionOnly(), nil, nil, nil, sbox.ID(), false, false, false, runtimeHandler, podContainer.Dir, created, podContainer.Config.Config.StopSignal)
 		if err != nil {
 			return nil, err
 		}

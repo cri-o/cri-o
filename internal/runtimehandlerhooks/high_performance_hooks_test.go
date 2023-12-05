@@ -23,7 +23,7 @@ const (
 var _ = Describe("high_performance_hooks", func() {
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),
-		make(map[string]string), "pauseImage", "", "",
+		make(map[string]string), "pauseImage", nil, nil,
 		&types.ContainerMetadata{}, "sandboxID", false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())

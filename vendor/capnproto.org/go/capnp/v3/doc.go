@@ -376,8 +376,8 @@ implemented Calculator:
 	})
 	val := result.Value().Get()
 
-A note about message ordering: when implementing a server method, you
-are responsible for acknowledging delivery of a method call.  Failure to
-do so can cause deadlocks.  See the server.Ack function for more details.
+A note about message ordering: by default, only one method per server will
+be invoked at a time; when implementing a server method which blocks or takes
+a long time, you calling the server.Go function to unblock future calls.
 */
 package capnp // import "capnproto.org/go/capnp/v3"
