@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 05 Dec 2023 06:01:02 UTC for commit [2824bf9][0]._
+_Generated on Tue, 05 Dec 2023 14:43:31 UTC for commit [c4afa28][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2824bf995f99d0bd91fc0f25616c8f8c71713aa5
+[0]: https://github.com/cri-o/cri-o/commit/c4afa28f4afd2edec36ebaa5ff583122b2e9b881
 
 ## Outdated Dependencies
 
 |                 MODULE                 |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
 |----------------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containernetworking/plugins | v1.3.0                               | v1.4.0          | true   | true             |
+| github.com/containers/podman/v4        | v4.8.0                               | v4.8.1          | true   | true             |
 | github.com/cri-o/ocicni                | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
 | k8s.io/api                             | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery                    | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -283,7 +284,7 @@ _Generated on Tue, 05 Dec 2023 06:01:02 UTC for commit [2824bf9][0]._
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d                |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                            | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589                |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20231126232103-8e31ff06e23b  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20231205062650-00455a960d61  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                            | v0.9.3                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                     | false  | true             |
@@ -337,7 +338,7 @@ _Generated on Tue, 05 Dec 2023 06:01:02 UTC for commit [2824bf9][0]._
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
 | github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20231127213545-c2b9b9dbf004  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            |                                     | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.8.0                                            |                                     | true   | true             |
+| github.com/containers/podman/v4                                                         | v4.8.0                                            | v4.8.1                              | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                     | false  | true             |
 | github.com/containers/storage                                                           | v1.51.0                                           |                                     | true   | true             |
 | github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.8                              | false  | true             |
