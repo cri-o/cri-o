@@ -583,7 +583,8 @@ var _ = Describe("high_performance_hooks", func() {
 				},
 			)
 			It("should result in error", func() {
-				Expect(setSharedCPUs(context.TODO(), container, nil, nil, "", false)).To(HaveOccurred())
+				_, err := setSharedCPUs(container, nil, "")
+				Expect(err).To(HaveOccurred())
 			})
 		})
 		Context("with empty shared CPUs list", func() {
@@ -599,7 +600,8 @@ var _ = Describe("high_performance_hooks", func() {
 				},
 			)
 			It("should result in error", func() {
-				Expect(setSharedCPUs(context.TODO(), container, nil, nil, "", false)).To(HaveOccurred())
+				_, err := setSharedCPUs(container, nil, "")
+				Expect(err).To(HaveOccurred())
 			})
 		})
 	})
