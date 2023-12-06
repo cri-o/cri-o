@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 05 Dec 2023 22:15:15 UTC for commit [98264a1][0]._
+_Generated on Wed, 06 Dec 2023 10:39:48 UTC for commit [84df031][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/98264a17c7b69b49c4312c862f80fa108abdeec1
+[0]: https://github.com/cri-o/cri-o/commit/84df031febec6e0d4e7719c190cc9e23f46f76c3
 
 ## Outdated Dependencies
 
@@ -265,7 +265,7 @@ _Generated on Tue, 05 Dec 2023 22:15:15 UTC for commit [98264a1][0]._
 | github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.0+incompatible                 | false  | true             |
 | github.com/bugsnag/osext                                                                | v0.0.0-20130617224835-0dd3f918b21b                |                                     | false  | true             |
 | github.com/bugsnag/panicwrap                                                            | v0.0.0-20151223152923-e2c28503fcd0                | v1.3.4                              | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.58.0                                           | v3.60.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.58.0                                           | v3.60.1                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251                |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                            |                                     | false  | true             |
 | github.com/bytedance/sonic                                                              | v1.10.1                                           | v1.10.2                             | false  | true             |
@@ -317,7 +317,7 @@ _Generated on Tue, 05 Dec 2023 22:15:15 UTC for commit [98264a1][0]._
 | github.com/containerd/imgcrypt                                                          | v1.1.7                                            | v1.1.9                              | false  | true             |
 | github.com/containerd/log                                                               | v0.1.0                                            |                                     | false  | true             |
 | github.com/containerd/nri                                                               | v0.5.0                                            |                                     | true   | true             |
-| github.com/containerd/nydus-snapshotter                                                 | v0.8.2                                            | v0.13.3                             | false  | true             |
+| github.com/containerd/nydus-snapshotter                                                 | v0.8.2                                            | v0.13.4                             | false  | true             |
 | github.com/containerd/protobuild                                                        | v0.3.0                                            |                                     | false  | true             |
 | github.com/containerd/stargz-snapshotter                                                | v0.14.3                                           | v0.15.1                             | false  | true             |
 | github.com/containerd/stargz-snapshotter/estargz                                        | v0.15.1                                           |                                     | false  | true             |
