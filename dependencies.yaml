@@ -18,7 +18,7 @@ dependencies:
       match: golang_version
 
   - name: golangci-lint
-    version: v1.55.0
+    version: v1.55.2
     refPaths:
     - path: .github/workflows/verify.yml
       match: GOLANGCI_LINT_VERSION
@@ -92,7 +92,7 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.18.0
+    version: 2.19.2
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
@@ -100,13 +100,13 @@ dependencies:
         match: NIX_VERSION
 
   - name: release-notes
-    version: 0.16.1
+    version: 0.16.4
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.6.0
+    version: 3.7.0
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
@@ -124,7 +124,7 @@ dependencies:
         match: GO_MOD_OUTDATED_VERSION
 
   - name: gosec
-    version: 2.15.0
+    version: 2.18.2
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION

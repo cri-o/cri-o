@@ -10,7 +10,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.21'
-  NIX_VERSION: '2.18.0'
+  NIX_VERSION: '2.19.2'
 jobs:
   build:
     runs-on: ubuntu-latest
