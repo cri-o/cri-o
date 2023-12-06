@@ -10,7 +10,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.21'
-  GOLANGCI_LINT_VERSION: v1.55.0
+  GOLANGCI_LINT_VERSION: v1.55.2
 permissions:
   contents: read
 
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint the markdown
-        uses: DavidAnson/markdownlint-cli2-action@v13
+        uses: DavidAnson/markdownlint-cli2-action@v14
         with:
           globs: |
             **/*.md
