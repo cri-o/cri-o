@@ -267,11 +267,11 @@ func main() {
 			logrus.Fatalf("Failed to chmod listen socket %s: %v", config.Listen, err)
 		}
 
-		var tracerProvider *sdktrace.TracerProvider
-		chainUnaryServer := grpc_middleware.ChainUnaryServer(metrics.UnaryInterceptor(), log.UnaryInterceptor())
-		chainStreamServer := grpc_middleware.ChainStreamServer(log.StreamInterceptor())
+		var (
+			tracerProvider *sdktrace.TracerProvider
+			opts           []otelgrpc.Option
+		)
 		if config.EnableTracing {
-			var opts []otelgrpc.Option
 			tracerProvider, opts, err = opentelemetry.InitTracing(
 				ctx,
 				config.TracingEndpoint,
@@ -280,16 +280,16 @@ func main() {
 			if err != nil {
 				logrus.Fatalf("Failed to initialize tracer provider: %v", err)
 			}
-			chainUnaryServer = grpc_middleware.ChainUnaryServer(
-				metrics.UnaryInterceptor(),
-				log.UnaryInterceptor(),
-				otelgrpc.UnaryServerInterceptor(opts...),
-			)
-			chainStreamServer = grpc_middleware.ChainStreamServer(log.StreamInterceptor(), otelgrpc.StreamServerInterceptor(opts...))
 		}
 		grpcServer := grpc.NewServer(
-			grpc.UnaryInterceptor(chainUnaryServer),
-			grpc.StreamInterceptor(chainStreamServer),
+			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
+				metrics.UnaryInterceptor(),
+				log.UnaryInterceptor(),
+			)),
+			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
+				log.StreamInterceptor(),
+			)),
+			grpc.StatsHandler(otelgrpc.NewServerHandler(opts...)),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
