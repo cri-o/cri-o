@@ -23,6 +23,10 @@ type RuntimeHandlerHooks interface {
 	PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
 }
 
+type HighPerformanceHook interface {
+	RuntimeHandlerHooks
+}
+
 // GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name
 func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
 	ctx, span := log.StartSpan(ctx)
