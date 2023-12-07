@@ -102,7 +102,7 @@ func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[st
 	for ann := range toFilter {
 		for _, d := range disallowed {
 			if strings.HasPrefix(ann, d) {
-				delete(toFilter, d)
+				delete(toFilter, ann)
 			}
 		}
 	}
