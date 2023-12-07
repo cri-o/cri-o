@@ -424,6 +424,10 @@ type RuntimeConfig struct {
 	// InfraCtrCPUSet is the CPUs set that will be used to run infra containers
 	InfraCtrCPUSet string `toml:"infra_ctr_cpuset"`
 
+	// SharedCPUSet is the CPUs set that will be used for guaranteed containers that
+	// want access to shared cpus.
+	SharedCPUSet string `toml:"shared_cpuset"`
+
 	// AbsentMountSourcesToReject is a list of paths that, when absent from the host,
 	// will cause a container creation to fail (as opposed to the current behavior of creating a directory).
 	AbsentMountSourcesToReject []string `toml:"absent_mount_sources_to_reject"`

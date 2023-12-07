@@ -18,3 +18,7 @@ type RuntimeHandlerHooks interface {
 	PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
 	PostStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error
 }
+
+type HighPerformanceHook interface {
+	RuntimeHandlerHooks
+}

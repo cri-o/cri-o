@@ -289,6 +289,12 @@ the container runtime configuration.
     You can specify CPUs in the Linux CPU list format.
     To get better isolation for guaranteed pods, set this parameter to be equal to kubelet reserved-cpus.
 
+**shared_cpuset**=""
+  Determines the CPU set which is allowed to be shared between guaranteed containers,
+  regardless of, and in addition to, the exclusiveness of their CPUs.
+  This field is optional and would not be used if not specified.
+  You can specify CPUs in the Linux CPU list format.
+
 **namespaces_dir**="/var/run"
   The directory where the state of the managed namespaces gets tracked. Only used when manage_ns_lifecycle is true
 

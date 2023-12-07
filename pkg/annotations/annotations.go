@@ -45,6 +45,12 @@ const (
 	// CPUFreqGovernorAnnotation sets the cpufreq governor for CPUs used by the container
 	CPUFreqGovernorAnnotation = "cpu-freq-governor.crio.io"
 
+	// CPUSharedAnnotation indicate that a container which is part of a guaranteed QoS pod,
+	// wants access to shared cpus.
+	// the container name should be appended at the end of the annotation
+	// example:  cpu-shared.crio.io/containerA
+	CPUSharedAnnotation = "cpu-shared.crio.io"
+
 	// SeccompNotifierActionAnnotation indicates a container is allowed to use the seccomp notifier feature.
 	SeccompNotifierActionAnnotation = "io.kubernetes.cri-o.seccompNotifierAction"
 
@@ -87,4 +93,5 @@ var AllAllowedAnnotations = []string{
 	PodLinuxOverhead,
 	PodLinuxResources,
 	LinkLogsAnnotation,
+	CPUSharedAnnotation,
 }

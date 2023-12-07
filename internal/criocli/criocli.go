@@ -393,6 +393,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("infra-ctr-cpuset") {
 		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
 	}
+	if ctx.IsSet("shared-cpuset") {
+		config.SharedCPUSet = ctx.String("shared-cpuset")
+	}
 	if ctx.IsSet("stats-collection-period") {
 		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
@@ -1110,6 +1113,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.",
 			EnvVars: []string{"CONTAINER_INFRA_CTR_CPUSET"},
 			Value:   defConf.InfraCtrCPUSet,
+		},
+		&cli.StringFlag{
+			Name:    "shared-cpuset",
+			Usage:   "CPUs set that will be used for guaranteed containers that want access to shared cpus",
+			EnvVars: []string{"CONTAINER_SHARED_CPUSET"},
+			Value:   defConf.SharedCPUSet,
 		},
 		&cli.StringFlag{
 			Name:      "clean-shutdown-file",

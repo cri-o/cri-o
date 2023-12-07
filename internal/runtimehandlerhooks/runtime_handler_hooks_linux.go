@@ -16,11 +16,11 @@ func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handl
 	defer span.End()
 	if strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile, sync.Mutex{}}, nil
+		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
 	if highPerformanceAnnotationsSpecified(annotations) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-		return &HighPerformanceHooks{config.IrqBalanceConfigFile, sync.Mutex{}}, nil
+		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
 	if cpuLoadBalancingAllowed(config) {
 		return &DefaultCPULoadBalanceHooks{}, nil
@@ -35,7 +35,8 @@ func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
 			strings.HasPrefix(k, crioann.CPUQuotaAnnotation) ||
 			strings.HasPrefix(k, crioann.IRQLoadBalancingAnnotation) ||
 			strings.HasPrefix(k, crioann.CPUCStatesAnnotation) ||
-			strings.HasPrefix(k, crioann.CPUFreqGovernorAnnotation) {
+			strings.HasPrefix(k, crioann.CPUFreqGovernorAnnotation) ||
+			strings.HasPrefix(k, crioann.CPUSharedAnnotation) {
 			return true
 		}
 	}

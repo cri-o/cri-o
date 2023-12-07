@@ -109,6 +109,7 @@ crio
 [--seccomp-use-default-when-empty]
 [--selinux]
 [--separate-pull-cgroup]=[value]
+[--shared-cpuset]=[value]
 [--signature-policy-dir]=[value]
 [--signature-policy]=[value]
 [--stats-collection-period]=[value]
@@ -389,6 +390,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--selinux**: Enable selinux support.
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
+
+**--shared-cpuset**="": CPUs set that will be used for guaranteed containers that want access to shared cpus
 
 **--signature-policy**="": Path to signature policy JSON file.
 
