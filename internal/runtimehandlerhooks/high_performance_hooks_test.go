@@ -569,4 +569,40 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 	})
+	Describe("setSharedCPUs", func() {
+		Context("with empty container CPUs list", func() {
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "0,1",
+							},
+						},
+					},
+				},
+			)
+			It("should result in error", func() {
+				_, err := setSharedCPUs(container, nil, "")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+		Context("with empty shared CPUs list", func() {
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "0,1",
+							},
+						},
+					},
+				},
+			)
+			It("should result in error", func() {
+				_, err := setSharedCPUs(container, nil, "")
+				Expect(err).To(HaveOccurred())
+			})
+		})
+	})
 })
