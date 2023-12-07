@@ -380,3 +380,18 @@ function check_conmon_fields() {
 	echo "Zombies: $zombies"
 	[[ $zombies == 0 ]]
 }
+
+@test "test workload pod should not be set if annotation not specified even if prefix" {
+	start_crio
+
+	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
+	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
+	"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
+	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
+	"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	[[ $(crictl exec "$ctr_id" cat /sys/fs/cgroup/memory.max) != 4294967296 ]]
+}
