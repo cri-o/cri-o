@@ -83,12 +83,6 @@
     path: "{{ artifacts }}"
     state: directory
 
-- name: upgrade git package
-  yum:
-    name: 'git'
-    state: latest
-  when: ansible_distribution in ['RedHat']
-
 - name: load br_netfilter module
   become: yes
   command: modprobe br_netfilter
