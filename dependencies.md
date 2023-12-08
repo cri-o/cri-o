@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 07 Dec 2023 21:24:37 UTC for commit [f40da54][0]._
+_Generated on Fri, 08 Dec 2023 12:42:45 UTC for commit [ed0bdcd][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f40da54704c5c32fb24b2b0e204424afae5b0dc2
+[0]: https://github.com/cri-o/cri-o/commit/ed0bdcd1e3233127d70d9d4eaa47d0cd7d2feae7
 
 ## Outdated Dependencies
 
 |                 MODULE                 |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
 |----------------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containernetworking/plugins | v1.3.0                               | v1.4.0          | true   | true             |
-| github.com/containers/common           | v0.57.0                              | v0.57.1         | true   | true             |
 | github.com/containers/podman/v4        | v4.8.0                               | v4.8.1          | true   | true             |
 | github.com/cri-o/ocicni                | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
 | k8s.io/api                             | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -329,7 +328,7 @@ _Generated on Thu, 07 Dec 2023 21:24:37 UTC for commit [f40da54][0]._
 | github.com/containernetworking/cni                                                      | v1.1.2                                            |                                     | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.3.0                                            | v1.4.0                              | true   | true             |
 | github.com/containers/buildah                                                           | v1.33.2                                           |                                     | false  | true             |
-| github.com/containers/common                                                            | v0.57.0                                           | v0.57.1                             | true   | true             |
+| github.com/containers/common                                                            | v0.57.1                                           |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57              |                                     | true   | true             |
 | github.com/containers/gvisor-tap-vsock                                                  | v0.7.1                                            |                                     | false  | true             |
@@ -581,7 +580,7 @@ _Generated on Thu, 07 Dec 2023 21:24:37 UTC for commit [f40da54][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231207165602-eb49d4487e62  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231208040343-f8636cc40ee8  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
