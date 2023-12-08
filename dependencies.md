@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 08 Dec 2023 12:42:45 UTC for commit [ed0bdcd][0]._
+_Generated on Fri, 08 Dec 2023 15:22:24 UTC for commit [eb3e4b6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ed0bdcd1e3233127d70d9d4eaa47d0cd7d2feae7
+[0]: https://github.com/cri-o/cri-o/commit/eb3e4b681f225f2cadc8c01c095eed77c49a2080
 
 ## Outdated Dependencies
 
@@ -254,7 +254,7 @@ _Generated on Fri, 08 Dec 2023 12:42:45 UTC for commit [ed0bdcd][0]._
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                     | false  | true             |
 | github.com/bgentry/speakeasy                                                            | v0.1.0                                            |                                     | false  | true             |
 | github.com/bitly/go-simplejson                                                          | v0.5.0                                            | v0.5.1                              | false  | true             |
-| github.com/bits-and-blooms/bitset                                                       | v1.2.0                                            | v1.11.0                             | false  | true             |
+| github.com/bits-and-blooms/bitset                                                       | v1.2.0                                            | v1.12.0                             | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                               |                                     | true   | true             |
 | github.com/blang/semver/v4                                                              | v4.0.0                                            |                                     | true   | true             |
 | github.com/blendle/zapdriver                                                            | v1.3.1                                            |                                     | false  | true             |
@@ -737,7 +737,7 @@ _Generated on Fri, 08 Dec 2023 12:42:45 UTC for commit [ed0bdcd][0]._
 | github.com/spf13/cobra                                                                  | v1.8.0                                            |                                     | false  | true             |
 | github.com/spf13/jwalterweatherman                                                      | v1.0.0                                            | v1.1.0                              | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                            |                                     | false  | true             |
-| github.com/spf13/viper                                                                  | v1.17.0                                           | v1.18.0                             | false  | true             |
+| github.com/spf13/viper                                                                  | v1.17.0                                           | v1.18.1                             | false  | true             |
 | github.com/spiffe/go-spiffe/v2                                                          | v2.1.6                                            |                                     | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20201008174630-78d3cae3a980                | v0.0.0-20230803200340-78284954bff6  | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                            | v1.3.0                              | false  | true             |
@@ -781,7 +781,7 @@ _Generated on Fri, 08 Dec 2023 12:42:45 UTC for commit [ed0bdcd][0]._
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                                     |                                     | true   | true             |
 | github.com/vishvananda/netns                                                            | v0.0.4                                            |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6             | v0.30.1                             | false  | true             |
-| github.com/willf/bitset                                                                 | v1.1.11                                           | v1.11.0                             | false  | true             |
+| github.com/willf/bitset                                                                 | v1.1.11                                           | v1.12.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                     | false  | true             |
 | github.com/xanzy/go-gitlab                                                              | v0.93.2                                           | v0.94.0                             | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                     | false  | true             |
