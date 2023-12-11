@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Sun, 10 Dec 2023 01:26:32 UTC for commit [a8043c5][0]._
+_Generated on Mon, 11 Dec 2023 02:07:56 UTC for commit [fd41a7c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a8043c5383a2a314daada462ca64528b379db65c
+[0]: https://github.com/cri-o/cri-o/commit/fd41a7c3d8368990fd43154dd7609078a55ce23d
 
 ## Outdated Dependencies
 
 |              MODULE              |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
 |----------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containerd/containerd | v1.7.10                              | v1.7.11         | true   | true             |
-| github.com/containers/podman/v4  | v4.8.0                               | v4.8.1          | true   | true             |
 | github.com/cri-o/ocicni          | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
 | k8s.io/api                       | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -146,7 +145,7 @@ _Generated on Sun, 10 Dec 2023 01:26:32 UTC for commit [a8043c5][0]._
 | cuelang.org/go                                                                          | v0.6.0                                            | v0.7.0                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                            |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9                | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
-| filippo.io/edwards25519                                                                 | v1.0.0                                            |                                     | false  | true             |
+| filippo.io/edwards25519                                                                 | v1.0.0                                            | v1.1.0                              | false  | true             |
 | github.com/14rcole/gopopulate                                                           | v0.0.0-20180821133914-b175b219e774                |                                     | false  | true             |
 | github.com/AdaLogics/go-fuzz-headers                                                    | v0.0.0-20230811130428-ced1acdcaa24                |                                     | false  | true             |
 | github.com/AdamKorcz/go-118-fuzz-build                                                  | v0.0.0-20230306123547-8075edf89bb0                | v0.0.0-20231105174938-2b5cbb29f3e2  | false  | true             |
@@ -338,7 +337,7 @@ _Generated on Sun, 10 Dec 2023 01:26:32 UTC for commit [a8043c5][0]._
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
 | github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20231127213545-c2b9b9dbf004  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            |                                     | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.8.0                                            | v4.8.1                              | true   | true             |
+| github.com/containers/podman/v4                                                         | v4.8.1                                            |                                     | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                     | false  | true             |
 | github.com/containers/storage                                                           | v1.51.0                                           |                                     | true   | true             |
 | github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.8                              | false  | true             |
