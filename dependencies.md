@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
+_Generated on Mon, 11 Dec 2023 17:03:54 UTC for commit [2ebd183][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8ef6fb47dcc13c2871a3064ddb63b4f8fd52f7ba
+[0]: https://github.com/cri-o/cri-o/commit/2ebd183f75ea57fd913222e70d90ad1c418b6a04
 
 ## Outdated Dependencies
 
 |              MODULE              |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
 |----------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containerd/containerd | v1.7.10                              | v1.7.11         | true   | true             |
+| github.com/containers/podman/v4  | v4.8.1                               | v4.8.2          | true   | true             |
 | github.com/cri-o/ocicni          | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
 | k8s.io/api                       | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -152,7 +153,7 @@ _Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
 | github.com/AdamKorcz/go-fuzz-headers-1                                                  | v0.0.0-20230618160516-e936619f9f18                | v0.0.0-20230919221257-8b5d3ce2d11d  | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper | v0.2.0                                            |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                              |                                     | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.8.0                                            | v1.9.0                              | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.8.0                                            | v1.9.1                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                        | v1.4.0                                            |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.3.0                                            | v1.5.1                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v1.0.1                                            |                                     | false  | true             |
@@ -171,7 +172,7 @@ _Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
 | github.com/AzureAD/microsoft-authentication-library-for-go                              | v1.1.1                                            | v1.2.0                              | false  | true             |
 | github.com/BurntSushi/toml                                                              | v1.3.2                                            |                                     | true   | true             |
 | github.com/BurntSushi/xgb                                                               | v0.0.0-20160522181843-27f122750802                | v0.0.0-20210121224620-deaf085860bc  | false  | true             |
-| github.com/DataDog/appsec-internal-go                                                   | v1.0.0                                            | v1.3.0                              | false  | true             |
+| github.com/DataDog/appsec-internal-go                                                   | v1.0.0                                            | v1.4.0                              | false  | true             |
 | github.com/DataDog/datadog-agent/pkg/obfuscate                                          | v0.48.1                                           | v0.49.0                             | false  | true             |
 | github.com/DataDog/datadog-agent/pkg/remoteconfig/state                                 | v0.48.1                                           | v0.49.0                             | false  | true             |
 | github.com/DataDog/datadog-go/v5                                                        | v5.3.0                                            | v5.4.0                              | false  | true             |
@@ -337,7 +338,7 @@ _Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
 | github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20231127213545-c2b9b9dbf004  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            |                                     | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.8.1                                            |                                     | true   | true             |
+| github.com/containers/podman/v4                                                         | v4.8.1                                            | v4.8.2                              | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                     | false  | true             |
 | github.com/containers/storage                                                           | v1.51.0                                           |                                     | true   | true             |
 | github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.8                              | false  | true             |
@@ -579,7 +580,7 @@ _Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231208194814-7f49867ae96d  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231211161114-23b4088a9788  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
