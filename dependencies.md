@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 11 Dec 2023 02:07:56 UTC for commit [fd41a7c][0]._
+_Generated on Mon, 11 Dec 2023 08:11:08 UTC for commit [8ef6fb4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fd41a7c3d8368990fd43154dd7609078a55ce23d
+[0]: https://github.com/cri-o/cri-o/commit/8ef6fb47dcc13c2871a3064ddb63b4f8fd52f7ba
 
 ## Outdated Dependencies
 
@@ -782,7 +782,7 @@ _Generated on Mon, 11 Dec 2023 02:07:56 UTC for commit [fd41a7c][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6             | v0.30.1                             | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.12.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.93.2                                           | v0.95.0                             | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.93.2                                           | v0.95.1                             | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                            |                                     | false  | true             |
@@ -912,7 +912,7 @@ _Generated on Mon, 11 Dec 2023 02:07:56 UTC for commit [fd41a7c][0]._
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231204120332-9386ad6703ee  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231211072236-4914c472e81a  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
