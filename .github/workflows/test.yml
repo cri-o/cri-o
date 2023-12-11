@@ -51,39 +51,6 @@ jobs:
       - run: scripts/github-actions-packages
       - run: make bin/crio.cross.freebsd.amd64
 
-  build-386:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v3
-        with:
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-          key: go-build-386-${{ hashFiles('**/go.sum') }}
-          restore-keys: go-build-386-
-      - name: Build 386 binary in container
-        run: |
-          mkdir -p ~/.cache/go-build ~/go/pkg/mod
-          sudo podman run \
-            -v ~/go/pkg/mod:/go/pkg/mod \
-            -v ~/.cache/go-build:/root/.cache/go-build \
-            -v $PWD:/build \
-            -w /build \
-            -it i386/golang:${{ env.GO_VERSION }}-alpine \
-            sh -c \
-              "apk --no-cache add \
-                bash \
-                build-base \
-                git \
-                gpgme-dev \
-                libseccomp-dev \
-                libselinux-dev \
-                linux-headers \
-                tzdata && \
-              make bin/crio && \
-              bin/crio version"
-
   validate-docs:
     needs: build
     runs-on: ubuntu-latest
