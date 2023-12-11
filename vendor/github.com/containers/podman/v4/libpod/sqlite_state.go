@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	goruntime "runtime"
@@ -41,13 +42,17 @@ const (
 	sqliteOptionForeignKeys = "&_foreign_keys=1"
 	// Make sure that transactions happen exclusively.
 	sqliteOptionTXLock = "&_txlock=exclusive"
+	// Make sure busy timeout is set to high value to keep retying when the db is locked.
+	// Timeout is in ms, so set it to 100s to have enough time to retry the operations.
+	sqliteOptionBusyTimeout = "&_busy_timeout=100000"
 
 	// Assembled sqlite options used when opening the database.
 	sqliteOptions = "db.sql?" +
 		sqliteOptionLocation +
 		sqliteOptionSynchronous +
 		sqliteOptionForeignKeys +
-		sqliteOptionTXLock
+		sqliteOptionTXLock +
+		sqliteOptionBusyTimeout
 )
 
 // NewSqliteState creates a new SQLite-backed state database.
@@ -312,14 +317,14 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
         );`
 
 	var (
-		os, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
-		runtimeOS                                                          = goruntime.GOOS
-		runtimeStaticDir                                                   = filepath.Clean(s.runtime.config.Engine.StaticDir)
-		runtimeTmpDir                                                      = filepath.Clean(s.runtime.config.Engine.TmpDir)
-		runtimeGraphRoot                                                   = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
-		runtimeRunRoot                                                     = filepath.Clean(s.runtime.StorageConfig().RunRoot)
-		runtimeGraphDriver                                                 = s.runtime.StorageConfig().GraphDriverName
-		runtimeVolumePath                                                  = filepath.Clean(s.runtime.config.Engine.VolumePath)
+		dbOS, staticDir, tmpDir, graphRoot, runRoot, graphDriver, volumePath string
+		runtimeOS                                                            = goruntime.GOOS
+		runtimeStaticDir                                                     = filepath.Clean(s.runtime.config.Engine.StaticDir)
+		runtimeTmpDir                                                        = filepath.Clean(s.runtime.config.Engine.TmpDir)
+		runtimeGraphRoot                                                     = filepath.Clean(s.runtime.StorageConfig().GraphRoot)
+		runtimeRunRoot                                                       = filepath.Clean(s.runtime.StorageConfig().RunRoot)
+		runtimeGraphDriver                                                   = s.runtime.StorageConfig().GraphDriverName
+		runtimeVolumePath                                                    = filepath.Clean(s.runtime.config.Engine.VolumePath)
 	)
 
 	// Some fields may be empty, indicating they are set to the default.
@@ -356,7 +361,7 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 
 	row := tx.QueryRow("SELECT Os, StaticDir, TmpDir, GraphRoot, RunRoot, GraphDriver, VolumeDir FROM DBConfig;")
 
-	if err := row.Scan(&os, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
+	if err := row.Scan(&dbOS, &staticDir, &tmpDir, &graphRoot, &runRoot, &graphDriver, &volumePath); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			if _, err := tx.Exec(createRow, 1, schemaVersion, runtimeOS,
 				runtimeStaticDir, runtimeTmpDir, runtimeGraphRoot,
@@ -374,11 +379,26 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return fmt.Errorf("retrieving DB config: %w", err)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("committing database validation row: %w", err)
-	}
+	checkField := func(fieldName, dbVal, ourVal string, isPath bool) error {
+		if isPath {
+			// Evaluate symlinks. Ignore ENOENT. No guarantee all
+			// directories exist this early in Libpod init.
+			if dbVal != "" {
+				dbValClean, err := filepath.EvalSymlinks(dbVal)
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return fmt.Errorf("cannot evaluate symlinks on DB %s path %q: %w", fieldName, dbVal, err)
+				}
+				dbVal = dbValClean
+			}
+			if ourVal != "" {
+				ourValClean, err := filepath.EvalSymlinks(ourVal)
+				if err != nil && !errors.Is(err, fs.ErrNotExist) {
+					return fmt.Errorf("cannot evaluate symlinks on our %s path %q: %w", fieldName, ourVal, err)
+				}
+				ourVal = ourValClean
+			}
+		}
 
-	checkField := func(fieldName, dbVal, ourVal string) error {
 		if dbVal != ourVal {
 			return fmt.Errorf("database %s %q does not match our %s %q: %w", fieldName, dbVal, fieldName, ourVal, define.ErrDBBadConfig)
 		}
@@ -386,27 +406,33 @@ func (s *SQLiteState) ValidateDBConfig(runtime *Runtime) (defErr error) {
 		return nil
 	}
 
-	if err := checkField("os", os, runtimeOS); err != nil {
+	if err := checkField("os", dbOS, runtimeOS, false); err != nil {
 		return err
 	}
-	if err := checkField("static dir", staticDir, runtimeStaticDir); err != nil {
+	if err := checkField("static dir", staticDir, runtimeStaticDir, true); err != nil {
 		return err
 	}
-	if err := checkField("tmp dir", tmpDir, runtimeTmpDir); err != nil {
+	if err := checkField("tmp dir", tmpDir, runtimeTmpDir, true); err != nil {
 		return err
 	}
-	if err := checkField("graph root", graphRoot, runtimeGraphRoot); err != nil {
+	if err := checkField("graph root", graphRoot, runtimeGraphRoot, true); err != nil {
 		return err
 	}
-	if err := checkField("run root", runRoot, runtimeRunRoot); err != nil {
+	if err := checkField("run root", runRoot, runtimeRunRoot, true); err != nil {
 		return err
 	}
-	if err := checkField("graph driver", graphDriver, runtimeGraphDriver); err != nil {
+	if err := checkField("graph driver", graphDriver, runtimeGraphDriver, false); err != nil {
 		return err
 	}
-	if err := checkField("volume path", volumePath, runtimeVolumePath); err != nil {
+	if err := checkField("volume path", volumePath, runtimeVolumePath, true); err != nil {
 		return err
 	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing database validation row: %w", err)
+	}
+	// Do not return any error after the commit call because the defer will
+	// try to roll back the transaction which results in an logged error.
 
 	return nil
 }
@@ -1696,6 +1722,10 @@ func (s *SQLiteState) RemovePodContainers(pod *Pod) (defErr error) {
 	}
 	if err := rows.Err(); err != nil {
 		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing pod containers %s removal transaction: %w", pod.ID(), err)
 	}
 
 	return nil
