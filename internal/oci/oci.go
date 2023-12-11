@@ -182,6 +182,11 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 	return rh.RuntimeType, nil
 }
 
+// Timezone returns the timezone configured inside the container.
+func (r *Runtime) Timezone() string {
+	return r.config.Timezone
+}
+
 // RuntimeSupportsIDMap returns whether the runtime of runtimeHandler supports the "runtime features"
 // command, and that the output of that command advertises IDMapped mounts as an option
 func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {

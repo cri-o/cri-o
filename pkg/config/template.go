@@ -481,6 +481,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DisableHostPortMapping, c.DisableHostPortMapping),
 		},
 		{
+			templateString: templateStringCrioRuntimeTimezone,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.Timezone, c.Timezone),
+		},
+		{
 			templateString: templateStringCrioImageDefaultTransport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
@@ -1365,6 +1370,12 @@ const templateStringCrioRuntimeDisableHostPortMapping = `# disable_hostport_mapp
 # the container hostport mapping in CRI-O.
 # Default value is set to 'false'
 {{ $.Comment }}disable_hostport_mapping = {{ .DisableHostPortMapping }}
+
+`
+
+const templateStringCrioRuntimeTimezone = `# timezone To set the timezone for a container in CRI-O.
+# If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
+{{ $.Comment }}timezone = "{{ .Timezone }}"
 
 `
 

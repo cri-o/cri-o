@@ -127,6 +127,7 @@ h
 --stream-tls-ca
 --stream-tls-cert
 --stream-tls-key
+--timezone
 --tracing-endpoint
 --tracing-sampling-rate-per-million
 --uid-mappings
