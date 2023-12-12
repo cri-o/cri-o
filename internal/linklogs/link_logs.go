@@ -59,7 +59,7 @@ func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id stri
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	// Symlink a relative path so the location is legitimate inside and outside the container.
 	from := fmt.Sprintf("%s/%d.log", metadata.Name, metadata.Attempt)
-	to := filepath.Join(emptyDirLoggingVolumePath, id)
+	to := filepath.Join(emptyDirLoggingVolumePath, id+".log")
 	log.Infof(ctx, "Symlinking from %s to %s for linked logs", from, to)
 	return os.Symlink(from, to)
 }
