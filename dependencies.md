@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
+_Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5949758a6007e91a9758f362098b3a247b0ddce6
+[0]: https://github.com/cri-o/cri-o/commit/7380d8ff553b9b2ead8bf3173e8c1db0bc9004db
 
 ## Outdated Dependencies
 
@@ -10,6 +10,7 @@ _Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
 |----------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containerd/containerd | v1.7.10                              | v1.7.11         | true   | true             |
 | github.com/cri-o/ocicni          | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
+| github.com/google/uuid           | v1.4.0                               | v1.5.0          | true   | true             |
 | k8s.io/api                       | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/client-go                 | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -87,7 +88,7 @@ _Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
 | cloud.google.com/go/kms                                                                 | v1.15.5                                           |                                     | false  | true             |
 | cloud.google.com/go/language                                                            | v1.12.2                                           |                                     | false  | true             |
 | cloud.google.com/go/lifesciences                                                        | v0.9.4                                            |                                     | false  | true             |
-| cloud.google.com/go/logging                                                             | v1.8.1                                            |                                     | false  | true             |
+| cloud.google.com/go/logging                                                             | v1.8.1                                            | v1.9.0                              | false  | true             |
 | cloud.google.com/go/longrunning                                                         | v0.5.4                                            |                                     | false  | true             |
 | cloud.google.com/go/managedidentities                                                   | v1.6.4                                            |                                     | false  | true             |
 | cloud.google.com/go/maps                                                                | v1.6.1                                            | v1.6.2                              | false  | true             |
@@ -500,7 +501,7 @@ _Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
 | github.com/google/shlex                                                                 | v0.0.0-20191202100458-e7afc7fbc510                |                                     | false  | true             |
 | github.com/google/tink/go                                                               | v1.7.0                                            |                                     | false  | true             |
 | github.com/google/trillian                                                              | v1.5.3                                            |                                     | false  | true             |
-| github.com/google/uuid                                                                  | v1.4.0                                            |                                     | true   | true             |
+| github.com/google/uuid                                                                  | v1.4.0                                            | v1.5.0                              | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                            |                                     | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                            |                                     | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.12.0                                           |                                     | false  | true             |
@@ -864,12 +865,12 @@ _Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
 | golang.org/x/time                                                                       | v0.3.0                                            | v0.5.0                              | false  | true             |
 | golang.org/x/tools                                                                      | v0.16.0                                           |                                     | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028                |                                     | false  | true             |
-| google.golang.org/api                                                                   | v0.149.0                                          | v0.153.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.149.0                                          | v0.154.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.111.0                            | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.60.0                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
