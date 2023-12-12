@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
+_Generated on Tue, 12 Dec 2023 23:39:41 UTC for commit [78b630f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7380d8ff553b9b2ead8bf3173e8c1db0bc9004db
+[0]: https://github.com/cri-o/cri-o/commit/78b630ff850c6ff50218c1cb43f764ad29335504
 
 ## Outdated Dependencies
 
@@ -226,7 +226,7 @@ _Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.0                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.1                             | false  | true             |
@@ -580,7 +580,7 @@ _Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231212151452-a0e0bbdb241a  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231212212519-260bbab2a986  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -839,7 +839,7 @@ _Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.21.0                                           |                                     | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.21.0                                           |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.0.0                                            |                                     | false  | true             |
-| go.step.sm/crypto                                                                       | v0.36.1                                           | v0.39.0                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.36.1                                           | v0.40.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                     | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                            |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.3.0                                            |                                     | false  | true             |
@@ -863,7 +863,7 @@ _Generated on Tue, 12 Dec 2023 19:27:04 UTC for commit [7380d8f][0]._
 | golang.org/x/term                                                                       | v0.15.0                                           |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                                           |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.3.0                                            | v0.5.0                              | false  | true             |
-| golang.org/x/tools                                                                      | v0.16.0                                           |                                     | false  | true             |
+| golang.org/x/tools                                                                      | v0.16.0                                           | v0.16.1                             | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028                |                                     | false  | true             |
 | google.golang.org/api                                                                   | v0.149.0                                          | v0.154.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
