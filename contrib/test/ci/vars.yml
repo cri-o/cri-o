@@ -14,7 +14,7 @@ use_conmonrs: '{{ USE_CONMONRS | default(False) | bool }}'
 evented_pleg_fg: '{{ EVENTED_PLEG | default(False) | bool }}'
 
 critest_mirror_repo: quay.io/crio
-cri_tools_git_version: v1.28.0
+cri_tools_git_version: v1.29.0
 golang_version: "1.21"
 
 # For results.yml Paths use rsync 'source' conventions
