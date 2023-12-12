@@ -29,5 +29,6 @@ jobs:
           close-pr-label: 'lifecycle/rotten'
           days-before-stale: 30
           days-before-close: 90
-          remove-stale-when-updated: false
+          remove-stale-when-updated: true
           operations-per-run: 300
+          exempt-issue-labels: kind/feature
