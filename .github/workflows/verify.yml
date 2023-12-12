@@ -39,6 +39,7 @@ jobs:
         with:
           globs: |
             **/*.md
+            !README.md
             !vendor
             !docs
             !.github
