@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Dec 2023 14:28:44 UTC for commit [68728d0][0]._
+_Generated on Tue, 12 Dec 2023 17:16:52 UTC for commit [5949758][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/68728d0874197b62bf487f70702776df226487df
+[0]: https://github.com/cri-o/cri-o/commit/5949758a6007e91a9758f362098b3a247b0ddce6
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Tue, 12 Dec 2023 14:28:44 UTC for commit [68728d0][0]._
 |----------------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/containerd/containerd | v1.7.10                              | v1.7.11         | true   | true             |
 | github.com/cri-o/ocicni          | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
-| google.golang.org/grpc           | v1.59.0                              | v1.60.0         | true   | true             |
 | k8s.io/api                       | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/client-go                 | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -580,7 +579,7 @@ _Generated on Tue, 12 Dec 2023 14:28:44 UTC for commit [68728d0][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231211192339-8cd1e60abfcd  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231212151452-a0e0bbdb241a  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -871,7 +870,7 @@ _Generated on Tue, 12 Dec 2023 14:28:44 UTC for commit [68728d0][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231211222908-989df2bf70f3  | false  | true             |
-| google.golang.org/grpc                                                                  | v1.59.0                                           | v1.60.0                             | true   | true             |
+| google.golang.org/grpc                                                                  | v1.60.0                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
 | gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.0                             | false  | true             |
