@@ -1116,7 +1116,7 @@ function check_oci_annotation() {
 	[ -f "$ctr_log_path" ]
 	mounted_log_path="$pod_empty_dir_volume_path/$ctr_name/$ctr_attempt.log"
 	[ -f "$mounted_log_path" ]
-	linked_log_path="$pod_empty_dir_volume_path/$ctr_id"
+	linked_log_path="$pod_empty_dir_volume_path/$ctr_id.log"
 	[ -f "$linked_log_path" ]
 
 	crictl start "$ctr_id"
