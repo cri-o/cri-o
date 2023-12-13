@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
+_Generated on Wed, 13 Dec 2023 17:11:07 UTC for commit [7433dac][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/80c0311ddd7464ad05fb473cce47a697ffa5e9d9
+[0]: https://github.com/cri-o/cri-o/commit/7433dacebce665b1c79ca9b3db3bd618e9420056
 
 ## Outdated Dependencies
 
 |         MODULE          |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
 |-------------------------|--------------------------------------|-----------------|--------|------------------|
 | github.com/cri-o/ocicni | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
-| github.com/google/uuid  | v1.4.0                               | v1.5.0          | true   | true             |
 | k8s.io/api              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/apimachinery     | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 | k8s.io/client-go        | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
@@ -248,7 +247,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.17.3                                           | v1.21.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.23.2                                           | v1.26.5                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.15.0                                           | v1.19.0                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8                | v0.0.0-20231121224113-b6714ac5eb13  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8                | v0.0.0-20231213163540-8834e741b027  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                            | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                            |                                     | false  | true             |
 | github.com/bgentry/speakeasy                                                            | v0.1.0                                            |                                     | false  | true             |
@@ -326,7 +325,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                            | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                            |                                     | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.4.0                                            |                                     | true   | true             |
-| github.com/containers/buildah                                                           | v1.33.2                                           |                                     | false  | true             |
+| github.com/containers/buildah                                                           | v1.33.2                                           | v1.34.0                             | false  | true             |
 | github.com/containers/common                                                            | v0.57.1                                           |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57              |                                     | true   | true             |
@@ -500,7 +499,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | github.com/google/shlex                                                                 | v0.0.0-20191202100458-e7afc7fbc510                |                                     | false  | true             |
 | github.com/google/tink/go                                                               | v1.7.0                                            |                                     | false  | true             |
 | github.com/google/trillian                                                              | v1.5.3                                            |                                     | false  | true             |
-| github.com/google/uuid                                                                  | v1.4.0                                            | v1.5.0                              | true   | true             |
+| github.com/google/uuid                                                                  | v1.5.0                                            |                                     | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                            |                                     | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                            |                                     | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.12.0                                           |                                     | false  | true             |
@@ -579,7 +578,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231212212519-260bbab2a986  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231213143339-eda6e4cb4a0e  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -688,7 +687,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | github.com/redis/go-redis/v9                                                            | v9.3.0                                            |                                     | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.4                                            |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                            |                                     | false  | true             |
-| github.com/rogpeppe/go-internal                                                         | v1.11.0                                           |                                     | false  | true             |
+| github.com/rogpeppe/go-internal                                                         | v1.11.0                                           | v1.12.0                             | false  | true             |
 | github.com/rootless-containers/rootlesskit                                              | v1.1.1                                            |                                     | false  | true             |
 | github.com/rs/cors                                                                      | v1.10.1                                           |                                     | false  | true             |
 | github.com/russross/blackfriday                                                         | v1.6.0                                            |                                     | false  | true             |
@@ -908,7 +907,7 @@ _Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 | k8s.io/kms                                                                              | v0.29.0-rc.1                                      | v0.30.0-alpha.0                     | false  | false            |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20231010175941-2dd684a91f00                | v0.0.0-20231206194836-bf4651e18aa8  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.29.0-rc.1                                      | v0.30.0-alpha.0                     | true   | false            |
-| k8s.io/kubernetes                                                                       | v1.28.4                                           |                                     | false  | true             |
+| k8s.io/kubernetes                                                                       | v1.28.4                                           | v1.29.0                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
