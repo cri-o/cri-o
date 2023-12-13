@@ -387,7 +387,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified. This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
-**--selinux**: Enable selinux support.
+**--selinux**: Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 
 **--separate-pull-cgroup**="": [EXPERIMENTAL] Pull in new cgroup.
 
