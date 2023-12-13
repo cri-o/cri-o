@@ -1,21 +1,20 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Dec 2023 23:39:41 UTC for commit [78b630f][0]._
+_Generated on Wed, 13 Dec 2023 12:58:00 UTC for commit [80c0311][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/78b630ff850c6ff50218c1cb43f764ad29335504
+[0]: https://github.com/cri-o/cri-o/commit/80c0311ddd7464ad05fb473cce47a697ffa5e9d9
 
 ## Outdated Dependencies
 
-|              MODULE              |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
-|----------------------------------|--------------------------------------|-----------------|--------|------------------|
-| github.com/containerd/containerd | v1.7.10                              | v1.7.11         | true   | true             |
-| github.com/cri-o/ocicni          | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
-| github.com/google/uuid           | v1.4.0                               | v1.5.0          | true   | true             |
-| k8s.io/api                       | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
-| k8s.io/apimachinery              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
-| k8s.io/client-go                 | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
-| k8s.io/cri-api                   | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
-| k8s.io/kubelet                   | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
+|         MODULE          |               VERSION                |   NEW VERSION   | DIRECT | VALID TIMESTAMPS |
+|-------------------------|--------------------------------------|-----------------|--------|------------------|
+| github.com/cri-o/ocicni | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1          | true   | true             |
+| github.com/google/uuid  | v1.4.0                               | v1.5.0          | true   | true             |
+| k8s.io/api              | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
+| k8s.io/apimachinery     | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
+| k8s.io/client-go        | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
+| k8s.io/cri-api          | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
+| k8s.io/kubelet          | v0.29.0-rc.1                         | v0.30.0-alpha.0 | true   | false            |
 
 ## All Dependencies
 
@@ -307,7 +306,7 @@ _Generated on Tue, 12 Dec 2023 23:39:41 UTC for commit [78b630f][0]._
 | github.com/containerd/cgroups                                                           | v1.1.0                                            |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                        | v3.0.2                                            |                                     | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                            |                                     | false  | true             |
-| github.com/containerd/containerd                                                        | v1.7.10                                           | v1.7.11                             | true   | true             |
+| github.com/containerd/containerd                                                        | v1.7.11                                           |                                     | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                            | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                                           |                                     | true   | true             |
 | github.com/containerd/fifo                                                              | v1.1.0                                            |                                     | true   | true             |
@@ -783,7 +782,7 @@ _Generated on Tue, 12 Dec 2023 23:39:41 UTC for commit [78b630f][0]._
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6             | v0.30.1                             | false  | true             |
 | github.com/willf/bitset                                                                 | v1.1.11                                           | v1.12.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                            |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.93.2                                           | v0.95.1                             | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.93.2                                           | v0.95.2                             | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                            |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                            |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                            |                                     | false  | true             |
@@ -828,7 +827,7 @@ _Generated on Tue, 12 Dec 2023 23:39:41 UTC for commit [78b630f][0]._
 | go.opencensus.io                                                                        | v0.24.0                                           |                                     | false  | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.46.1                                           |                                     | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/net/http/httptrace/otelhttptrace            | v0.40.0                                           | v0.46.1                             | false  | true             |
-| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.44.0                                           | v0.46.1                             | false  | true             |
+| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.45.0                                           | v0.46.1                             | false  | true             |
 | go.opentelemetry.io/otel                                                                | v1.21.0                                           |                                     | true   | true             |
 | go.opentelemetry.io/otel/exporters/jaeger                                               | v1.14.0                                           | v1.17.0                             | false  | true             |
 | go.opentelemetry.io/otel/exporters/otlp/internal/retry                                  | v1.16.0                                           | v1.17.0                             | false  | true             |
