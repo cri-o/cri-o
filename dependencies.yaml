@@ -57,6 +57,12 @@ dependencies:
     - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
 
+  - name: buildah
+    version: v1.33.2
+    refPaths:
+    - path: scripts/versions
+      match: buildah
+
   - name: runc
     version: v1.1.9
     refPaths:
