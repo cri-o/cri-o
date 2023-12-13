@@ -426,6 +426,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	kubeAnnotations := sbox.Config().Annotations
 
 	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
+	if usernsMode != "" {
+		log.Warnf(ctx, "Annotation 'io.kubernetes.cri-o.userns-mode' is deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
+	}
 
 	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext)
 	if err != nil {
