@@ -1,19 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 14 Dec 2023 03:37:57 UTC for commit [cd18ae9][0]._
+_Generated on Thu, 14 Dec 2023 13:26:39 UTC for commit [31ed581][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cd18ae9c8428ac7e9d09d2f6ec869ca1db0b3dd1
+[0]: https://github.com/cri-o/cri-o/commit/31ed581272be199bd50805057cc7edd577602ca2
 
 ## Outdated Dependencies
 
 |         MODULE          |               VERSION                | NEW VERSION | DIRECT | VALID TIMESTAMPS |
 |-------------------------|--------------------------------------|-------------|--------|------------------|
 | github.com/cri-o/ocicni | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1      | true   | true             |
-| k8s.io/api              | v0.29.0-rc.1                         | v0.29.0     | true   | true             |
-| k8s.io/apimachinery     | v0.29.0-rc.1                         | v0.29.0     | true   | true             |
-| k8s.io/client-go        | v0.29.0-rc.1                         | v0.29.0     | true   | true             |
-| k8s.io/cri-api          | v0.29.0-rc.1                         | v0.29.0     | true   | true             |
-| k8s.io/kubelet          | v0.29.0-rc.1                         | v0.29.0     | true   | true             |
 
 ## All Dependencies
 
@@ -894,19 +889,19 @@ _Generated on Thu, 14 Dec 2023 03:37:57 UTC for commit [cd18ae9][0]._
 | gotest.tools/v3                                                                         | v3.5.0                                            | v3.5.1                              | false  | true             |
 | honnef.co/go/tools                                                                      | v0.0.1-2020.1.3                                   | v0.4.6                              | false  | true             |
 | inet.af/netaddr                                                                         | v0.0.0-20230525184311-b8eac61e914a                |                                     | false  | true             |
-| k8s.io/api                                                                              | v0.29.0-rc.1                                      | v0.29.0                             | true   | true             |
-| k8s.io/apimachinery                                                                     | v0.29.0-rc.1                                      | v0.29.0                             | true   | true             |
-| k8s.io/apiserver                                                                        | v0.29.0-rc.1                                      | v0.29.0                             | false  | true             |
-| k8s.io/client-go                                                                        | v0.29.0-rc.1                                      | v0.29.0                             | true   | true             |
+| k8s.io/api                                                                              | v0.29.0                                           |                                     | true   | true             |
+| k8s.io/apimachinery                                                                     | v0.29.0                                           |                                     | true   | true             |
+| k8s.io/apiserver                                                                        | v0.29.0                                           |                                     | false  | true             |
+| k8s.io/client-go                                                                        | v0.29.0                                           |                                     | true   | true             |
 | k8s.io/code-generator                                                                   | v0.19.7                                           | v0.29.0                             | false  | true             |
-| k8s.io/component-base                                                                   | v0.29.0-rc.1                                      | v0.29.0                             | false  | true             |
-| k8s.io/cri-api                                                                          | v0.29.0-rc.1                                      | v0.29.0                             | true   | true             |
+| k8s.io/component-base                                                                   | v0.29.0                                           |                                     | false  | true             |
+| k8s.io/cri-api                                                                          | v0.29.0                                           |                                     | true   | true             |
 | k8s.io/gengo                                                                            | v0.0.0-20230829151522-9cce18d56c01                |                                     | false  | true             |
 | k8s.io/klog                                                                             | v1.0.0                                            |                                     | false  | true             |
 | k8s.io/klog/v2                                                                          | v2.110.1                                          |                                     | true   | true             |
-| k8s.io/kms                                                                              | v0.29.0-rc.1                                      | v0.29.0                             | false  | true             |
+| k8s.io/kms                                                                              | v0.29.0                                           |                                     | false  | true             |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20231010175941-2dd684a91f00                | v0.0.0-20231206194836-bf4651e18aa8  | false  | true             |
-| k8s.io/kubelet                                                                          | v0.29.0-rc.1                                      | v0.29.0                             | true   | true             |
+| k8s.io/kubelet                                                                          | v0.29.0                                           |                                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                           | v1.29.0                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
