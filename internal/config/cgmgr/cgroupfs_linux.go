@@ -79,6 +79,8 @@ func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID stri
 // ContainerCgroupManager takes the cgroup parent, and container ID.
 // It returns the raw libcontainer cgroup manager for that container.
 func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (libctrCg.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1CtrCgMgr[containerID]; ok {
 			return cgMgr, nil
@@ -93,8 +95,6 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 		return nil, err
 	}
 	if !node.CgroupIsV2() {
-		m.mutex.Lock()
-		defer m.mutex.Unlock()
 		// cache only cgroup v1 managers
 		m.v1CtrCgMgr[containerID] = cgMgr
 	}
@@ -127,6 +127,8 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 // SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 // It returns the raw libcontainer cgroup manager for that sandbox.
 func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1SbCgMgr[sbID]; ok {
 			return cgMgr, nil
@@ -141,8 +143,6 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 		return nil, err
 	}
 	if !node.CgroupIsV2() {
-		m.mutex.Lock()
-		defer m.mutex.Unlock()
 		// cache only cgroup v1 managers
 		m.v1SbCgMgr[sbID] = cgMgr
 	}
