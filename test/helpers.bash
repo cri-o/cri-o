@@ -596,3 +596,90 @@ function wait_until_exit() {
     done
     return 1
 }
+
+# Helpers for pod annotations tests
+function prepare_cni_plugin() {
+    # name the config with prefix 001 to ensure the corresponding cni plugin will be invoked when pod is created
+    cat >"$CRIO_CNI_CONFIG"/001-"$CNI_PLUGIN_NAME".conf <<-EOF
+{
+  "cniVersion": "0.3.1",
+  "name": "$CNI_PLUGIN_NAME",
+  "type": "$CNI_PLUGIN_NAME.sh",
+  "config": {
+    "log_path": "$1"
+  },
+  "capabilities": {
+    "io.kubernetes.cri.pod-annotations": $2
+  }
+}
+EOF
+    chmod 755 "$TESTDATA"/"$CNI_PLUGIN_NAME".sh
+    # copy the cni plugin into cni plugin binary directory
+    cp "$TESTDATA"/"$CNI_PLUGIN_NAME".sh "$CRIO_CNI_PLUGIN"/"$CNI_PLUGIN_NAME".sh
+}
+
+function prepare_chained_cni_plugins() {
+    # create a chained cni plugin configuration file
+    cat >"$CRIO_CNI_CONFIG"/001-"$CNI_PLUGIN_NAME".conflist <<-EOF
+{
+  "cniVersion": "0.3.1",
+  "name": "$CNI_PLUGIN_NAME",
+  "plugins": [
+    {
+      "type": "$CNI_PLUGIN_NAME.sh",
+      "config": {
+        "log_path": "$1"
+      },
+      "capabilities": {
+        "io.kubernetes.cri.pod-annotations": $2
+      }
+    },
+    {
+      "type": "$CNI_PLUGIN_NAME.sh",
+      "config": {
+        "log_path": "$3"
+      },
+      "capabilities": {
+        "io.kubernetes.cri.pod-annotations": $4
+      }
+    }
+  ]
+}
+EOF
+    chmod 777 "$TESTDATA"/"$CNI_PLUGIN_NAME".sh
+    cp "$TESTDATA"/"$CNI_PLUGIN_NAME".sh "$CRIO_CNI_PLUGIN"/"$CNI_PLUGIN_NAME".sh
+}
+
+function contains() {
+    # this function checks whether b contains a
+    a=$1
+    b=$2
+    # if a and b are both null or empty, we consider them equal
+    if { [[ $a == null ]] || [[ $a == '{}' ]]; } && { [[ $b == null ]] || [[ $b == '{}' ]]; }; then
+        return 0
+    fi
+    if [[ $a == null ]] || [[ $a == '{}' ]] || [[ $b == null ]] || [[ $b == '{}' ]]; then
+        return 1
+    fi
+    for key in $(echo "$a" | jq 'keys[]'); do
+        value=$(jq -e ."$key" <<<"$b")
+        # value is null means b does not have this key
+        if [[ $value == null ]]; then
+            return 1
+        # if b has this key, checks their value
+        elif [[ $value != $(jq -e ."$key" <<<"$a") ]]; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+function annotations_equal() {
+    cni_plugin_received=$1
+    expected=$2
+    contains "$cni_plugin_received" "$expected"
+    expected_contains_received=$?
+    contains "$expected" "$cni_plugin_received"
+    received_contains_expected=$?
+    [[ $expected_contains_received -eq 0 ]] && [[ $received_contains_expected -eq 0 ]]
+}

@@ -15,6 +15,8 @@ CRIO_ROOT=${CRIO_ROOT:-$(
     pwd -P
 )}
 
+CNI_PLUGIN_NAME=${CNI_PLUGIN_NAME:-log_cni_plugin}
+
 # Path to the crio binary.
 CRIO_BINARY=${CRIO_BINARY:-crio}
 CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/bin/$CRIO_BINARY}
