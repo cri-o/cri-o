@@ -58,7 +58,7 @@ dependencies:
       match: cri_tools_git_version
 
   - name: buildah
-    version: v1.33.2
+    version: v1.34.0
     refPaths:
     - path: scripts/versions
       match: buildah
