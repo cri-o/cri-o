@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 13 Dec 2023 22:53:06 UTC for commit [60c78a7][0]._
+_Generated on Thu, 14 Dec 2023 03:37:57 UTC for commit [cd18ae9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/60c78a71869e3e265b28599fbe8efdea3d900893
+[0]: https://github.com/cri-o/cri-o/commit/cd18ae9c8428ac7e9d09d2f6ec869ca1db0b3dd1
 
 ## Outdated Dependencies
 
@@ -125,7 +125,7 @@ _Generated on Wed, 13 Dec 2023 22:53:06 UTC for commit [60c78a7][0]._
 | cloud.google.com/go/shell                                                               | v1.7.4                                            |                                     | false  | true             |
 | cloud.google.com/go/spanner                                                             | v1.53.0                                           | v1.53.1                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.21.0                                           |                                     | false  | true             |
-| cloud.google.com/go/storage                                                             | v1.33.0                                           | v1.35.1                             | false  | true             |
+| cloud.google.com/go/storage                                                             | v1.33.0                                           | v1.36.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                           |                                     | false  | true             |
 | cloud.google.com/go/talent                                                              | v1.6.5                                            |                                     | false  | true             |
 | cloud.google.com/go/texttospeech                                                        | v1.7.4                                            |                                     | false  | true             |
@@ -263,7 +263,7 @@ _Generated on Wed, 13 Dec 2023 22:53:06 UTC for commit [60c78a7][0]._
 | github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.0+incompatible                 | false  | true             |
 | github.com/bugsnag/osext                                                                | v0.0.0-20130617224835-0dd3f918b21b                |                                     | false  | true             |
 | github.com/bugsnag/panicwrap                                                            | v0.0.0-20151223152923-e2c28503fcd0                | v1.3.4                              | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.58.0                                           | v3.60.1                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.58.0                                           | v3.61.0                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251                |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                            |                                     | false  | true             |
 | github.com/bytedance/sonic                                                              | v1.10.1                                           | v1.10.2                             | false  | true             |
@@ -578,7 +578,7 @@ _Generated on Wed, 13 Dec 2023 22:53:06 UTC for commit [60c78a7][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231213215438-26e36462493e  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231214031800-81e04ab14cc7  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -794,7 +794,7 @@ _Generated on Wed, 13 Dec 2023 22:53:06 UTC for commit [60c78a7][0]._
 | github.com/xiang90/probing                                                              | v0.0.0-20190116061207-43a291ad63a2                | v0.0.0-20221125231312-a49e3df8f510  | false  | true             |
 | github.com/xlab/treeprint                                                               | v1.2.0                                            |                                     | false  | true             |
 | github.com/xordataexchange/crypt                                                        | v0.0.3-0.20170626215501-b2862e3d0a77              |                                     | false  | true             |
-| github.com/xrash/smetrics                                                               | v0.0.0-20201216005158-039620a65673                |                                     | false  | true             |
+| github.com/xrash/smetrics                                                               | v0.0.0-20201216005158-039620a65673                | v0.0.0-20231213231151-1d8dd44e695e  | false  | true             |
 | github.com/yashtewari/glob-intersection                                                 | v0.2.0                                            |                                     | false  | true             |
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a  | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            | v0.2.4                              | false  | true             |
