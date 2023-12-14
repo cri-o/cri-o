@@ -5,6 +5,8 @@ set -euo pipefail
 # shellcheck source=versions
 source "$(dirname "${BASH_SOURCE[0]}")"/versions
 
+GOARCH=$(go env GOARCH)
+
 main() {
     set -x
     prepare_system
@@ -21,8 +23,8 @@ main() {
 }
 
 prepare_system() {
-    sudo systemctl stop docker
-    sudo ufw disable
+    sudo systemctl stop docker || true
+    sudo ufw disable || true
 
     # enable necessary kernel modules
     sudo ip6tables --list >/dev/null
@@ -60,14 +62,14 @@ install_conmon() {
     git clone https://github.com/containers/conmon
     pushd conmon
     git checkout "${VERSIONS["conmon"]}"
-    sudo make PREFIX=/ all install
+    sudo make PREFIX=/ all install.bin
     popd
     sudo rm -rf conmon
 }
 
 install_conmonrs() {
     curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
-        sudo -E PATH="$PATH" bash -s -- -o /usr/bin/conmonrs
+        sudo -E PATH="$PATH" bash -s -- -a "$GOARCH" -o /usr/bin/conmonrs
 }
 
 install_critools() {
@@ -85,7 +87,7 @@ install_critools() {
 
 install_cni_plugins() {
     URL=https://github.com/containernetworking/plugins/releases/download
-    TARBALL=cni-plugins-linux-amd64-${VERSIONS["cni-plugins"]}.tgz
+    TARBALL="cni-plugins-linux-$GOARCH-${VERSIONS["cni-plugins"]}.tgz"
     CNI_DIR=/opt/cni/bin
     sudo mkdir -p "$CNI_DIR"
     wget -O "$TARBALL" $URL/"${VERSIONS["cni-plugins"]}"/"$TARBALL"
@@ -97,7 +99,7 @@ install_cni_plugins() {
 install_runc() {
     URL=https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"
     BINARY=/usr/sbin/runc
-    sudo wget -O "$BINARY" "$URL"/runc.amd64
+    sudo wget -O "$BINARY" "$URL/runc.$GOARCH"
     sudo chmod +x "$BINARY"
 
     # Verify the SHA256
