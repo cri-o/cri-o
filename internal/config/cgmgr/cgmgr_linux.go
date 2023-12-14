@@ -62,8 +62,8 @@ type CgroupManager interface {
 	// ContainerCgroupManager takes the cgroup parent, and container ID.
 	// It returns the raw libcontainer cgroup manager for that container.
 	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
-	// RemoveCtrCgManager removes the cgroup manager for the container
-	RemoveCtrCgManager(containerID string)
+	// RemoveContainerCgManager removes the cgroup manager for the container
+	RemoveContainerCgManager(containerID string)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
@@ -74,8 +74,8 @@ type CgroupManager interface {
 	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 	// It returns the raw libcontainer cgroup manager for that sandbox.
 	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
-	// RemoveSbCgroupManager removes the cgroup manager for the sandbox
-	RemoveSbCgManager(sbID string)
+	// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
+	RemoveSandboxCgManager(sbID string)
 	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
 	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into

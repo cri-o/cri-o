@@ -127,8 +127,8 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 	return cgMgr, nil
 }
 
-// RemoveCtrCgManager removes the cgroup manager for the container
-func (m *SystemdManager) RemoveCtrCgManager(containerID string) {
+// RemoveContainerCgManager removes the cgroup manager for the container
+func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
@@ -236,8 +236,8 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 	return cgMgr, nil
 }
 
-// RemoveSbCgroupManager removes cgroup manager for the sandbox
-func (m *SystemdManager) RemoveSbCgManager(sbID string) {
+// RemoveSandboxCgroupManager removes cgroup manager for the sandbox
+func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()

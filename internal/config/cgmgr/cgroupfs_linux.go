@@ -101,8 +101,8 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 	return cgMgr, nil
 }
 
-// RemoveCtrCgManager removes the cgroup manager for the container
-func (m *CgroupfsManager) RemoveCtrCgManager(containerID string) {
+// RemoveContainerCgManager removes the cgroup manager for the container
+func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
@@ -149,8 +149,8 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 	return cgMgr, nil
 }
 
-// RemoveSbCgroupManager removes the cgroup manager for the sandbox
-func (m *CgroupfsManager) RemoveSbCgManager(sbID string) {
+// RemoveSandboeCgroupManager removes the cgroup manager for the sandbox
+func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
