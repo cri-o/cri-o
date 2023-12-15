@@ -139,8 +139,8 @@ install_buildah() {
     git clone $URL
     pushd buildah
     git checkout "${VERSIONS["buildah"]}"
-    make
-    sudo -E PATH="$PATH" make BINDIR=/usr/bin install
+    make bin/buildah
+    sudo install -m 755 bin/buildah /usr/bin/buildah
     popd
     sudo rm -rf buildah
     sudo buildah --version
