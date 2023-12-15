@@ -112,14 +112,17 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 			return cgMgr, nil
 		}
 	}
+
 	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
 	if err != nil {
 		return nil, err
 	}
-	cgMgr, err := createCgManager(cgPath, true)
+	// Due to a quirk of libcontainer's cgroup driver, cgroup name = containerID
+	cgMgr, err := libctrManager(containerID, filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}
+
 	if !node.CgroupIsV2() {
 		// cache only cgroup v1 managers
 		m.v1CtrCgMgr[containerID] = cgMgr
@@ -221,14 +224,16 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 			return cgMgr, nil
 		}
 	}
+
 	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
 	if err != nil {
 		return nil, err
 	}
-	cgMgr, err := createCgManager(cgPath, true)
+	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
 	}
+
 	if !node.CgroupIsV2() {
 		// cache only cgroup v1 managers
 		m.v1SbCgMgr[sbID] = cgMgr

@@ -170,20 +170,28 @@ func createProcessUsage(systemNano int64, cgroupStats *libctrcgroups.Stats) *typ
 	}
 }
 
-func createCgManager(cgPath string, isSystemd bool) (libctrcgroups.Manager, error) { // nolint:staticcheck,unparam
-	// In the case of systemd, this flag should be set to true.
-	// But the cgroup creation currently fails if this flag is set to true
-	// probably due to a bug in libcontainer.
-	// Until we investigate this further, we hardcode this to false.
-	isSystemd = false //nolint:staticcheck
-	name, parentCgroup := filepath.Base(cgPath), filepath.Dir(cgPath)
+func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, error) {
+	if systemd {
+		parent = filepath.Base(parent)
+		if parent == "." {
+			// libcontainer shorthand for root
+			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
+			parent = "-.slice"
+		}
+	}
 	cg := &cgcfgs.Cgroup{
-		Name:    name,
-		Parent:  parentCgroup,
-		Systemd: isSystemd,
+		Name:   cgroup,
+		Parent: parent,
 		Resources: &cgcfgs.Resources{
 			SkipDevices: true,
 		},
+		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: CrioPrefix,
 	}
 	return manager.New(cg)
 }
