@@ -44,7 +44,7 @@ jobs:
           key: go-test-binaries-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('test') }}
       - run: scripts/github-actions-packages
       - run: make all test-binaries
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: test-binaries-${{ matrix.run.arch }}
           path: |
