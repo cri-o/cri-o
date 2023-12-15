@@ -6,6 +6,11 @@
     dest: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
     version: "{{ runc_git_version }}"
 
+- name: clean runc build directory
+  command: make clean
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+
 - name: build runc
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
