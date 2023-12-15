@@ -6,6 +6,11 @@
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
     version: main
 
+- name: clean conmon build directory
+  command: make clean
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
+
 - name: build conmon
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"

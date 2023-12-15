@@ -6,6 +6,12 @@
     dest: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
     version: "{{ cri_tools_git_version }}"
     force: "{{ force_clone | default(False) | bool}}"
+    update: yes
+
+- name: clean cri-tools build directory
+  command: make clean
+  args:
+    chdir: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
 
 - name: build cri-tools
   make:
