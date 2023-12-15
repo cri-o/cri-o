@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Dec 2023 18:49:08 UTC for commit [6d85683][0]._
+_Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6d85683615ab886a10f0b4cfad597fcc27694c68
+[0]: https://github.com/cri-o/cri-o/commit/869aa6e9f8d8a4d066950f61c2ff050e10a8d921
 
 ## Outdated Dependencies
 
@@ -219,7 +219,7 @@ _Generated on Fri, 15 Dec 2023 18:49:08 UTC for commit [6d85683][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.3                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.1                             | false  | true             |
@@ -236,7 +236,7 @@ _Generated on Fri, 15 Dec 2023 18:49:08 UTC for commit [6d85683][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.1.36                                           | v1.2.9                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.9.37                                           | v1.10.9                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                                           | v1.16.9                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                           | v1.27.5                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                           | v1.27.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                           | v1.47.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.15.2                                           | v1.18.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.17.3                                           | v1.21.5                             | false  | true             |
