@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 18 Dec 2023 09:34:53 UTC for commit [f360112][0]._
+_Generated on Mon, 18 Dec 2023 10:39:30 UTC for commit [2e1ba27][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f360112a0cbddce89885bdc839242bcaeec77aac
+[0]: https://github.com/cri-o/cri-o/commit/2e1ba2771e042ce9d24d3e0b053fb0491ba695bb
 
 ## Outdated Dependencies
 
@@ -906,7 +906,7 @@ _Generated on Mon, 18 Dec 2023 09:34:53 UTC for commit [f360112][0]._
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231211072236-4914c472e81a  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231218102303-03265f747e40  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
