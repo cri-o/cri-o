@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
+_Generated on Mon, 18 Dec 2023 19:54:07 UTC for commit [66a1c6d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b8777e74aaf2d14c8b0c8e2c3b1082946dc19617
+[0]: https://github.com/cri-o/cri-o/commit/66a1c6d2f9e76e410665b0e0de68fb41ef9c9501
 
 ## Outdated Dependencies
 
@@ -177,7 +177,7 @@ _Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                     | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                     | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.1                                      |                                     | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231211185732-7ec8848592cb  | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231218174205-c59eb6936378  | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                     | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                     | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                              | false  | true             |
@@ -219,13 +219,13 @@ _Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.4                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.13.43                                          | v1.16.12                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.13.13                                          | v1.14.10                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.56                                          | v1.15.7                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.56                                          | v1.15.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.1.43                                           | v1.2.9                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.4.37                                           | v2.5.9                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.3.45                                           | v1.7.2                              | false  | true             |
@@ -237,7 +237,7 @@ _Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.9.37                                           | v1.10.9                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                                           | v1.16.9                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                           | v1.27.6                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                           | v1.47.5                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                           | v1.47.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.15.2                                           | v1.18.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.17.3                                           | v1.21.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.23.2                                           | v1.26.5                             | false  | true             |
@@ -730,7 +730,7 @@ _Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
 | github.com/spf13/cobra                                                                  | v1.8.0                                            |                                     | false  | true             |
 | github.com/spf13/jwalterweatherman                                                      | v1.0.0                                            | v1.1.0                              | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                            |                                     | false  | true             |
-| github.com/spf13/viper                                                                  | v1.17.0                                           | v1.18.1                             | false  | true             |
+| github.com/spf13/viper                                                                  | v1.17.0                                           | v1.18.2                             | false  | true             |
 | github.com/spiffe/go-spiffe/v2                                                          | v2.1.6                                            |                                     | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20201008174630-78d3cae3a980                | v0.0.0-20230803200340-78284954bff6  | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                            | v1.3.0                              | false  | true             |
@@ -843,7 +843,7 @@ _Generated on Mon, 18 Dec 2023 15:02:00 UTC for commit [b8777e7][0]._
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                     | false  | true             |
 | gocloud.dev                                                                             | v0.34.0                                           | v0.35.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.6.0                              | false  | true             |
-| golang.org/x/crypto                                                                     | v0.16.0                                           |                                     | false  | true             |
+| golang.org/x/crypto                                                                     | v0.16.0                                           | v0.17.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231214170342-aacd6d4b4611  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.14.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616  | false  | true             |
