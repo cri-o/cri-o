@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 18 Dec 2023 19:54:07 UTC for commit [66a1c6d][0]._
+_Generated on Mon, 18 Dec 2023 22:04:21 UTC for commit [00471c0][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/66a1c6d2f9e76e410665b0e0de68fb41ef9c9501
+[0]: https://github.com/cri-o/cri-o/commit/00471c0ff3099061838f284c9b823b327d9cd765
 
 ## Outdated Dependencies
 
@@ -573,7 +573,7 @@ _Generated on Mon, 18 Dec 2023 19:54:07 UTC for commit [66a1c6d][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231215230927-1d5b53955554  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231218213243-300b29162484  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
