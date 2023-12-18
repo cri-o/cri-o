@@ -1,0 +1,8 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+# References:
+#   https://docs.snyk.io/manage-risk/policies/the-.snyk-file
+#   https://docs.snyk.io/snyk-cli/commands/ignore
+exclude:
+  global:
+    - 'vendor/**'
+    - '**/*_test.go'
