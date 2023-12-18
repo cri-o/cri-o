@@ -13,6 +13,8 @@ import (
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/config/node"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	"github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -166,4 +168,30 @@ func createProcessUsage(systemNano int64, cgroupStats *libctrcgroups.Stats) *typ
 		Timestamp:    systemNano,
 		ProcessCount: &types.UInt64Value{Value: cgroupStats.PidsStats.Current},
 	}
+}
+
+func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, error) {
+	if systemd {
+		parent = filepath.Base(parent)
+		if parent == "." {
+			// libcontainer shorthand for root
+			// see https://github.com/opencontainers/runc/blob/9fffadae8/libcontainer/cgroups/systemd/common.go#L71
+			parent = "-.slice"
+		}
+	}
+	cg := &cgcfgs.Cgroup{
+		Name:   cgroup,
+		Parent: parent,
+		Resources: &cgcfgs.Resources{
+			SkipDevices: true,
+		},
+		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: CrioPrefix,
+	}
+	return manager.New(cg)
 }

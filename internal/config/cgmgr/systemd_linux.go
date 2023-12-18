@@ -8,6 +8,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containers/podman/v4/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
@@ -15,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
+	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -28,17 +30,26 @@ const defaultSystemdParent = "system.slice"
 // it defines all of the common functionality between V1 and V2
 type SystemdManager struct {
 	memoryPath, memoryMaxFile string
-	dbusMgr                   *dbusmgr.DbusConnManager
+	// a map of container ID to cgroup manager for cgroup v1
+	// the reason we need this for v1 only is because the cost of creating a cgroup manager for v2 is very low
+	// therefore, we don't need to cache it
+	v1CtrCgMgr map[string]cgroups.Manager
+	// a map of sandbox ID to cgroup manager for cgroup v1
+	v1SbCgMgr map[string]cgroups.Manager
+	dbusMgr   *dbusmgr.DbusConnManager
+	mutex     sync.Mutex
 }
 
 func NewSystemdManager() *SystemdManager {
-	systemdMgr := SystemdManager{
-		memoryPath:    cgroupMemoryPathV1,
-		memoryMaxFile: cgroupMemoryMaxFileV1,
-	}
+	systemdMgr := SystemdManager{}
 	if node.CgroupIsV2() {
 		systemdMgr.memoryPath = cgroupMemoryPathV2
 		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV2
+	} else {
+		systemdMgr.memoryPath = cgroupMemoryPathV1
+		systemdMgr.memoryMaxFile = cgroupMemoryMaxFileV1
+		systemdMgr.v1CtrCgMgr = make(map[string]cgroups.Manager)
+		systemdMgr.v1SbCgMgr = make(map[string]cgroups.Manager)
 	}
 	systemdMgr.dbusMgr = dbusmgr.NewDbusConnManager(rootless.IsRootless())
 
@@ -89,6 +100,43 @@ func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID strin
 	}
 
 	return filepath.Join(cgroup, containerCgroupPath(containerID)+".scope"), nil
+}
+
+// ContainerCgroupManager takes the cgroup parent, and container ID.
+// It returns the raw libcontainer cgroup manager for that container.
+func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (cgroups.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if !node.CgroupIsV2() {
+		if cgMgr, ok := m.v1CtrCgMgr[containerID]; ok {
+			return cgMgr, nil
+		}
+	}
+
+	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	// Due to a quirk of libcontainer's cgroup driver, cgroup name = containerID
+	cgMgr, err := libctrManager(containerID, filepath.Dir(cgPath), true)
+	if err != nil {
+		return nil, err
+	}
+
+	if !node.CgroupIsV2() {
+		// cache only cgroup v1 managers
+		m.v1CtrCgMgr[containerID] = cgMgr
+	}
+	return cgMgr, nil
+}
+
+// RemoveContainerCgManager removes the cgroup manager for the container
+func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
+	if !node.CgroupIsV2() {
+		m.mutex.Lock()
+		defer m.mutex.Unlock()
+		delete(m.v1CtrCgMgr, containerID)
+	}
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
@@ -164,6 +212,42 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 	cgPath = cgParent + ":" + CrioPrefix + ":" + sbID
 
 	return cgParent, cgPath, nil
+}
+
+// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
+// It returns the raw libcontainer cgroup manager for that sandbox.
+func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if !node.CgroupIsV2() {
+		if cgMgr, ok := m.v1SbCgMgr[sbID]; ok {
+			return cgMgr, nil
+		}
+	}
+
+	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
+	if err != nil {
+		return nil, err
+	}
+	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
+	if err != nil {
+		return nil, err
+	}
+
+	if !node.CgroupIsV2() {
+		// cache only cgroup v1 managers
+		m.v1SbCgMgr[sbID] = cgMgr
+	}
+	return cgMgr, nil
+}
+
+// RemoveSandboxCgroupManager removes cgroup manager for the sandbox
+func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
+	if !node.CgroupIsV2() {
+		m.mutex.Lock()
+		defer m.mutex.Unlock()
+		delete(m.v1SbCgMgr, sbID)
+	}
 }
 
 // PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object

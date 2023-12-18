@@ -8,10 +8,13 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
+	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -22,6 +25,13 @@ import (
 // CgroupfsManager defines functionality whrn **** TODO: Update this
 type CgroupfsManager struct {
 	memoryPath, memoryMaxFile string
+	// a map of container ID to cgroup manager for cgroup v1
+	// the reason we need this for v1 only is because the cost of creating a cgroup manager for v2 is very low
+	// and we don't need to cache it
+	v1CtrCgMgr map[string]libctrCg.Manager
+	// a map of sandbox ID to cgroup manager for cgroup v1
+	v1SbCgMgr map[string]libctrCg.Manager
+	mutex     sync.Mutex
 }
 
 const (
@@ -66,6 +76,40 @@ func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID stri
 	return m.ContainerCgroupPath(sbParent, containerID), nil
 }
 
+// ContainerCgroupManager takes the cgroup parent, and container ID.
+// It returns the raw libcontainer cgroup manager for that container.
+func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (libctrCg.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if !node.CgroupIsV2() {
+		if cgMgr, ok := m.v1CtrCgMgr[containerID]; ok {
+			return cgMgr, nil
+		}
+	}
+	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	if err != nil {
+		return nil, err
+	}
+	if !node.CgroupIsV2() {
+		// cache only cgroup v1 managers
+		m.v1CtrCgMgr[containerID] = cgMgr
+	}
+	return cgMgr, nil
+}
+
+// RemoveContainerCgManager removes the cgroup manager for the container
+func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
+	if !node.CgroupIsV2() {
+		m.mutex.Lock()
+		defer m.mutex.Unlock()
+		delete(m.v1CtrCgMgr, containerID)
+	}
+}
+
 // SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 // returns the cgroup parent, cgroup path, and error.
 func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, _ error) {
@@ -78,6 +122,40 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cg
 	}
 
 	return sbParent, filepath.Join(sbParent, containerCgroupPath(sbID)), nil
+}
+
+// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
+// It returns the raw libcontainer cgroup manager for that sandbox.
+func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.Manager, error) {
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	if !node.CgroupIsV2() {
+		if cgMgr, ok := m.v1SbCgMgr[sbID]; ok {
+			return cgMgr, nil
+		}
+	}
+	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
+	if err != nil {
+		return nil, err
+	}
+	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
+	if err != nil {
+		return nil, err
+	}
+	if !node.CgroupIsV2() {
+		// cache only cgroup v1 managers
+		m.v1SbCgMgr[sbID] = cgMgr
+	}
+	return cgMgr, nil
+}
+
+// RemoveSandboeCgroupManager removes the cgroup manager for the sandbox
+func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
+	if !node.CgroupIsV2() {
+		m.mutex.Lock()
+		defer m.mutex.Unlock()
+		delete(m.v1SbCgMgr, sbID)
+	}
 }
 
 // PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object

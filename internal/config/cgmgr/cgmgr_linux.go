@@ -59,6 +59,11 @@ type CgroupManager interface {
 	// PopulateContainerCgroupStats fills the stats object with information from the cgroup found
 	// given a cgroup parent and container ID.
 	PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error
+	// ContainerCgroupManager takes the cgroup parent, and container ID.
+	// It returns the raw libcontainer cgroup manager for that container.
+	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
+	// RemoveContainerCgManager removes the cgroup manager for the container
+	RemoveContainerCgManager(containerID string)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
@@ -66,6 +71,11 @@ type CgroupManager interface {
 	// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
 	// It fills the object with information from the cgroup found given that parent.
 	PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error
+	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
+	// It returns the raw libcontainer cgroup manager for that sandbox.
+	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
+	// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
+	RemoveSandboxCgManager(sbID string)
 	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
 	// It attempts to move conmon to the correct cgroup, and set the resources for that cgroup.
 	// It returns the cgroupfs parent that conmon was put into
@@ -95,15 +105,18 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	case systemdCgroupManager:
 		return NewSystemdManager(), nil
 	case cgroupfsCgroupManager:
-		cgroupfsMgr := CgroupfsManager{
+		if node.CgroupIsV2() {
+			return &CgroupfsManager{
+				memoryPath:    cgroupMemoryPathV2,
+				memoryMaxFile: cgroupMemoryMaxFileV2,
+			}, nil
+		}
+		return &CgroupfsManager{
 			memoryPath:    cgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
-		}
-		if node.CgroupIsV2() {
-			cgroupfsMgr.memoryPath = cgroupMemoryPathV2
-			cgroupfsMgr.memoryMaxFile = cgroupMemoryMaxFileV2
-		}
-		return &cgroupfsMgr, nil
+			v1CtrCgMgr:    make(map[string]libctr.Manager),
+			v1SbCgMgr:     make(map[string]libctr.Manager),
+		}, nil
 	default:
 		return nil, fmt.Errorf("invalid cgroup manager: %s", cgroupManager)
 	}
