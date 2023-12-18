@@ -44,7 +44,7 @@ jobs:
           key: go-test-binaries-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('test') }}
       - run: scripts/github-actions-packages
       - run: make all test-binaries
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: test-binaries-${{ matrix.run.arch }}
           path: |
@@ -90,7 +90,7 @@ jobs:
             ~/go/pkg/mod
           key: go-critest-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
       - uses: sigstore/cosign-installer@v3
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
         with:
           name: test-binaries-${{ matrix.run.arch }}
       - name: Fix artifact permissions
