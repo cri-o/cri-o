@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
+_Generated on Mon, 18 Dec 2023 09:34:53 UTC for commit [f360112][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/869aa6e9f8d8a4d066950f61c2ff050e10a8d921
+[0]: https://github.com/cri-o/cri-o/commit/f360112a0cbddce89885bdc839242bcaeec77aac
 
 ## Outdated Dependencies
 
@@ -349,7 +349,7 @@ _Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
 | github.com/crc-org/vfkit                                                                | v0.1.2-0.20231030102423-f3c783d34420              | v0.5.0                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.21                                           |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.1-0.20230504062519-ad62f4ea0c11              | v0.4.1                              | true   | true             |
-| github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46                |                                     | false  | true             |
+| github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46                | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                            |                                     | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c                |                                     | false  | true             |
 | github.com/d2g/dhcp4client                                                              | v1.0.0                                            |                                     | false  | true             |
@@ -365,7 +365,7 @@ _Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
 | github.com/digitalocean/go-libvirt                                                      | v0.0.0-20220804181439-8648fbde413e                | v0.0.0-20221205150000-2939327a8519  | false  | true             |
 | github.com/digitalocean/go-qemu                                                         | v0.0.0-20230711162256-2e3d0186973e                |                                     | false  | true             |
 | github.com/digitorus/pkcs7                                                              | v0.0.0-20230818184609-3a137a874352                |                                     | false  | true             |
-| github.com/digitorus/timestamp                                                          | v0.0.0-20230902153158-687734543647                |                                     | false  | true             |
+| github.com/digitorus/timestamp                                                          | v0.0.0-20230902153158-687734543647                | v0.0.0-20231217203849-220c5c2851b7  | false  | true             |
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                            |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                            |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.5.0                                            |                                     | false  | true             |
@@ -424,16 +424,16 @@ _Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
 | github.com/go-logr/logr                                                                 | v1.3.0                                            |                                     | true   | true             |
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                     | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            | v1.3.0                              | false  | true             |
-| github.com/go-openapi/analysis                                                          | v0.21.4                                           |                                     | false  | true             |
-| github.com/go-openapi/errors                                                            | v0.20.4                                           |                                     | false  | true             |
-| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           |                                     | false  | true             |
-| github.com/go-openapi/jsonreference                                                     | v0.20.2                                           |                                     | false  | true             |
-| github.com/go-openapi/loads                                                             | v0.21.2                                           |                                     | false  | true             |
+| github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.21.5                             | false  | true             |
+| github.com/go-openapi/errors                                                            | v0.20.4                                           | v0.21.0                             | false  | true             |
+| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.1                             | false  | true             |
+| github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.3                             | false  | true             |
+| github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.3                             | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.26.2                             | false  | true             |
-| github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.11                            | false  | true             |
-| github.com/go-openapi/strfmt                                                            | v0.21.7                                           | v0.21.9                             | false  | true             |
-| github.com/go-openapi/swag                                                              | v0.22.4                                           |                                     | false  | true             |
-| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.3                             | false  | true             |
+| github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.12                            | false  | true             |
+| github.com/go-openapi/strfmt                                                            | v0.21.7                                           | v0.21.10                            | false  | true             |
+| github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.5                             | false  | true             |
+| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.4                             | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                     | false  | true             |
 | github.com/go-playground/universal-translator                                           | v0.18.1                                           |                                     | false  | true             |
@@ -573,7 +573,7 @@ _Generated on Fri, 15 Dec 2023 21:44:54 UTC for commit [869aa6e][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231215175834-164e035915e2  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231215230927-1d5b53955554  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
