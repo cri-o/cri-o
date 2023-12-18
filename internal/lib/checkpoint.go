@@ -95,6 +95,12 @@ func (c *ContainerServer) ContainerCheckpoint(
 		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
+		defer func() {
+			// clean up checkpoint directory
+			if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
+				log.Warnf(ctx, "Unable to remove checkpoint directory %s: %v", ctr.CheckpointPath(), err)
+			}
+		}()
 	}
 	if !opts.KeepRunning {
 		if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
