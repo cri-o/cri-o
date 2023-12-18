@@ -13,6 +13,8 @@
 
 - name: clone build and install cri-tools
   include_tasks: "build/cri-tools.yml"
+  vars:
+    force_clone: true
 
 - name: clone build and install runc
   include_tasks: "build/runc.yml"
