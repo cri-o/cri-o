@@ -344,6 +344,7 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   "io.kubernetes.cri-o.userns-mode" for configuring a user namespace for the pod.
   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
+  "io.kubernetes.cri-o.sysfs-mount-rw" to mount sysfs writable when set to "true" (only safe combined with userns-mode).
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 

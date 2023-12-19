@@ -325,10 +325,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
+	sysfsRW := sb.Annotations()[crioann.SysfsRWAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, s.Config().Root)
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, sysfsRW, idMapSupport, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -945,7 +946,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, sysfsRW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -961,7 +962,9 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 
 	// Copy all mounts from default mounts, except for
 	// - mounts overridden by supplied mount;
-	// - all mounts under /dev if a supplied /dev is present.
+	// - all mounts under /dev if a supplied /dev is present;
+	// - all mounts under /sys if a supplied /sys is present;
+	// - /sys if sysfsRW annotation is specified.
 	mountSet := make(map[string]struct{})
 	for _, m := range mounts {
 		mountSet[filepath.Clean(m.ContainerPath)] = struct{}{}
@@ -980,6 +983,10 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		}
 		if _, mountSys := mountSet["/sys"]; mountSys && strings.HasPrefix(dst, "/sys/") {
 			// filter out everything under /sys if /sys is a supplied mount
+			continue
+		}
+		if dst == "/sys" && sysfsRW {
+			// filter out /sys if we'll specify it ourselves later
 			continue
 		}
 		specgen.AddMount(m)
@@ -1105,6 +1112,16 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 	}
 
 	if _, mountSys := mountSet["/sys"]; !mountSys {
+		if sysfsRW {
+			m := rspec.Mount{
+				Destination: "/sys",
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw"},
+			}
+			specgen.AddMount(m)
+		}
+
 		m := rspec.Mount{
 			Destination: cgroupSysFsPath,
 			Type:        "cgroup",

@@ -1245,6 +1245,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw" for mounting cgroups writably when set to "true".
 #   "io.kubernetes.cri-o.Devices" for configuring devices for the pod.
 #   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
+#   "io.kubernetes.cri-o.sysfs-mount-rw" to mount sysfs writable when set to "true" (only safe combined with userns-mode).
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 #   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
