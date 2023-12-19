@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
+_Generated on Tue, 19 Dec 2023 21:42:05 UTC for commit [fc03264][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b6850ade470a7ef61af8a4c1990d2d4e1ba15dbf
+[0]: https://github.com/cri-o/cri-o/commit/fc03264f70910b163c4fa6dd37b8bd9122805b96
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231219095120-ec30d5a9a891 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231219192729-6cea8a5f2a60 | true   | true             |
 | google.golang.org/grpc                                 | v1.60.0                            | v1.60.1                            | true   | true             |
 
 ## All Dependencies
@@ -221,7 +221,7 @@ _Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.5                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.1                             | false  | true             |
@@ -553,7 +553,7 @@ _Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231219095120-ec30d5a9a891  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231219192729-6cea8a5f2a60  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -577,7 +577,7 @@ _Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231218213243-300b29162484  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231219192218-d281702c17c2  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -702,7 +702,7 @@ _Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 | github.com/sclevine/spec                                                                | v1.2.0                                            | v1.4.0                              | false  | true             |
 | github.com/sebdah/goldie/v2                                                             | v2.5.3                                            |                                     | false  | true             |
 | github.com/seccomp/libseccomp-golang                                                    | v0.10.0                                           |                                     | true   | true             |
-| github.com/secure-systems-lab/go-securesystemslib                                       | v0.7.0                                            |                                     | false  | true             |
+| github.com/secure-systems-lab/go-securesystemslib                                       | v0.7.0                                            | v0.8.0                              | false  | true             |
 | github.com/segmentio/asm                                                                | v1.2.0                                            |                                     | false  | true             |
 | github.com/segmentio/ksuid                                                              | v1.0.4                                            |                                     | false  | true             |
 | github.com/sergi/go-diff                                                                | v1.3.1                                            |                                     | false  | true             |
@@ -850,7 +850,7 @@ _Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 | gocloud.dev                                                                             | v0.34.0                                           | v0.35.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.6.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.16.0                                           | v0.17.0                             | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231219160207-73b9e39aefca  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231219180239-dc181d75b848  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.14.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616  | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20231127183840-76ac6878050a  | false  | true             |
