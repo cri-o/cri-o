@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Dec 2023 13:47:11 UTC for commit [755e84e][0]._
+_Generated on Tue, 19 Dec 2023 18:03:20 UTC for commit [b6850ad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/755e84eb518507b96a96b39bf639c33e5d668fa1
+[0]: https://github.com/cri-o/cri-o/commit/b6850ade470a7ef61af8a4c1990d2d4e1ba15dbf
 
 ## Outdated Dependencies
 
@@ -850,7 +850,7 @@ _Generated on Tue, 19 Dec 2023 13:47:11 UTC for commit [755e84e][0]._
 | gocloud.dev                                                                             | v0.34.0                                           | v0.35.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.6.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.16.0                                           | v0.17.0                             | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231214170342-aacd6d4b4611  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231219160207-73b9e39aefca  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.14.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616  | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20231127183840-76ac6878050a  | false  | true             |
