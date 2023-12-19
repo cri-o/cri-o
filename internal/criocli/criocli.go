@@ -677,7 +677,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "selinux",
-			Usage:   "Enable selinux support.",
+			Usage:   "Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.",
 			EnvVars: []string{"CONTAINER_SELINUX"},
 			Value:   defConf.SELinux,
 		},

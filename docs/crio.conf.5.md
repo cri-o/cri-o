@@ -137,6 +137,7 @@ the container runtime configuration.
 
 **selinux**=false
   If true, SELinux will be used for pod separation on the host.
+  This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 
 **seccomp_profile**=""
   Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the internal default seccomp profile will be used.
