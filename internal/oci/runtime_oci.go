@@ -1266,11 +1266,11 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	}
 	f.Close()
 	processFile = f.Name()
-	defer func() {
+	defer func(processFile string) {
 		if retErr != nil {
 			os.RemoveAll(processFile)
 		}
-	}()
+	}(processFile)
 
 	// It's important to make a spec copy here to not overwrite the initial
 	// process spec
