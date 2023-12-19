@@ -45,6 +45,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.4.0
 	github.com/intel/goresctrl v0.5.0
 	github.com/json-iterator/go v1.1.12
+	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20231214145909-c7c763220340
 	github.com/onsi/ginkgo/v2 v2.13.2
 	github.com/onsi/gomega v1.30.0
 	github.com/opencontainers/go-digest v1.0.0
