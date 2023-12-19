@@ -230,6 +230,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 	}
 
 	network := s.config.CNIPlugin().GetDefaultNetworkName()
+	podAnnotations := sb.Annotations()
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),
@@ -239,8 +240,9 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 		NetNS:     sb.NetNsPath(),
 		RuntimeConfig: map[string]ocicni.RuntimeConfig{
 			network: {
-				Bandwidth:  bwConfig,
-				CgroupPath: sb.CgroupParent(),
+				Bandwidth:      bwConfig,
+				CgroupPath:     sb.CgroupParent(),
+				PodAnnotations: &podAnnotations,
 			},
 		},
 	}, nil

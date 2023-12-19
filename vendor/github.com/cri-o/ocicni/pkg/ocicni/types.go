@@ -58,6 +58,8 @@ type RuntimeConfig struct {
 	// CgroupPath is the path to the pod's cgroup
 	// e.g. "/kubelet.slice/kubelet-kubepods.slice/kubelet-kubepods-burstable.slice/kubelet-kubepods-burstable-pod28ce45bc_63f8_48a3_a99b_cfb9e63c856c.slice"
 	CgroupPath string
+	// PodAnnotations are the annotations of the pod.
+	PodAnnotations *map[string]string `json:"io.kubernetes.cri.pod-annotations,omitempty"`
 }
 
 // BandwidthConfig maps to the standard CNI bandwidth Capability
