@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Dec 2023 03:39:48 UTC for commit [0a1ad49][0]._
+_Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0a1ad4966074399f41d6fb39724d8ed110196615
+[0]: https://github.com/cri-o/cri-o/commit/acda15aa0162cc1ef3b52fb7c4371d49d56bfe3a
 
 ## Outdated Dependencies
 
@@ -166,8 +166,8 @@ _Generated on Tue, 19 Dec 2023 03:39:48 UTC for commit [0a1ad49][0]._
 | github.com/BurntSushi/toml                                                              | v1.3.2                                            |                                     | true   | true             |
 | github.com/BurntSushi/xgb                                                               | v0.0.0-20160522181843-27f122750802                | v0.0.0-20210121224620-deaf085860bc  | false  | true             |
 | github.com/DataDog/appsec-internal-go                                                   | v1.0.0                                            | v1.4.0                              | false  | true             |
-| github.com/DataDog/datadog-agent/pkg/obfuscate                                          | v0.48.1                                           | v0.49.0                             | false  | true             |
-| github.com/DataDog/datadog-agent/pkg/remoteconfig/state                                 | v0.48.1                                           | v0.49.0                             | false  | true             |
+| github.com/DataDog/datadog-agent/pkg/obfuscate                                          | v0.48.1                                           | v0.50.0                             | false  | true             |
+| github.com/DataDog/datadog-agent/pkg/remoteconfig/state                                 | v0.48.1                                           | v0.50.0                             | false  | true             |
 | github.com/DataDog/datadog-go/v5                                                        | v5.3.0                                            | v5.4.0                              | false  | true             |
 | github.com/DataDog/go-libddwaf                                                          | v1.5.0                                            | v1.7.0                              | false  | true             |
 | github.com/DataDog/go-tuf                                                               | v1.0.2-0.5.2                                      |                                     | false  | true             |
@@ -407,7 +407,7 @@ _Generated on Tue, 19 Dec 2023 03:39:48 UTC for commit [0a1ad49][0]._
 | github.com/ghodss/yaml                                                                  | v1.0.0                                            |                                     | false  | true             |
 | github.com/gin-contrib/sse                                                              | v0.1.0                                            |                                     | false  | true             |
 | github.com/gin-gonic/gin                                                                | v1.9.1                                            |                                     | false  | true             |
-| github.com/gliderlabs/ssh                                                               | v0.3.5                                            |                                     | false  | true             |
+| github.com/gliderlabs/ssh                                                               | v0.3.5                                            | v0.3.6                              | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                               |                                     | false  | true             |
 | github.com/go-chi/chi/v5                                                                | v5.0.10                                           |                                     | true   | true             |
 | github.com/go-git/gcfg                                                                  | v1.5.1-0.20230307220236-3a3c6141e376              |                                     | false  | true             |
@@ -906,7 +906,7 @@ _Generated on Tue, 19 Dec 2023 03:39:48 UTC for commit [0a1ad49][0]._
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231218102303-03265f747e40  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231219072704-d513e487961e  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
