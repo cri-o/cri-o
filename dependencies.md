@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 18 Dec 2023 22:04:21 UTC for commit [00471c0][0]._
+_Generated on Tue, 19 Dec 2023 03:39:48 UTC for commit [0a1ad49][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/00471c0ff3099061838f284c9b823b327d9cd765
+[0]: https://github.com/cri-o/cri-o/commit/0a1ad4966074399f41d6fb39724d8ed110196615
 
 ## Outdated Dependencies
 
-|         MODULE          |               VERSION                | NEW VERSION | DIRECT | VALID TIMESTAMPS |
-|-------------------------|--------------------------------------|-------------|--------|------------------|
-| github.com/cri-o/ocicni | v0.4.1-0.20230504062519-ad62f4ea0c11 | v0.4.1      | true   | true             |
+|         MODULE         | VERSION | NEW VERSION | DIRECT | VALID TIMESTAMPS |
+|------------------------|---------|-------------|--------|------------------|
+| google.golang.org/grpc | v1.60.0 | v1.60.1     | true   | true             |
 
 ## All Dependencies
 
@@ -348,7 +348,7 @@ _Generated on Mon, 18 Dec 2023 22:04:21 UTC for commit [00471c0][0]._
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.3                                            |                                     | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.1.2-0.20231030102423-f3c783d34420              | v0.5.0                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.21                                           |                                     | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.1-0.20230504062519-ad62f4ea0c11              | v0.4.1                              | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.1                                            |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46                | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                            |                                     | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c                |                                     | false  | true             |
@@ -804,7 +804,7 @@ _Generated on Mon, 18 Dec 2023 22:04:21 UTC for commit [00471c0][0]._
 | github.com/yvasiyarov/newrelic_platform_go                                              | v0.0.0-20140908184405-b21fdbd4370f                | v0.0.0-20160601141957-9c099fbc30e9  | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.2                                            | v0.2.3                              | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                            |                                     | false  | true             |
-| github.com/zmap/zcrypto                                                                 | v0.0.0-20230310154051-c8b263fd8300                | v0.0.0-20231106212110-94c8f62efae4  | false  | true             |
+| github.com/zmap/zcrypto                                                                 | v0.0.0-20230310154051-c8b263fd8300                | v0.0.0-20231219022726-a1f61fb1661c  | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.5.0                                            |                                     | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.8                                            |                                     | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible                | false  | true             |
@@ -864,7 +864,7 @@ _Generated on Mon, 18 Dec 2023 22:04:21 UTC for commit [00471c0][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
-| google.golang.org/grpc                                                                  | v1.60.0                                           |                                     | true   | true             |
+| google.golang.org/grpc                                                                  | v1.60.0                                           | v1.60.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
 | gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.0                             | false  | true             |
