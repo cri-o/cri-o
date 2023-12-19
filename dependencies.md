@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
+_Generated on Tue, 19 Dec 2023 13:47:11 UTC for commit [755e84e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/acda15aa0162cc1ef3b52fb7c4371d49d56bfe3a
+[0]: https://github.com/cri-o/cri-o/commit/755e84eb518507b96a96b39bf639c33e5d668fa1
 
 ## Outdated Dependencies
 
-|         MODULE         | VERSION | NEW VERSION | DIRECT | VALID TIMESTAMPS |
-|------------------------|---------|-------------|--------|------------------|
-| google.golang.org/grpc | v1.60.0 | v1.60.1     | true   | true             |
+|                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
+|--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231219095120-ec30d5a9a891 | true   | true             |
+| google.golang.org/grpc                                 | v1.60.0                            | v1.60.1                            | true   | true             |
 
 ## All Dependencies
 
@@ -136,6 +137,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.4                                            |                                     | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.4                                            |                                     | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.3                                           |                                     | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5                | v0.0.0-20231017140541-3b893ed0421b  | false  | true             |
 | cuelang.org/go                                                                          | v0.6.0                                            | v0.7.0                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                            |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9                | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
@@ -293,7 +295,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/cockroachdb/datadriven                                                       | v0.0.0-20190809214429-80d97fb3cbaa                | v1.0.2                              | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb                |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be                |                                     | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface                    | v0.5.4                                            | v0.6.2                              | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                            | v0.6.2                              | false  | true             |
 | github.com/containerd/aufs                                                              | v1.0.0                                            |                                     | false  | true             |
 | github.com/containerd/btrfs                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                          | v2.0.0                                            |                                     | false  | true             |
@@ -530,6 +532,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/imdario/mergo                                                                | v0.3.16                                           | v1.0.0                              | false  | true             |
 | github.com/in-toto/in-toto-golang                                                       | v0.9.0                                            |                                     | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.1.0                                            |                                     | false  | true             |
+| github.com/intel-go/cpuid                                                               | v0.0.0-20210602155658-5747e5cec0d9                | v0.0.0-20220614022739-219e067757cb  | false  | true             |
 | github.com/intel/goresctrl                                                              | v0.5.0                                            |                                     | true   | true             |
 | github.com/j-keck/arping                                                                | v0.0.0-20160618110441-2cf9dc699c56                | v1.0.3                              | false  | true             |
 | github.com/jbenet/go-context                                                            | v0.0.0-20150711004518-d14ea06fba99                |                                     | false  | true             |
@@ -550,6 +553,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231219095120-ec30d5a9a891  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -655,6 +659,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/otiai10/copy                                                                 | v1.14.0                                           |                                     | false  | true             |
 | github.com/outcaste-io/ristretto                                                        | v0.2.3                                            |                                     | false  | true             |
 | github.com/package-url/packageurl-go                                                    | v0.1.1-0.20220428063043-89078438f170              | v0.1.2                              | false  | true             |
+| github.com/pbnjay/memory                                                                | v0.0.0-20210728143218-7b4eea64cf58                |                                     | false  | true             |
 | github.com/pborman/uuid                                                                 | v1.2.1                                            |                                     | false  | true             |
 | github.com/pelletier/go-toml                                                            | v1.9.5                                            |                                     | false  | true             |
 | github.com/pelletier/go-toml/v2                                                         | v2.1.0                                            | v2.1.1                              | false  | true             |
@@ -679,7 +684,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf                |                                     | false  | true             |
 | github.com/puzpuzpuz/xsync/v2                                                           | v2.5.1                                            |                                     | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475                |                                     | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.3.0                                            |                                     | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.3.0                                            | v9.3.1                              | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.4                                            |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                            |                                     | false  | true             |
 | github.com/rogpeppe/go-internal                                                         | v1.11.0                                           | v1.12.0                             | false  | true             |
@@ -806,6 +811,7 @@ _Generated on Tue, 19 Dec 2023 08:28:25 UTC for commit [acda15a][0]._
 | github.com/zeebo/errs                                                                   | v1.3.0                                            |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                                 | v0.0.0-20230310154051-c8b263fd8300                | v0.0.0-20231219022726-a1f61fb1661c  | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.5.0                                            |                                     | false  | true             |
+| gitlab.com/nvidia/cloud-native/go-nvlib                                                 | v0.0.0-20220601114329-47893b162965                | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.8                                            |                                     | false  | true             |
 | go.etcd.io/etcd                                                                         | v0.5.0-alpha.5.0.20200910180754-dd1b699fc489      | v3.3.27+incompatible                | false  | true             |
 | go.etcd.io/etcd/api/v3                                                                  | v3.5.10                                           | v3.5.11                             | false  | true             |
