@@ -1248,6 +1248,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri-o.ShmSize" for configuring the size of /dev/shm.
 #   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 #   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
+#   "io.kubernetes.cri-o.seccompNotifierAction" for enabling the seccomp notifier feature.
+#   "io.kubernetes.cri-o.umask" for setting the umask for container init process.
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
 # - monitor_path (optional, string): The path of the monitor binary. Replaces
 #   deprecated option "conmon".
