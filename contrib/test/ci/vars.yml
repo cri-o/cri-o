@@ -58,6 +58,7 @@ kata_skip_files:
   - "ctr_userns.bats"
   - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
   - "infra_ctr_cpuset.bats"
+  - "imagefsinfo.bats"  # image and container filesystems is not in kata at the moment
   - "inspect.bats"
   - "metrics.bats"
   - "network_ping.bats"
