@@ -1,16 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 20 Dec 2023 10:12:52 UTC for commit [a08318d][0]._
+_Generated on Wed, 20 Dec 2023 14:34:06 UTC for commit [cc17e62][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a08318df4c0a2a34a3daa4c9ea78283cc738e480
+[0]: https://github.com/cri-o/cri-o/commit/cc17e62d97947fc7e697138ec880d0e84c24718f
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220060914-7e5868a55f8e | true   | true             |
-| google.golang.org/grpc                                 | v1.60.0                            | v1.60.1                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220115856-ce094ecdc2e1 | true   | true             |
 
 ## All Dependencies
 
@@ -554,7 +553,7 @@ _Generated on Wed, 20 Dec 2023 10:12:52 UTC for commit [a08318d][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220060914-7e5868a55f8e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220115856-ce094ecdc2e1  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -871,7 +870,7 @@ _Generated on Wed, 20 Dec 2023 10:12:52 UTC for commit [a08318d][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
-| google.golang.org/grpc                                                                  | v1.60.0                                           | v1.60.1                             | true   | true             |
+| google.golang.org/grpc                                                                  | v1.60.1                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
 | gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.0                             | false  | true             |
