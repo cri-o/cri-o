@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
+_Generated on Wed, 20 Dec 2023 22:54:52 UTC for commit [29c1508][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0350e54186729c9a610c1a2653700c6717869d43
+[0]: https://github.com/cri-o/cri-o/commit/29c15080e77408488c2a1c6b55e5db80d2146321
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220115856-ce094ecdc2e1 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220194807-348225634051 | true   | true             |
 
 ## All Dependencies
 
@@ -553,7 +553,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220115856-ce094ecdc2e1  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220194807-348225634051  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -577,7 +577,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231220193815-238518da5560  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231220194135-d84e8d08f26d  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -646,7 +646,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | github.com/onsi/ginkgo                                                                  | v1.16.5                                           |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.13.2                                           |                                     | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.30.0                                           |                                     | true   | true             |
-| github.com/open-policy-agent/opa                                                        | v0.58.0                                           | v0.59.0                             | false  | true             |
+| github.com/open-policy-agent/opa                                                        | v0.58.0                                           | v0.60.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc5                                        |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.10                                           |                                     | true   | true             |
@@ -742,7 +742,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | github.com/stretchr/objx                                                                | v0.5.1                                            |                                     | false  | true             |
 | github.com/stretchr/testify                                                             | v1.8.4                                            |                                     | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.6.0                                            |                                     | false  | true             |
-| github.com/sylabs/sif/v2                                                                | v2.15.0                                           |                                     | false  | true             |
+| github.com/sylabs/sif/v2                                                                | v2.15.0                                           | v2.15.1                             | false  | true             |
 | github.com/syndtr/gocapability                                                          | v0.0.0-20200815063812-42c35b437635                |                                     | true   | true             |
 | github.com/syndtr/goleveldb                                                             | v1.0.1-0.20220721030215-126854af5e6d              |                                     | false  | true             |
 | github.com/tchap/go-patricia                                                            | v2.3.0+incompatible                               |                                     | false  | true             |
@@ -841,7 +841,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | go.step.sm/crypto                                                                       | v0.36.1                                           | v0.40.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                     | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                            |                                     | false  | true             |
-| go.uber.org/mock                                                                        | v0.3.0                                            |                                     | false  | true             |
+| go.uber.org/mock                                                                        | v0.3.0                                            | v0.4.0                              | false  | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                                           |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.26.0                                           |                                     | false  | true             |
 | go4.org/intern                                                                          | v0.0.0-20230525184215-6c62f75575cb                |                                     | false  | true             |
@@ -873,7 +873,7 @@ _Generated on Wed, 20 Dec 2023 19:58:23 UTC for commit [0350e54][0]._
 | google.golang.org/grpc                                                                  | v1.60.1                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
-| gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.0                             | false  | true             |
+| gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.1                             | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                     | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                            | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c                |                                     | false  | true             |
