@@ -268,15 +268,20 @@ the container runtime configuration.
 
 **uid_mappings**=""
   The UID mappings for the user namespace of each container. A range is specified in the form containerUID:HostUID:Size. Multiple ranges must be separated by comma.
+  This option is deprecated, and will be replaced with native Kubernetes user namespace support in the future.
+
 
 **minimum_mappable_uid**=-1
   The lowest host UID which can be specified in mappings supplied, either as part of a **uid_mappings** or as part of a request received over CRI, for a pod that will be run as a UID other than 0.
+  This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.
 
 **gid_mappings**=""
   The GID mappings for the user namespace of each container. A range is specified in the form containerGID:HostGID:Size. Multiple ranges must be separated by comma.
+  This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.
 
 **minimum_mappable_gid**=-1
   The lowest host GID which can be specified in mappings supplied, either as part of a **gid_mappings** or as part of a request received over CRI, for a pod that will be run as a UID other than 0.
+  This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.
 
 **ctr_stop_timeout**=30
   The minimal amount of time in seconds to wait before issuing a timeout regarding the proper termination of the container.

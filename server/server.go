@@ -448,6 +448,9 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+	if idMappings != nil {
+		log.Errorf(ctx, "Configuration options 'uid_mappings' and 'gid_mappings' are deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
+	}
 
 	if os.Getenv(rootlessEnvName) == "" {
 		// Not running as rootless, reset XDG_RUNTIME_DIR and DBUS_SESSION_BUS_ADDRESS
