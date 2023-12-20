@@ -441,7 +441,7 @@ CRI-O reads its configured registries defaults from the system wide containers-r
   Path to the file which decides what sort of policy we use when deciding whether or not to trust an image that we've pulled. It is not recommended that this option be used, as the default behavior of using the system-wide default policy (i.e., /etc/containers/policy.json) is most often preferred. Please refer to containers-policy.json(5) for more details.
 
 **signature_policy_dir**="/etc/crio/policies"
-  Root path for pod namespace-separated signature policies. The final policy to be used on image pull will be <SIGNATURE_POLICY_DIR>/<NAMESPACE>.json. If no pod namespace is being provided on image pull (via the sandbox config), or the concatenated path is non existent, then the signature_policy or system wide policy will be used as fallback. Must be an absolute path.
+  Root path for pod namespace-separated signature policies. The final policy to be used on image pull will be <SIGNATURE_POLICY_DIR>/\<NAMESPACE\>.json. If no pod namespace is being provided on image pull (via the sandbox config), or the concatenated path is non existent, then the signature_policy or system wide policy will be used as fallback. Must be an absolute path.
 
 **image_volumes**="mkdir"
   Controls how image volumes are handled. The valid values are mkdir, bind and ignore; the latter will ignore volumes entirely.
