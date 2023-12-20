@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Dec 2023 21:42:05 UTC for commit [fc03264][0]._
+_Generated on Wed, 20 Dec 2023 10:12:52 UTC for commit [a08318d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fc03264f70910b163c4fa6dd37b8bd9122805b96
+[0]: https://github.com/cri-o/cri-o/commit/a08318df4c0a2a34a3daa4c9ea78283cc738e480
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231219192729-6cea8a5f2a60 | true   | true             |
+| github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220060914-7e5868a55f8e | true   | true             |
 | google.golang.org/grpc                                 | v1.60.0                            | v1.60.1                            | true   | true             |
 
 ## All Dependencies
@@ -401,7 +402,7 @@ _Generated on Tue, 19 Dec 2023 21:42:05 UTC for commit [fc03264][0]._
 | github.com/form3tech-oss/jwt-go                                                         | v3.2.2+incompatible                               | v3.2.5+incompatible                 | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.0                                           | v1.14.6                             | false  | true             |
 | github.com/fsnotify/fsnotify                                                            | v1.7.0                                            |                                     | true   | true             |
-| github.com/fsouza/go-dockerclient                                                       | v1.10.0                                           |                                     | false  | true             |
+| github.com/fsouza/go-dockerclient                                                       | v1.10.0                                           | v1.10.1                             | false  | true             |
 | github.com/fullsailor/pkcs7                                                             | v0.0.0-20190404230743-d7302db945fa                |                                     | false  | true             |
 | github.com/fxamacker/cbor/v2                                                            | v2.4.0                                            | v2.5.0                              | false  | true             |
 | github.com/gabriel-vasile/mimetype                                                      | v1.4.3                                            |                                     | false  | true             |
@@ -411,7 +412,7 @@ _Generated on Tue, 19 Dec 2023 21:42:05 UTC for commit [fc03264][0]._
 | github.com/gin-gonic/gin                                                                | v1.9.1                                            |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.5                                            | v0.3.6                              | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                               |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                                | v5.0.10                                           |                                     | true   | true             |
+| github.com/go-chi/chi/v5                                                                | v5.0.10                                           | v5.0.11                             | true   | true             |
 | github.com/go-git/gcfg                                                                  | v1.5.1-0.20230307220236-3a3c6141e376              |                                     | false  | true             |
 | github.com/go-git/go-billy/v5                                                           | v5.5.0                                            |                                     | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                                    | v4.3.2-0.20231010084843-55a94097c399              |                                     | false  | true             |
@@ -553,7 +554,7 @@ _Generated on Tue, 19 Dec 2023 21:42:05 UTC for commit [fc03264][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231219192729-6cea8a5f2a60  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220060914-7e5868a55f8e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
