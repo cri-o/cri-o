@@ -51,6 +51,8 @@ const (
 
 const (
 	cgroupSubTreeControl = "cgroup.subtree_control"
+	cgroupV1QuotaFile    = "cpu.cfs_quota_us"
+	cgroupV2QuotaFile    = "cpu.max"
 	cpusetCpus           = "cpuset.cpus"
 	cpusetCpusExclusive  = "cpuset.cpus.exclusive"
 	IsolatedCPUsEnvVar   = "OPENSHIFT_ISOLATED_CPUS"
@@ -1077,14 +1079,11 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 	}
 
 	// pod level operations
-	podCgroup, err := podManager.GetCgroups()
-	if err != nil {
-		return err
-	}
-	newPodQuota, err := calculatePodQuota(&sharedCPUSet, podCgroup.Resources.CpuQuota, podCgroup.Resources.CpuPeriod)
+	newPodQuota, err := calculatePodQuota(&sharedCPUSet, podManager, *cpuSpec.Period)
 	if err != nil {
 		return fmt.Errorf("failed to calculate pod quota: %w", err)
 	}
+	// the Set function knows to handle -1 value for both v1 and v2
 	err = podManager.Set(&configs.Resources{
 		SkipDevices: true,
 		CpuQuota:    newPodQuota,
@@ -1092,10 +1091,9 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 	if err != nil {
 		return err
 	}
-
 	// container level operations
 	ctrCPUSet := isolatedCPUSet.Union(sharedCPUSet)
-	ctrQuota, err := calculateMaximalQuota(&ctrCPUSet, *(cpuSpec.Period))
+	ctrQuota, err := calculateMaximalQuota(&ctrCPUSet, *cpuSpec.Period)
 	if err != nil {
 		return fmt.Errorf("failed to calculate container %s quota: %w", c.ID(), err)
 	}
@@ -1119,12 +1117,53 @@ func calculateMaximalQuota(cpus *cpuset.CPUSet, period uint64) (quota int64, err
 	return
 }
 
-func calculatePodQuota(sharedCpus *cpuset.CPUSet, existingQuota int64, period uint64) (int64, error) {
+func calculatePodQuota(sharedCpus *cpuset.CPUSet, podManager cgroups.Manager, period uint64) (int64, error) {
+	var quotaGetFunc func(cgroups.Manager) (string, error)
+	if node.CgroupIsV2() {
+		quotaGetFunc = getPodQuotaV2
+	} else {
+		quotaGetFunc = getPodQuotaV1
+	}
+	existingQuota, err := quotaGetFunc(podManager)
+	if err != nil {
+		return 0, err
+	}
+	// the pod is already at its maximal quota
+	// we return -1 for both cgroup v1 and v2
+	if existingQuota == "-1" || existingQuota == "max" {
+		return -1, nil
+	}
 	additionalQuota, err := calculateMaximalQuota(sharedCpus, period)
 	if err != nil {
 		return 0, err
 	}
-	return existingQuota + additionalQuota, err
+	q, err := strconv.ParseInt(existingQuota, 10, 0)
+	if err != nil {
+		return 0, err
+	}
+	return q + additionalQuota, err
+}
+
+func getPodQuotaV1(mng cgroups.Manager) (string, error) {
+	controllerPath := mng.Path("cpu")
+	q, err := cgroups.ReadFile(controllerPath, cgroupV1QuotaFile)
+	if err != nil {
+		return "", err
+	}
+	cpuQuota := strings.TrimSuffix(q, "\n")
+	return cpuQuota, nil
+}
+
+func getPodQuotaV2(mng cgroups.Manager) (string, error) {
+	controllerPath := mng.Path("")
+	cpuQuotaAndPeriod, err := cgroups.ReadFile(controllerPath, cgroupV2QuotaFile)
+	if err != nil {
+		return "", err
+	}
+	// in v2, the quota file contains both quota and period
+	// example: max 100000
+	cpuQuota := strings.Split(strings.TrimSuffix(cpuQuotaAndPeriod, "\n"), " ")[0]
+	return cpuQuota, nil
 }
 
 func injectCpusetEnv(c *oci.Container, isolated, shared *cpuset.CPUSet) {
