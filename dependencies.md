@@ -1,15 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 20 Dec 2023 22:54:52 UTC for commit [29c1508][0]._
+_Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/29c15080e77408488c2a1c6b55e5db80d2146321
+[0]: https://github.com/cri-o/cri-o/commit/6c76d99be41112b196074356b54b43839d1d95ce
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220194807-348225634051 | true   | true             |
+| github.com/go-logr/logr                                | v1.3.0                             | v1.4.0                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220230126-d916da15dda8 | true   | true             |
 
 ## All Dependencies
 
@@ -423,7 +424,7 @@ _Generated on Wed, 20 Dec 2023 22:54:52 UTC for commit [29c1508][0]._
 | github.com/go-kit/kit                                                                   | v0.9.0                                            | v0.13.0                             | false  | true             |
 | github.com/go-kit/log                                                                   | v0.2.1                                            |                                     | false  | true             |
 | github.com/go-logfmt/logfmt                                                             | v0.5.1                                            | v0.6.0                              | false  | true             |
-| github.com/go-logr/logr                                                                 | v1.3.0                                            |                                     | true   | true             |
+| github.com/go-logr/logr                                                                 | v1.3.0                                            | v1.4.0                              | true   | true             |
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                     | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            | v1.3.0                              | false  | true             |
 | github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.21.5                             | false  | true             |
@@ -553,7 +554,7 @@ _Generated on Wed, 20 Dec 2023 22:54:52 UTC for commit [29c1508][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220194807-348225634051  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220230126-d916da15dda8  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -849,7 +850,7 @@ _Generated on Wed, 20 Dec 2023 22:54:52 UTC for commit [29c1508][0]._
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                     | false  | true             |
 | gocloud.dev                                                                             | v0.34.0                                           | v0.35.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.6.0                              | false  | true             |
-| golang.org/x/crypto                                                                     | v0.16.0                                           | v0.17.0                             | false  | true             |
+| golang.org/x/crypto                                                                     | v0.17.0                                           |                                     | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231219180239-dc181d75b848  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.14.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616  | false  | true             |
