@@ -22,6 +22,10 @@ main() {
     install_buildah
 }
 
+curl_retry() {
+    sudo curl -sSfL --retry 5 --retry-delay 3 "$@"
+}
+
 prepare_system() {
     sudo systemctl stop docker || true
     sudo ufw disable || true
@@ -59,16 +63,14 @@ install_bats() {
 }
 
 install_conmon() {
-    git clone https://github.com/containers/conmon
-    pushd conmon
-    git checkout "${VERSIONS["conmon"]}"
-    sudo make PREFIX=/ all install.bin
-    popd
-    sudo rm -rf conmon
+    CONMON_BINARY=/usr/local/bin/conmon
+    curl_retry "https://github.com/containers/conmon/releases/download/${VERSIONS["conmon"]}/conmon.$GOARCH" \
+        -o $CONMON_BINARY
+    sudo chmod +x $CONMON_BINARY
 }
 
 install_conmonrs() {
-    curl -sSfL --retry 5 --retry-delay 3 https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
+    curl_retry https://raw.githubusercontent.com/containers/conmon-rs/main/scripts/get |
         sudo -E PATH="$PATH" bash -s -- -a "$GOARCH" -o /usr/bin/conmonrs
 }
 
