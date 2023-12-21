@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Dec 2023 16:28:06 UTC for commit [d59bbdc][0]._
+_Generated on Thu, 21 Dec 2023 21:15:33 UTC for commit [4e230f2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d59bbdc252837107c9f5d235b8fb2650ff2b9d93
+[0]: https://github.com/cri-o/cri-o/commit/4e230f28c6e3dd9bca81b67c0bb6ca9316f25743
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
-| github.com/go-logr/logr                                | v1.3.0                             | v1.4.0                             | true   | true             |
+| github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231221153031-32e1ba252531 | true   | true             |
 
 ## All Dependencies
@@ -222,7 +222,7 @@ _Generated on Thu, 21 Dec 2023 16:28:06 UTC for commit [d59bbdc][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.7                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.2                             | false  | true             |
@@ -424,12 +424,12 @@ _Generated on Thu, 21 Dec 2023 16:28:06 UTC for commit [d59bbdc][0]._
 | github.com/go-kit/kit                                                                   | v0.9.0                                            | v0.13.0                             | false  | true             |
 | github.com/go-kit/log                                                                   | v0.2.1                                            |                                     | false  | true             |
 | github.com/go-logfmt/logfmt                                                             | v0.5.1                                            | v0.6.0                              | false  | true             |
-| github.com/go-logr/logr                                                                 | v1.3.0                                            | v1.4.0                              | true   | true             |
+| github.com/go-logr/logr                                                                 | v1.3.0                                            | v1.4.1                              | true   | true             |
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                     | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            | v1.3.0                              | false  | true             |
 | github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.21.5                             | false  | true             |
 | github.com/go-openapi/errors                                                            | v0.20.4                                           | v0.21.0                             | false  | true             |
-| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.1                             | false  | true             |
+| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.2                             | false  | true             |
 | github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.3                             | false  | true             |
 | github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.3                             | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.26.2                             | false  | true             |
@@ -578,7 +578,7 @@ _Generated on Thu, 21 Dec 2023 16:28:06 UTC for commit [d59bbdc][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231220194135-d84e8d08f26d  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231221180706-5972d43924a1  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
