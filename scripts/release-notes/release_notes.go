@@ -54,13 +54,6 @@ func run() error {
 		return fmt.Errorf("create output path: %w", err)
 	}
 
-	// Get latest release version
-	startTag := util.AddTagPrefix(decVersion(version.Version))
-	logrus.Infof("Using start tag %s", startTag)
-
-	endTag := util.AddTagPrefix(version.Version)
-	logrus.Infof("Using end tag %s", endTag)
-
 	// Generate the notes
 	repo, err := git.OpenRepo(".")
 	if err != nil {
@@ -93,6 +86,8 @@ func run() error {
 	bundleVersion := head
 	shortHead := head[:7]
 	endRev := head
+
+	startTag := util.AddTagPrefix(version.Version)
 	if output, err := command.New(
 		"git", "describe", "--tags", "--exact-match",
 	).RunSilentSuccessOutput(); err == nil {
@@ -101,9 +96,13 @@ func run() error {
 		bundleVersion = foundTag
 		shortHead = foundTag
 		endRev = foundTag
+		startTag = util.AddTagPrefix(decVersion(foundTag))
 	} else {
 		logrus.Infof("Not using git tag because `git describe` failed: %v", err)
 	}
+
+	logrus.Infof("Using start tag %s", startTag)
+	logrus.Infof("Using end tag %s", endRev)
 
 	if _, err := templateFile.WriteString(fmt.Sprintf(`# CRI-O %s
 
@@ -163,7 +162,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 {{- end -}}
 {{- end -}}
 `,
-		endTag,
+		endRev,
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
@@ -189,7 +188,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	}
 
 	logrus.Infof("Generating release notes")
-	outputFile := endTag + ".md"
+	outputFile := endRev + ".md"
 	outputFilePath := filepath.Join(outputPath, outputFile)
 	os.RemoveAll(outputFilePath)
 	if err := command.Execute(
@@ -235,7 +234,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	if err != nil {
 		return fmt.Errorf("open %s file: %w", readmeFile, err)
 	}
-	link := fmt.Sprintf("- [%s](%s)", endTag, outputFile)
+	link := fmt.Sprintf("- [%s](%s)", endRev, outputFile)
 
 	// Item not in list
 	alreadyExistingIndex := indexOfPrefix(link, readmeSlice)
