@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/podman/v4/pkg/rootless"
@@ -101,6 +102,26 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 	return cgMgr, nil
 }
 
+// ContainerCgroupStats returns a stats object with data from the cgroup found
+// given a cgroup parent and container ID.
+func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	libctrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cgroup stats for container %s: %w", containerID, err)
+	}
+	otherMemStats := otherMemStats(&libctrStats.MemoryStats)
+	stats := &CgroupStats{
+		MostStats:     libctrStats,
+		OtherMemStats: otherMemStats,
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return stats, nil
+}
+
 // RemoveContainerCgManager removes the cgroup manager for the container
 func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
@@ -147,6 +168,26 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 		m.v1SbCgMgr[sbID] = cgMgr
 	}
 	return cgMgr, nil
+}
+
+// SandboxCgroupStats returns a stats object with with data from the cgroup found
+// given a cgroup parent, and sandbox ID.
+func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	libctrStats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cgroup stats for sandbox %s: %w", sbID, err)
+	}
+	otherMemStats := otherMemStats(&libctrStats.MemoryStats)
+	stats := &CgroupStats{
+		MostStats:     libctrStats,
+		OtherMemStats: otherMemStats,
+		SystemNano:    time.Now().UnixNano(),
+	}
+	return stats, nil
 }
 
 // RemoveSandboeCgroupManager removes the cgroup manager for the sandbox

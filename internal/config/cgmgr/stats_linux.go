@@ -3,6 +3,7 @@ package cgmgr
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -187,6 +188,44 @@ func createProcessUsage(systemNano int64, cgroupStats *libctrcgroups.Stats) *typ
 		Timestamp:    systemNano,
 		ProcessCount: &types.UInt64Value{Value: cgroupStats.PidsStats.Current},
 	}
+}
+
+func otherMemStats(memstats *libctrcgroups.MemoryStats) *CgroupMemoryStats {
+	memStats := &CgroupMemoryStats{}
+	var inactiveFileName string
+	if node.CgroupIsV2() {
+		memStats.Rss = memstats.Stats["anon"]
+		inactiveFileName = "inactive_file"
+		memStats.PgFault = memstats.Stats["pgfault"]
+		memStats.PgMajFault = memstats.Stats["pgmajfault"]
+	} else {
+		inactiveFileName = "total_inactive_file"
+		memStats.Rss = memstats.Stats["total_rss"]
+		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
+	}
+
+	workingSet := memstats.Usage.Usage
+	if v, ok := memstats.Stats[inactiveFileName]; ok {
+		if workingSet < v {
+			workingSet = 0
+		} else {
+			workingSet -= v
+		}
+	}
+	memStats.WorkingSet = workingSet
+
+	if !isMemoryUnlimited(memstats.Usage.Limit) {
+		// https://github.com/kubernetes/kubernetes/blob/94f15bbbcbe952762b7f5e6e3f77d86ecec7d7c2/pkg/kubelet/stats/helper.go#L69
+		memStats.AvailableBytes = memstats.Usage.Limit - memstats.Usage.Usage
+	}
+	return memStats
+}
+
+func isMemoryUnlimited(v uint64) bool {
+	// if the container has unlimited memory, the value of memory.max (in cgroupv2) will be "max"
+	// or the value of memory.limit_in_bytes (in cgroupv1) will be -1
+	// either way, libcontainer/cgroups will return math.MaxUint64
+	return v == math.MaxUint64
 }
 
 func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, error) {

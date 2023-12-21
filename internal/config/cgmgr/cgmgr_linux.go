@@ -62,7 +62,7 @@ type CgroupManager interface {
 	// ContainerCgroupManager takes the cgroup parent, and container ID.
 	// It returns the raw libcontainer cgroup manager for that container.
 	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
-	// ContainerCgroupStats returns a stats object with information from the cgroup found
+	// ContainerCgroupStats returns a stats object with data from the cgroup found
 	// given a cgroup parent and container ID.
 	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
 	// RemoveContainerCgManager removes the cgroup manager for the container
@@ -77,8 +77,8 @@ type CgroupManager interface {
 	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 	// It returns the raw libcontainer cgroup manager for that sandbox.
 	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
-	// SandboxCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
-	// It returns an object with information from the cgroup found given that parent.
+	// SandboxCgroupStats returns a stats object with with data from the cgroup found
+	// given a cgroup parent, and sandbox ID.
 	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
 	// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
 	RemoveSandboxCgManager(sbID string)
