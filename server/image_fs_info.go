@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"path"
 	"time"
 
@@ -10,24 +11,40 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func getStorageFsInfo(store storage.Store) (*types.FilesystemUsage, error) {
+func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {
 	rootPath := store.GraphRoot()
+	imagePath := store.ImageStore()
 	storageDriver := store.GraphDriverName()
-	imagesPath := path.Join(rootPath, storageDriver+"-images")
+	var graphRootPath string
+	if imagePath == "" {
+		graphRootPath = path.Join(rootPath, storageDriver+"-images")
+	} else {
+		graphRootPath = path.Join(rootPath, storageDriver+"-containers")
+	}
 
-	bytesUsed, inodesUsed, err := crioStorage.GetDiskUsageStats(imagesPath)
+	graphUsage, err := getUsage(graphRootPath)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get usage for %s: %w", graphRootPath, err)
 	}
 
-	usage := types.FilesystemUsage{
-		Timestamp:  time.Now().UnixNano(),
-		FsId:       &types.FilesystemIdentifier{Mountpoint: imagesPath},
-		UsedBytes:  &types.UInt64Value{Value: bytesUsed},
-		InodesUsed: &types.UInt64Value{Value: inodesUsed},
+	if imagePath == "" {
+		return &types.ImageFsInfoResponse{
+			ImageFilesystems:     []*types.FilesystemUsage{graphUsage},
+			ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
+		}, nil
+	}
+	resp := &types.ImageFsInfoResponse{
+		ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
 	}
 
-	return &usage, nil
+	imageRoot := path.Join(imagePath, storageDriver+"-images")
+	imageUsage, err := getUsage(imageRoot)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get usage for %s: %w", imageRoot, err)
+	}
+
+	resp.ImageFilesystems = []*types.FilesystemUsage{imageUsage}
+	return resp, nil
 }
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
@@ -35,10 +52,21 @@ func (s *Server) ImageFsInfo(context.Context, *types.ImageFsInfoRequest) (*types
 	store := s.StorageImageServer().GetStore()
 	fsUsage, err := getStorageFsInfo(store)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get image fs info %w", err)
 	}
 
-	return &types.ImageFsInfoResponse{
-		ImageFilesystems: []*types.FilesystemUsage{fsUsage},
+	return fsUsage, nil
+}
+
+func getUsage(containerPath string) (*types.FilesystemUsage, error) {
+	bytes, inodes, err := crioStorage.GetDiskUsageStats(containerPath)
+	if err != nil {
+		return nil, fmt.Errorf("get disk usage for path %s: %w", containerPath, err)
+	}
+	return &types.FilesystemUsage{
+		Timestamp:  time.Now().UnixNano(),
+		FsId:       &types.FilesystemIdentifier{Mountpoint: containerPath},
+		UsedBytes:  &types.UInt64Value{Value: bytes},
+		InodesUsed: &types.UInt64Value{Value: inodes},
 	}, nil
 }

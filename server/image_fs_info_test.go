@@ -24,6 +24,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().ImageStore().Return(""),
 				storeMock.EXPECT().GraphDriverName().Return("test"),
 			)
 			testImageDir := "test-images"
@@ -37,6 +38,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.ImageFilesystems)).To(BeEquivalentTo(1))
+			Expect(len(response.ContainerFilesystems)).To(BeEquivalentTo(1))
 		})
 
 		It("should fail on invalid image dir", func() {
@@ -44,6 +46,7 @@ var _ = t.Describe("ImageFsInfo", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				storeMock.EXPECT().GraphRoot().Return(""),
+				storeMock.EXPECT().ImageStore().Return(""),
 				storeMock.EXPECT().GraphDriverName().Return(""),
 			)
 
