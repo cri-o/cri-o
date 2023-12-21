@@ -19,6 +19,25 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+// CgroupStats is a structure used to augment libctr.Stats object, because
+// it does not have all of the information required for all of the stats we're
+// interested in.
+type CgroupStats struct {
+	MostStats     *libctrcgroups.Stats
+	OtherMemStats *CgroupMemoryStats
+	SystemNano    int64
+}
+
+// CgroupMemoryStats is an object to hold the memory stats from the memory.stat file
+// of the given cgroup.
+type CgroupMemoryStats struct {
+	Rss            uint64
+	PgFault        uint64
+	PgMajFault     uint64
+	WorkingSet     uint64
+	AvailableBytes uint64
+}
+
 func populateSandboxCgroupStatsFromPath(cgroupPath string, stats *types.PodSandboxStats) error {
 	cgroupStats, err := cgroupStatsFromPath(cgroupPath)
 	if err != nil {
