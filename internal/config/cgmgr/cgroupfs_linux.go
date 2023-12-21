@@ -170,7 +170,7 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 	return cgMgr, nil
 }
 
-// SandboxCgroupStats returns a stats object with with data from the cgroup found
+// SandboxCgroupStats returns a stats object with data from the cgroup found
 // given a cgroup parent, and sandbox ID.
 func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
 	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)

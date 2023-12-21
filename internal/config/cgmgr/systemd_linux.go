@@ -262,7 +262,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 	return cgMgr, nil
 }
 
-// SandboxCgroupStats returns a stats object with with data from the cgroup found
+// SandboxCgroupStats returns a stats object with data from the cgroup found
 // given a cgroup parent, and sandbox ID.
 func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
 	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
