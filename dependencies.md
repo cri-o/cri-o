@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
+_Generated on Thu, 21 Dec 2023 16:28:06 UTC for commit [d59bbdc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6c76d99be41112b196074356b54b43839d1d95ce
+[0]: https://github.com/cri-o/cri-o/commit/d59bbdc252837107c9f5d235b8fb2650ff2b9d93
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231220230126-d916da15dda8 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231221153031-32e1ba252531 | true   | true             |
 
 ## All Dependencies
 
@@ -169,8 +169,8 @@ _Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
 | github.com/BurntSushi/toml                                                              | v1.3.2                                            |                                     | true   | true             |
 | github.com/BurntSushi/xgb                                                               | v0.0.0-20160522181843-27f122750802                | v0.0.0-20210121224620-deaf085860bc  | false  | true             |
 | github.com/DataDog/appsec-internal-go                                                   | v1.0.0                                            | v1.4.0                              | false  | true             |
-| github.com/DataDog/datadog-agent/pkg/obfuscate                                          | v0.48.1                                           | v0.50.0                             | false  | true             |
-| github.com/DataDog/datadog-agent/pkg/remoteconfig/state                                 | v0.48.1                                           | v0.50.0                             | false  | true             |
+| github.com/DataDog/datadog-agent/pkg/obfuscate                                          | v0.48.1                                           | v0.50.1                             | false  | true             |
+| github.com/DataDog/datadog-agent/pkg/remoteconfig/state                                 | v0.48.1                                           | v0.50.1                             | false  | true             |
 | github.com/DataDog/datadog-go/v5                                                        | v5.3.0                                            | v5.4.0                              | false  | true             |
 | github.com/DataDog/go-libddwaf                                                          | v1.5.0                                            | v1.7.0                              | false  | true             |
 | github.com/DataDog/go-tuf                                                               | v1.0.2-0.5.2                                      |                                     | false  | true             |
@@ -554,7 +554,7 @@ _Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231220230126-d916da15dda8  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231221153031-32e1ba252531  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -716,11 +716,11 @@ _Generated on Thu, 21 Dec 2023 09:40:52 UTC for commit [6c76d99][0]._
 | github.com/sigstore/fulcio                                                              | v1.4.3                                            |                                     | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.2.1                                            |                                     | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.3.3                                            | v1.3.4                              | false  | true             |
-| github.com/sigstore/sigstore                                                            | v1.7.5                                            | v1.7.6                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.5                                            | v1.7.6                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.5                                            | v1.7.6                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.5                                            | v1.7.6                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.5                                            | v1.7.6                              | false  | true             |
+| github.com/sigstore/sigstore                                                            | v1.7.5                                            | v1.8.0                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.5                                            | v1.8.0                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.5                                            | v1.8.0                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                      | v1.7.5                                            | v1.8.0                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.5                                            | v1.8.0                              | false  | true             |
 | github.com/sigstore/timestamp-authority                                                 | v1.2.0                                            |                                     | false  | true             |
 | github.com/sirupsen/logrus                                                              | v1.9.3                                            |                                     | true   | true             |
 | github.com/skeema/knownhosts                                                            | v1.2.0                                            | v1.2.1                              | false  | true             |
