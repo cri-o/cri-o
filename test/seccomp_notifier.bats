@@ -8,6 +8,10 @@ function setup() {
 		skip "seccomp is not enabled"
 	fi
 
+	if [[ "$ARCH" != "$ARCH_X86_64" ]]; then
+		skip "not supported on arch $ARCH"
+	fi
+
 	setup_test
 }
 

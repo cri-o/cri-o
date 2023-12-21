@@ -1019,7 +1019,7 @@ function check_oci_annotation() {
 	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
 		skip "not applicable to vm runtime type"
 	fi
-	if [[ -n "$TEST_USERNS" ]]; then
+	if [[ "$TEST_USERNS" == "1" ]]; then
 		skip "test fails in a user namespace"
 	fi
 	newsandbox="$TESTDIR/sandbox.json"

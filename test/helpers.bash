@@ -557,7 +557,7 @@ function setup_kubensmnt() {
 }
 
 function has_criu() {
-    if [ -n "$TEST_USERNS" ]; then
+    if [[ "$TEST_USERNS" == "1" ]]; then
         skip "Cannot run CRIU tests in user namespace."
     fi
 

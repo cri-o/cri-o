@@ -35,7 +35,7 @@ function teardown() {
 }
 
 @test "pid namespace mode target test" {
-	if [[ -n "$TEST_USERNS" ]]; then
+	if [[ "$TEST_USERNS" == "1" ]]; then
 		skip "test fails in a user namespace"
 	fi
 	start_crio

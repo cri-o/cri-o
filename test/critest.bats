@@ -3,7 +3,7 @@
 load helpers
 
 function setup() {
-	if [[ -z $RUN_CRITEST ]]; then
+	if [[ "$RUN_CRITEST" != "1" ]]; then
 		skip "critest because RUN_CRITEST is not set"
 	fi
 

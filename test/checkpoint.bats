@@ -6,6 +6,11 @@ function setup() {
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
+
+	if [[ "$ARCH" != "$ARCH_X86_64" ]]; then
+		skip "not supported on arch $ARCH"
+	fi
+
 	has_criu
 	setup_test
 }

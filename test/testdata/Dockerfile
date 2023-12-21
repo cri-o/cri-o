@@ -1,4 +1,4 @@
-FROM fedora-minimal:38
+FROM registry.fedoraproject.org/fedora-minimal:38
 RUN microdnf install -y coreutils \
 		gcc \
 		gzip \
