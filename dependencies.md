@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Dec 2023 21:15:33 UTC for commit [4e230f2][0]._
+_Generated on Fri, 22 Dec 2023 10:18:23 UTC for commit [5449a58][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4e230f28c6e3dd9bca81b67c0bb6ca9316f25743
+[0]: https://github.com/cri-o/cri-o/commit/5449a58d817967b1fb4ddb082bd6c67d6d4fb28a
 
 ## Outdated Dependencies
 
@@ -10,7 +10,8 @@ _Generated on Thu, 21 Dec 2023 21:15:33 UTC for commit [4e230f2][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231221153031-32e1ba252531 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231222091607-c5f939cdc11f | true   | true             |
+| google.golang.org/protobuf                             | v1.31.0                            | v1.32.0                            | true   | true             |
 
 ## All Dependencies
 
@@ -554,7 +555,7 @@ _Generated on Thu, 21 Dec 2023 21:15:33 UTC for commit [4e230f2][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231221153031-32e1ba252531  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231222091607-c5f939cdc11f  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -873,7 +874,7 @@ _Generated on Thu, 21 Dec 2023 21:15:33 UTC for commit [4e230f2][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.60.1                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
-| google.golang.org/protobuf                                                              | v1.31.0                                           |                                     | true   | true             |
+| google.golang.org/protobuf                                                              | v1.31.0                                           | v1.32.0                             | true   | true             |
 | gopkg.in/DataDog/dd-trace-go.v1                                                         | v1.56.1                                           | v1.58.1                             | false  | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                     | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                            | v2.4.0                              | false  | true             |
