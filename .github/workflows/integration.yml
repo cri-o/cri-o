@@ -10,6 +10,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.21'
+  CONMON_BINARY: /usr/local/bin/conmon  # from: scripts/github-actions-setup
 permissions:
   contents: read
 
