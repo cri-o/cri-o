@@ -310,7 +310,6 @@ func main() {
 
 		// Immediately upon start up, write our new version files
 		// we write one to a tmpfs, so we can detect when a node rebooted.
-		// in this situation, we want to wipe containers
 		if err := info.WriteVersionFile(config.VersionFile); err != nil {
 			logrus.Fatal(err)
 		}
