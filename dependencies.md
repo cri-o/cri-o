@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 28 Dec 2023 04:42:39 UTC for commit [1e1e569][0]._
+_Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1e1e569aff5a203bc91a9443d91ca824b855c834
+[0]: https://github.com/cri-o/cri-o/commit/b1ce53bbdab4da31d21e483619e697da3bf1c9c6
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Thu, 28 Dec 2023 04:42:39 UTC for commit [1e1e569][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
-| github.com/intel/goresctrl                             | v0.5.0                             | v0.6.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231227132729-990a3adf399b | true   | true             |
 | github.com/prometheus/client_golang                    | v1.17.0                            | v1.18.0                            | true   | true             |
 | google.golang.org/protobuf                             | v1.31.0                            | v1.32.0                            | true   | true             |
@@ -537,7 +536,7 @@ _Generated on Thu, 28 Dec 2023 04:42:39 UTC for commit [1e1e569][0]._
 | github.com/in-toto/in-toto-golang                                                       | v0.9.0                                            |                                     | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.1.0                                            |                                     | false  | true             |
 | github.com/intel-go/cpuid                                                               | v0.0.0-20210602155658-5747e5cec0d9                | v0.0.0-20220614022739-219e067757cb  | false  | true             |
-| github.com/intel/goresctrl                                                              | v0.5.0                                            | v0.6.0                              | true   | true             |
+| github.com/intel/goresctrl                                                              | v0.6.0                                            |                                     | true   | true             |
 | github.com/j-keck/arping                                                                | v0.0.0-20160618110441-2cf9dc699c56                | v1.0.3                              | false  | true             |
 | github.com/jbenet/go-context                                                            | v0.0.0-20150711004518-d14ea06fba99                |                                     | false  | true             |
 | github.com/jedisct1/go-minisign                                                         | v0.0.0-20230811132847-661be99b8267                |                                     | false  | true             |
@@ -851,10 +850,10 @@ _Generated on Thu, 28 Dec 2023 04:42:39 UTC for commit [1e1e569][0]._
 | go4.org/intern                                                                          | v0.0.0-20230525184215-6c62f75575cb                |                                     | false  | true             |
 | go4.org/unsafe/assume-no-moving-gc                                                      | v0.0.0-20230525183740-e7c30c78aeb2                | v0.0.0-20231121144256-b99613f794b6  | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                     | false  | true             |
-| gocloud.dev                                                                             | v0.34.0                                           | v0.35.0                             | false  | true             |
+| gocloud.dev                                                                             | v0.34.0                                           | v0.36.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.6.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.17.0                                           |                                     | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20231006140011-7918f672742d                | v0.0.0-20231226003508-02704c960a9b  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611                | v0.0.0-20231226003508-02704c960a9b  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20190802002840-cff245a6509b                | v0.14.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20200302205851-738671d3881b                | v0.0.0-20210508222113-6edffad5e616  | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20231127183840-76ac6878050a  | false  | true             |
