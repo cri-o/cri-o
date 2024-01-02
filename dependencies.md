@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
+_Generated on Tue, 02 Jan 2024 19:47:48 UTC for commit [8eec120][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b1ce53bbdab4da31d21e483619e697da3bf1c9c6
+[0]: https://github.com/cri-o/cri-o/commit/8eec120cd08e322fff0c34588d8eab6d8eda6d8d
 
 ## Outdated Dependencies
 
@@ -10,9 +10,12 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231227132729-990a3adf399b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20231228175832-67b91c1eb34f | true   | true             |
+| github.com/opencontainers/runc                         | v1.1.10                            | v1.1.11                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.17.0                            | v1.18.0                            | true   | true             |
+| github.com/urfave/cli/v2                               | v2.27.0                            | v2.27.1                            | true   | true             |
 | google.golang.org/protobuf                             | v1.31.0                            | v1.32.0                            | true   | true             |
+| k8s.io/utils                                           | v0.0.0-20231127182322-b307cd553661 | v0.0.0-20240102154912-e7106e64919e | true   | true             |
 
 ## All Dependencies
 
@@ -176,13 +179,13 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/DataDog/datadog-go/v5                                                        | v5.3.0                                            | v5.4.0                              | false  | true             |
 | github.com/DataDog/go-libddwaf                                                          | v1.5.0                                            | v1.7.0                              | false  | true             |
 | github.com/DataDog/go-tuf                                                               | v1.0.2-0.5.2                                      |                                     | false  | true             |
-| github.com/DataDog/sketches-go                                                          | v1.4.3                                            |                                     | false  | true             |
+| github.com/DataDog/sketches-go                                                          | v1.4.3                                            | v1.4.4                              | false  | true             |
 | github.com/Masterminds/semver/v3                                                        | v3.2.1                                            |                                     | false  | true             |
 | github.com/Microsoft/cosesign1go                                                        | v0.0.1                                            | v1.0.0                              | false  | true             |
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                            |                                     | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                            |                                     | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.1                                      | v0.12.0-rc.2                        | false  | true             |
-| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231220161729-6901c20d6974  | false  | true             |
+| github.com/Microsoft/hcsshim/test                                                       | v0.0.0-20210227013316-43a75bb4edd3                | v0.0.0-20231228172925-0285b8b2bff3  | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                            |                                     | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                            |                                     | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                            | v1.2.2                              | false  | true             |
@@ -224,7 +227,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.11                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.2                             | false  | true             |
@@ -291,7 +294,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.12.3                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                            |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                     | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.5                                            | v1.3.6                              | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.5                                            | v1.3.7                              | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe                |                                     | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20230607035331-e9ce68804cb4                | v0.0.0-20231128003011-0fa0005c9caa  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                            |                                     | false  | true             |
@@ -303,7 +306,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/containerd/btrfs                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                          | v2.0.0                                            |                                     | false  | true             |
 | github.com/containerd/cgroups                                                           | v1.1.0                                            |                                     | true   | true             |
-| github.com/containerd/cgroups/v3                                                        | v3.0.2                                            |                                     | false  | true             |
+| github.com/containerd/cgroups/v3                                                        | v3.0.2                                            | v3.0.3                              | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                            |                                     | false  | true             |
 | github.com/containerd/containerd                                                        | v1.7.11                                           |                                     | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                            | v0.4.3                              | false  | true             |
@@ -396,7 +399,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                                           |                                     | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                                           | v1.13.0                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                                           |                                     | false  | true             |
-| github.com/envoyproxy/go-control-plane                                                  | v0.11.1                                           |                                     | false  | true             |
+| github.com/envoyproxy/go-control-plane                                                  | v0.11.1                                           | v0.12.0                             | false  | true             |
 | github.com/envoyproxy/protoc-gen-validate                                               | v1.0.2                                            |                                     | false  | true             |
 | github.com/evanphx/json-patch                                                           | v4.12.0+incompatible                              | v5.7.0+incompatible                 | false  | true             |
 | github.com/fatih/color                                                                  | v1.15.0                                           | v1.16.0                             | false  | true             |
@@ -436,7 +439,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.5                             | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.26.2                             | false  | true             |
 | github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.13                            | false  | true             |
-| github.com/go-openapi/strfmt                                                            | v0.21.7                                           | v0.21.10                            | false  | true             |
+| github.com/go-openapi/strfmt                                                            | v0.21.7                                           | v0.22.0                             | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.7                             | false  | true             |
 | github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.6                             | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
@@ -492,7 +495,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/google/go-querystring                                                        | v1.1.0                                            |                                     | false  | true             |
 | github.com/google/gofuzz                                                                | v1.2.0                                            |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                               |                                     | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15                | v0.0.0-20231212022811-ec68065c825e  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15                | v0.0.0-20231229205709-960ae82b1e42  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                            |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                            |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                            |                                     | false  | true             |
@@ -556,7 +559,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231227132729-990a3adf399b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20231228175832-67b91c1eb34f  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -580,7 +583,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.18                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20231221180706-5972d43924a1  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240102174453-21fc19127322  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -652,7 +655,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/open-policy-agent/opa                                                        | v0.58.0                                           | v0.60.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc5                                        |                                     | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.1.10                                           |                                     | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.1.10                                           | v1.1.11                             | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.1.1-0.20230922153023-c0e90434df2a              |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc              |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                                           |                                     | true   | true             |
@@ -670,7 +673,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/philhofer/fwd                                                                | v1.1.2                                            |                                     | false  | true             |
 | github.com/pierrec/lz4/v4                                                               | v4.1.18                                           | v4.1.19                             | false  | true             |
 | github.com/pjbgf/sha1cd                                                                 | v0.3.0                                            |                                     | false  | true             |
-| github.com/pkg/browser                                                                  | v0.0.0-20210911075715-681adbf594b8                |                                     | false  | true             |
+| github.com/pkg/browser                                                                  | v0.0.0-20210911075715-681adbf594b8                | v0.0.0-20240102092130-5ac0b6a4141c  | false  | true             |
 | github.com/pkg/errors                                                                   | v0.9.1                                            |                                     | false  | true             |
 | github.com/pkg/profile                                                                  | v1.5.0                                            | v1.7.0                              | false  | true             |
 | github.com/pkg/sftp                                                                     | v1.13.6                                           |                                     | false  | true             |
@@ -711,7 +714,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/sergi/go-diff                                                                | v1.3.1                                            |                                     | false  | true             |
 | github.com/serialx/hashring                                                             | v0.0.0-20190422032157-8b2912629002                | v0.0.0-20200727003509-22c0c7ab6b1b  | false  | true             |
 | github.com/shibumi/go-pathspec                                                          | v1.3.0                                            |                                     | false  | true             |
-| github.com/shirou/gopsutil/v3                                                           | v3.23.10                                          | v3.23.11                            | false  | true             |
+| github.com/shirou/gopsutil/v3                                                           | v3.23.10                                          | v3.23.12                            | false  | true             |
 | github.com/shoenig/go-m1cpu                                                             | v0.1.6                                            |                                     | false  | true             |
 | github.com/shurcooL/sanitized_anchor_name                                               | v1.0.0                                            |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                                           | v2.2.1                                            | v2.2.2                              | false  | true             |
@@ -773,7 +776,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.2.3                                            |                                     | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.2.3                                            |                                     | false  | true             |
 | github.com/urfave/cli                                                                   | v1.22.14                                          |                                     | false  | true             |
-| github.com/urfave/cli/v2                                                                | v2.27.0                                           |                                     | true   | true             |
+| github.com/urfave/cli/v2                                                                | v2.27.0                                           | v2.27.1                             | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                                           |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                                           |                                     | false  | true             |
 | github.com/vbauerster/mpb/v8                                                            | v8.6.2                                            | v8.7.1                              | false  | true             |
@@ -870,9 +873,9 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | google.golang.org/api                                                                   | v0.149.0                                          | v0.154.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.111.0                            | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20231212172506-995d672761c0  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20240102182953-50ed04b92917  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20240102182953-50ed04b92917  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20231127180814-3a041ad873d4                | v0.0.0-20240102182953-50ed04b92917  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.60.1                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.31.0                                           | v1.32.0                             | true   | true             |
@@ -912,7 +915,7 @@ _Generated on Thu, 28 Dec 2023 07:39:19 UTC for commit [b1ce53b][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20231010175941-2dd684a91f00                | v0.0.0-20231214164306-ab13479f8bf8  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.29.0                                           |                                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                           | v1.29.0                             | false  | true             |
-| k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                |                                     | true   | true             |
+| k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                | v0.0.0-20240102154912-e7106e64919e  | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20231219072704-d513e487961e  | false  | true             |
