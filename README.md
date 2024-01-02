@@ -15,6 +15,7 @@
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
 [![Mentioned in Awesome CRI-O](https://awesome.re/mentioned-badge.svg)](awesome.md)
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/cri-o/cri-o)
+<a href="https://actuated.dev/"><img alt="Arm CI sponsored by Actuated" src="https://docs.actuated.dev/images/actuated-badge.png" width="20px"></img></a>
 
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
