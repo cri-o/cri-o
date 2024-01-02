@@ -68,3 +68,10 @@ dependencies:
       match: bats
     - path: contrib/test/integration/build/bats.yml
       match: version
+
+  - name: bom
+    version: 0.5.1
+    refPaths:
+      - path: Makefile
+        match: BOM_VERSION
+
