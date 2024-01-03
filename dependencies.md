@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 02 Jan 2024 19:47:48 UTC for commit [8eec120][0]._
+_Generated on Wed, 03 Jan 2024 06:41:07 UTC for commit [75fcda9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8eec120cd08e322fff0c34588d8eab6d8eda6d8d
+[0]: https://github.com/cri-o/cri-o/commit/75fcda9ee3e6d771486c46a69c42a1a8ff5b5336
 
 ## Outdated Dependencies
 
@@ -285,7 +285,7 @@ _Generated on Tue, 02 Jan 2024 19:47:48 UTC for commit [8eec120][0]._
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d                |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                            | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589                |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20231205062650-00455a960d61  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20240102194822-c006b26f21c7  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                            | v0.9.3                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                     | false  | true             |
@@ -912,7 +912,7 @@ _Generated on Tue, 02 Jan 2024 19:47:48 UTC for commit [8eec120][0]._
 | k8s.io/klog                                                                             | v1.0.0                                            |                                     | false  | true             |
 | k8s.io/klog/v2                                                                          | v2.110.1                                          |                                     | true   | true             |
 | k8s.io/kms                                                                              | v0.29.0                                           |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                     | v0.0.0-20231010175941-2dd684a91f00                | v0.0.0-20231214164306-ab13479f8bf8  | false  | true             |
+| k8s.io/kube-openapi                                                                     | v0.0.0-20231010175941-2dd684a91f00                | v0.0.0-20240103051144-eec4567ac022  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.29.0                                           |                                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                           | v1.29.0                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                | v0.0.0-20240102154912-e7106e64919e  | true   | true             |
