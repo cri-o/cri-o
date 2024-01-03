@@ -24,7 +24,7 @@ require (
 	github.com/containers/image/v5 v5.29.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.9
-	github.com/containers/podman/v4 v4.8.2
+	github.com/containers/podman/v4 v4.8.3
 	github.com/containers/storage v1.51.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/cpuguy83/go-md2man v1.0.10
