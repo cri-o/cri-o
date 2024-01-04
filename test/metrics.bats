@@ -132,4 +132,8 @@ function teardown() {
 #
 #	METRIC=$(curl -sf "http://localhost:$PORT/metrics" | grep 'crio_containers_oom{')
 #	[[ "$METRIC" == 'container_runtime_crio_containers_oom{name="k8s_container1_podsandbox1_redhat.test.crio_redhat-test-crio_1"} 1' ]]
+#
+#	# should cleanup the metrics after removal
+#	crictl rmp -fa
+#	! curl -sf "http://localhost:$PORT/metrics" | grep 'crio_containers_oom{'
 #}
