@@ -155,39 +155,6 @@ var _ = t.Describe("Utils", func() {
 		})
 	})
 
-	t.Describe("WriteGoroutineStacks", func() {
-		It("should succeed", func() {
-			// Given
-			writer := &bytes.Buffer{}
-
-			// When
-			err := utils.WriteGoroutineStacks(writer)
-
-			// Then
-			Expect(err).To(BeNil())
-		})
-
-		It("should fail on invalid writer", func() {
-			// Given
-			writer := &errorReaderWriter{}
-
-			// When
-			err := utils.WriteGoroutineStacks(writer)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-
-		It("should fail with nil reader/writer", func() {
-			// Given
-			// When
-			err := utils.WriteGoroutineStacks(nil)
-
-			// Then
-			Expect(err).NotTo(BeNil())
-		})
-	})
-
 	t.Describe("RunUnderSystemdScope", func() {
 		It("should fail unauthenticated", func() {
 			// Given
