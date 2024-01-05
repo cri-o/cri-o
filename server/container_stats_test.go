@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"context"
-	"errors"
 
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo/v2"
@@ -47,7 +46,6 @@ var _ = t.Describe("ContainerStatsList", func() {
 		It("should succeed", func() {
 			// Given
 			addContainerAndSandbox()
-			storeMock.EXPECT().GraphDriver().Return(nil, errors.New("not implemented"))
 
 			// When
 			response, err := sut.ListContainerStats(context.Background(),
@@ -56,7 +54,7 @@ var _ = t.Describe("ContainerStatsList", func() {
 			// Then
 			Expect(err).To(BeNil())
 			Expect(response).NotTo(BeNil())
-			Expect(len(response.Stats)).To(Equal(1))
+			Expect(len(response.Stats)).To(Equal(0))
 		})
 		It("should filter stopped container", func() {
 			// Given

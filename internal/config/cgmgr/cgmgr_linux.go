@@ -64,6 +64,10 @@ type CgroupManager interface {
 	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
 	// RemoveContainerCgManager removes the cgroup manager for the container
 	RemoveContainerCgManager(containerID string)
+	// ContainerCgroupStats takes the sandbox parent, and container ID.
+	// It creates a new cgroup if one does not already exist.
+	// It returns the cgroup stats for that container.
+	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
@@ -87,6 +91,10 @@ type CgroupManager interface {
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container.
 	RemoveSandboxCgroup(sbParent, containerID string) error
+	// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+	// It creates a new cgroup for that sandbox if it does not already exist.
+	// It returns the cgroup stats for that sandbox.
+	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
 }
 
 // New creates a new CgroupManager with defaults

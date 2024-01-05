@@ -130,6 +130,21 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 	return cgMgr, nil
 }
 
+// ContainerCgroupStats takes the sandbox parent, and container ID.
+// It creates a new cgroup if one does not already exist.
+// It returns the cgroup stats for that container.
+func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
+}
+
 // RemoveContainerCgManager removes the cgroup manager for the container
 func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
@@ -239,6 +254,21 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 		m.v1SbCgMgr[sbID] = cgMgr
 	}
 	return cgMgr, nil
+}
+
+// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+// It creates a new cgroup for that sandbox if it does not already exist.
+// It returns the cgroup stats for that sandbox.
+func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
 }
 
 // RemoveSandboxCgroupManager removes cgroup manager for the sandbox

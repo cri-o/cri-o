@@ -101,6 +101,21 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 	return cgMgr, nil
 }
 
+// ContainerCgroupStats takes the sandbox parent, and container ID.
+// It creates a new cgroup if one does not already exist.
+// It returns the cgroup stats for that container.
+func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
+}
+
 // RemoveContainerCgManager removes the cgroup manager for the container
 func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
@@ -149,7 +164,22 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 	return cgMgr, nil
 }
 
-// RemoveSandboeCgroupManager removes the cgroup manager for the sandbox
+// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+// It creates a new cgroup for that sandbox if it does not already exist.
+// It returns the cgroup stats for that sandbox.
+func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
+}
+
+// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
 func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()

@@ -3,6 +3,7 @@ package cgmgr
 import (
 	"bufio"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -18,6 +19,51 @@ import (
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
+
+// This is a universal stats object to be used across different runtime implementations.
+// We could have used the libcontainer/cgroups.Stats object as a standard stats object for cri-o.
+// But due to it's incompatibility with non-linux platforms,
+// we have to create our own object that can be moved around regardless of the runtime.
+type CgroupStats struct {
+	Memory     *MemoryStats
+	CPU        *CPUStats
+	Pid        *PidsStats
+	SystemNano int64
+}
+
+type MemoryStats struct {
+	Usage           uint64
+	Cache           uint64
+	Limit           uint64
+	MaxUsage        uint64
+	WorkingSetBytes uint64
+	RssBytes        uint64
+	PageFaults      uint64
+	MajorPageFaults uint64
+	AvailableBytes  uint64
+	KernelUsage     uint64
+	KernelTCPUsage  uint64
+	SwapUsage       uint64
+	SwapLimit       uint64
+}
+
+type CPUStats struct {
+	TotalUsageNano    uint64
+	PerCPUUsage       []uint64
+	UsageInKernelmode uint64
+	UsageInUsermode   uint64
+	// Number of periods with throttling active
+	ThrottlingActivePeriods uint64
+	// Number of periods when the container hit its throttling limit.
+	ThrottledPeriods uint64
+	// Aggregate time the container was throttled for in nanoseconds.
+	ThrottledTime uint64
+}
+
+type PidsStats struct {
+	Current uint64
+	Limit   uint64
+}
 
 func populateSandboxCgroupStatsFromPath(cgroupPath string, stats *types.PodSandboxStats) error {
 	cgroupStats, err := cgroupStatsFromPath(cgroupPath)
@@ -194,4 +240,87 @@ func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, 
 		ScopePrefix: CrioPrefix,
 	}
 	return manager.New(cg)
+}
+
+func libctrStatsToCgroupStats(stats *libctrcgroups.Stats) *CgroupStats {
+	return &CgroupStats{
+		Memory: cgroupMemStats(&stats.MemoryStats),
+		CPU:    cgroupCPUStats(&stats.CpuStats),
+		Pid: &PidsStats{
+			Current: stats.PidsStats.Current,
+			Limit:   stats.PidsStats.Limit,
+		},
+		SystemNano: time.Now().UnixNano(),
+	}
+}
+
+func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
+	var (
+		workingSetBytes  uint64
+		rssBytes         uint64
+		pageFaults       uint64
+		majorPageFaults  uint64
+		usageBytes       uint64
+		availableBytes   uint64
+		inactiveFileName string
+	)
+	usageBytes = memStats.Usage.Usage
+	if node.CgroupIsV2() {
+		// Use anon for rssBytes for cgroup v2 as in cAdvisor
+		// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L809
+		rssBytes = memStats.Stats["anon"]
+		inactiveFileName = "inactive_file"
+		pageFaults = memStats.Stats["pgfault"]
+		majorPageFaults = memStats.Stats["pgmajfault"]
+	} else {
+		inactiveFileName = "total_inactive_file"
+		rssBytes = memStats.Stats["total_rss"]
+		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
+	}
+	workingSetBytes = usageBytes
+	if v, ok := memStats.Stats[inactiveFileName]; ok {
+		if workingSetBytes < v {
+			workingSetBytes = 0
+		} else {
+			workingSetBytes -= v
+		}
+	}
+	if !isMemoryUnlimited(memStats.Usage.Limit) {
+		// https://github.com/kubernetes/kubernetes/blob/94f15bbbcbe952762b7f5e6e3f77d86ecec7d7c2/pkg/kubelet/stats/helper.go#L69
+		availableBytes = memStats.Usage.Limit - workingSetBytes
+	}
+	return &MemoryStats{
+		Usage:           memStats.Usage.Usage,
+		Cache:           memStats.Cache,
+		Limit:           memStats.Usage.Limit,
+		MaxUsage:        memStats.Usage.MaxUsage,
+		WorkingSetBytes: workingSetBytes,
+		RssBytes:        rssBytes,
+		PageFaults:      pageFaults,
+		MajorPageFaults: majorPageFaults,
+		AvailableBytes:  availableBytes,
+		KernelUsage:     memStats.KernelUsage.Usage,
+		KernelTCPUsage:  memStats.KernelTCPUsage.Usage,
+		SwapUsage:       memStats.SwapUsage.Usage,
+		SwapLimit:       memStats.SwapUsage.Limit,
+	}
+}
+
+func cgroupCPUStats(cpuStats *libctrcgroups.CpuStats) *CPUStats {
+	return &CPUStats{
+		TotalUsageNano:          cpuStats.CpuUsage.TotalUsage,
+		PerCPUUsage:             cpuStats.CpuUsage.PercpuUsage,
+		UsageInKernelmode:       cpuStats.CpuUsage.UsageInKernelmode,
+		UsageInUsermode:         cpuStats.CpuUsage.UsageInUsermode,
+		ThrottlingActivePeriods: cpuStats.ThrottlingData.Periods,
+		ThrottledPeriods:        cpuStats.ThrottlingData.ThrottledPeriods,
+		ThrottledTime:           cpuStats.ThrottlingData.ThrottledTime,
+	}
+}
+
+func isMemoryUnlimited(v uint64) bool {
+	// if the container has unlimited memory, the value of memory.max (in cgroupv2) will be "max"
+	// or the value of memory.limit_in_bytes (in cgroupv1) will be -1
+	// either way, libcontainer/cgroups will return math.MaxUint64
+	return v == math.MaxUint64
 }
