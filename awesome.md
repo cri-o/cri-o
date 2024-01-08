@@ -24,6 +24,7 @@ and collects useful resources about CRI-O.
 
 ### Articles
 
+- [Kubernetes with CRI-O on Fedora 39 (Dec 27, 2023)](https://fedoramagazine.org/kubernetes-with-cri-o-on-fedora-linux-39/)
 - [Under the hood of CRI-O (Oct 30, 2019)](https://vmblog.com/archive/2019/10/30/under-the-hood-of-cri-o-kubernetes-container-runtime.aspx)
 - [Demystifying Containers – Part II: Container Runtimes (Jul 15, 2019)](https://www.cncf.io/blog/2019/07/15/demystifying-containers-part-ii-container-runtimes)
 - [Red Hat contributes CRI-O to the Cloud Native Computing Foundation (Apr 8, 2019)](https://www.redhat.com/en/blog/red-hat-contributes-cri-o-cloud-native-computing-foundation)
