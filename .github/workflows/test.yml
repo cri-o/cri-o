@@ -57,6 +57,7 @@ jobs:
         run: |
           mkdir -p ~/.cache/go-build ~/go/pkg/mod
           sudo podman run \
+            -e CGO_CFLAGS='-D_LARGEFILE64_SOURCE' \
             -v ~/go/pkg/mod:/go/pkg/mod \
             -v ~/.cache/go-build:/root/.cache/go-build \
             -v $PWD:/build \
