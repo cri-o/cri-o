@@ -23,6 +23,10 @@ const (
 	// used to check if we should wipe containers
 	CrioVersionPathTmp = "/var/run/crio/version"
 
+	// CrioVersionPersistPath is where the CRI-O version file is located to a persistent directory
+	// This is to check if crio has upgraded, used to check if we should wipe images
+	CrioVersionPersistPath = "/var/lib/crio/version"
+
 	// CrioCleanShutdownFile is the location CRI-O will lay down the clean shutdown file
 	// that checks whether we've had time to sync before shutting down.
 	// If not, crio wipe will clear the storage directory.
