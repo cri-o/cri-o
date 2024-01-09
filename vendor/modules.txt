@@ -230,7 +230,7 @@ github.com/containers/buildah/pkg/parse
 github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/util
-# github.com/containers/common v0.46.1-0.20230510135603-1fce5055c6ee
+# github.com/containers/common v0.46.1-0.20240109075609-52aab2048c15
 ## explicit; go 1.15
 github.com/containers/common/libimage
 github.com/containers/common/libimage/manifests
