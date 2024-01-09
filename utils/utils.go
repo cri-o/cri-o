@@ -7,7 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"runtime"
+	"runtime/pprof"
 	"strconv"
 
 	"github.com/containers/podman/v4/pkg/lookup"
@@ -96,29 +96,6 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
 	return written, err
 }
 
-// WriteGoroutineStacks writes out the goroutine stacks
-// of the caller. Up to 32 MB is allocated to print the
-// stack.
-func WriteGoroutineStacks(w io.Writer) error {
-	if w == nil {
-		return fmt.Errorf("writer nil")
-	}
-	buf := make([]byte, 1<<20)
-	for i := 0; ; i++ {
-		n := runtime.Stack(buf, true)
-		if n < len(buf) {
-			buf = buf[:n]
-			break
-		}
-		if len(buf) >= 32<<20 {
-			break
-		}
-		buf = make([]byte, 2*len(buf))
-	}
-	_, err := w.Write(buf)
-	return err
-}
-
 // WriteGoroutineStacksToFile write goroutine stacks
 // to the specified file.
 func WriteGoroutineStacksToFile(path string) error {
@@ -128,10 +105,15 @@ func WriteGoroutineStacksToFile(path string) error {
 	}
 	defer f.Close()
 
-	err = WriteGoroutineStacks(f)
+	// Print goroutines stacks using the same format
+	// as if an unrecoverable panic would occur. The
+	// internal buffer is 64 MiB, which hopefully
+	// will be sufficient.
+	err = pprof.Lookup("goroutine").WriteTo(f, 2)
 	if err != nil {
 		return err
 	}
+
 	return f.Sync()
 }
 
