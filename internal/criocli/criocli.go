@@ -1092,7 +1092,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringFlag{
 			Name:      "version-file-persist",
 			Usage:     "Location for CRI-O to lay down the persistent version file. It is used to check if crio wipe should wipe images, which should only happen when CRI-O has been upgraded.",
-			Value:     defConf.VersionFile,
+			Value:     defConf.VersionFilePersist,
 			EnvVars:   []string{"CONTAINER_VERSION_FILE_PERSIST"},
 			TakesFile: true,
 		},
