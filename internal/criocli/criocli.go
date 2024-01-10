@@ -339,6 +339,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
+	if ctx.IsSet("metrics-host") {
+		config.MetricsHost = ctx.String("metrics-host")
+	}
 	if ctx.IsSet("metrics-port") {
 		config.MetricsPort = ctx.Int("metrics-port")
 	}
@@ -820,6 +823,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Enable metrics endpoint for the server on localhost:9090.",
 			EnvVars: []string{"CONTAINER_ENABLE_METRICS"},
 			Value:   defConf.EnableMetrics,
+		},
+		&cli.StringFlag{
+			Name:    "metrics-host",
+			Usage:   "Host for the metrics endpoint. (default: \"\" for all interfaces)",
+			EnvVars: []string{"CONTAINER_METRICS_HOST"},
+			Value:   defConf.MetricsHost,
 		},
 		&cli.IntFlag{
 			Name:    "metrics-port",

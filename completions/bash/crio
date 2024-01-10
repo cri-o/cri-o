@@ -78,6 +78,7 @@ h
 --log-size-max
 --metrics-cert
 --metrics-collectors
+--metrics-host
 --metrics-key
 --metrics-port
 --metrics-socket
