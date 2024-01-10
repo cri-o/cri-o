@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/log"
@@ -9,6 +10,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/utils/cpuset"
 
 	"golang.org/x/net/context"
 )
@@ -27,6 +29,9 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 	}
 
 	if req.Linux != nil {
+		if err := reapplySharedCPUs(c, req); err != nil {
+			return nil, err
+		}
 		updated, err := s.nri.updateContainer(ctx, c, req.Linux)
 		if err != nil {
 			return nil, err
@@ -79,4 +84,34 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 		}
 	}
 	return &update
+}
+
+// reapplySharedCPUs appends shared CPUs and update the quota to handle CPUManager
+func reapplySharedCPUs(c *oci.Container, req *types.UpdateContainerResourcesRequest) error {
+	const sharedCPUsEnvVar = "OPENSHIFT_SHARED_CPUS"
+	var sharedCpus string
+
+	if c.Spec().Process == nil {
+		return nil
+	}
+	for _, env := range c.Spec().Process.Env {
+		keyAndValue := strings.Split(env, "=")
+		if keyAndValue[0] == sharedCPUsEnvVar {
+			sharedCpus = keyAndValue[1]
+		}
+	}
+	// nothing to do
+	if sharedCpus == "" {
+		return nil
+	}
+	shared, err := cpuset.Parse(sharedCpus)
+	if err != nil {
+		return err
+	}
+	isolated, err := cpuset.Parse(req.Linux.CpusetCpus)
+	if err != nil {
+		return err
+	}
+	req.Linux.CpusetCpus = isolated.Union(shared).String()
+	return nil
 }
