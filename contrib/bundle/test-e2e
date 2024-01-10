@@ -103,7 +103,7 @@ cat <<EOT >>/etc/crio/crio.conf.d/10-config.conf
 log_level = "debug"
 
 [crio.runtime.runtimes.runc]
-runtime_path = "/usr/local/bin/runc"
+runtime_path = "/usr/bin/runc"
 runtime_type = "$RUNTIME_TYPE"
 EOT
 
