@@ -551,6 +551,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: stringSliceEqual(dc.MetricsCollectors.ToSlice(), c.MetricsCollectors.ToSlice()),
 		},
 		{
+			templateString: templateStringCrioMetricsMetricsHost,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsHost, c.MetricsHost),
+		},
+		{
 			templateString: templateStringCrioMetricsMetricsPort,
 			group:          crioMetricsConfig,
 			isDefaultValue: simpleEqual(dc.MetricsPort, c.MetricsPort),
@@ -1465,6 +1470,11 @@ const templateStringCrioMetricsCollectors = `# Specify enabled metrics collector
 # way as "crio_operations" and "container_runtime_crio_operations".
 {{ $.Comment }}metrics_collectors = [
 {{ range $opt := .MetricsCollectors }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
+`
+
+const templateStringCrioMetricsMetricsHost = `# The hostname or ip on which the metrics server will listen.
+{{ $.Comment }}metrics_host = "{{ .MetricsHost }}"
+
 `
 
 const templateStringCrioMetricsMetricsPort = `# The port on which the metrics server will listen.
