@@ -26,7 +26,7 @@ require (
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.7
 	github.com/containers/podman/v4 v4.5.2-0.20230706090613-813f1b53bf39
-	github.com/containers/storage v1.46.1
+	github.com/containers/storage v1.46.2-0.20240109024019-79f7d7a094a5
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
@@ -83,7 +83,6 @@ require (
 	k8s.io/release v0.15.0
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	mvdan.cc/sh/v3 v3.5.1
-	sigs.k8s.io/bom v0.5.1
 	sigs.k8s.io/release-sdk v0.9.7
 	sigs.k8s.io/release-utils v0.7.4-0.20230327115955-2b998c68e4b6
 	sigs.k8s.io/yaml v1.3.0
@@ -403,6 +402,7 @@ require (
 	k8s.io/mount-utils v0.0.0 // indirect
 	mvdan.cc/editorconfig v0.2.0 // indirect
 	oras.land/oras-go v1.2.3-0.20230313045143-cb5625556a37 // indirect
+	sigs.k8s.io/bom v0.5.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect

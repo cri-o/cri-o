@@ -825,7 +825,7 @@ github.com/containers/psgo/internal/dev
 github.com/containers/psgo/internal/host
 github.com/containers/psgo/internal/proc
 github.com/containers/psgo/internal/process
-# github.com/containers/storage v1.46.1
+# github.com/containers/storage v1.46.2-0.20240109024019-79f7d7a094a5
 ## explicit; go 1.18
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -3067,13 +3067,9 @@ oras.land/oras-go/pkg/registry/remote/internal/syncutil
 oras.land/oras-go/pkg/target
 # sigs.k8s.io/bom v0.5.1
 ## explicit; go 1.20
-sigs.k8s.io/bom/cmd/bom
-sigs.k8s.io/bom/cmd/bom/cmd
 sigs.k8s.io/bom/pkg/license
 sigs.k8s.io/bom/pkg/osinfo
 sigs.k8s.io/bom/pkg/provenance
-sigs.k8s.io/bom/pkg/query
-sigs.k8s.io/bom/pkg/serialize
 sigs.k8s.io/bom/pkg/spdx
 sigs.k8s.io/bom/pkg/spdx/json/document
 sigs.k8s.io/bom/pkg/spdx/json/v2.2
