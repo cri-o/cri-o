@@ -122,6 +122,23 @@ func Validate(ctx context.Context, idToken string, audience string) (*Payload, e
 	return defaultValidator.validate(ctx, idToken, audience)
 }
 
+// ParsePayload parses the given token and returns its payload.
+//
+// Warning: This function does not validate the token prior to parsing it.
+//
+// ParsePayload is primarily meant to be used to inspect a token's payload. This is
+// useful when validation fails and the payload needs to be inspected.
+//
+// Note: A successful Validate() invocation with the same token will return an
+// identical payload.
+func ParsePayload(idToken string) (*Payload, error) {
+	jwt, err := parseJWT(idToken)
+	if err != nil {
+		return nil, err
+	}
+	return jwt.parsedPayload()
+}
+
 func (v *Validator) validate(ctx context.Context, idToken string, audience string) (*Payload, error) {
 	jwt, err := parseJWT(idToken)
 	if err != nil {
@@ -145,7 +162,7 @@ func (v *Validator) validate(ctx context.Context, idToken string, audience strin
 	}
 
 	if now().Unix() > payload.Expires {
-		return nil, fmt.Errorf("idtoken: token expired")
+		return nil, fmt.Errorf("idtoken: token expired: now=%v, expires=%v", now().Unix(), payload.Expires)
 	}
 
 	switch header.Algorithm {
