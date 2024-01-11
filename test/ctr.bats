@@ -1102,9 +1102,9 @@ function check_oci_annotation() {
 	# Check that the log is linked
 	ctr_log_path="$pod_log_dir/$ctr_name/$ctr_attempt.log"
 	[ -f "$ctr_log_path" ]
-	mounted_log_path="$pod_empty_dir_volume_path/logs/$ctr_name/$ctr_attempt.log"
+	mounted_log_path="$pod_empty_dir_volume_path/$ctr_name/$ctr_attempt.log"
 	[ -f "$mounted_log_path" ]
-	linked_log_path="$pod_empty_dir_volume_path/logs/$ctr_id"
+	linked_log_path="$pod_empty_dir_volume_path/$ctr_id.log"
 	[ -f "$linked_log_path" ]
 
 	crictl start "$ctr_id"
@@ -1114,7 +1114,7 @@ function check_oci_annotation() {
 	grep -E "Hello log linking" "$ctr_log_path"
 	grep -E "Hello log linking" "$linked_log_path"
 
-	crictl exec --sync "$ctr_id" grep -E "Hello log linking" "$ctr_path"/logs/"$ctr_id"
+	crictl exec --sync "$ctr_id" grep -E "Hello log linking" "$ctr_path"/"$ctr_id.log"
 
 	# Check linked logs were cleaned up
 	crictl rmp -fa
