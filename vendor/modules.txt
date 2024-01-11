@@ -616,7 +616,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.52.0
+# github.com/containers/common v0.52.1-0.20240105071109-142ede1e7506
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
