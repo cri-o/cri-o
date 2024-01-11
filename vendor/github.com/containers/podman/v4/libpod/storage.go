@@ -164,8 +164,8 @@ func (r *storageService) CreateContainerStorage(ctx context.Context, systemConte
 	logrus.Debugf("Container %q has run directory %q", container.ID, containerRunDir)
 
 	return ContainerInfo{
-		UIDMap:       container.UIDMap,
-		GIDMap:       container.GIDMap,
+		UIDMap:       options.UIDMap,
+		GIDMap:       options.GIDMap,
 		Dir:          containerDir,
 		RunDir:       containerRunDir,
 		Config:       imageConfig,

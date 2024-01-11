@@ -22,7 +22,7 @@ import (
 )
 
 // Duration is a wrapper around time.Duration which supports correct
-// marshalling to YAML and JSON. In particular, it marshals into strings, which
+// marshaling to YAML and JSON. In particular, it marshals into strings, which
 // can be used as map keys in json.
 type Duration struct {
 	time.Duration

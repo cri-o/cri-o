@@ -27,7 +27,6 @@ var (
 	handlerOrder    []string
 	shutdownInhibit sync.RWMutex
 	logrus          = logrusImport.WithField("PID", os.Getpid())
-	ErrNotStarted   = errors.New("shutdown signal handler has not yet been started")
 )
 
 // Start begins handling SIGTERM and SIGINT and will run the given on-signal
@@ -85,7 +84,7 @@ func Start() error {
 // Stop the shutdown signal handler.
 func Stop() error {
 	if cancelChan == nil {
-		return ErrNotStarted
+		return errors.New("shutdown signal handler has not yet been started")
 	}
 	if stopped {
 		return nil

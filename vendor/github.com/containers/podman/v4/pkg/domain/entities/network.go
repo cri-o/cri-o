@@ -55,8 +55,6 @@ type NetworkCreateOptions struct {
 	Options map[string]string
 	// IgnoreIfExists if true, do not fail if the network already exists
 	IgnoreIfExists bool
-	// InterfaceName sets the NetworkInterface in the network config
-	InterfaceName string
 }
 
 // NetworkUpdateOptions describes options to update a network

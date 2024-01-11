@@ -163,11 +163,20 @@ exec_binary (const char *path, char **argv, int argc)
       exit (EXIT_FAILURE);
     }
   if (WIFEXITED(status) && WEXITSTATUS (status))
-    exit (WEXITSTATUS(status));
+    {
+      fprintf (stderr, "external preexec hook %s failed\n", path);
+      exit (WEXITSTATUS(status));
+    }
   if (WIFSIGNALED (status))
-    exit (127+WTERMSIG (status));
+    {
+      fprintf (stderr, "external preexec hook %s failed\n", path);
+      exit (127+WTERMSIG (status));
+    }
   if (WIFSTOPPED (status))
+    {
+      fprintf (stderr, "external preexec hook %s failed\n", path);
       exit (EXIT_FAILURE);
+    }
 }
 
 static void
@@ -278,7 +287,7 @@ do_pause ()
     sigaction (sig[i], &act, NULL);
 
   /* Attempt to execv catatonit to keep the pause process alive.  */
-  execl (LIBEXECPODMAN "/catatonit", "catatonit", "-P", NULL);
+  execl (LIBEXECPODMAN "catatonit", "catatonit", "-P", NULL);
   execl ("/usr/bin/catatonit", "catatonit", "-P", NULL);
   /* and if the catatonit executable could not be found, fallback here... */
 
@@ -377,7 +386,6 @@ can_use_shortcut (char **argv)
 
       if (strcmp (argv[argc], "mount") == 0
           || strcmp (argv[argc], "machine") == 0
-          || strcmp (argv[argc], "version") == 0
           || strcmp (argv[argc], "context") == 0
           || strcmp (argv[argc], "search") == 0
           || (strcmp (argv[argc], "system") == 0 && argv[argc+1] && strcmp (argv[argc+1], "service") != 0))

@@ -2,7 +2,6 @@ package version
 
 import (
 	"github.com/blang/semver/v4"
-	"github.com/containers/podman/v4/version/rawversion"
 )
 
 type (
@@ -28,7 +27,7 @@ const (
 // NOTE: remember to bump the version at the top
 // of the top-level README.md file when this is
 // bumped.
-var Version = semver.MustParse(rawversion.RawVersion)
+var Version = semver.MustParse("4.4.1")
 
 // See https://docs.docker.com/engine/api/v1.40/
 // libpod compat handlers are expected to honor docker API versions

@@ -129,7 +129,6 @@ type PodCreateOptions struct {
 	InfraName          string            `json:"container_name,omitempty"`
 	InfraCommand       *string           `json:"container_command,omitempty"`
 	InfraConmonPidFile string            `json:"container_conmon_pidfile,omitempty"`
-	Ipc                string            `json:"ipc,omitempty"`
 	Labels             map[string]string `json:"labels,omitempty"`
 	Name               string            `json:"name,omitempty"`
 	Net                *NetOptions       `json:"net,omitempty"`
@@ -260,7 +259,6 @@ type ContainerCreateOptions struct {
 	SecurityOpt        []string `json:"security_opt,omitempty"`
 	SdNotifyMode       string
 	ShmSize            string
-	ShmSizeSystemd     string
 	SignaturePolicy    string
 	StartupHCCmd       string
 	StartupHCInterval  string
@@ -270,8 +268,8 @@ type ContainerCreateOptions struct {
 	StopSignal         string
 	StopTimeout        uint
 	StorageOpts        []string
-	SubGIDName         string
 	SubUIDName         string
+	SubGIDName         string
 	Sysctl             []string `json:"sysctl,omitempty"`
 	Systemd            string
 	Timeout            uint
@@ -302,7 +300,6 @@ type ContainerCreateOptions struct {
 
 	CgroupConf []string
 
-	GroupEntry  string
 	PasswdEntry string
 }
 
@@ -352,12 +349,6 @@ func ToPodSpecGen(s specgen.PodSpecGenerator, p *PodCreateOptions) (*specgen.Pod
 		return nil, err
 	}
 	s.Pid = out
-
-	out, err = specgen.ParseNamespace(p.Ipc)
-	if err != nil {
-		return nil, err
-	}
-	s.Ipc = out
 	s.Hostname = p.Hostname
 	s.ExitPolicy = p.ExitPolicy
 	s.Labels = p.Labels

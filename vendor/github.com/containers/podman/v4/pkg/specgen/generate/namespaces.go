@@ -1,6 +1,7 @@
 package generate
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -193,6 +194,9 @@ func namespaceOptions(s *specgen.SpecGenerator, rt *libpod.Runtime, pod *libpod.
 	// User
 	switch s.UserNS.NSMode {
 	case specgen.KeepID:
+		if !rootless.IsRootless() {
+			return nil, errors.New("keep-id is only supported in rootless mode")
+		}
 		opts, err := namespaces.UsernsMode(s.UserNS.String()).GetKeepIDOptions()
 		if err != nil {
 			return nil, err

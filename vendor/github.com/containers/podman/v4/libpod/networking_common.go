@@ -115,7 +115,7 @@ func (r *Runtime) teardownNetworkBackend(ns string, opts types.NetworkOptions) e
 		// execute the network setup in the rootless net ns
 		err = rootlessNetNS.Do(tearDownPod)
 		if cerr := rootlessNetNS.Cleanup(r); cerr != nil {
-			logrus.WithError(cerr).Error("failed to clean up rootless netns")
+			logrus.WithError(err).Error("failed to clean up rootless netns")
 		}
 		rootlessNetNS.Lock.Unlock()
 	} else {
@@ -240,26 +240,18 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		return nil, err
 	}
 
-	setDefaultNetworks := func() {
-		settings.Networks = make(map[string]*define.InspectAdditionalNetwork, 1)
-		name := c.NetworkMode()
-		addedNet := new(define.InspectAdditionalNetwork)
-		addedNet.NetworkID = name
-		settings.Networks[name] = addedNet
-	}
-
 	if c.state.NetNS == "" {
 		if networkNSPath := c.joinedNetworkNSPath(); networkNSPath != "" {
 			if result, err := c.inspectJoinedNetworkNS(networkNSPath); err == nil {
 				// fallback to dummy configuration
 				settings.InspectBasicNetworkConfig = resultToBasicNetworkConfig(result)
-			} else {
-				// do not propagate error inspecting a joined network ns
-				logrus.Errorf("Inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
+				return settings, nil
 			}
-			return settings, nil
+			// do not propagate error inspecting a joined network ns
+			logrus.Errorf("Inspecting network namespace: %s of container %s: %v", networkNSPath, c.ID(), err)
 		}
 		// We can't do more if the network is down.
+
 		// We still want to make dummy configurations for each network
 		// the container joined.
 		if len(networks) > 0 {
@@ -270,8 +262,6 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 				cniNet.Aliases = opts.Aliases
 				settings.Networks[net] = cniNet
 			}
-		} else {
-			setDefaultNetworks()
 		}
 
 		return settings, nil
@@ -292,7 +282,7 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 			return nil, fmt.Errorf("network inspection mismatch: asked to join %d network(s) %v, but have information on %d network(s): %w", len(networks), networks, len(netStatus), define.ErrInternal)
 		}
 
-		settings.Networks = make(map[string]*define.InspectAdditionalNetwork, len(networks))
+		settings.Networks = make(map[string]*define.InspectAdditionalNetwork)
 
 		for name, opts := range networks {
 			result := netStatus[name]
@@ -310,8 +300,6 @@ func (c *Container) getContainerNetworkInfo() (*define.InspectNetworkSettings, e
 		if !(len(networks) == 1 && isDefaultNet) {
 			return settings, nil
 		}
-	} else {
-		setDefaultNetworks()
 	}
 
 	// If not joining networks, we should have at most 1 result

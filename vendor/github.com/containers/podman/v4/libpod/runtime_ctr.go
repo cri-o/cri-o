@@ -414,6 +414,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 
 		// NewFromSpec() is deprecated according to its comment
 		// however the recommended replace just causes a nil map panic
+		//nolint:staticcheck
 		g := generate.NewFromSpec(ctr.config.Spec)
 		g.RemoveMount("/dev/shm")
 		ctr.config.ShmDir = ""
@@ -476,7 +477,7 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 			vol.Name = stringid.GenerateRandomID()
 			isAnonymous = true
 		} else {
-			// Check if it already exists
+			// Check if it exists already
 			dbVol, err := r.state.Volume(vol.Name)
 			if err == nil {
 				ctrNamedVolumes = append(ctrNamedVolumes, dbVol)
@@ -495,17 +496,14 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 		logrus.Debugf("Creating new volume %s for container", vol.Name)
 
 		// The volume does not exist, so we need to create it.
-		volOptions := []VolumeCreateOption{
-			WithVolumeName(vol.Name),
-			WithVolumeMountLabel(ctr.MountLabel()),
-		}
+		volOptions := []VolumeCreateOption{WithVolumeName(vol.Name)}
 		if isAnonymous {
 			volOptions = append(volOptions, withSetAnon())
 		}
 
 		needsChown := true
 
-		// If volume-opts are set, parse and add driver opts.
+		// If volume-opts are set parse and add driver opts.
 		if len(vol.Options) > 0 {
 			isDriverOpts := false
 			driverOpts := make(map[string]string)
@@ -543,8 +541,12 @@ func (r *Runtime) setupContainer(ctx context.Context, ctr *Container) (_ *Contai
 	}
 
 	switch ctr.config.LogDriver {
-	case define.NoLogging, define.PassthroughLogging, define.JournaldLogging:
+	case define.NoLogging, define.PassthroughLogging:
 		break
+	case define.JournaldLogging:
+		if err := ctr.initializeJournal(ctx); err != nil {
+			return nil, fmt.Errorf("failed to initialize journal: %w", err)
+		}
 	default:
 		if ctr.config.LogPath == "" {
 			ctr.config.LogPath = filepath.Join(ctr.config.StaticDir, "ctr.log")
@@ -774,6 +776,16 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 		cleanupErr = fmt.Errorf("cleaning up container %s: %w", c.ID(), err)
 	}
 
+	// Set ContainerStateRemoving
+	c.state.State = define.ContainerStateRemoving
+
+	if err := c.save(); err != nil {
+		if cleanupErr != nil {
+			logrus.Errorf(err.Error())
+		}
+		return fmt.Errorf("unable to set container %s removing state in database: %w", c.ID(), err)
+	}
+
 	// Remove all active exec sessions
 	// removing the exec sessions might temporarily unlock the container's lock.  Using it
 	// after setting the state to ContainerStateRemoving will prevent that the container is
@@ -783,20 +795,6 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 			cleanupErr = err
 		} else {
 			logrus.Errorf("Remove exec sessions: %v", err)
-		}
-	}
-
-	// Set ContainerStateRemoving as an intermediate state (we may get
-	// killed at any time) and save the container.
-	c.state.State = define.ContainerStateRemoving
-
-	if err := c.save(); err != nil {
-		if !errors.Is(err, define.ErrCtrRemoved) {
-			if cleanupErr == nil {
-				cleanupErr = err
-			} else {
-				logrus.Errorf("Saving container: %v", err)
-			}
 		}
 	}
 
@@ -811,7 +809,7 @@ func (r *Runtime) removeContainer(ctx context.Context, c *Container, force, remo
 
 	// Remove the container's CID file on container removal.
 	if cidFile, ok := c.config.Spec.Annotations[define.InspectAnnotationCIDFile]; ok {
-		if err := os.Remove(cidFile); err != nil && !errors.Is(err, os.ErrNotExist) {
+		if err := os.Remove(cidFile); err != nil {
 			if cleanupErr == nil {
 				cleanupErr = err
 			} else {
