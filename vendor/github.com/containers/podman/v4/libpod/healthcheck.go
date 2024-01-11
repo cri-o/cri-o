@@ -184,12 +184,8 @@ func (c *Container) processHealthCheckStatus(status string) error {
 		}
 
 	case define.HealthCheckOnFailureActionRestart:
-		// We let the cleanup process handle the restart.  Otherwise
-		// the container would be restarted in the context of a
-		// transient systemd unit which may cause undesired side
-		// effects.
-		if err := c.Stop(); err != nil {
-			return fmt.Errorf("restarting/stopping container after health-check turned unhealthy: %w", err)
+		if err := c.RestartWithTimeout(context.Background(), c.config.StopTimeout); err != nil {
+			return fmt.Errorf("restarting container after health-check turned unhealthy: %w", err)
 		}
 
 	case define.HealthCheckOnFailureActionStop:
@@ -348,18 +344,6 @@ func (c *Container) updateHealthStatus(status string) error {
 		return fmt.Errorf("unable to marshall healthchecks for writing status: %w", err)
 	}
 	return os.WriteFile(c.healthCheckLogPath(), newResults, 0700)
-}
-
-// isUnhealthy returns if the current health check status in unhealthy.
-func (c *Container) isUnhealthy() (bool, error) {
-	if !c.HasHealthCheck() {
-		return false, nil
-	}
-	healthCheck, err := c.getHealthCheckLog()
-	if err != nil {
-		return false, err
-	}
-	return healthCheck.Status == define.HealthCheckUnhealthy, nil
 }
 
 // UpdateHealthCheckLog parses the health check results and writes the log

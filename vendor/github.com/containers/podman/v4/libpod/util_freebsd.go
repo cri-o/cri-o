@@ -25,7 +25,7 @@ func deleteSystemdCgroup(path string, resources *spec.LinuxResources) error {
 }
 
 // No equivalent on FreeBSD?
-func LabelVolumePath(path, mountLabel string) error {
+func LabelVolumePath(path string) error {
 	return nil
 }
 

@@ -13,7 +13,6 @@ import (
 	"os/user"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -58,37 +57,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func parseOptionIDs(ctrMappings []idtools.IDMap, option string) ([]idtools.IDMap, error) {
+func parseOptionIDs(option string) ([]idtools.IDMap, error) {
 	ranges := strings.Split(option, "#")
 	ret := make([]idtools.IDMap, len(ranges))
 	for i, m := range ranges {
 		var v idtools.IDMap
-
-		relative := false
-		if m[0] == '@' {
-			relative = true
-			m = m[1:]
-		}
 		_, err := fmt.Sscanf(m, "%d-%d-%d", &v.ContainerID, &v.HostID, &v.Size)
 		if err != nil {
 			return nil, err
 		}
 		if v.ContainerID < 0 || v.HostID < 0 || v.Size < 1 {
 			return nil, fmt.Errorf("invalid value for %q", option)
-		}
-
-		if relative {
-			found := false
-			for _, m := range ctrMappings {
-				if v.ContainerID >= m.ContainerID && v.ContainerID < m.ContainerID+m.Size {
-					v.HostID += m.HostID - m.ContainerID
-					found = true
-					break
-				}
-			}
-			if !found {
-				return nil, fmt.Errorf("could not find a user namespace mapping for the relative mapping %q", option)
-			}
 		}
 		ret[i] = v
 	}
@@ -104,12 +83,12 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([
 		for _, i := range options {
 			switch {
 			case strings.HasPrefix(i, "uids="):
-				uidMap, err = parseOptionIDs(idMappings.UIDMap, strings.Replace(i, "uids=", "", 1))
+				uidMap, err = parseOptionIDs(strings.Replace(i, "uids=", "", 1))
 				if err != nil {
 					return nil, nil, err
 				}
 			case strings.HasPrefix(i, "gids="):
-				gidMap, err = parseOptionIDs(idMappings.GIDMap, strings.Replace(i, "gids=", "", 1))
+				gidMap, err = parseOptionIDs(strings.Replace(i, "gids=", "", 1))
 				if err != nil {
 					return nil, nil, err
 				}
@@ -123,15 +102,15 @@ func parseIDMapMountOption(idMappings stypes.IDMappingOptions, option string) ([
 	gidMappings := make([]spec.LinuxIDMapping, len(gidMap))
 	for i, uidmap := range uidMap {
 		uidMappings[i] = spec.LinuxIDMapping{
-			HostID:      uint32(uidmap.HostID),
-			ContainerID: uint32(uidmap.ContainerID),
+			HostID:      uint32(uidmap.ContainerID),
+			ContainerID: uint32(uidmap.HostID),
 			Size:        uint32(uidmap.Size),
 		}
 	}
 	for i, gidmap := range gidMap {
 		gidMappings[i] = spec.LinuxIDMapping{
-			HostID:      uint32(gidmap.HostID),
-			ContainerID: uint32(gidmap.ContainerID),
+			HostID:      uint32(gidmap.ContainerID),
+			ContainerID: uint32(gidmap.HostID),
 			Size:        uint32(gidmap.Size),
 		}
 	}
@@ -171,21 +150,7 @@ func getOverlayUpperAndWorkDir(options []string) (string, string, error) {
 
 // Generate spec for a container
 // Accepts a map of the container's dependencies
-func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFuncRet func(), err error) {
-	var safeMounts []*safeMountInfo
-	// lock the thread so that the current thread will be kept alive until the mounts are used
-	runtime.LockOSThread()
-	cleanupFunc := func() {
-		runtime.UnlockOSThread()
-		for _, s := range safeMounts {
-			s.Close()
-		}
-	}
-	defer func() {
-		if err != nil {
-			cleanupFunc()
-		}
-	}()
+func (c *Container) generateSpec(ctx context.Context) (*spec.Spec, error) {
 	overrides := c.getUserOverrides()
 	execUser, err := lookup.GetUserGroupInfo(c.state.Mountpoint, c.config.User, overrides)
 	if err != nil {
@@ -193,12 +158,13 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			execUser, err = lookupHostUser(c.config.User)
 		}
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
+	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	// If the flag to mount all devices is set for a privileged container, add
@@ -209,57 +175,51 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			systemdMode = *c.config.Systemd
 		}
 		if err := util.AddPrivilegedDevices(&g, systemdMode); err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	// If network namespace was requested, add it now
 	if err := c.addNetworkNamespace(&g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Apply AppArmor checks and load the default profile if needed.
 	if len(c.config.Spec.Process.ApparmorProfile) > 0 {
 		updatedProfile, err := apparmor.CheckProfileAndLoadDefault(c.config.Spec.Process.ApparmorProfile)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		g.SetProcessApparmorProfile(updatedProfile)
 	}
 
 	if err := c.makeBindMounts(); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	if err := c.mountNotifySocket(g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Get host UID and GID based on the container process UID and GID.
 	hostUID, hostGID, err := butil.GetHostIDs(util.IDtoolsToRuntimeSpec(c.config.IDMappings.UIDMap), util.IDtoolsToRuntimeSpec(c.config.IDMappings.GIDMap), uint32(execUser.Uid), uint32(execUser.Gid))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Add named volumes
 	for _, namedVol := range c.config.NamedVolumes {
 		volume, err := c.runtime.GetVolume(namedVol.Name)
 		if err != nil {
-			return nil, nil, fmt.Errorf("retrieving volume %s to add to container %s: %w", namedVol.Name, c.ID(), err)
+			return nil, fmt.Errorf("retrieving volume %s to add to container %s: %w", namedVol.Name, c.ID(), err)
 		}
 		mountPoint, err := volume.MountPoint()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 
 		if len(namedVol.SubPath) > 0 {
-			safeMount, err := c.safeMountSubPath(mountPoint, namedVol.SubPath)
-			if err != nil {
-				return nil, nil, err
-			}
-			safeMounts = append(safeMounts, safeMount)
-
-			mountPoint = safeMount.mountPoint
+			mountPoint = filepath.Join(mountPoint, namedVol.SubPath)
 		}
 
 		overlayFlag := false
@@ -270,7 +230,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				overlayFlag = true
 				upperDir, workDir, err = getOverlayUpperAndWorkDir(namedVol.Options)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 			}
 		}
@@ -280,7 +240,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			var overlayOpts *overlay.Options
 			contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 
 			overlayOpts = &overlay.Options{RootUID: c.RootUID(),
@@ -292,17 +252,17 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 			overlayMount, err = overlay.MountWithOptions(contentDir, mountPoint, namedVol.Dest, overlayOpts)
 			if err != nil {
-				return nil, nil, fmt.Errorf("mounting overlay failed %q: %w", mountPoint, err)
+				return nil, fmt.Errorf("mounting overlay failed %q: %w", mountPoint, err)
 			}
 
 			for _, o := range namedVol.Options {
 				if o == "U" {
 					if err := c.ChangeHostPathOwnership(mountPoint, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 
 					if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 				}
 			}
@@ -320,27 +280,17 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 	// Check if the spec file mounts contain the options z, Z, U or idmap.
 	// If they have z or Z, relabel the source directory and then remove the option.
-	// If they have U, chown the source directory and then remove the option.
+	// If they have U, chown the source directory and them remove the option.
 	// If they have idmap, then calculate the mappings to use in the OCI config file.
 	for i := range g.Config.Mounts {
 		m := &g.Config.Mounts[i]
 		var options []string
 		for _, o := range m.Options {
-			if strings.HasPrefix(o, "subpath=") {
-				subpath := strings.Split(o, "=")[1]
-				safeMount, err := c.safeMountSubPath(m.Source, subpath)
-				if err != nil {
-					return nil, nil, err
-				}
-				safeMounts = append(safeMounts, safeMount)
-				m.Source = safeMount.mountPoint
-				continue
-			}
 			if o == "idmap" || strings.HasPrefix(o, "idmap=") {
 				var err error
 				m.UIDMappings, m.GIDMappings, err = parseIDMapMountOption(c.config.IDMappings, o)
 				if err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 				continue
 			}
@@ -351,14 +301,14 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 				} else {
 					// only chown on initial creation of container
 					if err := c.ChangeHostPathOwnership(m.Source, true, int(hostUID), int(hostGID)); err != nil {
-						return nil, nil, err
+						return nil, err
 					}
 				}
 			case "z":
 				fallthrough
 			case "Z":
 				if err := c.relabel(m.Source, c.MountLabel(), label.IsShared(o)); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 
 			default:
@@ -396,11 +346,11 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	for _, overlayVol := range c.config.OverlayVolumes {
 		upperDir, workDir, err := getOverlayUpperAndWorkDir(overlayVol.Options)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		overlayOpts := &overlay.Options{RootUID: c.RootUID(),
 			RootGID:                c.RootGID(),
@@ -411,18 +361,18 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 		overlayMount, err := overlay.MountWithOptions(contentDir, overlayVol.Source, overlayVol.Dest, overlayOpts)
 		if err != nil {
-			return nil, nil, fmt.Errorf("mounting overlay failed %q: %w", overlayVol.Source, err)
+			return nil, fmt.Errorf("mounting overlay failed %q: %w", overlayVol.Source, err)
 		}
 
 		// Check overlay volume options
 		for _, o := range overlayVol.Options {
 			if o == "U" {
 				if err := c.ChangeHostPathOwnership(overlayVol.Source, true, int(hostUID), int(hostGID)); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 
 				if err := c.ChangeHostPathOwnership(contentDir, true, int(hostUID), int(hostGID)); err != nil {
-					return nil, nil, err
+					return nil, err
 				}
 			}
 		}
@@ -435,16 +385,16 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		// Mount the specified image.
 		img, _, err := c.runtime.LibimageRuntime().LookupImage(volume.Source, nil)
 		if err != nil {
-			return nil, nil, fmt.Errorf("creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
+			return nil, fmt.Errorf("creating image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 		mountPoint, err := img.Mount(ctx, nil, "")
 		if err != nil {
-			return nil, nil, fmt.Errorf("mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
+			return nil, fmt.Errorf("mounting image volume %q:%q: %w", volume.Source, volume.Dest, err)
 		}
 
 		contentDir, err := overlay.TempDir(c.config.StaticDir, c.RootUID(), c.RootGID())
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
+			return nil, fmt.Errorf("failed to create TempDir in the %s directory: %w", c.config.StaticDir, err)
 		}
 
 		var overlayMount spec.Mount
@@ -454,7 +404,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			overlayMount, err = overlay.MountReadOnly(contentDir, mountPoint, volume.Dest, c.RootUID(), c.RootGID(), c.runtime.store.GraphOptions())
 		}
 		if err != nil {
-			return nil, nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
+			return nil, fmt.Errorf("creating overlay mount for image %q failed: %w", volume.Source, err)
 		}
 		g.AddMount(overlayMount)
 	}
@@ -480,7 +430,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if c.config.Umask != "" {
 		decVal, err := strconv.ParseUint(c.config.Umask, 8, 32)
 		if err != nil {
-			return nil, nil, fmt.Errorf("invalid Umask Value: %w", err)
+			return nil, fmt.Errorf("invalid Umask Value: %w", err)
 		}
 		umask := uint32(decVal)
 		g.Config.Process.User.Umask = &umask
@@ -490,7 +440,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	if len(c.config.Groups) > 0 {
 		gids, err := lookup.GetContainerGroups(c.config.Groups, c.state.Mountpoint, overrides)
 		if err != nil {
-			return nil, nil, fmt.Errorf("looking up supplemental groups for container %s: %w", c.ID(), err)
+			return nil, fmt.Errorf("looking up supplemental groups for container %s: %w", c.ID(), err)
 		}
 		for _, gid := range gids {
 			g.AddProcessAdditionalGid(gid)
@@ -498,7 +448,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if err := c.addSystemdMounts(&g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Look up and add groups the user belongs to, if a group wasn't directly specified
@@ -513,7 +463,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 			// Check whether the current user namespace has enough gids available.
 			availableGids, err := rootless.GetAvailableGids()
 			if err != nil {
-				return nil, nil, fmt.Errorf("cannot read number of available GIDs: %w", err)
+				return nil, fmt.Errorf("cannot read number of available GIDs: %w", err)
 			}
 			gidMappings = []idtools.IDMap{{
 				ContainerID: 0,
@@ -545,7 +495,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 
 	// Add shared namespaces from other containers
 	if err := c.addSharedNamespaces(&g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	g.SetRootPath(c.state.Mountpoint)
@@ -556,7 +506,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if err := c.setCgroupsPath(&g); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Warning: CDI may alter g.Config in place.
@@ -569,7 +519,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		}
 		_, err := registry.InjectDevices(g.Config, c.config.CDIDevices...)
 		if err != nil {
-			return nil, nil, fmt.Errorf("setting up CDI devices: %w", err)
+			return nil, fmt.Errorf("setting up CDI devices: %w", err)
 		}
 	}
 
@@ -585,7 +535,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		if m.Type == "tmpfs" {
 			finalPath, err := securejoin.SecureJoin(c.state.Mountpoint, m.Destination)
 			if err != nil {
-				return nil, nil, fmt.Errorf("resolving symlinks for mount destination %s: %w", m.Destination, err)
+				return nil, fmt.Errorf("resolving symlinks for mount destination %s: %w", m.Destination, err)
 			}
 			trimmedPath := strings.TrimPrefix(finalPath, strings.TrimSuffix(c.state.Mountpoint, "/"))
 			m.Destination = trimmedPath
@@ -594,25 +544,25 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 	}
 
 	if err := c.addRootPropagation(&g, mounts); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	// Warning: precreate hooks may alter g.Config in place.
 	if c.state.ExtensionStageHooks, err = c.setupOCIHooks(ctx, g.Config); err != nil {
-		return nil, nil, fmt.Errorf("setting up OCI Hooks: %w", err)
+		return nil, fmt.Errorf("setting up OCI Hooks: %w", err)
 	}
 	if len(c.config.EnvSecrets) > 0 {
 		manager, err := c.runtime.SecretsManager()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		for name, secr := range c.config.EnvSecrets {
 			_, data, err := manager.LookupSecretData(secr.Name)
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 			g.AddProcessEnv(name, string(data))
 		}
@@ -630,7 +580,7 @@ func (c *Container) generateSpec(ctx context.Context) (s *spec.Spec, cleanupFunc
 		}
 	}
 
-	return g.Config, cleanupFunc, nil
+	return g.Config, nil
 }
 
 // isWorkDirSymlink returns true if resolved workdir is symlink or a chain of symlinks,
@@ -1255,6 +1205,7 @@ func (c *Container) generateContainerSpec() error {
 
 	// NewFromSpec() is deprecated according to its comment
 	// however the recommended replace just causes a nil map panic
+	//nolint:staticcheck
 	g := generate.NewFromSpec(c.config.Spec)
 
 	if err := c.saveSpec(g.Config); err != nil {
@@ -1364,7 +1315,7 @@ func (c *Container) restore(ctx context.Context, options ContainerCheckpointOpti
 	}
 
 	// Let's try to stat() CRIU's inventory file. If it does not exist, it makes
-	// no sense to try a restore. This is a minimal check if a checkpoint exists.
+	// no sense to try a restore. This is a minimal check if a checkpoint exist.
 	if _, err := os.Stat(filepath.Join(c.CheckpointPath(), "inventory.img")); os.IsNotExist(err) {
 		return nil, 0, fmt.Errorf("a complete checkpoint for this container cannot be found, cannot restore: %w", err)
 	}
@@ -2061,20 +2012,11 @@ func (c *Container) generateResolvConf() error {
 	// If the user provided dns, it trumps all; then dns masq; then resolv.conf
 	keepHostServers := false
 	if len(nameservers) == 0 {
-		// when no network name servers or not netavark use host servers
-		// for aardvark dns we only want our single server in there
-		if len(networkNameServers) == 0 || networkBackend != string(types.Netavark) {
-			keepHostServers = true
-		}
+		keepHostServers = true
 		// first add the nameservers from the networks status
 		nameservers = networkNameServers
-
 		// slirp4netns has a built in DNS forwarder.
-		// If in userns the network is not setup here, instead we need to do that in
-		// c.completeNetworkSetup() which knows the actual slirp dns ip only at that point
-		if !c.config.PostConfigureNetNS {
-			nameservers = c.addSlirp4netnsDNS(nameservers)
-		}
+		nameservers = c.addSlirp4netnsDNS(nameservers)
 	}
 
 	// Set DNS search domains
@@ -2268,7 +2210,7 @@ func (c *Container) generateGroupEntry() (string, error) {
 		groupString += entry
 		addedGID = gid
 	}
-	if c.config.User != "" || c.config.GroupEntry != "" {
+	if c.config.User != "" {
 		entry, err := c.generateUserGroupEntry(addedGID)
 		if err != nil {
 			return "", err
@@ -2323,7 +2265,7 @@ func (c *Container) generateCurrentUserGroupEntry() (string, int, error) {
 // Make an entry in /etc/group for the group the container was specified to run
 // as.
 func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
-	if c.config.User == "" && c.config.GroupEntry == "" {
+	if c.config.User == "" {
 		return "", nil
 	}
 
@@ -2343,24 +2285,12 @@ func (c *Container) generateUserGroupEntry(addedGID int) (string, error) {
 	}
 
 	// Check if the group already exists
-	g, err := lookup.GetGroup(c.state.Mountpoint, group)
+	_, err = lookup.GetGroup(c.state.Mountpoint, group)
 	if err != runcuser.ErrNoGroupEntries {
 		return "", err
 	}
 
-	if c.config.GroupEntry != "" {
-		return c.groupEntry(g.Name, strconv.Itoa(g.Gid), g.List), nil
-	}
-
 	return fmt.Sprintf("%d:x:%d:%s\n", gid, gid, splitUser[0]), nil
-}
-
-func (c *Container) groupEntry(groupname, gid string, list []string) string {
-	s := c.config.GroupEntry
-	s = strings.ReplaceAll(s, "$GROUPNAME", groupname)
-	s = strings.ReplaceAll(s, "$GID", gid)
-	s = strings.ReplaceAll(s, "$USERLIST", strings.Join(list, ","))
-	return s + "\n"
 }
 
 // generatePasswdEntry generates an entry or entries into /etc/passwd as
@@ -2542,7 +2472,7 @@ func (c *Container) generateUserPasswdEntry(addedUID int) (string, error) {
 	return fmt.Sprintf("%d:*:%d:%d:container user:%s:/bin/sh\n", uid, uid, gid, c.WorkingDir()), nil
 }
 
-func (c *Container) passwdEntry(username, uid, gid, name, homeDir string) string {
+func (c *Container) passwdEntry(username string, uid, gid, name, homeDir string) string {
 	s := c.config.PasswdEntry
 	s = strings.ReplaceAll(s, "$USERNAME", username)
 	s = strings.ReplaceAll(s, "$UID", uid)
@@ -2566,7 +2496,7 @@ func (c *Container) passwdEntry(username, uid, gid, name, homeDir string) string
 // read-only. In this case, the function will return nothing ("", "", nil).
 func (c *Container) generatePasswdAndGroup() (string, string, error) {
 	if !c.config.AddCurrentUserPasswdEntry && c.config.User == "" &&
-		len(c.config.HostUsers) == 0 && c.config.GroupEntry == "" {
+		len(c.config.HostUsers) == 0 {
 		return "", "", nil
 	}
 
@@ -2781,7 +2711,7 @@ func (c *Container) fixVolumePermissions(v *ContainerNamedVolume) error {
 
 	// Volumes owned by a volume driver are not chowned - we don't want to
 	// mess with a mount not managed by us.
-	if vol.state.NeedsChown && (!vol.UsesVolumeDriver() && vol.config.Driver != "image") {
+	if vol.state.NeedsChown && !vol.UsesVolumeDriver() {
 		vol.state.NeedsChown = false
 
 		uid := int(c.config.Spec.Process.User.UID)
