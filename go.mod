@@ -18,7 +18,7 @@ require (
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.2.0
 	github.com/containers/buildah v1.30.0
-	github.com/containers/common v0.52.0
+	github.com/containers/common v0.52.1-0.20240105071109-142ede1e7506
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.4.0
 	github.com/containers/image/v5 v5.25.0
@@ -79,7 +79,6 @@ require (
 	k8s.io/release v0.14.0
 	k8s.io/utils v0.0.0-20230220204549-a5ecb0141aa5
 	mvdan.cc/sh/v3 v3.5.1
-	sigs.k8s.io/bom v0.5.1
 	sigs.k8s.io/release-sdk v0.9.7
 	sigs.k8s.io/release-utils v0.7.4-0.20230327115955-2b998c68e4b6
 	sigs.k8s.io/yaml v1.3.0
@@ -399,6 +398,7 @@ require (
 	k8s.io/mount-utils v0.0.0 // indirect
 	mvdan.cc/editorconfig v0.2.0 // indirect
 	oras.land/oras-go v1.2.3-0.20230313045143-cb5625556a37 // indirect
+	sigs.k8s.io/bom v0.5.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/kustomize/api v0.12.1 // indirect
 	sigs.k8s.io/kustomize/kyaml v0.13.9 // indirect

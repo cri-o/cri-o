@@ -598,7 +598,7 @@ github.com/containers/buildah/pkg/rusage
 github.com/containers/buildah/pkg/sshagent
 github.com/containers/buildah/pkg/util
 github.com/containers/buildah/util
-# github.com/containers/common v0.52.0
+# github.com/containers/common v0.52.1-0.20240105071109-142ede1e7506
 ## explicit; go 1.18
 github.com/containers/common/libimage
 github.com/containers/common/libimage/define
@@ -3019,13 +3019,9 @@ oras.land/oras-go/pkg/registry/remote/internal/syncutil
 oras.land/oras-go/pkg/target
 # sigs.k8s.io/bom v0.5.1
 ## explicit; go 1.20
-sigs.k8s.io/bom/cmd/bom
-sigs.k8s.io/bom/cmd/bom/cmd
 sigs.k8s.io/bom/pkg/license
 sigs.k8s.io/bom/pkg/osinfo
 sigs.k8s.io/bom/pkg/provenance
-sigs.k8s.io/bom/pkg/query
-sigs.k8s.io/bom/pkg/serialize
 sigs.k8s.io/bom/pkg/spdx
 sigs.k8s.io/bom/pkg/spdx/json/document
 sigs.k8s.io/bom/pkg/spdx/json/v2.2
