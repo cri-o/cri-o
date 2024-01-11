@@ -297,8 +297,7 @@ function check_conmon_fields() {
 	jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	ctrconfig="$TESTDATA"/container_sleep.json
-	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
 
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)
 	[[ "$df" != *'16384'* ]]
@@ -318,8 +317,7 @@ function check_conmon_fields() {
 	    |   .annotations."io.kubernetes.cri-o.Devices" = "/dev/null:/dev/peterfoo:rwm"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	ctrconfig="$TESTDATA"/container_sleep.json
-	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
 
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)
 	[[ "$df" == *'16384'* ]]
@@ -338,8 +336,7 @@ function check_conmon_fields() {
 		' .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	ctrconfig="$TESTDATA"/container_sleep.json
-	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$sboxconfig")
 
 	df=$(crictl exec --sync "$ctr_id" df | grep /dev/shm)
 	[[ "$df" == *'16384'* ]]
@@ -365,7 +362,6 @@ function check_conmon_fields() {
 
 	# Forceibly fail 10 container creations via bad workload annotation:
 	for id in {1..10}; do
-		ctrconfig="$TESTDIR/ctr-$id.json"
 		jq --arg act "$activation" --arg name "$name-$id" --arg set "invalid & unparsable {\"cpuset\": \"$set\"}" --arg setkey "$prefix/POD" \
 			'   .annotations[$act] = "true"
 			|   .annotations[$setkey] = $set
@@ -386,11 +382,11 @@ function check_conmon_fields() {
 
 	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
 	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
-	"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
 	jq '   .annotations["io.kubernetes.cri-o.UnifiedCgroup.podsandbox-sleep"] = "memory.max=4294967296" |
 	  .labels["io.kubernetes.container.name"] = "podsandbox-sleep"' \
-	"$TESTDATA"/container_sleep.json > "$ctrconfig"
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 	[[ $(crictl exec "$ctr_id" cat /sys/fs/cgroup/memory.max) != 4294967296 ]]
