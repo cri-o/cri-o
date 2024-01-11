@@ -16,9 +16,8 @@ package tracetransform // import "go.opentelemetry.io/otel/exporters/otlp/otlptr
 
 import (
 	"go.opentelemetry.io/otel/attribute"
-	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
-
 	"go.opentelemetry.io/otel/sdk/resource"
+	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 )
 
 // KeyValues transforms a slice of attribute KeyValues into OTLP key-values.
@@ -49,8 +48,8 @@ func Iterator(iter attribute.Iterator) []*commonpb.KeyValue {
 }
 
 // ResourceAttributes transforms a Resource OTLP key-values.
-func ResourceAttributes(resource *resource.Resource) []*commonpb.KeyValue {
-	return Iterator(resource.Iter())
+func ResourceAttributes(res *resource.Resource) []*commonpb.KeyValue {
+	return Iterator(res.Iter())
 }
 
 // KeyValue transforms an attribute KeyValue into an OTLP key-value.
