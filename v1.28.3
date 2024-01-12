@@ -1,0 +1,217 @@
+- [CRI-O v1.28.3](#cri-o-v1283)
+  - [Downloads](#downloads)
+  - [Changelog since v1.28.2](#changelog-since-v1282)
+    - [Changes by Kind](#changes-by-kind)
+      - [Uncategorized](#uncategorized)
+  - [Dependencies](#dependencies)
+    - [Added](#added)
+    - [Changed](#changed)
+    - [Removed](#removed)
+
+# CRI-O v1.28.3
+
+The release notes have been generated for the commit range
+[v1.28.2...v1.28.3](https://github.com/cri-o/cri-o/compare/v1.28.2...v1.28.3) on Fri, 12 Jan 2024 11:52:53 EST.
+
+**Note** This release fixes CVE-2023-6476
+
+## Downloads
+
+Download one of our static release bundles via our Google Cloud Bucket:
+
+- [cri-o.amd64.v1.28.3.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz)
+  - [cri-o.amd64.v1.28.3.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.sha256sum)
+  - [cri-o.amd64.v1.28.3.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.sig)
+  - [cri-o.amd64.v1.28.3.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.cert)
+  - [cri-o.amd64.v1.28.3.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.spdx)
+  - [cri-o.amd64.v1.28.3.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.spdx.sig)
+  - [cri-o.amd64.v1.28.3.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.amd64.v1.28.3.tar.gz.spdx.cert)
+- [cri-o.arm64.v1.28.3.tar.gz](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz)
+  - [cri-o.arm64.v1.28.3.tar.gz.sha256sum](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.sha256sum)
+  - [cri-o.arm64.v1.28.3.tar.gz.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.sig)
+  - [cri-o.arm64.v1.28.3.tar.gz.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.cert)
+  - [cri-o.arm64.v1.28.3.tar.gz.spdx](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.spdx)
+  - [cri-o.arm64.v1.28.3.tar.gz.spdx.sig](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.spdx.sig)
+  - [cri-o.arm64.v1.28.3.tar.gz.spdx.cert](https://storage.googleapis.com/cri-o/artifacts/cri-o.arm64.v1.28.3.tar.gz.spdx.cert)
+
+To verify the artifact signatures via [cosign](https://github.com/sigstore/cosign), run:
+
+```console
+> export COSIGN_EXPERIMENTAL=1
+> cosign verify-blob cri-o.amd64.v1.28.3.tar.gz \
+    --certificate-identity https://github.com/cri-o/cri-o/.github/workflows/test.yml@refs/tags/v1.28.3 \
+    --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+    --certificate-github-workflow-repository cri-o/cri-o \
+    --certificate-github-workflow-ref refs/tags/v1.28.3 \
+    --signature cri-o.amd64.v1.28.3.tar.gz.sig \
+    --certificate cri-o.amd64.v1.28.3.tar.gz.cert
+```
+
+To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using the [bom](https://sigs.k8s.io/bom) tool, run:
+
+```console
+> tar xfz cri-o.amd64.v1.28.3.tar.gz
+> bom validate -e cri-o.amd64.v1.28.3.tar.gz.spdx -d cri-o
+```
+
+## Changelog since v1.28.2
+
+### Changes by Kind
+
+### Bug or Regression
+- Fix CVE-2023-6476, where poorly filtered access to an experimental annotation can allow pods to circumvent resource limits on cgroupsv2. See GHSA-p4rx-7wvg-fwrc for more information. (@haircommander)
+
+#### Uncategorized
+ - Add support for cpu load balancing annotation for cgroupv2 (#7539, @openshift-cherrypick-robot)
+ - Allow the `io.kubernetes.cri-o.Devices` annotation in the default runtime class, which along with AllowedDevices containing /dev/fuse by default, gives containers in the default runtime class optional access to /dev/fuse (#7535, @openshift-cherrypick-robot)
+ - Go get github.com/containers/common@v0.55.5-0.20231119144331-165b7a4dd43c (#7498, @hswong3i)
+
+## Dependencies
+
+### Added
+- cloud.google.com/go/dataproc/v2: v2.3.0
+
+### Changed
+- cloud.google.com/go/accessapproval: v1.7.1 → v1.7.4
+- cloud.google.com/go/accesscontextmanager: v1.8.1 → v1.8.4
+- cloud.google.com/go/aiplatform: v1.45.0 → v1.54.0
+- cloud.google.com/go/analytics: v0.21.2 → v0.21.6
+- cloud.google.com/go/apigateway: v1.6.1 → v1.6.4
+- cloud.google.com/go/apigeeconnect: v1.6.1 → v1.6.4
+- cloud.google.com/go/apigeeregistry: v0.7.1 → v0.8.2
+- cloud.google.com/go/appengine: v1.8.1 → v1.8.4
+- cloud.google.com/go/area120: v0.8.1 → v0.8.4
+- cloud.google.com/go/artifactregistry: v1.14.1 → v1.14.6
+- cloud.google.com/go/asset: v1.14.1 → v1.15.3
+- cloud.google.com/go/assuredworkloads: v1.11.1 → v1.11.4
+- cloud.google.com/go/automl: v1.13.1 → v1.13.4
+- cloud.google.com/go/baremetalsolution: v0.5.0 → v1.2.3
+- cloud.google.com/go/batch: v0.7.0 → v1.6.3
+- cloud.google.com/go/beyondcorp: v0.6.1 → v1.0.3
+- cloud.google.com/go/bigquery: v1.52.0 → v1.57.1
+- cloud.google.com/go/billing: v1.16.0 → v1.17.4
+- cloud.google.com/go/binaryauthorization: v1.6.1 → v1.7.3
+- cloud.google.com/go/certificatemanager: v1.7.1 → v1.7.4
+- cloud.google.com/go/channel: v1.16.0 → v1.17.3
+- cloud.google.com/go/cloudbuild: v1.10.1 → v1.15.0
+- cloud.google.com/go/clouddms: v1.6.1 → v1.7.3
+- cloud.google.com/go/cloudtasks: v1.11.1 → v1.12.4
+- cloud.google.com/go/compute: v1.21.0 → v1.23.3
+- cloud.google.com/go/contactcenterinsights: v1.9.1 → v1.12.0
+- cloud.google.com/go/container: v1.22.1 → v1.28.0
+- cloud.google.com/go/containeranalysis: v0.10.1 → v0.11.3
+- cloud.google.com/go/datacatalog: v1.14.1 → v1.19.0
+- cloud.google.com/go/dataflow: v0.9.1 → v0.9.4
+- cloud.google.com/go/dataform: v0.8.1 → v0.9.1
+- cloud.google.com/go/datafusion: v1.7.1 → v1.7.4
+- cloud.google.com/go/datalabeling: v0.8.1 → v0.8.4
+- cloud.google.com/go/dataplex: v1.8.1 → v1.11.2
+- cloud.google.com/go/dataqna: v0.8.1 → v0.8.4
+- cloud.google.com/go/datastore: v1.12.1 → v1.15.0
+- cloud.google.com/go/datastream: v1.9.1 → v1.10.3
+- cloud.google.com/go/deploy: v1.11.0 → v1.15.0
+- cloud.google.com/go/dialogflow: v1.38.0 → v1.44.3
+- cloud.google.com/go/dlp: v1.10.1 → v1.11.1
+- cloud.google.com/go/documentai: v1.20.0 → v1.23.5
+- cloud.google.com/go/domains: v0.9.1 → v0.9.4
+- cloud.google.com/go/edgecontainer: v1.1.1 → v1.1.4
+- cloud.google.com/go/essentialcontacts: v1.6.2 → v1.6.5
+- cloud.google.com/go/eventarc: v1.12.1 → v1.13.3
+- cloud.google.com/go/filestore: v1.7.1 → v1.8.0
+- cloud.google.com/go/firestore: v1.11.0 → v1.14.0
+- cloud.google.com/go/functions: v1.15.1 → v1.15.4
+- cloud.google.com/go/gkebackup: v0.4.0 → v1.3.4
+- cloud.google.com/go/gkeconnect: v0.8.1 → v0.8.4
+- cloud.google.com/go/gkehub: v0.14.1 → v0.14.4
+- cloud.google.com/go/gkemulticloud: v0.6.1 → v1.0.3
+- cloud.google.com/go/gsuiteaddons: v1.6.1 → v1.6.4
+- cloud.google.com/go/iam: v1.1.1 → v1.1.5
+- cloud.google.com/go/iap: v1.8.1 → v1.9.3
+- cloud.google.com/go/ids: v1.4.1 → v1.4.4
+- cloud.google.com/go/iot: v1.7.1 → v1.7.4
+- cloud.google.com/go/kms: v1.12.1 → v1.15.5
+- cloud.google.com/go/language: v1.10.1 → v1.12.2
+- cloud.google.com/go/lifesciences: v0.9.1 → v0.9.4
+- cloud.google.com/go/logging: v1.7.0 → v1.8.1
+- cloud.google.com/go/longrunning: v0.5.1 → v0.5.4
+- cloud.google.com/go/managedidentities: v1.6.1 → v1.6.4
+- cloud.google.com/go/maps: v0.7.0 → v1.6.1
+- cloud.google.com/go/mediatranslation: v0.8.1 → v0.8.4
+- cloud.google.com/go/memcache: v1.10.1 → v1.10.4
+- cloud.google.com/go/metastore: v1.11.1 → v1.13.3
+- cloud.google.com/go/monitoring: v1.15.1 → v1.16.3
+- cloud.google.com/go/networkconnectivity: v1.12.1 → v1.14.3
+- cloud.google.com/go/networkmanagement: v1.8.0 → v1.9.3
+- cloud.google.com/go/networksecurity: v0.9.1 → v0.9.4
+- cloud.google.com/go/notebooks: v1.9.1 → v1.11.2
+- cloud.google.com/go/optimization: v1.4.1 → v1.6.2
+- cloud.google.com/go/orchestration: v1.8.1 → v1.8.4
+- cloud.google.com/go/orgpolicy: v1.11.1 → v1.11.4
+- cloud.google.com/go/osconfig: v1.12.1 → v1.12.4
+- cloud.google.com/go/oslogin: v1.10.1 → v1.12.2
+- cloud.google.com/go/phishingprotection: v0.8.1 → v0.8.4
+- cloud.google.com/go/policytroubleshooter: v1.7.1 → v1.10.2
+- cloud.google.com/go/privatecatalog: v0.9.1 → v0.9.4
+- cloud.google.com/go/pubsub: v1.32.0 → v1.33.0
+- cloud.google.com/go/recaptchaenterprise/v2: v2.7.2 → v2.8.4
+- cloud.google.com/go/recommendationengine: v0.8.1 → v0.8.4
+- cloud.google.com/go/recommender: v1.10.1 → v1.11.3
+- cloud.google.com/go/redis: v1.13.1 → v1.14.1
+- cloud.google.com/go/resourcemanager: v1.9.1 → v1.9.4
+- cloud.google.com/go/resourcesettings: v1.6.1 → v1.6.4
+- cloud.google.com/go/retail: v1.14.1 → v1.14.4
+- cloud.google.com/go/run: v0.9.0 → v1.3.3
+- cloud.google.com/go/scheduler: v1.10.1 → v1.10.5
+- cloud.google.com/go/secretmanager: v1.11.1 → v1.11.4
+- cloud.google.com/go/security: v1.15.1 → v1.15.4
+- cloud.google.com/go/securitycenter: v1.23.0 → v1.24.2
+- cloud.google.com/go/servicedirectory: v1.10.1 → v1.11.3
+- cloud.google.com/go/shell: v1.7.1 → v1.7.4
+- cloud.google.com/go/spanner: v1.47.0 → v1.53.0
+- cloud.google.com/go/speech: v1.17.1 → v1.21.0
+- cloud.google.com/go/storagetransfer: v1.10.0 → v1.10.3
+- cloud.google.com/go/talent: v1.6.2 → v1.6.5
+- cloud.google.com/go/texttospeech: v1.7.1 → v1.7.4
+- cloud.google.com/go/tpu: v1.6.1 → v1.6.4
+- cloud.google.com/go/trace: v1.10.1 → v1.10.4
+- cloud.google.com/go/translate: v1.8.1 → v1.9.3
+- cloud.google.com/go/video: v1.17.1 → v1.20.3
+- cloud.google.com/go/videointelligence: v1.11.1 → v1.11.4
+- cloud.google.com/go/vision/v2: v2.7.2 → v2.7.5
+- cloud.google.com/go/vmmigration: v1.7.1 → v1.7.4
+- cloud.google.com/go/vmwareengine: v0.4.1 → v1.0.3
+- cloud.google.com/go/vpcaccess: v1.7.1 → v1.7.4
+- cloud.google.com/go/webrisk: v1.9.1 → v1.9.4
+- cloud.google.com/go/websecurityscanner: v1.6.1 → v1.6.4
+- cloud.google.com/go/workflows: v1.11.1 → v1.12.3
+- cloud.google.com/go: v0.110.4 → v0.110.10
+- github.com/containers/common: [v0.55.3 → 8fedf2e](https://github.com/containers/common/compare/v0.55.3...8fedf2e)
+- github.com/go-jose/go-jose/v3: [v3.0.0 → v3.0.1](https://github.com/go-jose/go-jose/v3/compare/v3.0.0...v3.0.1)
+- github.com/go-logr/logr: [v1.2.4 → v1.3.0](https://github.com/go-logr/logr/compare/v1.2.4...v1.3.0)
+- github.com/golang/glog: [v1.1.0 → v1.1.2](https://github.com/golang/glog/compare/v1.1.0...v1.1.2)
+- github.com/google/go-cmp: [v0.5.9 → v0.6.0](https://github.com/google/go-cmp/compare/v0.5.9...v0.6.0)
+- github.com/google/uuid: [v1.3.0 → v1.3.1](https://github.com/google/uuid/compare/v1.3.0...v1.3.1)
+- github.com/grpc-ecosystem/grpc-gateway/v2: [v2.15.2 → v2.18.1](https://github.com/grpc-ecosystem/grpc-gateway/v2/compare/v2.15.2...v2.18.1)
+- go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc: v0.42.0 → v0.46.1
+- go.opentelemetry.io/otel/exporters/otlp/internal/retry: v1.16.0 → v1.15.0
+- go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc: v1.16.0 → v1.21.0
+- go.opentelemetry.io/otel/exporters/otlp/otlptrace: v1.16.0 → v1.21.0
+- go.opentelemetry.io/otel/metric: v1.16.0 → v1.21.0
+- go.opentelemetry.io/otel/sdk: v1.16.0 → v1.21.0
+- go.opentelemetry.io/otel/trace: v1.16.0 → v1.21.0
+- go.opentelemetry.io/otel: v1.16.0 → v1.21.0
+- go.opentelemetry.io/proto/otlp: v0.19.0 → v1.0.0
+- go.uber.org/goleak: v1.2.1 → v1.3.0
+- golang.org/x/crypto: v0.14.0 → v0.16.0
+- golang.org/x/net: v0.17.0 → v0.19.0
+- golang.org/x/oauth2: v0.10.0 → v0.13.0
+- golang.org/x/sys: v0.13.0 → v0.15.0
+- golang.org/x/term: v0.13.0 → v0.15.0
+- golang.org/x/text: v0.13.0 → v0.14.0
+- google.golang.org/genproto/googleapis/api: 782d3b1 → 3a041ad
+- google.golang.org/genproto/googleapis/rpc: 782d3b1 → 3a041ad
+- google.golang.org/genproto: 782d3b1 → 83a465c
+- google.golang.org/grpc: v1.58.3 → v1.59.0
+
+### Removed
+_Nothing has changed._
