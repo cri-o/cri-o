@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
+_Generated on Sat, 13 Jan 2024 04:23:04 UTC for commit [8df5c0d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/944b980695f2c1a3a3c753ce58b021ec2903d106
+[0]: https://github.com/cri-o/cri-o/commit/8df5c0d7e3fcd917202a263f58a3b4c4506056da
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
 | github.com/containerd/containerd                       | v1.7.11                            | v1.7.12                            | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240112035622-ffcd95b6b4df | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240112172454-a7114a35a85a | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.13.2                            | v2.14.0                            | true   | true             |
 | github.com/opencontainers/runc                         | v1.1.10                            | v1.1.11                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.17.0                            | v1.18.0                            | true   | true             |
@@ -233,7 +233,7 @@ _Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.19                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.49.20                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.3                             | false  | true             |
@@ -406,8 +406,8 @@ _Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
 | github.com/emicklei/proto                                                               | v1.12.1                                           | v1.13.0                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                                           |                                     | false  | true             |
 | github.com/envoyproxy/go-control-plane                                                  | v0.11.1                                           | v0.12.0                             | false  | true             |
-| github.com/envoyproxy/protoc-gen-validate                                               | v1.0.2                                            |                                     | false  | true             |
-| github.com/evanphx/json-patch                                                           | v4.12.0+incompatible                              | v5.7.0+incompatible                 | false  | true             |
+| github.com/envoyproxy/protoc-gen-validate                                               | v1.0.2                                            | v1.0.3                              | false  | true             |
+| github.com/evanphx/json-patch                                                           | v4.12.0+incompatible                              | v5.8.0+incompatible                 | false  | true             |
 | github.com/fatih/color                                                                  | v1.15.0                                           | v1.16.0                             | false  | true             |
 | github.com/felixge/httpsnoop                                                            | v1.0.3                                            | v1.0.4                              | false  | true             |
 | github.com/form3tech-oss/jwt-go                                                         | v3.2.2+incompatible                               | v3.2.5+incompatible                 | false  | true             |
@@ -564,7 +564,7 @@ _Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240112035622-ffcd95b6b4df  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240112172454-a7114a35a85a  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -588,7 +588,7 @@ _Generated on Fri, 12 Jan 2024 17:23:11 UTC for commit [944b980][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.19                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240111205735-442b906ee8e6  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240112220349-a9a87cd4a897  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
