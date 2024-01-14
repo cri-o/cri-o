@@ -1,50 +1,55 @@
-# General Deprecating Process of CRI-O
+# General Deprecation Process of CRI-O
 
-## What are config options?
+## Understanding Configuration Options
 
-Config options are the settings that allow us to control various aspects of the
-behaviour and functionality of CRIO. They allow us to customise how CRI-O
-operates within a Kubernetes cluster.
+Configuration options encompass settings that provide control over various
+aspects of CRIO's behavior and functionality. These options allow for the
+customization of operational parameters, shaping how CRI-O operates within a
+Kubernetes cluster.
 
-## General process of deprecating a config option
+## The General Process of Deprecating a Configuration Option
 
-Config options undergo deprecation only during major and minor version changes
-in CRI-O. Removals do not occur abruptly within patch releases, ensuring a
-smoother transition for users adapting to evolving configurations.
+In CRI-O, configuration options undergo deprecation exclusively during major
+and minor version changes. Removals are not implemented abruptly within patch
+releases, ensuring a seamless transition for users adapting to evolving
+configurations.
 
-A deprecated status is assigned to a configuration option for a minimum of one
-release cycle before it is actually removed. This gives users a warning and
-time to adjust their configurations to adapt to the upcoming changes.
+A configuration option is labeled as deprecated for a minimum of one release
+cycle before its actual removal. This period serves as a warning, offering
+users an opportunity to adjust their configurations in preparation for upcoming
+changes.
 
-The deprecation is communicated through multiple channels, including updates
-in the documentation, messages to indicate deprecated config option in the CRI-O
-CLI help text and a log entry within CRI-O itself.
+The deprecation is communicated through various channels, including
+documentation revisions, notifications indicating the deprecation of
+configuration options in the CRI-O CLI help text, and a corresponding log entry
+within CRI-O itself.
 
-Configuration options are typically removed if they are no longer considered
-necessary or if they have been replaced by alternatives, especially options
-present in the Kubelet.
+In the domain of system configurations, options are typically excluded when they
+are no longer considered essential or have been superseded by alternatives,
+particularly those within the Kubelet.
 
-Several CRI-O config options have been replaced by Kubelet as the management
-of runtime containers has shifted towards the Kubelet.
+The management of runtime containers has shifted towards the Kubelet, leading
+to the replacement of several CRI-O configuration options by the Kubelet.
 
-## Examples of crio.conf options getting replaced by Kubelet
+## Examples of CRI-O Configuration Options Replaced by Kubelet
 
-- Runtime Management was previously done with the “runtime\_path” config option
-  which was replaced with the “--container-runtime” flag in Kubelet.
+- Runtime Management, previously handled with the "runtime_path" configuration
+  option, has been replaced with the "--container-runtime" flag in Kubelet.
 
-- Pod PIDs Limit was previously done with the “pids\_limit” config option
-  which was replaced with the “--pods\_pids-limit” flag in Kubelet
+- Pod PIDs Limit, formerly set with the "pids_limit" configuration option, has
+  been replaced with the "--pods_pids-limit" flag in Kubelet.
 
-- Image Pull Timeout was previously done with the “image\_pull\_timeout” config
-  option which was replaced with the “--image-pull-progress-deadline” flag in
-  Kubelet.
+- Image Pull Timeout, initially defined by the "image_pull_timeout"
+  configuration option, has been replaced with the
+  "--image-pull-progress-deadline" flag in Kubelet.
 
-The configuration files for CRI-O are written in TOML. TOML libraries used by
-CRIO usually ignore unknown or unrecognised configuration values. These
-unrecognised values are generally tolerated, but unknown flags in the CLI may
-cause CRI-O to fail.
+CRI-O configuration files are composed in TOML. Typically, TOML libraries used
+by CRI-O ignore unfamiliar or unacknowledged configuration parameters. While
+these unacknowledged values are generally accepted, any unfamiliar flags in the
+Command Line Interface (CLI) might result in a failure in CRI-O.
 
-In some cases, a CLI flag that has been marked for removal might be retained
-for an additional release, but it will be disabled. This grace period is
-provided to users so they have extra time to update their configurations and
-scripts before the flag is completely removed in subsequent releases.
+In specific cases, a Command Line Interface (CLI) flag designated for removal
+may be retained for an additional release; however, it will be deactivated
+during this period. This extension is provided to users, granting them
+additional time to update their configurations and scripts before the flag is
+ultimately eliminated in subsequent releases.
