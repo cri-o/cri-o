@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
+_Generated on Tue, 16 Jan 2024 15:25:10 UTC for commit [501048d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8f2df1e82e0efefe22ed4960e98ce15498e47849
+[0]: https://github.com/cri-o/cri-o/commit/501048da5e4c8b36f9d6d919385360dd8c2317ee
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | github.com/containerd/containerd                       | v1.7.11                            | v1.7.12                            | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/go-logr/logr                                | v1.3.0                             | v1.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240115020946-923bd65dffd9 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240116151049-13f2398fe8f1 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.13.2                            | v2.14.0                            | true   | true             |
 | github.com/opencontainers/runc                         | v1.1.10                            | v1.1.11                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.17.0                            | v1.18.0                            | true   | true             |
@@ -290,7 +290,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d                |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                            | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589                |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20240102194822-c006b26f21c7  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20240116100315-4a0ec5e4c400  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                            | v0.9.3                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                     | false  | true             |
@@ -342,7 +342,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | github.com/containers/kubensmnt                                                         | v1.2.0                                            |                                     | true   | true             |
 | github.com/containers/libhvee                                                           | v0.5.0                                            | v0.6.0                              | false  | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
-| github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20240109152109-19414b4e5a86  | false  | true             |
+| github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20240115194443-ae06c4583142  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            |                                     | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.8.3                                            |                                     | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                     | false  | true             |
@@ -563,7 +563,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240115020946-923bd65dffd9  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240116151049-13f2398fe8f1  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -691,7 +691,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | github.com/prometheus/common                                                            | v0.45.0                                           | v0.46.0                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.12.0                                           |                                     | false  | true             |
 | github.com/prometheus/tsdb                                                              | v0.7.1                                            | v0.10.0                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf                | v0.0.0-20240112161328-75d56e896c67  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf                | v0.0.0-20240116145035-ef3ab179eed6  | false  | true             |
 | github.com/puzpuzpuz/xsync/v2                                                           | v2.5.1                                            |                                     | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475                |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.3.0                                            | v9.4.0                              | false  | true             |
@@ -922,7 +922,7 @@ _Generated on Mon, 15 Jan 2024 09:55:28 UTC for commit [8f2df1e][0]._
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                | v0.0.0-20240102154912-e7106e64919e  | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240115081926-347a4b5e6da3  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240116073220-b488e7be5902  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
