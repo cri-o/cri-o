@@ -65,7 +65,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: rm -fr vendor
-      - run: if git -P grep -I -n '\s$'; then echo "^^^ extra whitespace at EOL, please fix"; exit 1; fi
+      - run: if git -P grep -I -n -r '[[:blank:]]$'; then echo "^^^ extra whitespace at EOL, please fix"; exit 1; fi
 
   docs:
     runs-on: ubuntu-latest
