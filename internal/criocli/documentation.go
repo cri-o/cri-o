@@ -106,6 +106,7 @@ func markdown() *cli.Command {
 				return err
 			}
 			fmt.Print(strings.TrimSpace(res))
+			fmt.Printf("\r\n")
 			return nil
 		},
 	}
