@@ -593,6 +593,9 @@ type MetricsConfig struct {
 	// MetricsCollectors specifies enabled metrics collectors.
 	MetricsCollectors collectors.Collectors `toml:"metrics_collectors"`
 
+	// MetricsHost is the ip or hostname on which the metrics server will listen.
+	MetricsHost string `toml:"metrics_host"`
+
 	// MetricsPort is the port on which the metrics server will listen.
 	MetricsPort int `toml:"metrics_port"`
 

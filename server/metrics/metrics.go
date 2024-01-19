@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 
@@ -362,7 +363,7 @@ func (m *Metrics) Start(stop chan struct{}) error {
 	}
 
 	if err := m.startEndpoint(
-		stop, "tcp", fmt.Sprintf(":%v", m.config.MetricsPort), me,
+		stop, "tcp", net.JoinHostPort(m.config.MetricsHost, strconv.Itoa(m.config.MetricsPort)), me,
 	); err != nil {
 		return fmt.Errorf(
 			"create metrics endpoint on port %d: %w", m.config.MetricsPort, err,
