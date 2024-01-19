@@ -186,7 +186,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		err = fmt.Errorf("waited too long for request to timeout or %s %s to be created", resourceType, name)
 	// If the resource becomes available while we're watching for it, we still need to error on this request.
 	// When we pull the resource from the cache after waiting, we won't run the cleanup funcs.
-	// However, we don't know how long we've been making the kubelet wait for the request, and the request could time outt
+	// However, we don't know how long we've been making the kubelet wait for the request, and the request could time out
 	// after we stop paying attention. This would cause CRI-O to attempt to send back a resource that the kubelet
 	// will not receive, causing a resource leak.
 	case <-watcher:
