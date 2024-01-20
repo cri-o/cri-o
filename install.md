@@ -190,7 +190,7 @@ apt update
 apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
 ```
 
-If the above provides a GPG error stating `The following signatures couldn't be verified because the public key is not available: NO_PUBKEY <Key>` the following steps may be necessary:
+If the above results in a GPG error stating `The following signatures couldn't be verified because the public key is not available: NO_PUBKEY <Key>` the following steps may be necessary:
 
 ```shell
 apt-key export <Key> | sudo gpg --dearmour >> /usr/share/keyrings/backports.gpg
