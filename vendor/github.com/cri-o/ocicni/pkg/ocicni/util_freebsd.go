@@ -10,23 +10,22 @@ import (
 	"strings"
 )
 
-var defaultJexecCommandName = "jexec"
-
-type nsManager struct {
-	jexecPath string
-}
+type nsManager struct{}
 
 func (nsm *nsManager) init() error {
-	var err error
-	nsm.jexecPath, err = exec.LookPath(defaultJexecCommandName)
-	return err
+	return nil
 }
 
 func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType string) (*net.IPNet, *net.HardwareAddr, error) {
 	// Try to retrieve ip inside container network namespace
+	if addrType == "-4" {
+		addrType = "inet"
+	} else {
+		addrType = "inet6"
+	}
 	output, err := exec.Command(
-		nsm.jexecPath, netnsJailName,
-		"ifconfig", "-f", "inet:cidr,inet6:cidr",
+		"ifconfig", "-j", netnsJailName,
+		"-f", "inet:cidr,inet6:cidr",
 		interfaceName,
 		addrType).CombinedOutput()
 	if err != nil {
@@ -38,7 +37,7 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 		return nil, nil, fmt.Errorf("Unexpected command output %s", output)
 	}
 	fields := strings.Fields(strings.TrimSpace(lines[2]))
-	if len(fields) < 4 {
+	if len(fields) < 2 {
 		return nil, nil, fmt.Errorf("Unexpected address output %s ", lines[0])
 	}
 	ip, ipNet, err := net.ParseCIDR(fields[1])
@@ -53,8 +52,7 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 
 	// Try to retrieve MAC inside container network namespace
 	output, err = exec.Command(
-		nsm.jexecPath, netnsJailName,
-		"ifconfig", "-f", "inet:cidr,inet6:cidr",
+		"ifconfig", "-j", netnsJailName, "-f", "inet:cidr,inet6:cidr",
 		interfaceName,
 		"ether").CombinedOutput()
 	if err != nil {
@@ -65,7 +63,7 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 	if len(lines) < 3 {
 		return nil, nil, fmt.Errorf("unexpected ifconfig command output %s", output)
 	}
-	fields = strings.Fields(strings.TrimSpace(lines[1]))
+	fields = strings.Fields(strings.TrimSpace(lines[2]))
 	if len(fields) < 2 {
 		return nil, nil, fmt.Errorf("unexpected ether output %s ", lines[0])
 	}
@@ -78,7 +76,7 @@ func getContainerDetails(nsm *nsManager, netnsJailName, interfaceName, addrType 
 }
 
 func bringUpLoopback(netns string) error {
-	if err := exec.Command("jexec", netns, "ifconfig", "lo0", "inet", "127.0.0.1").Run(); err != nil {
+	if err := exec.Command("ifconfig", "-j", netns, "lo0", "inet", "127.0.0.1").Run(); err != nil {
 		return fmt.Errorf("failed to initialize loopback: %w", err)
 	}
 	return nil
