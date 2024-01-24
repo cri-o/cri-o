@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -867,6 +868,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		makeOCIConfigurationRootless(specgen)
 	}
 
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
+	}
+
 	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
 		return nil, err
 	}
@@ -876,6 +882,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			s.nri.undoCreateContainer(ctx, specgen, sb, ociContainer)
 		}
 	}()
+
+	if hooks != nil {
+		if err := hooks.PreCreate(ctx, specgen, sb, ociContainer); err != nil {
+			return nil, fmt.Errorf("failed to run pre-create hook for container %q: %w", ociContainer.ID(), err)
+		}
+	}
 
 	if emptyDirVolName, ok := sb.Annotations()[crioann.LinkLogsAnnotation]; ok {
 		if err := linklogs.LinkContainerLogs(ctx, sb.Labels()[kubeletTypes.KubernetesPodUIDLabel], emptyDirVolName, ctr.ID(), containerConfig.Metadata); err != nil {

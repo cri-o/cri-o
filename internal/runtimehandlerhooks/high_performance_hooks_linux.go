@@ -24,6 +24,7 @@ import (
 	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/utils/cpuset"
@@ -64,6 +65,36 @@ type HighPerformanceHooks struct {
 	irqBalanceConfigFile string
 	cpusetLock           sync.Mutex
 	sharedCPUs           string
+}
+
+func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
+	log.Infof(ctx, "Run %q runtime handler pre-create hook for the container %q", HighPerformance, c.ID())
+	if !shouldRunHooks(ctx, c.ID(), specgen.Config, s) {
+		return nil
+	}
+
+	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
+		if isContainerCPUsSpecEmpty(specgen.Config) {
+			return fmt.Errorf("no cpus found for container %q", c.Name())
+		}
+		cpusString := specgen.Config.Linux.Resources.CPU.Cpus
+		exclusiveCPUs, err := cpuset.Parse(cpusString)
+		if err != nil {
+			return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
+		}
+		if h.sharedCPUs == "" {
+			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
+		}
+		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
+		if err != nil {
+			return fmt.Errorf("failed to parse shared cpus: %w", err)
+		}
+		// We must inject the environment variables in the PreCreate stage,
+		// because in the PreStart stage the process is already constructed.
+		// by the low-level runtime and the environment variables are already finalized.
+		injectCpusetEnv(specgen, &exclusiveCPUs, &sharedCPUSet)
+	}
+	return nil
 }
 
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
@@ -1001,10 +1032,11 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 }
 
 func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, sharedCPUs string) ([]cgroups.Manager, error) {
-	if isContainerCPUsSpecEmpty(c) {
+	cSpec := c.Spec()
+	if isContainerCPUsSpecEmpty(&cSpec) {
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
-	cpusString := c.Spec().Linux.Resources.CPU.Cpus
+	cpusString := cSpec.Linux.Resources.CPU.Cpus
 	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
@@ -1051,17 +1083,16 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		}
 		containerManagers = append(containerManagers, childCgroup)
 	}
-	injectCpusetEnv(c, &exclusiveCPUs, &sharedCPUSet)
 	// here we return the containerManagers with the child cgroup inside
 	// this is required in case load-balancing disablement is requested for the pod
 	return containerManagers, nil
 }
 
-func isContainerCPUsSpecEmpty(c *oci.Container) bool {
-	return c.Spec().Linux == nil ||
-		c.Spec().Linux.Resources == nil ||
-		c.Spec().Linux.Resources.CPU == nil ||
-		c.Spec().Linux.Resources.CPU.Cpus == ""
+func isContainerCPUsSpecEmpty(spec *specs.Spec) bool {
+	return spec.Linux == nil ||
+		spec.Linux.Resources == nil ||
+		spec.Linux.Resources.CPU == nil ||
+		spec.Linux.Resources.CPU.Cpus == ""
 }
 
 func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string) error {
@@ -1166,10 +1197,9 @@ func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 	return cpuQuota, nil
 }
 
-func injectCpusetEnv(c *oci.Container, isolated, shared *cpuset.CPUSet) {
-	spec := c.Spec()
+func injectCpusetEnv(specgen *generate.Generator, isolated, shared *cpuset.CPUSet) {
+	spec := specgen.Config
 	spec.Process.Env = append(spec.Process.Env,
 		fmt.Sprintf("%s=%s", IsolatedCPUsEnvVar, isolated.String()),
 		fmt.Sprintf("%s=%s", SharedCPUsEnvVar, shared.String()))
-	c.SetSpec(&spec)
 }
