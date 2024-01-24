@@ -19,7 +19,6 @@ import (
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // CgroupfsManager defines functionality whrn **** TODO: Update this
@@ -57,17 +56,6 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 		parent = sbParent
 	}
 	return filepath.Join("/", parent, containerCgroupPath(containerID))
-}
-
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *CgroupfsManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
-	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
@@ -186,16 +174,6 @@ func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 		defer m.mutex.Unlock()
 		delete(m.v1SbCgMgr, sbID)
 	}
-}
-
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
-	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
-	if err != nil {
-		return err
-	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID

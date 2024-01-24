@@ -21,7 +21,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const defaultSystemdParent = "system.slice"
@@ -75,17 +74,6 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 		parent = sbParent
 	}
 	return parent + ":" + CrioPrefix + ":" + containerID
-}
-
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *SystemdManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
-	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
 }
 
 func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
@@ -278,16 +266,6 @@ func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 		defer m.mutex.Unlock()
 		delete(m.v1SbCgMgr, sbID)
 	}
-}
-
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *SystemdManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
-	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
-	if err != nil {
-		return err
-	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
 }
 
 // nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
