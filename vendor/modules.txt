@@ -553,7 +553,7 @@ github.com/cpuguy83/go-md2man/v2/md2man
 # github.com/creack/pty v1.1.21
 ## explicit; go 1.13
 github.com/creack/pty
-# github.com/cri-o/ocicni v0.4.1
+# github.com/cri-o/ocicni v0.4.2-0.20231214012016-e3223f554ea5
 ## explicit; go 1.17
 github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyberphone/json-canonicalization v0.0.0-20231011164504-785e29786b46
