@@ -124,6 +124,7 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		usageBytes       uint64
 		availableBytes   uint64
 		inactiveFileName string
+		memSwap          uint64
 	)
 	usageBytes = memStats.Usage.Usage
 	if node.CgroupIsV2() {
@@ -133,9 +134,14 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		inactiveFileName = "inactive_file"
 		pageFaults = memStats.Stats["pgfault"]
 		majorPageFaults = memStats.Stats["pgmajfault"]
+		// libcontainer adds memory.swap.current to memory.current and reports them as SwapUsage to be compatible with cgroup v1,
+		// because cgroup v1 reports SwapUsage as mem+swap combined.
+		// Here we subtract SwapUsage from memory usage to get the actual swap value.
+		memSwap = memStats.SwapUsage.Usage - usageBytes
 	} else {
 		inactiveFileName = "total_inactive_file"
 		rssBytes = memStats.Stats["total_rss"]
+		memSwap = memStats.SwapUsage.Usage
 		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
 	}
 	workingSetBytes = usageBytes
@@ -151,7 +157,7 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		availableBytes = memStats.Usage.Limit - workingSetBytes
 	}
 	return &MemoryStats{
-		Usage:           memStats.Usage.Usage,
+		Usage:           usageBytes,
 		Cache:           memStats.Cache,
 		Limit:           memStats.Usage.Limit,
 		MaxUsage:        memStats.Usage.MaxUsage,
@@ -162,7 +168,7 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		AvailableBytes:  availableBytes,
 		KernelUsage:     memStats.KernelUsage.Usage,
 		KernelTCPUsage:  memStats.KernelTCPUsage.Usage,
-		SwapUsage:       memStats.SwapUsage.Usage,
+		SwapUsage:       memSwap,
 		SwapLimit:       memStats.SwapUsage.Limit,
 	}
 }
