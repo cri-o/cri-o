@@ -465,6 +465,11 @@ func (m *Metrics) MetricContainersOOMCountTotalInc(name string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricContainersOOMCountTotalDelete(name string) {
+	m.metricContainersOOM.DeleteLabelValues(name)
+	m.metricContainersOOMCountTotal.DeleteLabelValues(name)
+}
+
 func (m *Metrics) MetricContainersEventsDroppedInc() {
 	m.metricContainersEventsDropped.Inc()
 }

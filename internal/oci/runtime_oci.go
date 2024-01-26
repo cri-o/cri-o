@@ -905,6 +905,11 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
+	if c.state.OOMKilled {
+		// Collect metric by container name
+		metrics.Instance().MetricContainersOOMCountTotalDelete(c.Name())
+	}
+
 	_, err := r.runtimeCmd("delete", "--force", c.ID())
 	return err
 }
