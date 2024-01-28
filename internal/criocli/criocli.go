@@ -820,13 +820,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "enable-metrics",
-			Usage:   "Enable metrics endpoint for the server on localhost:9090.",
+			Usage:   "Enable metrics endpoint for the server.",
 			EnvVars: []string{"CONTAINER_ENABLE_METRICS"},
 			Value:   defConf.EnableMetrics,
 		},
 		&cli.StringFlag{
 			Name:    "metrics-host",
-			Usage:   "Host for the metrics endpoint. (default: \"\" for all interfaces)",
+			Usage:   "Host for the metrics endpoint.",
 			EnvVars: []string{"CONTAINER_METRICS_HOST"},
 			Value:   defConf.MetricsHost,
 		},

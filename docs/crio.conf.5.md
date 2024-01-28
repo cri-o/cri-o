@@ -482,10 +482,10 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
   Globally enable or disable metrics support.
 
 **metrics_collectors**=["operations", "operations_latency_microseconds_total", "operations_latency_microseconds", "operations_errors", "image_pulls_by_digest", "image_pulls_by_name", "image_pulls_by_name_skipped", "image_pulls_failures", "image_pulls_successes", "image_pulls_layer_size", "image_layer_reuse", "containers_events_dropped_total", "containers_oom_total", "containers_oom", "processes_defunct"]
-  Enabled metrics collectors
+  Specify enabled metrics collectors. Per default all metrics are enabled.
 
-**metrics_host**=""
-  The host on which the metrics server will listen.
+**metrics_host**="127.0.0.1"
+  The IP address or hostname on which the metrics server will listen.
 
 **metrics_port**=9090
   The port on which the metrics server will listen.

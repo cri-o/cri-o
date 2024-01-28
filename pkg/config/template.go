@@ -1500,7 +1500,7 @@ const templateStringCrioMetricsCollectors = `# Specify enabled metrics collector
 {{ range $opt := .MetricsCollectors }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 `
 
-const templateStringCrioMetricsMetricsHost = `# The hostname or ip on which the metrics server will listen.
+const templateStringCrioMetricsMetricsHost = `# The IP address or hostname on which the metrics server will listen.
 {{ $.Comment }}metrics_host = "{{ .MetricsHost }}"
 
 `
