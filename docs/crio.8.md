@@ -234,7 +234,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-criu-support**: Enable CRIU integration, requires that the criu binary is available in $PATH.
 
-**--enable-metrics**: Enable metrics endpoint for the server on localhost:9090.
+**--enable-metrics**: Enable metrics endpoint for the server.
 
 **--enable-nri**: Enable NRI (Node Resource Interface) support. (default: false)
 
@@ -326,7 +326,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-collectors**="": Enabled metrics collectors. (default: "operations", "operations_latency_microseconds_total", "operations_latency_microseconds", "operations_errors", "image_pulls_by_digest", "image_pulls_by_name", "image_pulls_by_name_skipped", "image_pulls_failures", "image_pulls_successes", "image_pulls_layer_size", "image_layer_reuse", "containers_events_dropped_total", "containers_oom_total", "containers_oom", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage")
 
-**--metrics-host**="": Host for the metrics endpoint. (default: "" for all interfaces)
+**--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
 **--metrics-key**="": Certificate key for the secure metrics endpoint.
 
