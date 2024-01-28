@@ -11,27 +11,34 @@ function teardown() {
 	cleanup_test
 }
 
-@test "metrics with default port" {
-	# start crio with default port 9090
+@test "metrics with default host and port" {
+	HOST="127.0.0.1"
 	PORT="9090"
+
+	# Start CRI-O with default host and port.
 	CONTAINER_ENABLE_METRICS=true start_crio
-	if ! port_listens "$PORT"; then
-		skip "Metrics port $PORT not listening"
+
+	# The metrics endpoint should not listen on all available interfaces.
+	if host_and_port_listens "::" $PORT; then
+		echo "Metrics endpoint should not listen on all interfaces" >&3
+		return 1
 	fi
 
-	# get metrics
-	curl -sf "http://localhost:$PORT/metrics"
+	curl -sf "http://${HOST}:${PORT}/metrics" | grep crio_operations
 }
 
-@test "metrics with random port" {
-	# start crio with custom port
+@test "metrics with custom host using localhost and random port" {
+	HOST="localhost"
 	PORT=$(free_port)
-	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
+
+	# Start CRI-O using a custom host of "localhost",
+	# which should be the same as "127.0.0.1", so the
+	# same as default.
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_HOST=$HOST CONTAINER_METRICS_PORT=$PORT start_crio
 
 	crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json
 
-	# get metrics
-	curl -sf "http://localhost:$PORT/metrics" | grep crio_operations
+	curl -sf "http://localhost:${PORT}/metrics" | grep crio_operations
 }
 
 @test "metrics with operations quantile" {
