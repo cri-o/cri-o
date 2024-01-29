@@ -18,8 +18,9 @@ import (
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
+	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
+	"github.com/opencontainers/runc/libcontainer/configs"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -55,16 +56,8 @@ type HighPerformanceHooks struct {
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	log.Infof(ctx, "Run %q runtime handler pre-start hook for the container %q", HighPerformance, c.ID())
 
-	if isCgroupParentBurstable(s) {
-		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStart.", c.ID())
-		return nil
-	}
-	if isCgroupParentBestEffort(s) {
-		log.Infof(ctx, "Container %q is a besteffort pod. Skip PreStart.", c.ID())
-		return nil
-	}
-	if !isContainerRequestWholeCPU(c) {
-		log.Infof(ctx, "Container %q requests partial cpu(s). Skip PreStart", c.ID())
+	cSpec := c.Spec()
+	if !shouldRunHooks(ctx, c.ID(), &cSpec, s) {
 		return nil
 	}
 
@@ -86,11 +79,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the CFS quota for the container CPUs
 	if shouldCPUQuotaBeDisabled(s.Annotations()) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
-		cpuMountPoint, err := cgroups.FindCgroupMountpoint(cgroupMountPoint, "cpu")
-		if err != nil {
-			return err
-		}
-		if err := setCPUQuota(cpuMountPoint, s.CgroupParent(), c, false); err != nil {
+		if err := setCPUQuota(s.CgroupParent(), c); err != nil {
 			return fmt.Errorf("set CPU CFS quota: %w", err)
 		}
 	}
@@ -129,16 +118,8 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
 	log.Infof(ctx, "Run %q runtime handler pre-stop hook for the container %q", HighPerformance, c.ID())
 
-	if isCgroupParentBurstable(s) {
-		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStop.", c.ID())
-		return nil
-	}
-	if isCgroupParentBestEffort(s) {
-		log.Infof(ctx, "Container %q is a besteffort pod. Skip PreStop.", c.ID())
-		return nil
-	}
-	if !isContainerRequestWholeCPU(c) {
-		log.Infof(ctx, "Container %q requests partial cpu(s). Skip PreStop", c.ID())
+	cSpec := c.Spec()
+	if !shouldRunHooks(ctx, c.ID(), &cSpec, s) {
 		return nil
 	}
 
@@ -218,18 +199,6 @@ func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value
 
 func annotationValueDeprecationWarning(annotation string) string {
 	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, "true")
-}
-
-func isCgroupParentBurstable(s *sandbox.Sandbox) bool {
-	return strings.Contains(s.CgroupParent(), "burstable")
-}
-
-func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
-	return strings.Contains(s.CgroupParent(), "besteffort")
-}
-
-func isContainerRequestWholeCPU(c *oci.Container) bool {
-	return *(c.Spec().Linux.Resources.CPU.Shares)%1024 == 0
 }
 
 func setCPUSLoadBalancingWithRetry(ctx context.Context, c *oci.Container, enable bool) error {
@@ -355,64 +324,66 @@ func setIRQLoadBalancing(c *oci.Container, enable bool, irqSmpAffinityFile, irqB
 	return nil
 }
 
-func setCPUQuota(cpuMountPoint, parentDir string, c *oci.Container, enable bool) error {
-	var rpath string
-	var err error
-	var cfsQuotaPath string
-	var parentCfsQuotaPath string
-	var cgroupManager cgmgr.CgroupManager
+func setCPUQuota(parentDir string, c *oci.Container) error {
+	var (
+		cgroupManager cgmgr.CgroupManager
+		err           error
+	)
 
 	if strings.HasSuffix(parentDir, ".slice") {
-		// systemd fs
 		if cgroupManager, err = cgmgr.SetCgroupManager("systemd"); err != nil {
-			return nil
+			// Programming error, this is only possible if the manager string is invalid.
+			panic(err)
 		}
-		parentPath, err := systemd.ExpandSlice(parentDir)
-		if err != nil {
-			return err
-		}
-		parentCfsQuotaPath = filepath.Join(cpuMountPoint, parentPath, "cpu.cfs_quota_us")
-		if rpath, err = cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID()); err != nil {
-			return err
-		}
-		cfsQuotaPath = filepath.Join(cpuMountPoint, rpath, "cpu.cfs_quota_us")
-	} else {
-		// cgroupfs
-		if cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs"); err != nil {
-			return nil
-		}
-		parentCfsQuotaPath = filepath.Join(cpuMountPoint, parentDir, "cpu.cfs_quota_us")
-		if rpath, err = cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID()); err != nil {
-			return err
-		}
-		cfsQuotaPath = filepath.Join(cpuMountPoint, rpath, "cpu.cfs_quota_us")
+	} else if cgroupManager, err = cgmgr.SetCgroupManager("cgroupfs"); err != nil {
+		// Programming error, this is only possible if the manager string is invalid.
+		panic(err)
 	}
-
-	if _, err := os.Stat(cfsQuotaPath); err != nil {
+	cgroupPath, err := cgroupManager.ContainerCgroupAbsolutePath(parentDir, c.ID())
+	if err != nil {
 		return err
 	}
-	if _, err := os.Stat(parentCfsQuotaPath); err != nil {
+	containerCgroup := filepath.Base(cgroupPath)
+	// A quirk of libcontainer's cgroup driver.
+	// See explanation in disableCPUQuotaForCgroup function.
+	if cgroupManager.IsSystemd() {
+		containerCgroup = c.ID()
+	}
+	containerCgroupParent := filepath.Dir(cgroupPath)
+	podCgroup := filepath.Base(containerCgroupParent)
+	podCgroupParent := filepath.Dir(containerCgroupParent)
+
+	if err := disableCPUQuotaForCgroup(podCgroup, podCgroupParent, cgroupManager.IsSystemd()); err != nil {
+		return err
+	}
+	return disableCPUQuotaForCgroup(containerCgroup, containerCgroupParent, cgroupManager.IsSystemd())
+}
+
+func disableCPUQuotaForCgroup(cgroup, parent string, systemd bool) error {
+	if systemd {
+		parent = filepath.Base(parent)
+	}
+	cg := &configs.Cgroup{
+		Name:   cgroup,
+		Parent: parent,
+		Resources: &configs.Resources{
+			SkipDevices: true,
+			CpuQuota:    -1,
+		},
+		Systemd: systemd,
+		// If the cgroup manager is systemd, then libcontainer
+		// will construct the cgroup path (for scopes) as:
+		// ScopePrefix-Name.scope. For slices, and for cgroupfs manager,
+		// this will be ignored.
+		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
+		ScopePrefix: cgmgr.CrioPrefix,
+	}
+	mgr, err := libCtrMgr.New(cg)
+	if err != nil {
 		return err
 	}
 
-	if enable {
-		// there should have no use case to get here, as the pod cgroup will be deleted when the pod end
-		if err := os.WriteFile(cfsQuotaPath, []byte("0"), 0o644); err != nil {
-			return err
-		}
-		if err := os.WriteFile(parentCfsQuotaPath, []byte("0"), 0o644); err != nil {
-			return err
-		}
-	} else {
-		if err := os.WriteFile(cfsQuotaPath, []byte("-1"), 0o644); err != nil {
-			return err
-		}
-		if err := os.WriteFile(parentCfsQuotaPath, []byte("-1"), 0o644); err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return mgr.Set(cg.Resources)
 }
 
 // setCPUPMQOSResumeLatency sets the pm_qos_resume_latency_us for a cpu and stores the original
@@ -651,4 +622,44 @@ func RestoreIrqBalanceConfig(irqBalanceConfigFile, irqBannedCPUConfigFile, irqSm
 		}
 	}
 	return nil
+}
+
+func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec, s *sandbox.Sandbox, annotations fields.Set) bool {
+	if !shouldRunHooks(ctx, cid, cSpec, s) {
+		return false
+	}
+	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
+		log.Warnf(context.TODO(), annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+	}
+
+	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
+		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
+}
+
+func shouldRunHooks(ctx context.Context, id string, cSpec *specs.Spec, s *sandbox.Sandbox) bool {
+	if isCgroupParentBurstable(s) {
+		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStart.", id)
+		return false
+	}
+	if isCgroupParentBestEffort(s) {
+		log.Infof(ctx, "Container %q is a besteffort pod. Skip PreStart.", id)
+		return false
+	}
+	if !isContainerRequestWholeCPU(cSpec) {
+		log.Infof(ctx, "Container %q requests partial cpu(s). Skip PreStart", id)
+		return false
+	}
+	return true
+}
+
+func isCgroupParentBurstable(s *sandbox.Sandbox) bool {
+	return strings.Contains(s.CgroupParent(), "burstable")
+}
+
+func isCgroupParentBestEffort(s *sandbox.Sandbox) bool {
+	return strings.Contains(s.CgroupParent(), "besteffort")
+}
+
+func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
+	return *(cSpec.Linux.Resources.CPU.Shares)%1024 == 0
 }
