@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -10,9 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/blang/semver"
 	"github.com/cri-o/cri-o/internal/version"
-	"github.com/google/go-github/v50/github"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
@@ -57,17 +54,6 @@ func run() error {
 		return fmt.Errorf("create output path: %w", err)
 	}
 
-	// Get latest release version
-	releaseVersion, err := getLatestReleaseVersion(token)
-	if err != nil {
-		return fmt.Errorf("error while listing the github tags: %w", err)
-	}
-	startTag := util.AddTagPrefix(decVersion(releaseVersion))
-	logrus.Infof("Using start tag %s", startTag)
-
-	endTag := util.AddTagPrefix(releaseVersion)
-	logrus.Infof("Using end tag %s", endTag)
-
 	// Generate the notes
 	repo, err := git.OpenRepo(".")
 	if err != nil {
@@ -100,6 +86,8 @@ func run() error {
 	bundleVersion := head
 	shortHead := head[:7]
 	endRev := head
+
+	startTag := util.AddTagPrefix(version.Version)
 	if output, err := command.New(
 		"git", "describe", "--tags", "--exact-match",
 	).RunSilentSuccessOutput(); err == nil {
@@ -108,9 +96,13 @@ func run() error {
 		bundleVersion = foundTag
 		shortHead = foundTag
 		endRev = foundTag
+		startTag = util.AddTagPrefix(decVersion(foundTag))
 	} else {
 		logrus.Infof("Not using git tag because `git describe` failed: %v", err)
 	}
+
+	logrus.Infof("Using start tag %s", startTag)
+	logrus.Infof("Using end tag %s", endRev)
 
 	if _, err := fmt.Fprintf(templateFile, `# CRI-O %s
 
@@ -172,7 +164,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 {{- end -}}
 {{- end -}}
 `,
-		endTag,
+		endRev,
 		startTag, shortHead,
 		startTag, endRev,
 		time.Now().Format(time.RFC1123),
@@ -199,7 +191,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	}
 
 	logrus.Infof("Generating release notes")
-	outputFile := endTag + ".md"
+	outputFile := endRev + ".md"
 	outputFilePath := filepath.Join(outputPath, outputFile)
 	os.RemoveAll(outputFilePath)
 	if err := command.Execute(
@@ -245,7 +237,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	if err != nil {
 		return fmt.Errorf("open %s file: %w", readmeFile, err)
 	}
-	link := fmt.Sprintf("- [%s](%s)", endTag, outputFile)
+	link := fmt.Sprintf("- [%s](%s)", endRev, outputFile)
 
 	// Item not in list
 	alreadyExistingIndex := indexOfPrefix(link, readmeSlice)
@@ -347,32 +339,4 @@ func decVersion(tag string) string {
 	}
 
 	return sv.String()
-}
-
-// getLatestReleaseVersion fetches the latest github release
-// version from cri-o.
-func getLatestReleaseVersion(token string) (string, error) {
-	ctx := context.Background()
-	client := github.NewTokenClient(ctx, token)
-	tags, _, err := client.Repositories.ListTags(ctx, "cri-o", "cri-o", nil)
-	if err != nil {
-		return "", err
-	}
-	// To determine the latest release of cri-o, the code iterates over
-	// tags that are equal to or greater than the version.Version value,
-	// adds them to a list, sorts the list, and then returns the last
-	// element of the list.
-	rng, err := semver.ParseRange(fmt.Sprintf(">= %s", version.Version))
-	if err != nil {
-		return "", err
-	}
-	svers := []semver.Version{}
-	for _, tag := range tags {
-		v := semver.MustParse(strings.SplitAfter(tag.GetName(), "v")[1])
-		if rng(v) {
-			svers = append(svers, v)
-		}
-	}
-	semver.Sort(svers)
-	return svers[len(svers)-1].String(), nil
 }
