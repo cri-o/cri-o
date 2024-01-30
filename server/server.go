@@ -546,7 +546,7 @@ func New(
 	}
 
 	// Set up our NRI adaptation.
-	api, err := nriIf.New(s.Config().NRI)
+	api, err := nriIf.New(s.config.NRI.WithTracing(s.config.EnableTracing))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create NRI interface: %v", err)
 	}
