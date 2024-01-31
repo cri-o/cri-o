@@ -16,7 +16,6 @@ import (
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const (
@@ -56,21 +55,19 @@ type CgroupManager interface {
 	// returns the cgroup path on disk for that containerID. If parentCgroup is empty, it
 	// uses the default parent for that particular manager
 	ContainerCgroupAbsolutePath(string, string) (string, error)
-	// PopulateContainerCgroupStats fills the stats object with information from the cgroup found
-	// given a cgroup parent and container ID.
-	PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error
 	// ContainerCgroupManager takes the cgroup parent, and container ID.
 	// It returns the raw libcontainer cgroup manager for that container.
 	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
 	// RemoveContainerCgManager removes the cgroup manager for the container
 	RemoveContainerCgManager(containerID string)
+	// ContainerCgroupStats takes the sandbox parent, and container ID.
+	// It creates a new cgroup if one does not already exist.
+	// It returns the cgroup stats for that container.
+	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
 	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
 	SandboxCgroupPath(string, string) (string, string, error)
-	// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, and sandbox stats object.
-	// It fills the object with information from the cgroup found given that parent.
-	PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error
 	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 	// It returns the raw libcontainer cgroup manager for that sandbox.
 	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
@@ -87,6 +84,10 @@ type CgroupManager interface {
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container.
 	RemoveSandboxCgroup(sbParent, containerID string) error
+	// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+	// It creates a new cgroup for that sandbox if it does not already exist.
+	// It returns the cgroup stats for that sandbox.
+	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
 }
 
 // New creates a new CgroupManager with defaults

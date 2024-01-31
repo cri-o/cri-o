@@ -21,7 +21,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 const defaultSystemdParent = "system.slice"
@@ -77,17 +76,6 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 	return parent + ":" + CrioPrefix + ":" + containerID
 }
 
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *SystemdManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
-	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
-}
-
 func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
 	parent := defaultSystemdParent
 	if sbParent != "" {
@@ -128,6 +116,21 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 		m.v1CtrCgMgr[containerID] = cgMgr
 	}
 	return cgMgr, nil
+}
+
+// ContainerCgroupStats takes the sandbox parent, and container ID.
+// It creates a new cgroup if one does not already exist.
+// It returns the cgroup stats for that container.
+func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
 }
 
 // RemoveContainerCgManager removes the cgroup manager for the container
@@ -241,6 +244,21 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 	return cgMgr, nil
 }
 
+// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+// It creates a new cgroup for that sandbox if it does not already exist.
+// It returns the cgroup stats for that sandbox.
+func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
+}
+
 // RemoveSandboxCgroupManager removes cgroup manager for the sandbox
 func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
@@ -248,16 +266,6 @@ func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 		defer m.mutex.Unlock()
 		delete(m.v1SbCgMgr, sbID)
 	}
-}
-
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *SystemdManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
-	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
-	if err != nil {
-		return err
-	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
 }
 
 // nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.

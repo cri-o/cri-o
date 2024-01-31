@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/sirupsen/logrus"
@@ -29,9 +30,15 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		},
 		Linux: &types.LinuxPodSandboxStats{},
 	}
-	if err := ss.Config().CgroupManager().PopulateSandboxCgroupStats(sb.CgroupParent(), sandboxStats); err != nil {
+
+	if cgstats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent(), sb.ID()); err != nil {
 		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+	} else {
+		sandboxStats.Linux.Cpu = criCPUStats(cgstats.CPU, cgstats.SystemNano)
+		sandboxStats.Linux.Memory = criMemStats(cgstats.Memory, cgstats.SystemNano)
+		sandboxStats.Linux.Process = criProcessStats(cgstats.Pid, cgstats.SystemNano)
 	}
+
 	if err := ss.populateNetworkUsage(sandboxStats, sb); err != nil {
 		logrus.Errorf("Error adding network stats for sandbox %s: %v", sb.ID(), err)
 	}
@@ -40,11 +47,12 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		if c.StateNoLock().Status == oci.ContainerStateStopped {
 			continue
 		}
-		cStats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
+		cgstats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
 		if err != nil {
 			logrus.Errorf("Error getting container stats %s: %v", c.ID(), err)
 			continue
 		}
+		cStats := containerCRIStats(cgstats, c, cgstats.SystemNano)
 		ss.populateWritableLayer(cStats, c)
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
@@ -69,11 +77,12 @@ func (ss *StatsServer) updateContainer(c *oci.Container, sb *sandbox.Sandbox) *t
 	if c.StateNoLock().Status == oci.ContainerStateStopped {
 		return nil
 	}
-	cStats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
+	cgstats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
 	if err != nil {
 		logrus.Errorf("Error getting container stats %s: %v", c.ID(), err)
 		return nil
 	}
+	cStats := containerCRIStats(cgstats, c, cgstats.SystemNano)
 	ss.populateWritableLayer(cStats, c)
 	if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 		updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
@@ -127,4 +136,48 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 		TxBytes:  &types.UInt64Value{Value: attrs.Statistics.TxBytes},
 		TxErrors: &types.UInt64Value{Value: attrs.Statistics.TxErrors},
 	}, nil
+}
+
+func containerCRIStats(stats *cgmgr.CgroupStats, ctr *oci.Container, systemNano int64) *types.ContainerStats {
+	criStats := &types.ContainerStats{
+		Attributes: ctr.CRIAttributes(),
+	}
+	criStats.Cpu = criCPUStats(stats.CPU, systemNano)
+	criStats.Memory = criMemStats(stats.Memory, systemNano)
+	criStats.Swap = criSwapStats(stats.Memory, systemNano)
+	return criStats
+}
+
+func criCPUStats(cpuStats *cgmgr.CPUStats, systemNano int64) *types.CpuUsage {
+	return &types.CpuUsage{
+		Timestamp:            systemNano,
+		UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuStats.TotalUsageNano},
+	}
+}
+
+func criMemStats(memStats *cgmgr.MemoryStats, systemNano int64) *types.MemoryUsage {
+	return &types.MemoryUsage{
+		Timestamp:       systemNano,
+		WorkingSetBytes: &types.UInt64Value{Value: memStats.WorkingSetBytes},
+		RssBytes:        &types.UInt64Value{Value: memStats.RssBytes},
+		PageFaults:      &types.UInt64Value{Value: memStats.PageFaults},
+		MajorPageFaults: &types.UInt64Value{Value: memStats.MajorPageFaults},
+		UsageBytes:      &types.UInt64Value{Value: memStats.Usage},
+		AvailableBytes:  &types.UInt64Value{Value: memStats.AvailableBytes},
+	}
+}
+
+func criSwapStats(memStats *cgmgr.MemoryStats, systemNano int64) *types.SwapUsage {
+	return &types.SwapUsage{
+		Timestamp:          systemNano,
+		SwapUsageBytes:     &types.UInt64Value{Value: memStats.SwapUsage},
+		SwapAvailableBytes: &types.UInt64Value{Value: memStats.SwapLimit - memStats.SwapUsage},
+	}
+}
+
+func criProcessStats(pStats *cgmgr.PidsStats, systemNano int64) *types.ProcessUsage {
+	return &types.ProcessUsage{
+		Timestamp:    systemNano,
+		ProcessCount: &types.UInt64Value{Value: pStats.Current},
+	}
 }

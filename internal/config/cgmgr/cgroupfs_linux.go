@@ -19,7 +19,6 @@ import (
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // CgroupfsManager defines functionality whrn **** TODO: Update this
@@ -59,17 +58,6 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	return filepath.Join("/", parent, containerCgroupPath(containerID))
 }
 
-// PopulateContainerCgroupStats takes arguments sandbox parent cgroup, container ID, and
-// containers stats object. It fills the object with information from the cgroup found
-// given that parent and ID
-func (m *CgroupfsManager) PopulateContainerCgroupStats(sbParent, containerID string, stats *types.ContainerStats) error {
-	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
-	if err != nil {
-		return err
-	}
-	return populateContainerCgroupStatsFromPath(cgPath, stats)
-}
-
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
 // because they both return the absolute path
 func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
@@ -99,6 +87,21 @@ func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (
 		m.v1CtrCgMgr[containerID] = cgMgr
 	}
 	return cgMgr, nil
+}
+
+// ContainerCgroupStats takes the sandbox parent, and container ID.
+// It creates a new cgroup if one does not already exist.
+// It returns the cgroup stats for that container.
+func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	cgMgr, err := m.ContainerCgroupManager(sbParent, containerID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
 }
 
 // RemoveContainerCgManager removes the cgroup manager for the container
@@ -149,23 +152,28 @@ func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.
 	return cgMgr, nil
 }
 
-// RemoveSandboeCgroupManager removes the cgroup manager for the sandbox
+// SandboxCgroupStats takes the sandbox parent, and sandbox ID.
+// It creates a new cgroup for that sandbox if it does not already exist.
+// It returns the cgroup stats for that sandbox.
+func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error) {
+	cgMgr, err := m.SandboxCgroupManager(sbParent, sbID)
+	if err != nil {
+		return nil, err
+	}
+	stats, err := cgMgr.GetStats()
+	if err != nil {
+		return nil, err
+	}
+	return libctrStatsToCgroupStats(stats), nil
+}
+
+// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
 func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
 		defer m.mutex.Unlock()
 		delete(m.v1SbCgMgr, sbID)
 	}
-}
-
-// PopulateSandboxCgroupStats takes arguments sandbox parent cgroup and sandbox stats object
-// It fills the object with information from the cgroup found given that cgroup
-func (m *CgroupfsManager) PopulateSandboxCgroupStats(sbParent string, stats *types.PodSandboxStats) error {
-	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
-	if err != nil {
-		return err
-	}
-	return populateSandboxCgroupStatsFromPath(cgPath, stats)
 }
 
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID

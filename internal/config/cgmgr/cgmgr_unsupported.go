@@ -21,6 +21,10 @@ type CgroupManager interface {
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container
 	RemoveSandboxCgroup(sbParent, containerID string) error
+	// ContainerCgroupStats takes the sandbox parent, and container ID.
+	// It creates a new cgroup if one does not already exist.
+	// It returns the cgroup stats for that container.
+	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
 }
 
 type NullCgroupManager struct {
@@ -63,6 +67,10 @@ func (*NullCgroupManager) ContainerCgroupPath(string, string) string {
 
 func (*NullCgroupManager) SandboxCgroupPath(string, string) string {
 	return ""
+}
+
+func (*NullCgroupManager) ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error) {
+	return nil, nil
 }
 
 func (*NullCgroupManager) RemoveSandboxCgroup(sbParent, containerID string) error {

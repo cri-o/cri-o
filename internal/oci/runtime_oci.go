@@ -1073,12 +1073,12 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*types.ContainerStats, error) {
+func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return r.containerStats(c, cgroup)
+	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
 }
 
 // SignalContainer sends a signal to a container process.

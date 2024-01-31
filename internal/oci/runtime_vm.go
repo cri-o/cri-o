@@ -945,7 +945,7 @@ func (r *runtimeVM) UnpauseContainer(ctx context.Context, c *Container) error {
 }
 
 // ContainerStats provides statistics of a container.
-func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*types.ContainerStats, error) {
+func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) (*cgmgr.CgroupStats, error) {
 	log.Debugf(ctx, "RuntimeVM.ContainerStats() start")
 	defer log.Debugf(ctx, "RuntimeVM.ContainerStats() end")
 
@@ -973,78 +973,70 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 	// Trying to retrieve the V1 metrics first, and if it fails, try the v2
 	m, ok := stats.(*cgroupsV1.Metrics)
 	if ok {
-		return metricsV1ToCtrStats(ctx, c, m), nil
+		return metricsV1ToCgroupStats(ctx, m), nil
 	} else {
 		m, ok := stats.(*cgroupsV2.Metrics)
 		if ok {
-			return metricsV2ToCtrStats(ctx, c, m), nil
+			return metricsV2ToCgroupStats(ctx, m), nil
 		}
 	}
 	return nil, fmt.Errorf("unknown stats type %T", stats)
 }
 
-func metricsV1ToCtrStats(ctx context.Context, c *Container, m *cgroupsV1.Metrics) *types.ContainerStats {
+func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.CgroupStats {
 	var (
-		cpuNano         uint64
 		memLimit        uint64
 		memUsage        uint64
 		workingSetBytes uint64
-		rssBytes        uint64
-		pageFaults      uint64
-		majorPageFaults uint64
 	)
-
-	systemNano := time.Now().UnixNano()
-
-	if m != nil {
-		cpuNano = m.CPU.Usage.Total
-		memUsage = m.Memory.Usage.Usage
-		memLimit = cgmgr.MemLimitGivenSystem(m.Memory.Usage.Limit)
-		if memUsage > m.Memory.TotalInactiveFile {
-			workingSetBytes = memUsage - m.Memory.TotalInactiveFile
-		} else {
-			log.Debugf(ctx,
-				"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
-				m.Memory.TotalInactiveFile, memUsage,
-			)
-		}
-		rssBytes = m.Memory.RSS
-		pageFaults = m.Memory.PgFault
-		majorPageFaults = m.Memory.PgMajFault
+	memUsage = m.Memory.Usage.Usage
+	memLimit = cgmgr.MemLimitGivenSystem(m.Memory.Usage.Limit)
+	if memUsage > m.Memory.TotalInactiveFile {
+		workingSetBytes = memUsage - m.Memory.TotalInactiveFile
+	} else {
+		log.Debugf(ctx,
+			"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
+			m.Memory.TotalInactiveFile, memUsage,
+		)
 	}
-
-	return &types.ContainerStats{
-		Attributes: c.CRIAttributes(),
-		Cpu: &types.CpuUsage{
-			Timestamp:            systemNano,
-			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
+	return &cgmgr.CgroupStats{
+		Memory: &cgmgr.MemoryStats{
+			Usage:           memUsage,
+			WorkingSetBytes: workingSetBytes,
+			Limit:           memLimit,
+			AvailableBytes:  memLimit - workingSetBytes,
+			RssBytes:        m.Memory.RSS,
+			PageFaults:      m.Memory.PgFault,
+			MajorPageFaults: m.Memory.PgMajFault,
+			Cache:           m.Memory.Cache,
+			MaxUsage:        m.Memory.Usage.Max,
+			KernelUsage:     m.Memory.Kernel.Usage,
+			KernelTCPUsage:  m.Memory.KernelTCP.Usage,
+			SwapUsage:       m.Memory.Swap.Usage,
+			SwapLimit:       m.Memory.Swap.Limit,
 		},
-		Memory: &types.MemoryUsage{
-			Timestamp:       systemNano,
-			WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
-			PageFaults:      &types.UInt64Value{Value: pageFaults},
-			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
-			RssBytes:        &types.UInt64Value{Value: rssBytes},
-			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
-			UsageBytes:      &types.UInt64Value{Value: memUsage},
+		CPU: &cgmgr.CPUStats{
+			TotalUsageNano:          m.CPU.Usage.Total,
+			PerCPUUsage:             m.CPU.Usage.PerCPU,
+			ThrottledTime:           m.CPU.Throttling.ThrottledTime,
+			ThrottlingActivePeriods: m.CPU.Throttling.Periods,
+			ThrottledPeriods:        m.CPU.Throttling.ThrottledPeriods,
 		},
+		Pid: &cgmgr.PidsStats{
+			Current: m.Pids.Current,
+			Limit:   m.Pids.Limit,
+		},
+		SystemNano: time.Now().UnixNano(),
 	}
 }
 
-func metricsV2ToCtrStats(ctx context.Context, c *Container, m *cgroupsV2.Metrics) *types.ContainerStats {
+func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.CgroupStats {
 	var (
-		cpuNano         uint64
 		memLimit        uint64
 		memUsage        uint64
 		workingSetBytes uint64
-		pageFaults      uint64
-		majorPageFaults uint64
 	)
-
-	systemNano := time.Now().UnixNano()
-
 	if m != nil {
-		cpuNano = m.CPU.UsageUsec * 1000
 		memUsage = m.Memory.Usage
 		memLimit = cgmgr.MemLimitGivenSystem(m.Memory.UsageLimit)
 		if memUsage > m.Memory.InactiveFile {
@@ -1055,26 +1047,38 @@ func metricsV2ToCtrStats(ctx context.Context, c *Container, m *cgroupsV2.Metrics
 				m.Memory.InactiveFile, memUsage,
 			)
 		}
-		pageFaults = m.Memory.Pgfault
-		majorPageFaults = m.Memory.Pgmajfault
 	}
-
-	return &types.ContainerStats{
-		Attributes: c.CRIAttributes(),
-		Cpu: &types.CpuUsage{
-			Timestamp:            systemNano,
-			UsageCoreNanoSeconds: &types.UInt64Value{Value: cpuNano},
+	return &cgmgr.CgroupStats{
+		Memory: &cgmgr.MemoryStats{
+			Usage:           memUsage,
+			WorkingSetBytes: workingSetBytes,
+			Limit:           memLimit,
+			AvailableBytes:  memLimit - workingSetBytes,
+			PageFaults:      m.Memory.Pgfault,
+			MajorPageFaults: m.Memory.Pgmajfault,
+			// Use Memory.Anon as Rss for cgroup v2 as in cAdvisor
+			// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L809
+			RssBytes: m.Memory.Anon,
+			// Use Memory.File as Cache for cgroup v2 as in cAdvisor
+			// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L808
+			Cache:       m.Memory.File,
+			KernelUsage: m.Memory.KernelStack,
+			SwapUsage:   m.Memory.SwapUsage,
+			SwapLimit:   m.Memory.SwapLimit,
 		},
-		Memory: &types.MemoryUsage{
-			Timestamp:       systemNano,
-			WorkingSetBytes: &types.UInt64Value{Value: workingSetBytes},
-			AvailableBytes:  &types.UInt64Value{Value: memUsage - memLimit},
-			UsageBytes:      &types.UInt64Value{Value: memUsage},
-			// FIXME: RssBytes do not exist in the cgroupV2 structure
-			//  RssBytes: &types.Uint64Value{Value: rssBytes},
-			PageFaults:      &types.UInt64Value{Value: pageFaults},
-			MajorPageFaults: &types.UInt64Value{Value: majorPageFaults},
+		CPU: &cgmgr.CPUStats{
+			TotalUsageNano:          m.CPU.UsageUsec * 1000,
+			UsageInKernelmode:       m.CPU.SystemUsec * 1000,
+			UsageInUsermode:         m.CPU.UserUsec * 1000,
+			ThrottlingActivePeriods: m.CPU.NrPeriods,
+			ThrottledPeriods:        m.CPU.NrThrottled,
+			ThrottledTime:           m.CPU.ThrottledUsec * 1000,
 		},
+		Pid: &cgmgr.PidsStats{
+			Current: m.Pids.Current,
+			Limit:   m.Pids.Limit,
+		},
+		SystemNano: time.Now().UnixNano(),
 	}
 }
 
