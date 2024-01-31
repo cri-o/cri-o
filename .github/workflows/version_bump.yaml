@@ -1,0 +1,32 @@
+name: Manual Version Bump
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump_type:
+        description: 'Type of version bump (major, minor, patch)'
+        required: true
+
+jobs:
+  version_bump:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: 1.21
+
+    - name: Run Version Bump Script
+      run: go run scripts/version_bump.go -bump ${{ github.event.inputs.bump_type }} -f ./internal/version/version.go
+
+    - name: Commit and Push Changes
+      run: |
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add .
+        git commit -m "Bump version: ${{ github.event.inputs.bump_type }}"
+        git push origin HEAD
