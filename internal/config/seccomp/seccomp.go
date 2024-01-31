@@ -13,6 +13,8 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/seccomp"
+	imagetypes "github.com/containers/image/v5/types"
+	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
 	"github.com/cri-o/cri-o/internal/log"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -177,15 +179,34 @@ func (c *Config) Profile() *seccomp.Seccomp {
 // Setup can be used to setup the seccomp profile.
 func (c *Config) Setup(
 	ctx context.Context,
+	sys *imagetypes.SystemContext,
 	msgChan chan Notification,
-	containerID string,
-	annotations map[string]string,
+	containerID, containerName string,
+	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 ) (*Notifier, string, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Debugf(ctx, "Setup seccomp from profile field: %+v", profileField)
+
+	// Specifically set profile fields always have a higher priority than OCI artifact annotations
+	// TODO(sgrunert): allow merging OCI artifact profiles with security context ones.
+	if profileField == nil || profileField.ProfileType == types.SecurityProfile_Unconfined {
+		ociArtifactProfile, err := seccompociartifact.New().TryPull(ctx, sys, containerName, sandboxAnnotations, imageAnnotations)
+		if err != nil {
+			return nil, "", fmt.Errorf("try to pull OCI artifact seccomp profile: %w", err)
+		}
+
+		if ociArtifactProfile != nil {
+			notifier, err := c.applyProfileFromBytes(ctx, ociArtifactProfile, msgChan, containerID, sandboxAnnotations, specGenerator)
+			if err != nil {
+				return nil, "", fmt.Errorf("apply profile from bytes: %w", err)
+			}
+
+			return notifier, "", nil
+		}
+	}
 
 	if profileField == nil {
 		if !c.UseDefaultWhenEmpty() {
@@ -226,7 +247,7 @@ func (c *Config) Setup(
 		if err != nil {
 			return nil, "", fmt.Errorf("load default profile: %w", err)
 		}
-		notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
+		notifier, err := c.injectNotifier(ctx, msgChan, containerID, sandboxAnnotations, linuxSpecs)
 		if err != nil {
 			return nil, "", fmt.Errorf("inject notifier: %w", err)
 		}
@@ -243,14 +264,33 @@ func (c *Config) Setup(
 		)
 	}
 
-	linuxSpecs, err := seccomp.LoadProfileFromBytes(file, specGenerator.Config)
+	notifier, err := c.applyProfileFromBytes(ctx, file, msgChan, containerID, sandboxAnnotations, specGenerator)
 	if err != nil {
-		return nil, "", fmt.Errorf("load local profile: %w", err)
+		return nil, "", fmt.Errorf("apply profile from bytes: %w", err)
 	}
-	notifier, err := c.injectNotifier(ctx, msgChan, containerID, annotations, linuxSpecs)
-	if err != nil {
-		return nil, "", fmt.Errorf("inject notifier: %w", err)
-	}
-	specGenerator.Config.Linux.Seccomp = linuxSpecs
+
 	return notifier, localhostRef, nil
+}
+
+// Setup can be used to setup the seccomp profile.
+func (c *Config) applyProfileFromBytes(
+	ctx context.Context,
+	fileBytes []byte,
+	msgChan chan Notification,
+	containerID string,
+	sandboxAnnotations map[string]string,
+	specGenerator *generate.Generator,
+) (*Notifier, error) {
+	linuxSpecs, err := seccomp.LoadProfileFromBytes(fileBytes, specGenerator.Config)
+	if err != nil {
+		return nil, fmt.Errorf("load local profile: %w", err)
+	}
+
+	notifier, err := c.injectNotifier(ctx, msgChan, containerID, sandboxAnnotations, linuxSpecs)
+	if err != nil {
+		return nil, fmt.Errorf("inject notifier: %w", err)
+	}
+
+	specGenerator.Config.Linux.Seccomp = linuxSpecs
+	return notifier, nil
 }

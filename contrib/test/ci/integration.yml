@@ -63,6 +63,7 @@
         + ['namespaces.bats'] | product(kata_skip_namespaces_tests) \
         + ['network.bats'] | product(kata_skip_network_tests) \
         + ['pod.bats'] | product(kata_skip_pod_tests) \
+        + ['seccomp_oci_artifacts.bats'] | product(kata_skip_seccomp_oci_artifacts_tests) \
         | list }}"
 
     - name: Disable SELinux

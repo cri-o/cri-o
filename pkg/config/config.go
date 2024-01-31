@@ -205,6 +205,7 @@ type RuntimeHandler struct {
 	// "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
 	// "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 	// "io.kubernetes.cri-o.LinkLogs" for linking logs into the pod.
+	// "io.kubernetes.cri-o.seccompProfile" for setting the seccomp profile for a specific container, pod or whole image.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
