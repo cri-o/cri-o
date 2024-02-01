@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Feb 2024 04:42:25 UTC for commit [e4ccdd7][0]._
+_Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e4ccdd76979d13077c3abe89efdaf95c24e9cf50
+[0]: https://github.com/cri-o/cri-o/commit/c37c116a5dbe3550983caf2aeb24f89b41a3cfd7
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Thu, 01 Feb 2024 04:42:25 UTC for commit [e4ccdd7][0]._
 | github.com/containers/storage                          | v1.51.0                            | v1.52.0                            | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/google/uuid                                 | v1.5.0                             | v1.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240201034302-a157fc3b7472 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240201065353-2332552c8ffc | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.13.2                            | v2.15.0                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.30.0                            | v1.31.1                            | true   | true             |
 | github.com/opencontainers/image-spec                   | v1.1.0-rc5                         | v1.1.0-rc6                         | true   | true             |
@@ -571,7 +571,7 @@ _Generated on Thu, 01 Feb 2024 04:42:25 UTC for commit [e4ccdd7][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240201034302-a157fc3b7472  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240201065353-2332552c8ffc  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
