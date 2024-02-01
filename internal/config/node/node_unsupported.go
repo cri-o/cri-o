@@ -1,10 +1,13 @@
-//go:build !linux
-// +build !linux
+//go:build !linux && !freebsd
+// +build !linux,!freebsd
 
 package node
 
-import "fmt"
+import (
+	"fmt"
+	"runtime"
+)
 
 func ValidateConfig() error {
-	return fmt.Errorf("CRI-O is only supported on linux")
+	return fmt.Errorf("CRI-O is not supported on %s", runtime.GOOS)
 }

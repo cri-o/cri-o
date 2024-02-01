@@ -371,22 +371,6 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	return sb, nil
 }
 
-func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, error) {
-	for _, ns := range spec.Linux.Namespaces {
-		if ns.Type != nsType {
-			continue
-		}
-
-		if ns.Path == "" {
-			return "", fmt.Errorf("empty networking namespace")
-		}
-
-		return ns.Path, nil
-	}
-
-	return "", fmt.Errorf("missing networking namespace")
-}
-
 var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 
 // LoadContainer loads a container from the disk into the container store

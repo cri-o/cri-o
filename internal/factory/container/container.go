@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -144,7 +145,8 @@ type container struct {
 
 // New creates a new, empty Sandbox instance
 func New() (Container, error) {
-	spec, err := generate.New("linux")
+	// TODO: use image os
+	spec, err := generate.New(runtime.GOOS)
 	if err != nil {
 		return nil, err
 	}
@@ -483,7 +485,7 @@ func (c *container) UserRequestedImage() (string, error) {
 // be readonly, which it defaults to if the container wasn't
 // specifically asked to be read only
 func (c *container) ReadOnly(serverIsReadOnly bool) bool {
-	if c.config.Linux.SecurityContext.ReadonlyRootfs {
+	if c.config.Linux != nil && c.config.Linux.SecurityContext.ReadonlyRootfs {
 		return true
 	}
 	return serverIsReadOnly

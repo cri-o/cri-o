@@ -40,3 +40,7 @@ const (
 func selinuxEnabled() bool {
 	return false
 }
+
+func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
+	return nil
+}
