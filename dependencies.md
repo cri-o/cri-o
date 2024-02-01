@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
+_Generated on Thu, 01 Feb 2024 16:08:50 UTC for commit [89c2c7a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c37c116a5dbe3550983caf2aeb24f89b41a3cfd7
+[0]: https://github.com/cri-o/cri-o/commit/89c2c7ade40c499d72452d204dce7183fe14799f
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
 | github.com/containerd/containerd                       | v1.7.11                            | v1.7.13                            | true   | true             |
 | github.com/containers/common                           | v0.57.1                            | v0.57.3                            | true   | true             |
 | github.com/containers/image/v5                         | v5.29.0                            | v5.29.2                            | true   | true             |
-| github.com/containers/podman/v4                        | v4.8.3                             | v4.9.0                             | true   | true             |
+| github.com/containers/podman/v4                        | v4.8.3                             | v4.9.1                             | true   | true             |
 | github.com/containers/storage                          | v1.51.0                            | v1.52.0                            | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/google/uuid                                 | v1.5.0                             | v1.6.0                             | true   | true             |
@@ -353,7 +353,7 @@ _Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
 | github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20240129181507-b62d551ce6d8  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            |                                     | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.8.3                                            | v4.9.0                              | true   | true             |
+| github.com/containers/podman/v4                                                         | v4.8.3                                            | v4.9.1                              | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            |                                     | false  | true             |
 | github.com/containers/storage                                                           | v1.51.0                                           | v1.52.0                             | true   | true             |
 | github.com/coreos/bbolt                                                                 | v1.3.2                                            | v1.3.8                              | false  | true             |
@@ -455,7 +455,7 @@ _Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
 | github.com/go-openapi/spec                                                              | v0.20.9                                           | v0.20.14                            | false  | true             |
 | github.com/go-openapi/strfmt                                                            | v0.21.7                                           | v0.22.0                             | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.9                             | false  | true             |
-| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.22.6                             | false  | true             |
+| github.com/go-openapi/validate                                                          | v0.22.1                                           | v0.23.0                             | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                     | false  | true             |
 | github.com/go-playground/universal-translator                                           | v0.18.1                                           |                                     | false  | true             |
@@ -855,7 +855,7 @@ _Generated on Thu, 01 Feb 2024 10:43:29 UTC for commit [c37c116][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.22.0                                           |                                     | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.22.0                                           |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.0.0                                            | v1.1.0                              | false  | true             |
-| go.step.sm/crypto                                                                       | v0.36.1                                           | v0.42.1                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.36.1                                           | v0.43.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.11.0                                           |                                     | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                            |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.3.0                                            | v0.4.0                              | false  | true             |
