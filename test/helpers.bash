@@ -253,6 +253,14 @@ function port_listens() {
     netstat -ln46 | grep -q ":$1\b"
 }
 
+# Check whether a specific pair of IP address or hostname and port number listens.
+function host_and_port_listens() {
+    local host="$1"
+    local port="$2"
+
+    netstat -ln46 | grep -E -q "${host}:${port}\b"
+}
+
 function cleanup_ctrs() {
     crictl rm -a -f
     rm -f "$HOOKSCHECK"

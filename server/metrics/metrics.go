@@ -362,12 +362,9 @@ func (m *Metrics) Start(stop chan struct{}) error {
 		return fmt.Errorf("create endpoint: %w", err)
 	}
 
-	if err := m.startEndpoint(
-		stop, "tcp", net.JoinHostPort(m.config.MetricsHost, strconv.Itoa(m.config.MetricsPort)), me,
-	); err != nil {
-		return fmt.Errorf(
-			"create metrics endpoint on port %d: %w", m.config.MetricsPort, err,
-		)
+	metricsAddress := net.JoinHostPort(m.config.MetricsHost, strconv.Itoa(m.config.MetricsPort))
+	if err := m.startEndpoint(stop, "tcp", metricsAddress, me); err != nil {
+		return fmt.Errorf("create metrics endpoint on %s: %w", metricsAddress, err)
 	}
 
 	metricsSocket := m.config.MetricsSocket
@@ -651,7 +648,7 @@ func (m *Metrics) startEndpoint(
 		}
 
 		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
-			logrus.Infof("Serving metrics on %s via HTTPs", address)
+			logrus.Infof("Serving metrics on %s using HTTPS", address)
 
 			kpr, reloadErr := newCertReloader(
 				stop, m.config.MetricsCert, m.config.MetricsKey,
@@ -673,7 +670,7 @@ func (m *Metrics) startEndpoint(
 			}()
 			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
 		} else {
-			logrus.Infof("Serving metrics on %s via HTTP", address)
+			logrus.Infof("Serving metrics on %s using HTTP", address)
 			go func() {
 				<-stop
 				if err := srv.Shutdown(context.Background()); err != nil {
