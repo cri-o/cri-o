@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 01 Feb 2024 16:08:50 UTC for commit [89c2c7a][0]._
+_Generated on Thu, 01 Feb 2024 20:15:59 UTC for commit [2d9351f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/89c2c7ade40c499d72452d204dce7183fe14799f
+[0]: https://github.com/cri-o/cri-o/commit/2d9351f43cc4180781ec44e582444e0f6e9af73a
 
 ## Outdated Dependencies
 
@@ -241,7 +241,7 @@ _Generated on Thu, 01 Feb 2024 16:08:50 UTC for commit [89c2c7a][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.8                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.9                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.6                             | false  | true             |
@@ -300,7 +300,7 @@ _Generated on Thu, 01 Feb 2024 16:08:50 UTC for commit [89c2c7a][0]._
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                            | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589                |                                     | false  | true             |
 | github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89                | v0.0.0-20240127002248-bd7a66284627  | false  | true             |
-| github.com/chromedp/chromedp                                                            | v0.9.2                                            | v0.9.3                              | false  | true             |
+| github.com/chromedp/chromedp                                                            | v0.9.2                                            | v0.9.4                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                            |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                     | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                            |                                     | false  | true             |
@@ -595,7 +595,7 @@ _Generated on Thu, 01 Feb 2024 16:08:50 UTC for commit [89c2c7a][0]._
 | github.com/lestrrat-go/jwx/v2                                                           | v2.0.16                                           | v2.0.19                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240130193413-14a8378dd0dc  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240201194144-8b532f127e12  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
