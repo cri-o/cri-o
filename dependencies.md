@@ -1,25 +1,24 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
+_Generated on Thu, 01 Feb 2024 04:42:25 UTC for commit [e4ccdd7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fc7e8524c15e2f450465b8fd6908948a33d0c104
+[0]: https://github.com/cri-o/cri-o/commit/e4ccdd76979d13077c3abe89efdaf95c24e9cf50
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containerd/containerd                       | v1.7.11                            | v1.7.12                            | true   | true             |
+| github.com/containerd/containerd                       | v1.7.11                            | v1.7.13                            | true   | true             |
 | github.com/containers/common                           | v0.57.1                            | v0.57.3                            | true   | true             |
 | github.com/containers/image/v5                         | v5.29.0                            | v5.29.2                            | true   | true             |
 | github.com/containers/podman/v4                        | v4.8.3                             | v4.9.0                             | true   | true             |
 | github.com/containers/storage                          | v1.51.0                            | v1.52.0                            | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/google/uuid                                 | v1.5.0                             | v1.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240131112427-5449173102bf | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240201034302-a157fc3b7472 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.13.2                            | v2.15.0                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.30.0                            | v1.31.1                            | true   | true             |
 | github.com/opencontainers/image-spec                   | v1.1.0-rc5                         | v1.1.0-rc6                         | true   | true             |
-| github.com/opencontainers/runc                         | v1.1.10                            | v1.1.11                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.17.0                            | v1.18.0                            | true   | true             |
 | github.com/urfave/cli/v2                               | v2.27.0                            | v2.27.1                            | true   | true             |
 | google.golang.org/grpc                                 | v1.60.1                            | v1.61.0                            | true   | true             |
@@ -242,7 +241,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.7                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.6                             | false  | true             |
@@ -323,7 +322,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/containerd/cgroups                                                           | v1.1.0                                            |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                        | v3.0.2                                            | v3.0.3                              | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                            |                                     | false  | true             |
-| github.com/containerd/containerd                                                        | v1.7.11                                           | v1.7.12                             | true   | true             |
+| github.com/containerd/containerd                                                        | v1.7.11                                           | v1.7.13                             | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                            | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                                           |                                     | true   | true             |
 | github.com/containerd/fifo                                                              | v1.1.0                                            |                                     | true   | true             |
@@ -393,9 +392,9 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                            |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.5.0                                            |                                     | false  | true             |
 | github.com/dnaeon/go-vcr                                                                | v1.0.1                                            | v1.2.0                              | false  | true             |
-| github.com/docker/cli                                                                   | v24.0.7+incompatible                              | v25.0.1+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v24.0.7+incompatible                              | v25.0.2+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                               |                                     | true   | true             |
-| github.com/docker/docker                                                                | v24.0.7+incompatible                              | v25.0.1+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v24.0.7+incompatible                              | v25.0.2+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.0                                            | v0.8.1                              | false  | true             |
 | github.com/docker/go-connections                                                        | v0.4.1-0.20231031175723-0b8c1f4e07a0              | v0.5.0                              | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c                |                                     | false  | true             |
@@ -572,7 +571,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240131112427-5449173102bf  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240201034302-a157fc3b7472  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.6.3                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
@@ -632,7 +631,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/mitchellh/osext                                                              | v0.0.0-20151018003038-5e2d6d41470f                |                                     | false  | true             |
 | github.com/mmcloughlin/avo                                                              | v0.5.0                                            | v0.6.0                              | false  | true             |
 | github.com/mndrix/tap-go                                                                | v0.0.0-20171203230836-629fa407e90b                |                                     | false  | true             |
-| github.com/moby/buildkit                                                                | v0.12.3                                           | v0.12.4                             | false  | true             |
+| github.com/moby/buildkit                                                                | v0.12.3                                           | v0.12.5                             | false  | true             |
 | github.com/moby/locker                                                                  | v1.0.1                                            |                                     | false  | true             |
 | github.com/moby/patternmatcher                                                          | v0.6.0                                            |                                     | false  | true             |
 | github.com/moby/spdystream                                                              | v0.2.0                                            |                                     | false  | true             |
@@ -667,7 +666,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/open-policy-agent/opa                                                        | v0.58.0                                           | v0.61.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0-rc5                                        | v1.1.0-rc6                          | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.1.10                                           | v1.1.11                             | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.1.12                                           |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.1.1-0.20230922153023-c0e90434df2a              |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc              |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                                           |                                     | true   | true             |
@@ -726,10 +725,10 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | github.com/sergi/go-diff                                                                | v1.3.1                                            |                                     | false  | true             |
 | github.com/serialx/hashring                                                             | v0.0.0-20190422032157-8b2912629002                | v0.0.0-20200727003509-22c0c7ab6b1b  | false  | true             |
 | github.com/shibumi/go-pathspec                                                          | v1.3.0                                            |                                     | false  | true             |
-| github.com/shirou/gopsutil/v3                                                           | v3.23.10                                          | v3.23.12                            | false  | true             |
+| github.com/shirou/gopsutil/v3                                                           | v3.23.10                                          | v3.24.1                             | false  | true             |
 | github.com/shoenig/go-m1cpu                                                             | v0.1.6                                            |                                     | false  | true             |
 | github.com/shurcooL/sanitized_anchor_name                                               | v1.0.0                                            |                                     | false  | true             |
-| github.com/sigstore/cosign/v2                                                           | v2.2.1                                            | v2.2.2                              | false  | true             |
+| github.com/sigstore/cosign/v2                                                           | v2.2.1                                            | v2.2.3                              | false  | true             |
 | github.com/sigstore/fulcio                                                              | v1.4.3                                            |                                     | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.2.1                                            |                                     | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.3.3                                            | v1.3.4                              | false  | true             |
@@ -930,7 +929,7 @@ _Generated on Wed, 31 Jan 2024 15:14:36 UTC for commit [fc7e852][0]._
 | k8s.io/utils                                                                            | v0.0.0-20231127182322-b307cd553661                | v0.0.0-20240102154912-e7106e64919e  | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240129160226-b6659cc45066  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240201013110-e85c3cf6d5f1  | false  | true             |
 | rsc.io/binaryregexp                                                                     | v0.2.0                                            |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                            |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                            | v1.99.99                            | false  | true             |
