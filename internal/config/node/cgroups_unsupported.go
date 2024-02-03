@@ -3,6 +3,10 @@
 
 package node
 
+func CgroupIsV2() bool {
+	return false
+}
+
 // CgroupHasMemorySwap returns whether the memory swap controller is present
 func CgroupHasMemorySwap() bool {
 	return false
