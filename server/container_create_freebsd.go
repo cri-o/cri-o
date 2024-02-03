@@ -7,6 +7,12 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
+var tmpfsMounts = map[string]string{
+	"/tmp":     "mode=1777",
+	"/var/run": "mode=0755",
+	"/var/tmp": "mode=1777",
+}
+
 func getSecurityContext(containerConfig *types.ContainerConfig) *types.LinuxContainerSecurityContext {
 	return &types.LinuxContainerSecurityContext{}
 }
