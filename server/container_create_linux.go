@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/containers/storage/pkg/idtools"
+	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -48,4 +50,19 @@ func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
 		Seccomp:          &types.SecurityProfile{},
 		Apparmor:         &types.SecurityProfile{},
 	}
+}
+
+func (s *Server) setAppArmorProfile(ctx context.Context, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext, specgen *generate.Generator) error {
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		profile, err := s.Config().AppArmor().Apply(
+			securityContext.ApparmorProfile,
+		)
+		if err != nil {
+			return fmt.Errorf("applying apparmor profile to container %s: %w", ctr.ID(), err)
+		}
+
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
+		specgen.SetProcessApparmorProfile(profile)
+	}
+	return nil
 }
