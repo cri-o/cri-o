@@ -23,3 +23,7 @@ func (d *Config) LoadDevices(devsFromConfig []string) error {
 func (d *Config) Devices() []Device {
 	return nil
 }
+
+func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device, error) {
+	return []Device{}, nil
+}
