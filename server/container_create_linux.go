@@ -7,6 +7,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
@@ -25,4 +26,26 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 		}
 	}
 	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
+}
+
+func getSecurityContext(containerConfig *types.ContainerConfig) *types.LinuxContainerSecurityContext {
+	if containerConfig.Linux == nil {
+		containerConfig.Linux = &types.LinuxContainerConfig{}
+	}
+	if containerConfig.Linux.SecurityContext == nil {
+		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
+	}
+	return containerConfig.Linux.SecurityContext
+}
+
+func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
+	return &types.LinuxContainerSecurityContext{
+		Capabilities:     &types.Capability{},
+		NamespaceOptions: &types.NamespaceOption{},
+		SelinuxOptions:   &types.SELinuxOption{},
+		RunAsUser:        &types.Int64Value{},
+		RunAsGroup:       &types.Int64Value{},
+		Seccomp:          &types.SecurityProfile{},
+		Apparmor:         &types.SecurityProfile{},
+	}
 }

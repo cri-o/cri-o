@@ -152,13 +152,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
-	if containerConfig.Linux == nil {
-		containerConfig.Linux = &types.LinuxContainerConfig{}
-	}
-	if containerConfig.Linux.SecurityContext == nil {
-		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
-	}
-	securityContext := containerConfig.Linux.SecurityContext
+	securityContext := getSecurityContext(containerConfig)
 
 	// creates a spec Generator with the default spec.
 	specgen := ctr.Spec()
@@ -1218,18 +1212,6 @@ func isBindMount(mountOptions []string) bool {
 		}
 	}
 	return false
-}
-
-func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
-	return &types.LinuxContainerSecurityContext{
-		Capabilities:     &types.Capability{},
-		NamespaceOptions: &types.NamespaceOption{},
-		SelinuxOptions:   &types.SELinuxOption{},
-		RunAsUser:        &types.Int64Value{},
-		RunAsGroup:       &types.Int64Value{},
-		Seccomp:          &types.SecurityProfile{},
-		Apparmor:         &types.SecurityProfile{},
-	}
 }
 
 // isSubDirectoryOf checks if the base path contains the target path.
