@@ -155,3 +155,6 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 
 func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
 }
+
+func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
+}

@@ -43,11 +43,6 @@ import (
 	"github.com/intel/goresctrl/pkg/blockio"
 )
 
-const (
-	cgroupSysFsPath        = "/sys/fs/cgroup"
-	cgroupSysFsSystemdPath = "/sys/fs/cgroup/systemd"
-)
-
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
 func makeAccessible(path string, uid, gid int, doChown bool) error {
 	if doChown {
@@ -862,81 +857,6 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 func mountExists(specMounts []rspec.Mount, dest string) bool {
 	for _, m := range specMounts {
 		if m.Destination == dest {
-			return true
-		}
-	}
-	return false
-}
-
-// systemd expects to have /run, /run/lock and /tmp on tmpfs
-// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
-func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
-	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
-	for _, dest := range []string{"/run", "/run/lock"} {
-		if mountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := rspec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-	for _, dest := range []string{"/tmp", "/var/log/journal"} {
-		if mountExists(mounts, dest) {
-			continue
-		}
-		tmpfsMnt := rspec.Mount{
-			Destination: dest,
-			Type:        "tmpfs",
-			Source:      "tmpfs",
-			Options:     append(options, "tmpcopyup"),
-		}
-		g.AddMount(tmpfsMnt)
-	}
-
-	if node.CgroupIsV2() {
-		g.RemoveMount(cgroupSysFsPath)
-
-		systemdMnt := rspec.Mount{
-			Destination: cgroupSysFsPath,
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"private", "rw"},
-		}
-		g.AddMount(systemdMnt)
-	} else {
-		// If the /sys/fs/cgroup is bind mounted from the host,
-		// then systemd-mode cgroup should be disabled
-		// https://bugzilla.redhat.com/show_bug.cgi?id=2064741
-		if !hasCgroupMount(g.Mounts()) {
-			systemdMnt := rspec.Mount{
-				Destination: cgroupSysFsSystemdPath,
-				Type:        "bind",
-				Source:      cgroupSysFsSystemdPath,
-				Options:     []string{"bind", "nodev", "noexec", "nosuid"},
-			}
-			g.AddMount(systemdMnt)
-		}
-		g.AddLinuxMaskedPaths(filepath.Join(cgroupSysFsSystemdPath, "release_agent"))
-	}
-	g.AddProcessEnv("container", "crio")
-}
-
-func hasCgroupMount(mounts []rspec.Mount) bool {
-	for _, m := range mounts {
-		if (m.Destination == cgroupSysFsPath || m.Destination == "/sys/fs" || m.Destination == "/sys") && isBindMount(m.Options) {
-			return true
-		}
-	}
-	return false
-}
-
-func isBindMount(mountOptions []string) bool {
-	for _, option := range mountOptions {
-		if option == "bind" || option == "rbind" {
 			return true
 		}
 	}
