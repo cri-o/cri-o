@@ -25,3 +25,6 @@ func (s *Server) setAppArmorProfile(ctx context.Context, ctr ctrfactory.Containe
 func (s *Server) setSecurityContextNamespaceOptions(ctx context.Context, ctr ctrfactory.Container, containerConfig *types.ContainerConfig, sb *sandbox.Sandbox) error {
 	return nil
 }
+
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool) {
+}
