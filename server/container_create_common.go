@@ -510,12 +510,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	ctr.SpecAddMount(rspec.Mount{
-		Destination: "/dev/shm",
-		Type:        "bind",
-		Source:      sb.ShmPath(),
-		Options:     []string{"rw", "bind"},
-	})
+	addShmMount(ctr, sb)
 
 	options := []string{"rw"}
 	if readOnlyRootfs {

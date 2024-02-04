@@ -350,3 +350,12 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 	}
 	return ids
 }
+
+func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
+	ctr.SpecAddMount(rspec.Mount{
+		Destination: "/dev/shm",
+		Type:        "bind",
+		Source:      sb.ShmPath(),
+		Options:     []string{"rw", "bind"},
+	})
+}

@@ -152,3 +152,6 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 
 	return volumes, ociMounts, nil
 }
+
+func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
+}
