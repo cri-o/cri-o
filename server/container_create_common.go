@@ -479,12 +479,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	var nsTargetCtr *oci.Container
-	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
-		nsTargetCtr = s.GetContainer(ctx, target)
-	}
-
-	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
+	if err := s.setSecurityContextNamespaceOptions(ctx, ctr, containerConfig, sb); err != nil {
 		return nil, err
 	}
 

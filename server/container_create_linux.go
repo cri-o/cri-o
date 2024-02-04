@@ -5,8 +5,10 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -69,6 +71,18 @@ func (s *Server) setAppArmorProfile(ctx context.Context, ctr ctrfactory.Containe
 
 		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
 		specgen.SetProcessApparmorProfile(profile)
+	}
+	return nil
+}
+
+func (s *Server) setSecurityContextNamespaceOptions(ctx context.Context, ctr ctrfactory.Container, containerConfig *types.ContainerConfig, sb *sandbox.Sandbox) error {
+	var nsTargetCtr *oci.Container
+	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
+		nsTargetCtr = s.GetContainer(ctx, target)
+	}
+
+	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
+		return err
 	}
 	return nil
 }
