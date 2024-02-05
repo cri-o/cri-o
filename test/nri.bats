@@ -90,7 +90,7 @@ function run_test() {
 }
 
 @test "run NRI DeviceInjection test" {
-	if [[ -n "$TEST_USERNS" ]]; then
+	if [[ "$TEST_USERNS" == "1" ]]; then
 		skip "skip test for user namespace"
 	fi
 	start_crio

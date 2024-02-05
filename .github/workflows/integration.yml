@@ -56,21 +56,81 @@ jobs:
             test/copyimg/copyimg
             test/nri/nri.test
 
-  critest:
+  integration:
     needs: test-binaries
     strategy:
       matrix:
         run:
-          - runner: ubuntu-latest
+          - name: critest / conmon
             arch: amd64
-          - runner: actuated-arm64-8cpu-32gb
+            runner: ubuntu-latest
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+          - name: critest / conmon
             arch: arm64
-        runtime:
-          - name: conmon
-            type: oci
-          - name: conmon-rs
-            type: pod
-    name: critest / ${{ matrix.runtime.name }} / ${{ matrix.run.arch }}
+            runner: actuated-arm64-8cpu-32gb
+            runtimeType: oci
+            critest: 1
+            userns: 0
+          - name: critest / conmon-rs
+            arch: amd64
+            runner: ubuntu-latest
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+          - name: critest / conmon-rs
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+          - name: integration / conmon
+            arch: amd64
+            runner: ubuntu-latest
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 4
+          - name: integration / conmon
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 8
+          - name: integration / conmon-rs
+            arch: amd64
+            runner: ubuntu-latest
+            runtimeType: pod
+            critest: 0
+            userns: 1
+            jobs: 4
+          - name: integration / conmon-rs
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            runtimeType: pod
+            critest: 0
+            userns: 1
+            jobs: 8
+          - name: integration / userns
+            arch: amd64
+            runner: ubuntu-latest
+            runtimeType: oci
+            critest: 0
+            userns: 1
+            jobs: 4
+          - name: integration / userns
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            runtimeType: oci
+            critest: 0
+            userns: 1
+            jobs: 8
+    name: ${{ matrix.run.name }} / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     steps:
       - uses: alexellis/arkade-get@master
@@ -89,7 +149,7 @@ jobs:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-          key: go-critest-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
+          key: go-${{ matrix.run.name }}-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('scripts/versions') }}
       - uses: sigstore/cosign-installer@v3
       - uses: actions/download-artifact@v4
         with:
@@ -105,70 +165,9 @@ jobs:
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
-      - run: sudo -E test/test_runner.sh critest.bats
-        env:
-          JOBS: '1'
-          RUN_CRITEST: '1'
-          RUNTIME_TYPE: ${{ matrix.runtime.type }}
-
-  test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
-      - run: make all test-binaries
       - run: sudo -E test/test_runner.sh
         env:
-          JOBS: '2'
-
-  test-cgroupfs:
-    runs-on: ubuntu-20.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
-      - run: make all test-binaries
-      - run: sed -i 's/\.slice//g' test/testdata/*.json
-      - run: sudo -E test/test_runner.sh
-        env:
-          JOBS: '2'
-          CONTAINER_CGROUP_MANAGER: cgroupfs
-          CONTAINER_CONMON_CGROUP: pod
-
-  test-userns:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
-      - run: make all test-binaries
-      - run: sudo -E test/test_runner.sh
-        env:
-          JOBS: '2'
-          TEST_USERNS: '1'
-
-  test-conmonrs:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-      - uses: sigstore/cosign-installer@v3
-      - run: scripts/github-actions-packages
-      - run: scripts/github-actions-setup
-      - run: make all test-binaries
-      - run: sudo -E test/test_runner.sh
-        env:
-          JOBS: '2'
-          RUNTIME_TYPE: pod
+          JOBS: ${{ matrix.run.jobs }}
+          RUN_CRITEST: ${{ matrix.run.critest }}
+          RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
+          TEST_USERNS: ${{ matrix.run.userns }}

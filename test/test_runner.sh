@@ -6,7 +6,7 @@ TEST_KEEP_ON_FAILURE=${TEST_KEEP_ON_FAILURE:-}
 
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
-if [[ -n "$TEST_USERNS" ]]; then
+if [[ "$TEST_USERNS" == "1" ]]; then
     echo "Enabled user namespace testing"
     export \
         CONTAINER_UID_MAPPINGS="0:100000:100000" \
@@ -31,6 +31,11 @@ function execute() {
 
 # Tests to run. Default is "." (i.e. the current directory).
 TESTS=("${@:-.}")
+
+# Only run critest if requested
+if [[ "$RUN_CRITEST" == "1" ]]; then
+    TESTS=(critest.bats)
+fi
 
 # The number of parallel jobs to execute tests
 export JOBS=${JOBS:-$(nproc --all)}
