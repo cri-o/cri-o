@@ -871,15 +871,14 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container) {
 			log.Warnf(ctx, "Stopping container %v with stop signal timed out. Killing", c.ID())
 			if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
 				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+				targetTime = time.Now().Add(10 * time.Millisecond)
 			}
 			if err := c.Living(); err != nil {
 				finished = true
-				break
 			}
 
 		case <-done:
 			finished = true
-			break
 		}
 	}
 

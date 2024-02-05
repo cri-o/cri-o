@@ -29,3 +29,12 @@ func getPidStartTime(pid int) (string, error) {
 	kp := (*C.struct_kinfo_proc)(unsafe.Pointer(&data[0]))
 	return fmt.Sprintf("%d,%d", kp.ki_start.tv_sec, kp.ki_start.tv_usec), nil
 }
+
+// getPidData reads the kernel's /proc entry for various data.
+func getPidData(pid int) (*StatData, error) {
+	startData := getPidStartTime(pid)
+	return &StatData{
+		StartTime: startTime,
+		State:     "not implemented",
+	}, nil
+}

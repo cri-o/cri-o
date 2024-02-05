@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 
@@ -41,40 +42,47 @@ func (c *Container) SeccompProfilePath() string {
 	return c.seccompProfilePath
 }
 
-// getPidStartTime reads the kernel's /proc entry for stime for PID.
+// getPidData reads the kernel's /proc entry for various data.
 // inspiration for this function came from https://github.com/containers/psgo/blob/master/internal/proc/stat.go
 // some credit goes to the psgo authors
-func getPidStartTime(pid int) (string, error) {
-	return GetPidStartTimeFromFile(fmt.Sprintf("/proc/%d/stat", pid))
+func getPidData(pid int) (*StatData, error) {
+	return getPidStatData(fmt.Sprintf("/proc/%d/stat", pid))
 }
 
-// GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
+// GetPidStartTimeFromFile reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
 // It is abstracted out to allow for unit testing
 func GetPidStartTimeFromFile(file string) (string, error) {
+	data, err := getPidStatData(file)
+	if err != nil {
+		return "", err
+	}
+	return data.StartTime, nil
+}
+
+func getPidStatData(file string) (*StatData, error) {
 	data, err := os.ReadFile(file)
 	if err != nil {
-		return "", fmt.Errorf("%v: %w", err, ErrNotFound)
+		return nil, fmt.Errorf("%v: %w", err, ErrNotFound)
 	}
 	// The command (2nd field) can have spaces, but is wrapped in ()
 	// first, trim it
 	commEnd := bytes.LastIndexByte(data, ')')
 	if commEnd == -1 {
-		return "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
+		return nil, fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
 	}
 
-	// start on the space after the command
+	// skip space after the command
 	iter := commEnd + 1
-	// for the number of fields between command and stime, trim the beginning word
-	for field := 0; field < statStartTimeLocation-statCommField; field++ {
-		// trim from the beginning to the character after the last space
-		data = data[iter+1:]
-		// find the next space
-		iter = bytes.IndexByte(data, ' ')
-		if iter == -1 {
-			return "", fmt.Errorf("invalid number of entries found in stat file %s: %d: %w", file, field-1, ErrNotFound)
-		}
+	// skip the character after the space
+	iter++
+
+	fields := bytes.Fields(data[iter:])
+	if len(fields) <= statStartTimeLocation {
+		return nil, errors.New("unable to parse stat file")
 	}
 
-	// and return the startTime (not including the following space)
-	return string(data[:iter]), nil
+	return &StatData{
+		StartTime: string(fields[statStartTimeLocation-3]),
+		State:     string(fields[statStateLocation-3]),
+	}, nil
 }

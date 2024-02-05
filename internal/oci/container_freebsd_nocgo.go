@@ -18,3 +18,15 @@ func getPidStartTime(pid int) (string, error) {
 	fields := strings.Fields(string(data))
 	return fields[7], nil
 }
+
+// getPidData reads the kernel's /proc entry for various data.
+func getPidData(pid int) (*StatData, error) {
+	startTime, err := getPidStartTime(pid)
+	if err != nil {
+		return nil, err
+	}
+	return &StatData{
+		StartTime: startTime,
+		State:     "not implemented",
+	}, nil
+}

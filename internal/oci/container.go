@@ -31,10 +31,10 @@ import (
 const (
 	defaultStopSignalInt = 15
 	// the following values can be verified here: https://man7.org/linux/man-pages/man5/proc.5.html
+	// the 3rd field is the process state
+	statStateLocation = 3
 	// the 22nd field is the process starttime
 	statStartTimeLocation = 22
-	// The 2nd field is the command, wrapped by ()
-	statCommField = 2
 )
 
 var (
@@ -42,6 +42,11 @@ var (
 	ErrNotFound         = errors.New("container process not found")
 	ErrNotInitialized   = errors.New("container PID not initialized")
 )
+
+type StatData struct {
+	StartTime string
+	State     string
+}
 
 // Container represents a runtime container.
 type Container struct {
@@ -292,11 +297,11 @@ func (cstate *ContainerState) SetInitPid(pid int) error {
 		return fmt.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
 	}
 	cstate.InitPid = pid
-	startTime, err := getPidStartTime(pid)
+	data, err := getPidData(pid)
 	if err != nil {
 		return err
 	}
-	cstate.InitStartTime = startTime
+	cstate.InitStartTime = data.StartTime
 	return nil
 }
 
@@ -527,17 +532,24 @@ func (c *Container) pid() (int, error) {
 // This is the simplest way to verify we are operating on the container
 // process, and haven't run into PID wrap.
 func (c *Container) verifyPid() error {
-	startTime, err := getPidStartTime(c.state.InitPid)
+	data, err := getPidData(c.state.InitPid)
 	if err != nil {
 		return err
 	}
 
-	if startTime != c.state.InitStartTime {
+	if data.StartTime != c.state.InitStartTime {
 		return fmt.Errorf(
 			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
-			c.state.InitPid, startTime, c.state.InitStartTime,
+			c.state.InitPid, data.StartTime, c.state.InitStartTime,
 		)
 	}
+
+	// Skip states which are typically considered as invalid.
+	switch data.State {
+	case "D", "X", "Z":
+		return fmt.Errorf("PID %d has an invalid state: %s", c.state.InitPid, data.State)
+	}
+
 	return nil
 }
 
