@@ -807,6 +807,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container) {
 			// Set state accordingly.
 			c.state.Finished = time.Now()
 			c.opLock.Unlock()
+			c.SetAsDoneStopping()
 			return
 		}
 	}
@@ -861,14 +862,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container) {
 
 	c.state.Finished = time.Now()
 	c.opLock.Unlock()
-
-	c.stopLock.Lock()
-	for _, watcher := range c.stopWatchers {
-		close(watcher)
-	}
-	c.stopping = false
-	close(c.stopTimeoutChan)
-	c.stopLock.Unlock()
+	c.SetAsDoneStopping()
 }
 
 // DeleteContainer deletes a container.
