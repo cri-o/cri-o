@@ -594,6 +594,17 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	}
 }
 
+func (c *Container) SetAsDoneStopping() {
+	c.stopLock.Lock()
+	for _, watcher := range c.stopWatchers {
+		close(watcher)
+	}
+	c.stopWatchers = make([]chan struct{}, 0)
+	c.stopping = false
+	close(c.stopTimeoutChan)
+	c.stopLock.Unlock()
+}
+
 func (c *Container) AddManagedPIDNamespace(ns nsmgr.Namespace) {
 	c.pidns = ns
 }
