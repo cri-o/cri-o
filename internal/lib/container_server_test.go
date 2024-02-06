@@ -157,6 +157,19 @@ var _ = t.Describe("ContainerServer", func() {
 			Expect(err).To(BeNil())
 		})
 
+		It("should succeed load infraContainer", func() {
+			// Given
+			createDummyState()
+			mockDirs(testManifest)
+
+			// When
+			_, err := sut.LoadSandbox(context.Background(), "id")
+
+			// Then
+			Expect(err).To(BeNil())
+			Expect(sut.GetInfraContainer(context.Background(), sandboxID)).NotTo(BeNil())
+		})
+
 		It("should succeed with invalid network namespace", func() {
 			// Given
 			createDummyState()
