@@ -72,6 +72,9 @@ const (
 
 	// PlatformRuntimePath indicates the runtime path that CRI-O should use for a specific platform.
 	PlatformRuntimePath = "io.kubernetes.cri-o.PlatformRuntimePath"
+
+	// SysfsRWAnnotation specifies mounting sysfs as an rw filesystem.
+	SysfsRWAnnotation = "io.kubernetes.cri-o.sysfs-mount-rw"
 )
 
 var AllAllowedAnnotations = []string{
@@ -94,4 +97,5 @@ var AllAllowedAnnotations = []string{
 	PodLinuxResources,
 	LinkLogsAnnotation,
 	CPUSharedAnnotation,
+	SysfsRWAnnotation,
 }
