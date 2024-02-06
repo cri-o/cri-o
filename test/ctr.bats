@@ -295,7 +295,8 @@ function check_oci_annotation() {
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
 	[ -f "$logpath" ]
 	echo "$logpath :: $(cat "$logpath")"
-	len=$(wc -l "$logpath" | awk '{print $1}')
+	# Filter out https://github.com/opencontainers/runc/blob/02120488a4c0fc487d1ed2867e901eeed7ce8ecf/libcontainer/specconv/spec_linux.go#L1017-L1030
+	len=$(grep -cv config.json "$logpath")
 	[ "$len" -eq 250 ]
 }
 
