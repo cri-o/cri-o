@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v58/github"
 )
 
 func NewReplayer(replayDir string) Client {
@@ -199,6 +199,12 @@ func (c *githubNotesReplayClient) ListTags(
 
 func (c *githubNotesReplayClient) CreatePullRequest(
 	ctx context.Context, owner, repo, baseBranchName, headBranchName, title, body string, //nolint: revive
+) (*github.PullRequest, error) {
+	return &github.PullRequest{}, nil
+}
+
+func (c *githubNotesReplayClient) RequestPullRequestReview(
+	ctx context.Context, owner, repo string, prNumber int, reviewers, teamReviewers []string, //nolint: revive
 ) (*github.PullRequest, error) {
 	return &github.PullRequest{}, nil
 }
