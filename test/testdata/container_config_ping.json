@@ -21,6 +21,10 @@
 			"value": "xterm"
 		},
 		{
+			"key": "GLIBC_TUNABLES",
+			"value": "glibc.pthread.rseq=0"
+		},
+		{
 			"key": "TESTDIR",
 			"value": "test/dir1"
 		},
