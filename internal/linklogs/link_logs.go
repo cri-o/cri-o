@@ -6,9 +6,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/containers/storage/pkg/mount"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -34,7 +34,7 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 	podLogsDirectory := namespace + "_" + kubeName + "_" + kubePodUID
 	podLogsPath := filepath.Join(kubeletPodLogsRootDir, podLogsDirectory)
 	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, emptyDirLoggingVolumePath)
-	if err := unix.Mount(podLogsPath, emptyDirLoggingVolumePath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
+	if err := mount.Mount(podLogsPath, emptyDirLoggingVolumePath, bindMountType, "ro"); err != nil {
 		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, emptyDirLoggingVolumePath, err)
 	}
 	if err := label.SetFileLabel(emptyDirLoggingVolumePath, mountLabel); err != nil {
@@ -48,7 +48,7 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	log.Infof(ctx, "Unmounting %s for linked logs", emptyDirLoggingVolumePath)
 	if _, err := os.Stat(emptyDirLoggingVolumePath); !os.IsNotExist(err) {
-		if err := unix.Unmount(emptyDirLoggingVolumePath, unix.MNT_DETACH); err != nil {
+		if err := mount.Unmount(emptyDirLoggingVolumePath); err != nil {
 			return fmt.Errorf("failed to unmounts logs: %w", err)
 		}
 	}
