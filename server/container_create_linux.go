@@ -651,9 +651,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if !ctr.Privileged() {
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
+			s.config.SystemContext,
 			s.seccompNotifierChan,
 			containerID,
+			ctr.Config().Metadata.Name,
 			sb.Annotations(),
+			imgResult.Annotations,
 			specgen,
 			securityContext.Seccomp,
 		)

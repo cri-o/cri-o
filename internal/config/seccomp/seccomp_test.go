@@ -102,7 +102,10 @@ var _ = t.Describe("Config", func() {
 			_, ref, err := sut.Setup(
 				context.Background(),
 				nil,
+				nil,
 				"",
+				"",
+				nil,
 				nil,
 				&generator,
 				field,
@@ -127,7 +130,10 @@ var _ = t.Describe("Config", func() {
 			_, ref, err := sut.Setup(
 				context.Background(),
 				nil,
+				nil,
 				"",
+				"",
+				nil,
 				nil,
 				&generator,
 				field,
@@ -151,7 +157,10 @@ var _ = t.Describe("Config", func() {
 			_, _, err = sut.Setup(
 				context.Background(),
 				nil,
+				nil,
 				"",
+				"",
+				nil,
 				nil,
 				&generator,
 				field,

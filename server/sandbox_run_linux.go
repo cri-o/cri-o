@@ -887,8 +887,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if !privileged {
 		_, ref, err := s.config.Seccomp().Setup(
 			ctx,
+			s.config.SystemContext,
 			nil,
 			"",
+			"",
+			nil,
 			nil,
 			g,
 			securityContext.Seccomp,

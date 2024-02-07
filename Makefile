@@ -331,7 +331,8 @@ mockgen: \
 	mock-lib-config \
 	mock-oci \
 	mock-image-types \
-	mock-ocicni-types
+	mock-ocicni-types \
+	mock-ociartifact-types
 
 mock-containereventserver: ${MOCKGEN}
 	${MOCKGEN} \
@@ -380,6 +381,12 @@ mock-ocicni-types: ${MOCKGEN}
 		-package ocicnitypesmock \
 		-destination ${MOCK_PATH}/ocicni/types.go \
 		github.com/cri-o/ocicni/pkg/ocicni CNIPlugin
+
+mock-ociartifact-types: ${MOCKGEN}
+	${BUILD_BIN_PATH}/mockgen \
+		-package ociartifactmock \
+		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
+		github.com/cri-o/cri-o/internal/config/ociartifact Impl
 
 codecov: SHELL := $(shell which bash)
 codecov:
