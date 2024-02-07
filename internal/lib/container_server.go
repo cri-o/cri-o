@@ -319,6 +319,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		return sb, err
 	}
 
+	// We should restore the infraContainer to the container state store
+	c.AddInfraContainer(ctx, scontainer)
+
 	sb.RestoreStopped()
 	// We add an NS only if we can load a permanent one.
 	// Otherwise, the sandbox will live in the host namespace.
