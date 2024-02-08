@@ -23,6 +23,7 @@ type Config struct {
 // New returns the default CRI-O NRI configuration.
 func New() *Config {
 	return &Config{
+		Enabled:                   true,
 		SocketPath:                nri.DefaultSocketPath,
 		PluginPath:                nri.DefaultPluginPath,
 		PluginConfigPath:          nri.DefaultPluginConfigPath,
