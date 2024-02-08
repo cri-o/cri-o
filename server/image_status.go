@@ -65,7 +65,9 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 		resp = &types.ImageStatusResponse{
 			Image: &types.Image{
-				Id:          status.ID,
+				// TODO: KEEP ID in sync with that which we store in the imageRef field in the container in container_create_linux.go
+				// This allows the kubelet to detect when an image is present, and garbage collect correctly.
+				Id:          status.Digest.Encoded(),
 				RepoTags:    status.RepoTags,
 				RepoDigests: status.RepoDigests,
 				Size_:       size,

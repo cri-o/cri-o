@@ -53,7 +53,9 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	to := &types.Image{
-		Id:          from.ID,
+		// TODO: KEEP ID in sync with that which we store in the imageRef field in the container in container_create_linux.go
+		// This allows the kubelet to detect when an image is present, and garbage collect correctly.
+		Id:          from.Digest.Encoded(),
 		RepoTags:    repoTags,
 		RepoDigests: repoDigests,
 		Pinned:      from.Pinned,

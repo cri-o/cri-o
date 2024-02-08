@@ -236,7 +236,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	imageName := imgResult.Name
-	imageRef := imgResult.ID
+	// Instead of using the image ID, which is generated on the pull, use the digest of the image.
+	// This allows us to construct a pull reference of the image by stripping the tag from imageName
+	// and appending the digest at the end.
+	// One limitation of this is a user needs to figure out the algorithm...
+	imageRef := imgResult.Digest.Encoded()
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
