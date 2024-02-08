@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
@@ -87,7 +88,11 @@ func run() error {
 	shortHead := head[:7]
 	endRev := head
 
-	startTag := util.AddTagPrefix(version.Version)
+	startVersion, err := startVersionFromCurrent(version.Version)
+	if err != nil {
+		return fmt.Errorf("parsing start version: %w", err)
+	}
+	startTag := util.AddTagPrefix(startVersion)
 	if output, err := command.New(
 		"git", "describe", "--tags", "--exact-match",
 	).RunSilentSuccessOutput(); err == nil {
@@ -353,4 +358,20 @@ func decVersion(tag string) string {
 	}
 
 	return sv.String()
+}
+
+func startVersionFromCurrent(ver string) (string, error) {
+	semVer, err := semver.Parse(ver)
+	if err != nil {
+		return "", err
+	}
+	if semVer.Patch == 0 {
+		// If we're looking at an unreleased (or recently released) branch,
+		// we compare against the last version.
+		semVer.Minor--
+	} else {
+		// Otherwise, we're comparing against the last patch version.
+		semVer.Patch--
+	}
+	return semVer.String(), nil
 }
