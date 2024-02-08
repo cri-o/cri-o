@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v56/github"
+	"github.com/google/go-github/v58/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -213,6 +213,12 @@ func (c *githubNotesRecordClient) ListTags(
 
 func (c *githubNotesRecordClient) CreatePullRequest(
 	_ context.Context, owner, repo, baseBranchName, headBranchName, title, body string, //nolint: revive
+) (*github.PullRequest, error) {
+	return &github.PullRequest{}, nil
+}
+
+func (c *githubNotesRecordClient) RequestPullRequestReview(
+	ctx context.Context, owner, repo string, prNumber int, reviewers, teamReviewers []string, //nolint: revive
 ) (*github.PullRequest, error) {
 	return &github.PullRequest{}, nil
 }

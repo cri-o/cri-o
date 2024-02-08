@@ -19,6 +19,7 @@ package github
 import (
 	"fmt"
 
+	gogit "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 
 	"sigs.k8s.io/release-sdk/git"
@@ -31,12 +32,12 @@ const (
 )
 
 // PrepareFork prepares a branch from a repo fork
-func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string) (repo *git.Repo, err error) {
+func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string, useSSH, updateRepo bool, opts *gogit.CloneOptions) (repo *git.Repo, err error) {
 	// checkout the upstream repository
 	logrus.Infof("Cloning/updating repository %s/%s", upstreamOrg, upstreamRepo)
 
 	repo, err = git.CleanCloneGitHubRepo(
-		upstreamOrg, upstreamRepo, false,
+		upstreamOrg, upstreamRepo, false, updateRepo, opts,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("cloning %s/%s: %w", upstreamOrg, upstreamRepo, err)
@@ -51,7 +52,7 @@ func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string) (r
 		)
 	} else {
 		// add the user's fork as a remote
-		err = repo.AddRemote(UserForkName, myOrg, myRepo)
+		err = repo.AddRemote(UserForkName, myOrg, myRepo, useSSH)
 		if err != nil {
 			return nil, fmt.Errorf("adding user's fork as remote repository: %w", err)
 		}

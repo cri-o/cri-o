@@ -1,9 +1,7 @@
 dependencies:
   - name: go
-    version: 1.21
+    version: 1.22
     refPaths:
-    - path: go.mod
-      match: go
     - path: .github/workflows/verify.yml
       match: GO_VERSION
     - path: .github/workflows/integration.yml
