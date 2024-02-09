@@ -1,6 +1,6 @@
 # Install with Package Managers
 
-CRI-O builds for native package managers using [openSUSE's OBS](build.opensuse.org)
+CRI-O builds for native package managers using [openSUSE's OBS](https://build.opensuse.org)
 
 ## Supported Versions
 
