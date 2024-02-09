@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -1595,6 +1596,11 @@ func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
 		return false
 	}
 	return true
+}
+
+// RuntimeSupportsMountFlag returns whether this runtime supports the specified mount option.
+func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
+	return slices.Contains(r.features.MountOptions, flag)
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
