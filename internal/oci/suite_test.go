@@ -39,7 +39,7 @@ func beforeEach() {
 	var err error
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
-		make(map[string]string), "", nil, nil,
+		make(map[string]string), "", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())
@@ -63,7 +63,7 @@ func getTestContainer() *oci.Container {
 		map[string]string{"key": "label"},
 		map[string]string{"key": "crioAnnotation"},
 		map[string]string{"key": "annotation"},
-		"image", &imageName, &imageID, &types.ContainerMetadata{}, "sandbox",
+		"image", &imageName, &imageID, "", &types.ContainerMetadata{}, "sandbox",
 		false, false, false, "", "dir", time.Now(), "")
 	Expect(err).To(BeNil())
 	Expect(container).NotTo(BeNil())

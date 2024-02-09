@@ -60,7 +60,7 @@ func TestGetContainerInfo(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "image", &imageName, &imageID, "", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -185,7 +185,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, "", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -225,7 +225,7 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
+		container, err := oci.NewContainer("testid", "testname", "", "/container/logs", labels, annotations, annotations, "imageName", &imageName, &imageID, "", &types.ContainerMetadata{}, "testsandboxid", false, false, false, "", "/root/for/container", created, "SIGKILL")
 		if err != nil {
 			t.Fatal(err)
 		}

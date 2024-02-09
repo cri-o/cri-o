@@ -210,7 +210,7 @@ var _ = t.Describe("Sandbox", func() {
 			testContainer, err = oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
-				&imageName, &imageID, &types.ContainerMetadata{},
+				&imageName, &imageID, "", &types.ContainerMetadata{},
 				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
 			Expect(err).To(BeNil())
