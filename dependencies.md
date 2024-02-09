@@ -1,21 +1,19 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 09 Feb 2024 09:26:40 UTC for commit [59ea87d][0]._
+_Generated on Fri, 09 Feb 2024 19:34:40 UTC for commit [b4bd55d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/59ea87dc91d229bd8e9b70c555897297a3f97601
+[0]: https://github.com/cri-o/cri-o/commit/b4bd55d02e9be1196284997347e0a3ca20e27589
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.11                            | v1.7.13                            | true   | true             |
-| github.com/containers/common                                                | v0.57.1                            | v0.57.4                            | true   | true             |
-| github.com/containers/image/v5                                              | v5.29.0                            | v5.29.2                            | true   | true             |
 | github.com/containers/podman/v4                                             | v4.8.3                             | v4.9.2                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                            | v1.52.0                            | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.0.10                            | v5.0.11                            | true   | true             |
 | github.com/google/uuid                                                      | v1.5.0                             | v1.6.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240209090558-03f7cfd429b7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20231214145909-c7c763220340 | v0.0.0-20240209165806-b8f277676fd3 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.13.2                            | v2.15.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.30.0                            | v1.31.1                            | true   | true             |
 | github.com/opencontainers/image-spec                                        | v1.1.0-rc5                         | v1.1.0-rc6                         | true   | true             |
@@ -266,7 +264,7 @@ _Generated on Fri, 09 Feb 2024 09:26:40 UTC for commit [59ea87d][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.14                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.45.20                                          | v1.50.15                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.21.2                                           | v1.24.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.5.4                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.19.1                                           | v1.26.6                             | false  | true             |
@@ -370,11 +368,11 @@ _Generated on Fri, 09 Feb 2024 09:26:40 UTC for commit [59ea87d][0]._
 | github.com/containernetworking/cni                                                      | v1.1.2                                            |                                     | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.4.0                                            |                                     | true   | true             |
 | github.com/containers/buildah                                                           | v1.33.2                                           | v1.34.0                             | false  | true             |
-| github.com/containers/common                                                            | v0.57.1                                           | v0.57.4                             | true   | true             |
+| github.com/containers/common                                                            | v0.57.4                                           |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57              |                                     | true   | true             |
 | github.com/containers/gvisor-tap-vsock                                                  | v0.7.1                                            | v0.7.3                              | false  | true             |
-| github.com/containers/image/v5                                                          | v5.29.0                                           | v5.29.2                             | true   | true             |
+| github.com/containers/image/v5                                                          | v5.29.2                                           |                                     | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                            |                                     | true   | true             |
 | github.com/containers/libhvee                                                           | v0.5.0                                            | v0.6.0                              | false  | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
@@ -612,7 +610,7 @@ _Generated on Fri, 09 Feb 2024 09:26:40 UTC for commit [59ea87d][0]._
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
 | github.com/karrick/godirwalk                                                            | v1.10.3                                           | v1.17.0                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240209090558-03f7cfd429b7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20231214145909-c7c763220340                | v0.0.0-20240209165806-b8f277676fd3  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
