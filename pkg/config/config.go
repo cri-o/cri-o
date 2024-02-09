@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/hooks"
@@ -479,6 +480,10 @@ type RuntimeConfig struct {
 	// Option to disable hostport mapping in CRI-O
 	// Default value is 'false'
 	DisableHostPortMapping bool `toml:"disable_hostport_mapping"`
+
+	// Option to set the timezone inside the container.
+	// Use 'Local' to match the timezone of the host machine.
+	Timezone string `toml:"timezone"`
 }
 
 // ImageConfig represents the "crio.image" TOML config table.
@@ -1054,6 +1059,13 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 
 	if err := c.ValidateDefaultRuntime(); err != nil {
 		return err
+	}
+
+	if c.Timezone != "" && !strings.EqualFold(c.Timezone, "local") {
+		_, err := time.LoadLocation(c.Timezone)
+		if err != nil {
+			return fmt.Errorf("invalid timezone: %s", c.Timezone)
+		}
 	}
 
 	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {

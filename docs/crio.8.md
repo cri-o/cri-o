@@ -123,6 +123,7 @@ crio
 [--stream-tls-ca]=[value]
 [--stream-tls-cert]=[value]
 [--stream-tls-key]=[value]
+[--timezone|--tz]=[value]
 [--tracing-endpoint]=[value]
 [--tracing-sampling-rate-per-million]=[value]
 [--uid-mappings]=[value]
@@ -419,6 +420,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--stream-tls-cert**="": Path to the x509 certificate file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
 **--stream-tls-key**="": Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
+
+**--timezone, --tz**="": To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
 
 **--tracing-endpoint**="": Address on which the gRPC tracing collector will listen. (default: "0.0.0.0:4317")
 

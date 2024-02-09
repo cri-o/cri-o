@@ -338,3 +338,29 @@ EOF
 	output=$(crictl images -o json | jq '.images[] | select(.repoTags[] == "quay.io/crio/hello-wasm:latest") | .pinned')
 	[ "$output" == "true" ]
 }
+
+@test "run container in pod with timezone configured" {
+	CONTAINER_TIME_ZONE="Asia/Singapore" start_crio
+	jq '.metadata.name = "podsandbox-timezone"
+		|.image.image = "quay.io/crio/fedora-crio-ci:latest"
+		| del(.command, .args, .linux.resources)' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/timezone.json"
+
+	ctr_id=$(crictl run "$TESTDIR/timezone.json" "$TESTDATA/sandbox_config.json")
+	output=$(crictl exec "$ctr_id" date +"%a %b %e %H:%M:%S %Z %Y")
+	expected_output=$(TZ="Asia/Singapore" date +"%a %b %e %H:%M:%S %Z %Y")
+	[[ "$output" == *"$expected_output"* ]]
+}
+
+@test "run container in pod with local timezone" {
+	CONTAINER_TIME_ZONE="local" start_crio
+	jq '.metadata.name = "podsandbox-empty-timezone"
+        | .image.image = "quay.io/crio/fedora-crio-ci:latest"
+        | del(.command, .args, .linux.resources)' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/empty_timezone.json"
+
+	ctr_id=$(crictl run "$TESTDIR/empty_timezone.json" "$TESTDATA/sandbox_config.json")
+	output=$(crictl exec "$ctr_id" date +"%a %b %e %H:%M:%S %Z %Y")
+	expected_output=$(date +"%a %b %e %H:%M:%S %Z %Y")
+	[[ "$output" == *"$expected_output"* ]]
+}

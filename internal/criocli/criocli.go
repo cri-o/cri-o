@@ -414,6 +414,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("disable-hostport-mapping") {
 		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
 	}
+	if ctx.IsSet("timezone") {
+		config.Timezone = ctx.String("timezone")
+	}
 	return nil
 }
 
@@ -1181,6 +1184,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O would disable the hostport mapping.",
 			EnvVars: []string{"DISABLE_HOSTPORT_MAPPING"},
 			Value:   defConf.DisableHostPortMapping,
+		},
+		&cli.StringFlag{
+			Name:    "timezone",
+			Aliases: []string{"tz"},
+			Usage:   "To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.",
+			EnvVars: []string{"CONTAINER_TIME_ZONE"},
+			Value:   defConf.Timezone,
 		},
 	}
 }

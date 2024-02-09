@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/subscriptions"
+	"github.com/containers/common/pkg/timezone"
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/pkg/rootless"
 	selinux "github.com/containers/podman/v4/pkg/selinux"
@@ -867,6 +868,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	// Configure timezone for the container if it is set.
+	if err := configureTimezone(s.Runtime().Timezone(), ociContainer.BundlePath(), mountPoint, mountLabel, etc, ociContainer.ID(), options, ctr); err != nil {
+		return nil, fmt.Errorf("failed to configure timezone for container %s: %w", ociContainer.ID(), err)
+	}
+
 	if os.Getenv(rootlessEnvName) != "" {
 		makeOCIConfigurationRootless(specgen)
 	}
@@ -919,6 +925,25 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	return ociContainer, nil
+}
+
+func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, containerID string, options []string, ctr ctrfactory.Container) error {
+	localTimePath, err := timezone.ConfigureContainerTimeZone(tz, containerRunDir, mountPoint, etcPath, containerID)
+	if err != nil {
+		return fmt.Errorf("setting timezone for container %s: %w", containerID, err)
+	}
+	if localTimePath != "" {
+		if err := securityLabel(localTimePath, mountLabel, false, false); err != nil {
+			return err
+		}
+		ctr.SpecAddMount(rspec.Mount{
+			Destination: "/etc/localtime",
+			Type:        "bind",
+			Source:      localTimePath,
+			Options:     append(options, []string{"bind", "nodev", "nosuid", "noexec"}...),
+		})
+	}
+	return nil
 }
 
 func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {

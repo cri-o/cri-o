@@ -419,6 +419,39 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).NotTo(BeNil())
 		})
+		It("should pass for valid Timezone", func() {
+			// Set a valid Timezone
+			sut.Timezone = "America/New_York"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
+
+		It("should fail for invalid Timezone", func() {
+			// Set an invalid Timezone
+			sut.Timezone = "InvalidTimezone"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).NotTo(BeNil())
+			Expect(err.Error()).To(ContainSubstring("invalid timezone: InvalidTimezone"))
+		})
+
+		It("should pass for 'Local' Timezone", func() {
+			// Set Timezone to 'Local'
+			sut.Timezone = "Local"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).To(BeNil())
+		})
 	})
 	t.Describe("TranslateMonitorFields", func() {
 		It("should fail on invalid conmon cgroup", func() {
