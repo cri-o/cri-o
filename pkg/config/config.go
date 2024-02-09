@@ -1277,7 +1277,7 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 		// not supported by the runtime.
 		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
 		if err != nil {
-			logrus.Errorf("Getting OCI runtime features failed: %s", err)
+			logrus.Errorf("Getting %s OCI runtime features failed: %s: %v", handler.RuntimePath, output, err)
 			continue
 		}
 		// Ignore errors to Unmarshal too, we can't populate it.
