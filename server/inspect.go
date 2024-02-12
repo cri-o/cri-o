@@ -109,6 +109,7 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 		Pid:             pidToReturn,
 		Image:           image,
 		ImageRef:        imageRef,
+		ImageDigests:    ctr.ImageDigests(),
 		CreatedTime:     ctrState.Created.UnixNano(),
 		Labels:          ctr.Labels(),
 		Annotations:     ctr.Annotations(),

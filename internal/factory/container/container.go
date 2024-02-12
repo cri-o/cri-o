@@ -218,8 +218,13 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	if imageResult.SomeNameOfThisImage != nil {
 		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
 	}
+	imageDigests, err := json.Marshal(imageResult.RepoDigests)
+	if err != nil {
+		return fmt.Errorf("marshal image repo digests: %w", err)
+	}
 	c.spec.AddAnnotation(annotations.ImageName, imageName)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
+	c.spec.AddAnnotation(annotations.ImageDigests, string(imageDigests))
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())

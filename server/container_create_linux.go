@@ -802,7 +802,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, imageName, &imageID, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, imageName, &imageID, imgResult.RepoDigests, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}

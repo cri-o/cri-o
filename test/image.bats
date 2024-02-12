@@ -364,3 +364,17 @@ EOF
 	expected_output=$(date +"%a %b %e %H:%M:%S %Z %Y")
 	[[ "$output" == *"$expected_output"* ]]
 }
+
+@test "container image digests" {
+	start_crio
+
+	jq '.image.image = "'"$REDIS_IMAGEID"'"' "$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
+	ctr_id=$(crictl run --no-pull "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl inspect -o yaml "$ctr_id")
+	[[ "$output" == *"io.kubernetes.cri-o.ImageDigests: '[\"quay.io/crio/fedora-crio-ci@sha256:"* ]]
+
+	run -0 "${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" containers --id "$ctr_id"
+	[[ "$output" == *"image digests:"* ]]
+	[[ "$output" == *"io.kubernetes.cri-o.ImageDigests:"* ]]
+}

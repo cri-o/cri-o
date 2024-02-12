@@ -35,6 +35,14 @@ function teardown() {
 	[[ "$output" == *"storage driver"* ]]
 }
 
+@test "status should succeed to retrieve the info in JSON" {
+	# when
+	run -0 "${CRIO_BINARY_PATH}" status --json --socket="${CRIO_SOCKET}" info
+
+	# then
+	[[ "$output" == *"{\"storage_driver\":"* ]]
+}
+
 @test "status should fail to retrieve the info with invalid socket" {
 	run -1 "${CRIO_BINARY_PATH}" status --socket wrong.sock i
 }

@@ -1,6 +1,7 @@
 package criocli
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -13,6 +14,7 @@ const (
 	defaultSocket = "/var/run/crio/crio.sock"
 	idArg         = "id"
 	socketArg     = "socket"
+	jsonArg       = "json"
 )
 
 var StatusCommand = &cli.Command{
@@ -25,6 +27,11 @@ var StatusCommand = &cli.Command{
 			Usage:     "absolute path to the unix socket",
 			Value:     defaultSocket,
 			TakesFile: true,
+		},
+		&cli.BoolFlag{
+			Name:    jsonArg,
+			Aliases: []string{"j"},
+			Usage:   "output JSON instead of plain text",
 		},
 	},
 	OnUsageError: func(c *cli.Context, e error, b bool) error { return e },
@@ -82,10 +89,27 @@ func containers(c *cli.Context) error {
 		return err
 	}
 
+	if c.IsSet(jsonArg) {
+		j, err := json.Marshal(info)
+		if err != nil {
+			return fmt.Errorf("marshal JSON: %w", err)
+		}
+		fmt.Print(string(j))
+		return nil
+	}
+
 	fmt.Printf("name: %s\n", info.Name)
 	fmt.Printf("pid: %d\n", info.Pid)
 	fmt.Printf("image: %s\n", info.Image)
 	fmt.Printf("image ref: %s\n", info.ImageRef)
+
+	if len(info.ImageDigests) > 0 {
+		fmt.Print("image digests:\n")
+		for _, v := range info.ImageDigests {
+			fmt.Printf("  %s\n", v)
+		}
+	}
+
 	fmt.Printf("created: %v\n", info.CreatedTime)
 	fmt.Printf("labels:\n")
 	for k, v := range info.Labels {
@@ -116,6 +140,15 @@ func info(c *cli.Context) error {
 	info, err := crioClient.DaemonInfo()
 	if err != nil {
 		return err
+	}
+
+	if c.IsSet(jsonArg) {
+		j, err := json.Marshal(info)
+		if err != nil {
+			return fmt.Errorf("marshal JSON: %w", err)
+		}
+		fmt.Print(string(j))
+		return nil
 	}
 
 	fmt.Printf("cgroup driver: %s\n", info.CgroupDriver)

@@ -210,6 +210,7 @@ complete -c crio -n '__fish_seen_subcommand_from wipe' -f -l force -s f -d 'forc
 complete -c crio -n '__fish_seen_subcommand_from status' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'status' -d 'Display status information'
 complete -c crio -n '__fish_seen_subcommand_from status' -l socket -s s -r -d 'absolute path to the unix socket'
+complete -c crio -n '__fish_seen_subcommand_from status' -f -l json -s j -d 'output JSON instead of plain text'
 complete -c crio -n '__fish_seen_subcommand_from config c' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'config c' -d 'Show the configuration of CRI-O as a TOML string.'
 complete -c crio -n '__fish_seen_subcommand_from containers container cs s' -f -l help -s h -d 'show help'

@@ -58,6 +58,7 @@ type Container struct {
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 	imageName             *references.RegistryImageReference
 	imageID               *storage.StorageImageID // nil for infra containers.
+	imageDigests          []string                // possible repo digests of the image.
 	mountPoint            string
 	seccompProfilePath    string
 	conmonCgroupfsPath    string
@@ -125,7 +126,7 @@ type ContainerState struct {
 // at any future time.
 // imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 // imageID is nil for infra containers.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, imageDigests []string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	externalImageRef := ""
@@ -155,6 +156,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		crioAnnotations: crioAnnotations,
 		imageName:       imageName,
 		imageID:         imageID,
+		imageDigests:    imageDigests,
 		dir:             dir,
 		state:           state,
 		stopSignal:      stopSignal,
@@ -370,6 +372,11 @@ func (c *Container) ImageName() *references.RegistryImageReference {
 // ImageID returns the image ID of the container, or nil for infra containers.
 func (c *Container) ImageID() *storage.StorageImageID {
 	return c.imageID
+}
+
+// ImageDigests returns possible repo digests of the image used in the container.
+func (c *Container) ImageDigests() []string {
+	return c.imageDigests
 }
 
 // Sandbox returns the sandbox name of the container.

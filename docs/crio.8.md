@@ -498,6 +498,8 @@ wipe CRI-O's container and image storage
 
 Display status information
 
+**--json, -j**: output JSON instead of plain text
+
 **--socket, -s**="": absolute path to the unix socket (default: "/var/run/crio/crio.sock")
 
 ### config, c
