@@ -7,11 +7,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -603,6 +606,46 @@ var _ = Describe("high_performance_hooks", func() {
 				_, err := setSharedCPUs(container, nil, "")
 				Expect(err).To(HaveOccurred())
 			})
+		})
+	})
+	Describe("PreCreate Hook", func() {
+		shares := uint64(2048)
+		g := &generate.Generator{
+			Config: &specs.Spec{
+				Process: &specs.Process{
+					Env: make([]string, 0),
+				},
+				Linux: &specs.Linux{
+					Resources: &specs.LinuxResources{
+						CPU: &specs.LinuxCPU{
+							Cpus:   "1,2",
+							Shares: &shares,
+						},
+					},
+				},
+			},
+		}
+		c, err := oci.NewContainer("containerID", "", "", "",
+			make(map[string]string), make(map[string]string),
+			make(map[string]string), "pauseImage", nil, nil,
+			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
+			false, "", "", time.Now(), "")
+		Expect(err).To(BeNil())
+
+		sb, err := sandbox.New("", "", "", "", "", nil,
+			map[string]string{
+				crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+			},
+			"", "", nil, "", "", false,
+			"", "", "", nil, false,
+			time.Now(), "", nil, nil)
+		Expect(err).ToNot(HaveOccurred())
+		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
+			h := HighPerformanceHooks{sharedCPUs: "3,4"}
+			err := h.PreCreate(context.TODO(), g, sb, c)
+			Expect(err).ToNot(HaveOccurred())
+			env := g.Config.Process.Env
+			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
 		})
 	})
 })
