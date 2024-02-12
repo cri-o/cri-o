@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
-      - uses: golangci/golangci-lint-action@v3
+      - uses: golangci/golangci-lint-action@v4
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
 
