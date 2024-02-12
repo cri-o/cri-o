@@ -250,20 +250,19 @@ func (mx *Mux) With(middlewares ...func(http.Handler) http.Handler) Router {
 	return im
 }
 
-// Group creates a new inline-Mux with a fresh middleware stack. It's useful
+// Group creates a new inline-Mux with a copy of middleware stack. It's useful
 // for a group of handlers along the same routing path that use an additional
 // set of middlewares. See _examples/.
 func (mx *Mux) Group(fn func(r Router)) Router {
-	im := mx.With().(*Mux)
+	im := mx.With()
 	if fn != nil {
 		fn(im)
 	}
 	return im
 }
 
-// Route creates a new Mux with a fresh middleware stack and mounts it
-// along the `pattern` as a subrouter. Effectively, this is a short-hand
-// call to Mount. See _examples/.
+// Route creates a new Mux and mounts it along the `pattern` as a subrouter.
+// Effectively, this is a short-hand call to Mount. See _examples/.
 func (mx *Mux) Route(pattern string, fn func(r Router)) Router {
 	if fn == nil {
 		panic(fmt.Sprintf("chi: attempting to Route() a nil subrouter on '%s'", pattern))

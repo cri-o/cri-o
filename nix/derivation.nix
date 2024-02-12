@@ -1,8 +1,8 @@
 { pkgs }:
-with pkgs; buildGo121Module {
+with pkgs; buildGo122Module {
   name = "cri-o";
   src = ./..;
-  vendorSha256 = null;
+  vendorHash = null;
   doCheck = false;
   enableParallelBuilding = true;
   outputs = [ "out" ];
