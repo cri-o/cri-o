@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
+_Generated on Tue, 13 Feb 2024 08:25:17 UTC for commit [5d40e65][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9493a08a3a53e4cb788eb13f0b0965a81d00ef36
+[0]: https://github.com/cri-o/cri-o/commit/5d40e65fdb78f8cce9c8397e0bea0125055cfe7d
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                          | v1.51.0                            | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240212090453-532567bfe9f2 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240212212415-00be9ae8725f | true   | true             |
 
 ## All Dependencies
 
@@ -129,7 +129,7 @@ _Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
 | cloud.google.com/go/shell                                                               | v1.7.4                                            | v1.7.5                              | false  | true             |
 | cloud.google.com/go/spanner                                                             | v1.53.1                                           | v1.56.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.21.0                                           | v1.21.1                             | false  | true             |
-| cloud.google.com/go/storage                                                             | v1.33.0                                           | v1.37.0                             | false  | true             |
+| cloud.google.com/go/storage                                                             | v1.33.0                                           | v1.38.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                           | v1.10.4                             | false  | true             |
 | cloud.google.com/go/talent                                                              | v1.6.5                                            | v1.6.6                              | false  | true             |
 | cloud.google.com/go/texttospeech                                                        | v1.7.4                                            | v1.7.5                              | false  | true             |
@@ -564,7 +564,7 @@ _Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240212090453-532567bfe9f2  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240212212415-00be9ae8725f  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -771,7 +771,7 @@ _Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
 | github.com/tklauser/go-sysconf                                                          | v0.3.12                                           | v0.3.13                             | false  | true             |
 | github.com/tklauser/numcpus                                                             | v0.6.1                                            | v0.7.0                              | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75                |                                     | false  | true             |
-| github.com/tonistiigi/fsutil                                                            | v0.0.0-20230629203738-36ef4d8c0dbb                | v0.0.0-20240208190058-28652255cae4  | false  | true             |
+| github.com/tonistiigi/fsutil                                                            | v0.0.0-20230629203738-36ef4d8c0dbb                | v0.0.0-20240213035411-35e11660c196  | false  | true             |
 | github.com/tonistiigi/go-actions-cache                                                  | v0.0.0-20220404170428-0bdeb6e1eac7                |                                     | false  | true             |
 | github.com/tonistiigi/go-archvariant                                                    | v1.0.0                                            |                                     | false  | true             |
 | github.com/tonistiigi/units                                                             | v0.0.0-20180711220420-6950e57a87ea                |                                     | false  | true             |
@@ -877,12 +877,12 @@ _Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
 | golang.org/x/term                                                                       | v0.17.0                                           |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                                           |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                            |                                     | false  | true             |
-| golang.org/x/tools                                                                      | v0.17.0                                           |                                     | false  | true             |
+| golang.org/x/tools                                                                      | v0.17.0                                           | v0.18.0                             | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028                |                                     | false  | true             |
 | gonum.org/v1/gonum                                                                      | v0.11.0                                           | v0.14.0                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0                | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                                           | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.152.0                                          | v0.163.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.152.0                                          | v0.164.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.112.0                            | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0                | v0.0.0-20240205150955-31a09d347014  | false  | true             |
@@ -928,7 +928,7 @@ _Generated on Mon, 12 Feb 2024 21:25:07 UTC for commit [9493a08][0]._
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240212080204-2d2e27d30a44  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240213013005-405f0c4a023d  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                            | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                           | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
