@@ -584,6 +584,13 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// pinned and sandbox/pause images, we need to update them
 			s.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 			logrus.Info("Configuration reload completed")
+			// Print the current configuration.
+			tomlConfig, err := s.config.ToString()
+			if err != nil {
+				logrus.Errorf("Unable to print current configuration: %v", err)
+			} else {
+				logrus.Infof("Current CRI-O configuration:\n%s", tomlConfig)
+			}
 		}
 	}()
 

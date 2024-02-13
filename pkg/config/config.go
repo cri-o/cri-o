@@ -825,6 +825,16 @@ func (c *Config) ToFile(path string) error {
 	return os.WriteFile(path, b, 0o644)
 }
 
+// ToString encodes the config into a string value.
+func (c *Config) ToString() (string, error) {
+	configBytes, err := c.ToBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return string(configBytes), nil
+}
+
 // ToBytes encodes the config into a byte slice. It errors if the encoding
 // fails, which should never happen at all because of general type safeness.
 func (c *Config) ToBytes() ([]byte, error) {
