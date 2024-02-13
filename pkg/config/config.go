@@ -797,8 +797,17 @@ func (c *Config) ToFile(path string) error {
 	if err != nil {
 		return err
 	}
-
 	return os.WriteFile(path, b, 0o644)
+}
+
+// LogConfig pretty prints current config
+func (c *Config) LogConfig() error {
+	tomlConfig, err := c.ToBytes()
+	if err != nil {
+		return err
+	}
+	logrus.Infof("Current CRI-O configuration: \n%s", tomlConfig)
+	return nil
 }
 
 // ToBytes encodes the config into a byte slice. It errors if the encoding

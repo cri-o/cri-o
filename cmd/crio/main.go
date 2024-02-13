@@ -268,6 +268,11 @@ func main() {
 			return err
 		}
 
+		// Print the current config
+		if err := config.LogConfig(); err != nil {
+			logrus.Errorf("Unable to log configuration: %v", err)
+		}
+
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("Failed to listen: %v", err)

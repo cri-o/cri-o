@@ -577,6 +577,11 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 				logrus.Errorf("Unable to reload configuration: %v", err)
 				continue
 			}
+			// Print the current config
+			if err := s.config.LogConfig(); err != nil {
+				logrus.Errorf("Unable to log configuration: %v", err)
+				continue
+			}
 		}
 	}()
 
