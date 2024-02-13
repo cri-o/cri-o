@@ -106,7 +106,9 @@ func markdown() *cli.Command {
 				return err
 			}
 			fmt.Print(strings.TrimSpace(res))
-			fmt.Printf("\r\n")
+			// Add a newline to ensure that the markdown
+			// document is correctly formatted.
+			fmt.Printf("\n")
 			return nil
 		},
 	}
