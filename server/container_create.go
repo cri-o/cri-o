@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -52,70 +51,6 @@ func (m orderedMounts) Swap(i, j int) {
 // parts returns the number of parts in the destination of a mount. Used in sorting.
 func (m orderedMounts) parts(i int) int {
 	return strings.Count(filepath.Clean(m[i].Destination), string(os.PathSeparator))
-}
-
-// mounts defines how to sort runtime.Mount.
-// This is the same with the Docker implementation:
-//
-//	https://github.com/moby/moby/blob/17.05.x/daemon/volumes.go#L26
-type criOrderedMounts []*types.Mount
-
-// Len returns the number of mounts. Used in sorting.
-func (m criOrderedMounts) Len() int {
-	return len(m)
-}
-
-// Less returns true if the number of parts (a/b/c would be 3 parts) in the
-// mount indexed by parameter 1 is less than that of the mount indexed by
-// parameter 2. Used in sorting.
-func (m criOrderedMounts) Less(i, j int) bool {
-	return m.parts(i) < m.parts(j)
-}
-
-// Swap swaps two items in an array of mounts. Used in sorting
-func (m criOrderedMounts) Swap(i, j int) {
-	m[i], m[j] = m[j], m[i]
-}
-
-// parts returns the number of parts in the destination of a mount. Used in sorting.
-func (m criOrderedMounts) parts(i int) int {
-	return strings.Count(filepath.Clean(m[i].ContainerPath), string(os.PathSeparator))
-}
-
-// Ensure mount point on which path is mounted, is shared.
-func ensureShared(path string, mountInfos []*mount.Info) error {
-	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
-	if err != nil {
-		return err
-	}
-
-	// Make sure source mount point is shared.
-	optsSplit := strings.Split(optionalOpts, " ")
-	for _, opt := range optsSplit {
-		if strings.HasPrefix(opt, "shared:") {
-			return nil
-		}
-	}
-
-	return fmt.Errorf("path %q is mounted on %q but it is not a shared mount", path, sourceMount)
-}
-
-// Ensure mount point on which path is mounted, is either shared or slave.
-func ensureSharedOrSlave(path string, mountInfos []*mount.Info) error {
-	sourceMount, optionalOpts, err := getSourceMount(path, mountInfos)
-	if err != nil {
-		return err
-	}
-	// Make sure source mount point is shared.
-	optsSplit := strings.Split(optionalOpts, " ")
-	for _, opt := range optsSplit {
-		if strings.HasPrefix(opt, "shared:") {
-			return nil
-		} else if strings.HasPrefix(opt, "master:") {
-			return nil
-		}
-	}
-	return fmt.Errorf("path %q is mounted on %q but it is not a shared or slave mount", path, sourceMount)
 }
 
 func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInfo *storage.ContainerInfo, mountLabel string, specgen *generate.Generator) ([]rspec.Mount, error) {
@@ -167,24 +102,6 @@ func addImageVolumes(ctx context.Context, rootfs string, s *Server, containerInf
 		}
 	}
 	return mounts, nil
-}
-
-// resolveSymbolicLink resolves a possible symlink path. If the path is a symlink, returns resolved
-// path; if not, returns the original path.
-// note: strictly SecureJoin is not sufficient, as it does not error when a part of the path doesn't exist
-// but simply moves on. If the last part of the path doesn't exist, it may need to be created.
-func resolveSymbolicLink(scope, path string) (string, error) {
-	info, err := os.Lstat(path)
-	if err != nil {
-		return "", err
-	}
-	if info.Mode()&os.ModeSymlink != os.ModeSymlink {
-		return path, nil
-	}
-	if scope == "" {
-		scope = "/"
-	}
-	return securejoin.SecureJoin(scope, path)
 }
 
 // setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
@@ -493,15 +410,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	return &types.CreateContainerResponse{
 		ContainerId: ctr.ID(),
 	}, nil
-}
-
-func isInCRIMounts(dst string, mounts []*types.Mount) bool {
-	for _, m := range mounts {
-		if m.ContainerPath == dst {
-			return true
-		}
-	}
-	return false
 }
 
 func processSELinuxRelabelOptions(sb *sandbox.Sandbox, securityContext *types.LinuxContainerSecurityContext, ctr container.Container) (maybeRelabel, skipRelabel bool) {
