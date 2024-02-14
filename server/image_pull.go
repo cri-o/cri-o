@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -231,7 +230,6 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 			// Skipped bytes metrics
 			if storedImage.Size != nil {
-				metrics.Instance().MetricImagePullsByNameSkippedAdd(float64(*storedImage.Size), remoteCandidateName)
 				// Metrics for image pull skipped bytes
 				metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
 			}
@@ -244,7 +242,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress) // nolint:gocritic
-	go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName, tmpImg)
+	go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName)
 
 	_, err = s.StorageImageServer().PullImage(remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
@@ -266,7 +264,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 }
 
 // metricsFromProgressGoroutine consumes progress and turns it into metrics updates.
-func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference, remoteImage imageTypes.Image) {
+func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
 	for p := range progress {
 		if p.Event == imageTypes.ProgressEventSkipped {
 			// Skipped digests metrics
@@ -282,19 +280,6 @@ func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageType
 				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
 			)
 		}
-
-		// Metrics for every digest
-		metrics.Instance().MetricImagePullsByDigestAdd(
-			float64(p.OffsetUpdate),
-			remoteCandidateName, p.Artifact.Digest, p.Artifact.MediaType,
-			strconv.FormatInt(p.Artifact.Size, 10),
-		)
-
-		// Metrics for the overall image
-		metrics.Instance().MetricImagePullsByNameAdd(
-			float64(p.OffsetUpdate),
-			remoteCandidateName, strconv.FormatInt(imageSize(remoteImage), 10),
-		)
 
 		// Metrics for image pulls bytes
 		metrics.Instance().MetricImagePullsBytesAdd(
@@ -359,23 +344,4 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	user = parts[0]
 	password = strings.Trim(parts[1], "\x00")
 	return user, password, nil
-}
-
-func imageSize(img imageTypes.Image) (size int64) {
-	for _, layer := range img.LayerInfos() {
-		if layer.Size > 0 {
-			size += layer.Size
-		} else {
-			return -1
-		}
-	}
-
-	configSize := img.ConfigInfo().Size
-	if configSize >= 0 {
-		size += configSize
-	} else {
-		return -1
-	}
-
-	return size
 }

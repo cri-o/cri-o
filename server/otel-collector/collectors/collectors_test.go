@@ -36,20 +36,9 @@ var _ = t.Describe("Collectors", func() {
 
 			// When / Then
 			for _, collector := range []collectors.Collector{
-				collectors.Operations,              // Deprecated: in favour of OperationsTotal
-				collectors.OperationsLatencyTotal,  // Deprecated: in favour of OperationsLatencySecondsTotal
-				collectors.OperationsLatency,       // Deprecated: in favour of OperationsLatencySeconds
-				collectors.OperationsErrors,        // Deprecated: in favour of OperationsErrorsTotal
-				collectors.ImagePullsByDigest,      // Deprecated: in favour of ImagePullsBytesTotal
-				collectors.ImagePullsByName,        // Deprecated: in favour of ImagePullsBytesTotal
-				collectors.ImagePullsByNameSkipped, // Deprecated: in favour of ImagePullsSkippedBytesTotal
-				collectors.ImagePullsFailures,      // Deprecated:  in favour of ImagePullsFailureTotal
-				collectors.ImagePullsSuccesses,     // Deprecated:  in favour of ImagePullsSuccessTotal
 				collectors.ImagePullsLayerSize,
-				collectors.ImageLayerReuse, // Deprecated: in favour of ImageLayerReuseTotal
 				collectors.ContainersEventsDropped,
 				collectors.ContainersOOMTotal,
-				collectors.ContainersOOM, // Deprecated: in favour of ContainersOOMCountTotal
 				collectors.ProcessesDefunct,
 				collectors.OperationsTotal,
 				collectors.OperationsLatencySeconds,
@@ -67,7 +56,7 @@ var _ = t.Describe("Collectors", func() {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(27))
+			Expect(all).To(HaveLen(16))
 		})
 	})
 

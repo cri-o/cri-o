@@ -16,58 +16,14 @@ const (
 
 	subsystemPrefix = Subsystem + "_"
 
-	// Operations is the key for CRI-O operation metrics.
-	// Deprecated: in favour of OperationsTotal
-	Operations Collector = crioPrefix + "operations"
-
-	// OperationsLatencyTotal is the key for the operation latency metrics.
-	// Deprecated: in favour of OperationsLatencySecondsTotal
-	OperationsLatencyTotal Collector = crioPrefix + "operations_latency_microseconds_total"
-
-	// OperationsLatency is the key for the operation latency metrics for each CRI call.
-	// Deprecated: in favour of OperationsLatencySeconds
-	OperationsLatency Collector = crioPrefix + "operations_latency_microseconds"
-
-	// OperationsErrors is the key for the operation error metrics.
-	// Deprecated: in favour of OperationsErrorsTotal
-	OperationsErrors Collector = crioPrefix + "operations_errors"
-
-	// ImagePullsByDigest is the key for CRI-O image pull metrics by digest.
-	// Deprecated: in favour of ImagePullsBytesTotal
-	ImagePullsByDigest Collector = crioPrefix + "image_pulls_by_digest"
-
-	// ImagePullsByName is the key for CRI-O image pull metrics by name.
-	// Deprecated: in favour of ImagePullsBytesTotal
-	ImagePullsByName Collector = crioPrefix + "image_pulls_by_name"
-
-	// ImagePullsByNameSkipped is the key for CRI-O skipped image pull metrics by name (skipped).
-	// Deprecated: in favour of ImagePullsSkippedBytesTotal
-	ImagePullsByNameSkipped Collector = crioPrefix + "image_pulls_by_name_skipped"
-
-	// ImagePullsFailures is the key for failed image downloads in CRI-O.
-	// Deprecated: in favour of ImagePullsFailureTotal
-	ImagePullsFailures Collector = crioPrefix + "image_pulls_failures"
-
-	// ImagePullsSuccesses is the key for successful image downloads in CRI-O.
-	// Deprecated: in favour of ImagePullsSuccessTotal
-	ImagePullsSuccesses Collector = crioPrefix + "image_pulls_successes"
-
 	// ImagePullsLayerSize is the key for CRI-O image pull metrics per layer.
 	ImagePullsLayerSize Collector = crioPrefix + "image_pulls_layer_size"
-
-	// ImageLayerReuse is the key for the CRI-O image layer reuse metrics.
-	// Deprecated: in favour of ImageLayerReuseTotal
-	ImageLayerReuse Collector = crioPrefix + "image_layer_reuse"
 
 	// ContainersEventsDropped is the key for the total number of container events dropped counter.
 	ContainersEventsDropped Collector = crioPrefix + "containers_events_dropped_total"
 
 	// ContainersOOMTotal is the key for the total CRI-O container out of memory metrics.
 	ContainersOOMTotal Collector = crioPrefix + "containers_oom_total"
-
-	// ContainersOOM is the key for the CRI-O container out of memory metrics per container name.
-	// Deprecated: in favour of ContainersOOMCountTotal
-	ContainersOOM Collector = crioPrefix + "containers_oom"
 
 	// ProcessesDefunct is the key for the total number of defunct processes in a node.
 	ProcessesDefunct Collector = crioPrefix + "processes_defunct"
@@ -129,20 +85,9 @@ func (c Collectors) ToSlice() (r []string) {
 // name key.
 func All() Collectors {
 	return Collectors{
-		Operations.Stripped(),              // Deprecated: in favour of OperationsTotal
-		OperationsLatencyTotal.Stripped(),  // Deprecated: in favour of OperationsLatencySecondsTotal
-		OperationsLatency.Stripped(),       // Deprecated: in favour of OperationsLatencySeconds
-		OperationsErrors.Stripped(),        // Deprecated: in favour of OperationsErrorsTotal
-		ImagePullsByDigest.Stripped(),      // Deprecated: in favour of ImagePullsBytesTotal
-		ImagePullsByName.Stripped(),        // Deprecated: in favour of ImagePullsBytesTotal
-		ImagePullsByNameSkipped.Stripped(), // Deprecated: in favour of ImagePullsSkippedBytesTotal
-		ImagePullsFailures.Stripped(),      // Deprecated: in favour of ImagePullsFailureTotal
-		ImagePullsSuccesses.Stripped(),     // Deprecated: in favour of ImagePullsSuccessTotal
 		ImagePullsLayerSize.Stripped(),
-		ImageLayerReuse.Stripped(), // Deprecated: in favour of ImageLayerReuseTotal
 		ContainersEventsDropped.Stripped(),
 		ContainersOOMTotal.Stripped(),
-		ContainersOOM.Stripped(), // Deprecated: in favour of ContainersOOMCountTotal
 		ProcessesDefunct.Stripped(),
 		OperationsTotal.Stripped(),
 		OperationsLatencySeconds.Stripped(),

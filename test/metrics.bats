@@ -41,21 +41,6 @@ function teardown() {
 	curl -sf "http://localhost:${PORT}/metrics" | grep crio_operations
 }
 
-@test "metrics with operations quantile" {
-	# start crio with custom port
-	PORT=$(free_port)
-	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
-
-	for ((i = 0; i < 100; i++)); do
-		crictl version
-	done
-
-	# get metrics
-	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_operations_latency_microseconds_total{operation_type="Version",quantile="0.5"}'
-	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_operations_latency_microseconds_total{operation_type="Version",quantile="0.9"}'
-	curl -sf "http://localhost:$PORT/metrics" | grep 'container_runtime_crio_operations_latency_microseconds_total{operation_type="Version",quantile="0.99"}'
-}
-
 @test "secure metrics with random port" {
 	openssl req -new -newkey rsa:4096 -days 365 -nodes -x509 \
 		-subj "/C=US/ST=State/L=City/O=Org/CN=Name" \
