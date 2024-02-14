@@ -214,6 +214,7 @@ jobs:
 
   unit:
     strategy:
+      fail-fast: false
       matrix:
         run:
           - runner: ubuntu-latest
