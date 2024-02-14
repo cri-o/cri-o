@@ -354,34 +354,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(
-			securityContext.ApparmorProfile,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
-		}
-
-		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
-		specgen.SetProcessApparmorProfile(profile)
-	}
-
-	// Get blockio class
-	if s.Config().BlockIO().Enabled() {
-		if blockioClass, err := blockio.ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations()); blockioClass != "" && err == nil {
-			if s.Config().BlockIO().ReloadRequired() {
-				if err := s.Config().BlockIO().Reload(); err != nil {
-					log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
-				}
-			}
-			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
-				if specgen.Config.Linux.Resources == nil {
-					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
-				}
-				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
-			}
-		}
+	if err := s.configureAppArmorProfileAndBlockIO(ctx, sb, ctr, securityContext, specgen); err != nil {
+		return nil, fmt.Errorf("failed to set apparmor  or block io: %w", err)
 	}
 
 	logPath, err := ctr.LogPath(sb.LogDir())
@@ -1282,4 +1256,34 @@ func isSubDirectoryOf(base, target string) bool {
 		base += "/"
 	}
 	return strings.HasPrefix(base, target)
+}
+
+func (s *Server) configureAppArmorProfileAndBlockIO(ctx context.Context, sb *sandbox.Sandbox, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext, specgen *generate.Generator) error {
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		profile, err := s.Config().AppArmor().Apply(securityContext.ApparmorProfile)
+		if err != nil {
+			return fmt.Errorf("applying AppArmor profile to container %s: %w", ctr.ID(), err)
+		}
+
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
+		specgen.SetProcessApparmorProfile(profile)
+	}
+
+	if s.Config().BlockIO().Enabled() {
+		if blockioClass, err := blockio.ContainerClassFromAnnotations(ctr.Config().Metadata.Name, ctr.Config().Annotations, sb.Annotations()); blockioClass != "" && err == nil {
+			if s.Config().BlockIO().ReloadRequired() {
+				if err := s.Config().BlockIO().Reload(); err != nil {
+					log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", ctr.ID(), err)
+				}
+			}
+			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
+				if specgen.Config.Linux.Resources == nil {
+					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
+				}
+				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
+			}
+		}
+	}
+
+	return nil
 }
