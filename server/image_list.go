@@ -1,6 +1,8 @@
 package server
 
 import (
+	"errors"
+
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"golang.org/x/net/context"
@@ -81,4 +83,37 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	}
 
 	return to
+}
+
+// getImageInfo returns the image details for the image mentioned in the container spec.
+func (s *Server) getImageInfo(userRequestedImage string) (imageResult *storage.ImageResult, err error) {
+	var imgResult *storage.ImageResult
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
+		var imgResultErr error
+		for _, name := range potentialMatches {
+			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			if imgResultErr == nil {
+				break
+			}
+		}
+		if imgResultErr != nil {
+			return nil, imgResultErr
+		}
+	}
+	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if userRequestedImage == "" {
+		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
+	}
+
+	return imgResult, nil
 }

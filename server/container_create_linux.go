@@ -1,7 +1,6 @@
 package server
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -29,7 +28,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
-	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -215,32 +213,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 	// Get imageName and imageID that are later requested in container status
-	var imgResult *storage.ImageResult
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
-		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
-		if err != nil {
-			return nil, err
-		}
-		var imgResultErr error
-		for _, name := range potentialMatches {
-			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
-			if imgResultErr == nil {
-				break
-			}
-		}
-		if imgResultErr != nil {
-			return nil, imgResultErr
-		}
-	}
-	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
-	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
-	if userRequestedImage == "" {
-		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
+	imgResult, err := s.getImageInfo(userRequestedImage)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get image info for %s: %w", userRequestedImage, err)
 	}
 
 	imageName := imgResult.SomeNameOfThisImage
