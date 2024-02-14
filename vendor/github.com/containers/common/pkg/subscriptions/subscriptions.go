@@ -37,11 +37,13 @@ type subscriptionData struct {
 
 // saveTo saves subscription data to given directory
 func (s subscriptionData) saveTo(dir string) error {
-	path := filepath.Join(dir, s.name)
-	if err := os.MkdirAll(filepath.Dir(path), s.dirMode); err != nil {
-		return err
+	if err := umask.MkdirAllIgnoreUmask(dir, s.dirMode); err != nil {
+		return fmt.Errorf("create subscription directory: %w", err)
 	}
-	return os.WriteFile(path, s.data, s.mode)
+	if err := umask.WriteFileIgnoreUmask(filepath.Join(dir, s.name), s.data, s.mode); err != nil {
+		return fmt.Errorf("write subscription data: %w", err)
+	}
+	return nil
 }
 
 func readAll(root, prefix string, parentMode os.FileMode) ([]subscriptionData, error) {
@@ -242,13 +244,9 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 				return nil, err
 			}
 
-			// Don't let the umask have any influence on the file and directory creation
-			oldUmask := umask.Set(0)
-			defer umask.Set(oldUmask)
-
 			switch mode := fileInfo.Mode(); {
 			case mode.IsDir():
-				if err = os.MkdirAll(ctrDirOrFileOnHost, mode.Perm()); err != nil {
+				if err = umask.MkdirAllIgnoreUmask(ctrDirOrFileOnHost, mode.Perm()); err != nil {
 					return nil, fmt.Errorf("making container directory: %w", err)
 				}
 				data, err := getHostSubscriptionData(hostDirOrFile, mode.Perm())
@@ -266,10 +264,11 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 					return nil, err
 				}
 				for _, s := range data {
-					if err := os.MkdirAll(filepath.Dir(ctrDirOrFileOnHost), s.dirMode); err != nil {
-						return nil, err
+					dir := filepath.Dir(ctrDirOrFileOnHost)
+					if err := umask.MkdirAllIgnoreUmask(dir, s.dirMode); err != nil {
+						return nil, fmt.Errorf("create container dir: %w", err)
 					}
-					if err := os.WriteFile(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
+					if err := umask.WriteFileIgnoreUmask(ctrDirOrFileOnHost, s.data, s.mode); err != nil {
 						return nil, fmt.Errorf("saving data to container filesystem: %w", err)
 					}
 				}
