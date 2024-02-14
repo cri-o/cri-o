@@ -370,96 +370,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	linux := containerConfig.Linux
 	if linux != nil {
-		resources := linux.Resources
-		if resources != nil {
-			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
-			specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
-			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
-
-			memoryLimit := resources.MemoryLimitInBytes
-			if memoryLimit != 0 {
-				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit); err != nil {
-					return nil, err
-				}
-				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				if resources.MemorySwapLimitInBytes != 0 {
-					if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
-						return nil, fmt.Errorf(
-							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
-							ctr.ID(),
-							resources.MemorySwapLimitInBytes,
-							resources.MemoryLimitInBytes,
-						)
-					}
-					memoryLimit = resources.MemorySwapLimitInBytes
-				}
-				// If node doesn't have memory swap, then skip setting
-				// otherwise the container creation fails.
-				if node.CgroupHasMemorySwap() {
-					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
-				}
-			}
-
-			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
-			specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
-			specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
-
-			// If the kernel has no support for hugetlb, silently ignore the limits
-			if node.CgroupHasHugetlb() {
-				hugepageLimits := resources.HugepageLimits
-				for _, limit := range hugepageLimits {
-					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
-				}
-			}
-
-			if node.CgroupIsV2() && len(resources.Unified) != 0 {
-				if specgen.Config.Linux.Resources.Unified == nil {
-					specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
-				}
-				for key, value := range resources.Unified {
-					specgen.Config.Linux.Resources.Unified[key] = value
-				}
-			}
-		}
-
-		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))
-
-		if ctr.Privileged() {
-			specgen.SetupPrivileged(true)
-		} else {
-			capabilities := securityContext.Capabilities
-			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities, s.config.AddInheritableCapabilities); err != nil {
-				return nil, err
-			}
-		}
-
-		if securityContext.NoNewPrivs {
-			const sysAdminCap = "CAP_SYS_ADMIN"
-			for _, cap := range specgen.Config.Process.Capabilities.Bounding {
-				if cap == sysAdminCap {
-					log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
-				}
-			}
-
-			if ctr.Privileged() {
-				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
-			}
-		}
-
-		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
-
-		if !ctr.Privileged() {
-			if securityContext.MaskedPaths != nil {
-				for _, path := range securityContext.MaskedPaths {
-					specgen.AddLinuxMaskedPaths(path)
-				}
-			}
-
-			if securityContext.ReadonlyPaths != nil {
-				for _, path := range securityContext.ReadonlyPaths {
-					specgen.AddLinuxReadonlyPaths(path)
-				}
-			}
+		if err := s.configureLinuxResourcesAndSecurity(ctx, linux, ctr, securityContext, sb, specgen); err != nil {
+			return nil, fmt.Errorf("failed to configure linux resources and security: %w", err)
 		}
 	}
 
@@ -1285,5 +1197,100 @@ func (s *Server) configureAppArmorProfileAndBlockIO(ctx context.Context, sb *san
 		}
 	}
 
+	return nil
+}
+
+func (s *Server) configureLinuxResourcesAndSecurity(ctx context.Context, linux *types.LinuxContainerConfig, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext, sb *sandbox.Sandbox, specgen *generate.Generator) error {
+	resources := linux.Resources
+	if resources != nil {
+		specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
+		specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
+		specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
+
+		memoryLimit := resources.MemoryLimitInBytes
+		if memoryLimit != 0 {
+			if err := cgmgr.VerifyMemoryIsEnough(memoryLimit); err != nil {
+				return err
+			}
+			specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+			if resources.MemorySwapLimitInBytes != 0 {
+				if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
+					return fmt.Errorf(
+						"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
+						ctr.ID(),
+						resources.MemorySwapLimitInBytes,
+						resources.MemoryLimitInBytes,
+					)
+				}
+				memoryLimit = resources.MemorySwapLimitInBytes
+			}
+			// If node doesn't have memory swap, then skip setting
+			// otherwise the container creation fails.
+			if node.CgroupHasMemorySwap() {
+				specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+			}
+		}
+
+		specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
+		specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
+		specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
+
+		// If the kernel has no support for hugetlb, silently ignore the limits
+		if node.CgroupHasHugetlb() {
+			hugepageLimits := resources.HugepageLimits
+			for _, limit := range hugepageLimits {
+				specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+			}
+		}
+
+		if node.CgroupIsV2() && len(resources.Unified) != 0 {
+			if specgen.Config.Linux.Resources.Unified == nil {
+				specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+			}
+			for key, value := range resources.Unified {
+				specgen.Config.Linux.Resources.Unified[key] = value
+			}
+		}
+	}
+
+	specgen.SetLinuxCgroupsPath(s.Config().CgroupManager().ContainerCgroupPath(sb.CgroupParent(), ctr.ID()))
+
+	if ctr.Privileged() {
+		specgen.SetupPrivileged(true)
+	} else {
+		capabilities := securityContext.Capabilities
+		if err := ctr.SpecSetupCapabilities(capabilities, s.Config().DefaultCapabilities, s.Config().AddInheritableCapabilities); err != nil {
+			return err
+		}
+	}
+
+	if securityContext.NoNewPrivs {
+		const sysAdminCap = "CAP_SYS_ADMIN"
+		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+			if cap == sysAdminCap {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+			}
+		}
+
+		if ctr.Privileged() {
+			log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+		}
+	}
+
+	specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+
+	if !ctr.Privileged() {
+		if securityContext.MaskedPaths != nil {
+			for _, path := range securityContext.MaskedPaths {
+				specgen.AddLinuxMaskedPaths(path)
+			}
+		}
+
+		if securityContext.ReadonlyPaths != nil {
+			for _, path := range securityContext.ReadonlyPaths {
+				specgen.AddLinuxReadonlyPaths(path)
+			}
+		}
+	}
 	return nil
 }
