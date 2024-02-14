@@ -1265,7 +1265,10 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   "io.kubernetes.cri-o.seccompNotifierAction" for enabling the seccomp notifier feature.
 #   "io.kubernetes.cri-o.umask" for setting the umask for container init process.
 #   "io.kubernetes.cri.rdt-class" for setting the RDT class of a container
-#   "io.kubernetes.cri-o.seccompProfile" for setting the seccomp profile for a specific container, pod or whole image.
+#   "seccomp-profile.kubernetes.cri-o.io" for setting the seccomp profile for:
+#     - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>"
+#     - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
+#     Note that the annotation works on containers as well as on images.
 # - monitor_path (optional, string): The path of the monitor binary. Replaces
 #   deprecated option "conmon".
 # - monitor_cgroup (optional, string): The cgroup the container monitor process will be put in.

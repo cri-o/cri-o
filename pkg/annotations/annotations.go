@@ -73,8 +73,11 @@ const (
 	// PlatformRuntimePath indicates the runtime path that CRI-O should use for a specific platform.
 	PlatformRuntimePath = "io.kubernetes.cri-o.PlatformRuntimePath"
 
-	// SeccompProfileAnnotation can be used to set the seccomp profile for a specific container, pod or whole image.
-	SeccompProfileAnnotation = "io.kubernetes.cri-o.seccompProfile"
+	// SeccompProfileAnnotation can be used to set the seccomp profile for:
+	// - a specific container by using: `seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>`
+	// - a whole pod by using: `seccomp-profile.kubernetes.cri-o.io/POD`
+	// Note that the annotation works on containers as well as on images.
+	SeccompProfileAnnotation = "seccomp-profile.kubernetes.cri-o.io"
 )
 
 var AllAllowedAnnotations = []string{
