@@ -17,6 +17,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
+	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -501,4 +502,31 @@ func isInCRIMounts(dst string, mounts []*types.Mount) bool {
 		}
 	}
 	return false
+}
+
+func processSELinuxRelabelOptions(sb *sandbox.Sandbox, securityContext *types.LinuxContainerSecurityContext, ctr container.Container) (maybeRelabel, skipRelabel bool) {
+	maybeRelabel = false
+	skipRelabel = false
+
+	// Check if annotation for skipping SELinux relabeling is present and true
+	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
+		maybeRelabel = true
+	}
+
+	// Check for super privileged SELinux options
+	const superPrivilegedType = "spc_t"
+	if securityContext.SelinuxOptions == nil {
+		securityContext.SelinuxOptions = &types.SELinuxOption{}
+	}
+
+	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
+		(ctr.SandboxConfig().Linux != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions != nil &&
+			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
+			securityContext.SelinuxOptions.Type == "") {
+		skipRelabel = true
+	}
+
+	return maybeRelabel, skipRelabel
 }

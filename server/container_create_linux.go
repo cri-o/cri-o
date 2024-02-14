@@ -286,24 +286,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		processLabel = ""
 	}
 
-	maybeRelabel := false
-	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
-		maybeRelabel = true
-	}
-
-	skipRelabel := false
-	const superPrivilegedType = "spc_t"
-	if securityContext.SelinuxOptions == nil {
-		securityContext.SelinuxOptions = &types.SELinuxOption{}
-	}
-	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
-		(ctr.SandboxConfig().Linux != nil &&
-			ctr.SandboxConfig().Linux.SecurityContext != nil &&
-			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions != nil &&
-			ctr.SandboxConfig().Linux.SecurityContext.SelinuxOptions.Type == superPrivilegedType && // super privileged pod
-			securityContext.SelinuxOptions.Type == "") {
-		skipRelabel = true
-	}
+	maybeRelabel, skipRelabel := processSELinuxRelabelOptions(sb, securityContext, ctr)
 
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
