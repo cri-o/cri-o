@@ -89,7 +89,9 @@ var _ = t.Describe("Oci", func() {
 
 			// When
 			sut.SetAsStopping()
-			runtime.StopLoopForContainer(sut)
+			go runtime.StopLoopForContainer(sut)
+			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, shortTimeout)
+			<-stoppedChan
 
 			// Then
 			Expect(sut.State().Finished).NotTo(BeZero())
