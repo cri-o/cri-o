@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 15 Feb 2024 05:00:33 UTC for commit [60be57c][0]._
+_Generated on Thu, 15 Feb 2024 09:13:18 UTC for commit [6b15366][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/60be57c2785339f2c58b0e78de9d404b5d4c9044
+[0]: https://github.com/cri-o/cri-o/commit/6b153663bf5228b82bb4abeda3e25e1b29d0a437
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Thu, 15 Feb 2024 05:00:33 UTC for commit [60be57c][0]._
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/podman/v4                        | v4.9.2                               | v4.9.3                             | true   | true             |
 | github.com/containers/storage                          | v1.51.0                              | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240213211426-c95c37d2ab5f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240215082910-9178541dfbba | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 | google.golang.org/grpc                                 | v1.61.0                              | v1.61.1                            | true   | true             |
 | k8s.io/api                                             | v0.29.1                              | v0.29.2                            | true   | true             |
@@ -572,7 +572,7 @@ _Generated on Thu, 15 Feb 2024 05:00:33 UTC for commit [60be57c][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240213211426-c95c37d2ab5f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240215082910-9178541dfbba  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
