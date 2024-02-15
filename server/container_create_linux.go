@@ -649,6 +649,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	created := time.Now()
 	seccompRef := types.SecurityProfile_Unconfined.String()
+
+	if err := s.FilterDisallowedAnnotations(sb.Annotations(), imgResult.Annotations, sb.RuntimeHandler()); err != nil {
+		return nil, fmt.Errorf("filter image annotations: %w", err)
+	}
+
 	if !ctr.Privileged() {
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
