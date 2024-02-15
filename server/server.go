@@ -49,6 +49,8 @@ const (
 	certRefreshInterval            = time.Minute * 5
 	rootlessEnvName                = "_CRIO_ROOTLESS"
 	irqBalanceConfigRestoreDisable = "disable"
+	debounceDuration               = 200 * time.Millisecond
+	defaultRegistriesConfDDir      = "/etc/containers/registries.conf.d"
 )
 
 var errSandboxNotCreated = errors.New("sandbox not created")
@@ -530,7 +532,9 @@ func New(
 	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
 
 	s.startReloadWatcher(ctx)
-
+	if s.config.AutoReloadRegistries {
+		go s.startWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
+	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
 		if err := metrics.New(&s.config.MetricsConfig).Start(s.monitorsChan); err != nil {
@@ -944,4 +948,75 @@ func isNotFound(err error) bool {
 	}
 
 	return false
+}
+
+// startWatcherForMirrorRegistries sets up a file watcher to monitor changes
+// in the "registries.conf.d" directory (default: "/etc/containers/registries.conf.d").
+// It then delegates the monitoring task to watchAndReloadMirrorRegistriesConfiguration.
+func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registriesConfDDir string) {
+	if registriesConfDDir == "" {
+		log.Infof(ctx, "No registries.conf.d directory specified, defaulting to /etc/containers/registries.conf.d")
+		registriesConfDDir = defaultRegistriesConfDDir
+	}
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf(ctx, "Failed to create new watcher: %v", err)
+	}
+	defer watcher.Close()
+
+	log.Infof(ctx, "Registered reload watcher for mirror registries configuration")
+
+	if err := watcher.Add(registriesConfDDir); err != nil {
+		log.Errorf(ctx, "Failed to add watcher for path %q: %s", registriesConfDDir, err)
+		return
+	}
+
+	s.watchAndReloadMirrorRegistriesConfiguration(ctx, watcher)
+}
+
+func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher) {
+	var timer *time.Timer
+	reloadChannel := make(chan string, 1)
+	go func() {
+		// The for loop ensures that the channel is properly drained, even if
+		// no new events are received, thus preventing potential deadlocks.
+		// For each event name received, the goroutine checks if it's not
+		// an empty string and then reloads the registries.
+		for evenName := range reloadChannel {
+			log.Infof(ctx, "File %q changed, reloading registries configuration", evenName)
+			if err := s.config.ReloadRegistries(); err != nil {
+				log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
+			}
+		}
+	}()
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				close(reloadChannel)
+				return
+			}
+			if !strings.HasSuffix(filepath.Base(event.Name), ".conf") {
+				continue
+			}
+			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) != 0 {
+				// Reset timer if exists, else create a new one.
+				if timer != nil {
+					timer.Reset(debounceDuration)
+				} else {
+					timer = time.AfterFunc(debounceDuration, func() {
+						reloadChannel <- event.Name
+					})
+				}
+			}
+
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				close(reloadChannel)
+				return
+			}
+			log.Errorf(ctx, "Watcher error: %v", err)
+		}
+	}
 }
