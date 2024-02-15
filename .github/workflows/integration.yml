@@ -69,7 +69,6 @@ jobs:
             runtimeType: oci
             critest: 1
             userns: 0
-            jobs: 1
           - name: critest / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
@@ -82,56 +81,48 @@ jobs:
             runtimeType: pod
             critest: 1
             userns: 0
-            jobs: 1
           - name: critest / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
             runtimeType: pod
             critest: 1
             userns: 0
-            jobs: 1
           - name: integration / conmon
             arch: amd64
             runner: ubuntu-latest
             runtimeType: oci
             critest: 0
             userns: 0
-            jobs: 4
           - name: integration / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
             runtimeType: oci
             critest: 0
             userns: 0
-            jobs: 8
           - name: integration / conmon-rs
             arch: amd64
             runner: ubuntu-latest
             runtimeType: pod
             critest: 0
             userns: 1
-            jobs: 4
           - name: integration / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
             runtimeType: pod
             critest: 0
             userns: 1
-            jobs: 8
           - name: integration / userns
             arch: amd64
             runner: ubuntu-latest
             runtimeType: oci
             critest: 0
             userns: 1
-            jobs: 4
           - name: integration / userns
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
             runtimeType: oci
             critest: 0
             userns: 1
-            jobs: 8
     name: ${{ matrix.run.name }} / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     steps:
@@ -169,7 +160,7 @@ jobs:
       - run: scripts/github-actions-setup
       - run: sudo -E test/test_runner.sh
         env:
-          JOBS: ${{ matrix.run.jobs }}
+          JOBS: 1
           RUN_CRITEST: ${{ matrix.run.critest }}
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
