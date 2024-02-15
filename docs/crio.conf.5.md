@@ -324,6 +324,9 @@ Enable CRI-O to generate the container pod-level events in order to optimize the
 **timezone**=""
  To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
 
+**automatic_reload_mirror_registry**=false
+ Enable/Disable the automatic reloading of mirror registry in CRI-O when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
+
 ### CRIO.RUNTIME.RUNTIMES TABLE
 The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  The runtime to use is picked based on the runtime handler provided by the CRI.  If no runtime handler is provided, the runtime will be picked based on the level of trust of the workload. This option supports live configuration reload. This option supports live configuration reload.
 

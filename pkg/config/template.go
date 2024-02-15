@@ -481,6 +481,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.Timezone, c.Timezone),
 		},
 		{
+			templateString: templateStringCrioRuntimeAutomaticReloadMirrorRegistry,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.AutomaticReloadMirrorRegistry, c.AutomaticReloadMirrorRegistry),
+		},
+		{
 			templateString: templateStringCrioImageDefaultTransport,
 			group:          crioImageConfig,
 			isDefaultValue: simpleEqual(dc.DefaultTransport, c.DefaultTransport),
@@ -1366,6 +1371,13 @@ const templateStringCrioRuntimeDisableHostPortMapping = `# disable_hostport_mapp
 const templateStringCrioRuntimeTimezone = `# timezone To set the timezone for a container in CRI-O.
 # If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.
 {{ $.Comment }}timezone = "{{ .Timezone }}"
+
+`
+
+const templateStringCrioRuntimeAutomaticReloadMirrorRegistry = `# automatic_reload_mirror_registry determines whether to
+# enable/disable the reloading of mirror registry in CRI-O when there is an update to the 'registries.conf.d' directory.
+# Default value is set to 'false'
+{{ $.Comment }}automatic_reload_mirror_registry = {{ .AutomaticReloadMirrorRegistry }}
 
 `
 
