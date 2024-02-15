@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 15 Feb 2024 09:13:18 UTC for commit [6b15366][0]._
+_Generated on Thu, 15 Feb 2024 11:03:14 UTC for commit [8eb995e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6b153663bf5228b82bb4abeda3e25e1b29d0a437
+[0]: https://github.com/cri-o/cri-o/commit/8eb995ef3cf5092794a3975b5402a97639345efa
 
 ## Outdated Dependencies
 
