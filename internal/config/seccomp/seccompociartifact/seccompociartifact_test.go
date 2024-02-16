@@ -68,7 +68,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			Expect(res).To(BeNil())
 		})
 
-		It("should match image specific annotation", func() {
+		It("should match image specific annotation for whole pod", func() {
 			// Given
 			gomock.InOrder(
 				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
@@ -77,7 +77,24 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), nil, "", nil,
 				map[string]string{
-					annotations.SeccompProfileAnnotation: "test",
+					seccompociartifact.SeccompProfilePodAnnotation: "test",
+				})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).To(BeEquivalentTo(testProfileContent))
+		})
+
+		It("should match image specific annotation for container", func() {
+			// Given
+			gomock.InOrder(
+				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.TryPull(context.Background(), nil, "container", nil,
+				map[string]string{
+					annotations.SeccompProfileAnnotation + "/container": "test",
 				})
 
 			// Then
@@ -94,7 +111,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), nil, "",
 				map[string]string{
-					annotations.SeccompProfileAnnotation: "test",
+					seccompociartifact.SeccompProfilePodAnnotation: "test",
 				}, nil)
 
 			// Then
@@ -141,7 +158,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), nil, "", nil,
 				map[string]string{
-					annotations.SeccompProfileAnnotation: "test",
+					seccompociartifact.SeccompProfilePodAnnotation: "test",
 				})
 
 			// Then
@@ -159,7 +176,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			// When
 			res, err := sut.TryPull(context.Background(), nil, "", nil,
 				map[string]string{
-					annotations.SeccompProfileAnnotation: "test",
+					seccompociartifact.SeccompProfilePodAnnotation: "test",
 				})
 
 			// Then

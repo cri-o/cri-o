@@ -27,6 +27,10 @@ func New() *SeccompOCIArtifact {
 	}
 }
 
+// SeccompProfilePodAnnotation is the annotation used for matching a whole pod
+// rather than a specific container.
+const SeccompProfilePodAnnotation = annotations.SeccompProfileAnnotation + "/POD"
+
 // TryPull tries to pull the OCI artifact seccomp profile while evaluating
 // the provided annotations.
 func (s *SeccompOCIArtifact) TryPull(
@@ -42,11 +46,14 @@ func (s *SeccompOCIArtifact) TryPull(
 	if val, ok := podAnnotations[containerKey]; ok {
 		log.Infof(ctx, "Found container specific seccomp profile annotation: %s=%s", containerKey, val)
 		profileRef = val
-	} else if val, ok := podAnnotations[annotations.SeccompProfileAnnotation]; ok {
+	} else if val, ok := podAnnotations[SeccompProfilePodAnnotation]; ok {
 		log.Infof(ctx, "Found pod specific seccomp profile annotation: %s=%s", annotations.SeccompProfileAnnotation, val)
 		profileRef = val
-	} else if val, ok := imageAnnotations[annotations.SeccompProfileAnnotation]; ok {
-		log.Infof(ctx, "Found image specific seccomp profile annotation: %s=%s", annotations.SeccompProfileAnnotation, val)
+	} else if val, ok := imageAnnotations[containerKey]; ok {
+		log.Infof(ctx, "Found image specific seccomp profile annotation for container %s: %s=%s", containerName, annotations.SeccompProfileAnnotation, val)
+		profileRef = val
+	} else if val, ok := imageAnnotations[SeccompProfilePodAnnotation]; ok {
+		log.Infof(ctx, "Found image specific seccomp profile annotation for pod: %s=%s", annotations.SeccompProfileAnnotation, val)
 		profileRef = val
 	}
 
