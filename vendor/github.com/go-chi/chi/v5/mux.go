@@ -107,12 +107,24 @@ func (mx *Mux) Use(middlewares ...func(http.Handler) http.Handler) {
 // Handle adds the route `pattern` that matches any http method to
 // execute the `handler` http.Handler.
 func (mx *Mux) Handle(pattern string, handler http.Handler) {
+	parts := strings.SplitN(pattern, " ", 2)
+	if len(parts) == 2 {
+		mx.Method(parts[0], parts[1], handler)
+		return
+	}
+
 	mx.handle(mALL, pattern, handler)
 }
 
 // HandleFunc adds the route `pattern` that matches any http method to
 // execute the `handlerFn` http.HandlerFunc.
 func (mx *Mux) HandleFunc(pattern string, handlerFn http.HandlerFunc) {
+	parts := strings.SplitN(pattern, " ", 2)
+	if len(parts) == 2 {
+		mx.Method(parts[0], parts[1], handlerFn)
+		return
+	}
+
 	mx.handle(mALL, pattern, handlerFn)
 }
 
@@ -440,6 +452,10 @@ func (mx *Mux) routeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Find the route
 	if _, _, h := mx.tree.FindRoute(rctx, method, routePath); h != nil {
+		if supportsPathValue {
+			setPathValue(rctx, r)
+		}
+
 		h.ServeHTTP(w, r)
 		return
 	}
