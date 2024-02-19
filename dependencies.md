@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 19 Feb 2024 14:49:35 UTC for commit [96dc4d3][0]._
+_Generated on Mon, 19 Feb 2024 15:46:53 UTC for commit [d40d8ed][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/96dc4d3236fedea46fec7b24f04f90a468f741ac
+[0]: https://github.com/cri-o/cri-o/commit/d40d8ed6a3c04dafbdfa891bc223aef9890ea857
 
 ## Outdated Dependencies
 
@@ -697,7 +697,7 @@ _Generated on Mon, 19 Feb 2024 14:49:35 UTC for commit [96dc4d3][0]._
 | github.com/pkg/profile                                                                  | v1.5.0                                            | v1.7.0                              | false  | true             |
 | github.com/pkg/sftp                                                                     | v1.13.6                                           |                                     | false  | true             |
 | github.com/pmezard/go-difflib                                                           | v1.0.1-0.20181226105442-5d4384ee4fb2              |                                     | false  | true             |
-| github.com/power-devops/perfstat                                                        | v0.0.0-20210106213030-5aafc221ea8c                | v0.0.0-20221212215047-62379fc7944b  | false  | true             |
+| github.com/power-devops/perfstat                                                        | v0.0.0-20210106213030-5aafc221ea8c                | v0.0.0-20240219145905-2259734c190a  | false  | true             |
 | github.com/poy/onpar                                                                    | v1.1.2                                            |                                     | false  | true             |
 | github.com/pquerna/cachecontrol                                                         | v0.1.0                                            | v0.2.0                              | false  | true             |
 | github.com/proglottis/gpgme                                                             | v0.1.3                                            |                                     | false  | true             |
