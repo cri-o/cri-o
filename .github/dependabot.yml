@@ -8,14 +8,9 @@ updates:
     - "release-note-none"
   open-pull-requests-limit: 10
   groups:
-    kubernetes:
-      patterns:
-        - "k8s.io/*"
-        - "sigs.k8s.io/*"
-    opentelemetry:
-      patterns:
-        - "go.opentelemetry.io/*"
-        - "github.com/uptrace/opentelemetry-go-extra/*"
+    gomod:
+      update-types:
+        - "patch"
 - package-ecosystem: "github-actions"
   directory: "/"
   schedule:
@@ -23,3 +18,8 @@ updates:
   open-pull-requests-limit: 10
   labels:
    - "release-note-none"
+  groups:
+    actions:
+      update-types:
+        - "minor"
+        - "patch"
