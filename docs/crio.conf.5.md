@@ -528,7 +528,13 @@ The `crio.metrics` table containers settings pertaining to the Prometheus based 
 The `crio.stats` table specifies all necessary configuration for reporting container and pod stats.
 
 **stats_collection_period**=0
-  The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.
+  The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.**Deprecated:** this option will be removed in future versions in favor of `collection_period`.
+
+**collection_period**=0
+  The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.
+
+**included_pod_metrics**=[]
+  List of included pod metrics. Specify the names of the metrics to be included in this list.
 
 ## CRIO.NRI TABLE
 The `crio.nri` table contains settings for controlling NRI (Node Resource Interface) support in CRI-O.
