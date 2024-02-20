@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
-      - uses: golangci/golangci-lint-action@v3
+      - uses: golangci/golangci-lint-action@v4
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
 
@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint the markdown
-        uses: DavidAnson/markdownlint-cli2-action@v14
+        uses: DavidAnson/markdownlint-cli2-action@v15
         with:
           globs: |
             **/*.md
