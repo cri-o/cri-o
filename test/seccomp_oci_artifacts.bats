@@ -16,6 +16,7 @@ function teardown() {
 	cleanup_test
 }
 
+ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:generic
 ARTIFACT_IMAGE_WITH_POD_ANNOTATION=quay.io/crio/nginx-seccomp:pod
 ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=quay.io/crio/nginx-seccomp:container
 ARTIFACT_IMAGE=quay.io/crio/seccomp:v1
@@ -23,6 +24,23 @@ CONTAINER_NAME=container1
 ANNOTATION=seccomp-profile.kubernetes.cri-o.io
 POD_ANNOTATION=seccomp-profile.kubernetes.cri-o.io/POD
 TEST_SYSCALL=OCI_ARTIFACT_TEST
+
+@test "seccomp OCI artifact with image annotation without suffix" {
+	# Run with enabled feature set
+	create_runtime_with_allowed_annotation seccomp $ANNOTATION
+	start_crio
+
+	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_ANNOTATION'"' \
+		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
+
+	crictl pull $ARTIFACT_IMAGE_WITH_ANNOTATION
+	CTR=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	# Assert
+	grep -q "Found image specific seccomp profile annotation: $ANNOTATION=$ARTIFACT_IMAGE" "$CRIO_LOG"
+	grep -q "Retrieved OCI artifact seccomp profile" "$CRIO_LOG"
+	crictl inspect "$CTR" | jq -e .info.runtimeSpec.linux.seccomp | grep -q $TEST_SYSCALL
+}
 
 @test "seccomp OCI artifact with image annotation for pod" {
 	# Run with enabled feature set
