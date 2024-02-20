@@ -63,7 +63,7 @@ func ContainerWithPid(pid int) (*oci.Container, error) {
 	testContainer, err := oci.NewContainer("testid", "testname", "",
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		&imageName, &imageID, &types.ContainerMetadata{},
+		&imageName, &imageID, "", &types.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	if err != nil {

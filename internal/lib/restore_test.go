@@ -338,7 +338,7 @@ func setupInfraContainerWithPid(pid int, bundle string) {
 	testContainer, err := oci.NewContainer("testid", "testname", bundle,
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
-		&imageName, &imageID, &types.ContainerMetadata{},
+		&imageName, &imageID, "", &types.ContainerMetadata{},
 		"testsandboxid", false, false, false, "",
 		"/root/for/container", time.Now(), "SIGKILL")
 	Expect(err).To(BeNil())

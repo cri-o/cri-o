@@ -211,7 +211,7 @@ function check_images() {
     eval "$(jq -r '.images[] |
         select(.repoTags[0] == "quay.io/crio/fedora-crio-ci:latest") |
         "REDIS_IMAGEID=" + .id + "\n" +
-	"REDIS_IMAGEREF=" + .id' <<<"$json")"
+	"REDIS_IMAGEREF=" + .repoDigests[0]' <<<"$json")"
 }
 
 function start_crio_no_setup() {
