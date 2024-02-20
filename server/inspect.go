@@ -100,10 +100,7 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 	if imageName := ctr.ImageName(); imageName != nil {
 		image = imageName.StringForOutOfProcessConsumptionOnly()
 	}
-	imageRef := ""
-	if id := ctr.ImageID(); id != nil {
-		imageRef = id.IDStringForOutOfProcessConsumptionOnly()
-	}
+	imageRef := ctr.CRIContainer().ImageRef
 	return types.ContainerInfo{
 		Name:            ctr.Name(),
 		Pid:             pidToReturn,

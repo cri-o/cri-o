@@ -125,11 +125,17 @@ type ContainerState struct {
 // at any future time.
 // imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 // imageID is nil for infra containers.
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+// someRepoDigest, if set, is some repo@some digest of the image imageID; it
+// may have NO RELATIONSHIP to the users’ requested image name (and, which
+// should be fixed eventually, may be a repo@digest combination which has never
+// existed on a registry).
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, someRepoDigest string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 	externalImageRef := ""
-	if imageID != nil {
+	if someRepoDigest != "" {
+		externalImageRef = someRepoDigest
+	} else if imageID != nil {
 		externalImageRef = imageID.IDStringForOutOfProcessConsumptionOnly()
 	}
 	c := &Container{
