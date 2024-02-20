@@ -47,7 +47,7 @@ traditional installer or an automated installer.
 - Matrix testing
 - Continuous Integration (CI)
 - Compare outputs from different components
-- *[Add your use case here....]*
+- _[Add your use case here....]_
 
 ## Demos
 
@@ -74,10 +74,10 @@ Installing a devel environment manually.
 
 - [Fedora Linux](https://getfedora.org/)
 - [CentOS](https://www.centos.org/)
-- [Red Hat Enterprise Linux](https://redhat.com) *(needs help/testers)*
-- [openSUSE](https://www.opensuse.org/) *(needs help/testers)*
-- [Debian GNU/Linux](https://www.debian.org/) *(needs help/testers)*
-- [Ubuntu](https://www.ubuntu.com)  (needs help/testers)
+- [Red Hat Enterprise Linux](https://redhat.com) _(needs help/testers)_
+- [openSUSE](https://www.opensuse.org/) _(needs help/testers)_
+- [Debian GNU/Linux](https://www.debian.org/) _(needs help/testers)_
+- [Ubuntu](https://www.ubuntu.com) (needs help/testers)
 
 ## Supported runtime
 
@@ -96,6 +96,7 @@ There is a configuration file called **kube-local.profile**
 which specifies all the configurations.
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 $ ./kube-local -h
 Usage: ./kube-local [OPTION]...
@@ -120,6 +121,7 @@ Usage: ./kube-local [OPTION]...
  -s, --container-orchestration-version  Specify the container ORCHESTRATION version.
  -k, --container-runtime-version        Specify the container RUNTIME version.
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ## Examples
@@ -142,6 +144,7 @@ shell script with kubectl calls.
 See the output log generated:
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 $ cat /tmp/output.kube-local.*.log
 ##################### kube-local section begins #################
@@ -176,6 +179,7 @@ kube-system   kube-dns-74b889989-qdznv                0/3     Pending   0       
 kube-system   kubernetes-dashboard-7444f5cff8-xgtzh   0/1     Pending   0          8s
 ###### kubectl get pods -A output #######
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ### Example 2
@@ -194,6 +198,7 @@ $ ./kube-local \
 See the output log generated:
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 $ cat /tmp/output.kube-local.*.log
 ##################### kube-local section begins #################
@@ -229,6 +234,7 @@ kube-system   kube-dns-74b889989-phf5b                0/3     Pending   0       
 kube-system   kubernetes-dashboard-7444f5cff8-qptr8   0/1     Pending   0          7s
 ###### kubectl get pods -A output #######
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ### Example 3
@@ -296,13 +302,15 @@ cp kube-local.profile kube-local.profile.orig
 ```
 
 <!-- markdownlint-disable-next-line MD029 -->
-2. Change AUTOINSTALL option via sed
+
+1. Change AUTOINSTALL option via sed
 
 ```shell
 sed -i 's/AUTOINSTALL=false/AUTOINSTALL=true/g' kube-local.profile
 ```
 
 <!-- markdownlint-disable-next-line MD029 -->
+
 1. Execute kube-local
 
 ```shell
@@ -316,151 +324,152 @@ kube-local.profile is a configuration file, all options described below.
 ### General options
 
 <!-- markdownlint-disable MD013 -->
-|  Name| Description |
-| ------ | ------ |
-| PRINT_DEBUG_ENABLED | Enable debug messages be printed (**true** or **false**) |
-| MAKE_NUMBER_OF_JOBS | The number of jobs for **make** command. |
-| EEXIST | A macro to define if the project which is about to be git cloned already exists |
-| CONFIG_HEADER | Define where the config section begins |
-| CONFIG_HEADER_END | Define where the config section ends |
-| KUBECTL_SCRIPT | A kubectl script or command to be executed |
-| OUTPUT_FILENAME | Output file (please specify full path) |
+
+| Name                | Description                                                                     |
+| ------------------- | ------------------------------------------------------------------------------- |
+| PRINT_DEBUG_ENABLED | Enable debug messages be printed (**true** or **false**)                        |
+| MAKE_NUMBER_OF_JOBS | The number of jobs for **make** command.                                        |
+| EEXIST              | A macro to define if the project which is about to be git cloned already exists |
+| CONFIG_HEADER       | Define where the config section begins                                          |
+| CONFIG_HEADER_END   | Define where the config section ends                                            |
+| KUBECTL_SCRIPT      | A kubectl script or command to be executed                                      |
+| OUTPUT_FILENAME     | Output file (please specify full path)                                          |
 
 ### Autoinstall
 
-| Name | Description |
-| ------ | ------ |
-| AUTOINSTALL | Install without prompting user for input - **auto deploy mode** |
-| AUTO_UPDATE_SYSTEM | Automatically update the system via (dnf/apt-get/etc) before making a new install. (**use: -y or comment this option**) |
-| AUTO_INSTALL_PACKAGES | Automatically install required packages via (dnf/apt-get/etc) before making a new install. (**use: -y or comment this option**) |
-| AUTO_REBOOT | Automatically reboot the system - (*ONLY required when changing kernel params from cgroupv2 to cgroupv1*) (**true** or **false**) |
-| AUTO_CLEAN | Automatically clean all files/dirs generated by this script (**true** or **false**)
-| AUTO_REMOVE_EXISTING_GOLANG_FROM_DISTRO_PACKAGING | Distros can ship via packaging system (rpm/deb/etc) golang and having multiple versions of golang installed can generate conflicts. This option (if enabled) try to detect the golang package installed and remove it for installing new golang version. (**true** or **false**)
-| AUTO_REMOVE_GOLANG_DIR | If detected a existing golang dir from previous installation, remove it. (**true** or **false**)
+| Name                                              | Description                                                                                                                                                                                                                                                                      |
+| ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| AUTOINSTALL                                       | Install without prompting user for input - **auto deploy mode**                                                                                                                                                                                                                  |
+| AUTO_UPDATE_SYSTEM                                | Automatically update the system via (dnf/apt-get/etc) before making a new install. (**use: -y or comment this option**)                                                                                                                                                          |
+| AUTO_INSTALL_PACKAGES                             | Automatically install required packages via (dnf/apt-get/etc) before making a new install. (**use: -y or comment this option**)                                                                                                                                                  |
+| AUTO_REBOOT                                       | Automatically reboot the system - (_ONLY required when changing kernel params from cgroupv2 to cgroupv1_) (**true** or **false**)                                                                                                                                                |
+| AUTO_CLEAN                                        | Automatically clean all files/dirs generated by this script (**true** or **false**)                                                                                                                                                                                              |
+| AUTO_REMOVE_EXISTING_GOLANG_FROM_DISTRO_PACKAGING | Distros can ship via packaging system (rpm/deb/etc) golang and having multiple versions of golang installed can generate conflicts. This option (if enabled) try to detect the golang package installed and remove it for installing new golang version. (**true** or **false**) |
+| AUTO_REMOVE_GOLANG_DIR                            | If detected a existing golang dir from previous installation, remove it. (**true** or **false**)                                                                                                                                                                                 |
 
 ### Logging
 
-| Name | Description |
-| ------ | ------ |
-| LOGGING |  Enable logging (**true** or **false**) For path, see: ${LOGDIR}/${LOGFILE} |
-| LOGDIR | Directory for storing the logs. Default: **/tmp** |
-| LOGFILE | The log file
-| LOGGING_FILTER | A filter for the type of message to be displayed in the log file. Default: DEBUG INFO WARNING FAIL OK|
+| Name           | Description                                                                                           |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| LOGGING        | Enable logging (**true** or **false**) For path, see: ${LOGDIR}/${LOGFILE}                            |
+| LOGDIR         | Directory for storing the logs. Default: **/tmp**                                                     |
+| LOGFILE        | The log file                                                                                          |
+| LOGGING_FILTER | A filter for the type of message to be displayed in the log file. Default: DEBUG INFO WARNING FAIL OK |
 
 ### Operational System
 
-| Name | Description |
-| ------ | ------ |
-| DISTRO_NAME | The OS Distribution name. **Automatically filled in the script** via /etc/os-release
-| DISTRO_CMD_TOOL | The OS Distribution command name. **Automatically filled in the script**. Example dnf, apt-get, etc
-| DISTRO_PKG_MANAGER | The OS Distribution package manager. **Automatically filled in the script**. Example: dpkg, rpm, etc.
-| DISTRO_VERSION_ID | The OS Distribution version. **Automatically filled in the script** via /etc/os-release. Example: 8 (from RHEL 8)
+| Name               | Description                                                                                                       |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------- |
+| DISTRO_NAME        | The OS Distribution name. **Automatically filled in the script** via /etc/os-release                              |
+| DISTRO_CMD_TOOL    | The OS Distribution command name. **Automatically filled in the script**. Example dnf, apt-get, etc               |
+| DISTRO_PKG_MANAGER | The OS Distribution package manager. **Automatically filled in the script**. Example: dpkg, rpm, etc.             |
+| DISTRO_VERSION_ID  | The OS Distribution version. **Automatically filled in the script** via /etc/os-release. Example: 8 (from RHEL 8) |
 
 ### Golang
 
-| Name | Description |
-| ------ | ------ |
-| GOLANG_ARCH |  Golang arch. Default: **linux-amd64**
-| GOLANG_VERSION |  Golang version. Example: **1.13.7**
-| GOLANG_TAG |  Specify a Golang tag name
-| GOLANG_TAR_FILENAME | Golang tar file name
-| GOLANG_TAR_URL | Golang tar URL
-| GOLANG_HASH |  Algo for hash verification. Default: **sha256**
-| GOLANG_HASH_FILENAME | Golang hash file name
-| GOLANG_HASH_URL | Golang hash URL
-| GOLANG_DIR_INSTALL | Path for installing Golang. Default: **/usr/local**
-| GOLANG_DIR_PATH | Golang path. Default: **/usr/local/go**
-| GOLANG_DIR_PATH_BIN | Golang bin path. Default: **/usr/local/go/bin**
-| GOLANG_PROJECT_HOME| Golang project **home** dir. Default: **${HOME}/go**
-| GOLANG_PROJECT_HOME_SRC| Golang project **src** dir. Default: **${GOLANG_PROJECT_HOME}/go/src**
-| GOLANG_PROJECT_HOME_SRC_GITHUB| Golang project **src** for **github.com** dir. Default: **${GOLANG_PROJECT_HOME_SRC}/github.com**
-| GOLANG_PROJECT_HOME_BIN| Golang project **bin** dir. Default: **${GOLANG_PROJECT_HOME}/go/bin**"
-| GOLANG_BIN| Path to Golang binary. Default: **${GOLANG_DIR_INSTALL}/go/bin/go**
-| GO_ENV_VARS| Path where to storing Golang variables. Default (available to all users): **/etc/profile**
+| Name                           | Description                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------- |
+| GOLANG_ARCH                    | Golang arch. Default: **linux-amd64**                                                             |
+| GOLANG_VERSION                 | Golang version. Example: **1.13.7**                                                               |
+| GOLANG_TAG                     | Specify a Golang tag name                                                                         |
+| GOLANG_TAR_FILENAME            | Golang tar file name                                                                              |
+| GOLANG_TAR_URL                 | Golang tar URL                                                                                    |
+| GOLANG_HASH                    | Algo for hash verification. Default: **sha256**                                                   |
+| GOLANG_HASH_FILENAME           | Golang hash file name                                                                             |
+| GOLANG_HASH_URL                | Golang hash URL                                                                                   |
+| GOLANG_DIR_INSTALL             | Path for installing Golang. Default: **/usr/local**                                               |
+| GOLANG_DIR_PATH                | Golang path. Default: **/usr/local/go**                                                           |
+| GOLANG_DIR_PATH_BIN            | Golang bin path. Default: **/usr/local/go/bin**                                                   |
+| GOLANG_PROJECT_HOME            | Golang project **home** dir. Default: **${HOME}/go**                                              |
+| GOLANG_PROJECT_HOME_SRC        | Golang project **src** dir. Default: **${GOLANG_PROJECT_HOME}/go/src**                            |
+| GOLANG_PROJECT_HOME_SRC_GITHUB | Golang project **src** for **github.com** dir. Default: **${GOLANG_PROJECT_HOME_SRC}/github.com** |
+| GOLANG_PROJECT_HOME_BIN        | Golang project **bin** dir. Default: **${GOLANG_PROJECT_HOME}/go/bin**"                           |
+| GOLANG_BIN                     | Path to Golang binary. Default: **${GOLANG_DIR_INSTALL}/go/bin/go**                               |
+| GO_ENV_VARS                    | Path where to storing Golang variables. Default (available to all users): **/etc/profile**        |
 
 ### Runtime
 
-| Name | Description |
-| ------ | ------ |
-| RUNTIME_NAME| Runtime name. Default: **cri-o**
-| RUNTIME_GITHUB_URL | Runtime github URL
-| RUNTIME_OPTIONAL_PACKAGES | Optional packages for the runtime This option is **filled automatically inside the script** as dependent on the detected distro.
-| RUNTIME_VERSION | Runtime version. Example: master, release-1.13, etc
-| RUNTIME_TAG | Runtime specific tag
-| RUNTIME_GOLANG_SRC_GITHUB | Runtime Golang src github dir. Default: **github.com**
-| RUNTIME_GOLANG_DIR | Runtime Golang project dir.
-| RUNTIME_ENDPOINT | Runtim endpoint. Default: **/var/run/crio/crio.sock**
+| Name                      | Description                                                                                                                      |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| RUNTIME_NAME              | Runtime name. Default: **cri-o**                                                                                                 |
+| RUNTIME_GITHUB_URL        | Runtime github URL                                                                                                               |
+| RUNTIME_OPTIONAL_PACKAGES | Optional packages for the runtime This option is **filled automatically inside the script** as dependent on the detected distro. |
+| RUNTIME_VERSION           | Runtime version. Example: master, release-1.13, etc                                                                              |
+| RUNTIME_TAG               | Runtime specific tag                                                                                                             |
+| RUNTIME_GOLANG_SRC_GITHUB | Runtime Golang src github dir. Default: **github.com**                                                                           |
+| RUNTIME_GOLANG_DIR        | Runtime Golang project dir.                                                                                                      |
+| RUNTIME_ENDPOINT          | Runtim endpoint. Default: **/var/run/crio/crio.sock**                                                                            |
 
 ### Runtime Client
 
-| Name | Description |
-| ------ | ------ |
-| RUNTIME_CLIENT_NAME| Runtime client name. Default: **cri-tools**
-| RUNTIME_CLIENT_GITHUB_URL| Runtime client github URL. Default: **[cri-tools](https://github.com/kubernetes-sigs/cri-tools)**
-| RUNTIME_CLIENT_VERSION| Runtime client version. Example: master, release-1.13, etc
-| RUNTIME_CLIENT_TAG|  Runtime client specific tag
-| RUNTIME_CLIENT_GOLANG_SRC_GITHUB|  Runtime Client Golang src github dir. Default: **github.com**
-| RUNTIME_CLIENT_GOLANG_DIR| Runtime Client Golang project dir.
+| Name                             | Description                                                                                       |
+| -------------------------------- | ------------------------------------------------------------------------------------------------- |
+| RUNTIME_CLIENT_NAME              | Runtime client name. Default: **cri-tools**                                                       |
+| RUNTIME_CLIENT_GITHUB_URL        | Runtime client github URL. Default: **[cri-tools](https://github.com/kubernetes-sigs/cri-tools)** |
+| RUNTIME_CLIENT_VERSION           | Runtime client version. Example: master, release-1.13, etc                                        |
+| RUNTIME_CLIENT_TAG               | Runtime client specific tag                                                                       |
+| RUNTIME_CLIENT_GOLANG_SRC_GITHUB | Runtime Client Golang src github dir. Default: **github.com**                                     |
+| RUNTIME_CLIENT_GOLANG_DIR        | Runtime Client Golang project dir.                                                                |
 
 ### Runtime Monitor
 
-| Name | Description |
-| ------ | ------ |
-| RUNTIME_MONITOR| Runtime monitor. Default **conmon**
-| RUNTIME_MONITOR_GITHUB_URL|  Runtime monitor github URL. Default: **[conmon](https://github.com/containers/conmon)**
-| RUNTIME_MONITOR_VERSION| Runtime monitor version. Example: master
-| RUNTIME_MONITOR_TAG| Runtime monitor specific tag
-| RUNTIME_MONITOR_GOLANG_SRC_GITHUB| Runtime monitor Golang src github dir. Default: **github.com**
-| RUNTIME_MONITOR_GOLANG_DIR| Runtime Client Golang project dir.
+| Name                              | Description                                                                             |
+| --------------------------------- | --------------------------------------------------------------------------------------- |
+| RUNTIME_MONITOR                   | Runtime monitor. Default **conmon**                                                     |
+| RUNTIME_MONITOR_GITHUB_URL        | Runtime monitor github URL. Default: **[conmon](https://github.com/containers/conmon)** |
+| RUNTIME_MONITOR_VERSION           | Runtime monitor version. Example: master                                                |
+| RUNTIME_MONITOR_TAG               | Runtime monitor specific tag                                                            |
+| RUNTIME_MONITOR_GOLANG_SRC_GITHUB | Runtime monitor Golang src github dir. Default: **github.com**                          |
+| RUNTIME_MONITOR_GOLANG_DIR        | Runtime Client Golang project dir.                                                      |
 
 ### Container Orchestration
 
-| Name | Description |
-| ------ | ------ |
-| CONTAINER_ORCHESTRATION_NAME| Container Orchestration name. Default **kubernetes**
-| CONTAINER_ORCHESTRATION_GITHUB_URL| Container Orchestration github URL.
-| CONTAINER_ORCHESTRATION_VERSION| Container Orchestration version. Example: master, release-1.13, etc
-| CONTAINER_ORCHESTRATION_TAG| Container Orchestration tag
-| CONTAINER_ORCHESTRATION_GOLANG_SRC_GITHUB| Container Orchestration Golang src github dir
-| CONTAINER_ORCHESTRATION_GOLANG_DIR| Container Orchestration  Golang dir
-| CONTAINER_ORCHESTRATION_KUBECONFIG_NAME| Kubeconfig filename.
-| CONTAINER_ORCHESTRATION_KUBECONFIG_PATH| Full path for Kubeconfig
-| CONTAINER_ORCHESTRATION_OUTPUT_DIR| Container Orchestration output dir.
-| CONTAINER_ORCHESTRATION_ETCD| Etcd path.
-| CONTAINER_ORCHESTRATION_SERVICES| Container Orchestration services.
+| Name                                      | Description                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| CONTAINER_ORCHESTRATION_NAME              | Container Orchestration name. Default **kubernetes**                |
+| CONTAINER_ORCHESTRATION_GITHUB_URL        | Container Orchestration github URL.                                 |
+| CONTAINER_ORCHESTRATION_VERSION           | Container Orchestration version. Example: master, release-1.13, etc |
+| CONTAINER_ORCHESTRATION_TAG               | Container Orchestration tag                                         |
+| CONTAINER_ORCHESTRATION_GOLANG_SRC_GITHUB | Container Orchestration Golang src github dir                       |
+| CONTAINER_ORCHESTRATION_GOLANG_DIR        | Container Orchestration Golang dir                                  |
+| CONTAINER_ORCHESTRATION_KUBECONFIG_NAME   | Kubeconfig filename.                                                |
+| CONTAINER_ORCHESTRATION_KUBECONFIG_PATH   | Full path for Kubeconfig                                            |
+| CONTAINER_ORCHESTRATION_OUTPUT_DIR        | Container Orchestration output dir.                                 |
+| CONTAINER_ORCHESTRATION_ETCD              | Etcd path.                                                          |
+| CONTAINER_ORCHESTRATION_SERVICES          | Container Orchestration services.                                   |
 
 ### Container Network
 
-| Name | Description |
-| ------ | ------ |
-| CONTAINER_NETWORK_REPO_NAME| Container Network repo name. Default **containernetworking**
-| CONTAINER_NETWORK_REPO_PLUGIN_DIR| Container Network plugin dir **plugins**
-| CONTAINER_NETWORK_GOLANG_SRC_GITHUB| Container Network Golang src github dir
-| CONTAINER_NETWORK_GOLANG_DIR| Container Network Golang dir.
-| CONTAINER_NETWORK_GITHUB_URL| Container Network Github URL.
-| CONTAINER_NETWORK_VERSION| Container Network version. Example: master. Please note: No need to assign if using tag
-| CONTAINER_NETWORK_TAG| Container Network tag. Example: **v0.8.1**
-| CONTAINER_NETWORK_CNI_PATH| Container Network CNI path. Default: **/opt/cni**
-| CONTAINER_NETWORK_CNI_PATH_BIN| Container Network CNI Bin path.
-| CONTAINER_NETWORK_PLUGINS| Container Network plugins.
+| Name                                | Description                                                                             |
+| ----------------------------------- | --------------------------------------------------------------------------------------- |
+| CONTAINER_NETWORK_REPO_NAME         | Container Network repo name. Default **containernetworking**                            |
+| CONTAINER_NETWORK_REPO_PLUGIN_DIR   | Container Network plugin dir **plugins**                                                |
+| CONTAINER_NETWORK_GOLANG_SRC_GITHUB | Container Network Golang src github dir                                                 |
+| CONTAINER_NETWORK_GOLANG_DIR        | Container Network Golang dir.                                                           |
+| CONTAINER_NETWORK_GITHUB_URL        | Container Network Github URL.                                                           |
+| CONTAINER_NETWORK_VERSION           | Container Network version. Example: master. Please note: No need to assign if using tag |
+| CONTAINER_NETWORK_TAG               | Container Network tag. Example: **v0.8.1**                                              |
+| CONTAINER_NETWORK_CNI_PATH          | Container Network CNI path. Default: **/opt/cni**                                       |
+| CONTAINER_NETWORK_CNI_PATH_BIN      | Container Network CNI Bin path.                                                         |
+| CONTAINER_NETWORK_PLUGINS           | Container Network plugins.                                                              |
 
 ### Additional info for the cluster
 
-| Name | Description |
-| ------ | ------ |
-| IP_LOCALHOST| Local IP address.
-| FEATURE_GATES| Feature gates are a set of key=value pairs that describe Kubernetes features. Default: **AllAlpha=false,RunAsGroup=true**
-| PATH_PROJECTS| Add additional path to ${PATH} env var.
-| CONTAINER_RUNTIME| The container runtime to use. Default: **remote**
-| CGROUP_DRIVER| Cgroup driver. Default: **systemd**
-| CONTAINER_RUNTIME_ENDPOINT| Container runtime endpoint. Default: **${RUNTIME_ENDPOINT}**
-| ALLOW_SECURITY_CONTEXT| Allow Security Context. Default: **","**
-| ALLOW_PRIVILEGED| Allow privileged process. Default: **1**
-| DNS_SERVER_IP| DNS Server IP. Default: **${IP_LOCALHOST}**
-| API_HOST| API Host. Default: **${IP_LOCALHOST}**
-| API_HOST_IP| API Host IP. Default: **${IP_LOCALHOST}**
-| KUBE_ENABLE_CLUSTER_DNS| Default: **true**
-| ENABLE_HOSTPATH_PROVISIONER| Default: **true**
-| KUBE_ENABLE_CLUSTER_DASHBOARD| Default: **true**
-| KUBECONFIG | Path for the Kubeconfig. Default: **${CONTAINER_ORCHESTRATION_KUBECONFIG_PATH}**
-| KUBERNETES_PROVIDER | Default: **local**
+| Name                          | Description                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| IP_LOCALHOST                  | Local IP address.                                                                                                         |
+| FEATURE_GATES                 | Feature gates are a set of key=value pairs that describe Kubernetes features. Default: **AllAlpha=false,RunAsGroup=true** |
+| PATH_PROJECTS                 | Add additional path to ${PATH} env var.                                                                                   |
+| CONTAINER_RUNTIME             | The container runtime to use. Default: **remote**                                                                         |
+| CGROUP_DRIVER                 | Cgroup driver. Default: **systemd**                                                                                       |
+| CONTAINER_RUNTIME_ENDPOINT    | Container runtime endpoint. Default: **${RUNTIME_ENDPOINT}**                                                              |
+| ALLOW_SECURITY_CONTEXT        | Allow Security Context. Default: **","**                                                                                  |
+| ALLOW_PRIVILEGED              | Allow privileged process. Default: **1**                                                                                  |
+| DNS_SERVER_IP                 | DNS Server IP. Default: **${IP_LOCALHOST}**                                                                               |
+| API_HOST                      | API Host. Default: **${IP_LOCALHOST}**                                                                                    |
+| API_HOST_IP                   | API Host IP. Default: **${IP_LOCALHOST}**                                                                                 |
+| KUBE_ENABLE_CLUSTER_DNS       | Default: **true**                                                                                                         |
+| ENABLE_HOSTPATH_PROVISIONER   | Default: **true**                                                                                                         |
+| KUBE_ENABLE_CLUSTER_DASHBOARD | Default: **true**                                                                                                         |
+| KUBECONFIG                    | Path for the Kubeconfig. Default: **${CONTAINER_ORCHESTRATION_KUBECONFIG_PATH}**                                          |
+| KUBERNETES_PROVIDER           | Default: **local**                                                                                                        |
