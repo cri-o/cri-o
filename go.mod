@@ -72,12 +72,12 @@ require (
 	golang.org/x/sys v0.17.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.32.0
-	k8s.io/api v0.29.2
-	k8s.io/apimachinery v0.29.2
-	k8s.io/client-go v0.29.2
-	k8s.io/cri-api v0.29.2
+	k8s.io/api v0.30.0-alpha.2
+	k8s.io/apimachinery v0.30.0-alpha.2
+	k8s.io/client-go v0.30.0-alpha.2
+	k8s.io/cri-api v0.30.0-alpha.2.0.20240217224521-840a52e4cd66
 	k8s.io/klog/v2 v2.120.1
-	k8s.io/kubelet v0.29.2
+	k8s.io/kubelet v0.30.0-alpha.2
 	k8s.io/utils v0.0.0-20240102154912-e7106e64919e
 	sigs.k8s.io/release-sdk v0.11.0
 	sigs.k8s.io/release-utils v0.7.7
@@ -246,8 +246,8 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.29.2 // indirect
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00 // indirect
+	k8s.io/apiserver v0.30.0-alpha.2 // indirect
+	k8s.io/kube-openapi v0.0.0-20231113174909-778a5567bc1e // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
