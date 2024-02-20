@@ -161,7 +161,7 @@ var beforeEach = func() {
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
-		make(map[string]string), "pauseImage", nil, nil,
+		make(map[string]string), "pauseImage", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).To(BeNil())

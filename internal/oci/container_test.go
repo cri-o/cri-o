@@ -186,7 +186,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", nil, nil, &types.ContainerMetadata{}, "",
+			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGNO")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
@@ -202,7 +202,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", nil, nil, &types.ContainerMetadata{}, "",
+			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "RTMIN+1")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
@@ -218,7 +218,7 @@ var _ = t.Describe("Container", func() {
 		// Given
 		container, err := oci.NewContainer("", "", "", "",
 			map[string]string{}, map[string]string{}, map[string]string{},
-			"", nil, nil, &types.ContainerMetadata{}, "",
+			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGTRAP")
 		Expect(err).To(BeNil())
 		Expect(container).NotTo(BeNil())
