@@ -359,6 +359,8 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
     - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>"
     - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
     Note that the annotation works on containers as well as on images.
+    For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
+    can be used without the required `/POD` suffix or a container name.
 
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.

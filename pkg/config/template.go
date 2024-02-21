@@ -1269,6 +1269,8 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #     - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>"
 #     - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
 #     Note that the annotation works on containers as well as on images.
+#     For images, the plain annotation "seccomp-profile.kubernetes.cri-o.io"
+#     can be used without the required "/POD" suffix or a container name.
 # - monitor_path (optional, string): The path of the monitor binary. Replaces
 #   deprecated option "conmon".
 # - monitor_cgroup (optional, string): The cgroup the container monitor process will be put in.

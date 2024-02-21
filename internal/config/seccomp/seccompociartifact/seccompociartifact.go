@@ -49,6 +49,9 @@ func (s *SeccompOCIArtifact) TryPull(
 	} else if val, ok := podAnnotations[SeccompProfilePodAnnotation]; ok {
 		log.Infof(ctx, "Found pod specific seccomp profile annotation: %s=%s", annotations.SeccompProfileAnnotation, val)
 		profileRef = val
+	} else if val, ok := imageAnnotations[annotations.SeccompProfileAnnotation]; ok {
+		log.Infof(ctx, "Found image specific seccomp profile annotation: %s=%s", annotations.SeccompProfileAnnotation, val)
+		profileRef = val
 	} else if val, ok := imageAnnotations[containerKey]; ok {
 		log.Infof(ctx, "Found image specific seccomp profile annotation for container %s: %s=%s", containerName, annotations.SeccompProfileAnnotation, val)
 		profileRef = val
