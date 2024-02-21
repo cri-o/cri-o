@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
+_Generated on Wed, 21 Feb 2024 14:04:22 UTC for commit [540f4da][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ffc48b9663e5fcb61313f76a4739291b3dc73313
+[0]: https://github.com/cri-o/cri-o/commit/540f4da458cba54959ae98bb235178b13bdbe2c3
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                          | v1.51.0                              | v1.52.0                            | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240220222853-241a56989a12 | true   | true             |
-| github.com/opencontainers/image-spec                   | v1.1.0-rc6                           | v1.1.0                             | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 
 ## All Dependencies
@@ -271,7 +270,7 @@ _Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 | github.com/bshuster-repo/logrus-logstash-hook                                           | v0.4.1                                            | v1.1.0                              | false  | true             |
 | github.com/buger/goterm                                                                 | v1.0.4                                            |                                     | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                            |                                     | false  | true             |
-| github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.0+incompatible                 | false  | true             |
+| github.com/bugsnag/bugsnag-go                                                           | v0.0.0-20141110184014-b1d153021fcd                | v2.2.1+incompatible                 | false  | true             |
 | github.com/bugsnag/osext                                                                | v0.0.0-20130617224835-0dd3f918b21b                |                                     | false  | true             |
 | github.com/bugsnag/panicwrap                                                            | v0.0.0-20151223152923-e2c28503fcd0                | v1.3.4                              | false  | true             |
 | github.com/buildkite/agent/v3                                                           | v3.59.0                                           | v3.63.1                             | false  | true             |
@@ -573,7 +572,7 @@ _Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 | github.com/kisielk/gotool                                                               | v1.0.0                                            |                                     | false  | true             |
 | github.com/klauspost/asmfmt                                                             | v1.3.2                                            |                                     | false  | true             |
 | github.com/klauspost/compress                                                           | v1.17.4                                           | v1.17.6                             | false  | true             |
-| github.com/klauspost/cpuid/v2                                                           | v2.2.5                                            | v2.2.6                              | false  | true             |
+| github.com/klauspost/cpuid/v2                                                           | v2.2.5                                            | v2.2.7                              | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6                                            |                                     | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.3                                            |                                     | false  | true             |
 | github.com/kr/fs                                                                        | v0.1.0                                            |                                     | false  | true             |
@@ -663,7 +662,7 @@ _Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 | github.com/onsi/gomega                                                                  | v1.31.1                                           |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.59.0                                           | v0.61.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                            |                                     | true   | true             |
-| github.com/opencontainers/image-spec                                                    | v1.1.0-rc6                                        | v1.1.0                              | true   | true             |
+| github.com/opencontainers/image-spec                                                    | v1.1.0                                            |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.12                                           |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.1.1-0.20230922153023-c0e90434df2a              | v1.2.0                              | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc              |                                     | true   | true             |
@@ -930,7 +929,7 @@ _Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240221013303-4fba530839cf  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240221065059-9f033a7b77f7  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                            | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                           | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
