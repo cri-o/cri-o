@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
+_Generated on Wed, 21 Feb 2024 03:44:47 UTC for commit [ffc48b9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/69afddc5761ab885122bcb578247c0107e303bed
+[0]: https://github.com/cri-o/cri-o/commit/ffc48b9663e5fcb61313f76a4739291b3dc73313
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                          | v1.51.0                              | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240220201113-ea78013c7ef0 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240220222853-241a56989a12 | true   | true             |
 | github.com/opencontainers/image-spec                   | v1.1.0-rc6                           | v1.1.0                             | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 
@@ -380,7 +380,7 @@ _Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
 | github.com/dgrijalva/jwt-go                                                             | v3.2.0+incompatible                               |                                     | false  | true             |
 | github.com/dgryski/go-rendezvous                                                        | v0.0.0-20200823014737-9f7001d12a5f                |                                     | false  | true             |
 | github.com/dgryski/go-sip13                                                             | v0.0.0-20181026042036-e10d5fee7954                | v0.0.0-20200911182023-62edffca9245  | false  | true             |
-| github.com/digitalocean/go-libvirt                                                      | v0.0.0-20220804181439-8648fbde413e                | v0.0.0-20240220195025-fcb3518ef55a  | false  | true             |
+| github.com/digitalocean/go-libvirt                                                      | v0.0.0-20220804181439-8648fbde413e                | v0.0.0-20240220204746-fcabe97a6eed  | false  | true             |
 | github.com/digitalocean/go-qemu                                                         | v0.0.0-20230711162256-2e3d0186973e                |                                     | false  | true             |
 | github.com/digitorus/pkcs7                                                              | v0.0.0-20230818184609-3a137a874352                |                                     | false  | true             |
 | github.com/digitorus/timestamp                                                          | v0.0.0-20230902153158-687734543647                | v0.0.0-20231217203849-220c5c2851b7  | false  | true             |
@@ -566,7 +566,7 @@ _Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240220201113-ea78013c7ef0  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240220222853-241a56989a12  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -862,7 +862,7 @@ _Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
 | go.uber.org/goleak                                                                      | v1.3.0                                            |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.3.0                                            | v0.4.0                              | false  | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                                           |                                     | false  | true             |
-| go.uber.org/zap                                                                         | v1.26.0                                           |                                     | false  | true             |
+| go.uber.org/zap                                                                         | v1.26.0                                           | v1.27.0                             | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                     | false  | true             |
 | gocloud.dev                                                                             | v0.34.0                                           | v0.36.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.7.0                              | false  | true             |
@@ -887,9 +887,9 @@ _Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
 | google.golang.org/api                                                                   | v0.152.0                                          | v0.165.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.112.0                            | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0                | v0.0.0-20240213162025-012b6fc9bca9  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240213162025-012b6fc9bca9  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240213162025-012b6fc9bca9  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0                | v0.0.0-20240221002015-b0ce06bbee7c  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240221002015-b0ce06bbee7c  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240221002015-b0ce06bbee7c  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.61.1                                           |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.32.0                                           |                                     | true   | true             |
@@ -930,7 +930,7 @@ _Generated on Tue, 20 Feb 2024 20:50:05 UTC for commit [69afddc][0]._
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240219120257-9227ebb57a4e  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240221013303-4fba530839cf  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                            | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                           | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
