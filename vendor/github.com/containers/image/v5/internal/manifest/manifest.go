@@ -30,6 +30,8 @@ const (
 	DockerV2Schema2ForeignLayerMediaType = "application/vnd.docker.image.rootfs.foreign.diff.tar"
 	// DockerV2Schema2ForeignLayerMediaType is the MIME type used for gzipped schema 2 foreign layers.
 	DockerV2Schema2ForeignLayerMediaTypeGzip = "application/vnd.docker.image.rootfs.foreign.diff.tar.gzip"
+	// CNCFSeccompProfileConfigMediaType is a custom media type used for seccomp profiles.
+	CNCFSeccompProfileConfigMediaType = "application/vnd.cncf.seccomp-profile.config.v1+json"
 )
 
 // GuessMIMEType guesses MIME type of a manifest and returns it _if it is recognized_, or "" if unknown or unrecognized.
@@ -163,5 +165,15 @@ func NormalizedMIMEType(input string) string {
 		// redirected to a content distribution
 		// network which is configured that way. See https://bugzilla.redhat.com/show_bug.cgi?id=1389442
 		return DockerV2Schema1SignedMediaType
+	}
+}
+
+// IsSupportedConfigMediaType returns true if the config media type is supported.
+func IsSupportedConfigMediaType(m string) bool {
+	switch m {
+	case imgspecv1.MediaTypeImageConfig, CNCFSeccompProfileConfigMediaType:
+		return true
+	default:
+		return false
 	}
 }

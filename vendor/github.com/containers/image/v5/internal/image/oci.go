@@ -87,7 +87,7 @@ func (m *manifestOCI1) ConfigBlob(ctx context.Context) ([]byte, error) {
 // layers in the resulting configuration isn't guaranteed to be returned to due how
 // old image manifests work (docker v2s1 especially).
 func (m *manifestOCI1) OCIConfig(ctx context.Context) (*imgspecv1.Image, error) {
-	if m.m.Config.MediaType != imgspecv1.MediaTypeImageConfig {
+	if !internalManifest.IsSupportedConfigMediaType(m.m.Config.MediaType) {
 		return nil, internalManifest.NewNonImageArtifactError(&m.m.Manifest)
 	}
 

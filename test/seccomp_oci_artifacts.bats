@@ -20,6 +20,7 @@ ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:generic
 ARTIFACT_IMAGE_WITH_POD_ANNOTATION=quay.io/crio/nginx-seccomp:pod
 ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=quay.io/crio/nginx-seccomp:container
 ARTIFACT_IMAGE=quay.io/crio/seccomp:v1
+ARTIFACT_IMAGE_NEW_MEDIA_TYPE=quay.io/crio/seccomp:v2
 CONTAINER_NAME=container1
 ANNOTATION=seccomp-profile.kubernetes.cri-o.io
 POD_ANNOTATION=seccomp-profile.kubernetes.cri-o.io/POD
@@ -161,6 +162,22 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 	# Assert
 	grep -q "Found pod specific seccomp profile annotation: $ANNOTATION=$ARTIFACT_IMAGE" "$CRIO_LOG"
+	grep -q "Retrieved OCI artifact seccomp profile" "$CRIO_LOG"
+	crictl inspect "$CTR" | jq -e .info.runtimeSpec.linux.seccomp | grep -q $TEST_SYSCALL
+}
+
+@test "seccomp OCI artifact with pod annotation and seccomp media type" {
+	# Run with enabled feature set
+	create_runtime_with_allowed_annotation seccomp $ANNOTATION
+	start_crio
+
+	jq '.annotations += { "'$POD_ANNOTATION'": "'$ARTIFACT_IMAGE_NEW_MEDIA_TYPE'" }' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	CTR=$(crictl run "$TESTDATA/container_config.json" "$TESTDIR/sandbox.json")
+
+	# Assert
+	grep -q "Found pod specific seccomp profile annotation: $ANNOTATION=$ARTIFACT_IMAGE_NEW_MEDIA_TYPE" "$CRIO_LOG"
 	grep -q "Retrieved OCI artifact seccomp profile" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e .info.runtimeSpec.linux.seccomp | grep -q $TEST_SYSCALL
 }
