@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 22 Feb 2024 08:05:07 UTC for commit [ccf4fcf][0]._
+_Generated on Thu, 22 Feb 2024 13:20:57 UTC for commit [7d5d121][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ccf4fcf5f41a9b6ff4247474c8069c264d7ba788
+[0]: https://github.com/cri-o/cri-o/commit/7d5d121b4aaff13746a58bc0beee3877eb8c4bde
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                          | v1.51.0                              | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240221221151-58fbb9f6ec14 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240222094709-5d3ae360ed26 | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 | google.golang.org/grpc                                 | v1.61.1                              | v1.62.0                            | true   | true             |
 
@@ -300,7 +300,7 @@ _Generated on Thu, 22 Feb 2024 08:05:07 UTC for commit [ccf4fcf][0]._
 | github.com/chzyer/logex                                                                 | v1.2.1                                            |                                     | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                            |                                     | false  | true             |
 | github.com/chzyer/test                                                                  | v1.0.0                                            |                                     | false  | true             |
-| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.13.0                             | false  | true             |
+| github.com/cilium/ebpf                                                                  | v0.9.1                                            | v0.13.1                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                            |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                     | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.7                                            |                                     | false  | true             |
@@ -566,7 +566,7 @@ _Generated on Thu, 22 Feb 2024 08:05:07 UTC for commit [ccf4fcf][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240221221151-58fbb9f6ec14  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240222094709-5d3ae360ed26  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
