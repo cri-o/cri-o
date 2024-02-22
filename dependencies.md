@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 22 Feb 2024 13:20:57 UTC for commit [7d5d121][0]._
+_Generated on Thu, 22 Feb 2024 17:53:44 UTC for commit [58e29e8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7d5d121b4aaff13746a58bc0beee3877eb8c4bde
+[0]: https://github.com/cri-o/cri-o/commit/58e29e859d3c1563f72b59ee39f328ea0bf622c0
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                          | v1.51.0                              | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240222094709-5d3ae360ed26 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240222171055-e342a9adc4fa | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 | google.golang.org/grpc                                 | v1.61.1                              | v1.62.0                            | true   | true             |
 
@@ -566,7 +566,7 @@ _Generated on Thu, 22 Feb 2024 13:20:57 UTC for commit [7d5d121][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240222094709-5d3ae360ed26  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240222171055-e342a9adc4fa  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -912,7 +912,7 @@ _Generated on Thu, 22 Feb 2024 13:20:57 UTC for commit [7d5d121][0]._
 | gopkg.in/yaml.v3                                                                        | v3.0.1                                            |                                     | false  | true             |
 | gotest.tools                                                                            | v2.2.0+incompatible                               |                                     | false  | true             |
 | gotest.tools/v3                                                                         | v3.5.0                                            | v3.5.1                              | false  | true             |
-| honnef.co/go/tools                                                                      | v0.1.3                                            | v0.4.6                              | false  | true             |
+| honnef.co/go/tools                                                                      | v0.1.3                                            | v0.4.7                              | false  | true             |
 | k8s.io/api                                                                              | v0.29.2                                           |                                     | true   | true             |
 | k8s.io/apimachinery                                                                     | v0.29.2                                           |                                     | true   | true             |
 | k8s.io/apiserver                                                                        | v0.29.2                                           |                                     | false  | true             |
