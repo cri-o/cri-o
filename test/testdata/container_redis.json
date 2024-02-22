@@ -20,6 +20,10 @@
 			"value": "xterm"
 		},
 		{
+			"key": "GLIBC_TUNABLES",
+			"value": "glibc.pthread.rseq=0"
+		},
+		{
 			"key": "REDIS_VERSION",
 			"value": "6.0.18"
 		},
