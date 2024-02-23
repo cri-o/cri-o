@@ -67,12 +67,6 @@ dependencies:
     - path: scripts/versions
       match: runc
 
-  - name: crun
-    version: 1.9.2
-    refPaths:
-    - path: scripts/versions
-      match: crun
-
   - name: bats
     version: v1.10.0
     refPaths:
