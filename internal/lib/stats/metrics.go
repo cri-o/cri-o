@@ -56,13 +56,12 @@ func (s *SandboxMetrics) ResetMetricsForSandbox() {
 }
 
 // AddMetricToSandboxMetrics adds the metrics for the specified pod/container(s).
-func (s *SandboxMetrics) AddMetricToSandboxMetrics(containerID string, m *types.Metric) {
+func (s *SandboxMetrics) AddMetricToSandboxMetrics(containerID string, m []*types.Metric) {
 	if containerID == "" {
-		s.metric.Metrics = append(s.metric.Metrics, m)
+		s.metric.Metrics = append(s.metric.Metrics, m...)
 	} else {
-		containerMetrics := findExistingContainerMetric(s.metric.ContainerMetrics, containerID)
-		if containerMetrics != nil {
-			containerMetrics.Metrics = append(containerMetrics.Metrics, m)
+		if cMetrics := findExistingContainerMetric(s.metric.ContainerMetrics, containerID); cMetrics != nil {
+			cMetrics.Metrics = append(cMetrics.Metrics, m...)
 		}
 	}
 }
@@ -403,8 +402,7 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 					sm.metric.Metrics = append(sm.metric.Metrics, newMetric)
 				} else {
 					// Check if the container metric already exists
-					existingContainerMetric := findExistingContainerMetric(sm.metric.ContainerMetrics, c.ID())
-					if existingContainerMetric != nil {
+					if cMetrics := findExistingContainerMetric(sm.metric.ContainerMetrics, c.ID()); cMetrics != nil {
 						newMetric := &types.Metric{
 							Name:        m.desc.Name,
 							Timestamp:   time.Now().UnixNano(),
@@ -412,7 +410,7 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 							Value:       &types.UInt64Value{Value: v.value},
 							LabelValues: append(values, v.labels...),
 						}
-						existingContainerMetric.Metrics = append(existingContainerMetric.Metrics, newMetric)
+						cMetrics.Metrics = append(cMetrics.Metrics, newMetric)
 					} else {
 						newContainerMetric := &types.ContainerMetrics{
 							ContainerId: c.ID(),
