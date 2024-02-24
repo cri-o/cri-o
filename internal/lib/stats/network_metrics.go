@@ -7,13 +7,30 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func GenerateSandboxNetworkMetrics(sb *sandbox.Sandbox, stats interface{}, sm *SandboxMetrics) []*types.Metric {
-	attr, ok := stats.(*netlink.LinkAttrs)
-	if !ok {
-		logrus.Errorf("Failed to assert stats as *netlink.LinkAttrs")
+func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
+	var metrics []*types.Metric
+
+	links, err := netlink.LinkList()
+	if err != nil {
+		logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
 		return nil
 	}
+	if len(links) == 0 {
+		logrus.Infof("Network links are not available.")
+		return nil
+	}
+	for i := range links {
+		attrs := links[i].Attrs()
+		if attrs != nil {
+			networkMetrics := generateSandboxNetworkMetrics(sb, attrs, sm)
+			metrics = append(metrics, networkMetrics...)
+		}
+	}
 
+	return metrics
+}
+
+func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs, sm *SandboxMetrics) []*types.Metric {
 	networkMetrics := []*ContainerStats{
 		{
 			desc: &types.MetricDescriptor{

@@ -4,42 +4,42 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}, sm *SandboxMetrics) []*types.Metric {
-	cpu, ok := stats.(*cgroups.CpuStats)
+	cpu, ok := stats.(*cgmgr.CPUStats)
 	if !ok {
-		logrus.Errorf("Failed to assert stats as *cgroups.CpuStats")
+		logrus.Errorf("Failed to assert stats as *cgmgr.CpuStats")
 		return nil
 	}
 
 	cpuMetrics := []*ContainerStats{
 		{
 			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_user_seconds_total", // stats.CpuStats.CpuUsage.UsageInUsermode (converted from nano)
+				Name:      "container_cpu_user_seconds_total",
 				Help:      "Cumulative user cpu time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.CpuUsage.UsageInUsermode / uint64(time.Second),
+					value:      cpu.UsageInUsermode / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
 		}, {
 			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_system_seconds_total", // stats.CpuStats.CpuUsage.UsageInKernelmode (converted from nano)
+				Name:      "container_cpu_system_seconds_total",
 				Help:      "Cumulative system cpu time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.CpuUsage.UsageInKernelmode / uint64(time.Second),
+					value:      cpu.UsageInKernelmode / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
@@ -50,17 +50,17 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 				LabelKeys: append(baseLabelKeys, "cpu"),
 			},
 			valueFunc: func() metricValues {
-				if len(cpu.CpuUsage.PercpuUsage) == 0 {
-					if cpu.CpuUsage.TotalUsage > 0 {
+				if len(cpu.PerCPUUsage) == 0 {
+					if cpu.TotalUsageNano > 0 {
 						return metricValues{{
-							value:      cpu.CpuUsage.TotalUsage / uint64(time.Second),
+							value:      cpu.TotalUsageNano / uint64(time.Second),
 							labels:     []string{"total"},
 							metricType: types.MetricType_COUNTER,
 						}}
 					}
 				}
-				metricValues := make(metricValues, 0, len(cpu.CpuUsage.PercpuUsage))
-				for i, value := range cpu.CpuUsage.PercpuUsage {
+				metricValues := make(metricValues, 0, len(cpu.PerCPUUsage))
+				for i, value := range cpu.PerCPUUsage {
 					if value > 0 {
 						metricValues = append(metricValues, metricValue{
 							value:      value / uint64(time.Second),
@@ -79,31 +79,31 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 			},
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottlingData.Periods,
+					value:      cpu.ThrottlingActivePeriods,
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
 		}, {
 			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_cfs_throttled_periods_total", // stats.CpuStats.ThrottlingData.ThrottledPeriods
+				Name:      "container_cpu_cfs_throttled_periods_total",
 				Help:      "Number of throttled period intervals.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottlingData.ThrottledPeriods,
+					value:      cpu.ThrottledPeriods,
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
 		}, {
 			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_cfs_throttled_seconds_total", // stats.CpuStats.ThrottlingData.ThrottledTime (converted from nano)
+				Name:      "container_cpu_cfs_throttled_seconds_total",
 				Help:      "Total time duration the container has been throttled.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
 				return metricValues{{
-					value:      cpu.ThrottlingData.ThrottledTime / uint64(time.Second),
+					value:      cpu.ThrottledTime / uint64(time.Second),
 					metricType: types.MetricType_COUNTER,
 				}}
 			},
