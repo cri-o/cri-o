@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/containernetworking/plugins/pkg/ns"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
@@ -21,6 +22,16 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if sb == nil {
 		return nil
 	}
+
+	// Sandbox metrics are to fullfil the CRI metrics endpoint
+	sandboxMetrics, exists := ss.sboxMetrics[sb.ID()]
+	if !exists {
+		sandboxMetrics = NewSandboxMetrics(sb)
+	}
+	sandboxMetrics.ResetMetricsForSandbox()
+	sandboxMetrics.ResetContainerMetricsForSandbox()
+
+	// Sandbox stats are to fullfil the  Kubelet's /stats/summary endpoint
 	sandboxStats := &types.PodSandboxStats{
 		Attributes: &types.PodSandboxAttributes{
 			Id:          sb.ID(),
@@ -29,6 +40,12 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			Annotations: sb.Annotations(),
 		},
 		Linux: &types.LinuxPodSandboxStats{},
+	}
+
+	// network metrics are collected at pod level only
+	if slices.Contains(ss.Config().IncludedPodMetrics, "network") {
+		podMetrics := ss.GenerateNetworkMetrics(sb, sandboxMetrics)
+		sandboxMetrics.AddMetricToSandboxMetrics("", podMetrics)
 	}
 
 	if cgstats, err := ss.Config().CgroupManager().SandboxCgroupStats(sb.CgroupParent(), sb.ID()); err != nil {
@@ -42,8 +59,11 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	if err := ss.populateNetworkUsage(sandboxStats, sb); err != nil {
 		logrus.Errorf("Error adding network stats for sandbox %s: %v", sb.ID(), err)
 	}
-	containerStats := make([]*types.ContainerStats, 0, len(sb.Containers().List()))
-	for _, c := range sb.Containers().List() {
+
+	containersList := sb.Containers().List()
+	containerStats := make([]*types.ContainerStats, 0, len(containersList))
+
+	for _, c := range containersList {
 		if c.StateNoLock().Status == oci.ContainerStateStopped {
 			continue
 		}
@@ -52,25 +72,33 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 			logrus.Errorf("Error getting container stats %s: %v", c.ID(), err)
 			continue
 		}
+		// convert cgroups stats to CRI stats
 		cStats := containerCRIStats(cgstats, c, cgstats.SystemNano)
 		ss.populateWritableLayer(cStats, c)
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 		}
 		containerStats = append(containerStats, cStats)
+		// convert cgroups stats to CRI metrics
+		containerMetrics := ss.containerMetricsFromCgStats(sb, c, cgstats, sandboxMetrics)
+		sandboxMetrics.AddMetricToSandboxMetrics(c.ID(), containerMetrics)
 	}
+
 	sandboxStats.Linux.Containers = containerStats
 	if old, ok := ss.sboxStats[sb.ID()]; ok {
 		updateUsageNanoCores(old.Linux.Cpu, sandboxStats.Linux.Cpu)
 	}
+
 	ss.sboxStats[sb.ID()] = sandboxStats
+	ss.sboxMetrics[sb.ID()] = sandboxMetrics
+
 	return sandboxStats
 }
 
-// updateContainer calls into the runtime handler to update the container stats,
+// updateContainerStats calls into the runtime handler to update the container stats,
 // as well as populates the writable layer by calling into the container storage.
 // If this container already existed in the stats server, the CPU nano cores are calculated as well.
-func (ss *StatsServer) updateContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
+func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
 	if c == nil || sb == nil {
 		return nil
 	}
@@ -117,6 +145,99 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 		}
 		return nil
 	})
+}
+
+// metricsForPodSandbox is an internal, non-locking version of MetricsForPodSandbox
+// that returns (and occasionally gathers) the metrics for the given sandbox.
+// Note: caller must hold the lock on the StatsServer
+func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
+	if ss.collectionPeriod == 0 {
+		return ss.updatePodSandboxMetrics(sb)
+	}
+	sboxMetrics, ok := ss.sboxMetrics[sb.ID()]
+	if ok {
+		return sboxMetrics
+	}
+	// Cache miss, try again
+	return ss.updatePodSandboxMetrics(sb)
+}
+
+// updatePodSandboxMetrics updates the sandbox metrics for the given sandbox.
+// If the sandbox is not found, it creates a new entry in the map.
+// Note: caller must hold the lock on the StatsServer.
+func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
+	if sb == nil {
+		return nil
+	}
+	sm, exists := ss.sboxMetrics[sb.ID()]
+	if !exists {
+		sm = NewSandboxMetrics(sb)
+	}
+	// Reset metrics for the next iteration
+	sm.ResetMetricsForSandbox()
+	sm.ResetContainerMetricsForSandbox() // Reset container metrics as well
+
+	// network metrics are collected at pod level
+	if slices.Contains(ss.Config().IncludedPodMetrics, "network") {
+		podMetrics := ss.GenerateNetworkMetrics(sb, sm)
+		sm.AddMetricToSandboxMetrics("", podMetrics)
+	}
+
+	for _, c := range sb.Containers().List() {
+		// Skip if the container is stopped
+		if c.StateNoLock().Status == oci.ContainerStateStopped {
+			continue
+		}
+		containerMetrics := ss.GenerateSandboxContainerMetrics(sb, c, sm)
+		sm.AddMetricToSandboxMetrics(c.ID(), containerMetrics)
+	}
+
+	ss.sboxMetrics[sb.ID()] = sm // Update the entry in the map
+	return sm
+}
+
+// GenerateSandboxContainerMetrics generates a list of metrics for the specified sandbox
+// containers by collecting metrics from the cgroup based on the includedMetrics
+// except for network metrics which is collected at pod level.
+func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *oci.Container, sm *SandboxMetrics) []*types.Metric {
+	cgstats, err := ss.Runtime().ContainerStats(context.TODO(), c, sb.CgroupParent())
+	if err != nil || cgstats == nil {
+		logrus.Errorf("Error getting sandbox stats %s: %v", sb.ID(), err)
+		return nil
+	}
+	return ss.containerMetricsFromCgStats(sb, c, cgstats, sm)
+}
+
+func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.Container, cgstats *cgmgr.CgroupStats, sandboxMetrics *SandboxMetrics) []*types.Metric {
+	var metrics []*types.Metric
+	for _, m := range ss.Config().IncludedPodMetrics {
+		switch m {
+		case "cpu":
+			cpuMetrics := GenerateSandboxCPUMetrics(sb, c, cgstats.CPU, sandboxMetrics)
+			metrics = append(metrics, cpuMetrics...)
+		case "memory":
+			memoryMetrics := GenerateSandboxMemoryMetrics(sb, c, cgstats.Memory, sandboxMetrics)
+			metrics = append(metrics, memoryMetrics...)
+		case "oom":
+			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
+			if err != nil {
+				logrus.Errorf("Unable to fetch cgroup manager %s: %v", sb.ID(), err)
+				continue
+			}
+			oomCount, err := cm.OOMKillCount()
+			if err != nil {
+				logrus.Errorf("Unable to fetch oom kill count %s: %v", sb.ID(), err)
+				continue
+			}
+			oomMetrics := GenerateSandboxOOMMetrics(sb, c, oomCount, sandboxMetrics)
+			metrics = append(metrics, oomMetrics...)
+		case "network":
+			continue // network metrics are collected at pod level only
+		default:
+			logrus.Warnf("Unknown or misspelled metric: %s", m)
+		}
+	}
+	return metrics
 }
 
 // linkToInterface translates information found from the netlink package
