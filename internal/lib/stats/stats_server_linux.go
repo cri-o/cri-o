@@ -23,7 +23,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		return nil
 	}
 
-	// Sandbox metrics are to fullfil the CRI metrics endpoint
+	// Sandbox metrics are to fulfill the CRI metrics endpoint
 	sandboxMetrics, exists := ss.sboxMetrics[sb.ID()]
 	if !exists {
 		sandboxMetrics = NewSandboxMetrics(sb)
@@ -31,7 +31,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	sandboxMetrics.ResetMetricsForSandbox()
 	sandboxMetrics.ResetContainerMetricsForSandbox()
 
-	// Sandbox stats are to fullfil the  Kubelet's /stats/summary endpoint
+	// Sandbox stats are to fulfill the  Kubelet's /stats/summary endpoint
 	sandboxStats := &types.PodSandboxStats{
 		Attributes: &types.PodSandboxAttributes{
 			Id:          sb.ID(),
