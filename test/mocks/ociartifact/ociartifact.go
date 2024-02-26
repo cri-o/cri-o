@@ -8,7 +8,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	types "github.com/containers/image/v5/types"
 	ociartifact "github.com/cri-o/cri-o/internal/config/ociartifact"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -37,7 +36,7 @@ func (m *MockImpl) EXPECT() *MockImplMockRecorder {
 }
 
 // Pull mocks base method.
-func (m *MockImpl) Pull(arg0 context.Context, arg1 *types.SystemContext, arg2 string) (*ociartifact.Artifact, error) {
+func (m *MockImpl) Pull(arg0 context.Context, arg1 string, arg2 *ociartifact.PullOptions) (*ociartifact.Artifact, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Pull", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*ociartifact.Artifact)

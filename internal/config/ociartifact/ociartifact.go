@@ -2,19 +2,23 @@ package ociartifact
 
 import (
 	"context"
+	"encoding/hex"
+	"errors"
 	"fmt"
+	"io"
 
-	"github.com/containers/common/libimage"
-	"github.com/containers/common/pkg/config"
+	"github.com/containers/image/v5/docker"
+	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/manifest"
+	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/storage"
 
 	"github.com/cri-o/cri-o/internal/log"
 )
 
 // Impl is the main implementation interface of this package.
 type Impl interface {
-	Pull(context.Context, *types.SystemContext, string) (*Artifact, error)
+	Pull(context.Context, string, *PullOptions) (*Artifact, error)
 }
 
 // New returns a new OCI artifact implementation.
@@ -24,54 +28,140 @@ func New() Impl {
 
 // Artifact can be used to manage OCI artifacts.
 type Artifact struct {
-	// MountPath is the local path containing the artifact data.
-	MountPath string
+	// Data is the actual artifact content.
+	Data []byte
+}
 
-	// Cleanup has to be called if the artifact is not used any more.
-	Cleanup func()
+// PullOptions can be used to customize the pull behavior.
+type PullOptions struct {
+	// SystemContext is the context used for pull.
+	SystemContext *types.SystemContext
+
+	// EnforceConfigMediaType can be set to enforce a specific manifest config media type.
+	EnforceConfigMediaType string
+
+	// MaxSize is the maximum size of the artifact to be allowed to get pulled.
+	// Will be set to a default of 1MiB if not specified (zero) or below zero.
+	MaxSize int
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.
 type defaultImpl struct{}
 
-// Pull downloads and mounts the artifact content by using the provided ref.
-func (*defaultImpl) Pull(ctx context.Context, sys *types.SystemContext, ref string) (*Artifact, error) {
-	log.Infof(ctx, "Pulling OCI artifact from ref: %s", ref)
+// defaultMaxArtifactSize is the default maximum artifact size.
+const defaultMaxArtifactSize = 1024 * 1024 // 1 MiB
 
-	storeOpts, err := storage.DefaultStoreOptions(false, 0)
+// Pull downloads the artifact content by using the provided image name and the specified options.
+func (*defaultImpl) Pull(ctx context.Context, img string, opts *PullOptions) (*Artifact, error) {
+	log.Infof(ctx, "Pulling OCI artifact from ref: %s", img)
+
+	name, err := reference.ParseNormalizedNamed(img)
 	if err != nil {
-		return nil, fmt.Errorf("get default storage options: %w", err)
+		return nil, fmt.Errorf("parse image name: %w", err)
+	}
+	name = reference.TagNameOnly(name) // make sure to add ":latest" if needed
+
+	ref, err := docker.NewReference(name)
+	if err != nil {
+		return nil, fmt.Errorf("create docker reference: %w", err)
 	}
 
-	store, err := storage.GetStore(storeOpts)
+	src, err := ref.NewImageSource(ctx, opts.SystemContext)
 	if err != nil {
-		return nil, fmt.Errorf("get container storage: %w", err)
+		return nil, fmt.Errorf("build image source: %w", err)
 	}
 
-	runtime, err := libimage.RuntimeFromStore(store, &libimage.RuntimeOptions{SystemContext: sys})
+	manifestBytes, mimeType, err := src.GetManifest(ctx, nil)
 	if err != nil {
-		return nil, fmt.Errorf("create libimage runtime: %w", err)
+		return nil, fmt.Errorf("get manifest: %w", err)
 	}
 
-	images, err := runtime.Pull(ctx, ref, config.PullPolicyAlways, &libimage.PullOptions{})
+	parsedManifest, err := manifest.FromBlob(manifestBytes, mimeType)
 	if err != nil {
-		return nil, fmt.Errorf("pull OCI artifact: %w", err)
+		return nil, fmt.Errorf("parse manifest: %w", err)
 	}
-	image := images[0]
+	if opts.EnforceConfigMediaType != "" && parsedManifest.ConfigInfo().MediaType != opts.EnforceConfigMediaType {
+		return nil, fmt.Errorf(
+			"wrong config media type %q, requires %q",
+			parsedManifest.ConfigInfo().MediaType, opts.EnforceConfigMediaType,
+		)
+	}
 
-	mountPath, err := image.Mount(ctx, nil, "")
+	layers := parsedManifest.LayerInfos()
+	if len(layers) < 1 {
+		return nil, errors.New("artifact needs at least one layer")
+	}
+
+	// Just supporting one layer here. This can be later enhanced by extending
+	// the PullOptions.
+	layer := layers[0]
+
+	bic := blobinfocache.DefaultCache(opts.SystemContext)
+	rc, size, err := src.GetBlob(ctx, layer.BlobInfo, bic)
 	if err != nil {
-		return nil, fmt.Errorf("mount OCI artifact: %w", err)
+		return nil, fmt.Errorf("get layer blob: %w", err)
+	}
+	defer rc.Close()
+
+	maxArtifactSize := defaultMaxArtifactSize
+	if opts.MaxSize > 0 {
+		maxArtifactSize = opts.MaxSize
 	}
 
-	cleanup := func() {
-		if err := image.Unmount(true); err != nil {
-			log.Warnf(ctx, "Unable to unmount OCI artifact path %s: %v", mountPath, err)
-		}
+	if size != -1 && size > int64(maxArtifactSize)+1 {
+		return nil, fmt.Errorf("exceeded maximum allowed size of %d bytes", maxArtifactSize)
+	}
+
+	layerBytes, err := readLimit(rc, maxArtifactSize)
+	if err != nil {
+		return nil, fmt.Errorf("read with limit: %w", err)
+	}
+
+	if err := verifyDigest(&layer, layerBytes); err != nil {
+		return nil, fmt.Errorf("verify digest of layer: %w", err)
 	}
 
 	return &Artifact{
-		MountPath: mountPath,
-		Cleanup:   cleanup,
+		Data: layerBytes,
 	}, nil
+}
+
+func readLimit(reader io.Reader, limit int) ([]byte, error) {
+	limitedReader := io.LimitReader(reader, int64(limit+1))
+
+	res, err := io.ReadAll(limitedReader)
+	if err != nil {
+		return nil, fmt.Errorf("read from limit reader: %w", err)
+	}
+
+	if len(res) > limit {
+		return nil, fmt.Errorf("exceeded maximum allowed size of %d bytes", limit)
+	}
+
+	return res, nil
+}
+
+func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
+	expectedDigest := layer.BlobInfo.Digest
+	if err := expectedDigest.Validate(); err != nil {
+		return fmt.Errorf("invalid digest %q: %w", expectedDigest, err)
+	}
+	digestAlgorithm := expectedDigest.Algorithm()
+	if !digestAlgorithm.Available() {
+		return fmt.Errorf("invalid digest specification %q: unsupported digest algorithm %q", expectedDigest, digestAlgorithm)
+	}
+	digester := digestAlgorithm.Digester()
+
+	hash := digester.Hash()
+	hash.Write(layerBytes)
+	sum := hash.Sum(nil)
+	layerBytesHex := hex.EncodeToString(sum)
+	if layerBytesHex != layer.BlobInfo.Digest.Hex() {
+		return fmt.Errorf(
+			"sha256 mismatch between real layer bytes (%s) and manifest descriptor (%s)",
+			layerBytesHex, layer.BlobInfo.Digest.Hex(),
+		)
+	}
+
+	return nil
 }

@@ -16,10 +16,10 @@ function teardown() {
 	cleanup_test
 }
 
-ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:generic
-ARTIFACT_IMAGE_WITH_POD_ANNOTATION=quay.io/crio/nginx-seccomp:pod
-ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=quay.io/crio/nginx-seccomp:container
-ARTIFACT_IMAGE=quay.io/crio/seccomp:v1
+ARTIFACT_IMAGE_WITH_ANNOTATION=quay.io/crio/nginx-seccomp:v2
+ARTIFACT_IMAGE_WITH_POD_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-pod
+ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION=$ARTIFACT_IMAGE_WITH_ANNOTATION-container
+ARTIFACT_IMAGE=quay.io/crio/seccomp:v2
 CONTAINER_NAME=container1
 ANNOTATION=seccomp-profile.kubernetes.cri-o.io
 POD_ANNOTATION=seccomp-profile.kubernetes.cri-o.io/POD
@@ -195,4 +195,17 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	grep -vq "Found container specific seccomp profile annotation" "$CRIO_LOG"
 	grep -vq "Retrieved OCI artifact seccomp profile" "$CRIO_LOG"
 	crictl inspect "$CTR" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+}
+
+@test "seccomp OCI artifact with missing artifact" {
+	# Run with enabled feature set
+	create_runtime_with_allowed_annotation seccomp $ANNOTATION
+	start_crio
+
+	jq '.annotations += { "'$POD_ANNOTATION'": "wrong" }' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	run ! crictl run "$TESTDATA/container_config.json" "$TESTDIR/sandbox.json"
+
+	grep -q "try to pull OCI artifact seccomp profile" "$CRIO_LOG"
 }

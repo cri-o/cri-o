@@ -3,9 +3,6 @@ package seccompociartifact
 import (
 	"context"
 	"fmt"
-	"io/fs"
-	"os"
-	"path/filepath"
 
 	"github.com/containers/image/v5/types"
 
@@ -27,9 +24,14 @@ func New() *SeccompOCIArtifact {
 	}
 }
 
-// SeccompProfilePodAnnotation is the annotation used for matching a whole pod
-// rather than a specific container.
-const SeccompProfilePodAnnotation = annotations.SeccompProfileAnnotation + "/POD"
+const (
+	// SeccompProfilePodAnnotation is the annotation used for matching a whole pod
+	// rather than a specific container.
+	SeccompProfilePodAnnotation = annotations.SeccompProfileAnnotation + "/POD"
+
+	// requiredConfigMediaType is the config media type for OCI artifact seccomp profiles.
+	requiredConfigMediaType = "application/vnd.cncf.seccomp-profile.config.v1+json"
+)
 
 // TryPull tries to pull the OCI artifact seccomp profile while evaluating
 // the provided annotations.
@@ -64,40 +66,15 @@ func (s *SeccompOCIArtifact) TryPull(
 		return nil, nil
 	}
 
-	artifact, err := s.ociArtifactImpl.Pull(ctx, sys, profileRef)
+	pullOptions := &ociartifact.PullOptions{
+		SystemContext:          sys,
+		EnforceConfigMediaType: requiredConfigMediaType,
+	}
+	artifact, err := s.ociArtifactImpl.Pull(ctx, profileRef, pullOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull OCI artifact: %w", err)
 	}
-	defer artifact.Cleanup()
 
-	const jsonExt = ".json"
-	seccompProfilePath := ""
-	if err := filepath.Walk(artifact.MountPath,
-		func(p string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-
-			if info.IsDir() ||
-				info.Mode()&os.ModeSymlink == os.ModeSymlink ||
-				filepath.Ext(info.Name()) != jsonExt {
-				return nil
-			}
-
-			seccompProfilePath = p
-
-			// TODO(sgrunert): allow merging profiles, not just choosing the first one
-			return fs.SkipAll
-		}); err != nil {
-		return nil, fmt.Errorf("walk %s: %w", artifact.MountPath, err)
-	}
-
-	log.Infof(ctx, "Trying to read profile from: %s", seccompProfilePath)
-	profileContent, err := os.ReadFile(seccompProfilePath)
-	if err != nil {
-		return nil, fmt.Errorf("read %s from file store: %w", seccompProfilePath, err)
-	}
-
-	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(profileContent))
-	return profileContent, nil
+	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(artifact.Data))
+	return artifact.Data, nil
 }
