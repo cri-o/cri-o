@@ -37,12 +37,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	if imageName := c.ImageName(); imageName != nil {
 		imageNameInSpec = imageName.StringForOutOfProcessConsumptionOnly()
 	}
+	imageID := ""
+	if c.ImageID() != nil {
+		imageID = c.ImageID().IDStringForOutOfProcessConsumptionOnly()
+	}
 	resp := &types.ContainerStatusResponse{
 		Status: &types.ContainerStatus{
 			Id:          containerID,
 			Metadata:    c.Metadata(),
 			Labels:      c.Labels(),
 			Annotations: c.Annotations(),
+			ImageId:     imageID,
 			ImageRef:    imageRef,
 			Image: &types.ImageSpec{
 				Image: imageNameInSpec,
