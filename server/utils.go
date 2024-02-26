@@ -13,9 +13,11 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
@@ -145,6 +147,30 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 	}
 
 	return res.Mountpoint, res.Optional, nil
+}
+
+func setSwapForSpec(swap, memory int64, spec *rspec.LinuxResources) error {
+	// Memory swap not enabled, skip
+	if !node.CgroupHasMemorySwap() {
+		return nil
+	}
+	if spec.Memory == nil {
+		spec.Memory = &rspec.LinuxMemory{}
+	}
+	// Set the value to swap, if available.
+	if swap > 0 {
+		if swap < memory {
+			return fmt.Errorf("memory swap limit (%d) cannot be lower than memory limit (%d)", swap, memory)
+		}
+		spec.Memory.Swap = &swap
+		return nil
+	}
+	// if not, set it to the same as memory
+	// which follows old docker behavior
+	if memory > 0 {
+		spec.Memory.Swap = &memory
+	}
+	return nil
 }
 
 func isContextError(err error) bool {

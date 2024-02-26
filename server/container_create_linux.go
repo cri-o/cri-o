@@ -433,22 +433,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 					return nil, err
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				if resources.MemorySwapLimitInBytes != 0 {
-					if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
-						return nil, fmt.Errorf(
-							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
-							ctr.ID(),
-							resources.MemorySwapLimitInBytes,
-							resources.MemoryLimitInBytes,
-						)
-					}
-					memoryLimit = resources.MemorySwapLimitInBytes
-				}
-				// If node doesn't have memory swap, then skip setting
-				// otherwise the container creation fails.
-				if node.CgroupHasMemorySwap() {
-					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
-				}
+			}
+			if err := setSwapForSpec(resources.MemorySwapLimitInBytes, memoryLimit, specgen.Spec().Linux.Resources); err != nil {
+				return nil, fmt.Errorf("failed to create container %s because of %w", ctr.ID(), err)
 			}
 
 			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
