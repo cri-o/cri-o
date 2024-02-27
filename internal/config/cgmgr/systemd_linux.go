@@ -185,6 +185,18 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 				Value: dbus.MakeVariant(resources.CPU.Shares),
 			})
 		}
+		if resources.CPU.Quota != nil {
+			props = append(props, systemdDbus.Property{
+				Name:  "CPUQuota",
+				Value: dbus.MakeVariant(resources.CPU.Quota),
+			})
+		}
+		if resources.CPU.Period != nil {
+			props = append(props, systemdDbus.Property{
+				Name:  "CPUQuotaPeriodSec",
+				Value: dbus.MakeVariant(resources.CPU.Period),
+			})
+		}
 	}
 
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
