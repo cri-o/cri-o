@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 27 Feb 2024 13:05:26 UTC for commit [5f71de3][0]._
+_Generated on Tue, 27 Feb 2024 16:09:48 UTC for commit [8476c2f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5f71de3597df8a801af17ee1aea993b0b48b785f
+[0]: https://github.com/cri-o/cri-o/commit/8476c2f7a34123e7e90783879602abe4fc4e062e
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                                               | v1.51.0                              | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240227093049-4aa40f1bbbc0 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240227125244-6186410e3532 | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a | v1.2.0                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                              | v0.49.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.23.1                              | v1.24.0                            | true   | true             |
@@ -231,7 +231,7 @@ _Generated on Tue, 27 Feb 2024 13:05:26 UTC for commit [5f71de3][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.6                                            | v1.1.0                              | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be                |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                            |                                     | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20240224213609-f08a19bbb202  | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df                | v4.0.0-20240227125821-1b3150b5de74  | false  | true             |
 | github.com/apache/arrow/go/v10                                                          | v10.0.1                                           |                                     | false  | true             |
 | github.com/apache/arrow/go/v11                                                          | v11.0.0                                           |                                     | false  | true             |
 | github.com/apache/thrift                                                                | v0.16.0                                           | v0.19.0                             | false  | true             |
@@ -459,7 +459,7 @@ _Generated on Tue, 27 Feb 2024 13:05:26 UTC for commit [5f71de3][0]._
 | github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.5                             | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.27.1                             | false  | true             |
 | github.com/go-openapi/spec                                                              | v0.20.11                                          | v0.20.14                            | false  | true             |
-| github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.0                             | false  | true             |
+| github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.1                             | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.9                             | false  | true             |
 | github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.0                             | false  | true             |
 | github.com/go-pdf/fpdf                                                                  | v0.6.0                                            | v0.9.0                              | false  | true             |
@@ -571,7 +571,7 @@ _Generated on Tue, 27 Feb 2024 13:05:26 UTC for commit [5f71de3][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240227093049-4aa40f1bbbc0  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240227125244-6186410e3532  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -779,7 +779,7 @@ _Generated on Tue, 27 Feb 2024 13:05:26 UTC for commit [5f71de3][0]._
 | github.com/tklauser/numcpus                                                             | v0.6.1                                            | v0.7.0                              | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75                |                                     | false  | true             |
 | github.com/tonistiigi/fsutil                                                            | v0.0.0-20230629203738-36ef4d8c0dbb                | v0.0.0-20240223190444-7a889f53dbf6  | false  | true             |
-| github.com/tonistiigi/go-actions-cache                                                  | v0.0.0-20220404170428-0bdeb6e1eac7                |                                     | false  | true             |
+| github.com/tonistiigi/go-actions-cache                                                  | v0.0.0-20220404170428-0bdeb6e1eac7                | v0.0.0-20240227153855-6b346dc45fd1  | false  | true             |
 | github.com/tonistiigi/go-archvariant                                                    | v1.0.0                                            |                                     | false  | true             |
 | github.com/tonistiigi/units                                                             | v0.0.0-20180711220420-6950e57a87ea                |                                     | false  | true             |
 | github.com/tonistiigi/vt100                                                             | v0.0.0-20230623042737-f9a4f7ef6531                |                                     | false  | true             |
