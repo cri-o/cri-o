@@ -332,6 +332,7 @@ mockgen: \
 	mock-oci \
 	mock-image-types \
 	mock-ocicni-types \
+	mock-seccompociartifact-types \
 	mock-ociartifact-types
 
 mock-containereventserver: ${MOCKGEN}
@@ -381,6 +382,12 @@ mock-ocicni-types: ${MOCKGEN}
 		-package ocicnitypesmock \
 		-destination ${MOCK_PATH}/ocicni/types.go \
 		github.com/cri-o/ocicni/pkg/ocicni CNIPlugin
+
+mock-seccompociartifact-types: ${MOCKGEN}
+	${BUILD_BIN_PATH}/mockgen \
+		-package seccompociartifactmock \
+		-destination ${MOCK_PATH}/seccompociartifact/seccompociartifact.go \
+		github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact Impl
 
 mock-ociartifact-types: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \

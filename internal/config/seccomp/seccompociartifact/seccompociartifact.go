@@ -14,13 +14,13 @@ import (
 // SeccompOCIArtifact is the main structure for handling seccomp related OCI
 // artifacts.
 type SeccompOCIArtifact struct {
-	ociArtifactImpl ociartifact.Impl
+	impl Impl
 }
 
 // New creates a new seccomp OCI artifact handler.
 func New() *SeccompOCIArtifact {
 	return &SeccompOCIArtifact{
-		ociArtifactImpl: ociartifact.New(),
+		impl: ociartifact.New(),
 	}
 }
 
@@ -70,7 +70,7 @@ func (s *SeccompOCIArtifact) TryPull(
 		SystemContext:          sys,
 		EnforceConfigMediaType: requiredConfigMediaType,
 	}
-	artifact, err := s.ociArtifactImpl.Pull(ctx, profileRef, pullOptions)
+	artifact, err := s.impl.Pull(ctx, profileRef, pullOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull OCI artifact: %w", err)
 	}

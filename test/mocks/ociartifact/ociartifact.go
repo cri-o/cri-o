@@ -6,10 +6,14 @@ package ociartifactmock
 
 import (
 	context "context"
+	io "io"
 	reflect "reflect"
 
-	ociartifact "github.com/cri-o/cri-o/internal/config/ociartifact"
+	reference "github.com/containers/image/v5/docker/reference"
+	manifest "github.com/containers/image/v5/manifest"
+	types "github.com/containers/image/v5/types"
 	gomock "github.com/golang/mock/gomock"
+	digest "github.com/opencontainers/go-digest"
 )
 
 // MockImpl is a mock of Impl interface.
@@ -35,17 +39,137 @@ func (m *MockImpl) EXPECT() *MockImplMockRecorder {
 	return m.recorder
 }
 
-// Pull mocks base method.
-func (m *MockImpl) Pull(arg0 context.Context, arg1 string, arg2 *ociartifact.PullOptions) (*ociartifact.Artifact, error) {
+// GetBlob mocks base method.
+func (m *MockImpl) GetBlob(arg0 context.Context, arg1 types.ImageSource, arg2 types.BlobInfo, arg3 types.BlobInfoCache) (io.ReadCloser, int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pull", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*ociartifact.Artifact)
+	ret := m.ctrl.Call(m, "GetBlob", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(io.ReadCloser)
+	ret1, _ := ret[1].(int64)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetBlob indicates an expected call of GetBlob.
+func (mr *MockImplMockRecorder) GetBlob(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlob", reflect.TypeOf((*MockImpl)(nil).GetBlob), arg0, arg1, arg2, arg3)
+}
+
+// GetManifest mocks base method.
+func (m *MockImpl) GetManifest(arg0 context.Context, arg1 types.ImageSource, arg2 *digest.Digest) ([]byte, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetManifest", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// GetManifest indicates an expected call of GetManifest.
+func (mr *MockImplMockRecorder) GetManifest(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetManifest", reflect.TypeOf((*MockImpl)(nil).GetManifest), arg0, arg1, arg2)
+}
+
+// LayerInfos mocks base method.
+func (m *MockImpl) LayerInfos(arg0 manifest.Manifest) []manifest.LayerInfo {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LayerInfos", arg0)
+	ret0, _ := ret[0].([]manifest.LayerInfo)
+	return ret0
+}
+
+// LayerInfos indicates an expected call of LayerInfos.
+func (mr *MockImplMockRecorder) LayerInfos(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerInfos", reflect.TypeOf((*MockImpl)(nil).LayerInfos), arg0)
+}
+
+// ManifestConfigInfo mocks base method.
+func (m *MockImpl) ManifestConfigInfo(arg0 manifest.Manifest) types.BlobInfo {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ManifestConfigInfo", arg0)
+	ret0, _ := ret[0].(types.BlobInfo)
+	return ret0
+}
+
+// ManifestConfigInfo indicates an expected call of ManifestConfigInfo.
+func (mr *MockImplMockRecorder) ManifestConfigInfo(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestConfigInfo", reflect.TypeOf((*MockImpl)(nil).ManifestConfigInfo), arg0)
+}
+
+// ManifestFromBlob mocks base method.
+func (m *MockImpl) ManifestFromBlob(arg0 []byte, arg1 string) (manifest.Manifest, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ManifestFromBlob", arg0, arg1)
+	ret0, _ := ret[0].(manifest.Manifest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Pull indicates an expected call of Pull.
-func (mr *MockImplMockRecorder) Pull(arg0, arg1, arg2 interface{}) *gomock.Call {
+// ManifestFromBlob indicates an expected call of ManifestFromBlob.
+func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockImpl)(nil).Pull), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestFromBlob", reflect.TypeOf((*MockImpl)(nil).ManifestFromBlob), arg0, arg1)
+}
+
+// NewImageSource mocks base method.
+func (m *MockImpl) NewImageSource(arg0 context.Context, arg1 types.ImageReference, arg2 *types.SystemContext) (types.ImageSource, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewImageSource", arg0, arg1, arg2)
+	ret0, _ := ret[0].(types.ImageSource)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewImageSource indicates an expected call of NewImageSource.
+func (mr *MockImplMockRecorder) NewImageSource(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewImageSource", reflect.TypeOf((*MockImpl)(nil).NewImageSource), arg0, arg1, arg2)
+}
+
+// NewReference mocks base method.
+func (m *MockImpl) NewReference(arg0 reference.Named) (types.ImageReference, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "NewReference", arg0)
+	ret0, _ := ret[0].(types.ImageReference)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// NewReference indicates an expected call of NewReference.
+func (mr *MockImplMockRecorder) NewReference(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewReference", reflect.TypeOf((*MockImpl)(nil).NewReference), arg0)
+}
+
+// ParseNormalizedNamed mocks base method.
+func (m *MockImpl) ParseNormalizedNamed(arg0 string) (reference.Named, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ParseNormalizedNamed", arg0)
+	ret0, _ := ret[0].(reference.Named)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ParseNormalizedNamed indicates an expected call of ParseNormalizedNamed.
+func (mr *MockImplMockRecorder) ParseNormalizedNamed(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ParseNormalizedNamed", reflect.TypeOf((*MockImpl)(nil).ParseNormalizedNamed), arg0)
+}
+
+// ReadAll mocks base method.
+func (m *MockImpl) ReadAll(arg0 io.Reader) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadAll", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadAll indicates an expected call of ReadAll.
+func (mr *MockImplMockRecorder) ReadAll(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadAll", reflect.TypeOf((*MockImpl)(nil).ReadAll), arg0)
 }
