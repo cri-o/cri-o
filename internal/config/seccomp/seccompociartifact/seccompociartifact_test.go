@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"os"
-	"path/filepath"
 
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -21,10 +19,7 @@ import (
 // The actual test suite
 var _ = t.Describe("SeccompOCIArtifact", func() {
 	t.Describe("TryPull", func() {
-		const (
-			testProfileContent  = "{}"
-			testSeccompJSONFile = "seccomp.json"
-		)
+		const testProfileContent = "{}"
 
 		var (
 			sut                 *seccompociartifact.SeccompOCIArtifact
@@ -44,13 +39,8 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			ociArtifactImplMock = ociartifactmock.NewMockImpl(mockCtrl)
 			sut.SetOCIArtifactImpl(ociArtifactImplMock)
 
-			tempDir, err := os.MkdirTemp("", "seccompociartifact-test-*")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(os.WriteFile(filepath.Join(tempDir, testSeccompJSONFile), []byte(testProfileContent), 0o644)).NotTo(HaveOccurred())
-
 			testArtifact = &ociartifact.Artifact{
-				MountPath: tempDir,
-				Cleanup:   func() { os.RemoveAll(tempDir) },
+				Data: []byte(testProfileContent),
 			}
 		})
 
@@ -154,24 +144,6 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			gomock.InOrder(
 				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest),
 			)
-
-			// When
-			res, err := sut.TryPull(context.Background(), nil, "", nil,
-				map[string]string{
-					seccompociartifact.SeccompProfilePodAnnotation: "test",
-				})
-
-			// Then
-			Expect(err).To(HaveOccurred())
-			Expect(res).To(BeNil())
-		})
-
-		It("should fail if seccomp.json is not in artifact", func() {
-			// Given
-			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
-			)
-			Expect(os.RemoveAll(filepath.Join(testArtifact.MountPath, testSeccompJSONFile))).NotTo(HaveOccurred())
 
 			// When
 			res, err := sut.TryPull(context.Background(), nil, "", nil,
