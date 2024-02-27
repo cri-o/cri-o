@@ -154,6 +154,27 @@ jobs:
             result/bin/crio
             result/bin/pinns
 
+  build-static-s390x:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v25
+        with:
+          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
+      - uses: cachix/cachix-action@v14
+        with:
+          name: cri-o-static
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          pushFilter: cri-o
+      - run: nix-build nix/default-s390x.nix
+      - run: file result/bin/crio | grep S/390
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build-static-s390x
+          path: |
+            result/bin/crio
+            result/bin/pinns
+
   static-build-upload:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
@@ -161,6 +182,7 @@ jobs:
       - build-static-amd64
       - build-static-arm64
       - build-static-ppc64le
+      - build-static-s390x
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -174,6 +196,10 @@ jobs:
         with:
           name: build-static-ppc64le
           path: ${{ github.sha }}/ppc64le
+      - uses: actions/download-artifact@v4
+        with:
+          name: build-static-s390x
+          path: ${{ github.sha }}/s390x
       - uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCS_CRIO_SA }}
