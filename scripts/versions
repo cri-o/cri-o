@@ -1,7 +1,4 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-# Versions to be used
+# Software versions to be used.
 declare -A VERSIONS=(
     ["cni-plugins"]=v1.4.0
     ["conmon"]=v2.1.10
@@ -11,4 +8,3 @@ declare -A VERSIONS=(
     ["bats"]=v1.10.0
     ["buildah"]=v1.34.0
 )
-export VERSIONS
