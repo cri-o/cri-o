@@ -248,6 +248,17 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 
+		Context("with n/a latency and latency already saved", func() {
+			BeforeEach(func() {
+				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUsOriginal = "0"
+			})
+
+			It("should not change the saved CPU PM QOS latency", func() {
+				verifySetCPUPMQOSResumeLatency("n/a", "n/a", "0", false)
+			})
+		})
+
 		Context("with 0 latency", func() {
 			BeforeEach(func() {
 				pmQosResumeLatencyUs = "n/a"
@@ -392,6 +403,18 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 		})
 
+		Context("with available governor and governor already saved", func() {
+			BeforeEach(func() {
+				scalingGovernor = "performance"
+				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
+				scalingGovernorOriginal = "schedutil"
+			})
+
+			It("should not change the saved CPU scaling governor", func() {
+				verifySetCPUScalingGovernor("performance", "performance", "schedutil", false)
+			})
+		})
+
 		Context("with unknown governor", func() {
 			BeforeEach(func() {
 				scalingGovernor = "schedutil"
@@ -420,6 +443,18 @@ var _ = Describe("high_performance_hooks", func() {
 			BeforeEach(func() {
 				scalingGovernor = "conservative"
 				scalingAvailableGovernors = ""
+				scalingGovernorOriginal = ""
+			})
+
+			It("should fail", func() {
+				verifySetCPUScalingGovernor("performance", "", "", true)
+			})
+		})
+
+		Context("with no configured scaling governor", func() {
+			BeforeEach(func() {
+				scalingGovernor = ""
+				scalingAvailableGovernors = "conservative ondemand userspace powersave performance"
 				scalingGovernorOriginal = ""
 			})
 
