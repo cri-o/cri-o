@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
@@ -16,14 +15,16 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 )
 
-// Impl is the main implementation interface of this package.
-type Impl interface {
-	Pull(context.Context, string, *PullOptions) (*Artifact, error)
+// OCIArtifact is the main structure of this package.
+type OCIArtifact struct {
+	impl Impl
 }
 
 // New returns a new OCI artifact implementation.
-func New() Impl {
-	return &defaultImpl{}
+func New() *OCIArtifact {
+	return &OCIArtifact{
+		impl: &defaultImpl{},
+	}
 }
 
 // Artifact can be used to manage OCI artifacts.
@@ -45,49 +46,52 @@ type PullOptions struct {
 	MaxSize int
 }
 
-// defaultImpl is the default implementation for the OCI artifact handling.
-type defaultImpl struct{}
-
 // defaultMaxArtifactSize is the default maximum artifact size.
 const defaultMaxArtifactSize = 1024 * 1024 // 1 MiB
 
 // Pull downloads the artifact content by using the provided image name and the specified options.
-func (*defaultImpl) Pull(ctx context.Context, img string, opts *PullOptions) (*Artifact, error) {
+func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (*Artifact, error) {
 	log.Infof(ctx, "Pulling OCI artifact from ref: %s", img)
 
-	name, err := reference.ParseNormalizedNamed(img)
+	// Use default pull options
+	if opts == nil {
+		opts = &PullOptions{}
+	}
+
+	name, err := o.impl.ParseNormalizedNamed(img)
 	if err != nil {
 		return nil, fmt.Errorf("parse image name: %w", err)
 	}
 	name = reference.TagNameOnly(name) // make sure to add ":latest" if needed
 
-	ref, err := docker.NewReference(name)
+	ref, err := o.impl.NewReference(name)
 	if err != nil {
 		return nil, fmt.Errorf("create docker reference: %w", err)
 	}
 
-	src, err := ref.NewImageSource(ctx, opts.SystemContext)
+	src, err := o.impl.NewImageSource(ctx, ref, opts.SystemContext)
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
 
-	manifestBytes, mimeType, err := src.GetManifest(ctx, nil)
+	manifestBytes, mimeType, err := o.impl.GetManifest(ctx, src, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get manifest: %w", err)
 	}
 
-	parsedManifest, err := manifest.FromBlob(manifestBytes, mimeType)
+	parsedManifest, err := o.impl.ManifestFromBlob(manifestBytes, mimeType)
 	if err != nil {
 		return nil, fmt.Errorf("parse manifest: %w", err)
 	}
-	if opts.EnforceConfigMediaType != "" && parsedManifest.ConfigInfo().MediaType != opts.EnforceConfigMediaType {
+	if opts.EnforceConfigMediaType != "" && o.impl.ManifestConfigInfo(parsedManifest).MediaType != opts.EnforceConfigMediaType {
 		return nil, fmt.Errorf(
 			"wrong config media type %q, requires %q",
-			parsedManifest.ConfigInfo().MediaType, opts.EnforceConfigMediaType,
+			o.impl.ManifestConfigInfo(parsedManifest).MediaType,
+			opts.EnforceConfigMediaType,
 		)
 	}
 
-	layers := parsedManifest.LayerInfos()
+	layers := o.impl.LayerInfos(parsedManifest)
 	if len(layers) < 1 {
 		return nil, errors.New("artifact needs at least one layer")
 	}
@@ -97,7 +101,7 @@ func (*defaultImpl) Pull(ctx context.Context, img string, opts *PullOptions) (*A
 	layer := layers[0]
 
 	bic := blobinfocache.DefaultCache(opts.SystemContext)
-	rc, size, err := src.GetBlob(ctx, layer.BlobInfo, bic)
+	rc, size, err := o.impl.GetBlob(ctx, src, layer.BlobInfo, bic)
 	if err != nil {
 		return nil, fmt.Errorf("get layer blob: %w", err)
 	}
@@ -112,7 +116,7 @@ func (*defaultImpl) Pull(ctx context.Context, img string, opts *PullOptions) (*A
 		return nil, fmt.Errorf("exceeded maximum allowed size of %d bytes", maxArtifactSize)
 	}
 
-	layerBytes, err := readLimit(rc, maxArtifactSize)
+	layerBytes, err := o.readLimit(rc, maxArtifactSize)
 	if err != nil {
 		return nil, fmt.Errorf("read with limit: %w", err)
 	}
@@ -126,10 +130,10 @@ func (*defaultImpl) Pull(ctx context.Context, img string, opts *PullOptions) (*A
 	}, nil
 }
 
-func readLimit(reader io.Reader, limit int) ([]byte, error) {
+func (o *OCIArtifact) readLimit(reader io.Reader, limit int) ([]byte, error) {
 	limitedReader := io.LimitReader(reader, int64(limit+1))
 
-	res, err := io.ReadAll(limitedReader)
+	res, err := o.impl.ReadAll(limitedReader)
 	if err != nil {
 		return nil, fmt.Errorf("read from limit reader: %w", err)
 	}
@@ -147,9 +151,6 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 		return fmt.Errorf("invalid digest %q: %w", expectedDigest, err)
 	}
 	digestAlgorithm := expectedDigest.Algorithm()
-	if !digestAlgorithm.Available() {
-		return fmt.Errorf("invalid digest specification %q: unsupported digest algorithm %q", expectedDigest, digestAlgorithm)
-	}
 	digester := digestAlgorithm.Digester()
 
 	hash := digester.Hash()

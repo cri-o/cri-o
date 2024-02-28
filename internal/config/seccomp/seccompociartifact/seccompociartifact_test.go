@@ -13,7 +13,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	ociartifactmock "github.com/cri-o/cri-o/test/mocks/ociartifact"
+	seccompociartifactmock "github.com/cri-o/cri-o/test/mocks/seccompociartifact"
 )
 
 // The actual test suite
@@ -22,11 +22,11 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		const testProfileContent = "{}"
 
 		var (
-			sut                 *seccompociartifact.SeccompOCIArtifact
-			testArtifact        *ociartifact.Artifact
-			ociArtifactImplMock *ociartifactmock.MockImpl
-			mockCtrl            *gomock.Controller
-			errTest             = errors.New("test")
+			sut          *seccompociartifact.SeccompOCIArtifact
+			testArtifact *ociartifact.Artifact
+			implMock     *seccompociartifactmock.MockImpl
+			mockCtrl     *gomock.Controller
+			errTest      = errors.New("test")
 		)
 
 		BeforeEach(func() {
@@ -36,8 +36,8 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 			Expect(sut).NotTo(BeNil())
 
 			mockCtrl = gomock.NewController(GinkgoT())
-			ociArtifactImplMock = ociartifactmock.NewMockImpl(mockCtrl)
-			sut.SetOCIArtifactImpl(ociArtifactImplMock)
+			implMock = seccompociartifactmock.NewMockImpl(mockCtrl)
+			sut.SetImpl(implMock)
 
 			testArtifact = &ociartifact.Artifact{
 				Data: []byte(testProfileContent),
@@ -61,7 +61,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match image specific annotation for whole pod", func() {
 			// Given
 			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
 			)
 
 			// When
@@ -78,7 +78,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match image specific annotation for container", func() {
 			// Given
 			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
 			)
 
 			// When
@@ -95,7 +95,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match pod specific annotation", func() {
 			// Given
 			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
 			)
 
 			// When
@@ -112,7 +112,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should match container specific annotation", func() {
 			// Given
 			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(testArtifact, nil),
 			)
 
 			// When
@@ -142,7 +142,7 @@ var _ = t.Describe("SeccompOCIArtifact", func() {
 		It("should fail if artifact pull fails", func() {
 			// Given
 			gomock.InOrder(
-				ociArtifactImplMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest),
+				implMock.EXPECT().Pull(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, errTest),
 			)
 
 			// When
