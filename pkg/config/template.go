@@ -1334,7 +1334,7 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # that work based on annotations, rather than the CRI.
 # Note, the behavior of this table is EXPERIMENTAL and may change at any time.
 # Each workload, has a name, activation_annotation, annotation_prefix and set of resources it supports mutating.
-# The currently supported resources are "cpuperiod" "cpuquota", "cpushares" and "cpuset" to configure the cpuset.
+# The currently supported resources are "cpuperiod" "cpuquota", "cpushares" and "cpuset". The values for "cpuperiod" and "cpuquota" are denoted in microseconds.
 # Each resource can have a default value specified, or be empty.
 # For a container to opt-into this workload, the pod should be configured with the annotation $activation_annotation (key only, value is ignored).
 # To customize per-container, an annotation of the form $annotation_prefix.$resource/$ctrName = "value" can be specified
@@ -1347,7 +1347,7 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # [crio.runtime.workloads.workload-type.resources]
 # cpuset = "0-1"
 # cpushares = "5"
-# cpuquota = "5"
+# cpuquota = "1000"
 # cpuperiod = "100000"
 # Where:
 # The workload name is workload-type.

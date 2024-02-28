@@ -56,21 +56,21 @@ type WorkloadConfig struct {
 // This resources structure provides a default value, and can be overridden
 // by using the AnnotationPrefix.
 type Resources struct {
-	// Specifies the number of CPU shares this pod has access to.
+	// Specifies the number of CPU shares this Pod has access to.
 	CPUShares uint64 `json:"cpushares,omitempty"`
-	// Specifies the CPU quota this pod is limited to.
+	// Specifies the CPU quota this Pod is limited to in microseconds.
 	CPUQuota int64 `json:"cpuquota,omitempty"`
-	// Specifies the CPU period to use for these workloads
+	// Specifies the CPU period this Pod will use in microseconds.
 	CPUPeriod uint64 `json:"cpuperiod,omitempty"`
-	// Specifies the cpuset this pod has access to.
+	// Specifies the cpuset this Pod has access to.
 	CPUSet string `json:"cpuset,omitempty"`
 }
 
-// ResourceAnnotation describes extra information that is not part of the CRIO config but is used to contain
+// ResourceAnnotation describes extra information that is not part of the CRI-O config but is used to contain
 // extra information that is passed down from the pod.
 type ResourcesAnnotation struct {
 	Resources
-	// Specifies the CPU limit in millicores this will be used to calculate the cpu quota.
+	// Specifies the CPU limit in millicores. This will be used to calculate the CPU quota.
 	CPULimit int64 `json:"cpulimit,omitempty"`
 }
 
@@ -159,7 +159,7 @@ func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]
 	return nil
 }
 
-// MilliCPUToQuota converts milliCPU to CFS quota and period values.
+// milliCPUToQuota converts milliCPU to CFS quota and period values.
 // Input parameters and resulting value is number of microseconds.
 func milliCPUToQuota(milliCPU, period int64) (quota int64) {
 	if milliCPU == 0 {
@@ -170,7 +170,7 @@ func milliCPUToQuota(milliCPU, period int64) (quota int64) {
 		period = defaultQuotaPeriod
 	}
 
-	// we then convert your milliCPU to a value normalized over a period
+	// We then convert the milliCPU to a value normalized over a period.
 	quota = (milliCPU * period) / milliCPUToCPU
 
 	// quota needs to be a minimum of 1ms.
@@ -208,7 +208,7 @@ func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]s
 		resources.CPUPeriod = defaultResources.CPUPeriod
 	}
 
-	// If a CPU Limit in Milli is supplied via the annotation, calculate quota with given CPU Period
+	// If a CPU Limit in Milli is supplied via the annotation, calculate quota with the given CPU period.
 	if resources.CPULimit != 0 {
 		resources.CPUQuota = milliCPUToQuota(resources.CPULimit, int64(resources.CPUPeriod))
 	}
@@ -222,13 +222,13 @@ func (r *Resources) ValidateDefaults() error {
 	}
 
 	if _, err := cpuset.Parse(r.CPUSet); err != nil {
-		return fmt.Errorf("error parsing cpuset(%s): err %w", r.CPUSet, err)
+		return fmt.Errorf("unable to parse cpuset %q: %w", r.CPUSet, err)
 	}
 	if r.CPUQuota < int64(r.CPUShares) {
-		return fmt.Errorf("cpuquota(%d) can not be less than cpushares(%d)", r.CPUQuota, r.CPUShares)
+		return fmt.Errorf("cpuquota %d cannot be less than cpushares %d", r.CPUQuota, r.CPUShares)
 	}
-	if r.CPUPeriod < minQuotaPeriod {
-		return fmt.Errorf("cpuperiod(%d) can not be less than 1000 usecs", r.CPUPeriod)
+	if r.CPUPeriod != 0 && r.CPUPeriod < minQuotaPeriod {
+		return fmt.Errorf("cpuperiod %d cannot be less than 1000 microseconds", r.CPUPeriod)
 	}
 
 	return nil
