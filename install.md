@@ -488,9 +488,9 @@ which uses the following buildtags.
 It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
-will create a `x86_64`/`amd64` or `aarch64`/`arm64` or `ppc64le` stripped ELF
-binary for [glibc](https://www.gnu.org/software/libc). These binaries are integration
-tested as well and support the following features:
+will create a `x86_64`/`amd64` or `aarch64`/`arm64`, `ppc64le` or `s390x`
+stripped ELF binary for [glibc](https://www.gnu.org/software/libc). These
+binaries are integration tested as well and support the following features:
 
 - apparmor
 - btrfs
@@ -527,6 +527,12 @@ Similarly, the ppc64le variant of binaries can be built using:
 
 ```shell
 nix build -f nix/default-ppc64le.nix
+```
+
+In the same way, the s390x variant of binaries can be built using:
+
+```shell
+nix build -f nix/default-s390x.nix
 ```
 
 ### Download conmon
