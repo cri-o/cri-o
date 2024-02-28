@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -1277,7 +1278,7 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 		// not supported by the runtime.
 		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
 		if err != nil {
-			logrus.Errorf("Getting OCI runtime features failed: %s", err)
+			logrus.Errorf("Getting %s OCI runtime features failed: %s: %v", handler.RuntimePath, output, err)
 			continue
 		}
 		// Ignore errors to Unmarshal too, we can't populate it.
@@ -1595,6 +1596,11 @@ func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
 		return false
 	}
 	return true
+}
+
+// RuntimeSupportsMountFlag returns whether this runtime supports the specified mount option.
+func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
+	return slices.Contains(r.features.MountOptions, flag)
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {

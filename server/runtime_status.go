@@ -36,6 +36,30 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 			},
 		},
 	}
+
+	for name, runtime := range s.config.Runtimes {
+		makeRuntimeHandler := func(name string, rro, userns bool) *types.RuntimeHandler {
+			return &types.RuntimeHandler{
+				Name: name,
+				Features: &types.RuntimeHandlerFeatures{
+					RecursiveReadOnlyMounts: rro,
+					UserNamespaces:          userns,
+				},
+			}
+		}
+
+		rro := runtime.RuntimeSupportsMountFlag("rro")
+		userns := runtime.RuntimeSupportsIDMap()
+		h := makeRuntimeHandler(name, rro, userns)
+		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
+
+		// if it is the default runtime, also add it with an empty name
+		if name == s.config.DefaultRuntime {
+			h := makeRuntimeHandler("", rro, userns)
+			resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)
+		}
+	}
+
 	if req.Verbose {
 		info, err := s.createRuntimeInfo()
 		if err != nil {
