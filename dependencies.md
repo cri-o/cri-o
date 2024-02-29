@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 29 Feb 2024 07:24:55 UTC for commit [d705c02][0]._
+_Generated on Thu, 29 Feb 2024 12:44:40 UTC for commit [9975449][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d705c02cec33b70e6a8b7a6eee44d23e744b9618
+[0]: https://github.com/cri-o/cri-o/commit/9975449eb2e8679639279f6cc2934894befb92dd
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                                               | v1.51.0                                       | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240228193728-aacbbde35d8d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240229103526-c01ba58b3d45 | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.49.0                            | true   | true             |
@@ -577,7 +577,7 @@ _Generated on Thu, 29 Feb 2024 07:24:55 UTC for commit [d705c02][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240228193728-aacbbde35d8d  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240229103526-c01ba58b3d45  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -767,7 +767,7 @@ _Generated on Thu, 29 Feb 2024 07:24:55 UTC for commit [d705c02][0]._
 | github.com/spiffe/go-spiffe/v2                                                          | v2.1.6                                            | v2.1.7                              | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20201008174630-78d3cae3a980                | v0.0.0-20230803200340-78284954bff6  | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                            | v1.3.0                              | false  | true             |
-| github.com/stretchr/objx                                                                | v0.5.1                                            |                                     | false  | true             |
+| github.com/stretchr/objx                                                                | v0.5.1                                            | v0.5.2                              | false  | true             |
 | github.com/stretchr/testify                                                             | v1.8.4                                            |                                     | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.6.0                                            |                                     | false  | true             |
 | github.com/sylabs/sif/v2                                                                | v2.15.0                                           | v2.15.1                             | false  | true             |
