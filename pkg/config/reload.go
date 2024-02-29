@@ -41,6 +41,11 @@ func (c *Config) Reload() error {
 		logrus.Infof("Skipping not-existing config path %q", c.dropInConfigDir)
 	}
 
+	// finding better way to know if any flags were set from cmd line args, even for ENV vars...
+	if len(os.Args) > 2 {
+		newConfig = c
+	}
+
 	// Reload all available options
 	if err := c.ReloadLogLevel(newConfig); err != nil {
 		return err

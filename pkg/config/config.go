@@ -370,7 +370,7 @@ type RuntimeConfig struct {
 	MinimumMappableUID int64 `toml:"minimum_mappable_uid"`
 
 	// GIDMappings specifies the GID mappings to have in the user namespace.
-	// A range is specified in the form containerUID:HostUID:Size.  Multiple
+	// A range is specified in the form containerUID:HostUID:Size. Multiple
 	// ranges are separated by comma.
 	GIDMappings string `toml:"gid_mappings"`
 
@@ -507,7 +507,7 @@ type ImageConfig struct {
 	PinnedImages []string `toml:"pinned_images"`
 	// SignaturePolicyPath is the name of the file which decides what sort
 	// of policy we use when deciding whether or not to trust an image that
-	// we've pulled.  Outside of testing situations, it is strongly advised
+	// we've pulled. Outside of testing situations, it is strongly advised
 	// that this be left unspecified so that the default system-wide policy
 	// will be used.
 	SignaturePolicyPath string `toml:"signature_policy"`
@@ -691,7 +691,7 @@ func (c *Config) UpdateFromFile(path string) error {
 }
 
 // UpdateFromDropInFile populates the Config from the TOML-encoded file at the
-// given path.  The file may be the main configuration file, or it can be one
+// given path. The file may be the main configuration file, or it can be one
 // of the drop-in files which are used to supplement it.
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
