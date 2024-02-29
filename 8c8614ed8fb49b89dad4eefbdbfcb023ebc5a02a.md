@@ -16,7 +16,7 @@
 # CRI-O 8c8614ed8fb49b89dad4eefbdbfcb023ebc5a02a
 
 The release notes have been generated for the commit range
-[v1.29.0...8c8614e](https://github.com/cri-o/cri-o/compare/v1.29.0...8c8614ed8fb49b89dad4eefbdbfcb023ebc5a02a) on Wed, 28 Feb 2024 11:58:04 UTC.
+[v1.29.0...8c8614e](https://github.com/cri-o/cri-o/compare/v1.29.0...8c8614ed8fb49b89dad4eefbdbfcb023ebc5a02a) on Thu, 29 Feb 2024 00:13:51 UTC.
 
 ## Downloads
 
