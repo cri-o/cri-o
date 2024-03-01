@@ -8,7 +8,6 @@ function setup() {
 		skip "seccomp is not enabled"
 	fi
 
-	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=false
 	setup_test
 }
 

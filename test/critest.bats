@@ -7,7 +7,6 @@ function setup() {
 		skip "critest because RUN_CRITEST is not set"
 	fi
 
-	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=false
 	setup_test
 	start_crio
 }

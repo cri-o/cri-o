@@ -107,7 +107,6 @@ crio
 [--runroot]=[value]
 [--runtimes]=[value]
 [--seccomp-profile]=[value]
-[--seccomp-use-default-when-empty]
 [--selinux]
 [--separate-pull-cgroup]=[value]
 [--shared-cpuset]=[value]
@@ -388,8 +387,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'.
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
-
-**--seccomp-use-default-when-empty**: Use the default seccomp profile when an empty one is specified. This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
 **--selinux**: Enable selinux support. This option is deprecated, and be interpreted from whether SELinux is enabled on the host in the future.
 

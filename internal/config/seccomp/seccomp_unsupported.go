@@ -42,17 +42,6 @@ func (c *Config) Setup(
 	return nil, "", nil
 }
 
-// SetUseDefaultWhenEmpty uses the default seccomp profile if true is passed as
-// argument, otherwise unconfined.
-func (c *Config) SetUseDefaultWhenEmpty(to bool) {
-}
-
-// Returns whether the seccomp config is set to
-// use default profile when the profile is empty
-func (c *Config) UseDefaultWhenEmpty() bool {
-	return false
-}
-
 // SetNotifierPath sets the default path for creating seccomp notifier sockets.
 func (c *Config) SetNotifierPath(path string) {
 }

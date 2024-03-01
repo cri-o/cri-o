@@ -79,33 +79,18 @@ func removeStringFromSlice(s []string, i int) []string {
 
 // Config is the global seccomp configuration type
 type Config struct {
-	enabled          bool
-	defaultWhenEmpty bool
-	profile          *seccomp.Seccomp
-	notifierPath     string
+	enabled      bool
+	profile      *seccomp.Seccomp
+	notifierPath string
 }
 
 // New creates a new default seccomp configuration instance
 func New() *Config {
 	return &Config{
-		enabled:          seccomp.IsEnabled(),
-		profile:          DefaultProfile(),
-		defaultWhenEmpty: true,
-		notifierPath:     "/var/run/crio/seccomp",
+		enabled:      seccomp.IsEnabled(),
+		profile:      DefaultProfile(),
+		notifierPath: "/var/run/crio/seccomp",
 	}
-}
-
-// SetUseDefaultWhenEmpty uses the default seccomp profile if true is passed as
-// argument, otherwise unconfined.
-func (c *Config) SetUseDefaultWhenEmpty(to bool) {
-	logrus.Infof("Using seccomp default profile when unspecified: %v", to)
-	c.defaultWhenEmpty = to
-}
-
-// Returns whether the seccomp config is set to
-// use default profile when the profile is empty
-func (c *Config) UseDefaultWhenEmpty() bool {
-	return c.defaultWhenEmpty
 }
 
 // SetNotifierPath sets the default path for creating seccomp notifier sockets.
@@ -208,16 +193,10 @@ func (c *Config) Setup(
 		}
 	}
 
+	// running w/o seccomp, aka unconfined
 	if profileField == nil {
-		if !c.UseDefaultWhenEmpty() {
-			// running w/o seccomp, aka unconfined
-			specGenerator.Config.Linux.Seccomp = nil
-			return nil, "", nil
-		}
-
-		profileField = &types.SecurityProfile{
-			ProfileType: types.SecurityProfile_RuntimeDefault,
-		}
+		specGenerator.Config.Linux.Seccomp = nil
+		return nil, "", nil
 	}
 
 	if c.IsDisabled() {

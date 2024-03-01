@@ -111,7 +111,6 @@ h
 --runroot
 --runtimes
 --seccomp-profile
---seccomp-use-default-when-empty
 --selinux
 --separate-pull-cgroup
 --shared-cpuset
