@@ -1,17 +1,18 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Mar 2024 08:19:30 UTC for commit [06fd470][0]._
+_Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/06fd470045aaf4246851b3b980eb152fa321af05
+[0]: https://github.com/cri-o/cri-o/commit/a1586369028d19499fb7016dc9cde9511647a411
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                                               | v1.51.0                                       | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240229201856-11b603e5f1a0 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240301101219-13a20957cbfb | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
+| github.com/stretchr/testify                                                 | v1.8.4                                        | v1.9.0                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.49.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.23.1                                       | v1.24.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.24.0                            | true   | true             |
@@ -577,7 +578,7 @@ _Generated on Fri, 01 Mar 2024 08:19:30 UTC for commit [06fd470][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240229201856-11b603e5f1a0  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240301101219-13a20957cbfb  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -768,7 +769,7 @@ _Generated on Fri, 01 Mar 2024 08:19:30 UTC for commit [06fd470][0]._
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20201008174630-78d3cae3a980                | v0.0.0-20230803200340-78284954bff6  | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                            | v1.3.0                              | false  | true             |
 | github.com/stretchr/objx                                                                | v0.5.1                                            | v0.5.2                              | false  | true             |
-| github.com/stretchr/testify                                                             | v1.8.4                                            |                                     | true   | true             |
+| github.com/stretchr/testify                                                             | v1.8.4                                            | v1.9.0                              | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.6.0                                            |                                     | false  | true             |
 | github.com/sylabs/sif/v2                                                                | v2.15.0                                           | v2.15.1                             | false  | true             |
 | github.com/syndtr/gocapability                                                          | v0.0.0-20200815063812-42c35b437635                |                                     | true   | true             |
@@ -784,7 +785,7 @@ _Generated on Fri, 01 Mar 2024 08:19:30 UTC for commit [06fd470][0]._
 | github.com/tklauser/go-sysconf                                                          | v0.3.12                                           | v0.3.13                             | false  | true             |
 | github.com/tklauser/numcpus                                                             | v0.6.1                                            | v0.7.0                              | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75                |                                     | false  | true             |
-| github.com/tonistiigi/fsutil                                                            | v0.0.0-20230629203738-36ef4d8c0dbb                | v0.0.0-20240223190444-7a889f53dbf6  | false  | true             |
+| github.com/tonistiigi/fsutil                                                            | v0.0.0-20230629203738-36ef4d8c0dbb                | v0.0.0-20240301111122-7525a1af2bb5  | false  | true             |
 | github.com/tonistiigi/go-actions-cache                                                  | v0.0.0-20220404170428-0bdeb6e1eac7                | v0.0.0-20240227172821-a0b64f338598  | false  | true             |
 | github.com/tonistiigi/go-archvariant                                                    | v1.0.0                                            |                                     | false  | true             |
 | github.com/tonistiigi/units                                                             | v0.0.0-20180711220420-6950e57a87ea                |                                     | false  | true             |
