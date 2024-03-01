@@ -68,7 +68,6 @@ function teardown() {
 # 7. test running with ctr unconfined if seccomp_override_empty is false
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp overrides unconfined profile with runtime/default when overridden" {
-	export CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY=false
 	export CONTAINER_SECCOMP_PROFILE="$TESTDIR"/seccomp_profile1.json
 	restart_crio
 
@@ -83,6 +82,9 @@ function teardown() {
 	unset CONTAINER_SECCOMP_PROFILE
 	restart_crio
 
-	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	jq '.linux.security_context.seccomp.profile_type = 0' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 	run ! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
 }

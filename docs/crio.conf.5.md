@@ -143,10 +143,6 @@ the container runtime configuration.
   Path to the seccomp.json profile which is used as the default seccomp profile for the runtime. If not specified, then the internal default seccomp profile will be used.
   This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
 
-**seccomp_use_default_when_empty**=true
-  Changes the meaning of an empty seccomp profile.  By default (and according to CRI spec), an empty profile means unconfined.
-  This option tells CRI-O to treat an empty profile as the default profile, which might increase security.
-
 **apparmor_profile**=""
   Used to change the name of the default AppArmor profile of CRI-O. The default profile name is "crio-default".
 

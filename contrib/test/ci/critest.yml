@@ -10,7 +10,6 @@
       [crio.runtime]
       cgroup_manager = "cgroupfs"
       conmon_cgroup = "pod"
-      seccomp_use_default_when_empty = false
 
 - name: enable and start CRI-O
   become: yes

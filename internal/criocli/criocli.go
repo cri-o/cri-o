@@ -162,9 +162,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("seccomp-profile") {
 		config.SeccompProfile = ctx.String("seccomp-profile")
 	}
-	if ctx.IsSet("seccomp-use-default-when-empty") {
-		config.SeccompUseDefaultWhenEmpty = ctx.Bool("seccomp-use-default-when-empty")
-	}
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
@@ -648,12 +645,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.",
 			EnvVars:   []string{"CONTAINER_SECCOMP_PROFILE"},
 			TakesFile: true,
-		},
-		&cli.BoolFlag{
-			Name:    "seccomp-use-default-when-empty",
-			Usage:   "Use the default seccomp profile when an empty one is specified. This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.",
-			EnvVars: []string{"CONTAINER_SECCOMP_USE_DEFAULT_WHEN_EMPTY"},
-			Value:   defConf.Seccomp().UseDefaultWhenEmpty(),
 		},
 		&cli.StringFlag{
 			Name:    "apparmor-profile",

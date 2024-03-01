@@ -246,11 +246,6 @@ type Runtimes map[string]*RuntimeHandler
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
 type RuntimeConfig struct {
-	// SeccompUseDefaultWhenEmpty specifies whether the default profile
-	// should be used when an empty one is specified.
-	// This option is currently deprecated, and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
-	SeccompUseDefaultWhenEmpty bool `toml:"seccomp_use_default_when_empty"`
-
 	// NoPivot instructs the runtime to not use `pivot_root`, but instead use `MS_MOVE`
 	NoPivot bool `toml:"no_pivot"`
 
@@ -829,7 +824,6 @@ func DefaultConfig() (*Config, error) {
 		return nil, err
 	}
 	cgroupManager := cgmgr.New()
-	seccompConfig := seccomp.New()
 	ua, err := useragent.Get()
 	if err != nil {
 		return nil, fmt.Errorf("get user agent: %w", err)
@@ -885,7 +879,6 @@ func DefaultConfig() (*Config, error) {
 			CDISpecDirs:                 cdi.DefaultSpecDirs,
 			NamespacesDir:               defaultNamespacesDir,
 			DropInfraCtr:                true,
-			SeccompUseDefaultWhenEmpty:  seccompConfig.UseDefaultWhenEmpty(),
 			IrqBalanceConfigRestoreFile: DefaultIrqBalanceConfigRestoreFile,
 			seccompConfig:               seccomp.New(),
 			apparmorConfig:              apparmor.New(),
@@ -1172,8 +1165,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		} else {
 			logrus.Infof("Checkpoint/restore support disabled")
 		}
-
-		c.seccompConfig.SetUseDefaultWhenEmpty(c.SeccompUseDefaultWhenEmpty)
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
 			if !errors.Is(err, os.ErrNotExist) {

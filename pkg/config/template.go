@@ -256,11 +256,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SeccompProfile, c.SeccompProfile),
 		},
 		{
-			templateString: templateStringCrioRuntimeSeccompUseDefaultWhenEmpty,
-			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.SeccompUseDefaultWhenEmpty, c.SeccompUseDefaultWhenEmpty),
-		},
-		{
 			templateString: templateStringCrioRuntimeApparmorProfile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ApparmorProfile, c.ApparmorProfile),
@@ -931,16 +926,6 @@ const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json prof
 # for the runtime. If not specified, then the internal default seccomp profile
 # will be used. This option supports live configuration reload.
 {{ $.Comment }}seccomp_profile = "{{ .SeccompProfile }}"
-
-`
-
-const templateStringCrioRuntimeSeccompUseDefaultWhenEmpty = `# Changes the meaning of an empty seccomp profile. By default
-# (and according to CRI spec), an empty profile means unconfined.
-# This option tells CRI-O to treat an empty profile as the default profile,
-# which might increase security.
-# This option is currently deprecated,
-# and will be replaced by the SeccompDefault FeatureGate in Kubernetes.
-{{ $.Comment }}seccomp_use_default_when_empty = {{ .SeccompUseDefaultWhenEmpty }}
 
 `
 
