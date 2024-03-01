@@ -656,7 +656,7 @@ func (svc *imageService) PullImage(imageName RegistryImageReference, options *Im
 }
 
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
-// NOTE: That imeans this code can run in a separate process, and it should not access any CRI-O global state.
+// NOTE: That means this code can run in a separate process, and it should not access any CRI-O global state.
 //
 // It returns a c/storage ImageReference for the destination.
 func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
