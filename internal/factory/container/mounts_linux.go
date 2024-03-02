@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/containers/common/pkg/subscriptions"
+	"github.com/containers/common/pkg/timezone"
 	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/podman/v4/pkg/selinux"
 	"github.com/containers/storage/pkg/idtools"
@@ -332,7 +333,7 @@ func (ctr *container) addOCIBindMounts(ctx context.Context, mountLabel string, s
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 
-		if isSubDirectoryOf(serverConfig.Root, m.HostPath) {
+		if isSubDirectoryOf(serverConfig.Root, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
 			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
@@ -515,9 +516,9 @@ func (ctr *container) setupSystemdMounts(containerInfo storage.ContainerInfo) er
 	return nil
 }
 
-func (c *container) isBindMounted(destinations []string) bool {
+func (ctr *container) isBindMounted(destinations []string) bool {
 	for _, dest := range destinations {
-		if mount, isPresent := c.mountInfo.mounts[dest]; isPresent {
+		if mount, isPresent := ctr.mountInfo.mounts[dest]; isPresent {
 			for _, option := range mount.Options {
 				if option == "bind" || option == "rbind" {
 					return true
@@ -543,8 +544,74 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 	return ids
 }
 
-func (c *container) setupOCIMounts() {
-	for _, m := range c.mountInfo.criMounts {
-		c.addMount(m)
+func (ctr *container) setupOCIMounts() {
+	for _, m := range ctr.mountInfo.criMounts {
+		ctr.addMount(m)
 	}
+}
+
+func (ctr *container) setupPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error {
+	readOnlyRootfs := ctr.ReadOnly(serverConfig.ReadOnly)
+	options := []string{"rw"}
+	if readOnlyRootfs {
+		options = []string{"ro"}
+	}
+
+	// Create etc directory
+	if err := ctr.createEtcDirectory(mountPoint, rootPair); err != nil {
+		return err
+	}
+
+	// Add symlinks
+	if err := ctr.createSymLinks(mountPoint); err != nil {
+		return err
+	}
+
+	// Setup TimeZone mount
+	if err := ctr.setupTimeZone(timeZone, ociContainer.BundlePath(), ociContainer.ID(), mountPoint, containerInfo.MountLabel, options); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (ctr *container) createEtcDirectory(mountPoint string, rootPair idtools.IDPair) error {
+	etc := filepath.Join(mountPoint, "/etc")
+	// create the `/etc` folder only when it doesn't exist
+	if _, err := os.Stat(etc); err != nil && os.IsNotExist(err) {
+		if err := idtools.MkdirAllAndChown(etc, 0o755, rootPair); err != nil {
+			return fmt.Errorf("error creating etc directory: %w", err)
+		}
+	}
+	return nil
+}
+
+func (ctr *container) createSymLinks(mountPoint string) error {
+	// Add symlink /etc/mtab to /proc/mounts allow looking for mountfiles there in the container
+	// compatible with Docker
+	etc := filepath.Join(mountPoint, "/etc")
+	if err := os.Symlink("/proc/mounts", filepath.Join(etc, "mtab")); err != nil && !os.IsExist(err) {
+		return err
+	}
+	return nil
+}
+
+func (ctr *container) setupTimeZone(tz, containerRunDir, containerID, mountPoint, mountLabel string, options []string) error {
+	etcPath := filepath.Join(mountPoint, "/etc")
+	localTimePath, err := timezone.ConfigureContainerTimeZone(tz, containerRunDir, mountPoint, etcPath, containerID)
+	if err != nil {
+		return fmt.Errorf("setting timezone for container %s: %w", containerID, err)
+	}
+	if localTimePath != "" {
+		if err := SecurityLabel(localTimePath, mountLabel, false, false); err != nil {
+			return err
+		}
+		ctr.addMount(&rspec.Mount{
+			Destination: "/etc/localtime",
+			Type:        "bind",
+			Source:      localTimePath,
+			Options:     append(options, []string{"bind", "nodev", "nosuid", "noexec"}...),
+		})
+	}
+	return nil
 }

@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
@@ -102,9 +103,12 @@ type Container interface {
 	// returns the spec
 	Spec() *generate.Generator
 
-	// SpecAddMounts add mounts to the container's spec
+	// SpecAddPreOCIMounts add mounts to the container's spec before creating ocicontainer
 	// if there is already a mount at the path specified, it removes it.
-	SpecAddMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error)
+	SpecAddPreOCIMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error)
+
+	// SpecAddPostOCIMounts add mounts to the container after creating oci container
+	SpecAddPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
@@ -159,8 +163,8 @@ func New() (Container, error) {
 	}, nil
 }
 
-// SpecAddMount add mounts to the spec
-func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+// SpecAddPreOCIMounts add mounts to the spec before creating ocicontainer
+func (c *container) SpecAddPreOCIMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 
 	//Setup mounts
 	containerVolumes, secretMounts, err := c.setupMounts(ctx, resourceStore, serverConfig, sb, containerInfo, mountPoint, idMapSupport)
@@ -180,6 +184,11 @@ func (c *container) SpecAddMounts(ctx context.Context, resourceStore *resourcest
 	}
 
 	return containerVolumes, secretMounts, nil
+}
+
+// SpecAddPostOCIMounts add mounts after creating ocicontainer
+func (c *container) SpecAddPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error {
+	return c.setupPostOCIMounts(ctx, serverConfig, containerInfo, ociContainer, mountPoint, timeZone, rootPair)
 }
 
 // SpecAddAnnotation adds all annotations to the spec
