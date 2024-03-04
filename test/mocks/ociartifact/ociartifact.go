@@ -7,6 +7,7 @@ package ociartifactmock
 import (
 	context "context"
 	io "io"
+	fs "io/fs"
 	reflect "reflect"
 
 	reference "github.com/containers/image/v5/docker/reference"
@@ -114,6 +115,20 @@ func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 interface{}) *gomock
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestFromBlob", reflect.TypeOf((*MockImpl)(nil).ManifestFromBlob), arg0, arg1)
 }
 
+// MkdirAll mocks base method.
+func (m *MockImpl) MkdirAll(arg0 string, arg1 fs.FileMode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MkdirAll", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MkdirAll indicates an expected call of MkdirAll.
+func (mr *MockImplMockRecorder) MkdirAll(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MkdirAll", reflect.TypeOf((*MockImpl)(nil).MkdirAll), arg0, arg1)
+}
+
 // NewImageSource mocks base method.
 func (m *MockImpl) NewImageSource(arg0 context.Context, arg1 types.ImageReference, arg2 *types.SystemContext) (types.ImageSource, error) {
 	m.ctrl.T.Helper()
@@ -172,4 +187,62 @@ func (m *MockImpl) ReadAll(arg0 io.Reader) ([]byte, error) {
 func (mr *MockImplMockRecorder) ReadAll(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadAll", reflect.TypeOf((*MockImpl)(nil).ReadAll), arg0)
+}
+
+// ReadDir mocks base method.
+func (m *MockImpl) ReadDir(arg0 string) ([]fs.DirEntry, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadDir", arg0)
+	ret0, _ := ret[0].([]fs.DirEntry)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadDir indicates an expected call of ReadDir.
+func (mr *MockImplMockRecorder) ReadDir(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadDir", reflect.TypeOf((*MockImpl)(nil).ReadDir), arg0)
+}
+
+// ReadFile mocks base method.
+func (m *MockImpl) ReadFile(arg0 string) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ReadFile", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ReadFile indicates an expected call of ReadFile.
+func (mr *MockImplMockRecorder) ReadFile(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadFile", reflect.TypeOf((*MockImpl)(nil).ReadFile), arg0)
+}
+
+// RemoveAll mocks base method.
+func (m *MockImpl) RemoveAll(arg0 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RemoveAll", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// RemoveAll indicates an expected call of RemoveAll.
+func (mr *MockImplMockRecorder) RemoveAll(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveAll", reflect.TypeOf((*MockImpl)(nil).RemoveAll), arg0)
+}
+
+// WriteFile mocks base method.
+func (m *MockImpl) WriteFile(arg0 string, arg1 []byte, arg2 fs.FileMode) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteFile indicates an expected call of WriteFile.
+func (mr *MockImplMockRecorder) WriteFile(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFile", reflect.TypeOf((*MockImpl)(nil).WriteFile), arg0, arg1, arg2)
 }

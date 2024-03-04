@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"os"
+	"time"
 
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -18,6 +20,29 @@ import (
 	ociartifactmock "github.com/cri-o/cri-o/test/mocks/ociartifact"
 )
 
+var errTest = errors.New("test")
+
+type fakeDirEntry struct{ failOnInfo bool }
+
+func (*fakeDirEntry) IsDir() bool       { return false }
+func (*fakeDirEntry) Name() string      { return "fakeDirEntry" }
+func (*fakeDirEntry) Type() os.FileMode { return 0o600 }
+func (f *fakeDirEntry) Info() (os.FileInfo, error) {
+	if f.failOnInfo {
+		return nil, errTest
+	}
+	return &fakeFileInfo{}, nil
+}
+
+type fakeFileInfo struct{}
+
+func (*fakeFileInfo) Name() string       { return "fakeFileInfo" }
+func (*fakeFileInfo) Size() int64        { return 0 }
+func (*fakeFileInfo) Mode() os.FileMode  { return 0o600 }
+func (*fakeFileInfo) ModTime() time.Time { return time.Now().Add(-5 * time.Second) }
+func (*fakeFileInfo) IsDir() bool        { return false }
+func (*fakeFileInfo) Sys() any           { return nil }
+
 // The actual test suite
 var _ = t.Describe("OCIArtifact", func() {
 	t.Describe("Pull", func() {
@@ -29,7 +54,6 @@ var _ = t.Describe("OCIArtifact", func() {
 			testRef            reference.Named
 			testArtifact       = []byte{1, 2, 3}
 			testArtifactDigest = digest.Digest("sha256:039058c6f2c0cb492c533b0a4d14ef77cc0f78abccced5287d84a1a2011cfb81")
-			errTest            = errors.New("test")
 		)
 
 		BeforeEach(func() {
@@ -69,6 +93,236 @@ var _ = t.Describe("OCIArtifact", func() {
 
 			// When
 			res, err := sut.Pull(context.Background(), "", nil)
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should succeed with cached artifact", func() {
+			// Given
+			//nolint:dupl
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{}, nil),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should remove cached item if too old", func() {
+			// Given
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{&fakeDirEntry{}}, nil),
+				implMock.EXPECT().RemoveAll(gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{
+				CachePath:        "/cache",
+				CacheEntryMaxAge: time.Second,
+			})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should succeed if cache garbage collection fails", func() {
+			// Given
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{
+					&fakeDirEntry{failOnInfo: true},
+					&fakeDirEntry{},
+				}, nil),
+				implMock.EXPECT().RemoveAll(gomock.Any()).Return(errTest),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{
+				CachePath:        "/cache",
+				CacheEntryMaxAge: time.Second,
+			})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		//nolint:dupl
+		It("should remove cached artifact if it has the wrong digest", func() {
+			// Given
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{}, nil),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return([]byte("wrong"), nil),
+				implMock.EXPECT().RemoveAll(gomock.Any()).Return(nil),
+				implMock.EXPECT().GetBlob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(io.NopCloser(nil), int64(10), nil),
+				implMock.EXPECT().ReadAll(gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().WriteFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should remove cached artifact if it read fails and succeed if write fails", func() {
+			// Given
+			//nolint:dupl
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{}, nil),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return(nil, errTest),
+				implMock.EXPECT().RemoveAll(gomock.Any()).Return(errTest),
+				implMock.EXPECT().GetBlob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(io.NopCloser(nil), int64(10), nil),
+				implMock.EXPECT().ReadAll(gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().WriteFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should succeed if cache creation fails", func() {
+			// Given
+			//nolint:dupl
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(errTest),
+				implMock.EXPECT().GetBlob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(io.NopCloser(nil), int64(10), nil),
+				implMock.EXPECT().ReadAll(gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		It("should succeed if read cache dir fails", func() {
+			// Given
+			//nolint:dupl
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return(nil, errTest),
+				implMock.EXPECT().GetBlob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(io.NopCloser(nil), int64(10), nil),
+				implMock.EXPECT().ReadAll(gomock.Any()).Return(testArtifact, nil),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(res).NotTo(BeNil())
+			Expect(res.Data).To(BeEquivalentTo(testArtifact))
+		})
+
+		//nolint:dupl
+		It("should succeed if cache write fails", func() {
+			// Given
+			gomock.InOrder(
+				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
+				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", nil),
+				implMock.EXPECT().ManifestFromBlob(gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().LayerInfos(gomock.Any()).Return([]manifest.LayerInfo{
+					{BlobInfo: types.BlobInfo{Digest: testArtifactDigest}},
+				}),
+				implMock.EXPECT().MkdirAll(gomock.Any(), gomock.Any()).Return(nil),
+				implMock.EXPECT().ReadDir(gomock.Any()).Return([]os.DirEntry{}, nil),
+				implMock.EXPECT().ReadFile(gomock.Any()).Return([]byte("wrong"), nil),
+				implMock.EXPECT().RemoveAll(gomock.Any()).Return(nil),
+				implMock.EXPECT().GetBlob(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(io.NopCloser(nil), int64(10), nil),
+				implMock.EXPECT().ReadAll(gomock.Any()).Return(testArtifact, nil),
+				implMock.EXPECT().WriteFile(gomock.Any(), gomock.Any(), gomock.Any()).Return(errTest),
+			)
+
+			// When
+			res, err := sut.Pull(context.Background(), "", &ociartifact.PullOptions{CachePath: "/cache"})
 
 			// Then
 			Expect(err).NotTo(HaveOccurred())
