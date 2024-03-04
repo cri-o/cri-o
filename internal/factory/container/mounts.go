@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/containers/storage/pkg/mount"
@@ -19,11 +20,17 @@ type mountInfo struct {
 	mounts    map[string]*rspec.Mount
 }
 
-func NewMountInfo() *mountInfo {
+func newMountInfo() *mountInfo {
 	return &mountInfo{
 		criMounts: make(map[string]*rspec.Mount),
 		mounts:    make(map[string]*rspec.Mount),
 	}
+}
+
+func clearMountInfo(c *container) {
+	c.mountInfo.criMounts = nil
+	c.mountInfo.mounts = nil
+	c.mountInfo = nil
 }
 
 type orderedMounts []*rspec.Mount
@@ -181,7 +188,7 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-func (c container) addCriMount(mount *rspec.Mount) {
+func (c *container) addCriMount(mount *rspec.Mount) {
 	if mount != nil {
 		dst := filepath.Clean(mount.Destination)
 		if dst == "/dev" {
@@ -212,5 +219,19 @@ func (c *container) isInMounts(dst string) bool {
 func (c *container) addMount(mount *rspec.Mount) {
 	if mount != nil {
 		c.mountInfo.mounts[filepath.Clean(mount.Destination)] = mount
+	}
+}
+
+// specAddMounts add the mounts to the OCI Spec
+func specAddMounts(c *container) {
+	allmounts := make([]*rspec.Mount, 0, len(c.mountInfo.mounts))
+	for k := range c.mountInfo.mounts {
+		allmounts = append(allmounts, c.mountInfo.mounts[k])
+	}
+
+	// Sort & Add mounts to specgen
+	sort.Sort(orderedMounts(allmounts))
+	for _, m := range allmounts {
+		c.spec.AddMount(*m)
 	}
 }
