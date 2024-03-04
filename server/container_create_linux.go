@@ -741,14 +741,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	rootUID, rootGID := 0, 0
+	if containerIDMappings != nil {
+		rootPair := containerIDMappings.RootPair()
+		rootUID, rootGID = rootPair.UID, rootPair.GID
+	}
+
 	// Add secrets from the default and override mounts.conf files
 	secretMounts := subscriptions.MountsWithUIDGID(
 		mountLabel,
 		containerInfo.RunDir,
 		s.config.DefaultMountsFile,
 		mountPoint,
-		0,
-		0,
+		rootUID,
+		rootGID,
 		unshare.IsRootless(),
 		ctr.DisableFips(),
 	)
