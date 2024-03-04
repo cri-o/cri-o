@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
+_Generated on Mon, 04 Mar 2024 09:43:08 UTC for commit [c0c2b89][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a1586369028d19499fb7016dc9cde9511647a411
+[0]: https://github.com/cri-o/cri-o/commit/c0c2b89ceda60278f355935fff61d73e33e63829
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/storage                                               | v1.51.0                                       | v1.52.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240301101219-13a20957cbfb | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240302022702-daab76de366d | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/stretchr/testify                                                 | v1.8.4                                        | v1.9.0                             | true   | true             |
@@ -246,7 +246,7 @@ _Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
 | github.com/armon/consul-api                                                             | v0.0.0-20180202201655-eb2c6b5be1b6                |                                     | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5                |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2                |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                           | v1.50.29                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                           | v1.50.30                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                           | v1.25.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                           | v1.6.1                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                          | v1.27.4                             | false  | true             |
@@ -460,7 +460,7 @@ _Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                     | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            | v1.3.0                              | false  | true             |
 | github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.22.2                             | false  | true             |
-| github.com/go-openapi/errors                                                            | v0.20.4                                           | v0.21.0                             | false  | true             |
+| github.com/go-openapi/errors                                                            | v0.20.4                                           | v0.21.1                             | false  | true             |
 | github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.2                             | false  | true             |
 | github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.4                             | false  | true             |
 | github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.5                             | false  | true             |
@@ -468,12 +468,12 @@ _Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
 | github.com/go-openapi/spec                                                              | v0.20.11                                          | v0.20.14                            | false  | true             |
 | github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.1                             | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.9                             | false  | true             |
-| github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.0                             | false  | true             |
+| github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.1                             | false  | true             |
 | github.com/go-pdf/fpdf                                                                  | v0.6.0                                            | v0.9.0                              | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                     | false  | true             |
 | github.com/go-playground/universal-translator                                           | v0.18.1                                           |                                     | false  | true             |
-| github.com/go-playground/validator/v10                                                  | v10.15.5                                          | v10.18.0                            | false  | true             |
+| github.com/go-playground/validator/v10                                                  | v10.15.5                                          | v10.19.0                            | false  | true             |
 | github.com/go-redis/redismock/v9                                                        | v9.2.0                                            |                                     | false  | true             |
 | github.com/go-rod/rod                                                                   | v0.114.5                                          | v0.114.7                            | false  | true             |
 | github.com/go-sql-driver/mysql                                                          | v1.7.1                                            |                                     | false  | true             |
@@ -578,7 +578,7 @@ _Generated on Fri, 01 Mar 2024 13:14:05 UTC for commit [a158636][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240301101219-13a20957cbfb  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240302022702-daab76de366d  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
