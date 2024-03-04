@@ -50,11 +50,11 @@ func DefunctProcessesForPath(path string) (defunctCount uint, retErr error) {
 
 		stat, err := processStats(path, name)
 		if err != nil {
-			logrus.Debugf("Failed to get the status of process with PID %s: %v", name, err)
+			logrus.Warnf("Failed to get the status of process with PID %s: %v", name, err)
 			continue
 		}
 		if stat.State == "Z" {
-			logrus.Warnf("Found defunct process with PID %s (%s)", name, stat.Comm)
+			logrus.Debugf("Found defunct process with PID %s (%s)", name, stat.Comm)
 			defunctCount++
 		}
 	}
