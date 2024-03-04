@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
+_Generated on Mon, 04 Mar 2024 16:06:50 UTC for commit [b43e0d6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/444d8f229c3999978ccf8ad0132bca0c1832547c
+[0]: https://github.com/cri-o/cri-o/commit/b43e0d63a8af3277dbfc555f62d07bb2305a72c7
 
 ## Outdated Dependencies
 
@@ -18,6 +18,7 @@ _Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.24.0                            | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.23.1                                       | v1.24.0                            | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.23.1                                       | v1.24.0                            | true   | true             |
+| golang.org/x/sys                                                            | v0.17.0                                       | v0.18.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.61.1                                       | v1.62.0                            | true   | true             |
 | k8s.io/api                                                                  | v0.30.0-alpha.2                               | v0.30.0-alpha.3                    | true   | true             |
 | k8s.io/apimachinery                                                         | v0.30.0-alpha.2                               | v0.30.0-alpha.3                    | true   | true             |
@@ -464,11 +465,11 @@ _Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
 | github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.3                             | false  | true             |
 | github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.5                             | false  | true             |
 | github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.6                             | false  | true             |
-| github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.27.1                             | false  | true             |
+| github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.27.2                             | false  | true             |
 | github.com/go-openapi/spec                                                              | v0.20.11                                          | v0.20.15                            | false  | true             |
 | github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.2                             | false  | true             |
 | github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.10                            | false  | true             |
-| github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.1                             | false  | true             |
+| github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.2                             | false  | true             |
 | github.com/go-pdf/fpdf                                                                  | v0.6.0                                            | v0.9.0                              | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
 | github.com/go-playground/locales                                                        | v0.14.1                                           |                                     | false  | true             |
@@ -883,11 +884,11 @@ _Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867                | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616                |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20240213143359-d1f7d3436075  | false  | true             |
-| golang.org/x/mod                                                                        | v0.14.0                                           | v0.15.0                             | false  | true             |
+| golang.org/x/mod                                                                        | v0.14.0                                           | v0.16.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.21.0                                           |                                     | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.16.0                                           | v0.17.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.6.0                                            |                                     | true   | true             |
-| golang.org/x/sys                                                                        | v0.17.0                                           |                                     | true   | true             |
+| golang.org/x/sys                                                                        | v0.17.0                                           | v0.18.0                             | true   | true             |
 | golang.org/x/term                                                                       | v0.17.0                                           |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                                           |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                            |                                     | false  | true             |
@@ -942,7 +943,7 @@ _Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e                |                                     | true   | true             |
 | kernel.org/pub/linux/libs/security/libcap/cap                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
 | kernel.org/pub/linux/libs/security/libcap/psx                                           | v1.2.67                                           | v1.2.69                             | false  | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240301013300-145b9017fff8  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e                | v0.0.0-20240304153351-5f76c72097ce  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                            | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                           | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
