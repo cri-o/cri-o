@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 04 Mar 2024 09:43:08 UTC for commit [c0c2b89][0]._
+_Generated on Mon, 04 Mar 2024 13:15:59 UTC for commit [444d8f2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c0c2b89ceda60278f355935fff61d73e33e63829
+[0]: https://github.com/cri-o/cri-o/commit/444d8f229c3999978ccf8ad0132bca0c1832547c
 
 ## Outdated Dependencies
 
@@ -459,15 +459,15 @@ _Generated on Mon, 04 Mar 2024 09:43:08 UTC for commit [c0c2b89][0]._
 | github.com/go-logr/logr                                                                 | v1.4.1                                            |                                     | true   | true             |
 | github.com/go-logr/stdr                                                                 | v1.2.2                                            |                                     | false  | true             |
 | github.com/go-ole/go-ole                                                                | v1.2.6                                            | v1.3.0                              | false  | true             |
-| github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.22.2                             | false  | true             |
+| github.com/go-openapi/analysis                                                          | v0.21.4                                           | v0.22.3                             | false  | true             |
 | github.com/go-openapi/errors                                                            | v0.20.4                                           | v0.21.1                             | false  | true             |
-| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.2                             | false  | true             |
-| github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.4                             | false  | true             |
-| github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.5                             | false  | true             |
+| github.com/go-openapi/jsonpointer                                                       | v0.20.0                                           | v0.20.3                             | false  | true             |
+| github.com/go-openapi/jsonreference                                                     | v0.20.2                                           | v0.20.5                             | false  | true             |
+| github.com/go-openapi/loads                                                             | v0.21.2                                           | v0.21.6                             | false  | true             |
 | github.com/go-openapi/runtime                                                           | v0.26.0                                           | v0.27.1                             | false  | true             |
-| github.com/go-openapi/spec                                                              | v0.20.11                                          | v0.20.14                            | false  | true             |
-| github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.1                             | false  | true             |
-| github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.9                             | false  | true             |
+| github.com/go-openapi/spec                                                              | v0.20.11                                          | v0.20.15                            | false  | true             |
+| github.com/go-openapi/strfmt                                                            | v0.21.8                                           | v0.22.2                             | false  | true             |
+| github.com/go-openapi/swag                                                              | v0.22.4                                           | v0.22.10                            | false  | true             |
 | github.com/go-openapi/validate                                                          | v0.22.3                                           | v0.23.1                             | false  | true             |
 | github.com/go-pdf/fpdf                                                                  | v0.6.0                                            | v0.9.0                              | false  | true             |
 | github.com/go-piv/piv-go                                                                | v1.11.0                                           |                                     | false  | true             |
