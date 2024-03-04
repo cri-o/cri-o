@@ -734,20 +734,24 @@ func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir st
 		latencyFileOrig := path.Join(cpuPowerSaveDir, "pm_qos_resume_latency_us")
 
 		if latency != "" {
-			// Retrieve the current latency.
-			latencyOrig, err := os.ReadFile(latencyFile)
-			if err != nil {
-				return err
-			}
+			// Don't overwrite the original latency if it has already been saved. This can happen if
+			// a container is restarted, as this will cause the PreStart hooks to be called again.
+			if !fileExists(latencyFileOrig) {
+				// Retrieve the current latency.
+				latencyOrig, err := os.ReadFile(latencyFile)
+				if err != nil {
+					return err
+				}
 
-			// Save the current latency so we can restore it later.
-			err = os.MkdirAll(cpuPowerSaveDir, 0o750)
-			if err != nil {
-				return err
-			}
-			err = os.WriteFile(latencyFileOrig, latencyOrig, 0o644)
-			if err != nil {
-				return err
+				// Save the current latency so we can restore it later.
+				err = os.MkdirAll(cpuPowerSaveDir, 0o750)
+				if err != nil {
+					return err
+				}
+				err = os.WriteFile(latencyFileOrig, latencyOrig, 0o644)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Update the pm_qos_resume_latency_us.
@@ -832,25 +836,29 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 		governorFileOrig := path.Join(cpuFreqSaveDir, "scaling_governor")
 
 		if governor != "" {
-			// Retrieve the current scaling governor.
-			governorOrig, err := os.ReadFile(governorFile)
-			if err != nil {
-				return err
-			}
-
-			// Is the scaling governor supported?
+			// Is the new scaling governor supported?
 			if err := isCPUGovernorSupported(governor, cpuDir, cpu); err != nil {
 				return err
 			}
 
-			// Save the current governor so we can restore it later.
-			err = os.MkdirAll(cpuFreqSaveDir, 0o750)
-			if err != nil {
-				return err
-			}
-			err = os.WriteFile(governorFileOrig, governorOrig, 0o644)
-			if err != nil {
-				return err
+			// Don't overwrite the original governor if it has already been saved. This can happen if
+			// a container is restarted, as this will cause the PreStart hooks to be called again.
+			if !fileExists(governorFileOrig) {
+				// Retrieve the current scaling governor.
+				governorOrig, err := os.ReadFile(governorFile)
+				if err != nil {
+					return err
+				}
+
+				// Save the current governor so we can restore it later.
+				err = os.MkdirAll(cpuFreqSaveDir, 0o750)
+				if err != nil {
+					return err
+				}
+				err = os.WriteFile(governorFileOrig, governorOrig, 0o644)
+				if err != nil {
+					return err
+				}
 			}
 
 			// Update the governor.
