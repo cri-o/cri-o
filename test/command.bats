@@ -17,6 +17,11 @@ load helpers
 	# github.com/docker/go-units package
 }
 
+@test "invalid default-container-min-memory" {
+	run ! "${CRIO_BINARY_PATH}" --default-container-min-memory wrong
+	[[ "$output" == *"wrong value for default-container-min-memory"* ]]
+}
+
 @test "invalid devices" {
 	run ! "${CRIO_BINARY_PATH}" --additional-devices /dev/null:/dev/foo:123
 	[[ "$output" == *"is not a valid device"* || "$output" == *"invalid device mode"* ]]

@@ -36,6 +36,7 @@ crio
 [--ctr-stop-timeout]=[value]
 [--decryption-keys-path]=[value]
 [--default-capabilities]=[value]
+[--default-container-min-memory]=[value]
 [--default-env]=[value]
 [--default-mounts-file]=[value]
 [--default-runtime]=[value]
@@ -214,6 +215,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-capabilities**="": Capabilities to add to the containers. (default: "CHOWN", "DAC_OVERRIDE", "FSETID", "FOWNER", "SETGID", "SETUID", "SETPCAP", "NET_BIND_SERVICE", "KILL")
 
+**--default-container-min-memory**="": Minimum memory that must be set for a container. (default: "12MiB")
+
 **--default-env**="": Additional environment variables to set for all containers.
 
 **--default-mounts-file**="": Path to default mounts file.
@@ -384,7 +387,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--runroot**="": The CRI-O state directory. (default: "/run/containers/storage")
 
-**--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'.
+**--runtimes**="": OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.
 
 **--seccomp-profile**="": Path to the seccomp.json profile to be used as the runtime's default. If not specified, then the internal default seccomp profile will be used.
 

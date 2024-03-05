@@ -8,6 +8,7 @@ import (
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -128,8 +129,18 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			runtimeType := libconfig.DefaultRuntimeType
 			privilegedWithoutHostDevices := false
 			runtimeConfigPath := ""
+			var (
+				cmm int64
+				err error
+			)
 
 			switch len(fields) {
+			case 7:
+				cmm, err = units.RAMInBytes(fields[6])
+				if err != nil {
+					return fmt.Errorf("wrong value for container_min_memory: %q", fields[6])
+				}
+				fallthrough
 			case 6:
 				runtimeConfigPath = fields[5]
 				fallthrough
@@ -148,6 +159,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					RuntimeType:                  runtimeType,
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
 					RuntimeConfigPath:            runtimeConfigPath,
+					ContainerMinMemory:           units.BytesSize(float64(cmm)),
 				}
 			default:
 				return fmt.Errorf("wrong format for --runtimes: %q", r)
@@ -267,6 +279,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 	if ctx.IsSet("default-env") {
 		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
+	}
+	if ctx.IsSet("default-container-min-memory") {
+		config.DefaultContainerMinMemory = ctx.String("default-container-min-memory")
 	}
 	if ctx.IsSet("container-attach-socket-dir") {
 		config.ContainerAttachSocketDir = ctx.String("container-attach-socket-dir")
@@ -638,7 +653,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:    "runtimes",
-			Usage:   "OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'.",
+			Usage:   "OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.",
 			EnvVars: []string{"CONTAINER_RUNTIMES"},
 		},
 		&cli.StringFlag{
@@ -1034,6 +1049,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, the runtime will not use 'pivot_root', but instead use 'MS_MOVE'.",
 			EnvVars: []string{"CONTAINER_NO_PIVOT"},
 			Value:   defConf.NoPivot,
+		},
+		&cli.StringFlag{
+			Name:    "default-container-min-memory",
+			Usage:   "Minimum memory that must be set for a container.",
+			Value:   defConf.DefaultContainerMinMemory,
+			EnvVars: []string{"CONTAINER_DEFAULT_MIN_MEMORY"},
 		},
 		&cli.BoolFlag{
 			Name:    "stream-enable-tls",

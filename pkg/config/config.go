@@ -41,6 +41,7 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go/features"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -50,16 +51,17 @@ import (
 
 // Defaults if none are specified
 const (
-	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
-	OCIBufSize                 = 8192
-	RuntimeTypeVM              = "vm"
-	RuntimeTypePod             = "pod"
-	defaultCtrStopTimeout      = 30 // seconds
-	defaultNamespacesDir       = "/var/run"
-	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
-	tasksetBinary              = "taskset"
-	MonitorExecCgroupDefault   = ""
-	MonitorExecCgroupContainer = "container"
+	defaultGRPCMaxMsgSize          = 80 * 1024 * 1024
+	defaultContainerMinMemoryLimit = 12 * 1024 * 1024 // 12 MiB
+	OCIBufSize                     = 8192
+	RuntimeTypeVM                  = "vm"
+	RuntimeTypePod                 = "pod"
+	defaultCtrStopTimeout          = 30 // seconds
+	defaultNamespacesDir           = "/var/run"
+	RuntimeTypeVMBinaryPattern     = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
+	tasksetBinary                  = "taskset"
+	MonitorExecCgroupDefault       = ""
+	MonitorExecCgroupContainer     = "container"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -214,7 +216,6 @@ type RuntimeHandler struct {
 	//   For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
 	//   can be used without the required `/POD` suffix or a container name.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
-
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
 	DisallowedAnnotations []string
 
@@ -235,6 +236,10 @@ type RuntimeHandler struct {
 	// Marks the runtime as performing image pulling on its own, and doesn't
 	// require crio to do it.
 	RuntimePullImage bool `toml:"runtime_pull_image,omitempty"`
+
+	// ContainerMinMemory is minimum memory that must be set for a container.
+	// if not exist fallback to global container_min_memory.
+	ContainerMinMemory string `toml:"container_min_memory,omitempty"`
 
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
@@ -281,6 +286,11 @@ type RuntimeConfig struct {
 	// AddInheritableCapabilities can be set to add inheritable capabilities. They were pre-1.23 by default, and were dropped in 1.24.
 	// This can cause a regression with non-root users not getting capabilities as they previously did.
 	AddInheritableCapabilities bool `toml:"add_inheritable_capabilities"`
+
+	// DefaultContainerMinMemory is the default value of minimum memory that must be set for a container.
+	// Applied for all runtimes, per runtime configuration takes precedence.
+	// A lower value would result in the container failing to start, the default value 12MiB
+	DefaultContainerMinMemory string `toml:"default_container_min_memory"`
 
 	// Additional environment variables to set for all the
 	// containers. These are overridden if set in the
@@ -859,6 +869,7 @@ func DefaultConfig() (*Config, error) {
 			Runtimes: Runtimes{
 				defaultRuntime: defaultRuntimeHandler(),
 			},
+			DefaultContainerMinMemory:   units.BytesSize(defaultContainerMinMemoryLimit),
 			SELinux:                     selinuxEnabled(),
 			ApparmorProfile:             apparmor.DefaultProfile,
 			BlockIOConfigFile:           DefaultBlockIOConfigFile,
@@ -1052,6 +1063,15 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		return err
 	}
 
+	containerMinMemory, err := units.RAMInBytes(c.DefaultContainerMinMemory)
+	if err != nil {
+		return fmt.Errorf("wrong value for default-container-min-memory: %q error: %s", c.DefaultContainerMinMemory, err)
+	}
+
+	if containerMinMemory < defaultContainerMinMemoryLimit {
+		return fmt.Errorf("set memory limit %s too low; should be at least %s", c.DefaultContainerMinMemory, units.BytesSize(defaultContainerMinMemoryLimit))
+	}
+
 	if err := c.deviceConfig.LoadDevices(c.AdditionalDevices); err != nil {
 		return err
 	}
@@ -1235,7 +1255,8 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		MonitorCgroup: defaultMonitorCgroup,
+		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryLimit),
+		MonitorCgroup:      defaultMonitorCgroup,
 	}
 }
 
@@ -1258,8 +1279,24 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	for _, invalidHandlerName := range failedValidation {
 		delete(c.Runtimes, invalidHandlerName)
 	}
+	if err := c.initializeRuntimeContainerMemory(); err != nil {
+		return err
+	}
 	c.initializeRuntimeFeatures()
 
+	return nil
+}
+
+func (c *RuntimeConfig) initializeRuntimeContainerMemory() error {
+	for name, handler := range c.Runtimes {
+		if handler.ContainerMinMemory == "" {
+			logrus.Infof("Runtime '%s' container_min_memory is empty, inherit default value %q", name, c.DefaultContainerMinMemory)
+			handler.ContainerMinMemory = c.DefaultContainerMinMemory
+		}
+		if _, err := units.RAMInBytes(handler.ContainerMinMemory); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 

@@ -221,6 +221,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.NoPivot, c.NoPivot),
 		},
 		{
+			templateString: templateStringCrioRuntimeDefaultMinMemory,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.DefaultContainerMinMemory, c.DefaultContainerMinMemory),
+		},
+		{
 			templateString: templateStringCrioRuntimeDecryptionKeysPath,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.DecryptionKeysPath, c.DecryptionKeysPath),
@@ -876,6 +881,13 @@ const templateStringCrioRuntimeDefaultUlimits = `# A list of ulimits to be set i
 
 `
 
+const templateStringCrioRuntimeDefaultMinMemory = `# Is the default value of minimum memory that must be set for a container.
+# Applied for all runtimes, per runtime configuration takes precedence.
+# A lower value would result in the container failing to start, the default value 12MiB:
+{{ $.Comment }}default_container_min_memory = "12MiB"
+
+`
+
 const templateStringCrioRuntimeNoPivot = `# If true, the runtime will not use pivot_root, but instead use MS_MOVE.
 {{ $.Comment }}no_pivot = {{ .NoPivot }}
 
@@ -1266,6 +1278,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   Replaces deprecated option "conmon_env".
 # - platform_runtime_paths (optional, map): A mapping of platforms to the corresponding
 #   runtime executable paths for the runtime handler.
+# - container_min_memory (optional, string): A container minimum memory that must be set, if not specified fallback to global value (12MiB).
 #
 # Using the seccomp notifier feature:
 #
@@ -1300,6 +1313,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ $.Comment }}runtime_type = "{{ $runtime_handler.RuntimeType }}"
 {{ $.Comment }}runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
 {{ $.Comment }}runtime_config_path = "{{ $runtime_handler.RuntimeConfigPath }}"
+{{ $.Comment }}container_min_memory = "{{ $runtime_handler.ContainerMinMemory }}"
 {{ $.Comment }}monitor_path = "{{ $runtime_handler.MonitorPath }}"
 {{ $.Comment }}monitor_cgroup = "{{ $runtime_handler.MonitorCgroup }}"
 {{ $.Comment }}monitor_exec_cgroup = "{{ $runtime_handler.MonitorExecCgroup }}"

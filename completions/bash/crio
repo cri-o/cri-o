@@ -39,6 +39,7 @@ h
 --ctr-stop-timeout
 --decryption-keys-path
 --default-capabilities
+--default-container-min-memory
 --default-env
 --default-mounts-file
 --default-runtime
