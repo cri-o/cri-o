@@ -4,8 +4,14 @@ type secLabel struct {
 	impl Impl
 }
 
-var slabel *secLabel = &secLabel{}
+type secLabelImpl struct{}
+
+func newSecLabel() *secLabel {
+	return &secLabel{
+		impl: &secLabelImpl{},
+	}
+}
 
 func SecurityLabel(path, secLabel string, shared, maybeRelabel bool) error {
-	return slabel.securityLabel(path, secLabel, shared, maybeRelabel)
+	return newSecLabel().impl.securityLabel(path, secLabel, shared, maybeRelabel)
 }

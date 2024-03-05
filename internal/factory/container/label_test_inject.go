@@ -6,6 +6,6 @@
 
 package container
 
-func (l *SecLabel) SetImpl(impl Impl) {
-	l.impl = impl
+func (label *secLabel) SetImpl(impl Impl) {
+	label.impl = impl
 }
