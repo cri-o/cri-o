@@ -398,8 +398,8 @@ mock-ociartifact-types: ${MOCKGEN}
 mock-securitylabel: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
 		-package container \
-		-destination ${MOCK_PATH}/container/label_linux.go \
-		github.com/cri-o/cri-o/internal/factory/container/label Impl
+		-destination ${MOCK_PATH}/container/label.go \
+		github.com/cri-o/cri-o/internal/factory/container Impl
 
 codecov: SHELL := $(shell which bash)
 codecov:
