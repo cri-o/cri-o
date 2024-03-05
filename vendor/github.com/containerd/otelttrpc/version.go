@@ -30,7 +30,7 @@
    limitations under the License.
 */
 
-package otelttrpc // import "github.com/containerd/otelttrpc"
+package otelttrpc
 
 // Version is the current release version of the ttRPC instrumentation.
 func Version() string {

@@ -30,7 +30,7 @@
    limitations under the License.
 */
 
-package otelttrpc // import "github.com/containerd/otelttrpc"
+package otelttrpc
 
 import (
 	"context"

@@ -30,7 +30,7 @@
    limitations under the License.
 */
 
-package internal // import "github.com/containerd/ttrpc/otelttrpc"
+package internal
 
 import (
 	"strings"
