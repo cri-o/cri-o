@@ -6,6 +6,8 @@ package seccomp
 import (
 	"context"
 
+	"github.com/containers/common/pkg/seccomp"
+	imagetypes "github.com/containers/image/v5/types"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -33,9 +35,10 @@ func New() *Config {
 // Setup can be used to setup the seccomp profile.
 func (c *Config) Setup(
 	ctx context.Context,
+	sys *imagetypes.SystemContext,
 	msgChan chan Notification,
-	containerID string,
-	annotations map[string]string,
+	containerID, containerName string,
+	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
 ) (*Notifier, string, error) {
@@ -101,4 +104,16 @@ func (*Notification) ContainerID() string {
 
 func (*Notification) Syscall() string {
 	return ""
+}
+
+func (c *Config) IsDisabled() bool {
+	return true
+}
+
+// Profile returns the currently loaded seccomp profile
+func (c *Config) Profile() *seccomp.Seccomp {
+	return nil
+}
+func DefaultProfile() *seccomp.Seccomp {
+	return nil
 }
