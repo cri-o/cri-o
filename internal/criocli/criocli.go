@@ -8,6 +8,7 @@ import (
 
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 )
@@ -128,8 +129,18 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			runtimeType := libconfig.DefaultRuntimeType
 			privilegedWithoutHostDevices := false
 			runtimeConfigPath := ""
+			var (
+				containerMinMemory int64
+				err                error
+			)
 
 			switch len(fields) {
+			case 7:
+				containerMinMemory, err = units.RAMInBytes(fields[6])
+				if err != nil {
+					return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", fields[6], err)
+				}
+				fallthrough
 			case 6:
 				runtimeConfigPath = fields[5]
 				fallthrough
@@ -148,9 +159,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					RuntimeType:                  runtimeType,
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
 					RuntimeConfigPath:            runtimeConfigPath,
+					ContainerMinMemory:           units.BytesSize(float64(containerMinMemory)),
 				}
 			default:
-				return fmt.Errorf("wrong format for --runtimes: %q", r)
+				return fmt.Errorf("invalid format for --runtimes: %q", r)
 			}
 		}
 	}
@@ -638,7 +650,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.StringSliceFlag{
 			Name:    "runtimes",
-			Usage:   "OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path'.",
+			Usage:   "OCI runtimes, format is 'runtime_name:runtime_path:runtime_root:runtime_type:privileged_without_host_devices:runtime_config_path:container_min_memory'.",
 			EnvVars: []string{"CONTAINER_RUNTIMES"},
 		},
 		&cli.StringFlag{

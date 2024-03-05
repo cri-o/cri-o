@@ -26,7 +26,7 @@ var _ = t.Describe("Config", func() {
 
 	runtimeValidConfig := func() *config.Config {
 		sut.Runtimes["runc"] = &config.RuntimeHandler{
-			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType,
+			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType, ContainerMinMemory: "12MiB",
 		}
 		sut.PinnsPath = validFilePath
 		sut.NamespacesDir = os.TempDir()
@@ -294,6 +294,17 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should inherit default value if invalid runtime container minimum memory limit is set", func() {
+			// Given
+			sut.Runtimes["runc"].ContainerMinMemory = "123invalid"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on wrong invalid device specification", func() {

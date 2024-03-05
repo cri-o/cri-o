@@ -14,6 +14,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
@@ -186,6 +187,20 @@ func (r *Runtime) RuntimeType(runtimeHandler string) (string, error) {
 // Timezone returns the timezone configured inside the container.
 func (r *Runtime) Timezone() string {
 	return r.config.Timezone
+}
+
+// GetContainerMinMemory returns the minimum memory for a container
+// for a given runtime handler.
+func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
+	if err != nil {
+		return int64(0), err
+	}
+	// We can skip error checking since the value was checked
+	// at the time of initializing the runtime handlers features.
+	value, _ := units.RAMInBytes(rh.ContainerMinMemory) //nolint: errcheck
+
+	return value, nil
 }
 
 // RuntimeSupportsIDMap returns whether the runtime of runtimeHandler supports the "runtime features"
