@@ -1,16 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 05 Mar 2024 07:59:51 UTC for commit [8fa4e6b][0]._
+_Generated on Tue, 05 Mar 2024 10:58:48 UTC for commit [0f7786a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8fa4e6b92b60de38966e8e43c87165da3d000551
+[0]: https://github.com/cri-o/cri-o/commit/0f7786ab6b671828dc57d4c16b42dff1f32ec3cf
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
-| github.com/containerd/otelttrpc                                             | v0.0.0-20240115065405-5909713624e1            | v0.0.0-20240305015340-ea5083fda723 | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240305013922-628f57aca0dd | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240305093004-b761a80bd1aa | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.16.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -344,7 +343,7 @@ _Generated on Tue, 05 Mar 2024 07:59:51 UTC for commit [8fa4e6b][0]._
 | github.com/containerd/log                                                               | v0.1.0                                            |                                     | false  | true             |
 | github.com/containerd/nri                                                               | v0.6.0                                            |                                     | true   | true             |
 | github.com/containerd/nydus-snapshotter                                                 | v0.8.2                                            | v0.13.8                             | false  | true             |
-| github.com/containerd/otelttrpc                                                         | v0.0.0-20240115065405-5909713624e1                | v0.0.0-20240305015340-ea5083fda723  | true   | true             |
+| github.com/containerd/otelttrpc                                                         | v0.0.0-20240305015340-ea5083fda723                |                                     | true   | true             |
 | github.com/containerd/protobuild                                                        | v0.3.0                                            |                                     | false  | true             |
 | github.com/containerd/stargz-snapshotter                                                | v0.14.3                                           | v0.15.1                             | false  | true             |
 | github.com/containerd/stargz-snapshotter/estargz                                        | v0.15.1                                           |                                     | false  | true             |
@@ -582,7 +581,7 @@ _Generated on Tue, 05 Mar 2024 07:59:51 UTC for commit [8fa4e6b][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240305013922-628f57aca0dd  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240305093004-b761a80bd1aa  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
