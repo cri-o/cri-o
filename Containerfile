@@ -27,7 +27,8 @@ RUN dnf update -y && \
         btrfs-progs-devel \
         python3 \
         socat \
-        iptables \
+        nftables \
+        iptables-nft \
         net-tools \
         procps \
         wget \
@@ -37,8 +38,8 @@ WORKDIR /root
 
 RUN mkdir -p /root/go && \
         mkdir -p /opt/cni/bin && \
-        wget https://go.dev/dl/go1.21.3.linux-arm64.tar.gz && \
-        rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.3.linux-arm64.tar.gz && \
+        wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz && \
+        rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz && \
         echo "export PATH=/usr/local/go/bin:$PATH" >> /root/.bashrc && \
         echo "export GOPATH=/root/go" >> /root/.bashrc && \
         echo "for i in \$(ls /usr/libexec/cni/);do if [ ! -f /opt/cni/bin/\$i ]; then ln -s /usr/libexec/cni/\$i /opt/cni/bin/\$i; fi done" >> /root/.bashrc

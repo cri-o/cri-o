@@ -1,13 +1,204 @@
-package container
+package container_test
 
 import (
-	"context"
-	"testing"
-
+	"github.com/cri-o/cri-o/internal/factory/container"
 	sconfig "github.com/cri-o/cri-o/pkg/config"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
+var _ = t.Describe("Container", func() {
+	//var containerConfig *types.ContainerConfig
+	//var sboxConfig *types.PodSandboxConfig
+	var serverConfig *sconfig.Config
+	var actualMount *rspec.Mount
+	var expectedMount *rspec.Mount
+	BeforeEach(func() {
+		// setup mountInfo
+		c := container.GetContainerInfo(sut)
+		c.NewMountInfo()
+
+		// Setup configs
+		serverConfig = &sconfig.Config{}
+		serverConfig.RuntimeConfig.BindMountPrefix = ""
+		serverConfig.Root = ""
+		serverConfig.AbsentMountSourcesToReject = nil
+		/*
+			containerConfig = &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+			}
+			sboxConfig = &types.PodSandboxConfig{}*/
+	})
+	AfterEach(func() {
+		c := container.GetContainerInfo(sut)
+		c.ClearMountInfo()
+	})
+	t.Describe("Test setupReadOnlyMounts", func() {
+		expectedMount = &rspec.Mount{
+			Destination: "",
+			Type:        "tmpfs",
+			Source:      "tmpfs",
+			Options:     []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"},
+		}
+		container.GetContainerInfo(sut).SetupReadOnlyMounts(true)
+		It("should match the expected results /run", func() {
+			destination := "/run"
+			mode := "mode=0755"
+			expectedMount.Destination = destination
+			expectedMount.Options = append(expectedMount.Options, mode)
+			actualMount = getMount(destination)
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should match the expected results /tmp", func() {
+			destination := "/tmp"
+			mode := "mode=1777"
+			expectedMount.Destination = destination
+			expectedMount.Options = append(expectedMount.Options, mode)
+			actualMount = getMount(destination)
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should match the expected results /var/tmp", func() {
+			destination := "/var/tmp"
+			mode := "mode=1777"
+			expectedMount.Destination = destination
+			expectedMount.Options = append(expectedMount.Options, mode)
+			actualMount = getMount(destination)
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+	})
+	t.Describe("Test setupHostNetworkMounts", func() {
+		optionsRW := []string{"rw"}
+		container.GetContainerInfo(sut).SetupHostNetworkMounts(true, optionsRW)
+		It("should match the expected results /sys", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/sys",
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+			}
+			actualMount = getMount("/sys")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should match the expected results /sys/fs/cgroup", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+			}
+			actualMount = getMount("/sys/fs/cgroup")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should match the expected results /etc/hosts", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/etc/hosts",
+				Type:        "bind",
+				Source:      "/etc/hosts",
+				Options:     append(optionsRW, "bind"),
+			}
+			actualMount = getMount("/etc/hosts")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+	})
+	Describe("Test setupPrivilegedMounts", func() {
+		container.GetContainerInfo(sut).SetupPrivilegedMounts()
+		It("should match the expected result /sys", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/sys",
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
+			}
+			actualMount = getMount("/sys")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should match the expected result /sys", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
+			}
+			actualMount = getMount("/sys/fs/cgroup")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should not match the expected result /sys", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/sys/fs/cgroup",
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
+			}
+			actualMount = getMount("/sys/fs/cgroup")
+			Expect(expectedMount).ToNot(Equal(actualMount))
+		})
+	})
+	Describe("Test setupShmMounts", func() {
+		container.GetContainerInfo(sut).SetupShmMounts("/root/shm")
+		It("should match the expected result", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/dev/shm",
+				Type:        "bind",
+				Source:      "/root/shm",
+				Options:     []string{"rw", "bind"},
+			}
+			actualMount = getMount("/dev/shm")
+			Expect(expectedMount).To(Equal(actualMount))
+		})
+		It("should not match the expected result", func() {
+			expectedMount = &rspec.Mount{
+				Destination: "/dev/shm",
+				Type:        "bind",
+				Source:      "/root/shm",
+				Options:     []string{"ro", "bind"},
+			}
+			actualMount = getMount("/dev/shm")
+			Expect(expectedMount).ToNot(Equal(actualMount))
+		})
+	})
+	Describe("Test setupHostPropMounts", func() {
+		propMounts := []*rspec.Mount{
+			&rspec.Mount{
+				Destination: "/etc/resolv.conf",
+				Type:        "bind",
+				Source:      "/test/resolv.conf",
+				Options:     []string{"bind", "nodev", "nosuid", "noexec", "rw"},
+			},
+			&rspec.Mount{
+				Destination: "/etc/hostname",
+				Type:        "bind",
+				Source:      "/test/hostname",
+				Options:     []string{"bind", "rw"},
+			},
+			&rspec.Mount{
+				Destination: "/run/.containerenv",
+				Type:        "bind",
+				Source:      "/test/env",
+				Options:     []string{"bind", "rw"},
+			},
+		}
+		optionsRW := []string{"rw"}
+		container.GetContainerInfo(sut).SetupHostPropMounts("/test/resolv.conf", "/test/hostname", "/test/env", "", optionsRW)
+		It("should match the expected results", func() {
+			for _, expectedMount = range propMounts {
+				actualMount = getMount(expectedMount.Destination)
+				Expect(actualMount).To(Equal(expectedMount))
+			}
+		})
+	})
+})
+
+func getMount(dst string) *rspec.Mount {
+	for _, mount := range sut.Spec().Mounts() {
+		if mount.Destination == dst {
+			return &mount
+		}
+	}
+	return nil
+}
+
+/*
 func TestAddOCIBindsForDev(t *testing.T) {
 	ctr, err := New()
 	c := ctr.getContainerInfo()
@@ -222,3 +413,4 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 		t.Errorf("%v", err)
 	}
 }
+*/

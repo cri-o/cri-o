@@ -20,19 +20,6 @@ type mountInfo struct {
 	mounts    map[string]*rspec.Mount
 }
 
-func newMountInfo() *mountInfo {
-	return &mountInfo{
-		criMounts: make(map[string]*rspec.Mount),
-		mounts:    make(map[string]*rspec.Mount),
-	}
-}
-
-func clearMountInfo(c *container) {
-	c.mountInfo.criMounts = nil
-	c.mountInfo.mounts = nil
-	c.mountInfo = nil
-}
-
 type orderedMounts []*rspec.Mount
 
 // Len returns the number of mounts. Used in sorting.
@@ -234,4 +221,17 @@ func specAddMounts(c *container) {
 	for _, m := range allmounts {
 		c.spec.AddMount(*m)
 	}
+}
+
+func newMountInfo() *mountInfo {
+	return &mountInfo{
+		criMounts: make(map[string]*rspec.Mount),
+		mounts:    make(map[string]*rspec.Mount),
+	}
+}
+
+func clearMountInfo(c *container) {
+	c.mountInfo.criMounts = nil
+	c.mountInfo.mounts = nil
+	c.mountInfo = nil
 }

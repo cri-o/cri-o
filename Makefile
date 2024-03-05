@@ -395,6 +395,12 @@ mock-ociartifact-types: ${MOCKGEN}
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/config/ociartifact Impl
 
+mock-securitylabel: ${MOCKGEN}
+	${BUILD_BIN_PATH}/mockgen \
+		-package container \
+		-destination ${MOCK_PATH}/container/label_linux.go \
+		github.com/cri-o/cri-o/internal/factory/container/label Impl
+
 codecov: SHELL := $(shell which bash)
 codecov:
 	bash <(curl -s https://codecov.io/bash) -f ${COVERAGE_PATH}/coverprofile

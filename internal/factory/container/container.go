@@ -134,9 +134,6 @@ type Container interface {
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
-
-	// Return container info
-	getContainerInfo() *container
 }
 
 // container is the hidden default type behind the Container interface
@@ -164,25 +161,22 @@ func New() (Container, error) {
 	}, nil
 }
 
-func (c *container) getContainerInfo() *container {
-	return c
-}
-
 // SpecAddPreOCIMounts add mounts to the spec before creating ocicontainer
 func (c *container) SpecAddPreOCIMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	// Create temp mountInfo
 	c.mountInfo = newMountInfo()
 
-	//Setup mounts
+	// Clear temp mountInfo
+	defer clearMountInfo(c)
+
+	// Setup mounts
 	containerVolumes, secretMounts, err := c.setupMounts(ctx, resourceStore, serverConfig, sb, containerInfo, mountPoint, idMapSupport)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Add mounts to the specgen
 	specAddMounts(c)
-
-	// Clear temp mountInfo
-	clearMountInfo(c)
 
 	return containerVolumes, secretMounts, nil
 }

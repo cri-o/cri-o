@@ -52,13 +52,13 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 	ctr.setupReadOnlyMounts(readOnlyRootfs)
 
 	// If the sandbox is configured to run in the host network, do not create a new network namespace
-	ctr.setupHostNetworkMounts(sb, options)
+	ctr.setupHostNetworkMounts(sb.HostNetwork(), options)
 
 	// Setup Privileged mounts
 	ctr.setupPrivilegedMounts()
 
 	// Setup Shared Memory mounts
-	ctr.setupShmMounts(sb)
+	ctr.setupShmMounts(sb.ShmPath())
 
 	// Setup Host Properties like hostname, env, dns
 	if err := ctr.setupHostPropMounts(sb, containerInfo.MountLabel, options); err != nil {
@@ -74,7 +74,7 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 	}
 
 	// Add secrets from the default and override mounts.conf files
-	secretMounts := ctr.setupSecretMounts(serverConfig, containerInfo, mountPoint)
+	secretMounts := ctr.setupSecretMounts(serverConfig.DefaultMountsFile, containerInfo, mountPoint)
 
 	// Add OCI mounts
 	ctr.setupOCIMounts()
@@ -88,8 +88,8 @@ func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcest
 	return containerVolumes, secretMounts, nil
 }
 
-func (ctr *container) setupHostNetworkMounts(sb *sandbox.Sandbox, options []string) {
-	if sb.HostNetwork() {
+func (ctr *container) setupHostNetworkMounts(hostNetwork bool, options []string) {
+	if hostNetwork {
 		if !ctr.isInCRIMounts("/sys") {
 			ctr.addMount(&rspec.Mount{
 				Destination: "/sys",
@@ -158,11 +158,11 @@ func (ctr *container) setupReadOnlyMounts(readOnly bool) {
 	}
 }
 
-func (ctr *container) setupShmMounts(sb *sandbox.Sandbox) {
+func (ctr *container) setupShmMounts(shmPath string) {
 	ctr.addMount(&rspec.Mount{
 		Destination: "/dev/shm",
 		Type:        "bind",
-		Source:      sb.ShmPath(),
+		Source:      shmPath,
 		Options:     []string{"rw", "bind"},
 	})
 }
@@ -172,8 +172,8 @@ func (ctr *container) addHostPropMounts(mount *rspec.Mount, mountLabel string) e
 		if err := SecurityLabel(mount.Source, mountLabel, false, false); err != nil {
 			return err
 		}
+		ctr.addMount(mount)
 	}
-	ctr.addMount(mount)
 	return nil
 }
 
@@ -268,11 +268,11 @@ func (ctr *container) addImageVolumes(ctx context.Context, rootfs string, server
 	return nil
 }
 
-func (ctr *container) setupSecretMounts(serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, mountPoint string) []rspec.Mount {
+func (ctr *container) setupSecretMounts(defaultMountsFile string, containerInfo storage.ContainerInfo, mountPoint string) []rspec.Mount {
 	secretMounts := subscriptions.MountsWithUIDGID(
 		containerInfo.MountLabel,
 		containerInfo.RunDir,
-		serverConfig.DefaultMountsFile,
+		defaultMountsFile,
 		mountPoint,
 		0,
 		0,
