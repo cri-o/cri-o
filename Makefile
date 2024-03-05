@@ -67,7 +67,7 @@ GOSEC := ${BUILD_BIN_PATH}/gosec
 GOSEC_VERSION := 2.18.2
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
-ZEITGEIST_VERSION := v0.4.1
+ZEITGEIST_VERSION := v0.4.4
 RELEASE_NOTES_VERSION := v0.16.5
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.7.0
@@ -264,7 +264,7 @@ $(SHFMT): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
 
 $(ZEITGEIST): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist_$(ZEITGEIST_VERSION:v%=%)_linux_amd64,$(BUILD_BIN_PATH)/zeitgeist)
+	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist-amd64-linux,$(BUILD_BIN_PATH)/zeitgeist)
 
 $(MOCKGEN): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_$(GO_ARCH).tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)

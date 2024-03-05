@@ -76,7 +76,7 @@ dependencies:
       match: version
 
   - name: zeitgeist
-    version: 0.4.1
+    version: 0.4.4
     refPaths:
       - path: Makefile
         match: ZEITGEIST_VERSION
