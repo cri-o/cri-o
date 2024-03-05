@@ -209,7 +209,7 @@ github.com/containerd/nri/pkg/net
 github.com/containerd/nri/pkg/net/multiplex
 github.com/containerd/nri/pkg/runtime-tools/generate
 github.com/containerd/nri/pkg/stub
-# github.com/containerd/otelttrpc v0.0.0-20240115065405-5909713624e1
+# github.com/containerd/otelttrpc v0.0.0-20240305015340-ea5083fda723
 ## explicit; go 1.13
 github.com/containerd/otelttrpc
 github.com/containerd/otelttrpc/internal

@@ -845,8 +845,8 @@ github.com/containerd/nri v0.0.0-20210316161719-dbaa18c31c14/go.mod h1:lmxnXF6oM
 github.com/containerd/nri v0.1.0/go.mod h1:lmxnXF6oMkbqs39FiCt1s0R2HSMhcLel9vNL3m4AaeY=
 github.com/containerd/nri v0.6.0 h1:hdztxwL0gCS1CrCa9bvD1SoJiFN4jBuRQhplCvCPMj8=
 github.com/containerd/nri v0.6.0/go.mod h1:F7OZfO4QTPqw5r87aq+syZJwiVvRYLIlHZiZDBV1W3A=
-github.com/containerd/otelttrpc v0.0.0-20240115065405-5909713624e1 h1:DzBGiha+Gvc0INnf4Z2WztM2VSATX7PAJpSdsFEVd6o=
-github.com/containerd/otelttrpc v0.0.0-20240115065405-5909713624e1/go.mod h1:ZKzztepTSz/LKtbUSzfBNVwgqBEPABVZV9PQF/l53+Q=
+github.com/containerd/otelttrpc v0.0.0-20240305015340-ea5083fda723 h1:swk9KxrmARZjSMrHc1Lzb39XhcDwAhYpqkBhinCFLCQ=
+github.com/containerd/otelttrpc v0.0.0-20240305015340-ea5083fda723/go.mod h1:ZKzztepTSz/LKtbUSzfBNVwgqBEPABVZV9PQF/l53+Q=
 github.com/containerd/stargz-snapshotter/estargz v0.4.1/go.mod h1:x7Q9dg9QYb4+ELgxmo4gBUeJB0tl5dqH1Sdz0nJU1QM=
 github.com/containerd/stargz-snapshotter/estargz v0.12.0/go.mod h1:AIQ59TewBFJ4GOPEQXujcrJ/EKxh5xXZegW1rkR1P/M=
 github.com/containerd/stargz-snapshotter/estargz v0.15.1 h1:eXJjw9RbkLFgioVaTG+G/ZW/0kEe2oEKCdS/ZxIyoCU=
