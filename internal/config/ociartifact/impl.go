@@ -3,6 +3,7 @@ package ociartifact
 import (
 	"context"
 	"io"
+	"os"
 
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -21,6 +22,11 @@ type Impl interface {
 	LayerInfos(manifest.Manifest) []manifest.LayerInfo
 	GetBlob(context.Context, types.ImageSource, types.BlobInfo, types.BlobInfoCache) (io.ReadCloser, int64, error)
 	ReadAll(io.Reader) ([]byte, error)
+	MkdirAll(string, os.FileMode) error
+	ReadDir(string) ([]os.DirEntry, error)
+	ReadFile(string) ([]byte, error)
+	RemoveAll(string) error
+	WriteFile(string, []byte, os.FileMode) error
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.
@@ -61,4 +67,24 @@ func (*defaultImpl) GetBlob(ctx context.Context, src types.ImageSource, bi types
 
 func (*defaultImpl) ReadAll(r io.Reader) ([]byte, error) {
 	return io.ReadAll(r)
+}
+
+func (*defaultImpl) MkdirAll(path string, perm os.FileMode) error {
+	return os.MkdirAll(path, perm)
+}
+
+func (*defaultImpl) ReadDir(name string) ([]os.DirEntry, error) {
+	return os.ReadDir(name)
+}
+
+func (*defaultImpl) ReadFile(name string) ([]byte, error) {
+	return os.ReadFile(name)
+}
+
+func (*defaultImpl) RemoveAll(path string) error {
+	return os.RemoveAll(path)
+}
+
+func (*defaultImpl) WriteFile(name string, data []byte, perm os.FileMode) error {
+	return os.WriteFile(name, data, perm)
 }

@@ -69,6 +69,7 @@ func (s *SeccompOCIArtifact) TryPull(
 	pullOptions := &ociartifact.PullOptions{
 		SystemContext:          sys,
 		EnforceConfigMediaType: requiredConfigMediaType,
+		CachePath:              "/var/lib/crio/seccomp-oci-artifacts",
 	}
 	artifact, err := s.impl.Pull(ctx, profileRef, pullOptions)
 	if err != nil {
