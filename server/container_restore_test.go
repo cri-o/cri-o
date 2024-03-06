@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"sync"
 
 	"github.com/containers/podman/v4/pkg/criu"
 	"github.com/containers/storage/pkg/archive"
@@ -547,6 +548,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				mockutils.InOrder(
 					imageLookup,
 
+					imageServerMock.EXPECT().ImageRemovalLock(gomock.Any()).Return(&sync.RWMutex{}),
 					runtimeServerMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
 						gomock.Any(), gomock.Any(), imageID, gomock.Any(),
 						gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
