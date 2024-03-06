@@ -7,6 +7,7 @@ package criostoragemock
 import (
 	context "context"
 	reflect "reflect"
+	sync "sync"
 
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
@@ -94,6 +95,20 @@ func (m *MockImageServer) HeuristicallyTryResolvingStringAsIDPrefix(arg0 string)
 func (mr *MockImageServerMockRecorder) HeuristicallyTryResolvingStringAsIDPrefix(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HeuristicallyTryResolvingStringAsIDPrefix", reflect.TypeOf((*MockImageServer)(nil).HeuristicallyTryResolvingStringAsIDPrefix), arg0)
+}
+
+// ImageRemovalLock mocks base method.
+func (m *MockImageServer) ImageRemovalLock(arg0 storage0.StorageImageID) *sync.RWMutex {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageRemovalLock", arg0)
+	ret0, _ := ret[0].(*sync.RWMutex)
+	return ret0
+}
+
+// ImageRemovalLock indicates an expected call of ImageRemovalLock.
+func (mr *MockImageServerMockRecorder) ImageRemovalLock(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageRemovalLock", reflect.TypeOf((*MockImageServer)(nil).ImageRemovalLock), arg0)
 }
 
 // ImageStatusByID mocks base method.
@@ -236,18 +251,18 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(arg0, arg1, arg2, arg3,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2 string, arg3 references.RegistryImageReference, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(arg0 *types.SystemContext, arg1, arg2 string, arg3 references.RegistryImageReference, arg4, arg5, arg6, arg7, arg8 string, arg9 uint32, arg10 *types0.IDMappingOptions, arg11 []string, arg12 bool, arg13 storage0.ImageServer) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
+	ret := m.ctrl.Call(m, "CreatePodSandbox", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreatePodSandbox indicates an expected call of CreatePodSandbox.
-func (mr *MockRuntimeServerMockRecorder) CreatePodSandbox(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12 interface{}) *gomock.Call {
+func (mr *MockRuntimeServerMockRecorder) CreatePodSandbox(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodSandbox", reflect.TypeOf((*MockRuntimeServer)(nil).CreatePodSandbox), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePodSandbox", reflect.TypeOf((*MockRuntimeServer)(nil).CreatePodSandbox), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11, arg12, arg13)
 }
 
 // DeleteContainer mocks base method.
