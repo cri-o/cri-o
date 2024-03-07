@@ -73,3 +73,4 @@ kata_skip_ctr_tests:
   - 'test "annotations passed through"'
   - 'test "ctr with default_env set in configuration"'
   - 'test "ctr with absent mount that should be rejected"'
+  - 'test "ctr stop loop kill retry attempts"'
