@@ -1122,3 +1122,67 @@ function check_oci_annotation() {
 	[ ! -f "$mounted_log_path" ]
 	[ ! -f "$linked_log_path" ]
 }
+
+@test "ctr stop loop kill retry attempts" {
+	FAKE_RUNTIME_BINARY_PATH="$TESTDIR"/fake
+	FAKE_RUNTIME_ATTEMPTS_LOG="$TESTDIR"/fake.log
+
+	# Both values should be adjusted to match the current
+	# exponential backoff configuration of the container
+	# stop loop retry logic.
+	FAKE_RUNTIME_ATTEMPTS_LIMIT=10
+	FAKE_RUNTIME_ATTEMPTS_TIME_DURATION=30 # Seconds.
+
+	cat << EOF > "$FAKE_RUNTIME_BINARY_PATH"
+#!/usr/bin/env bash
+set -eo pipefail
+[[ \$* == *kill* ]] && {
+  attempts=\$(wc -l $FAKE_RUNTIME_ATTEMPTS_LOG || echo 0) ;
+  date +'%s' >> $FAKE_RUNTIME_ATTEMPTS_LOG ;
+  (( \${attempts%% *} > $FAKE_RUNTIME_ATTEMPTS_LIMIT )) || exit 0 ;
+}
+exec $RUNTIME_BINARY_PATH "\$@"
+EOF
+
+	cat << EOF > "$CRIO_CONFIG_DIR"/99-fake-runtime.conf
+[crio.runtime]
+default_runtime = "fake"
+[crio.runtime.runtimes.fake]
+runtime_path = "$FAKE_RUNTIME_BINARY_PATH"
+EOF
+	chmod 755 "$FAKE_RUNTIME_BINARY_PATH"
+
+	start_crio
+
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+
+	crictl start "$ctr_id"
+	crictl stopp "$pod_id"
+	crictl rmp "$pod_id"
+
+	grep -q "Stopping container ${ctr_id} with stop signal timed out." "$CRIO_LOG"
+
+	readarray -t attempts < "$FAKE_RUNTIME_ATTEMPTS_LOG"
+
+	if ((${#attempts[@]} < FAKE_RUNTIME_ATTEMPTS_LIMIT)); then
+		echo "Container stop loop should have at least ${FAKE_RUNTIME_ATTEMPTS_LIMIT} kill attempts" >&3
+		return 1
+	fi
+
+	# The exponential backoff is not working if there are too many retry attempts.
+	if ((${#attempts[@]} > 100)); then
+		echo "Container stop loop has too many kill attempts" >&3
+		return 1
+	fi
+
+	# The test should run long enough to retry over 10 times, where the first
+	# and the last timestamp of when the kill command was invoked will be
+	# about a minute apart. As such, 30 seconds should be the minimum.
+	if ((${attempts[${#attempts[@]} - 1]} - attempts[0] < FAKE_RUNTIME_ATTEMPTS_TIME_DURATION)); then
+		echo "Container stop loop kill retry attempts should be at least 30 seconds apart" >&3
+		return 1
+	fi
+
+	run ! crictl inspect "$ctr_id"
+}
