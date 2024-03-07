@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,11 +32,19 @@ import (
 
 const (
 	defaultStopSignalInt = 15
-	// the following values can be verified here: https://man7.org/linux/man-pages/man5/proc.5.html
-	// the 22nd field is the process starttime
-	statStartTimeLocation = 22
-	// The 2nd field is the command, wrapped by ()
-	statCommField = 2
+
+	procStatFile = "/proc/%d/stat"
+
+	// Fields from the /proc/<PID>/stat file. see:
+	//   https://man7.org/linux/man-pages/man5/proc.5.html
+	//
+	// Field no. 3, the process state, such as "R", "S", "D", etc.
+	// Field no. 22, the process start time, using clock ticks since the system boot.
+	//
+	// The index values are shifted three fields to the left
+	// with the process name field skipped over during parsing.
+	stateFieldIndex     = 0
+	startTimeFieldIndex = 19
 )
 
 var (
@@ -325,12 +334,12 @@ func (c *Container) CleanupConmonCgroup(ctx context.Context) {
 	}
 }
 
-// SetSeccompProfilePath sets the seccomp profile path
+// SetSeccompProfilePath sets the seccomp profile path.
 func (c *Container) SetSeccompProfilePath(pp string) {
 	c.seccompProfilePath = pp
 }
 
-// SeccompProfilePath returns the seccomp profile path
+// SeccompProfilePath returns the seccomp profile path.
 func (c *Container) SeccompProfilePath() string {
 	return c.seccompProfilePath
 }
@@ -483,13 +492,28 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
-// Living is a function that checks if a container's init PID exists.
-// It is used to check a container state when we don't want a `$runtime state` call
+// Living checks if a container's init PID exists and it's running, without calling
+// a given runtime directly to check the state, which is expensive.
 func (c *Container) Living() error {
-	if _, err := c.pid(); err != nil {
+	_, _, err := c.pid()
+	if err != nil {
 		return fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
 	}
+
 	return nil
+}
+
+// ProcessState checks if a container's init PID exists and it's running without
+// calling a given runtime directly to check the state, which is expensive, and
+// additionally returns the current state of the init process as reported by the
+// operating system.
+func (c *Container) ProcessState() (string, error) {
+	_, state, err := c.pid()
+	if err != nil {
+		return "", fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
+	}
+
+	return state, nil
 }
 
 // Pid returns the container's init PID.
@@ -497,89 +521,119 @@ func (c *Container) Living() error {
 func (c *Container) Pid() (int, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return c.pid()
+
+	pid, _, err := c.pid()
+
+	return pid, err
 }
 
 // pid returns the container's init PID.
 // It checks that we have an InitPid defined in the state, that PID can be found
 // and it is the same process that was originally started by the runtime.
-func (c *Container) pid() (int, error) {
+func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unnamedResult false positive.
 	if c.state == nil {
-		return 0, ErrNotInitialized
+		return 0, "", ErrNotInitialized
 	}
 	if c.state.InitPid <= 0 {
-		return 0, ErrNotInitialized
+		return 0, "", ErrNotInitialized
 	}
 
 	// container has stopped (as pid is initialized but the runc state has overwritten it)
 	if c.state.Pid == 0 {
-		return 0, ErrNotFound
+		return 0, "", ErrNotFound
 	}
 
-	if err := c.verifyPid(); err != nil {
-		return 0, err
+	if err := unix.Kill(c.state.InitPid, 0); err != nil {
+		if errors.Is(err, unix.ESRCH) {
+			return 0, "", ErrNotFound
+		}
+		return 0, "", fmt.Errorf("error checking if process %d is running: %w", c.state.InitPid, err)
 	}
-	if err := unix.Kill(c.state.InitPid, 0); err == unix.ESRCH {
-		return 0, fmt.Errorf("check whether %d is running: %w", c.state.InitPid, err)
+
+	state, err := c.verifyPid()
+	if err != nil {
+		return 0, "", err
 	}
-	return c.state.InitPid, nil
+
+	// Should the process be terminated or become defunct (zombie), runtimes such as
+	// runc and crun will also treat processes as already terminated. As such, CRI-O
+	// should do the same, rather than keep requesting a given runtime to kill the
+	// container senselessly.
+	//
+	// Note: Not every platform offers the process state or makes it readily available.
+	if state == "X" || state == "Z" {
+		return 0, "", ErrNotFound
+	}
+
+	return c.state.InitPid, state, nil
 }
 
 // verifyPid checks that the start time for the process on the node is the same
 // as the start time we saved after creating the container.
 // This is the simplest way to verify we are operating on the container
 // process, and haven't run into PID wrap.
-func (c *Container) verifyPid() error {
-	startTime, err := getPidStartTime(c.state.InitPid)
+func (c *Container) verifyPid() (string, error) {
+	state, startTime, err := getPidStatData(c.state.InitPid)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if startTime != c.state.InitStartTime {
-		return fmt.Errorf(
+	if c.state.InitStartTime != startTime {
+		return "", fmt.Errorf(
 			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
 			c.state.InitPid, startTime, c.state.InitStartTime,
 		)
 	}
-	return nil
+
+	return state, nil
 }
 
-// getPidStartTime reads the kernel's /proc entry for stime for PID.
-// inspiration for this function came from https://github.com/containers/psgo/blob/master/internal/proc/stat.go
-// some credit goes to the psgo authors
-func getPidStartTime(pid int) (string, error) {
-	return GetPidStartTimeFromFile(fmt.Sprintf("/proc/%d/stat", pid))
-}
-
-// GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
-// It is abstracted out to allow for unit testing
+// GetPidStartTimeFromFile reads a file as if it were a /proc/<PID>/stat file,
+// looking for a process start time for a given PID. It is abstracted out to
+// allow for unit testing.
 func GetPidStartTimeFromFile(file string) (string, error) {
-	data, err := os.ReadFile(file)
+	_, startTime, err := getPidStatDataFromFile(file)
+	return startTime, err
+}
+
+// getPidStartTime returns the process start time for a given PID.
+func getPidStartTime(pid int) (string, error) {
+	_, startTime, err := getPidStatDataFromFile(fmt.Sprintf(procStatFile, pid))
+	return startTime, err
+}
+
+// getPidStatData returns the process state and start time for a given PID.
+func getPidStatData(pid int) (string, string, error) { //nolint:gocritic // Ignore unnamedResult.
+	return getPidStatDataFromFile(fmt.Sprintf(procStatFile, pid))
+}
+
+// getPidStatData parses the kernel's /proc/<PID>/stat file,
+// looking for the process state and start time for a given PID.
+func getPidStatDataFromFile(file string) (string, string, error) { //nolint:gocritic // Ignore unnamedResult.
+	f, err := os.Open(file)
 	if err != nil {
-		return "", fmt.Errorf("%v: %w", err, ErrNotFound)
+		return "", "", err
 	}
-	// The command (2nd field) can have spaces, but is wrapped in ()
-	// first, trim it
-	commEnd := bytes.LastIndexByte(data, ')')
-	if commEnd == -1 {
-		return "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
+	defer f.Close()
+
+	data, err := io.ReadAll(io.LimitReader(f, 4096))
+	if err != nil {
+		return "", "", err
 	}
 
-	// start on the space after the command
-	iter := commEnd + 1
-	// for the number of fields between command and stime, trim the beginning word
-	for field := 0; field < statStartTimeLocation-statCommField; field++ {
-		// trim from the beginning to the character after the last space
-		data = data[iter+1:]
-		// find the next space
-		iter = bytes.IndexByte(data, ' ')
-		if iter == -1 {
-			return "", fmt.Errorf("invalid number of entries found in stat file %s: %d: %w", file, field-1, ErrNotFound)
-		}
+	bracket := bytes.LastIndexByte(data, ')')
+	if bracket < 0 {
+		return "", "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
 	}
 
-	// and return the startTime (not including the following space)
-	return string(data[:iter]), nil
+	// Skip the process name and the white space after the right bracket.
+	statFields := bytes.Fields(data[bracket+2:])
+
+	if len(statFields) < startTimeFieldIndex+1 {
+		return "", "", fmt.Errorf("unable to parse malformed stat file: %w", ErrNotFound)
+	}
+
+	return string(statFields[stateFieldIndex]), string(statFields[startTimeFieldIndex]), nil
 }
 
 // ShouldBeStopped checks whether the container state is in a place
@@ -641,7 +695,6 @@ func (c *Container) SetAsDoneStopping() {
 		close(watcher)
 	}
 	c.stopWatchers = make([]chan struct{}, 0)
-	c.stopping = false
 	close(c.stopTimeoutChan)
 	c.stopLock.Unlock()
 }
