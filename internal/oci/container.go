@@ -28,14 +28,7 @@ import (
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
-const (
-	defaultStopSignalInt = 15
-	// the following values can be verified here: https://man7.org/linux/man-pages/man5/proc.5.html
-	// the 22nd field is the process starttime
-	statStartTimeLocation = 22
-	// The 2nd field is the command, wrapped by ()
-	statCommField = 2
-)
+const defaultStopSignalInt = 15
 
 var (
 	ErrContainerStopped = errors.New("container is already stopped")
@@ -486,13 +479,28 @@ func (c *Container) exitFilePath() string {
 	return filepath.Join(c.dir, "exit")
 }
 
-// Living is a function that checks if a container's init PID exists.
-// It is used to check a container state when we don't want a `$runtime state` call
+// Living checks if a container's init PID exists and it's running, without calling
+// a given runtime directly to check the state, which is expensive.
 func (c *Container) Living() error {
-	if _, err := c.pid(); err != nil {
+	_, _, err := c.pid()
+	if err != nil {
 		return fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
 	}
+
 	return nil
+}
+
+// ProcessState checks if a container's init PID exists and it's running without
+// calling a given runtime directly to check the state, which is expensive, and
+// additionally returns the current state of the init process as reported by the
+// operating system.
+func (c *Container) ProcessState() (string, error) {
+	_, state, err := c.pid()
+	if err != nil {
+		return "", fmt.Errorf("checking if PID of %s is running failed: %w", c.ID(), err)
+	}
+
+	return state, nil
 }
 
 // Pid returns the container's init PID.
@@ -500,51 +508,71 @@ func (c *Container) Living() error {
 func (c *Container) Pid() (int, error) {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
-	return c.pid()
+
+	pid, _, err := c.pid()
+
+	return pid, err
 }
 
 // pid returns the container's init PID.
 // It checks that we have an InitPid defined in the state, that PID can be found
 // and it is the same process that was originally started by the runtime.
-func (c *Container) pid() (int, error) {
+func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unnamedResult false positive.
 	if c.state == nil {
-		return 0, ErrNotInitialized
+		return 0, "", ErrNotInitialized
 	}
 	if c.state.InitPid <= 0 {
-		return 0, ErrNotInitialized
+		return 0, "", ErrNotInitialized
 	}
 
 	// container has stopped (as pid is initialized but the runc state has overwritten it)
 	if c.state.Pid == 0 {
-		return 0, ErrNotFound
+		return 0, "", ErrNotFound
 	}
 
-	if err := c.verifyPid(); err != nil {
-		return 0, err
+	if err := unix.Kill(c.state.InitPid, 0); err != nil {
+		if errors.Is(err, unix.ESRCH) {
+			return 0, "", ErrNotFound
+		}
+		return 0, "", fmt.Errorf("error checking if process %d is running: %w", c.state.InitPid, err)
 	}
-	if err := unix.Kill(c.state.InitPid, 0); err == unix.ESRCH {
-		return 0, fmt.Errorf("check whether %d is running: %w", c.state.InitPid, err)
+
+	state, err := c.verifyPid()
+	if err != nil {
+		return 0, "", err
 	}
-	return c.state.InitPid, nil
+
+	// Should the process be terminated or become defunct (zombie), runtimes such as
+	// runc and crun will also treat processes as already terminated. As such, CRI-O
+	// should do the same, rather than keep requesting a given runtime to kill the
+	// container senselessly.
+	//
+	// Note: Not every platform offers the process state or makes it readily available.
+	if state == "X" || state == "Z" {
+		return 0, "", ErrNotFound
+	}
+
+	return c.state.InitPid, state, nil
 }
 
 // verifyPid checks that the start time for the process on the node is the same
 // as the start time we saved after creating the container.
 // This is the simplest way to verify we are operating on the container
 // process, and haven't run into PID wrap.
-func (c *Container) verifyPid() error {
-	startTime, err := getPidStartTime(c.state.InitPid)
+func (c *Container) verifyPid() (string, error) {
+	state, startTime, err := getPidStatData(c.state.InitPid)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	if startTime != c.state.InitStartTime {
-		return fmt.Errorf(
+	if c.state.InitStartTime != startTime {
+		return "", fmt.Errorf(
 			"PID %d is running but has start time of %s, whereas the saved start time is %s. PID wrap may have occurred",
 			c.state.InitPid, startTime, c.state.InitStartTime,
 		)
 	}
-	return nil
+
+	return state, nil
 }
 
 // ShouldBeStopped checks whether the container state is in a place
@@ -606,7 +634,6 @@ func (c *Container) SetAsDoneStopping() {
 		close(watcher)
 	}
 	c.stopWatchers = make([]chan struct{}, 0)
-	c.stopping = false
 	close(c.stopTimeoutChan)
 	c.stopLock.Unlock()
 }
