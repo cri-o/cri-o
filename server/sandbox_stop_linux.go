@@ -16,7 +16,7 @@ import (
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
-func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox, timeout int64) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	stopMutex := sb.StopMutex()
@@ -60,7 +60,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				}
 				c := ctr
 				waitGroup.Go(func() error {
-					if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+					if err := s.stopContainer(ctx, c, timeout); err != nil {
 						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
 					}
 					return nil
@@ -72,7 +72,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
-	if err := s.stopContainer(ctx, podInfraContainer, int64(10)); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
+	if err := s.stopContainer(ctx, podInfraContainer, timeout); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
 	}
 

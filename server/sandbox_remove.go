@@ -30,21 +30,21 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 		log.Warnf(ctx, "Could not get sandbox %s, it's probably been removed already: %v", req.PodSandboxId, err)
 		return &types.RemovePodSandboxResponse{}, nil
 	}
-	if err := s.removePodSandbox(ctx, sb); err != nil {
+	if err := s.removePodSandbox(ctx, sb, defaultRemovalTimeoutSec); err != nil {
 		return nil, err
 	}
 
 	return &types.RemovePodSandboxResponse{}, nil
 }
 
-func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
+func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox, timeout int64) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	containers := sb.Containers().List()
 
 	// Delete all the containers in the sandbox
 	for _, c := range containers {
-		if err := s.removeContainerInPod(ctx, sb, c); err != nil {
+		if err := s.removeContainerInPod(ctx, sb, c, timeout); err != nil {
 			return err
 		}
 	}
@@ -54,7 +54,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 	}
 
 	s.removeInfraContainer(ctx, sb.InfraContainer())
-	if err := s.removeContainerInPod(ctx, sb, sb.InfraContainer()); err != nil {
+	if err := s.removeContainerInPod(ctx, sb, sb.InfraContainer(), timeout); err != nil {
 		return err
 	}
 	if sb.InfraContainer().Spoofed() {

@@ -30,7 +30,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 
 	sb := s.getSandbox(ctx, c.Sandbox())
 
-	if err := s.removeContainerInPod(ctx, sb, c); err != nil {
+	if err := s.removeContainerInPod(ctx, sb, c, defaultRemovalTimeoutSec); err != nil {
 		return nil, err
 	}
 
@@ -41,11 +41,11 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	return &types.RemoveContainerResponse{}, nil
 }
 
-func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
+func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container, timeout int64) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	if !sb.Stopped() {
-		if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+		if err := s.stopContainer(ctx, c, timeout); err != nil {
 			return fmt.Errorf("failed to stop container for removal %w", err)
 		}
 	}
