@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
+_Generated on Fri, 08 Mar 2024 15:50:06 UTC for commit [937e5de][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3dec4ea4b539796aab31c1a7afb0ff815843645c
+[0]: https://github.com/cri-o/cri-o/commit/937e5de46d508f08416d91f8987e1ac624df8c3b
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.0                            | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240308014105-c73597c39d00 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240308150543-54e5ce2464ae | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.16.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -584,7 +584,7 @@ _Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240308014105-c73597c39d00  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240308150543-54e5ce2464ae  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -905,9 +905,9 @@ _Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
 | google.golang.org/api                                                                   | v0.152.0                                          | v0.169.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                            |                                     | false  | true             |
 | google.golang.org/cloud                                                                 | v0.0.0-20151119220103-975617b05ea8                | v0.112.1                            | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0                | v0.0.0-20240304212257-790db918fca8  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240304212257-790db918fca8  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240304212257-790db918fca8  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0                | v0.0.0-20240308144416-29370a3891b7  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240308144416-29370a3891b7  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240308144416-29370a3891b7  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.61.1                                           | v1.62.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.32.0                                           | v1.33.0                             | true   | true             |
@@ -954,7 +954,7 @@ _Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                           |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                            |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                           | v1.42.1                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                           | v1.43.1                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                            | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                            | v1.7.2                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                            |                                     | false  | true             |
