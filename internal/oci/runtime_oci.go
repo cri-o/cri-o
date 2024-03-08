@@ -946,43 +946,33 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		return nil
 	}
 
-	stateCmd := func() (*ContainerState, bool, error) {
-		out, err := r.runtimeCmd("state", c.ID())
-		if err != nil {
-			// there are many code paths that could lead to have a bad state in the
-			// underlying runtime.
-			// On any error like a container went away or we rebooted and containers
-			// went away we do not error out stopping kubernetes to recover.
-			// We always populate the fields below so kube can restart/reschedule
-			// containers failing.
-			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
-				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), out, string(exitErr.Stderr))
-			} else {
-				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
-			}
-			c.state.Status = ContainerStateStopped
-			if err := updateContainerStatusFromExitFile(c); err != nil {
-				c.state.Finished = time.Now()
-				c.state.ExitCode = utils.Int32Ptr(255)
-			}
-			return nil, true, nil
-		}
-		state := *c.state
-		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
-			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.ID(), err)
-		}
-		return &state, false, nil
-	}
-	state, canReturn, err := stateCmd()
+	out, err := r.runtimeCmd("state", c.ID())
 	if err != nil {
-		return err
-	}
-	if canReturn {
+		// there are many code paths that could lead to have a bad state in the
+		// underlying runtime.
+		// On any error like a container went away or we rebooted and containers
+		// went away we do not error out stopping kubernetes to recover.
+		// We always populate the fields below so kube can restart/reschedule
+		// containers failing.
+		if exitErr, isExitError := err.(*exec.ExitError); isExitError {
+			log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), out, string(exitErr.Stderr))
+		} else {
+			log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
+		}
+		c.state.Status = ContainerStateStopped
+		if err := updateContainerStatusFromExitFile(c); err != nil {
+			c.state.Finished = time.Now()
+			c.state.ExitCode = utils.Int32Ptr(255)
+		}
 		return nil
 	}
+	var state ContainerState
+	if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
+		return fmt.Errorf("failed to decode container status for %s: %s", c.ID(), err)
+	}
 
+	*c.state = state
 	if state.Status != ContainerStateStopped {
-		*c.state = *state
 		return nil
 	}
 	// release the lock before waiting
@@ -1003,15 +993,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			return true, nil
 		})
 	c.opLock.Lock()
-	// run command again
-	state, _, err2 := stateCmd()
-	if err2 != nil {
-		return err2
-	}
-	if state == nil {
-		return fmt.Errorf("state command returned nil")
-	}
-	*c.state = *state
+
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
 	} else {
