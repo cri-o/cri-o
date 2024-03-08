@@ -499,6 +499,24 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	specgen.SetHostname(sb.Hostname())
 	specgen.AddProcessEnv("HOSTNAME", sb.Hostname())
 
+	// First add any configured environment variables from crio config.
+	// They will get overridden if specified in the image or container config.
+	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
+
+	// Add environment variables from image the CRI configuration
+	envs := mergeEnvs(containerImageConfig, containerConfig.Envs)
+	for _, e := range envs {
+		parts := strings.SplitN(e, "=", 2)
+		specgen.AddProcessEnv(parts[0], parts[1])
+	}
+
+	// Setup user and groups
+	if linux != nil {
+		if err := setupContainerUser(ctx, specgen, mountPoint, containerInfo.MountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
+			return nil, err
+		}
+	}
+
 	// Update mounts in spec
 	containerVolumes, secretMounts, err := ctr.SpecAddPreOCIMounts(ctx, s.resourceStore, &s.config, sb, containerInfo, mountPoint, idMapSupport)
 	if err != nil {
@@ -556,24 +574,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	if err := s.config.Workloads.MutateSpecGivenAnnotations(ctr.Config().Metadata.Name, ctr.Spec(), sb.Annotations()); err != nil {
 		return nil, err
-	}
-
-	// First add any configured environment variables from crio config.
-	// They will get overridden if specified in the image or container config.
-	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
-
-	// Add environment variables from image the CRI configuration
-	envs := mergeEnvs(containerImageConfig, containerConfig.Envs)
-	for _, e := range envs {
-		parts := strings.SplitN(e, "=", 2)
-		specgen.AddProcessEnv(parts[0], parts[1])
-	}
-
-	// Setup user and groups
-	if linux != nil {
-		if err := setupContainerUser(ctx, specgen, mountPoint, containerInfo.MountLabel, containerInfo.RunDir, securityContext, containerImageConfig); err != nil {
-			return nil, err
-		}
 	}
 
 	// Set working directory
