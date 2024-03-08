@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v26
         with:
           install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v14
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v26
         with:
           install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v14
@@ -137,7 +137,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v26
         with:
           install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v14
@@ -158,7 +158,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: cachix/install-nix-action@v25
+      - uses: cachix/install-nix-action@v26
         with:
           install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
       - uses: cachix/cachix-action@v14
