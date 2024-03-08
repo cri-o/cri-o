@@ -129,6 +129,12 @@ type Container interface {
 	// WillRunSystemd checks whether the process args
 	// are configured to be run as a systemd instance.
 	WillRunSystemd() bool
+
+	// AddMountsIfNotExistsInCRI checks if a mount path is in the list of CRI mounts and adds it if not present
+	AddMountsIfNotExistsInCRI(dstInfoInfo interface{}, isCheckRequired bool, typeInfo, sourceInfo string, options []string)
+
+	// AddOCIBindMounts adds the bind mounts from the container's config to the spec
+	AddOCIBindMounts(ctx context.Context, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error)
 }
 
 // container is the hidden default type behind the Container interface
@@ -758,4 +764,12 @@ func getOCICapabilitiesList() []string {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 	return caps
+}
+
+func mountSet(c *container) map[string]struct{} {
+	mountSet := make(map[string]struct{})
+	for _, m := range c.config.Mounts {
+		mountSet[m.ContainerPath] = struct{}{}
+	}
+	return mountSet
 }
