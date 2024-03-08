@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 08 Mar 2024 08:06:38 UTC for commit [3e757fb][0]._
+_Generated on Fri, 08 Mar 2024 10:55:30 UTC for commit [3dec4ea][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3e757fbeec8deff9a2b7e1edb4142bcfbc575e27
+[0]: https://github.com/cri-o/cri-o/commit/3dec4ea4b539796aab31c1a7afb0ff815843645c
 
 ## Outdated Dependencies
 
@@ -457,7 +457,7 @@ _Generated on Fri, 08 Mar 2024 08:06:38 UTC for commit [3e757fb][0]._
 | github.com/go-gl/glfw                                                                   | v0.0.0-20190409004039-e6da0acd62b1                | v0.0.0-20240307211618-a69d953ea142  | false  | true             |
 | github.com/go-gl/glfw/v3.3/glfw                                                         | v0.0.0-20200222043503-6f7a984d4dc4                | v0.0.0-20240307211618-a69d953ea142  | false  | true             |
 | github.com/go-ini/ini                                                                   | v1.67.0                                           |                                     | false  | true             |
-| github.com/go-jose/go-jose/v3                                                           | v3.0.1                                            | v3.0.3                              | false  | true             |
+| github.com/go-jose/go-jose/v3                                                           | v3.0.3                                            |                                     | false  | true             |
 | github.com/go-kit/kit                                                                   | v0.9.0                                            | v0.13.0                             | false  | true             |
 | github.com/go-kit/log                                                                   | v0.2.1                                            |                                     | false  | true             |
 | github.com/go-latex/latex                                                               | v0.0.0-20210823091927-c0d11ff05a81                | v0.0.0-20231108140139-5c1ce85aa4ea  | false  | true             |
