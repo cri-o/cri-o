@@ -1,17 +1,17 @@
 package container
 
-type secLabel struct {
+type SecLabel struct {
 	impl Impl
 }
 
 type secLabelImpl struct{}
 
-func newSecLabel() *secLabel {
-	return &secLabel{
+func newSecLabel() *SecLabel {
+	return &SecLabel{
 		impl: &secLabelImpl{},
 	}
 }
 
 func SecurityLabel(path, secLabel string, shared, maybeRelabel bool) error {
-	return newSecLabel().impl.securityLabel(path, secLabel, shared, maybeRelabel)
+	return newSecLabel().impl.SecurityLabel(path, secLabel, shared, maybeRelabel)
 }

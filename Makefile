@@ -324,6 +324,13 @@ testunit-bin:
 			--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename $$PACKAGE) ;\
 	done
 
+testunit-package:
+	mkdir -p ${TESTBIN_PATH}
+	go test ${PACKAGE} \
+		--tags "test $(BUILDTAGS)" \
+		--gcflags '-N' -c -o ${TESTBIN_PATH}/$$(basename ${PACKAGE})
+
+
 mockgen: \
 	mock-cmdrunner \
 	mock-containerstorage \
@@ -333,7 +340,8 @@ mockgen: \
 	mock-image-types \
 	mock-ocicni-types \
 	mock-seccompociartifact-types \
-	mock-ociartifact-types
+	mock-ociartifact-types \
+	mock-container
 
 mock-containereventserver: ${MOCKGEN}
 	${MOCKGEN} \
@@ -395,10 +403,10 @@ mock-ociartifact-types: ${MOCKGEN}
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/config/ociartifact Impl
 
-mock-securitylabel: ${MOCKGEN}
+mock-container: ${MOCKGEN}
 	${BUILD_BIN_PATH}/mockgen \
-		-package container \
-		-destination ${MOCK_PATH}/container/label.go \
+		-package containermock \
+		-destination ${MOCK_PATH}/container/container.go \
 		github.com/cri-o/cri-o/internal/factory/container Impl
 
 codecov: SHELL := $(shell which bash)

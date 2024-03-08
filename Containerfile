@@ -32,14 +32,22 @@ RUN dnf update -y && \
         net-tools \
         procps \
         wget \
-        bash-completion
+        bash-completion \
+        buildah \
+        openssl \
+        python \
+        iputils \
+        iproute \
+        podman
 
 WORKDIR /root
 
 RUN mkdir -p /root/go && \
         mkdir -p /opt/cni/bin && \
         wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz && \
-        rm -rf /usr/local/go && tar -C /usr/local -xzf go1.21.7.linux-amd64.tar.gz && \
+        rm -rf /usr/local/go && tar -C /usr/local -xzf go*.tar.gz && \
+        wget https://github.com/kubernetes-sigs/cri-tools/releases/download/v1.29.0/crictl-v1.29.0-linux-amd64.tar.gz && \
+        rm -rf /usr/local/bin/crictl && tar -C /usr/local/bin/ -xzf crictl-*.tar.gz && \
         echo "export PATH=/usr/local/go/bin:$PATH" >> /root/.bashrc && \
         echo "export GOPATH=/root/go" >> /root/.bashrc && \
         echo "for i in \$(ls /usr/libexec/cni/);do if [ ! -f /opt/cni/bin/\$i ]; then ln -s /usr/libexec/cni/\$i /opt/cni/bin/\$i; fi done" >> /root/.bashrc

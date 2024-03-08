@@ -183,7 +183,20 @@ func (c *container) SpecAddPreOCIMounts(ctx context.Context, resourceStore *reso
 
 // SpecAddPostOCIMounts add mounts after creating ocicontainer
 func (c *container) SpecAddPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error {
-	return c.setupPostOCIMounts(ctx, serverConfig, containerInfo, ociContainer, mountPoint, timeZone, rootPair)
+	// Create temp mountInfo
+	c.mountInfo = newMountInfo()
+
+	// Clear temp mountInfo
+	defer clearMountInfo(c)
+
+	if err := c.setupPostOCIMounts(ctx, serverConfig, containerInfo, ociContainer, mountPoint, timeZone, rootPair); err != nil {
+		return err
+	}
+
+	// Add mounts to the specgen
+	specAddMounts(c)
+
+	return nil
 }
 
 // SpecAddAnnotation adds all annotations to the spec

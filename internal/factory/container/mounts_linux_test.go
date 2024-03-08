@@ -3,21 +3,27 @@ package container_test
 import (
 	"github.com/cri-o/cri-o/internal/factory/container"
 	sconfig "github.com/cri-o/cri-o/pkg/config"
+	containermock "github.com/cri-o/cri-o/test/mocks/container"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 var _ = t.Describe("Container", func() {
-	//var containerConfig *types.ContainerConfig
-	//var sboxConfig *types.PodSandboxConfig
-	var serverConfig *sconfig.Config
-	var actualMount *rspec.Mount
-	var expectedMount *rspec.Mount
+	var (
+		//containerConfig *types.ContainerConfig
+		//sboxConfig *types.PodSandboxConfig
+		serverConfig  *sconfig.Config
+		actualMount   *rspec.Mount
+		expectedMount *rspec.Mount
+		secLabel      *container.SecLabel
+		implMock      *containermock.MockImpl
+		mockCtrl      *gomock.Controller
+	)
 	BeforeEach(func() {
 		// setup mountInfo
-		c := container.GetContainerInfo(sut)
-		c.NewMountInfo()
+		container.GetContainerInfo(sut).NewMountInfo()
 
 		// Setup configs
 		serverConfig = &sconfig.Config{}
@@ -29,10 +35,20 @@ var _ = t.Describe("Container", func() {
 				Metadata: &types.ContainerMetadata{Name: "name"},
 			}
 			sboxConfig = &types.PodSandboxConfig{}*/
+
+		secLabel = container.NewSecLabel()
+		Expect(secLabel).NotTo(BeNil())
+
+		mockCtrl = gomock.NewController(GinkgoT())
+		implMock = containermock.NewMockImpl(mockCtrl)
+		secLabel.SetImpl(implMock)
+		gomock.InOrder(
+			implMock.EXPECT().SecurityLabel(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil),
+		)
 	})
 	AfterEach(func() {
-		c := container.GetContainerInfo(sut)
-		c.ClearMountInfo()
+		container.GetContainerInfo(sut).ClearMountInfo()
+		mockCtrl.Finish()
 	})
 	t.Describe("Test setupReadOnlyMounts", func() {
 		expectedMount = &rspec.Mount{

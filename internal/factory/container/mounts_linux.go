@@ -29,8 +29,7 @@ import (
 )
 
 func (ctr *container) setupMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
-
-	readOnlyRootfs := ctr.ReadOnly(serverConfig.ReadOnly)
+	readOnlyRootfs := ctr.Spec().Config.Root.Readonly
 	options := []string{"rw"}
 	if readOnlyRootfs {
 		options = []string{"ro"}
