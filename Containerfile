@@ -42,7 +42,10 @@ RUN dnf update -y && \
 
 WORKDIR /root
 
-RUN mkdir -p /root/go && \
+RUN  echo "containers:100000:65536" | tee -a /etc/subuid && \
+        echo "containers:100000:65536" | tee -a /etc/subgid && \
+        printf "RateLimitInterval=0\nRateLimitBurst=0\n" | tee /etc/systemd/journald.conf && \
+        mkdir -p /root/go && \
         mkdir -p /opt/cni/bin && \
         wget https://go.dev/dl/go1.21.7.linux-amd64.tar.gz && \
         rm -rf /usr/local/go && tar -C /usr/local -xzf go*.tar.gz && \
