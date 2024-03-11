@@ -614,3 +614,7 @@ func (ctr *container) setupTimeZone(tz, containerRunDir, containerID, mountPoint
 	}
 	return nil
 }
+
+func (ctr *container) setMountLabel(mountLabel string) {
+	ctr.Spec().SetLinuxMountLabel(mountLabel)
+}

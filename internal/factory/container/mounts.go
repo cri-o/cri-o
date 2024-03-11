@@ -1,13 +1,20 @@
 package container
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/resourcestore"
+	"github.com/cri-o/cri-o/internal/storage"
+	sconfig "github.com/cri-o/cri-o/pkg/config"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -21,6 +28,47 @@ type mountInfo struct {
 }
 
 type orderedMounts []*rspec.Mount
+
+// SpecAddPreOCIMounts add mounts to the spec before creating ocicontainer
+func (c *container) SpecAddPreOCIMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error) {
+	// Create temp mountInfo
+	c.mountInfo = newMountInfo()
+
+	// Clear temp mountInfo
+	defer clearMountInfo(c)
+
+	// Setup mounts
+	containerVolumes, secretMounts, err := c.setupMounts(ctx, resourceStore, serverConfig, sb, containerInfo, mountPoint, idMapSupport)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Add mounts to the specgen
+	specAddMounts(c)
+
+	// Add mountlabel to the specgen
+	c.setMountLabel(containerInfo.MountLabel)
+
+	return containerVolumes, secretMounts, nil
+}
+
+// SpecAddPostOCIMounts add mounts after creating ocicontainer
+func (c *container) SpecAddPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error {
+	// Create temp mountInfo
+	c.mountInfo = newMountInfo()
+
+	// Clear temp mountInfo
+	defer clearMountInfo(c)
+
+	if err := c.setupPostOCIMounts(ctx, serverConfig, containerInfo, ociContainer, mountPoint, timeZone, rootPair); err != nil {
+		return err
+	}
+
+	// Add mounts to the specgen
+	specAddMounts(c)
+
+	return nil
+}
 
 // Len returns the number of mounts. Used in sorting.
 func (m orderedMounts) Len() int {
