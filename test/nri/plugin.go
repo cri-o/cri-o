@@ -2,6 +2,7 @@ package nri
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -495,7 +496,7 @@ func (p *plugin) VerifyEventStream(events []*event, exact bool, timeout time.Dur
 		select {
 		case evt, ok := <-p.eventR:
 			if !ok {
-				return fmt.Errorf("receiving plugin event failed")
+				return errors.New("receiving plugin event failed")
 			}
 			if evt.Matches(events[i]) {
 				i++

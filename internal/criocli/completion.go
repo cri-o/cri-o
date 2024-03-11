@@ -1,6 +1,7 @@
 package criocli
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -32,7 +33,7 @@ func completion() *cli.Command {
 			case "zsh":
 				return zshCompletion(c)
 			default:
-				return fmt.Errorf("only bash, fish or zsh are supported")
+				return errors.New("only bash, fish or zsh are supported")
 			}
 		},
 	}

@@ -1,6 +1,7 @@
 package criocli
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -21,7 +22,7 @@ var DefaultCommands = []*cli.Command{
 func GetConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	config, ok := c.App.Metadata["config"].(*libconfig.Config)
 	if !ok {
-		return nil, fmt.Errorf("type assertion error when accessing server config")
+		return nil, errors.New("type assertion error when accessing server config")
 	}
 	return config, nil
 }

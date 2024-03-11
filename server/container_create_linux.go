@@ -1041,10 +1041,10 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
-			return nil, nil, fmt.Errorf("mount.ContainerPath is empty")
+			return nil, nil, errors.New("mount.ContainerPath is empty")
 		}
 		if m.HostPath == "" {
-			return nil, nil, fmt.Errorf("mount.HostPath is empty")
+			return nil, nil, errors.New("mount.HostPath is empty")
 		}
 		if m.HostPath == "/" && dest == "/" {
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
@@ -1142,7 +1142,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		uidMappings := getOCIMappings(m.UidMappings)
 		gidMappings := getOCIMappings(m.GidMappings)
 		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
-			return nil, nil, fmt.Errorf("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
+			return nil, nil, errors.New("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
 		}
 		ociMounts = append(ociMounts, rspec.Mount{
 			Source:      src,

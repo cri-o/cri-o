@@ -145,20 +145,14 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 			args = append(
 				args,
 				"--runtime-opt",
-				fmt.Sprintf(
-					"--lsm-profile=selinux:%s",
-					c.Spec().Process.SelinuxLabel,
-				),
+				"--lsm-profile=selinux:"+c.Spec().Process.SelinuxLabel,
 			)
 		}
 		if c.Spec().Linux.MountLabel != "" {
 			args = append(
 				args,
 				"--runtime-opt",
-				fmt.Sprintf(
-					"--lsm-mount-context=%s",
-					c.Spec().Linux.MountLabel,
-				),
+				"--lsm-mount-context="+c.Spec().Linux.MountLabel,
 			)
 		}
 	}
@@ -183,12 +177,12 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
 		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
 	if restore {
 		// The CRIU binary is usually in /usr/sbin/criu
 		if v, found := os.LookupEnv("PATH"); found {
-			cmd.Env = append(cmd.Env, fmt.Sprintf("PATH=%s", v))
+			cmd.Env = append(cmd.Env, "PATH="+v)
 		}
 	}
 
@@ -293,11 +287,11 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
 			log.Errorf(ctx, "Container creation failed")
-			return fmt.Errorf("container create failed")
+			return errors.New("container create failed")
 		}
 	case <-time.After(ContainerCreateTimeout):
 		log.Errorf(ctx, "Container creation timeout (%v)", ContainerCreateTimeout)
-		return fmt.Errorf("create container timeout")
+		return errors.New("create container timeout")
 	}
 
 	// Now we know the container has started, save the pid to verify against future calls.
@@ -410,7 +404,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	args = append(args, "exec", "--process", processFile, c.ID())
 	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) // nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		execCmd.Env = append(execCmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+		execCmd.Env = append(execCmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
 	var cmdErr, copyError error
 	if tty {
@@ -569,7 +563,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
 		cmd = exec.Command(r.handler.MonitorPath, args...) // nolint: gosec
 	} else {
-		msg := fmt.Sprintf("Unsupported monitor_exec_cgroup value: %s", r.handler.MonitorExecCgroup)
+		msg := "Unsupported monitor_exec_cgroup value: " + r.handler.MonitorExecCgroup
 		return &types.ExecSyncResponse{
 			Stderr:   []byte(msg),
 			ExitCode: -1,
@@ -588,7 +582,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
 
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
 
 	err = cmd.Start()
@@ -770,7 +764,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
 	jsonResources, err := json.Marshal(res)
 	if err != nil {
@@ -1009,7 +1003,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		return err2
 	}
 	if state == nil {
-		return fmt.Errorf("state command returned nil")
+		return errors.New("state command returned nil")
 	}
 	*c.state = *state
 	if err != nil {
@@ -1322,7 +1316,7 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, fmt.Sprintf("XDG_RUNTIME_DIR=%s", v))
+		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
 
 	err := cmd.Run()
@@ -1471,7 +1465,7 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 		return fmt.Errorf("check for CRIU %w", err)
 	}
 	if !crutils.CRRuntimeSupportsCheckpointRestore(runtimePath) {
-		return fmt.Errorf("configured runtime does not support checkpoint/restore")
+		return errors.New("configured runtime does not support checkpoint/restore")
 	}
 	return nil
 }

@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 	"strconv"
 	"strings"
 
@@ -28,7 +28,7 @@ func makeSandboxContainerName(sandboxConfig *types.PodSandboxConfig) string {
 
 func (s *Server) ReserveSandboxContainerIDAndName(config *types.PodSandboxConfig) (string, error) {
 	if config == nil || config.Metadata == nil {
-		return "", fmt.Errorf("cannot generate sandbox container name without metadata")
+		return "", errors.New("cannot generate sandbox container name without metadata")
 	}
 
 	id := stringid.GenerateNonCryptoID()

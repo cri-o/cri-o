@@ -17,6 +17,7 @@ limitations under the License.
 package hostport
 
 import (
+	"errors"
 	"fmt"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
@@ -49,7 +50,7 @@ type fakeSocketManager struct {
 
 func (f *fakeSocketManager) openFakeSocket(hp *hostport) (closeable, error) {
 	if socket, ok := f.mem[*hp]; ok && !socket.closed {
-		return nil, fmt.Errorf("hostport is occupied")
+		return nil, errors.New("hostport is occupied")
 	}
 	fs := &fakeSocket{
 		port:     hp.port,

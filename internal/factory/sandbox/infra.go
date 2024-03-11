@@ -88,7 +88,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 
 func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
 	// set DNS options
-	s.resolvPath = fmt.Sprintf("%s/resolv.conf", podContainer.RunDir)
+	s.resolvPath = podContainer.RunDir + "/resolv.conf"
 
 	if s.config.DnsConfig == nil {
 		// Ref https://github.com/kubernetes/kubernetes/issues/120748#issuecomment-1922220911

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -24,7 +25,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContai
 
 	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return nil, fmt.Errorf("container is not created or running")
+		return nil, errors.New("container is not created or running")
 	}
 
 	if err := s.ContainerServer.Runtime().ReopenContainerLog(ctx, c); err != nil {

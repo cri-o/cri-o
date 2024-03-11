@@ -802,7 +802,7 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 		return nil, err
 	}
 
-	if desc := resolved.Description(); len(desc) > 0 {
+	if desc := resolved.Description(); desc != "" {
 		logrus.Info(desc)
 	}
 

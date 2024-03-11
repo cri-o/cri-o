@@ -4,6 +4,7 @@
 package cgmgr
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -205,7 +206,7 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 	if !node.CgroupIsV2() {
 		path := mgr.Path("cpuset")
 		if path == "" {
-			return fmt.Errorf("failed to find cpuset for newly created cgroup")
+			return errors.New("failed to find cpuset for newly created cgroup")
 		}
 		if err := os.MkdirAll(path, 0o755); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)

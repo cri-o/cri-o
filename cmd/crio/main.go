@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	_ "net/http/pprof"
@@ -259,7 +260,7 @@ func main() {
 		config, ok := c.App.Metadata["config"].(*libconfig.Config)
 		if !ok {
 			cancel()
-			return fmt.Errorf("type assertion error when accessing server config")
+			return errors.New("type assertion error when accessing server config")
 		}
 
 		// Validate the configuration during runtime

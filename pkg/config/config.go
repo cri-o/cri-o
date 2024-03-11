@@ -926,7 +926,7 @@ func (c *Config) Validate(onExecution bool) error {
 	case ImageVolumesIgnore:
 	case ImageVolumesBind:
 	default:
-		return fmt.Errorf("unrecognized image volume type specified")
+		return errors.New("unrecognized image volume type specified")
 	}
 
 	if onExecution {
@@ -1556,7 +1556,7 @@ func (r *RuntimeHandler) ValidateRuntimeConfigPath(name string) error {
 		return nil
 	}
 	if r.RuntimeType != RuntimeTypeVM {
-		return fmt.Errorf("runtime_config_path can only be used with the 'vm' runtime type")
+		return errors.New("runtime_config_path can only be used with the 'vm' runtime type")
 	}
 	if _, err := os.Stat(r.RuntimeConfigPath); err != nil && os.IsNotExist(err) {
 		return fmt.Errorf("invalid runtime_config_path for runtime '%s': %q",

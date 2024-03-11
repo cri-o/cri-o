@@ -39,7 +39,7 @@ func AppendVersions(base string, versions ...VersionInfo) string {
 	}
 
 	verstrs := make([]string, 0, 1+len(versions))
-	if len(base) > 0 {
+	if base != "" {
 		verstrs = append(verstrs, base)
 	}
 

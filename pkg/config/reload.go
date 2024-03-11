@@ -20,7 +20,7 @@ func (c *Config) Reload() error {
 	// Reload the config
 	newConfig, err := DefaultConfig()
 	if err != nil {
-		return fmt.Errorf("unable to create default config")
+		return errors.New("unable to create default config")
 	}
 
 	if _, err := os.Stat(c.singleConfigPath); !os.IsNotExist(err) {

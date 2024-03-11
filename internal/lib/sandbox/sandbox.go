@@ -324,9 +324,9 @@ func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
 // Attempts to set the infrastructure container after one is already present will throw an error
 func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
 	if s.infraContainer != nil {
-		return fmt.Errorf("sandbox already has an infra container")
+		return errors.New("sandbox already has an infra container")
 	} else if infraCtr == nil {
-		return fmt.Errorf("must provide non-nil infra container")
+		return errors.New("must provide non-nil infra container")
 	}
 
 	s.infraContainer = infraCtr

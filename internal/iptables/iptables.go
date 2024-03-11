@@ -22,6 +22,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -518,7 +519,7 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 
 		// Check that this is a rule for the correct chain, and that it has
 		// the correct number of argument (+2 for "-A <chain name>")
-		if !strings.HasPrefix(line, fmt.Sprintf("-A %s", string(chain))) || len(fields) != len(argsCopy)+2 {
+		if !strings.HasPrefix(line, "-A "+string(chain)) || len(fields) != len(argsCopy)+2 {
 			continue
 		}
 
@@ -546,7 +547,7 @@ func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 
 	out, err := runner.runContext(ctx, opCheckRule, args)
 	if ctx.Err() == context.DeadlineExceeded {
-		return false, fmt.Errorf("timed out while checking rules")
+		return false, errors.New("timed out while checking rules")
 	}
 	if err == nil {
 		return true, nil
@@ -829,12 +830,12 @@ var regexpParseError = regexp.MustCompile("line ([1-9][0-9]*) failed$") //nolint
 // NOTE: parseRestoreError depends on the error format of iptables, if it ever changes
 // we need to update this function
 func parseRestoreError(str string) (ParseError, bool) {
-	errors := strings.Split(str, ":")
-	if len(errors) != 2 {
+	errs := strings.Split(str, ":")
+	if len(errs) != 2 {
 		return nil, false
 	}
-	cmd := errors[0]
-	matches := regexpParseError.FindStringSubmatch(errors[1])
+	cmd := errs[0]
+	matches := regexpParseError.FindStringSubmatch(errs[1])
 	if len(matches) != 2 {
 		return nil, false
 	}

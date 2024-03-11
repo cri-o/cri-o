@@ -245,7 +245,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		if uids == nil && gids == nil {
 			if s.defaultIDMappings == nil {
 				// no configuration and no global mappings
-				return nil, fmt.Errorf("userns requested but no userns mappings configured")
+				return nil, errors.New("userns requested but no userns mappings configured")
 			}
 
 			// no configuration specified, so use the global mappings
@@ -319,7 +319,7 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 	}
 
 	if ic == nil {
-		return nil, fmt.Errorf("infra container not found")
+		return nil, errors.New("infra container not found")
 	}
 
 	uids, err := rootless.ReadMappingsProc(fmt.Sprintf("/proc/%d/uid_map", ic.State().Pid))
@@ -745,7 +745,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// However, we don't immediately register this func with resourceCleaner because we need to pair the
 	// ns cleanup with networkStop. Otherwise, we could try to cleanup the namespace before the network stop runs,
 	// which could put us in a weird state.
-	nsCleanupDescription := fmt.Sprintf("runSandbox: cleaning up namespaces after failing to run sandbox %s", sbox.ID())
+	nsCleanupDescription := "runSandbox: cleaning up namespaces after failing to run sandbox " + sbox.ID()
 	nsCleanupFunc := func() error {
 		for idx := range nsCleanupFuncs {
 			if err := nsCleanupFuncs[idx](); err != nil {
@@ -818,7 +818,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	saveOptions := generate.ExportOptions{}
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
-	hostnamePath := fmt.Sprintf("%s/hostname", podContainer.RunDir)
+	hostnamePath := podContainer.RunDir + "/hostname"
 	if err := os.WriteFile(hostnamePath, []byte(hostname+"\n"), 0o644); err != nil {
 		return nil, err
 	}
@@ -1000,7 +1000,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	resourceCleaner.Add(ctx, "runSandbox: stopping container "+container.ID(), func() error {
 		// Clean-up steps from RemovePodSandbox
 		if err := s.stopContainer(ctx, container, int64(10)); err != nil {
-			return fmt.Errorf("failed to stop container for removal")
+			return errors.New("failed to stop container for removal")
 		}
 
 		log.Infof(ctx, "RunSandbox: deleting container %s", container.ID())

@@ -162,11 +162,11 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		if err != nil {
 			switch err {
 			case errCtrNotFound:
-				http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
+				http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
 			case errCtrStateNil:
-				http.Error(w, fmt.Sprintf("can't find container state for container with id %s", containerID), http.StatusInternalServerError)
+				http.Error(w, "can't find container state for container with id "+containerID, http.StatusInternalServerError)
 			case errSandboxNotFound:
-				http.Error(w, fmt.Sprintf("can't find the sandbox for container id %s", containerID), http.StatusNotFound)
+				http.Error(w, "can't find the sandbox for container id "+containerID, http.StatusNotFound)
 			default:
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
@@ -189,7 +189,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		ctr := s.GetContainer(ctx, containerID)
 
 		if ctr == nil {
-			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
+			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
 			return
 		}
 		ctrStatus := ctr.State().Status
@@ -219,7 +219,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		ctr := s.GetContainer(ctx, containerID)
 
 		if ctr == nil {
-			http.Error(w, fmt.Sprintf("can't find the container with id %s", containerID), http.StatusNotFound)
+			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
 			return
 		}
 		ctrStatus := ctr.State().Status

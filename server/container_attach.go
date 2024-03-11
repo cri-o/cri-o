@@ -1,7 +1,7 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 	"io"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -17,7 +17,7 @@ import (
 func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.AttachResponse, error) {
 	resp, err := s.getAttach(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to prepare attach endpoint")
+		return nil, errors.New("unable to prepare attach endpoint")
 	}
 
 	return resp, nil
@@ -38,7 +38,7 @@ func (s StreamService) Attach(ctx context.Context, containerID string, inputStre
 
 	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
+		return errors.New("container is not created or running")
 	}
 
 	return s.runtimeServer.Runtime().AttachContainer(s.ctx, c, inputStream, outputStream, errorStream, tty, resizeChan)

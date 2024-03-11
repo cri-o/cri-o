@@ -2,7 +2,7 @@ package nri
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"sync"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -83,7 +83,7 @@ func (t *domainTable) updateContainers(ctx context.Context, updates []*nri.Conta
 	}
 
 	if len(failed) != 0 {
-		return failed, fmt.Errorf("NRI update of containers failed")
+		return failed, errors.New("NRI update of containers failed")
 	}
 
 	return nil, nil
@@ -101,7 +101,7 @@ func (t *domainTable) evictContainers(ctx context.Context, evict []*nri.Containe
 	}
 
 	if len(failed) != 0 {
-		return failed, fmt.Errorf("NRI eviction of containers failed")
+		return failed, errors.New("NRI eviction of containers failed")
 	}
 
 	return nil, nil

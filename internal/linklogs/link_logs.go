@@ -2,6 +2,7 @@ package linklogs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -25,7 +26,7 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 	// This uses the same validation as the one in kubernetes
 	// It can be alphanumeric with dashes allowed in between
 	if errs := validation.IsDNS1123Label(emptyDirVolName); len(errs) != 0 {
-		return fmt.Errorf("empty dir vol name is invalid")
+		return errors.New("empty dir vol name is invalid")
 	}
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	if _, err := os.Stat(emptyDirLoggingVolumePath); err != nil {
