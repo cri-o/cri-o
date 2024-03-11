@@ -42,17 +42,9 @@ cd bats
 ```
 
 You will also need to install the [CNI](https://github.com/containernetworking/cni)
-plugins as the default pod test template runs without host networking:
+plugins as the default pod test template runs without host networking.
 
-```shell
-cd "$GOPATH/src/github.com/containernetworking"
-git clone https://github.com/containernetworking/plugins.git
-cd plugins
-git checkout -q dcf7368eeab15e2affc6256f0bb1e84dd46a34de
-./build.sh
-mkdir -p /opt/cni/bin
-cp bin/* /opt/cni/bin/
-```
+Check instruction [here](/contrib/cni/README.md#cni-plugin-installation-from-source)
 
 Then you can run the tests on your host:
 
