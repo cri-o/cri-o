@@ -1,5 +1,4 @@
 //go:build !remote
-// +build !remote
 
 package libimage
 
@@ -19,6 +18,8 @@ const (
 	EventTypeUnknown EventType = iota
 	// EventTypeImagePull represents an image pull.
 	EventTypeImagePull
+	// EventTypeImagePullError represents an image pull failed.
+	EventTypeImagePullError
 	// EventTypeImagePush represents an image push.
 	EventTypeImagePush
 	// EventTypeImageRemove represents an image removal.
@@ -47,6 +48,8 @@ type Event struct {
 	Time time.Time
 	// Type of the event.
 	Type EventType
+	// Error in case of failure.
+	Error error
 }
 
 // writeEvent writes the specified event to the Runtime's event channel.  The
