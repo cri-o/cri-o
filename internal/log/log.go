@@ -61,5 +61,6 @@ func StartSpan(ctx context.Context) (context.Context, trace.Span) {
 	} else {
 		Debugf(ctx, "Unable to retrieve a caller when starting span")
 	}
+	//nolint:spancheck // see https://github.com/jjti/go-spancheck/issues/7
 	return trace.SpanFromContext(ctx).TracerProvider().Tracer("").Start(ctx, spanName)
 }

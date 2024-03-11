@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -14,7 +15,7 @@ import (
 func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
 	resp, err := s.getPortForward(req)
 	if err != nil {
-		return nil, fmt.Errorf("unable to prepare portforward endpoint")
+		return nil, errors.New("unable to prepare portforward endpoint")
 	}
 
 	return resp, nil

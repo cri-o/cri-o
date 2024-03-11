@@ -3,6 +3,7 @@ package utils
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -49,7 +50,7 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
 	)
 	// Sanity check interfaces
 	if dst == nil || src == nil {
-		return 0, fmt.Errorf("src/dst reader/writer nil")
+		return 0, errors.New("src/dst reader/writer nil")
 	}
 	if len(keys) == 0 {
 		// Default keys : ctrl-p ctrl-q

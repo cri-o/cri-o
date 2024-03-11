@@ -401,7 +401,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 	}
 
 	if len(managers) == 0 {
-		return fmt.Errorf("cgroup hierarchy setup unexpectedly, no cgroups of container found")
+		return errors.New("cgroup hierarchy setup unexpectedly, no cgroups of container found")
 	}
 
 	// Revert changes made to avoid weird error states.
@@ -698,10 +698,10 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 func getManagerByIndex(idx int, containerManagers []cgroups.Manager) (cgroups.Manager, error) {
 	length := len(containerManagers)
 	if length == 0 {
-		return nil, fmt.Errorf("getManagerByIndex: no cgroup manager were found")
+		return nil, errors.New("getManagerByIndex: no cgroup manager were found")
 	}
 	if length-1 < idx || idx < 0 {
-		return nil, fmt.Errorf("getManagerByIndex: invalid index")
+		return nil, errors.New("getManagerByIndex: invalid index")
 	}
 	return containerManagers[idx], nil
 }
@@ -1114,7 +1114,7 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 		return fmt.Errorf("failed to parse shared cpus: %w", err)
 	}
 	if sharedCPUSet.IsEmpty() {
-		return fmt.Errorf("shared CPU set is empty")
+		return errors.New("shared CPU set is empty")
 	}
 
 	// pod level operations

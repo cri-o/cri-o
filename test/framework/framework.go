@@ -1,7 +1,7 @@
 package framework
 
 import (
-	"fmt"
+	"errors"
 	"os"
 	"testing"
 
@@ -25,7 +25,7 @@ func NewTestFramework(setup, teardown func(*TestFramework) error) *TestFramework
 	return &TestFramework{
 		setup,
 		teardown,
-		fmt.Errorf("error"),
+		errors.New("error"),
 		nil,
 		nil,
 	}

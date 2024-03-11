@@ -133,15 +133,15 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 				containerConfig,
 				tmpFile.Name(),
 			)
-			containerConfig = fmt.Sprintf(
+			containerConfig = fmt.Sprintf( //nolint:perfsprint
 				`%s{"source":"/tmp","destination":"/tmp","type":"no-bind"},`,
 				containerConfig,
 			)
-			containerConfig = fmt.Sprintf(
+			containerConfig = fmt.Sprintf( //nolint:perfsprint
 				`%s{"source":"/proc","destination":"/proc","type":"bind"}]}`,
 				containerConfig,
 			)
-			containerConfig = fmt.Sprintf(
+			containerConfig = fmt.Sprintf( //nolint:perfsprint
 				`%s]}`,
 				containerConfig,
 			)

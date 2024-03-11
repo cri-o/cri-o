@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -45,11 +45,11 @@ func configNsPath(spec *rspec.Spec, nsType rspec.LinuxNamespaceType) (string, er
 		}
 
 		if ns.Path == "" {
-			return "", fmt.Errorf("empty networking namespace")
+			return "", errors.New("empty networking namespace")
 		}
 
 		return ns.Path, nil
 	}
 
-	return "", fmt.Errorf("missing networking namespace")
+	return "", errors.New("missing networking namespace")
 }

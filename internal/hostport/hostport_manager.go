@@ -148,12 +148,12 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 			writeLine(natRules, "-A", string(hpChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 				"-m", protocol, "-p", protocol,
-				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
+				"-j", "DNAT", "--to-destination="+hostPortBinding)
 		} else {
 			writeLine(natRules, "-A", string(hpChain),
 				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
 				"-m", protocol, "-p", protocol, "-d", pm.HostIP,
-				"-j", "DNAT", fmt.Sprintf("--to-destination=%s", hostPortBinding))
+				"-j", "DNAT", "--to-destination="+hostPortBinding)
 		}
 
 		// SNAT hairpin traffic. There is no "ctorigaddrtype" so we can't
@@ -404,8 +404,8 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 	}
 
 	for _, line := range strings.Split(iptablesData.String(), "\n") {
-		if strings.HasPrefix(line, fmt.Sprintf("-A %s", kubeHostportChainPrefix)) ||
-			strings.HasPrefix(line, fmt.Sprintf("-A %s", crioMasqueradeChainPrefix)) ||
+		if strings.HasPrefix(line, "-A "+kubeHostportChainPrefix) ||
+			strings.HasPrefix(line, "-A "+crioMasqueradeChainPrefix) ||
 			strings.HasPrefix(line, fmt.Sprintf("-A %s ", string(kubeHostportsChain))) ||
 			strings.HasPrefix(line, fmt.Sprintf("-A %s ", string(crioMasqueradeChain))) {
 			existingHostportRules = append(existingHostportRules, line)

@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	cstorage "github.com/containers/storage"
@@ -31,7 +32,7 @@ func (c *ContainerServer) GetContainerTopLayerID(ctx context.Context, containerI
 // GetContainerFromShortID gets an oci container matching the specified full or partial id
 func (c *ContainerServer) GetContainerFromShortID(ctx context.Context, cid string) (*oci.Container, error) {
 	if cid == "" {
-		return nil, fmt.Errorf("container ID should not be empty")
+		return nil, errors.New("container ID should not be empty")
 	}
 
 	containerID, err := c.ctrIDIndex.Get(cid)
@@ -54,7 +55,7 @@ func (c *ContainerServer) GetContainerFromShortID(ctx context.Context, cid strin
 // LookupContainer returns the container with the given name or full or partial id
 func (c *ContainerServer) LookupContainer(ctx context.Context, idOrName string) (*oci.Container, error) {
 	if idOrName == "" {
-		return nil, fmt.Errorf("container ID or name should not be empty")
+		return nil, errors.New("container ID or name should not be empty")
 	}
 
 	ctrID, err := c.ctrNameIndex.Get(idOrName)
@@ -71,7 +72,7 @@ func (c *ContainerServer) LookupContainer(ctx context.Context, idOrName string) 
 
 func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, error) {
 	if pid == "" {
-		return nil, fmt.Errorf("pod ID should not be empty")
+		return nil, errors.New("pod ID should not be empty")
 	}
 
 	podID, err := c.podIDIndex.Get(pid)
@@ -89,7 +90,7 @@ func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, e
 // LookupSandbox returns the pod sandbox with the given name or full or partial id
 func (c *ContainerServer) LookupSandbox(idOrName string) (*sandbox.Sandbox, error) {
 	if idOrName == "" {
-		return nil, fmt.Errorf("container ID or name should not be empty")
+		return nil, errors.New("container ID or name should not be empty")
 	}
 
 	podID, err := c.podNameIndex.Get(idOrName)

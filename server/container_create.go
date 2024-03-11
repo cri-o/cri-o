@@ -195,7 +195,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		return nil
 	}
 	if sc.RunAsGroup != nil && sc.RunAsUser == nil && sc.RunAsUsername == "" {
-		return fmt.Errorf("user group is specified without user or username")
+		return errors.New("user group is specified without user or username")
 	}
 	imageUser := ""
 	homedir := ""
@@ -203,7 +203,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		if strings.HasPrefix(env, "HOME=") {
 			homedir = strings.TrimPrefix(env, "HOME=")
 			if idx := strings.Index(homedir, `\n`); idx > -1 {
-				return fmt.Errorf("invalid HOME environment; newline not allowed")
+				return errors.New("invalid HOME environment; newline not allowed")
 			}
 			break
 		}

@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -101,7 +102,7 @@ func (r *Runtime) Runtimes() config.Runtimes {
 // provided does not match any valid use case.
 func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler, error) {
 	if handler == "" {
-		return nil, fmt.Errorf("empty runtime handler")
+		return nil, errors.New("empty runtime handler")
 	}
 
 	runtimeHandler, ok := r.config.Runtimes[handler]

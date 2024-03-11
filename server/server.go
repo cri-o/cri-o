@@ -137,7 +137,7 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 		return nil, err
 	}
 	config.Certificates = []tls.Certificate{cert}
-	if len(cc.tlsCA) > 0 {
+	if cc.tlsCA != "" {
 		caBytes, err := os.ReadFile(cc.tlsCA)
 		if err != nil {
 			return nil, fmt.Errorf("read TLS CA file: %w", err)
@@ -387,7 +387,7 @@ func New(
 	configIface libconfig.Iface,
 ) (*Server, error) {
 	if configIface == nil || configIface.GetData() == nil {
-		return nil, fmt.Errorf("provided configuration interface or its data is nil")
+		return nil, errors.New("provided configuration interface or its data is nil")
 	}
 	config := configIface.GetData()
 
@@ -517,7 +517,7 @@ func New(
 	s.stream.runtimeServer = s
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create streaming server")
+		return nil, errors.New("unable to create streaming server")
 	}
 
 	s.stream.streamServerCloseCh = make(chan struct{})

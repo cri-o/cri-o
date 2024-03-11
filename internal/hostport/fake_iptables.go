@@ -18,6 +18,7 @@ package hostport
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -178,7 +179,7 @@ func normalizeRule(rule string) (string, error) {
 		if remaining[0] == '"' {
 			end = strings.Index(remaining[1:], "\"")
 			if end < 0 {
-				return "", fmt.Errorf("invalid rule syntax: mismatched quotes")
+				return "", errors.New("invalid rule syntax: mismatched quotes")
 			}
 			end += 2
 		} else {
@@ -194,7 +195,7 @@ func normalizeRule(rule string) (string, error) {
 			arg += "/32"
 		}
 
-		if len(normalized) > 0 {
+		if normalized != "" {
 			normalized += " "
 		}
 		normalized += strings.TrimSpace(arg)

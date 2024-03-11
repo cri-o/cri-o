@@ -70,7 +70,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 		Tracing: &conmonClient.Tracing{
 			Tracer:   opentelemetry.Tracer(),
 			Enabled:  r.config.EnableTracing,
-			Endpoint: fmt.Sprintf("http://%s", r.config.TracingEndpoint),
+			Endpoint: "http://" + r.config.TracingEndpoint,
 		},
 	})
 	if err != nil {

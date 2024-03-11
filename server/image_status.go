@@ -21,7 +21,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	defer span.End()
 	img := req.Image
 	if img == nil || img.Image == "" {
-		return nil, fmt.Errorf("no image specified")
+		return nil, errors.New("no image specified")
 	}
 
 	log.Infof(ctx, "Checking image status: %s", img.Image)

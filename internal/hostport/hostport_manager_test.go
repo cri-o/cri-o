@@ -493,7 +493,7 @@ func TestHostportManager(t *testing.T) {
 	}
 	for _, line := range lines {
 		t.Logf("Line: %s", line)
-		if len(strings.TrimSpace(line)) > 0 {
+		if strings.TrimSpace(line) != "" {
 			_, ok := expectedLines[strings.TrimSpace(line)]
 			assert.EqualValues(t, true, ok)
 		}
@@ -718,7 +718,7 @@ func TestHostportManagerIPv6(t *testing.T) {
 	}
 	for _, line := range lines {
 		t.Logf("Line: %s", line)
-		if len(strings.TrimSpace(line)) > 0 {
+		if strings.TrimSpace(line) != "" {
 			_, ok := expectedLines[strings.TrimSpace(line)]
 			assert.EqualValues(t, true, ok)
 		}

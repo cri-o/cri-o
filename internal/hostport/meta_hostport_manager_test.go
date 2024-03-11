@@ -247,7 +247,7 @@ func TestMetaHostportManager(t *testing.T) {
 	}
 	for _, line := range lines {
 		t.Logf("Line: %s", line)
-		if len(strings.TrimSpace(line)) > 0 {
+		if strings.TrimSpace(line) != "" {
 			_, ok := expectedLines[strings.TrimSpace(line)]
 			assert.EqualValues(t, true, ok)
 		}
@@ -323,7 +323,7 @@ func TestMetaHostportManager(t *testing.T) {
 		`COMMIT`: true,
 	}
 	for _, line := range linesv6 {
-		if len(strings.TrimSpace(line)) > 0 {
+		if strings.TrimSpace(line) != "" {
 			_, ok := expectedv6Lines[strings.TrimSpace(line)]
 			assert.EqualValues(t, true, ok)
 		}

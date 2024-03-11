@@ -92,7 +92,7 @@ func (c *ContainerServer) StorageRuntimeServer() storage.RuntimeServer {
 // New creates a new ContainerServer with options provided
 func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, error) {
 	if configIface == nil {
-		return nil, fmt.Errorf("provided config is nil")
+		return nil, errors.New("provided config is nil")
 	}
 	store, err := configIface.GetStore()
 	if err != nil {
@@ -101,7 +101,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	config := configIface.GetData()
 
 	if config == nil {
-		return nil, fmt.Errorf("cannot create container server: interface is nil")
+		return nil, errors.New("cannot create container server: interface is nil")
 	}
 
 	if config.InternalRepair && ShutdownWasUnclean(config) {

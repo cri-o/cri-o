@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/cri-o/cri-o/internal/log"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -18,7 +18,7 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 		imageRef = img.Image
 	}
 	if imageRef == "" {
-		return nil, fmt.Errorf("no image specified")
+		return nil, errors.New("no image specified")
 	}
 	if err := s.removeImage(ctx, imageRef); err != nil {
 		return nil, err

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"io"
 
@@ -38,7 +39,7 @@ func (s StreamService) Exec(ctx context.Context, containerID string, cmd []strin
 
 	cState := c.State()
 	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
-		return fmt.Errorf("container is not created or running")
+		return errors.New("container is not created or running")
 	}
 
 	return s.runtimeServer.Runtime().ExecContainer(s.ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
