@@ -922,11 +922,13 @@ func (s *store) load() error {
 	if err := os.MkdirAll(gipath, 0o700); err != nil {
 		return err
 	}
-	ris, err := newImageStore(gipath)
+	imageStore, err := newImageStore(gipath)
 	if err != nil {
 		return err
 	}
-	s.imageStore = ris
+	s.imageStore = imageStore
+
+	s.rwImageStores = []rwImageStore{imageStore}
 
 	gcpath := filepath.Join(s.graphRoot, driverPrefix+"containers")
 	if err := os.MkdirAll(gcpath, 0o700); err != nil {
@@ -944,13 +946,16 @@ func (s *store) load() error {
 
 	s.containerStore = rcs
 
-	for _, store := range driver.AdditionalImageStores() {
+	additionalImageStores := s.graphDriver.AdditionalImageStores()
+	if s.imageStoreDir != "" {
+		additionalImageStores = append([]string{s.graphRoot}, additionalImageStores...)
+	}
+
+	for _, store := range additionalImageStores {
 		gipath := filepath.Join(store, driverPrefix+"images")
 		var ris roImageStore
-		if s.imageStoreDir != "" && store == s.graphRoot {
-			// If --imagestore was set and current store
-			// is `graphRoot` then mount it as a `rw` additional
-			// store instead of `readonly` additional store.
+		// both the graphdriver and the imagestore must be used read-write.
+		if store == s.imageStoreDir || store == s.graphRoot {
 			imageStore, err := newImageStore(gipath)
 			if err != nil {
 				return err
@@ -1031,15 +1036,9 @@ func (s *store) stopUsingGraphDriver() {
 // Almost all users should use startUsingGraphDriver instead.
 // The caller must hold s.graphLock.
 func (s *store) createGraphDriverLocked() (drivers.Driver, error) {
-	driverRoot := s.imageStoreDir
-	imageStoreBase := s.graphRoot
-	if driverRoot == "" {
-		driverRoot = s.graphRoot
-		imageStoreBase = ""
-	}
 	config := drivers.Options{
-		Root:           driverRoot,
-		ImageStore:     imageStoreBase,
+		Root:           s.graphRoot,
+		ImageStore:     s.imageStoreDir,
 		RunRoot:        s.runRoot,
 		DriverPriority: s.graphDriverPriority,
 		DriverOptions:  s.graphOptions,
@@ -1069,15 +1068,15 @@ func (s *store) getLayerStoreLocked() (rwLayerStore, error) {
 	if err := os.MkdirAll(rlpath, 0o700); err != nil {
 		return nil, err
 	}
-	imgStoreRoot := s.imageStoreDir
-	if imgStoreRoot == "" {
-		imgStoreRoot = s.graphRoot
-	}
-	glpath := filepath.Join(imgStoreRoot, driverPrefix+"layers")
+	glpath := filepath.Join(s.graphRoot, driverPrefix+"layers")
 	if err := os.MkdirAll(glpath, 0o700); err != nil {
 		return nil, err
 	}
-	rls, err := s.newLayerStore(rlpath, glpath, s.graphDriver, s.transientStore)
+	ilpath := ""
+	if s.imageStoreDir != "" {
+		ilpath = filepath.Join(s.imageStoreDir, driverPrefix+"layers")
+	}
+	rls, err := s.newLayerStore(rlpath, glpath, ilpath, s.graphDriver, s.transientStore)
 	if err != nil {
 		return nil, err
 	}
@@ -2530,7 +2529,7 @@ func (s *store) DeleteImage(id string, commit bool) (layers []string, err error)
 	if err := s.writeToAllStores(func(rlstore rwLayerStore) error {
 		// Delete image from all available imagestores configured to be used.
 		imageFound := false
-		for _, is := range append([]rwImageStore{s.imageStore}, s.rwImageStores...) {
+		for _, is := range s.rwImageStores {
 			if is != s.imageStore {
 				// This is an additional writeable image store
 				// so we must perform lock
