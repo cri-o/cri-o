@@ -13,6 +13,7 @@
 /test/checkseccomp/checkseccomp
 /test/checkcriu/checkcriu
 /test/copyimg/copyimg
+test/testdata/checkpoint.json
 /build
 coverprofile
 .gdb_history

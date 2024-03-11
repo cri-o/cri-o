@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/containers/podman/v4/pkg/annotations"
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
@@ -21,15 +22,16 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
+	sconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -99,10 +101,12 @@ type Container interface {
 	// returns the spec
 	Spec() *generate.Generator
 
-	// SpecAddMount adds a mount to the container's spec
-	// it takes the rspec mount object
+	// SpecAddPreOCIMounts add mounts to the container's spec before creating ocicontainer
 	// if there is already a mount at the path specified, it removes it.
-	SpecAddMount(rspec.Mount)
+	SpecAddPreOCIMounts(ctx context.Context, resourceStore *resourcestore.ResourceStore, serverConfig *sconfig.Config, sb *sandbox.Sandbox, containerInfo storage.ContainerInfo, mountPoint string, idMapSupport bool) ([]oci.ContainerVolume, []rspec.Mount, error)
+
+	// SpecAddPostOCIMounts add mounts to the container after creating oci container
+	SpecAddPostOCIMounts(ctx context.Context, serverConfig *sconfig.Config, containerInfo storage.ContainerInfo, ociContainer *oci.Container, mountPoint string, timeZone string, rootPair idtools.IDPair) error
 
 	// SpecAddAnnotations adds annotations to the spec.
 	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
@@ -141,6 +145,7 @@ type container struct {
 	restore    bool
 	spec       generate.Generator
 	pidns      nsmgr.Namespace
+	mountInfo  *mountInfo
 }
 
 // New creates a new, empty Sandbox instance
@@ -153,14 +158,6 @@ func New() (Container, error) {
 	return &container{
 		spec: spec,
 	}, nil
-}
-
-// SpecAddMount adds a specified mount to the spec
-//
-//nolint:gocritic // passing the spec mount around here is intentional
-func (c *container) SpecAddMount(r rspec.Mount) {
-	c.spec.RemoveMount(r.Destination)
-	c.spec.AddMount(r)
 }
 
 // SpecAddAnnotation adds all annotations to the spec
@@ -489,35 +486,6 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 		return true
 	}
 	return serverIsReadOnly
-}
-
-// SelinuxLabel returns the container's SelinuxLabel
-// it takes the sandbox's label, which it falls back upon
-func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
-	selinuxConfig := c.config.Linux.SecurityContext.SelinuxOptions
-
-	labels := map[string]string{}
-
-	labelOptions, err := label.DupSecOpt(sboxLabel)
-	if err != nil {
-		return nil, err
-	}
-	for _, r := range labelOptions {
-		k := strings.Split(r, ":")[0]
-		labels[k] = r
-	}
-
-	if selinuxConfig != nil {
-		for _, r := range utils.GetLabelOptions(selinuxConfig) {
-			k := strings.Split(r, ":")[0]
-			labels[k] = r
-		}
-	}
-	ret := []string{}
-	for _, v := range labels {
-		ret = append(ret, v)
-	}
-	return ret, nil
 }
 
 // AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation

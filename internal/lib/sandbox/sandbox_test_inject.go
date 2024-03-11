@@ -14,3 +14,23 @@ import (
 func (s *Sandbox) SetPortMappings(portMappings []*hostport.PortMapping) {
 	s.portMappings = portMappings
 }
+
+func (s *Sandbox) SetResolvPath(resolvPath string) {
+	s.resolvPath = resolvPath
+}
+
+func (s *Sandbox) SetHostnamePath(hostnamePath string) {
+	s.hostnamePath = hostnamePath
+}
+
+func (s *Sandbox) SetContainerEnvPath(containerEnvPath string) {
+	s.containerEnvPath = containerEnvPath
+}
+
+func (s *Sandbox) SetShmPath(shmPath string) {
+	s.shmPath = shmPath
+}
+
+func (s *Sandbox) SetHostNetwork(hostNetwork bool) {
+	s.hostNetwork = hostNetwork
+}

@@ -35,32 +35,6 @@ var _ = t.Describe("Container", func() {
 		}
 		sboxConfig = &types.PodSandboxConfig{}
 	})
-	t.Describe("SpecAddMount", func() {
-		It("should add the mount to the spec", func() {
-			sut.SpecAddMount(rspec.Mount{
-				Destination: "test",
-				Type:        "test",
-				Source:      "test",
-				Options:     []string{"test"},
-			})
-			Expect(len(sut.Spec().Mounts())).To(Equal(defaultMounts + 1))
-		})
-		It("should add only one copy to the spec", func() {
-			sut.SpecAddMount(rspec.Mount{
-				Destination: "test",
-				Type:        "test",
-				Source:      "test",
-				Options:     []string{"test"},
-			})
-			sut.SpecAddMount(rspec.Mount{
-				Destination: "test",
-				Type:        "test",
-				Source:      "test",
-				Options:     []string{"test"},
-			})
-			Expect(len(sut.Spec().Mounts())).To(Equal(defaultMounts + 1))
-		})
-	})
 	t.Describe("Spec", func() {
 		It("should return the spec", func() {
 			Expect(sut.Spec()).ToNot(Equal(nil))
