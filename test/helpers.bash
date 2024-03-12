@@ -608,6 +608,7 @@ function wait_until_exit() {
 # Helpers for pod annotations tests
 function prepare_cni_plugin() {
     # name the config with prefix 001 to ensure the corresponding cni plugin will be invoked when pod is created
+    mkdir -p "$CRIO_CNI_CONFIG"
     cat >"$CRIO_CNI_CONFIG"/001-"$CNI_PLUGIN_NAME".conf <<-EOF
 {
   "cniVersion": "0.3.1",
@@ -628,6 +629,7 @@ EOF
 
 function prepare_chained_cni_plugins() {
     # create a chained cni plugin configuration file
+    mkdir -p "$CRIO_CNI_CONFIG"
     cat >"$CRIO_CNI_CONFIG"/001-"$CNI_PLUGIN_NAME".conflist <<-EOF
 {
   "cniVersion": "0.3.1",
