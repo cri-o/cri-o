@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
+_Generated on Tue, 12 Mar 2024 17:42:47 UTC for commit [ad69007][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/80bf9fc47da6a88250ab2f37cb3956f42af88eb2
+[0]: https://github.com/cri-o/cri-o/commit/ad69007fcd2693450d979d01b777295c5ea1881b
 
 ## Outdated Dependencies
 
@@ -326,7 +326,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | github.com/client9/misspell                                                             | v0.3.4                                            |                                     | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.7                                            |                                     | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe                |                                     | false  | true             |
-| github.com/cncf/xds/go                                                                  | v0.0.0-20231109132714-523115ebc101                | v0.0.0-20240306133729-91a88dc4e959  | false  | true             |
+| github.com/cncf/xds/go                                                                  | v0.0.0-20231109132714-523115ebc101                | v0.0.0-20240312170511-ee0267137e25  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                            |                                     | false  | true             |
 | github.com/cockroachdb/datadriven                                                       | v0.0.0-20190809214429-80d97fb3cbaa                | v1.0.2                              | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb                |                                     | false  | true             |
@@ -368,7 +368,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | github.com/containers/kubensmnt                                                         | v1.2.0                                            |                                     | true   | true             |
 | github.com/containers/libhvee                                                           | v0.5.0                                            | v0.7.0                              | false  | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01                |                                     | false  | true             |
-| github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20240307160120-326b23229cc7  | false  | true             |
+| github.com/containers/luksy                                                             | v0.0.0-20231030195837-b5a7f79da98b                | v0.0.0-20240312134643-3d2cf0e19c84  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.9                                            | v1.1.10                             | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.9.3                                            |                                     | true   | true             |
 | github.com/containers/psgo                                                              | v1.8.0                                            | v1.9.0                              | false  | true             |
@@ -760,7 +760,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | github.com/sigstore/sigstore/pkg/signature/kms/hashivault                               | v1.7.5                                            | v1.8.2                              | false  | true             |
 | github.com/sigstore/timestamp-authority                                                 | v1.2.0                                            | v1.2.2                              | false  | true             |
 | github.com/sirupsen/logrus                                                              | v1.9.3                                            |                                     | true   | true             |
-| github.com/skeema/knownhosts                                                            | v1.2.1                                            |                                     | false  | true             |
+| github.com/skeema/knownhosts                                                            | v1.2.1                                            | v1.2.2                              | false  | true             |
 | github.com/skratchdot/open-golang                                                       | v0.0.0-20200116055534-eef842397966                |                                     | false  | true             |
 | github.com/smartystreets/assertions                                                     | v0.0.0-20180927180507-b2de0cb4f26d                | v1.15.1                             | false  | true             |
 | github.com/smartystreets/goconvey                                                       | v0.0.0-20190330032615-68dc04aab96a                | v1.8.1                              | false  | true             |
@@ -832,7 +832,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | github.com/xiang90/probing                                                              | v0.0.0-20190116061207-43a291ad63a2                | v0.0.0-20221125231312-a49e3df8f510  | false  | true             |
 | github.com/xlab/treeprint                                                               | v1.2.0                                            |                                     | false  | true             |
 | github.com/xordataexchange/crypt                                                        | v0.0.3-0.20170626215501-b2862e3d0a77              |                                     | false  | true             |
-| github.com/xrash/smetrics                                                               | v0.0.0-20201216005158-039620a65673                | v0.0.0-20231213231151-1d8dd44e695e  | false  | true             |
+| github.com/xrash/smetrics                                                               | v0.0.0-20201216005158-039620a65673                | v0.0.0-20240312152122-5f08fbb34913  | false  | true             |
 | github.com/yashtewari/glob-intersection                                                 | v0.2.0                                            |                                     | false  | true             |
 | github.com/youmark/pkcs8                                                                | v0.0.0-20181117223130-1be2e3e5546d                | v0.0.0-20201027041543-1326539a0a0a  | false  | true             |
 | github.com/ysmood/fetchup                                                               | v0.2.3                                            | v0.2.4                              | false  | true             |
@@ -885,7 +885,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | go.uber.org/multierr                                                                    | v1.11.0                                           |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.26.0                                           | v1.27.0                             | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                               |                                     | false  | true             |
-| gocloud.dev                                                                             | v0.34.0                                           | v0.36.0                             | false  | true             |
+| gocloud.dev                                                                             | v0.34.0                                           | v0.37.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.7.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.19.0                                           | v0.21.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611                | v0.0.0-20240222234643-814bf88cf225  | false  | true             |
@@ -961,7 +961,7 @@ _Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 | modernc.org/mathutil                                                                    | v1.5.0                                            | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                            | v1.7.2                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                            |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                                           | v1.29.3                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                                           | v1.29.4                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                            | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                                           | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                            | v1.1.0                              | false  | true             |
