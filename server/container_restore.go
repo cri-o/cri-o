@@ -7,7 +7,6 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/podman/v4/pkg/annotations"
-	"github.com/containers/podman/v4/pkg/errorhandling"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -91,7 +90,12 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
 		}
-		defer errorhandling.CloseQuiet(archiveFile)
+		defer func(f *os.File) {
+			if err := f.Close(); err != nil {
+				log.Errorf(ctx, "Unable to close file %s: %q", f.Name(), err)
+			}
+		}(archiveFile)
+
 		restoreArchivePath = input
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
