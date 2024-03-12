@@ -10,7 +10,6 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
-	"github.com/containers/podman/v4/pkg/annotations"
 	selinux "github.com/containers/podman/v4/pkg/selinux"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
@@ -22,7 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	ann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	json "github.com/json-iterator/go"
@@ -126,7 +125,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	kubeAnnotations := sbox.Config().Annotations
 
-	usernsMode := kubeAnnotations[ann.UsernsModeAnnotation]
+	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
 
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
@@ -307,14 +306,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
-	g.AddAnnotation(ann.PodLinuxOverhead, string(overheadJSON))
+	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
 	resourcesJSON, err := json.Marshal(resources)
 	if err != nil {
 		return nil, err
 	}
-	g.AddAnnotation(ann.PodLinuxResources, string(resourcesJSON))
+	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
 
 	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, "", "", privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode, overhead, resources)
 	if err != nil {
@@ -439,7 +438,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	} else {
 		log.Debugf(ctx, "Dropping infra container for pod %s", sbox.ID())
 		container = oci.NewSpoofedContainer(sbox.ID(), containerName, labels, sbox.ID(), created, podContainer.RunDir)
-		g.AddAnnotation(ann.SpoofedContainer, "true")
+		g.AddAnnotation(annotations.SpoofedContainer, "true")
 	}
 	container.SetMountPoint(mountPoint)
 	container.SetSpec(g.Config)

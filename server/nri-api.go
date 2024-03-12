@@ -8,12 +8,12 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/intel/goresctrl/pkg/blockio"
 
-	stdannotations "github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -486,11 +486,11 @@ func (p *criPodSandbox) GetAnnotations() map[string]string {
 	if p.Sandbox == nil {
 		return nil
 	}
-	annotations := map[string]string{}
+	anns := map[string]string{}
 	for key, value := range p.Annotations() {
-		annotations[key] = value
+		anns[key] = value
 	}
-	return annotations
+	return anns
 }
 
 func (p *criPodSandbox) GetLabels() map[string]string {
@@ -581,11 +581,11 @@ func (c *criContainer) GetID() string {
 	if c.ctr == nil {
 		return ""
 	}
-	return c.GetSpec().Annotations[stdannotations.ContainerID]
+	return c.GetSpec().Annotations[annotations.ContainerID]
 }
 
 func (c *criContainer) GetPodSandboxID() string {
-	return c.GetSpec().Annotations[stdannotations.SandboxID]
+	return c.GetSpec().Annotations[annotations.SandboxID]
 }
 
 func (c *criContainer) GetName() string {
@@ -610,7 +610,7 @@ func (c *criContainer) GetState() api.ContainerState {
 }
 
 func (c *criContainer) GetLabels() map[string]string {
-	if blob, ok := c.GetSpec().Annotations[stdannotations.Labels]; ok {
+	if blob, ok := c.GetSpec().Annotations[annotations.Labels]; ok {
 		labels := map[string]string{}
 		if err := json.Unmarshal([]byte(blob), &labels); err == nil {
 			return labels

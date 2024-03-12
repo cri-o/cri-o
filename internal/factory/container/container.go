@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
@@ -22,7 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -188,7 +187,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	// The sandbox annotations are already filtered for the allowed
 	// annotations, there is no need to check it additionally here.
 	for k, v := range sb.Annotations() {
-		if k == crioann.OCISeccompBPFHookAnnotation+"/"+c.config.Metadata.Name {
+		if k == annotations.OCISeccompBPFHookAnnotation+"/"+c.config.Metadata.Name {
 			// The OCI seccomp BPF hook
 			// (https://github.com/containers/oci-seccomp-bpf-hook)
 			// uses the annotation io.containers.trace-syscall as indicator
@@ -204,10 +203,10 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 			// distinguishable files.
 			log.Debugf(ctx,
 				"Annotation key for container %q rewritten to %q (value is: %q)",
-				c.config.Metadata.Name, crioann.OCISeccompBPFHookAnnotation, v,
+				c.config.Metadata.Name, annotations.OCISeccompBPFHookAnnotation, v,
 			)
-			c.config.Annotations[crioann.OCISeccompBPFHookAnnotation] = v
-			c.spec.AddAnnotation(crioann.OCISeccompBPFHookAnnotation, v)
+			c.config.Annotations[annotations.OCISeccompBPFHookAnnotation] = v
+			c.spec.AddAnnotation(annotations.OCISeccompBPFHookAnnotation, v)
 		} else {
 			c.spec.AddAnnotation(k, v)
 		}
@@ -235,7 +234,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	c.spec.AddAnnotation(annotations.SeccompProfilePath, seccompRef)
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 	// for retrieving the runtime path for a given platform.
-	c.spec.AddAnnotation(crioann.PlatformRuntimePath, platformRuntimePath)
+	c.spec.AddAnnotation(annotations.PlatformRuntimePath, platformRuntimePath)
 
 	metadataJSON, err := json.Marshal(c.Config().Metadata)
 	if err != nil {
@@ -530,7 +529,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		return nil
 	}
 
-	annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, containerName)
+	annotationKey := fmt.Sprintf("%s.%s", annotations.UnifiedCgroupAnnotation, containerName)
 	annotation := annotationsMap[annotationKey]
 	if annotation == "" {
 		return nil
@@ -548,7 +547,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 	for _, r := range strings.Split(annotation, ";") {
 		parts := strings.SplitN(r, "=", 2)
 		if len(parts) != 2 {
-			return fmt.Errorf("invalid annotation %q", crioann.UnifiedCgroupAnnotation)
+			return fmt.Errorf("invalid annotation %q", annotations.UnifiedCgroupAnnotation)
 		}
 		d, err := b64.StdEncoding.DecodeString(parts[1])
 		// if the value is not specified in base64, then use its raw value.

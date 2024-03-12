@@ -6,13 +6,12 @@ import (
 	"os"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -36,7 +35,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 		return nil, nil
 	}
 
-	ann, ok := status.Annotations[crioann.CheckpointAnnotationName]
+	ann, ok := status.Annotations[annotations.CheckpointAnnotationName]
 	if !ok {
 		return nil, nil
 	}

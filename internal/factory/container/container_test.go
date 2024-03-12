@@ -7,7 +7,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -15,7 +14,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -332,7 +331,7 @@ var _ = t.Describe("Container", func() {
 			config.Labels = map[string]string{
 				kubeletTypes.KubernetesContainerNameLabel: containerName,
 			}
-			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, containerName)
+			annotationKey := fmt.Sprintf("%s.%s", annotations.UnifiedCgroupAnnotation, containerName)
 			annotationsMap := map[string]string{
 				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
 			}
@@ -357,7 +356,7 @@ var _ = t.Describe("Container", func() {
 			}
 
 			differentContainerName := "bar"
-			annotationKey := fmt.Sprintf("%s.%s", crioann.UnifiedCgroupAnnotation, differentContainerName)
+			annotationKey := fmt.Sprintf("%s.%s", annotations.UnifiedCgroupAnnotation, differentContainerName)
 			annotationsMap := map[string]string{
 				annotationKey: "memory.max=1000000;memory.min=MTAwMDA=;memory.low=20000",
 			}
