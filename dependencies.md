@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Mar 2024 10:31:23 UTC for commit [ccc3e5b][0]._
+_Generated on Tue, 12 Mar 2024 13:19:35 UTC for commit [80bf9fc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ccc3e5b21399cab1e08ecc7482e772c997c745e6
+[0]: https://github.com/cri-o/cri-o/commit/80bf9fc47da6a88250ab2f37cb3956f42af88eb2
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.14                            | true   | true             |
+| github.com/containernetworking/plugins                                      | v1.4.0                                        | v1.4.1                             | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.0                            | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
@@ -26,7 +27,6 @@ _Generated on Tue, 12 Mar 2024 10:31:23 UTC for commit [ccc3e5b][0]._
 | golang.org/x/net                                                            | v0.21.0                                       | v0.22.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.17.0                                       | v0.18.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.61.1                                       | v1.62.1                            | true   | true             |
-| google.golang.org/protobuf                                                  | v1.32.0                                       | v1.33.0                            | true   | true             |
 | k8s.io/api                                                                  | v0.30.0-alpha.2                               | v0.30.0-alpha.3                    | true   | true             |
 | k8s.io/apimachinery                                                         | v0.30.0-alpha.2                               | v0.30.0-alpha.3                    | true   | true             |
 | k8s.io/client-go                                                            | v0.30.0-alpha.2                               | v0.30.0-alpha.3                    | true   | true             |
@@ -299,7 +299,7 @@ _Generated on Tue, 12 Mar 2024 10:31:23 UTC for commit [ccc3e5b][0]._
 | github.com/buildkite/go-pipeline                                                        | v0.2.0                                            | v0.4.1                              | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251                |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                            |                                     | false  | true             |
-| github.com/bytedance/sonic                                                              | v1.10.1                                           | v1.11.2                             | false  | true             |
+| github.com/bytedance/sonic                                                              | v1.10.1                                           | v1.11.3                             | false  | true             |
 | github.com/cavaliercoder/badio                                                          | v0.0.0-20160213150051-ce5280129e9e                |                                     | false  | true             |
 | github.com/cavaliercoder/go-rpm                                                         | v0.0.0-20200122174316-8cb9fd9c31a8                | v1.2.0                              | false  | true             |
 | github.com/cavaliergopher/cpio                                                          | v1.0.1                                            |                                     | false  | true             |
@@ -358,7 +358,7 @@ _Generated on Tue, 12 Mar 2024 10:31:23 UTC for commit [ccc3e5b][0]._
 | github.com/containerd/typeurl/v2                                                        | v2.1.1                                            |                                     | false  | true             |
 | github.com/containerd/zfs                                                               | v1.1.0                                            | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                            |                                     | true   | true             |
-| github.com/containernetworking/plugins                                                  | v1.4.0                                            |                                     | true   | true             |
+| github.com/containernetworking/plugins                                                  | v1.4.0                                            | v1.4.1                              | true   | true             |
 | github.com/containers/buildah                                                           | v1.33.5                                           | v1.35.0                             | false  | true             |
 | github.com/containers/common                                                            | v0.57.4                                           | v0.58.0                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                              |                                     | true   | true             |
@@ -913,7 +913,7 @@ _Generated on Tue, 12 Mar 2024 10:31:23 UTC for commit [ccc3e5b][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917                | v0.0.0-20240311173647-c811ad7063a7  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.61.1                                           | v1.62.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                            |                                     | false  | true             |
-| google.golang.org/protobuf                                                              | v1.32.0                                           | v1.33.0                             | true   | true             |
+| google.golang.org/protobuf                                                              | v1.33.0                                           |                                     | true   | true             |
 | gopkg.in/airbrake/gobrake.v2                                                            | v2.0.9                                            |                                     | false  | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                            | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c                |                                     | false  | true             |
