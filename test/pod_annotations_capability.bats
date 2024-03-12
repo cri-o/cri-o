@@ -24,8 +24,8 @@ function delete_pod() {
 	enable_capability=true
 	cni_plugin_log_path="$TESTDIR/cni.log"
 
-	start_crio
 	prepare_cni_plugin "$cni_plugin_log_path" $enable_capability
+	start_crio
 	run_pod
 	delete_pod
 
@@ -39,8 +39,8 @@ function delete_pod() {
 	enable_capability=false
 	cni_plugin_log_path="$TESTDIR/cni.log"
 
-	start_crio
 	prepare_cni_plugin "$cni_plugin_log_path" $enable_capability
+	start_crio
 	run_pod
 	delete_pod
 
@@ -56,8 +56,8 @@ function delete_pod() {
 	enable_capability_second=true
 	cni_plugin_log_path_second="$TESTDIR/cni-02.log"
 
-	start_crio
 	prepare_chained_cni_plugins "${cni_plugin_log_path_first}" $enable_capability_first "$cni_plugin_log_path_second" $enable_capability_second
+	start_crio
 	run_pod
 	delete_pod
 
