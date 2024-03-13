@@ -85,7 +85,7 @@ func run() error {
 	// Check if we're on a tag and adapt variables if necessary
 	bundleVersion := head
 	shortHead := head[:7]
-	endRev := head
+	endRev := util.AddTagPrefix(version.Version)
 
 	startTag := util.AddTagPrefix(version.Version)
 	if output, err := command.New(
