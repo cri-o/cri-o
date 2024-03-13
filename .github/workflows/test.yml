@@ -83,13 +83,16 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - uses: actions/download-artifact@v4
         with:
           name: build
           path: bin
       - run: |
-          sudo -E make check-nri-bats-tests
+          sudo -E make check-nri-bats-tests GOSUMDB=
 
   build-static-amd64:
     runs-on: ubuntu-latest
