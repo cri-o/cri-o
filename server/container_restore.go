@@ -14,7 +14,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubetypes "k8s.io/kubelet/pkg/types"
@@ -42,7 +41,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 		return nil, nil
 	}
 
-	logrus.Debugf("Found checkpoint of container %v in %v", ann, input)
+	log.Debugf(ctx, "Found checkpoint of container %v in %v", ann, input)
 
 	return &status.ID, nil
 }
@@ -75,12 +74,12 @@ func (s *Server) CRImportCheckpoint(
 			return "", err
 		}
 
-		logrus.Debugf("Checkpoint image %s mounted at %v\n", restoreStorageImageID, mountPoint)
+		log.Debugf(ctx, "Checkpoint image %s mounted at %v\n", restoreStorageImageID, mountPoint)
 
 		defer func() {
 			// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
 			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), true); err != nil {
-				logrus.Errorf("Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
+				log.Errorf(ctx, "Could not unmount checkpoint image %s: %q", restoreStorageImageID, err)
 			}
 		}()
 	} else {
@@ -114,7 +113,7 @@ func (s *Server) CRImportCheckpoint(
 		}
 		defer func() {
 			if err := os.RemoveAll(mountPoint); err != nil {
-				logrus.Errorf("Could not recursively remove %s: %q", mountPoint, err)
+				log.Errorf(ctx, "Could not recursively remove %s: %q", mountPoint, err)
 			}
 		}()
 		err = archive.Untar(archiveFile, mountPoint, options)
