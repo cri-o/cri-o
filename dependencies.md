@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 13 Mar 2024 10:39:43 UTC for commit [14d983d][0]._
+_Generated on Wed, 13 Mar 2024 14:11:30 UTC for commit [c75519a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/14d983d47488239ba1e968dfe9642fb9ba1a9ec6
+[0]: https://github.com/cri-o/cri-o/commit/c75519a6af4432586e5f863819e50519365dda5d
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Wed, 13 Mar 2024 10:39:43 UTC for commit [14d983d][0]._
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240313050743-410afcc9136a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240313104929-8f4cbd49d761 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.16.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -150,7 +150,7 @@ _Generated on Wed, 13 Mar 2024 10:39:43 UTC for commit [14d983d][0]._
 | cloud.google.com/go/servicemanagement                                                   | v1.8.0                                            | v1.9.6                              | false  | true             |
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                            | v1.8.4                              | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.4                                            | v1.7.5                              | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.53.1                                           | v1.58.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.53.1                                           | v1.59.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.21.0                                           | v1.22.0                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.33.0                                           | v1.39.1                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                           | v1.10.4                             | false  | true             |
@@ -587,7 +587,7 @@ _Generated on Wed, 13 Mar 2024 10:39:43 UTC for commit [14d983d][0]._
 | github.com/jtolds/gls                                                                   | v4.20.0+incompatible                              |                                     | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                            |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5              | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240313050743-410afcc9136a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225                | v0.0.0-20240313104929-8f4cbd49d761  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51                |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                            |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                            | v1.7.0                              | false  | true             |
@@ -957,11 +957,11 @@ _Generated on Wed, 13 Mar 2024 10:39:43 UTC for commit [14d983d][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                           | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                           |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                            |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                           | v1.44.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                           | v1.44.1                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                            | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                            | v1.7.2                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                            |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                                           | v1.29.4                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                                           | v1.29.5                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                            | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                                           | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                            | v1.1.0                              | false  | true             |
