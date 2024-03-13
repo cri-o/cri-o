@@ -27,9 +27,10 @@ var (
 	UserOverrideMountsFile = filepath.Join(os.Getenv("HOME"), ".config/containers/mounts.conf")
 )
 
-// subscriptionData stores the name of the file and the content read from it
+// subscriptionData stores the relative name of the file and the content read from it
 type subscriptionData struct {
-	name    string
+	// relPath is the relative path to the file
+	relPath string
 	data    []byte
 	mode    os.FileMode
 	dirMode os.FileMode
@@ -37,10 +38,13 @@ type subscriptionData struct {
 
 // saveTo saves subscription data to given directory
 func (s subscriptionData) saveTo(dir string) error {
-	if err := umask.MkdirAllIgnoreUmask(dir, s.dirMode); err != nil {
+	// We need to join the path here and create all parent directories, only
+	// creating dir is not good enough as relPath could also contain directories.
+	path := filepath.Join(dir, s.relPath)
+	if err := umask.MkdirAllIgnoreUmask(filepath.Dir(path), s.dirMode); err != nil {
 		return fmt.Errorf("create subscription directory: %w", err)
 	}
-	if err := umask.WriteFileIgnoreUmask(filepath.Join(dir, s.name), s.data, s.mode); err != nil {
+	if err := umask.WriteFileIgnoreUmask(path, s.data, s.mode); err != nil {
 		return fmt.Errorf("write subscription data: %w", err)
 	}
 	return nil
@@ -96,7 +100,7 @@ func readFileOrDir(root, name string, parentMode os.FileMode) ([]subscriptionDat
 		return nil, err
 	}
 	return []subscriptionData{{
-		name:    name,
+		relPath: name,
 		data:    bytes,
 		mode:    s.Mode(),
 		dirMode: parentMode,
