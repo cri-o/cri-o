@@ -25,7 +25,7 @@ var _ = t.Describe("Status", func() {
 				&types.StatusRequest{})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Conditions)).To(BeEquivalentTo(2))
 			for _, condition := range response.Status.Conditions {
@@ -39,7 +39,7 @@ var _ = t.Describe("Status", func() {
 				&types.StatusRequest{})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Conditions)).To(BeEquivalentTo(2))
 			for _, condition := range response.Status.Conditions {
@@ -53,7 +53,7 @@ var _ = t.Describe("Status", func() {
 				&types.StatusRequest{Verbose: true})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.Info).NotTo(BeNil())
 		})

@@ -30,7 +30,7 @@ var _ = t.Describe("ContainerStart", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid container ID", func() {
@@ -40,7 +40,7 @@ var _ = t.Describe("ContainerStart", func() {
 				&types.StartContainerRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid container state", func() {
@@ -55,7 +55,7 @@ var _ = t.Describe("ContainerStart", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

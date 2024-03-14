@@ -28,7 +28,7 @@ var _ = t.Describe("ReopenContainerLog", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

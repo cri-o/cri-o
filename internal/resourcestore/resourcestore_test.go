@@ -50,7 +50,7 @@ var _ = t.Describe("ResourceStore", func() {
 			// Given
 
 			// When
-			Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 
 			// Then
 			id := sut.Get(testName)
@@ -63,14 +63,14 @@ var _ = t.Describe("ResourceStore", func() {
 			// Given
 
 			// When
-			Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 
 			// Then
-			Expect(sut.Put(testName, e, cleaner)).NotTo(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).NotTo(Succeed())
 		})
 		It("Get should call SetCreated", func() {
 			// When
-			Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 
 			// Then
 			id := sut.Get(testName)
@@ -97,7 +97,7 @@ var _ = t.Describe("ResourceStore", func() {
 			}
 
 			// When
-			Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 			// Then
 			Expect(waitWatcherSet(watcher1)).To(BeTrue())
 			Expect(waitWatcherSet(watcher2)).To(BeTrue())
@@ -129,11 +129,11 @@ var _ = t.Describe("ResourceStore", func() {
 			}()
 
 			// When
-			Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+			Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 
 			// Then
 			didStoreCallTimeoutFunc := <-timedOutChan
-			Expect(didStoreCallTimeoutFunc).To(Equal(true))
+			Expect(didStoreCallTimeoutFunc).To(BeTrue())
 
 			id := sut.Get(testName)
 			Expect(id).To(BeEmpty())
@@ -150,13 +150,13 @@ var _ = t.Describe("ResourceStore", func() {
 			// When
 			go func() {
 				time.Sleep(timeout * 6)
-				Expect(sut.Put(testName, e, cleaner)).To(BeNil())
+				Expect(sut.Put(testName, e, cleaner)).To(Succeed())
 				timedOutChan <- true
 			}()
 
 			// Then
 			didStoreWaitForPut := <-timedOutChan
-			Expect(didStoreWaitForPut).To(Equal(true))
+			Expect(didStoreWaitForPut).To(BeTrue())
 		})
 	})
 	Context("Stages", func() {

@@ -28,12 +28,12 @@ var _ = t.Describe("ContainerServer", func() {
 			// Given
 			// Create temp lockfile
 			tmpfile, err := os.CreateTemp("", "lockfile")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.Remove(tmpfile.Name())
 
 			// Setup config
 			config, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			config.HooksDir = []string{}
 			// so we have permission to make a directory within it
 			config.ContainerAttachSocketDir = t.MustTempDir("crio")
@@ -48,7 +48,7 @@ var _ = t.Describe("ContainerServer", func() {
 			server, err := lib.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 		})
 
@@ -62,7 +62,7 @@ var _ = t.Describe("ContainerServer", func() {
 			server, err := lib.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 
@@ -72,7 +72,7 @@ var _ = t.Describe("ContainerServer", func() {
 			server, err := lib.New(context.Background(), nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 	})
@@ -154,7 +154,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed load infraContainer", func() {
@@ -166,7 +166,7 @@ var _ = t.Describe("ContainerServer", func() {
 			_, err := sut.LoadSandbox(context.Background(), "id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.GetInfraContainer(context.Background(), sandboxID)).NotTo(BeNil())
 		})
 
@@ -184,7 +184,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with missing network namespace", func() {
@@ -201,7 +201,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with empty pod ID", func() {
@@ -213,7 +213,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong container ID", func() {
@@ -229,7 +229,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong container volumes", func() {
@@ -245,7 +245,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with failing container directory", func() {
@@ -265,7 +265,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with failing container run directory", func() {
@@ -283,7 +283,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid namespace options", func() {
@@ -303,7 +303,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid port mappings", func() {
@@ -323,7 +323,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid kube annotations", func() {
@@ -343,7 +343,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid metadata", func() {
@@ -363,7 +363,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid labels", func() {
@@ -383,7 +383,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid network selinux labels", func() {
@@ -403,7 +403,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).NotTo(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with container directory", func() {
@@ -419,7 +419,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong PodLinuxOverhead", func() {
@@ -439,7 +439,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong PodLinuxResources", func() {
@@ -459,7 +459,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 			// Then
 			Expect(sb).To(BeNil())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -467,14 +467,14 @@ var _ = t.Describe("ContainerServer", func() {
 		It("should succeed", func() {
 			// Given
 			createDummyState()
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			mockDirs(testManifest)
 
 			// When
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with failing FromContainerDirectory", func() {
@@ -489,12 +489,12 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with failing ContainerRunDirectory", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			gomock.InOrder(
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -507,12 +507,12 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with failing ContainerDirectory", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			gomock.InOrder(
 				storeMock.EXPECT().
 					FromContainerDirectory(gomock.Any(), gomock.Any()).
@@ -527,7 +527,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid manifest", func() {
@@ -542,7 +542,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid labels", func() {
@@ -561,7 +561,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid metadata", func() {
@@ -580,7 +580,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid kube annotations", func() {
@@ -599,7 +599,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.LoadContainer(context.Background(), "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with non CRI-O managed container", func() {
@@ -631,13 +631,13 @@ var _ = t.Describe("ContainerServer", func() {
 				make(map[string]string), "", nil, nil, "",
 				&types.ContainerMetadata{}, sandboxID, false,
 				false, false, "", "/invalid", time.Now(), "")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			err = sut.ContainerStateToDisk(context.Background(), container)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -648,20 +648,20 @@ var _ = t.Describe("ContainerServer", func() {
 			name, err := sut.ReserveContainerName("id", "name")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(name).To(Equal("name"))
 		})
 
 		It("should fail when reserved twice", func() {
 			// Given
 			_, err := sut.ReserveContainerName("someID", "name")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			_, err = sut.ReserveContainerName("anotherID", "name")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -672,20 +672,20 @@ var _ = t.Describe("ContainerServer", func() {
 			name, err := sut.ReservePodName("id", "name")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(name).To(Equal("name"))
 		})
 
 		It("should fail when reserved twice", func() {
 			// Given
 			_, err := sut.ReservePodName("someID", "name")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			_, err = sut.ReservePodName("anotherID", "name")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -701,7 +701,7 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.Shutdown()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail when storage shutdown fails", func() {
@@ -715,14 +715,14 @@ var _ = t.Describe("ContainerServer", func() {
 			err := sut.Shutdown()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	t.Describe("AddContainer/AddSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
 
 			// When
@@ -752,10 +752,10 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("RemoveContainer/RemoveSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
 			sut.RemoveContainer(ctx, myContainer)
-			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(Succeed())
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -769,9 +769,9 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail to remove container when sandbox not available", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
-			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(Succeed())
 			sut.RemoveContainer(ctx, myContainer)
 
 			// When
@@ -785,7 +785,7 @@ var _ = t.Describe("ContainerServer", func() {
 
 		It("should fail to remove sandbox when not available", func() {
 			// Given
-			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(BeNil())
+			Expect(sut.RemoveSandbox(ctx, mySandbox.ID())).To(Succeed())
 
 			// When
 			hasSandbox := sut.HasSandbox(mySandbox.ID())
@@ -798,7 +798,7 @@ var _ = t.Describe("ContainerServer", func() {
 	t.Describe("ListContainer/ListSandbox", func() {
 		It("should succeed", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
 
 			// When
@@ -806,14 +806,14 @@ var _ = t.Describe("ContainerServer", func() {
 			containers, err := sut.ListContainers()
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(len(sandboxes)).To(Equal(1))
-			Expect(len(containers)).To(Equal(1))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sandboxes).To(HaveLen(1))
+			Expect(containers).To(HaveLen(1))
 		})
 
 		It("should succeed filtered", func() {
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
 
 			// When
@@ -827,9 +827,9 @@ var _ = t.Describe("ContainerServer", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(len(sandboxes)).To(Equal(1))
-			Expect(len(containers)).To(Equal(1))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sandboxes).To(HaveLen(1))
+			Expect(containers).To(HaveLen(1))
 		})
 	})
 

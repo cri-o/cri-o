@@ -18,7 +18,7 @@ var _ = Describe("Sandbox", func() {
 			err := sut.SetConfig(config)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Config()).To(Equal(config))
 		})
 
@@ -28,7 +28,7 @@ var _ = Describe("Sandbox", func() {
 			err := sut.SetConfig(nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Config()).To(BeNil())
 		})
 
@@ -40,7 +40,7 @@ var _ = Describe("Sandbox", func() {
 			err := sut.SetConfig(config)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Config()).To(BeNil())
 		})
 
@@ -54,7 +54,7 @@ var _ = Describe("Sandbox", func() {
 			err := sut.SetConfig(config)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Config()).To(BeNil())
 		})
 
@@ -64,13 +64,13 @@ var _ = Describe("Sandbox", func() {
 				Metadata: &types.PodSandboxMetadata{Name: "name"},
 			}
 			err := sut.SetConfig(config)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			err = sut.SetConfig(config)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Config()).NotTo(BeNil())
 		})
 	})

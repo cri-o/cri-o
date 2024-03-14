@@ -37,7 +37,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.LoadProfile("unconfined")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

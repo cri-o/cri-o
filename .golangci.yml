@@ -30,6 +30,7 @@ linters:
     - execinquery
     - exportloopref
     - forcetypeassert
+    - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoinits
     - gochecksumtype
@@ -85,7 +86,6 @@ linters:
     # - forbidigo
     # - funlen
     # - gci
-    # - ginkgolinter
     # - gochecknoglobals
     # - gocognit
     # - godot

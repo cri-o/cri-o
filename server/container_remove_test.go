@@ -46,7 +46,7 @@ var _ = t.Describe("ContainerRemove", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on container remove error", func() {
@@ -56,7 +56,7 @@ var _ = t.Describe("ContainerRemove", func() {
 				&types.RemoveContainerRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

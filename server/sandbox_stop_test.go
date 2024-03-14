@@ -25,14 +25,14 @@ var _ = t.Describe("PodSandboxStatus", func() {
 			// Given
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
-			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(BeNil())
+			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(Succeed())
 
 			// When
 			_, err := sut.StopPodSandbox(context.Background(),
 				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with inavailable sandbox", func() {
@@ -42,7 +42,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				&types.StopPodSandboxRequest{PodSandboxId: "invalid"})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail when container is not stopped", func() {
@@ -58,7 +58,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				&types.StopPodSandboxRequest{PodSandboxId: testSandbox.ID()})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with empty sandbox ID", func() {
@@ -68,7 +68,7 @@ var _ = t.Describe("PodSandboxStatus", func() {
 				&types.StopPodSandboxRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

@@ -50,7 +50,7 @@ var _ = Describe("Sandbox", func() {
 		for _, c := range testCases {
 			err := sboxfactory.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			expect, _ := os.ReadFile(c.Want) // nolint: errcheck
 			result, _ := os.ReadFile(c.Path) // nolint: errcheck
@@ -65,7 +65,7 @@ var _ = Describe("Sandbox", func() {
 			// Given
 			var err error
 			cfg, err = config.DefaultConfig()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with default config", func() {
@@ -73,7 +73,7 @@ var _ = Describe("Sandbox", func() {
 			_, err := sboxfactory.PauseCommand(cfg, nil)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with Entrypoint", func() {
@@ -86,7 +86,7 @@ var _ = Describe("Sandbox", func() {
 			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(Equal(entrypoint))
 		})
 
@@ -100,7 +100,7 @@ var _ = Describe("Sandbox", func() {
 			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(Equal(cmd))
 		})
 
@@ -118,7 +118,7 @@ var _ = Describe("Sandbox", func() {
 			res, err := sboxfactory.PauseCommand(cfg, image)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(HaveLen(2))
 			Expect(res[0]).To(Equal(entrypoint))
 			Expect(res[1]).To(Equal(cmd))
@@ -129,7 +129,7 @@ var _ = Describe("Sandbox", func() {
 			res, err := sboxfactory.PauseCommand(nil, nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
 		})
 
@@ -141,7 +141,7 @@ var _ = Describe("Sandbox", func() {
 			res, err := sboxfactory.PauseCommand(cfg, nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
 		})
 	})
@@ -154,13 +154,13 @@ var _ = Describe("Sandbox", func() {
 			// When
 			shmSize = int64(-1)
 			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeEmpty())
 		})
 
@@ -168,29 +168,29 @@ var _ = Describe("Sandbox", func() {
 			// When
 			mountLabel = ""
 			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeEmpty())
 		})
 
 		It("should fail if dir already exists", func() {
 			// Given
 			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			shmPath := filepath.Join(dir, "shm")
 			err = os.Mkdir(shmPath, 0o700)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeEmpty())
 		})
 	})

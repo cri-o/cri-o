@@ -54,8 +54,8 @@ var _ = t.Describe("Container", func() {
 		Expect(sut.GetStopSignal()).To(Equal("15"))
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))
-		Expect(sut.Spoofed()).To(Equal(false))
-		Expect(sut.Restore()).To(Equal(false))
+		Expect(sut.Spoofed()).To(BeFalse())
+		Expect(sut.Restore()).To(BeFalse())
 		Expect(sut.RestoreArchivePath()).To(Equal(""))
 		Expect(sut.RestoreStorageImageID()).To(BeNil())
 	})
@@ -152,7 +152,7 @@ var _ = t.Describe("Container", func() {
 	It("should succeed to set restore is oci image", func() {
 		// Given
 		storageImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("1111111111111111111111111111111111111111111111111111111111111111")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// When
 		sut.SetRestoreStorageImageID(&storageImageID)
@@ -187,7 +187,7 @@ var _ = t.Describe("Container", func() {
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGNO")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(container).NotTo(BeNil())
 
 		// When
@@ -203,7 +203,7 @@ var _ = t.Describe("Container", func() {
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "RTMIN+1")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(container).NotTo(BeNil())
 
 		// When
@@ -219,7 +219,7 @@ var _ = t.Describe("Container", func() {
 			map[string]string{}, map[string]string{}, map[string]string{},
 			"", nil, nil, "", &types.ContainerMetadata{}, "",
 			false, false, false, "", "", time.Now(), "SIGTRAP")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(container).NotTo(BeNil())
 
 		// When
@@ -337,13 +337,13 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.Linux.CpusetMems).To(Equal(cpusetMems))
 		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
 		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
-		Expect(len(containerResources.Linux.Unified)).To(Equal(0))
-		Expect(len(containerResources.Linux.HugepageLimits)).To(Equal(0))
+		Expect(containerResources.Linux.Unified).To(BeEmpty())
+		Expect(containerResources.Linux.HugepageLimits).To(BeEmpty())
 	})
 
 	t.Describe("FromDisk", func() {
 		BeforeEach(func() {
-			Expect(os.MkdirAll(sut.Dir(), 0o755)).To(BeNil())
+			Expect(os.MkdirAll(sut.Dir(), 0o755)).To(Succeed())
 		})
 		AfterEach(func() {
 			os.RemoveAll(sut.Dir())
@@ -351,25 +351,25 @@ var _ = t.Describe("Container", func() {
 		It("should succeed to get the state from disk", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"),
-				[]byte("{}"), 0o644)).To(BeNil())
+				[]byte("{}"), 0o644)).To(Succeed())
 
 			// When
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should succeed when pid set but initialPid not set", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(alwaysRunningPid)+`}`),
-				0o644)).To(BeNil())
+				0o644)).To(Succeed())
 
 			// When
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			sutState := sut.State()
 			Expect(sutState.InitStartTime).NotTo(Equal(""))
 			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
@@ -378,13 +378,13 @@ var _ = t.Describe("Container", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(alwaysRunningPid)+`}`),
-				0o644)).To(BeNil())
+				0o644)).To(Succeed())
 
 			// When
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			sutState := sut.State()
 			Expect(sutState.InitStartTime).NotTo(Equal(""))
 			Expect(sutState.InitPid).To(Equal(alwaysRunningPid))
@@ -393,13 +393,13 @@ var _ = t.Describe("Container", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"), []byte(`
 			{"pid":`+strconv.Itoa(neverRunningPid)+`}`),
-				0o644)).To(BeNil())
+				0o644)).To(Succeed())
 
 			// When
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			sutState := sut.State()
 			Expect(sutState.InitStartTime).To(Equal(""))
 			Expect(sutState.InitPid).To(Equal(0))
@@ -408,13 +408,13 @@ var _ = t.Describe("Container", func() {
 		It("should fail to get the state from disk if invalid json", func() {
 			// Given
 			Expect(os.WriteFile(path.Join(sut.Dir(), "state.json"),
-				[]byte("invalid"), 0o644)).To(BeNil())
+				[]byte("invalid"), 0o644)).To(Succeed())
 
 			// When
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to get the state from disk if not existing", func() {
@@ -423,7 +423,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.FromDisk()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 	t.Describe("ShouldBeStopped", func() {
@@ -448,7 +448,7 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(err).NotTo(Equal(oci.ErrContainerStopped))
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should succeed to stop if started", func() {
 			// Given
@@ -459,7 +459,7 @@ var _ = t.Describe("Container", func() {
 			err := sut.ShouldBeStopped()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("Living", func() {
@@ -472,32 +472,32 @@ var _ = t.Describe("Container", func() {
 			err := sut.Living()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should succeed if pid is running", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = alwaysRunningPid
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 			sut.SetState(state)
 			// When
 			err := sut.Living()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should be false if pid is not running", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = neverRunningPid
 			// SetInitPid will fail because the pid is not running
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
 			sut.SetState(state)
 			// When
 			err := sut.Living()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 	t.Describe("Pid", func() {
@@ -507,27 +507,27 @@ var _ = t.Describe("Container", func() {
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when pid is negative", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = -1
 			// SetInitPid will fail because the pid is not running
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
 			sut.SetState(state)
 
 			// When
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail gracefully when pid has been stopped", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = alwaysRunningPid
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 			// a `runtime state ctr` call after the container has been stopped
 			// will set the state pid to 0. However, InitPid never changes
 			// so we have a separate handle for when Pid is 0 but InitPid is not
@@ -538,26 +538,26 @@ var _ = t.Describe("Container", func() {
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(errors.Is(err, oci.ErrNotFound)).To(Equal(true))
+			Expect(errors.Is(err, oci.ErrNotFound)).To(BeTrue())
 		})
 		It("should fail if process is not found", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = neverRunningPid
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
 			sut.SetState(state)
 
 			// When
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(errors.Is(err, oci.ErrNotFound)).To(Equal(true))
+			Expect(errors.Is(err, oci.ErrNotFound)).To(BeTrue())
 		})
 		It("should fail when pid has wrapped", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = alwaysRunningPid
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 			// if InitStartTime != the time the state.InitPid started
 			// pid wrap is assumed to have happened
 			state.InitStartTime = ""
@@ -567,20 +567,20 @@ var _ = t.Describe("Container", func() {
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(0))
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should succeed", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = alwaysRunningPid
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 			sut.SetState(state)
 
 			// When
 			pid, err := sut.Pid()
 			// Then
 			Expect(pid).To(Equal(alwaysRunningPid))
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("SetInitPid", func() {
@@ -590,16 +590,16 @@ var _ = t.Describe("Container", func() {
 			// When
 			state.Pid = alwaysRunningPid
 			// Then
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 		})
 		It("should fail if already set", func() {
 			// Given
 			state := &oci.ContainerState{}
 			state.Pid = alwaysRunningPid
 			// When
-			Expect(state.SetInitPid(state.Pid)).To(BeNil())
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
 			// Then
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
 		})
 		It("should fail if not running", func() {
 			// Given
@@ -607,7 +607,7 @@ var _ = t.Describe("Container", func() {
 			// When
 			state.Pid = neverRunningPid
 			// Then
-			Expect(state.SetInitPid(state.Pid)).NotTo(BeNil())
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
 		})
 	})
 	t.Describe("GetPidStartTimeFromFile", func() {
@@ -621,40 +621,40 @@ var _ = t.Describe("Container", func() {
 
 			// Then
 			Expect(stime).To(BeEmpty())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when there are no parenthesis", func() {
 			contents := []byte("1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
-			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(Succeed())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)
 
 			// Then
 			Expect(stime).To(BeEmpty())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail with short file", func() {
 			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21")
-			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(Succeed())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)
 
 			// Then
 			Expect(stime).To(BeEmpty())
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should succeed to get start time", func() {
 			contents := []byte("1 (2) 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52")
-			Expect(os.WriteFile(statFile, contents, 0o644)).To(BeNil())
+			Expect(os.WriteFile(statFile, contents, 0o644)).To(Succeed())
 
 			// When
 			stime, err := oci.GetPidStartTimeFromFile(statFile)
 
 			// Then
 			Expect(stime).To(Equal("22"))
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
@@ -669,7 +669,7 @@ var _ = t.Describe("SpoofedContainer", func() {
 		Expect(sut.Name()).To(Equal("name"))
 		labels := sut.Labels()
 		Expect(labels["key"]).To(Equal("label"))
-		Expect(sut.Spoofed()).To(Equal(true))
+		Expect(sut.Spoofed()).To(BeTrue())
 		Expect(sut.CreatedAt().UnixNano()).
 			To(BeNumerically("<", time.Now().UnixNano()))
 		Expect(sut.Dir()).To(Equal("dir"))

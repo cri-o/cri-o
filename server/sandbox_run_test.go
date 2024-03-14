@@ -62,7 +62,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -73,7 +73,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				&types.RunPodSandboxRequest{Config: &types.PodSandboxConfig{}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -86,7 +86,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -101,7 +101,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -137,7 +137,7 @@ var _ = t.Describe("RunPodSandbox", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

@@ -28,7 +28,7 @@ var _ = t.Describe("CLI", func() {
 	DescribeTable("should parse comma separated flags", func(values ...string) {
 		// Given
 		for _, v := range values {
-			Expect(slice.Set(v)).To(BeNil())
+			Expect(slice.Set(v)).To(Succeed())
 		}
 
 		// When
@@ -46,8 +46,8 @@ var _ = t.Describe("CLI", func() {
 
 	It("should return a copy of the slice", func() {
 		// Given
-		Expect(slice.Set("value1")).To(BeNil())
-		Expect(slice.Set("value2")).To(BeNil())
+		Expect(slice.Set("value1")).To(Succeed())
+		Expect(slice.Set("value2")).To(Succeed())
 
 		// When
 		res := criocli.StringSliceTrySplit(ctx, flagName)
@@ -111,12 +111,12 @@ var _ = t.Describe("CLI Flags", func() {
 	It("Flag test hostnetwork-disable-selinux", func() {
 		// Default Config
 		app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		config, err := criocli.GetConfigFromContext(ctx)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
-		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(Equal(true))
+		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(BeTrue())
 
 		// Set Config & Merge
 		setFlag := &cli.BoolFlag{
@@ -125,10 +125,10 @@ var _ = t.Describe("CLI Flags", func() {
 			HasBeenSet: true,
 		}
 		err = setFlag.Apply(flagSet)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		ctx.Command.Flags = append(commandFlags, setFlag)
 		config, err = criocli.GetAndMergeConfigFromContext(ctx)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
 		Expect(config.RuntimeConfig.HostNetworkDisableSELinux).To(Equal(setFlag.Value))
@@ -137,12 +137,12 @@ var _ = t.Describe("CLI Flags", func() {
 	It("Flag test disable-hostport-mapping", func() {
 		// Default Config
 		app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		config, err := criocli.GetConfigFromContext(ctx)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
-		Expect(config.RuntimeConfig.DisableHostPortMapping).To(Equal(false))
+		Expect(config.RuntimeConfig.DisableHostPortMapping).To(BeFalse())
 
 		// Set Config & Merge
 		setFlag := &cli.BoolFlag{
@@ -151,12 +151,12 @@ var _ = t.Describe("CLI Flags", func() {
 			HasBeenSet: true,
 		}
 		err = setFlag.Apply(flagSet)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		ctx.Command.Flags = append(commandFlags, setFlag)
 		config, err = criocli.GetAndMergeConfigFromContext(ctx)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
-		Expect(config.RuntimeConfig.DisableHostPortMapping).To(Equal(true))
+		Expect(config.RuntimeConfig.DisableHostPortMapping).To(BeTrue())
 	})
 })

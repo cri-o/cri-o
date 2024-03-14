@@ -10,7 +10,7 @@ import (
 
 func tempFileWithData(data string) string {
 	f := t.MustTempFile("")
-	Expect(os.WriteFile(f, []byte(data), 0o644)).To(BeNil())
+	Expect(os.WriteFile(f, []byte(data), 0o644)).To(Succeed())
 	return f
 }
 
@@ -42,7 +42,7 @@ var _ = t.Describe("Load", func() {
 			err := sut.Load("non-existent-file")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Enabled()).To(BeFalse())
 		})
 	})
@@ -59,7 +59,7 @@ var _ = t.Describe("Load", func() {
 			err := sut.Load(f)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.Enabled()).To(BeFalse())
 		})
 	})
@@ -80,7 +80,7 @@ var _ = t.Describe("Load", func() {
 			err := sut.Load(f)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Enabled()).To(BeTrue())
 		})
 	})

@@ -27,11 +27,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(true))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeTrue())
 	})
 	It("should not be privileged if not set so", func() {
 		// Given
@@ -53,11 +53,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 	It("should not be privileged if pod not set so", func() {
 		// Given
@@ -79,11 +79,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).NotTo(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).NotTo(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 
 	It("should not be privileged if pod has no linux config", func() {
@@ -100,11 +100,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		sboxConfig := &types.PodSandboxConfig{}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 	It("should not be privileged if pod has no security context", func() {
 		// Given
@@ -122,11 +122,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 	It("should not be privileged if container has no linux config", func() {
 		// Given
@@ -139,11 +139,11 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 	It("should not be privileged if container has no security context", func() {
 		// Given
@@ -156,10 +156,10 @@ var _ = t.Describe("Container:Privileged", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
-		Expect(sut.SetPrivileged()).To(BeNil())
-		Expect(sut.Privileged()).To(Equal(false))
+		Expect(sut.SetPrivileged()).To(Succeed())
+		Expect(sut.Privileged()).To(BeFalse())
 	})
 })

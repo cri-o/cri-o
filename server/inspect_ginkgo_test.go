@@ -39,7 +39,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
 		})
@@ -47,9 +47,9 @@ var _ = t.Describe("Inspect", func() {
 		It("should succeed with valid /containers route", func() {
 			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(Succeed())
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{})
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 			sut.AddContainer(ctx, testContainer)
 
 			// When
@@ -58,7 +58,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusOK))
 		})
@@ -66,11 +66,11 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail if sandbox not found on /containers route", func() {
 			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(Succeed())
 			testContainer.SetStateAndSpoofPid(&oci.ContainerState{})
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 			sut.AddContainer(ctx, testContainer)
-			Expect(sut.RemoveSandbox(ctx, testSandbox.ID())).To(BeNil())
+			Expect(sut.RemoveSandbox(ctx, testSandbox.ID())).To(Succeed())
 
 			// When
 			request, err := http.NewRequest(http.MethodGet,
@@ -78,7 +78,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -86,8 +86,8 @@ var _ = t.Describe("Inspect", func() {
 		It("should fail if container state is nil on /containers route", func() {
 			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, testSandbox)).To(Succeed())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 			testContainer.SetState(nil)
 			sut.AddContainer(ctx, testContainer)
 
@@ -97,7 +97,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).
 				To(BeEquivalentTo(http.StatusInternalServerError))
@@ -110,7 +110,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -122,7 +122,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -134,7 +134,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -146,7 +146,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -166,7 +166,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
 		})
@@ -186,7 +186,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
 		})
@@ -198,7 +198,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -210,7 +210,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusNotFound))
 		})
@@ -230,7 +230,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusInternalServerError))
 		})
@@ -250,7 +250,7 @@ var _ = t.Describe("Inspect", func() {
 			mux.ServeHTTP(recorder, request)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(request).NotTo(BeNil())
 			Expect(recorder.Code).To(BeEquivalentTo(http.StatusConflict))
 		})

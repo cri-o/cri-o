@@ -97,7 +97,7 @@ var _ = t.Describe("MemoryStore", func() {
 
 			// Then
 			Expect(containers).NotTo(BeNil())
-			Expect(len(containers)).To(BeZero())
+			Expect(containers).To(BeEmpty())
 		})
 
 		It("should succeed to get the first container with filter", func() {

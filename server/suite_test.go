@@ -137,9 +137,9 @@ var beforeEach = func() {
 	// Prepare the server config
 	var err error
 	testPath, err = filepath.Abs("test")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	serverConfig, err = config.DefaultConfig()
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	serverConfig.ContainerAttachSocketDir = testPath
 	serverConfig.ContainerExitsDir = path.Join(testPath, "exits")
 	serverConfig.LogDir = path.Join(testPath, "log")
@@ -157,21 +157,21 @@ var beforeEach = func() {
 		make(map[string]string), make(map[string]string), "", "",
 		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false, false,
 		false, "", "", time.Now(), "")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Initialize test streaming server
 	streamServerConfig := streaming.DefaultConfig
 	testStreamService = server.StreamService{}
 	testStreamService.SetRuntimeServer(sut)
 	server, err := streaming.NewServer(streamServerConfig, testStreamService)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(server).NotTo(BeNil())
 }
 
@@ -185,7 +185,7 @@ var setupSUT = func() {
 	var err error
 	mockNewServer()
 	sut, err = server.New(context.Background(), libMock)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(sut).NotTo(BeNil())
 
 	// Inject the mock
@@ -193,7 +193,7 @@ var setupSUT = func() {
 	sut.SetStorageRuntimeServer(runtimeServerMock)
 
 	gomock.InOrder(cniPluginMock.EXPECT().Status().Return(nil))
-	Expect(sut.SetCNIPlugin(cniPluginMock)).To(BeNil())
+	Expect(sut.SetCNIPlugin(cniPluginMock)).To(Succeed())
 }
 
 func mockNewServer() {
@@ -208,11 +208,11 @@ func mockNewServer() {
 
 func addContainerAndSandbox() {
 	ctx := context.TODO()
-	Expect(sut.AddSandbox(ctx, testSandbox)).To(BeNil())
-	Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+	Expect(sut.AddSandbox(ctx, testSandbox)).To(Succeed())
+	Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 	sut.AddContainer(ctx, testContainer)
-	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(BeNil())
-	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(Succeed())
+	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(Succeed())
 	testContainer.SetCreated()
 	testSandbox.SetCreated()
 }
@@ -230,16 +230,16 @@ var mockDirs = func(manifest []byte) {
 }
 
 func createDummyState() {
-	Expect(os.WriteFile("state.json", []byte(`{}`), 0o644)).To(BeNil())
+	Expect(os.WriteFile("state.json", []byte(`{}`), 0o644)).To(Succeed())
 }
 
 func createDummyConfig() {
-	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(BeNil())
+	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(Succeed())
 }
 
 func mockRuncInLibConfig() {
 	echo, err := exec.LookPath("echo")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	serverConfig.Runtimes["runc"] = &config.RuntimeHandler{
 		RuntimePath: echo,
 	}

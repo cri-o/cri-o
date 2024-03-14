@@ -49,7 +49,7 @@ var _ = t.Describe("ContainerEvents", func() {
 			}
 
 			err := sut.GetContainerEvents(nil, cesMock)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should send events all events to both clients", func() {
@@ -63,7 +63,7 @@ var _ = t.Describe("ContainerEvents", func() {
 
 			recv := func(ces types.RuntimeService_GetContainerEventsServer) {
 				err := sut.GetContainerEvents(nil, ces)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			}
 
 			go recv(client1)

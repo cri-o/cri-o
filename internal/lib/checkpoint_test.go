@@ -51,7 +51,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
 			Expect(err.Error()).To(Equal(`container containerID is not running`))
 		})
@@ -82,7 +82,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(Equal(config.ID))
 		})
 	})
@@ -109,7 +109,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).ToNot(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(`failed to pause container "containerID" before checkpointing`))
 		})
 	})
@@ -118,9 +118,9 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			// Given
 			// Overwrite container config to add external bind mounts
 			tmpFile, err := os.CreateTemp("", "restore-test-file")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			tmpDir, err := os.MkdirTemp("", "restore-test-directory")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll(tmpFile.Name())
 			defer os.RemoveAll(tmpDir)
 
@@ -148,7 +148,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 
 			fmt.Printf("json:%s\n", containerConfig)
 
-			Expect(os.WriteFile("config.json", []byte(containerConfig), 0o644)).To(BeNil())
+			Expect(os.WriteFile("config.json", []byte(containerConfig), 0o644)).To(Succeed())
 
 			addContainerAndSandbox()
 			config := &metadata.ContainerConfig{
@@ -176,7 +176,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			res, err := sut.ContainerCheckpoint(context.Background(), config, opts)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).To(ContainSubstring(config.ID))
 		})
 	})
@@ -230,7 +230,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
 			Expect(err.Error()).To(Equal(`failed to find container invalid: container with ID starting with invalid not found: ID does not exist`))
 		})
@@ -251,7 +251,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
 			Expect(err.Error()).To(Equal(`not able to read config for container "containerID": template configuration at config.json not found`))
 		})

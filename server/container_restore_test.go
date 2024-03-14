@@ -48,9 +48,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			size := uint64(100)
 			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/does-not-exist.tar:latest")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(
 				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("does-not-exist.tar").
 					Return(nil),
@@ -87,7 +87,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive is an empty file", func() {
 			// Given
 			archive, err := os.OpenFile("empty.tar", os.O_RDONLY|os.O_CREATE, 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			archive.Close()
 			defer os.RemoveAll("empty.tar")
 			containerConfig := &types.ContainerConfig{
@@ -110,7 +110,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive is not a tar file", func() {
 			// Given
 			err := os.WriteFile("no.tar", []byte("notar"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("no.tar")
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
@@ -132,20 +132,20 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive contains broken spec.dump", func() {
 			// Given
 			err := os.WriteFile("spec.dump", []byte("not json"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -166,23 +166,23 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive contains empty config.dump and spec.dump", func() {
 			// Given
 			err := os.WriteFile("spec.dump", []byte("{}"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte("{}"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -204,23 +204,23 @@ var _ = t.Describe("ContainerRestore", func() {
 		It("should fail because archive contains broken config.dump", func() {
 			// Given
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			err = os.WriteFile("config.dump", []byte("not json"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			err = os.WriteFile("spec.dump", []byte("{}"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -249,23 +249,23 @@ var _ = t.Describe("ContainerRestore", func() {
 				[]byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`),
 				0o644,
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte("{}"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -297,23 +297,23 @@ var _ = t.Describe("ContainerRestore", func() {
 				[]byte(`{"annotations":{"io.kubernetes.cri-o.Metadata":"{\"name\":\"container-to-restore\"}"}}`),
 				0o644,
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -348,23 +348,23 @@ var _ = t.Describe("ContainerRestore", func() {
 						`"io.kubernetes.cri-o.Annotations": "{\"name\":\"NAME\"}"}}`),
 				0o644,
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -400,23 +400,23 @@ var _ = t.Describe("ContainerRestore", func() {
 						`"io.kubernetes.cri-o.Labels": "{\"io.kubernetes.container.name\":\"counter\"}"}}`),
 				0o644,
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("spec.dump")
 			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.dump")
 			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer outFile.Close()
 			input, err := archive.TarWithOptions(".", &archive.TarOptions{
 				Compression:      archive.Uncompressed,
 				IncludeSourceDir: true,
 				IncludeFiles:     []string{"spec.dump", "config.dump"},
 			})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("archive.tar")
 			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			containerConfig := &types.ContainerConfig{
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
@@ -468,23 +468,23 @@ var _ = t.Describe("ContainerRestore", func() {
 						`"linux": {"maskedPaths": ["/proc/acpi"], "readonlyPaths": ["/proc/asound"]}}`),
 					0o644,
 				)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				defer os.RemoveAll("spec.dump")
 				err = os.WriteFile("config.dump", []byte(loopImage.config), 0o644)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				defer os.RemoveAll("config.dump")
 				outFile, err := os.Create("archive.tar")
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				defer outFile.Close()
 				input, err := archive.TarWithOptions(".", &archive.TarOptions{
 					Compression:      archive.Uncompressed,
 					IncludeSourceDir: true,
 					IncludeFiles:     []string{"spec.dump", "config.dump"},
 				})
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				defer os.RemoveAll("archive.tar")
 				_, err = io.Copy(outFile, input)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				containerConfig := &types.ContainerConfig{
 					Image: &types.ImageSpec{
 						Image: "archive.tar",
@@ -507,7 +507,7 @@ var _ = t.Describe("ContainerRestore", func() {
 
 				size := uint64(100)
 				imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				var imageLookup mockutils.MockSequence
 				if loopImage.byID {
 					imageLookup = mockutils.InOrder(
@@ -526,7 +526,7 @@ var _ = t.Describe("ContainerRestore", func() {
 					)
 				} else {
 					checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					imageLookup = mockutils.InOrder(
 						imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("image").
 							Return(nil),
@@ -574,7 +574,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			})
 		}
 	})
@@ -583,9 +583,9 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Given
 			size := uint64(100)
 			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/checkpoint-image:tag1")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(
 				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix("localhost/checkpoint-image:tag1").
 					Return(nil),

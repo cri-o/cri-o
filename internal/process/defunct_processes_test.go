@@ -14,25 +14,25 @@ var _ = t.Describe("Process", func() {
 			It("when given a valid path name and there are defunct processes", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./testing/proc_success_1")
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defunctCount).To(Equal(uint(7)))
 			})
 			It("when given a valid path name but there are no defunct processes", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./testing/proc_success_2")
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defunctCount).To(Equal(uint(0)))
 			})
 			It("when given a valid path name but there are no processes", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./testing/proc_success_3")
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defunctCount).To(Equal(uint(0)))
 			})
 			It("when given a valid path name but there are no directories", func() {
 				defunctCount, err := process.DefunctProcessesForPath("./testing/proc_success_4")
 
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defunctCount).To(Equal(uint(0)))
 			})
 		})

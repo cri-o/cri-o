@@ -19,13 +19,13 @@ var _ = t.Describe("Oci", func() {
 		It("should succeed with default config", func() {
 			// Given
 			c, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			// so we have permission to make a directory within it
 			c.ContainerAttachSocketDir = t.MustTempDir("crio")
 
 			// When
 			runtime, err := oci.New(c)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// Then
 			Expect(runtime).NotTo(BeNil())
@@ -80,14 +80,14 @@ var _ = t.Describe("Oci", func() {
 		BeforeEach(func() {
 			var err error
 			config, err = libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			config.DefaultRuntime = defaultRuntime
 			config.Runtimes = runtimes
 			// so we have permission to make a directory within it
 			config.ContainerAttachSocketDir = t.MustTempDir("crio")
 
 			sut, err = oci.New(config)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut).NotTo(BeNil())
 		})
 
@@ -106,7 +106,7 @@ var _ = t.Describe("Oci", func() {
 			handler, err := sut.ValidateRuntimeHandler(defaultRuntime)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(handler).To(Equal(runtimes[defaultRuntime]))
 		})
 		It("should return an OCI runtime type if none is set", func() {
@@ -115,7 +115,7 @@ var _ = t.Describe("Oci", func() {
 			runtimeType, err := sut.RuntimeType(defaultRuntime)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(runtimeType).To(Equal(""))
 		})
 		It("should return a VM runtime type when it is set", func() {
@@ -124,19 +124,19 @@ var _ = t.Describe("Oci", func() {
 			runtimeType, err := sut.RuntimeType(vmRuntime)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(runtimeType).To(Equal(libconfig.RuntimeTypeVM))
 		})
 		Context("AllowedAnnotations", func() {
 			It("should succeed to return allowed annotation", func() {
 				// Given
-				Expect(runtimes[performanceRuntime].ValidateRuntimeAllowedAnnotations()).To(BeNil())
+				Expect(runtimes[performanceRuntime].ValidateRuntimeAllowedAnnotations()).To(Succeed())
 
 				// When
 				foundAnn, err := sut.AllowedAnnotations(performanceRuntime)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(foundAnn).NotTo(ContainElement(annotations.DevicesAnnotation))
 				Expect(foundAnn).To(ContainElement(annotations.IRQLoadBalancingAnnotation))
 			})
@@ -146,7 +146,7 @@ var _ = t.Describe("Oci", func() {
 				_, err := sut.AllowedAnnotations("invalid")
 
 				// Then
-				Expect(err).NotTo(BeNil())
+				Expect(err).To(HaveOccurred())
 			})
 		})
 
@@ -156,8 +156,8 @@ var _ = t.Describe("Oci", func() {
 			privileged, err := sut.PrivilegedWithoutHostDevices(vmRuntime)
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(privileged).To(Equal(true))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(privileged).To(BeTrue())
 		})
 		It("PrivilegedWithoutHostDevices should be false when runtime invalid", func() {
 			// Given
@@ -165,8 +165,8 @@ var _ = t.Describe("Oci", func() {
 			privileged, err := sut.PrivilegedWithoutHostDevices(invalidRuntime)
 
 			// Then
-			Expect(err).NotTo(BeNil())
-			Expect(privileged).To(Equal(false))
+			Expect(err).To(HaveOccurred())
+			Expect(privileged).To(BeFalse())
 		})
 		It("PrivilegedWithoutHostDevices should be false when runtime is the default", func() {
 			// Given
@@ -174,8 +174,8 @@ var _ = t.Describe("Oci", func() {
 			privileged, err := sut.PrivilegedWithoutHostDevices(defaultRuntime)
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(privileged).To(Equal(false))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(privileged).To(BeFalse())
 		})
 		It("CheckpointContainer should succeed", func() {
 			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
@@ -201,7 +201,7 @@ var _ = t.Describe("Oci", func() {
 			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("CheckpointContainer should fail", func() {
 			if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
@@ -227,7 +227,7 @@ var _ = t.Describe("Oci", func() {
 			err := sut.CheckpointContainer(context.Background(), myContainer, specgen, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("configured runtime does not support checkpoint/restore"))
 		})
 		It("RestoreContainer should fail with destination sandbox detection", func() {
@@ -242,10 +242,10 @@ var _ = t.Describe("Oci", func() {
 			}
 
 			err := os.Mkdir("checkpoint", 0o700)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("checkpoint")
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
 			specgen := &specs.Spec{
@@ -264,7 +264,7 @@ var _ = t.Describe("Oci", func() {
 			err = sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail", func() {
@@ -291,10 +291,10 @@ var _ = t.Describe("Oci", func() {
 			myContainer.SetSpec(specgen)
 
 			err := os.Mkdir("checkpoint", 0o700)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("checkpoint")
 			inventory, err := os.OpenFile("checkpoint/inventory.img", os.O_RDONLY|os.O_CREATE, 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			inventory.Close()
 
 			err = os.WriteFile(
@@ -306,7 +306,7 @@ var _ = t.Describe("Oci", func() {
 				),
 				0o644,
 			)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			defer os.RemoveAll("config.json")
 
 			config.Conmon = "/bin/true"
@@ -316,7 +316,7 @@ var _ = t.Describe("Oci", func() {
 			defer os.RemoveAll("restore.log")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("failed"))
 		})
 		It("RestoreContainer should fail with missing inventory", func() {
@@ -329,7 +329,7 @@ var _ = t.Describe("Oci", func() {
 			err := sut.RestoreContainer(context.Background(), myContainer, "no-parent-cgroup-exists", "label")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(Equal("a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory"))
 		})
 	})

@@ -35,12 +35,12 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sut.Spec().ClearLinuxNamespaces()
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
-		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(Succeed())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces)))
+		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces)))
 		for _, ns := range nsmgrtest.AllSpoofedNamespaces {
 			found := false
 			for _, specNs := range spec.Config.Linux.Namespaces {
@@ -48,7 +48,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 					found = true
 				}
 			}
-			Expect(found).To(Equal(true))
+			Expect(found).To(BeTrue())
 		}
 	})
 	It("should drop network if hostNet", func() {
@@ -71,13 +71,13 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(Succeed())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces) - 1))
+		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces) - 1))
 
 		for _, specNs := range spec.Config.Linux.Namespaces {
 			Expect(specNs.Type).NotTo(Equal(rspec.NetworkNamespace))
@@ -103,13 +103,13 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(Succeed())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces)))
+		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces)))
 
 		for _, specNs := range spec.Config.Linux.Namespaces {
 			Expect(specNs.Type).NotTo(Equal(rspec.PIDNamespace))
@@ -143,18 +143,18 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		}
 		sb := &sandbox.Sandbox{}
 		infra, err := nsmgrtest.ContainerWithPid(os.Getpid())
-		Expect(err).To(BeNil())
-		Expect(sb.SetInfraContainer(infra)).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sb.SetInfraContainer(infra)).To(Succeed())
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(Succeed())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces) + 1))
+		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces) + 1))
 
 		found := false
 		for _, specNs := range spec.Config.Linux.Namespaces {
@@ -162,7 +162,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 				found = true
 			}
 		}
-		Expect(found).To(Equal(true))
+		Expect(found).To(BeTrue())
 	})
 	It("should use target PID namespace", func() {
 		// Given
@@ -182,23 +182,23 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		sboxConfig := &types.PodSandboxConfig{}
 		sb := &sandbox.Sandbox{}
 		targetCtr, err := nsmgrtest.ContainerWithPid(os.Getpid())
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		sb.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 		cfg := &config.Config{}
 		nsMgr := nsmgr.New(t.MustTempDir("ns"), "")
-		Expect(nsMgr.Initialize()).To(BeNil())
+		Expect(nsMgr.Initialize()).To(Succeed())
 		cfg.SetNamespaceManager(nsMgr)
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb, targetCtr, cfg)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, targetCtr, cfg)).To(Succeed())
 		defer Expect(sut.PidNamespace().Remove()).To(BeNil())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(len(nsmgrtest.AllSpoofedNamespaces) + 1))
+		Expect(spec.Config.Linux.Namespaces).To(HaveLen(len(nsmgrtest.AllSpoofedNamespaces) + 1))
 
 		found := false
 		for _, specNs := range spec.Config.Linux.Namespaces {
@@ -207,7 +207,7 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 				found = true
 			}
 		}
-		Expect(found).To(Equal(true))
+		Expect(found).To(BeTrue())
 	})
 	It("should ignore if empty", func() {
 		// Given
@@ -232,12 +232,12 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		}})
 
 		// When
-		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(ctrConfig, sboxConfig)).To(Succeed())
 		sut.Spec().ClearLinuxNamespaces()
-		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(BeNil())
+		Expect(sut.SpecAddNamespaces(sb, nil, nil)).To(Succeed())
 
 		// Then
 		spec := sut.Spec()
-		Expect(len(spec.Config.Linux.Namespaces)).To(Equal(0))
+		Expect(spec.Config.Linux.Namespaces).To(BeEmpty())
 	})
 })

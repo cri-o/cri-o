@@ -40,7 +40,7 @@ var _ = t.Describe("ContainerStop", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid container id", func() {
@@ -50,7 +50,7 @@ var _ = t.Describe("ContainerStop", func() {
 				&types.StopContainerRequest{ContainerId: "id"})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

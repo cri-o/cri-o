@@ -47,7 +47,7 @@ var _ = t.Describe("HookFilename", func() {
 			err := hook.Fire(entry)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 

@@ -40,7 +40,7 @@ var _ = t.Describe("Config", func() {
 				"excludes": {
 					"caps": ["CAP_SYS_ADMIN"]
 				}
-			}`), 0o644)).To(BeNil())
+			}`), 0o644)).To(Succeed())
 		return file
 	}
 
@@ -63,7 +63,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.LoadProfile("")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with profile", func() {
@@ -74,7 +74,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.LoadProfile(file)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		if sut != nil && !sut.IsDisabled() {
@@ -84,7 +84,7 @@ var _ = t.Describe("Config", func() {
 				err := sut.LoadProfile("/proc/not/existing/file")
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			})
 		}
 	})
@@ -93,7 +93,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with custom profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			field := &types.SecurityProfile{
 				ProfileType: types.SecurityProfile_RuntimeDefault,
 			}
@@ -112,14 +112,14 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(ref).To(Equal(types.SecurityProfile_RuntimeDefault.String()))
 		})
 
 		It("should succeed with custom profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			file := writeProfileFile()
 			field := &types.SecurityProfile{
 				ProfileType:  types.SecurityProfile_Localhost,
@@ -140,14 +140,14 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(ref).To(Equal(file))
 		})
 
 		It("should fail with custom profile from field if not existing", func() {
 			// Given
 			generator, err := generate.New("linux")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			field := &types.SecurityProfile{
 				ProfileType:  types.SecurityProfile_Localhost,
 				LocalhostRef: "not-existing",
@@ -167,7 +167,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

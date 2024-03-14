@@ -24,7 +24,7 @@ var _ = t.Describe("Container", func() {
 			expectHostDevices            bool
 		}
 		hostDevices, err := devices.HostDevices()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		tests := []testdata{
 			{
@@ -73,20 +73,20 @@ var _ = t.Describe("Container", func() {
 						},
 					},
 				}
-				Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-				Expect(sut.SetPrivileged()).To(BeNil())
+				Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+				Expect(sut.SetPrivileged()).To(Succeed())
 				Expect(sut.Privileged()).To(Equal(test.privileged))
-				Expect(len(hostDevices)).NotTo(Equal(0))
+				Expect(hostDevices).NotTo(BeEmpty())
 
 				// When
 				err := sut.SpecAddDevices(nil, nil, test.privilegedWithoutHostDevices, false)
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 
 				if !test.expectHostDevices {
-					Expect(len(sut.Spec().Config.Linux.Devices)).To(Equal(0))
+					Expect(sut.Spec().Config.Linux.Devices).To(BeEmpty())
 				} else {
-					Expect(len(sut.Spec().Config.Linux.Devices)).To(Equal(len(hostDevices)))
+					Expect(sut.Spec().Config.Linux.Devices).To(HaveLen(len(hostDevices)))
 				}
 			})
 		}
@@ -100,7 +100,7 @@ var _ = t.Describe("Container", func() {
 			expectedDeviceGID                  uint32
 		}
 		hostDevices, err := devices.HostDevices()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Find a host device with uid != gid using first device as fallback.
 		testDevice := hostDevices[0]
@@ -174,15 +174,15 @@ var _ = t.Describe("Container", func() {
 						},
 					},
 				}
-				Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-				Expect(len(hostDevices)).NotTo(Equal(0))
+				Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+				Expect(hostDevices).NotTo(BeEmpty())
 
 				// When
 				err := sut.SpecAddDevices(nil, nil, false, test.deviceOwnershipFromSecurityContext)
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 
-				Expect(len(sut.Spec().Config.Linux.Devices)).To(Equal(1))
+				Expect(sut.Spec().Config.Linux.Devices).To(HaveLen(1))
 				Expect(*sut.Spec().Config.Linux.Devices[0].UID).To(Equal(test.expectedDeviceUID))
 				Expect(*sut.Spec().Config.Linux.Devices[0].GID).To(Equal(test.expectedDeviceGID))
 			})
@@ -416,9 +416,9 @@ containerEdits:
 						SecurityContext: &types.LinuxSandboxSecurityContext{},
 					},
 				}
-				Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-				Expect(sut.SetPrivileged()).To(BeNil())
-				Expect(writeCDISpecFiles(test.cdiSpecFiles)).To(BeNil())
+				Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+				Expect(sut.SetPrivileged()).To(Succeed())
+				Expect(writeCDISpecFiles(test.cdiSpecFiles)).To(Succeed())
 
 				// When
 				err := sut.SpecAddDevices(nil, nil, false, false)

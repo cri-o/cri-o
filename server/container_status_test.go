@@ -51,7 +51,7 @@ var _ = t.Describe("ContainerStatus", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(len(response.Status.Mounts)).To(BeEquivalentTo(1))
 			Expect(response.Status.State).To(Equal(expectedState))
@@ -94,7 +94,7 @@ var _ = t.Describe("ContainerStatus", func() {
 				&types.ContainerStatusRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -120,7 +120,7 @@ var _ = t.Describe("ContainerStatus", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

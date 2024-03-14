@@ -25,11 +25,11 @@ var _ = t.Describe("CommandRunner", func() {
 		cmdrunner.ResetPrependedCmd()
 		cmd := "ls"
 		baseline, err := exec.Command(cmd).CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// When
 		output, err := cmdrunner.CombinedOutput(cmd)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
 		Expect(output).To(Equal(baseline))
@@ -41,11 +41,11 @@ var _ = t.Describe("CommandRunner", func() {
 		cmd := "ls"
 		cmdrunner.PrependCommandsWith("which")
 		baseline, err := exec.Command(cmd).CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// When
 		output, err := cmdrunner.CombinedOutput(cmd)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
 		Expect(output).NotTo(Equal(baseline))
@@ -57,11 +57,11 @@ var _ = t.Describe("CommandRunner", func() {
 		cmd := "ls"
 		cmdrunner.PrependCommandsWith("", "-l")
 		baseline, err := exec.Command(cmd).CombinedOutput()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// When
 		output, err := cmdrunner.CombinedOutput(cmd)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// Then
 		Expect(output).To(Equal(baseline))

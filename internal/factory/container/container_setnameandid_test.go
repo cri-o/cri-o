@@ -30,8 +30,8 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		err := sut.SetNameAndID("")
 
 		// Then
-		Expect(err).To(BeNil())
-		Expect(len(sut.ID())).To(Equal(64))
+		Expect(err).ToNot(HaveOccurred())
+		Expect(sut.ID()).To(HaveLen(64))
 		Expect(sut.Name()).To(ContainSubstring(name))
 		Expect(sut.Name()).To(ContainSubstring(namespace))
 		Expect(sut.Name()).To(ContainSubstring(uid))
@@ -53,7 +53,7 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		err := sut.SetNameAndID("use-this-ID")
 
 		// Then
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sut.ID()).To(Equal("use-this-ID"))
 		Expect(sut.Name()).To(ContainSubstring(name))
 		Expect(sut.Name()).To(ContainSubstring(namespace))
@@ -69,20 +69,20 @@ var _ = t.Describe("Container:SetNameAndID", func() {
 		err := sut.SetNameAndID("")
 
 		// Then
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should fail with config nil", func() {
 		// Given
 		// When
 		container, err := container.New()
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		err = container.SetNameAndID("")
 
 		// Then
 		Expect(container).ToNot(BeNil())
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 	})
 })
 
@@ -93,5 +93,5 @@ func setupContainerWithMetadata(md *types.PodSandboxMetadata) {
 	sboxConfig := &types.PodSandboxConfig{
 		Metadata: md,
 	}
-	Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+	Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 }

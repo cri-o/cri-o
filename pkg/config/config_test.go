@@ -52,7 +52,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with runtime checks", func() {
@@ -67,7 +67,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid log_dir", func() {
@@ -78,7 +78,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid runtime config", func() {
@@ -90,7 +90,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid api config", func() {
@@ -101,7 +101,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid network config", func() {
@@ -114,7 +114,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on unrecognized image volume type", func() {
@@ -125,7 +125,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on wrong default ulimits", func() {
@@ -136,7 +136,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -149,7 +149,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.APIConfig.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with negative GRPCMaxRecvMsgSize", func() {
@@ -160,7 +160,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.APIConfig.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on invalid Listen directory", func() {
@@ -172,7 +172,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.APIConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail if socket removal fails", func() {
@@ -184,7 +184,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.APIConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -195,7 +195,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed during runtime", func() {
@@ -206,7 +206,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with additional devices", func() {
@@ -218,7 +218,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with hooks directories", func() {
@@ -236,7 +236,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.HooksDir).To(HaveLen(3))
 		})
 
@@ -252,7 +252,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.HooksDir).To(HaveLen(2))
 		})
 
@@ -268,7 +268,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.HooksDir).To(HaveLen(1))
 		})
 
@@ -282,7 +282,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on wrong DefaultUlimits", func() {
@@ -293,7 +293,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on wrong invalid device specification", func() {
@@ -304,7 +304,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid device", func() {
@@ -315,7 +315,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid device mode", func() {
@@ -326,7 +326,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid first device", func() {
@@ -337,7 +337,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid second device", func() {
@@ -348,7 +348,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on no default runtime", func() {
@@ -359,7 +359,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on non existing runtime binary", func() {
@@ -370,7 +370,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail wrong max log size", func() {
@@ -381,7 +381,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed without defaultRuntime set", func() {
@@ -392,7 +392,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.DefaultRuntime).To(Equal("runc"))
 		})
 
@@ -405,7 +405,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.DefaultRuntime).To(Equal("runc"))
 		})
 
@@ -417,7 +417,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should pass for valid Timezone", func() {
 			// Set a valid Timezone
@@ -427,7 +427,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail for invalid Timezone", func() {
@@ -438,7 +438,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("invalid timezone: InvalidTimezone"))
 		})
 
@@ -450,7 +450,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("TranslateMonitorFields", func() {
@@ -463,7 +463,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid conmon cgroup", func() {
@@ -475,7 +475,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid InfraCtrCPUSet", func() {
@@ -486,7 +486,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should inherit from .Conmon even if bogus", func() {
@@ -498,7 +498,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should inherit from .Conmon", func() {
 			// Given
@@ -509,7 +509,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(handler.MonitorPath).To(Equal(sut.Conmon))
 		})
 		It("should inherit from .ConmonEnv", func() {
@@ -521,7 +521,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(handler.MonitorEnv).To(Equal(sut.ConmonEnv))
 		})
 		It("should inherit from .ConmonCgroup", func() {
@@ -533,7 +533,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(handler.MonitorCgroup).To(Equal(sut.ConmonCgroup))
 		})
 
@@ -551,7 +551,7 @@ var _ = t.Describe("Config", func() {
 			err = sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cmdrunner.GetPrependedCmd()).To(Equal(executable))
 		})
 
@@ -564,7 +564,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.Validate(nil, false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(cmdrunner.GetPrependedCmd()).To(Equal(""))
 		})
 	})
@@ -576,7 +576,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with empty runtime_type", func() {
@@ -589,7 +589,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail if default executable not in $PATH", func() {
@@ -601,7 +601,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should not fail if non-default executable not in $PATH", func() {
@@ -613,7 +613,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with wrong but set runtime_path", func() {
@@ -624,7 +624,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong runtime_type", func() {
@@ -638,7 +638,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with wrong allowed_annotation", func() {
@@ -652,7 +652,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should have allowed and disallowed annotation", func() {
 			// Given
@@ -665,7 +665,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateRuntimes()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes["runc"].AllowedAnnotations).To(ContainElement(crioann.DevicesAnnotation))
 			Expect(sut.Runtimes["runc"].DisallowedAnnotations).NotTo(ContainElement(crioann.DevicesAnnotation))
 		})
@@ -681,7 +681,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath(), handler)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(handler.MonitorPath).To(Equal(validConmonPath()))
 		})
 
@@ -693,7 +693,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateConmonPath(invalidPath, handler)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed with valid file outside $PATH", func() {
@@ -704,7 +704,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid file outside $PATH", func() {
@@ -715,7 +715,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -726,7 +726,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ImageConfig.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed on execution and writing permissions", func() {
@@ -737,7 +737,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ImageConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail when SignaturePolicyDir is not absolute", func() {
@@ -748,7 +748,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ImageConfig.Validate(false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail when PauseImage is invalid", func() {
@@ -759,7 +759,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ImageConfig.Validate(false)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -772,7 +772,7 @@ var _ = t.Describe("Config", func() {
 			ref, err := sut.ImageConfig.ParsePauseImage()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			// DefaultPauseImage is using a canonical form where this comparison is expected to work.
 			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal(config.DefaultPauseImage))
 		})
@@ -785,7 +785,7 @@ var _ = t.Describe("Config", func() {
 			ref, err := sut.ImageConfig.ParsePauseImage()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("registry.k8s.io/pause:latest"))
 		})
 
@@ -800,7 +800,7 @@ var _ = t.Describe("Config", func() {
 			ref, err := sut.ImageConfig.ParsePauseImage()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/short:notlatest"))
 		})
 
@@ -812,7 +812,7 @@ var _ = t.Describe("Config", func() {
 			_, err := sut.ImageConfig.ParsePauseImage()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -823,7 +823,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed during runtime", func() {
@@ -834,7 +834,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should create the  NetworkDir", func() {
@@ -847,7 +847,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			os.RemoveAll(tmpDir)
 		})
 
@@ -855,7 +855,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			tmpfile := path.Join(os.TempDir(), "wrong-file")
 			file, err := os.Create(tmpfile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			file.Close()
 			defer os.Remove(tmpfile)
 			sut.NetworkConfig.NetworkDir = tmpfile
@@ -865,7 +865,7 @@ var _ = t.Describe("Config", func() {
 			err = sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail on invalid PluginDirs", func() {
@@ -877,7 +877,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed on having PluginDir", func() {
@@ -890,7 +890,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed in appending PluginDir to PluginDirs", func() {
@@ -903,7 +903,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.NetworkConfig.PluginDirs[0]).To(Equal(validDirPath))
 		})
 
@@ -917,7 +917,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.NetworkConfig.Validate(true)
 
 			// Then
-			Expect(err).ToNot(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -928,7 +928,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RootConfig.Validate(false)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed during runtime", func() {
@@ -943,7 +943,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RootConfig.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on invalid LogDir", func() {
@@ -954,7 +954,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.RootConfig.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with non absolute log_dir", func() {
@@ -965,7 +965,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Validate(true)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should get default storage options when options are empty", func() {
@@ -975,7 +975,7 @@ var _ = t.Describe("Config", func() {
 
 			// Given
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			sut.RootConfig.RunRoot = ""
 			sut.RootConfig.Root = ""
@@ -988,7 +988,7 @@ var _ = t.Describe("Config", func() {
 			err = sut.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.RootConfig.RunRoot).To(Equal(defaultStore.RunRoot()))
 			Expect(sut.RootConfig.Root).To(Equal(defaultStore.GraphRoot()))
 			Expect(sut.RootConfig.Storage).To(Equal(defaultStore.GraphDriverName()))
@@ -1002,7 +1002,7 @@ var _ = t.Describe("Config", func() {
 
 			// Given
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			sut.RootConfig.RunRoot = alwaysPresentPath
 			sut.RootConfig.Root = alwaysPresentPath
@@ -1013,7 +1013,7 @@ var _ = t.Describe("Config", func() {
 			err = sut.Validate(true)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.RootConfig.RunRoot).NotTo(Equal(defaultStore.RunRoot()))
 			Expect(sut.RootConfig.Root).NotTo(Equal(defaultStore.GraphRoot()))
 		})
@@ -1028,9 +1028,9 @@ var _ = t.Describe("Config", func() {
 			err := sut.ToFile(tmpfile)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			_, err = os.Stat(tmpfile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid path", func() {
@@ -1039,7 +1039,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ToFile(invalidPath)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -1054,13 +1054,13 @@ var _ = t.Describe("Config", func() {
 					[crio.runtime]
 					pids_limit = 2048`,
 				), 0),
-			).To(BeNil())
+			).To(Succeed())
 
 			// When
 			err := sut.UpdateFromFile(f)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Storage).To(Equal("overlay2"))
 			Expect(sut.Runtimes).To(HaveLen(1))
 			Expect(sut.Runtimes).To(HaveKey("runc"))
@@ -1077,7 +1077,7 @@ var _ = t.Describe("Config", func() {
 						"foo=bar",
 					]`,
 				), 0),
-			).To(BeNil())
+			).To(Succeed())
 			for _, tc := range []struct {
 				opts   []string
 				expect []string
@@ -1093,7 +1093,7 @@ var _ = t.Describe("Config", func() {
 				err := defaultcfg.UpdateFromFile(f)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defaultcfg.RootConfig.StorageOptions).To(Equal(tc.expect))
 			}
 		})
@@ -1116,14 +1116,14 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(Succeed())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Root = tc.graphRoot
 				err := defaultcfg.UpdateFromFile(f)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defaultcfg.Root).To(Equal(tc.expect))
 			}
 		})
@@ -1146,14 +1146,14 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(Succeed())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.RunRoot = tc.runRoot
 				err := defaultcfg.UpdateFromFile(f)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defaultcfg.RunRoot).To(Equal(tc.expect))
 			}
 		})
@@ -1176,14 +1176,14 @@ var _ = t.Describe("Config", func() {
 				`,
 				), "/test/storage", "/test/crio/storage"},
 			} {
-				Expect(os.WriteFile(f, tc.criocfg, 0)).To(BeNil())
+				Expect(os.WriteFile(f, tc.criocfg, 0)).To(Succeed())
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Storage = tc.storageDriver
 				err := defaultcfg.UpdateFromFile(f)
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(defaultcfg.Storage).To(Equal(tc.expect))
 			}
 		})
@@ -1193,13 +1193,13 @@ var _ = t.Describe("Config", func() {
 			f := t.MustTempFile("config")
 			Expect(os.WriteFile(f,
 				[]byte("[crio.runtime.runtimes.crun]"), 0),
-			).To(BeNil())
+			).To(Succeed())
 
 			// When
 			err := sut.UpdateFromFile(f)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes).To(HaveLen(2))
 			Expect(sut.Runtimes).To(HaveKey("crun"))
 		})
@@ -1212,13 +1212,13 @@ var _ = t.Describe("Config", func() {
 					[crio.runtime.runtimes.runc]
 					[crio.runtime.runtimes.crun]
 				`), 0),
-			).To(BeNil())
+			).To(Succeed())
 
 			// When
 			err := sut.UpdateFromFile(f)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes).To(HaveLen(2))
 			Expect(sut.Runtimes).To(HaveKey("crun"))
 			Expect(sut.Runtimes).To(HaveKey("runc"))
@@ -1230,7 +1230,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.UpdateFromFile("/invalid/file")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail when toml decode fails", func() {
@@ -1239,7 +1239,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.UpdateFromFile("config.go")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -1285,7 +1285,7 @@ var _ = t.Describe("Config", func() {
 			res, err := sut.ToBytes()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
 	})
@@ -1300,18 +1300,18 @@ var _ = t.Describe("Config", func() {
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = \"debug\"\n"),
 				0o644,
-			)).To(BeNil())
+			)).To(Succeed())
 			Expect(os.WriteFile(
 				filepath.Join(configDir, "01-my-config"),
 				[]byte("[crio.runtime]\nlog_level = \"warning\"\n"),
 				0o644,
-			)).To(BeNil())
+			)).To(Succeed())
 
 			// When
 			err := sut.UpdateFromPath(configDir)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.LogLevel).To(Equal("warning"))
 		})
 
@@ -1322,13 +1322,13 @@ var _ = t.Describe("Config", func() {
 				filepath.Join(configDir, "00-default"),
 				[]byte("[crio.runtime]\nlog_level = true\n"),
 				0o644,
-			)).To(BeNil())
+			)).To(Succeed())
 
 			// When
 			err := sut.UpdateFromPath(configDir)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed with not existing path", func() {
@@ -1337,7 +1337,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.UpdateFromPath("not-existing")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -1380,7 +1380,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Runtimes["runc"].ValidateRuntimeConfigPath("runc")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with VM runtime type and runtime_config_path points to an invalid path", func() {
@@ -1393,7 +1393,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed with VM runtime type and runtime_config_path points to a valid path", func() {
@@ -1406,7 +1406,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Runtimes["kata"].ValidateRuntimeConfigPath("kata")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

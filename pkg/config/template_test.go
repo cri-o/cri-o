@@ -20,7 +20,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.WriteTemplate(true, &wr)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("RuntimesEqual", func() {

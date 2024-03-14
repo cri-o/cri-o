@@ -32,7 +32,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 			Expect(server.StreamingServerCloseChan()).NotTo(BeNil())
 		})
@@ -45,7 +45,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 			Expect(server.StreamingServerCloseChan()).NotTo(BeNil())
 		})
@@ -60,7 +60,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 		})
 
@@ -75,7 +75,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 		})
 
@@ -118,7 +118,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).NotTo(BeNil())
 		})
 
@@ -128,7 +128,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 
@@ -143,7 +143,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 
@@ -158,7 +158,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 
@@ -177,7 +177,7 @@ var _ = t.Describe("Server", func() {
 			sut, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut).To(BeNil())
 		},
 			Entry("cid", "w:1:1", "w:1:1"),
@@ -195,7 +195,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 
@@ -210,7 +210,7 @@ var _ = t.Describe("Server", func() {
 			server, err := server.New(context.Background(), libMock)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 		It("should fail with invalid timeout duration", func() {
@@ -218,7 +218,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamIdleTimeout = "invalid duration"
 
 			server, err := server.New(context.Background(), libMock)
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 		It("should succeed to set a valid timeout duration", func() {
@@ -226,7 +226,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamIdleTimeout = "200ms"
 
 			server, err := server.New(context.Background(), libMock)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).ToNot(BeNil())
 		})
 		It("should succeed with hostport mapping disabled", func() {
@@ -234,7 +234,7 @@ var _ = t.Describe("Server", func() {
 			serverConfig.RuntimeConfig.DisableHostPortMapping = true
 
 			server, err := server.New(context.Background(), libMock)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(server).ToNot(BeNil())
 		})
 	})
@@ -272,11 +272,11 @@ var _ = t.Describe("Server", func() {
 			err := sut.Shutdown(context.Background())
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// expect cri-o to have created the clean shutdown file
 			_, err = os.Stat(sut.Config().CleanShutdownFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -290,7 +290,7 @@ var _ = t.Describe("Server", func() {
 			err := sut.StopStreamServer()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

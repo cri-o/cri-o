@@ -17,28 +17,28 @@ var _ = t.Describe("Config", func() {
 	t.Describe("Reload", func() {
 		modifyDefaultConfig := func(old, new string) {
 			filePath := t.MustTempFile("config")
-			Expect(sut.ToFile(filePath)).To(BeNil())
-			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
+			Expect(sut.ToFile(filePath)).To(Succeed())
+			Expect(sut.UpdateFromFile(filePath)).To(Succeed())
 
 			read, err := os.ReadFile(filePath)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			newContents := strings.ReplaceAll(string(read), old, new)
 			err = os.WriteFile(filePath, []byte(newContents), 0)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		}
 
 		It("should succeed without any config change", func() {
 			// Given
 			filePath := t.MustTempFile("config")
-			Expect(sut.ToFile(filePath)).To(BeNil())
-			Expect(sut.UpdateFromFile(filePath)).To(BeNil())
+			Expect(sut.ToFile(filePath)).To(Succeed())
+			Expect(sut.UpdateFromFile(filePath)).To(Succeed())
 
 			// When
 			err := sut.Reload()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid log_level", func() {
@@ -52,7 +52,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Reload()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid pause_image_auth_file", func() {
@@ -66,7 +66,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Reload()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should not fail with invalid seccomp_profile path", func() {
@@ -80,7 +80,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.Reload()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -91,7 +91,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogLevel(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with config change", func() {
@@ -104,7 +104,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogLevel(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.LogLevel).To(Equal(newLogLevel))
 		})
 
@@ -117,7 +117,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogLevel(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -128,7 +128,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogFilter(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with config change", func() {
@@ -141,7 +141,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogFilter(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.LogFilter).To(Equal(newLogFilter))
 		})
 
@@ -154,7 +154,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadLogFilter(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -165,7 +165,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with pause_image change", func() {
@@ -178,7 +178,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.PauseImage).To(Equal(newPauseImage))
 		})
 
@@ -192,7 +192,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed with pause_command change", func() {
@@ -205,7 +205,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.PauseCommand).To(Equal(newPauseCommand))
 		})
 
@@ -218,7 +218,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.PauseImageAuthFile).To(Equal(validFilePath))
 		})
 
@@ -231,7 +231,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadPauseImage(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -242,7 +242,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRegistries()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail if registries file does not exist", func() {
@@ -253,20 +253,20 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRegistries()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail if registries file is invalid", func() {
 			// Given
 			regConf := t.MustTempFile("reload-registries")
-			Expect(os.WriteFile(regConf, []byte("invalid"), 0o755)).To(BeNil())
+			Expect(os.WriteFile(regConf, []byte("invalid"), 0o755)).To(Succeed())
 			sut.SystemContext.SystemRegistriesConfPath = regConf
 
 			// When
 			err := sut.ReloadRegistries()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -277,13 +277,13 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadSeccompProfile(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with config change", func() {
 			// Given
 			filePath := t.MustTempFile("seccomp")
-			Expect(os.WriteFile(filePath, []byte(`{}`), 0o644)).To(BeNil())
+			Expect(os.WriteFile(filePath, []byte(`{}`), 0o644)).To(Succeed())
 
 			newConfig := defaultConfig()
 			newConfig.SeccompProfile = filePath
@@ -292,7 +292,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadSeccompProfile(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.SeccompProfile).To(Equal(filePath))
 		})
 
@@ -305,7 +305,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadSeccompProfile(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 
@@ -322,7 +322,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadAppArmorProfile(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should succeed with config change", func() {
@@ -335,7 +335,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadAppArmorProfile(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.ApparmorProfile).To(Equal(profile))
 		})
 	})
@@ -347,7 +347,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRuntimes(sut)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail for invalid default_runtime", func() {
@@ -359,7 +359,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRuntimes(newConfig)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should add a new runtime", func() {
@@ -376,7 +376,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRuntimes(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntimeHandler))
 		})
 
@@ -393,7 +393,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRuntimes(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.DefaultRuntime).To(Equal("existing"))
 		})
 
@@ -416,7 +416,7 @@ var _ = t.Describe("Config", func() {
 			err := sut.ReloadRuntimes(newConfig)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", newRuntime))
 			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})

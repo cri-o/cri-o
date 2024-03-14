@@ -58,7 +58,7 @@ var _ = t.Describe("MemoryStore", func() {
 
 			// Then
 			Expect(sandboxes).NotTo(BeNil())
-			Expect(len(sandboxes)).To(Equal(sut.Size()))
+			Expect(sandboxes).To(HaveLen(sut.Size()))
 			Expect(len(sandboxes)).To(BeEquivalentTo(1))
 		})
 	})
