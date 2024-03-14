@@ -7,7 +7,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMetrics) []*types.Metric {
+func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metric {
 	var metrics []*types.Metric
 
 	links, err := netlink.LinkList()
@@ -22,7 +22,7 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMe
 	for i := range links {
 		attrs := links[i].Attrs()
 		if attrs != nil {
-			networkMetrics := generateSandboxNetworkMetrics(sb, attrs, sm)
+			networkMetrics := generateSandboxNetworkMetrics(sb, attrs)
 			metrics = append(metrics, networkMetrics...)
 		}
 	}
@@ -30,7 +30,7 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox, sm *SandboxMe
 	return metrics
 }
 
-func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs, sm *SandboxMetrics) []*types.Metric {
+func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs) []*types.Metric {
 	networkMetrics := []*ContainerStats{
 		{
 			desc: &types.MetricDescriptor{
@@ -130,5 +130,5 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs,
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, nil, networkMetrics, "network", sm)
+	return ComputeSandboxMetrics(sb, nil, networkMetrics, "network")
 }

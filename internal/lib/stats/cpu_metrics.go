@@ -11,7 +11,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}, sm *SandboxMetrics) []*types.Metric {
+func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}) []*types.Metric {
 	cpu, ok := stats.(*cgmgr.CPUStats)
 	if !ok {
 		logrus.Errorf("Failed to assert stats as *cgmgr.CpuStats")
@@ -109,5 +109,5 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, cpuMetrics, "cpu", sm)
+	return ComputeSandboxMetrics(sb, c, cpuMetrics, "cpu")
 }
