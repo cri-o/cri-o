@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 14 Mar 2024 08:53:53 UTC for commit [227330d][0]._
+_Generated on Thu, 14 Mar 2024 17:10:43 UTC for commit [514b618][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/227330d793128822f8026e962638154064940215
+[0]: https://github.com/cri-o/cri-o/commit/514b618df24dca392e33f24880fbe3da75c6e7ad
 
 ## Outdated Dependencies
 
@@ -514,7 +514,7 @@ _Generated on Thu, 14 Mar 2024 08:53:53 UTC for commit [227330d][0]._
 | github.com/google/flatbuffers                                                           | v2.0.8+incompatible                               | v24.3.7+incompatible                | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.9-0.20230804172637-c7be7c783f49              |                                     | false  | true             |
 | github.com/google/go-cmp                                                                | v0.6.0                                            |                                     | false  | true             |
-| github.com/google/go-containerregistry                                                  | v0.18.0                                           | v0.19.0                             | false  | true             |
+| github.com/google/go-containerregistry                                                  | v0.18.0                                           | v0.19.1                             | false  | true             |
 | github.com/google/go-github/v55                                                         | v55.0.0                                           |                                     | false  | true             |
 | github.com/google/go-github/v58                                                         | v58.0.0                                           |                                     | false  | true             |
 | github.com/google/go-intervals                                                          | v0.0.2                                            |                                     | false  | true             |
@@ -611,7 +611,7 @@ _Generated on Thu, 14 Mar 2024 08:53:53 UTC for commit [227330d][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.26                                           | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                            |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243                | v0.0.0-20230720153250-52168b28f036  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240313195246-c7248455790b  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491                | v0.0.0-20240314165833-57cf7d5f4555  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                            | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                            |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158               | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -888,7 +888,7 @@ _Generated on Thu, 14 Mar 2024 08:53:53 UTC for commit [227330d][0]._
 | gocloud.dev                                                                             | v0.34.0                                           | v0.37.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                            | v0.7.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.19.0                                           | v0.21.0                             | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611                | v0.0.0-20240222234643-814bf88cf225  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611                | v0.0.0-20240314144324-c7f7c6466f7f  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867                | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616                |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028                | v0.0.0-20240213143359-d1f7d3436075  | false  | true             |
