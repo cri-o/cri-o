@@ -1,7 +1,6 @@
 package statsserver
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -44,40 +43,8 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	}
 }
 
-func (s *SandboxMetrics) ResetContainerMetricsForSandbox() {
-	for _, cm := range s.metric.ContainerMetrics {
-		cm.Metrics = []*types.Metric{} // Reset metrics for each container
-	}
-	s.metric.Metrics = []*types.Metric{} // Reset metrics for the next iteration
-}
-
-func (s *SandboxMetrics) ResetMetricsForSandbox() {
-	s.metric.Metrics = []*types.Metric{} // Reset metrics for the next iteration
-}
-
-// AddMetricToSandboxMetrics adds the metrics for the specified pod/container(s).
-func (s *SandboxMetrics) AddMetricToSandboxMetrics(containerID string, m []*types.Metric) {
-	if containerID == "" {
-		s.metric.Metrics = append(s.metric.Metrics, m...)
-	} else {
-		if cMetrics := findExistingContainerMetric(s.metric.ContainerMetrics, containerID); cMetrics != nil {
-			cMetrics.Metrics = append(cMetrics.Metrics, m...)
-		}
-	}
-}
-
-func findExistingContainerMetric(containerMetrics []*types.ContainerMetrics, containerID string) *types.ContainerMetrics {
-	for _, cm := range containerMetrics {
-		if cm.ContainerId == containerID {
-			return cm
-		}
-	}
-	return nil
-}
-
 // store metricdescriptors statically at startup, populate the list
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
-	// TODO: add default container labels
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"cpu": {
 			{
@@ -375,7 +342,7 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 }
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
-func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*ContainerStats, metric string, sm *SandboxMetrics) []*types.Metric {
+func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*ContainerStats, metric string) []*types.Metric {
 	values := append(sandboxBaseLabelValues(sb), metric)
 	metrics := make([]*types.Metric, 0, len(stats))
 
@@ -385,61 +352,17 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 			// No metrics to process for this ContainerMetrics, move to the next one
 			continue
 		}
-
 		for _, v := range metricValues {
-			existingMetric := findExistingSandboxMetric(sm.metric, m.desc.Name, values, v.labels)
-			if existingMetric != nil {
-				existingMetric.Value = &types.UInt64Value{Value: v.value}
-			} else {
-				if metric == NetworkMetrics {
-					newMetric := &types.Metric{
-						Name:        m.desc.Name,
-						Timestamp:   time.Now().UnixNano(),
-						MetricType:  v.metricType,
-						Value:       &types.UInt64Value{Value: v.value},
-						LabelValues: append(values, v.labels...),
-					}
-					sm.metric.Metrics = append(sm.metric.Metrics, newMetric)
-				} else {
-					// Check if the container metric already exists
-					if cMetrics := findExistingContainerMetric(sm.metric.ContainerMetrics, c.ID()); cMetrics != nil {
-						newMetric := &types.Metric{
-							Name:        m.desc.Name,
-							Timestamp:   time.Now().UnixNano(),
-							MetricType:  v.metricType,
-							Value:       &types.UInt64Value{Value: v.value},
-							LabelValues: append(values, v.labels...),
-						}
-						cMetrics.Metrics = append(cMetrics.Metrics, newMetric)
-					} else {
-						newContainerMetric := &types.ContainerMetrics{
-							ContainerId: c.ID(),
-							Metrics: []*types.Metric{
-								{
-									Name:        m.desc.Name,
-									Timestamp:   time.Now().UnixNano(),
-									MetricType:  v.metricType,
-									Value:       &types.UInt64Value{Value: v.value},
-									LabelValues: append(values, v.labels...),
-								},
-							},
-						}
-						sm.metric.ContainerMetrics = append(sm.metric.ContainerMetrics, newContainerMetric)
-					}
-				}
+			newMetric := &types.Metric{
+				Name:        m.desc.Name,
+				Timestamp:   time.Now().UnixNano(),
+				MetricType:  v.metricType,
+				Value:       &types.UInt64Value{Value: v.value},
+				LabelValues: append(values, v.labels...),
 			}
+			metrics = append(metrics, newMetric)
 		}
 	}
 
 	return metrics
-}
-
-// findExistingSandboxMetric finds an existing metric with the same label values in Sandbox Metrics.
-func findExistingSandboxMetric(metrics *types.PodSandboxMetrics, name string, values, labels []string) *types.Metric {
-	for _, m := range metrics.Metrics {
-		if m.Name == name && reflect.DeepEqual(m.LabelValues, append(values, labels...)) {
-			return m
-		}
-	}
-	return nil
 }

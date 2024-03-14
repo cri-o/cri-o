@@ -149,10 +149,10 @@ func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats i
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory", sm)
+	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory")
 }
 
-func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64, sm *SandboxMetrics) []*types.Metric {
+func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64) []*types.Metric {
 	oomMetrics := []*ContainerStats{
 		{
 			desc: &types.MetricDescriptor{
@@ -165,5 +165,5 @@ func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount u
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, oomMetrics, "oom", sm)
+	return ComputeSandboxMetrics(sb, c, oomMetrics, "oom")
 }
