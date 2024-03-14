@@ -43,7 +43,7 @@ var _ = t.Describe("Container", func() {
 				Source:      "test",
 				Options:     []string{"test"},
 			})
-			Expect(len(sut.Spec().Mounts())).To(Equal(defaultMounts + 1))
+			Expect(sut.Spec().Mounts()).To(HaveLen(defaultMounts + 1))
 		})
 		It("should add only one copy to the spec", func() {
 			sut.SpecAddMount(rspec.Mount{
@@ -58,12 +58,12 @@ var _ = t.Describe("Container", func() {
 				Source:      "test",
 				Options:     []string{"test"},
 			})
-			Expect(len(sut.Spec().Mounts())).To(Equal(defaultMounts + 1))
+			Expect(sut.Spec().Mounts()).To(HaveLen(defaultMounts + 1))
 		})
 	})
 	t.Describe("Spec", func() {
 		It("should return the spec", func() {
-			Expect(sut.Spec()).ToNot(Equal(nil))
+			Expect(sut.Spec()).ToNot(BeNil())
 		})
 	})
 	t.Describe("SpecAddAnnotations", func() {
@@ -84,13 +84,13 @@ var _ = t.Describe("Container", func() {
 				},
 			}
 			err := sut.SetConfig(containerConfig, sandboxConfig)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			currentTime := time.Now()
 			volumes := []oci.ContainerVolume{}
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			imageResult := storage.ImageResult{
 				ID:                  imageID,
 				SomeNameOfThisImage: &imageName,
@@ -102,31 +102,31 @@ var _ = t.Describe("Container", func() {
 				make(map[string]string), make(map[string]string), "", "",
 				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			image, err := sut.UserRequestedImage()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			logpath, err := sut.LogPath(sb.LogDir())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			metadataJSON, err := json.Marshal(sut.Config().Metadata)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			labelsJSON, err := json.Marshal(sut.Config().Labels)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			volumesJSON, err := json.Marshal(volumes)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			kubeAnnotationsJSON, err := json.Marshal(sut.Config().Annotations)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(currentTime).ToNot(BeNil())
 			Expect(sb).ToNot(BeNil())
 
 			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, "foo", "")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
@@ -159,10 +159,10 @@ var _ = t.Describe("Container", func() {
 			sboxConfig.Labels = labels
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.DisableFips()).To(Equal(true))
+			Expect(sut.DisableFips()).To(BeTrue())
 		})
 		It("should be false when set to false", func() {
 			// Given
@@ -171,19 +171,19 @@ var _ = t.Describe("Container", func() {
 			sboxConfig.Labels = labels
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.DisableFips()).To(Equal(false))
+			Expect(sut.DisableFips()).To(BeFalse())
 		})
 		It("should be false when not set", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.DisableFips()).To(Equal(false))
+			Expect(sut.DisableFips()).To(BeFalse())
 		})
 	})
 	t.Describe("UserRequestedImage", func() {
@@ -191,11 +191,11 @@ var _ = t.Describe("Container", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			img, err := sut.UserRequestedImage()
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(img).To(BeEmpty())
 		})
 		It("should fail when image not set", func() {
@@ -203,11 +203,11 @@ var _ = t.Describe("Container", func() {
 			config.Image = &types.ImageSpec{}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			img, err := sut.UserRequestedImage()
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(img).To(BeEmpty())
 		})
 		It("should be succeed when set", func() {
@@ -218,11 +218,11 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			img, err := sut.UserRequestedImage()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(img).To(Equal(testImage))
 		})
 	})
@@ -236,29 +236,29 @@ var _ = t.Describe("Container", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.ReadOnly(false)).To(Equal(false))
+			Expect(sut.ReadOnly(false)).To(BeFalse())
 		})
 		It("should be readonly when specified", func() {
 			// Given
 			config.Linux.SecurityContext.ReadonlyRootfs = true
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.ReadOnly(false)).To(Equal(true))
+			Expect(sut.ReadOnly(false)).To(BeTrue())
 		})
 		It("should be readonly when server is", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.ReadOnly(true)).To(Equal(true))
+			Expect(sut.ReadOnly(true)).To(BeTrue())
 		})
 	})
 	t.Describe("Restore", func() {
@@ -289,12 +289,12 @@ var _ = t.Describe("Container", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			labels, err := sut.SelinuxLabel("")
 			Expect(labels).To(BeEmpty())
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should not be empty when specified in config", func() {
 			// Given
@@ -306,23 +306,23 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			labels, err := sut.SelinuxLabel("")
-			Expect(len(labels)).To(Equal(4))
-			Expect(err).To(BeNil())
+			Expect(labels).To(HaveLen(4))
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should not be empty when specified in sandbox", func() {
 			// Given
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
 			labels, err := sut.SelinuxLabel("a_u:a_t:a_r")
-			Expect(len(labels)).To(Equal(3))
-			Expect(err).To(BeNil())
+			Expect(labels).To(HaveLen(3))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("AddUnifiedResourcesFromAnnotations", func() {
@@ -338,8 +338,8 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(Succeed())
 
 			// Then
 			spec := sut.Spec()
@@ -363,8 +363,8 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+			Expect(sut.AddUnifiedResourcesFromAnnotations(annotationsMap)).To(Succeed())
 
 			// Then
 			spec := sut.Spec()
@@ -381,10 +381,10 @@ var _ = t.Describe("Container", func() {
 			config.Args = nil
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(nil)).NotTo(BeNil())
+			Expect(sut.SpecSetProcessArgs(nil)).NotTo(Succeed())
 		})
 
 		It("should set to command", func() {
@@ -393,10 +393,10 @@ var _ = t.Describe("Container", func() {
 			config.Args = nil
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(nil)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Command))
 		})
 		It("should set to Args", func() {
@@ -405,10 +405,10 @@ var _ = t.Describe("Container", func() {
 			config.Args = []string{"hello", "world"}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(nil)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Args))
 		})
 		It("should append args and command", func() {
@@ -417,10 +417,10 @@ var _ = t.Describe("Container", func() {
 			config.Args = []string{"hello", "world"}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(nil)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(nil)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(append(config.Command, config.Args...)))
 		})
 		It("should inherit entrypoint from image", func() {
@@ -434,10 +434,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(append(img.Config.Entrypoint, config.Args...)))
 		})
 		It("should always use Command if specified", func() {
@@ -451,10 +451,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(config.Command))
 		})
 		It("should inherit cmd from image", func() {
@@ -468,10 +468,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(img.Config.Cmd))
 		})
 		It("should inherit both from image", func() {
@@ -486,10 +486,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Args).To(Equal(append(img.Config.Entrypoint, img.Config.Cmd...)))
 		})
 	})
@@ -505,10 +505,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.WillRunSystemd()).To(BeTrue())
 		})
 
@@ -523,10 +523,10 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.WillRunSystemd()).To(BeTrue())
 		})
 		It("should not be considered systemd container otherwise", func() {
@@ -540,26 +540,26 @@ var _ = t.Describe("Container", func() {
 			}
 
 			// When
-			Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 			// Then
-			Expect(sut.SpecSetProcessArgs(img)).To(BeNil())
+			Expect(sut.SpecSetProcessArgs(img)).To(Succeed())
 			Expect(sut.WillRunSystemd()).To(BeFalse())
 		})
 	})
 	t.Describe("SpecSetupCapabilities", func() {
 		verifyCapValues := func(caps *rspec.LinuxCapabilities, expected int) {
-			Expect(len(caps.Bounding)).To(Equal(expected))
-			Expect(len(caps.Effective)).To(Equal(expected))
-			Expect(len(caps.Permitted)).To(Equal(expected))
-			Expect(len(caps.Inheritable)).To(Equal(0))
-			Expect(len(caps.Ambient)).To(Equal(0))
+			Expect(caps.Bounding).To(HaveLen(expected))
+			Expect(caps.Effective).To(HaveLen(expected))
+			Expect(caps.Permitted).To(HaveLen(expected))
+			Expect(caps.Inheritable).To(BeEmpty())
+			Expect(caps.Ambient).To(BeEmpty())
 		}
 		It("Empty capabilities should use server capabilities", func() {
 			var caps *types.Capability
 			serverCaps := capabilities.Default()
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps))
 		})
 		It("AddCapabilities should add capability", func() {
@@ -569,7 +569,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)+1)
 		})
 		It("DropCapabilities should drop capability", func() {
@@ -579,7 +579,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{"CHOWN"}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, len(serverCaps)-1)
 		})
 		It("AddCapabilities ALL DropCapabilities one should drop that one", func() {
@@ -589,7 +589,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			// `int(validate.LastCap())+1` represents the total number of `ALL` capabilities
 			// in the current environment, while `-1` indicates the removal of `CHOWN` from `ALL`.
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, int(validate.LastCap())+1-1)
@@ -601,7 +601,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, 1)
 		})
 		It("AddCapabilities ALL DropCapabilities ALL should drop all", func() {
@@ -611,7 +611,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			verifyCapValues(sut.Spec().Config.Process.Capabilities, 0)
 		})
 		It("Invalid values should fail", func() {
@@ -620,7 +620,7 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).NotTo(BeNil())
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).NotTo(Succeed())
 		})
 		It("Should add inheritable capabilities if set", func() {
 			caps := &types.Capability{
@@ -629,8 +629,8 @@ var _ = t.Describe("Container", func() {
 			}
 			serverCaps := []string{}
 
-			Expect(sut.SpecSetupCapabilities(caps, serverCaps, true)).To(BeNil())
-			Expect(len(sut.Spec().Config.Process.Capabilities.Inheritable)).To(Equal(1))
+			Expect(sut.SpecSetupCapabilities(caps, serverCaps, true)).To(Succeed())
+			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(HaveLen(1))
 		})
 	})
 })

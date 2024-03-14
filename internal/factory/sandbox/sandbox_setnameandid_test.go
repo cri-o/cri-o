@@ -17,14 +17,14 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			Expect(sut.SetConfig(config)).To(BeNil())
+			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).To(BeNil())
-			Expect(len(sut.ID())).To(Equal(64))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.ID()).To(HaveLen(64))
 			Expect(sut.Name()).To(ContainSubstring("name"))
 			Expect(sut.Name()).To(ContainSubstring("uid"))
 			Expect(sut.Name()).To(ContainSubstring("namespace"))
@@ -36,7 +36,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.ID()).To(Equal(""))
 			Expect(sut.Name()).To(Equal(""))
 		})
@@ -49,13 +49,13 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			Expect(sut.SetConfig(config)).NotTo(BeNil())
+			Expect(sut.SetConfig(config)).NotTo(Succeed())
 
 			// When
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.ID()).To(Equal(""))
 			Expect(sut.Name()).To(Equal(""))
 		})
@@ -68,13 +68,13 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Uid:  "uid",
 				},
 			}
-			Expect(sut.SetConfig(config)).To(BeNil())
+			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.ID()).To(Equal(""))
 			Expect(sut.Name()).To(Equal(""))
 		})
@@ -87,13 +87,13 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 					Namespace: "namespace",
 				},
 			}
-			Expect(sut.SetConfig(config)).To(BeNil())
+			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
 			err := sut.SetNameAndID()
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(sut.ID()).To(Equal(""))
 			Expect(sut.Name()).To(Equal(""))
 		})

@@ -23,7 +23,7 @@ var _ = t.Describe("Version", func() {
 			response, err := sut.Version(context.Background(), nil)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.Version).NotTo(BeEmpty())
 			Expect(response.RuntimeName).NotTo(BeEmpty())

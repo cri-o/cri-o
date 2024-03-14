@@ -26,7 +26,7 @@ var _ = t.Describe("ContainerStart", func() {
 				&types.ExecSyncRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

@@ -67,17 +67,17 @@ var _ = t.Describe("HostPort", func() {
 		interfaceName := "cbr0"
 
 		fakeIPTables := newFakeIPTables()
-		Expect(ensureKubeHostportChains(fakeIPTables, interfaceName)).To(BeNil())
+		Expect(ensureKubeHostportChains(fakeIPTables, interfaceName)).To(Succeed())
 
 		_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		builtinChains := []string{"PREROUTING", "OUTPUT"}
 		hostPortJumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
 
 		for _, chainName := range builtinChains {
 			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(len(chain.rules)).To(BeEquivalentTo(1))
 			Expect(chain.rules).To(ContainElement(hostPortJumpRule))
 		}
@@ -86,12 +86,12 @@ var _ = t.Describe("HostPort", func() {
 		localhostMasqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
 
 		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(len(chain.rules)).To(BeEquivalentTo(1))
 		Expect(chain.rules).To(ContainElement(masqJumpRule))
 
 		_, chain, err = fakeIPTables.getChain(utiliptables.TableNAT, crioMasqueradeChain)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(len(chain.rules)).To(BeEquivalentTo(1))
 		Expect(chain.rules).To(ContainElement(localhostMasqRule))
 	})

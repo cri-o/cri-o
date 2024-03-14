@@ -28,11 +28,11 @@ func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTran
 	var namedRef reference.Named
 	if expectedImageName != "" {
 		nr, err := reference.ParseNormalizedNamed(expectedImageName)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		namedRef = nr
 	}
 	expectedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, expectedImageID)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	if resolvedImageID == "" {
 		return mockutils.InOrder(
 			storageTransportMock.EXPECT().ResolveReference(expectedRef).
@@ -40,7 +40,7 @@ func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTran
 		)
 	}
 	resolvedRef, err := istorage.Transport.NewStoreReference(storeMock, namedRef, resolvedImageID)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return mockutils.InOrder(
 		storageTransportMock.EXPECT().ResolveReference(expectedRef).
 			Return(resolvedRef,

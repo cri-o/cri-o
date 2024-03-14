@@ -25,11 +25,11 @@ var _ = t.Describe("Container:LogPath", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
 		logPath, err := sut.LogPath(providedLogDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(logPath).To(ContainSubstring(configLogPath))
 		Expect(logPath).To(ContainSubstring(configLogDir))
 		Expect(logPath).NotTo(ContainSubstring(providedLogDir))
@@ -44,11 +44,11 @@ var _ = t.Describe("Container:LogPath", func() {
 		sboxConfig := &types.PodSandboxConfig{}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
 
 		// Then
 		logPath, err := sut.LogPath(providedLogDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(logPath).To(ContainSubstring(configLogPath))
 		Expect(logPath).To(ContainSubstring(providedLogDir))
 	})
@@ -65,12 +65,12 @@ var _ = t.Describe("Container:LogPath", func() {
 		}
 
 		// When
-		Expect(sut.SetConfig(config, sboxConfig)).To(BeNil())
-		Expect(sut.SetNameAndID("")).To(BeNil())
+		Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+		Expect(sut.SetNameAndID("")).To(Succeed())
 
 		// Then
 		logPath, err := sut.LogPath(providedLogDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(logPath).To(ContainSubstring(providedLogDir))
 		Expect(logPath).To(ContainSubstring(sut.ID()))
 	})

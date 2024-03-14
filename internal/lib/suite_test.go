@@ -135,7 +135,7 @@ func beforeEach() {
 	// Set the config
 	var err error
 	config, err = libconfig.DefaultConfig()
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	config.LogDir = "."
 	config.HooksDir = []string{}
 	// so we have permission to make a directory within it
@@ -148,7 +148,7 @@ func beforeEach() {
 
 	// Setup the sut
 	sut, err = lib.New(context.Background(), libMock)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	Expect(sut).NotTo(BeNil())
 
 	// Setup test vars
@@ -156,14 +156,14 @@ func beforeEach() {
 		make(map[string]string), make(map[string]string), "", "",
 		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
 		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "", nil, nil, "",
 		&types.ContainerMetadata{}, sandboxID, false,
 		false, false, "", "", time.Now(), "")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func mockDirs(manifest []byte) {
@@ -180,19 +180,19 @@ func mockDirs(manifest []byte) {
 
 func addContainerAndSandbox() {
 	ctx := context.TODO()
-	Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+	Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 	sut.AddContainer(ctx, myContainer)
-	Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
-	Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
+	Expect(sut.CtrIDIndex().Add(containerID)).To(Succeed())
+	Expect(sut.PodIDIndex().Add(sandboxID)).To(Succeed())
 	myContainer.SetCreated()
 }
 
 func createDummyState() {
-	Expect(os.WriteFile("state.json", []byte("{}"), 0o644)).To(BeNil())
+	Expect(os.WriteFile("state.json", []byte("{}"), 0o644)).To(Succeed())
 }
 
 func createDummyConfig() {
-	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(BeNil())
+	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(Succeed())
 }
 
 func mockRuncInLibConfig() {
@@ -202,7 +202,7 @@ func mockRuncInLibConfig() {
 }
 
 func mockRuncInLibConfigCheckpoint() {
-	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(BeNil())
+	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(Succeed())
 	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
 		RuntimePath: "/tmp/fake-runtime",
 		MonitorPath: "/bin/true",

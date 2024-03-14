@@ -52,7 +52,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with invalid container id", func() {
@@ -66,7 +66,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

@@ -13,7 +13,7 @@ const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d9246
 var _ = t.Describe("StorageImageID", func() {
 	It("Should parse valid IDs", func() {
 		id, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(id.IDStringForOutOfProcessConsumptionOnly()).To(Equal(testSHA256))
 	})
 
@@ -24,7 +24,7 @@ var _ = t.Describe("StorageImageID", func() {
 			testSHA256[:len(testSHA256)-1],
 		} {
 			_, err := storage.ParseStorageImageIDFromOutOfProcessData(input)
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		}
 	})
 
@@ -35,7 +35,7 @@ var _ = t.Describe("StorageImageID", func() {
 
 	It("Should be usable for logging, but not otherwise expose a string value", func() {
 		id, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		var _ fmt.Formatter = id // A compile-time check that id implements Formatter
 

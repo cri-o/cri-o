@@ -24,7 +24,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			testSandbox.AddManagedNamespaces(managedNamespaces)
 
 			// Then
-			Expect(len(testSandbox.NamespacePaths())).To(Equal(0))
+			Expect(testSandbox.NamespacePaths()).To(BeEmpty())
 		})
 		It("should succeed if empty", func() {
 			// Given
@@ -34,7 +34,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			testSandbox.AddManagedNamespaces(managedNamespaces)
 
 			// Then
-			Expect(len(testSandbox.NamespacePaths())).To(Equal(0))
+			Expect(testSandbox.NamespacePaths()).To(BeEmpty())
 		})
 
 		It("should succeed with valid namespaces", func() {
@@ -43,7 +43,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 
 			// Then
 			createdNamespaces := testSandbox.NamespacePaths()
-			Expect(len(createdNamespaces)).To(Equal(4))
+			Expect(createdNamespaces).To(HaveLen(4))
 		})
 		It("should panic with invalid namespaces", func() {
 			// Given
@@ -64,7 +64,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.RemoveManagedNamespaces()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should succeed when namespaces not nil", func() {
 			// Given
@@ -74,7 +74,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.RemoveManagedNamespaces()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 	t.Describe("*NsJoin", func() {
@@ -83,28 +83,28 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.NetNsJoin("/proc/self/ns/net")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should succeed when asked to join a ipc namespace", func() {
 			// Given
 			err := testSandbox.IpcNsJoin("/proc/self/ns/ipc")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should succeed when asked to join a uts namespace", func() {
 			// Given
 			err := testSandbox.UtsNsJoin("/proc/self/ns/uts")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should succeed when asked to join a user namespace", func() {
 			// Given
 			err := testSandbox.UserNsJoin("/proc/self/ns/user")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 		It("should fail when network namespace not exists", func() {
 			// Given
@@ -112,7 +112,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.NetNsJoin("path")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when uts namespace not exists", func() {
 			// Given
@@ -120,7 +120,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UtsNsJoin("path")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when ipc namespace not exists", func() {
 			// Given
@@ -128,7 +128,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.IpcNsJoin("path")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when user namespace not exists", func() {
 			// Given
@@ -136,7 +136,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UserNsJoin("path")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when sandbox already has network namespace", func() {
 			// Given
@@ -146,7 +146,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.NetNsJoin("/proc/self/ns/net")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when sandbox already has ipc namespace", func() {
 			// Given
@@ -156,7 +156,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.IpcNsJoin("/proc/self/ns/ipc")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when sandbox already has uts namespace", func() {
 			// Given
@@ -166,7 +166,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UtsNsJoin("/proc/self/ns/uts")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when sandbox already has user namespace", func() {
 			// Given
@@ -176,7 +176,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UserNsJoin("/proc/self/ns/user")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when asked to join a non-namespace", func() {
 			// Given
@@ -184,7 +184,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.NetNsJoin("/tmp")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when asked to join a non-namespace", func() {
 			// Given
@@ -193,7 +193,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.IpcNsJoin("/tmp")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when asked to join a non-namespace", func() {
 			// Given
@@ -201,7 +201,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UtsNsJoin("/tmp")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 		It("should fail when asked to join a non-namespace", func() {
 			// Given
@@ -209,7 +209,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			err := testSandbox.UserNsJoin("/tmp")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 	t.Describe("*NsPath", func() {
@@ -285,45 +285,45 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 		It("should get nothing when infra set but pid 0", func() {
 			// Given
 			infra, err := nsmgrtest.ContainerWithPid(0)
-			Expect(err).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(infra)).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testSandbox.SetInfraContainer(infra)).To(Succeed())
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
-			Expect(len(nsPaths)).To(Equal(0))
+			Expect(nsPaths).To(BeEmpty())
 			Expect(testSandbox.PidNsPath()).To(BeEmpty())
 		})
 		It("should get something when infra set and pid running", func() {
 			// Given
 			infra, err := nsmgrtest.ContainerWithPid(os.Getpid())
-			Expect(err).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(infra)).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testSandbox.SetInfraContainer(infra)).To(Succeed())
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).To(ContainSubstring("/proc"))
 			}
-			Expect(len(nsPaths)).To(Equal(numNamespaces))
+			Expect(nsPaths).To(HaveLen(numNamespaces))
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
 		It("should get nothing when infra set with pid not running", func() {
 			// Given
 			// max valid pid is 4194304
 			infra, err := nsmgrtest.ContainerWithPid(4194305)
-			Expect(err).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(infra)).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testSandbox.SetInfraContainer(infra)).To(Succeed())
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
-			Expect(len(nsPaths)).To(Equal(0))
+			Expect(nsPaths).To(BeEmpty())
 			Expect(testSandbox.PidNsPath()).To(BeEmpty())
 		})
 		It("should get managed path (except pid) despite infra set", func() {
 			// Given
 			infra, err := nsmgrtest.ContainerWithPid(os.Getpid())
-			Expect(err).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(infra)).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
+			Expect(testSandbox.SetInfraContainer(infra)).To(Succeed())
 			// When
 			testSandbox.AddManagedNamespaces(nsmgrtest.AllSpoofedNamespaces)
 			nsPaths := testSandbox.NamespacePaths()
@@ -331,7 +331,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			for _, ns := range nsPaths {
 				Expect(ns.Path()).NotTo(ContainSubstring("/proc"))
 			}
-			Expect(len(nsPaths)).To(Equal(numNamespaces))
+			Expect(nsPaths).To(HaveLen(numNamespaces))
 
 			Expect(testSandbox.PidNsPath()).To(ContainSubstring("/proc"))
 		})
@@ -342,7 +342,7 @@ var _ = t.Describe("SandboxManagedNamespaces", func() {
 			// When
 			nsPaths := testSandbox.NamespacePaths()
 			// Then
-			Expect(len(nsPaths)).To(Equal(0))
+			Expect(nsPaths).To(BeEmpty())
 		})
 	})
 })

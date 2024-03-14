@@ -15,7 +15,7 @@ var _ = t.Describe("Useragent", func() {
 			result, err := useragent.Get()
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(SatisfyAll(
 				ContainSubstring("cri-o"),
 				ContainSubstring("os"),

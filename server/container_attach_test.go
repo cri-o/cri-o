@@ -30,7 +30,7 @@ var _ = t.Describe("ContainerAttach", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -41,7 +41,7 @@ var _ = t.Describe("ContainerAttach", func() {
 				&types.AttachRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})
@@ -54,7 +54,7 @@ var _ = t.Describe("ContainerAttach", func() {
 				nil, nil, nil, false, make(chan remotecommand.TerminalSize))
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

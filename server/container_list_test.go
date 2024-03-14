@@ -38,7 +38,7 @@ var _ = t.Describe("ContainerList", func() {
 				&types.ListContainersRequest{Filter: &types.ContainerFilter{}})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			if created {
 				Expect(len(response.Containers)).To(BeEquivalentTo(1))
@@ -74,7 +74,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(0))
 			})
@@ -88,7 +88,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(1))
 			})
@@ -103,7 +103,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(0))
 			})
@@ -118,7 +118,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(1))
 			})
@@ -132,7 +132,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(1))
 			})
@@ -148,7 +148,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(0))
 			})
@@ -162,7 +162,7 @@ var _ = t.Describe("ContainerList", func() {
 					}})
 
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(response).NotTo(BeNil())
 				Expect(len(response.Containers)).To(BeEquivalentTo(0))
 			})

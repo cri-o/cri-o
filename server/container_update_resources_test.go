@@ -41,7 +41,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should update the container spec", func() {
@@ -71,7 +71,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			ctx := context.TODO()
 			c := sut.GetContainer(ctx, testContainer.ID())
@@ -93,7 +93,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with invalid container id", func() {
@@ -105,7 +105,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail with empty container ID", func() {
@@ -115,7 +115,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 				&types.UpdateContainerResourcesRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -147,7 +147,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 			)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

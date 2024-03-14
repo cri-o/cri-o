@@ -16,9 +16,9 @@ import (
 // The actual test suite
 var _ = t.Describe("ImageStatus", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -50,7 +50,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -89,7 +89,7 @@ var _ = t.Describe("ImageStatus", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 			Expect(response.Info).To(HaveKey("info"))
 			Expect(response.Info["info"]).To(ContainSubstring(
@@ -101,7 +101,7 @@ var _ = t.Describe("ImageStatus", func() {
 			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			// Given
 			parsedTestSHA256, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(
 				imageServerMock.EXPECT().HeuristicallyTryResolvingStringAsIDPrefix(testSHA256).
 					Return(&parsedTestSHA256),
@@ -115,7 +115,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: testSHA256}})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -137,7 +137,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -159,7 +159,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -178,7 +178,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{Image: &types.ImageSpec{Image: "image"}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -189,7 +189,7 @@ var _ = t.Describe("ImageStatus", func() {
 				&types.ImageStatusRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

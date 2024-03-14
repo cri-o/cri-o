@@ -16,7 +16,7 @@ var _ = t.Describe("Capabilities", func() {
 		err := sut.Validate()
 
 		// Then
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should succeed to validate wrong case capabilities", func() {
@@ -27,7 +27,7 @@ var _ = t.Describe("Capabilities", func() {
 		err := sut.Validate()
 
 		// Then
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	It("should fail to validate wrong capabilities", func() {
@@ -38,6 +38,6 @@ var _ = t.Describe("Capabilities", func() {
 		err := sut.Validate()
 
 		// Then
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 	})
 })

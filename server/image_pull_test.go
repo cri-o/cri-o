@@ -16,11 +16,11 @@ import (
 // The actual test suite
 var _ = t.Describe("ImagePull", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	otherImageID, err := storage.ParseStorageImageIDFromOutOfProcessData("3a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -61,7 +61,7 @@ var _ = t.Describe("ImagePull", func() {
 				}})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -102,7 +102,7 @@ var _ = t.Describe("ImagePull", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -139,7 +139,7 @@ var _ = t.Describe("ImagePull", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -155,7 +155,7 @@ var _ = t.Describe("ImagePull", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -184,7 +184,7 @@ var _ = t.Describe("ImagePull", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -205,7 +205,7 @@ var _ = t.Describe("ImagePull", func() {
 				}})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -221,7 +221,7 @@ var _ = t.Describe("ImagePull", func() {
 				&types.PullImageRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

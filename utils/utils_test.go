@@ -60,7 +60,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(writer, reader, keys)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(written).To(SatisfyAll(BeNumerically(">", 0)))
 		})
 
@@ -74,7 +74,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(writer, reader, keys)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(written).To(SatisfyAll(BeNumerically(">", 0)))
 		})
 
@@ -84,7 +84,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(nil, nil, nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(written).To(BeEquivalentTo(0))
 		})
 
@@ -98,7 +98,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(writer, reader, keys)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(written).To(BeEquivalentTo(0))
 		})
 
@@ -112,7 +112,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(writer, reader, keys)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(written).To(BeEquivalentTo(0))
 		})
 
@@ -126,7 +126,7 @@ var _ = t.Describe("Utils", func() {
 			written, err := utils.CopyDetachable(writer, reader, keys)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(written).To(BeEquivalentTo(0))
 		})
 	})
@@ -140,7 +140,7 @@ var _ = t.Describe("Utils", func() {
 			err := utils.WriteGoroutineStacksToFile(testFile)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			os.Remove(testFile)
 		})
 
@@ -151,7 +151,7 @@ var _ = t.Describe("Utils", func() {
 			err := utils.WriteGoroutineStacksToFile("")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -162,7 +162,7 @@ var _ = t.Describe("Utils", func() {
 			err := utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), 1, "", "")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -171,16 +171,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "root")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "root")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -190,16 +190,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -209,16 +209,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "25")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file isn't created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "25")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -228,16 +228,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -247,23 +247,23 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			_, _, _, err := utils.GetUserInfo(dir, "blah")
-			Expect(err).ToNot(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should succeed with existing user and group", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon:mail")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon:mail")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -273,16 +273,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "2:22")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "2:22")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -292,16 +292,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "daemon:250")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should be empty because an updated /etc/passwd file is not created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon:250")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -311,16 +311,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300:250")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:250")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -330,16 +330,16 @@ var _ = t.Describe("Utils", func() {
 			dir := createEtcFiles()
 			defer os.RemoveAll(dir)
 			uid, gid, addgids, err := utils.GetUserInfo(dir, "300:mail")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// passwdFile should not be empty because an updated /etc/passwd file is created.
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:mail")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
@@ -431,12 +431,12 @@ nogroup:x:65533:
 nobody:x:65534:`
 
 	dir, err := os.MkdirTemp("/tmp", "uid-test")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	err = os.Mkdir(filepath.Join(dir, "etc"), 0o755)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	err = os.WriteFile(filepath.Join(dir, "etc", "passwd"), []byte(alpinePasswdFile), 0o755)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	err = os.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 	return dir
 }

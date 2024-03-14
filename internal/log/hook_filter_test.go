@@ -17,7 +17,7 @@ var _ = t.Describe("HookFilter", func() {
 			res, err := log.NewFilterHook("")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(res).NotTo(BeNil())
 		})
 
@@ -27,7 +27,7 @@ var _ = t.Describe("HookFilter", func() {
 			res, err := log.NewFilterHook("(")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(res).To(BeNil())
 		})
 	})
@@ -36,7 +36,7 @@ var _ = t.Describe("HookFilter", func() {
 		It("should work for all log levels", func() {
 			// Given
 			hook, err := log.NewFilterHook("")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			// When
 			res := hook.Levels()
@@ -50,7 +50,7 @@ var _ = t.Describe("HookFilter", func() {
 		It("should succeed to filter", func() {
 			// Given
 			hook, err := log.NewFilterHook("none")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			entry := &logrus.Entry{
 				Message: "This message will be filtered out",
 			}
@@ -59,14 +59,14 @@ var _ = t.Describe("HookFilter", func() {
 			res := hook.Fire(entry)
 
 			// Then
-			Expect(res).To(BeNil())
+			Expect(res).ToNot(HaveOccurred())
 			Expect(entry.Message).To(BeEmpty())
 		})
 
 		It("should succeed to filter byte slice", func() {
 			// Given
 			hook, err := log.NewFilterHook("")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			entry := &logrus.Entry{
 				Message: fmt.Sprintf("A slice: %v", []byte{1, 2, 3, 4}),
 				Level:   logrus.DebugLevel,
@@ -76,7 +76,7 @@ var _ = t.Describe("HookFilter", func() {
 			res := hook.Fire(entry)
 
 			// Then
-			Expect(res).To(BeNil())
+			Expect(res).ToNot(HaveOccurred())
 			Expect(entry.Message).To(Equal("A slice: [FILTERED]"))
 		})
 	})

@@ -49,7 +49,7 @@ var _ = t.Describe("Sandbox", func() {
 				resolvPath, hostname, portMappings, hostNetwork, createdAt, "", nil, nil)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(sandbox).NotTo(BeNil())
 			Expect(sandbox.ID()).To(Equal(id))
 			Expect(sandbox.Namespace()).To(Equal(namespace))
@@ -124,7 +124,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(testSandbox.NetworkStopped()).To(BeFalse())
 
 			// When
-			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(BeNil())
+			Expect(testSandbox.SetNetworkStopped(ctx, false)).To(Succeed())
 
 			// Then
 			Expect(testSandbox.NetworkStopped()).To(BeTrue())
@@ -204,16 +204,16 @@ var _ = t.Describe("Sandbox", func() {
 
 		BeforeEach(func() {
 			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/some-image:latest")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			testContainer, err = oci.NewContainer("testid", "testname", "",
 				"/container/logs", map[string]string{},
 				map[string]string{}, map[string]string{}, "image",
 				&imageName, &imageID, "", &types.ContainerMetadata{},
 				"testsandboxid", false, false, false, "",
 				"/root/for/container", time.Now(), "SIGKILL")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testContainer).NotTo(BeNil())
 		})
 
@@ -244,7 +244,7 @@ var _ = t.Describe("Sandbox", func() {
 			err := testSandbox.SetInfraContainer(testContainer)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(testSandbox.InfraContainer()).To(Equal(testContainer))
 			// while we have a sandbox, it does not have any valid namespaces
 			Expect(testSandbox.UserNsPath()).To(Equal(""))
@@ -266,13 +266,13 @@ var _ = t.Describe("Sandbox", func() {
 		It("should fail add an infra container twice", func() {
 			// Given
 			Expect(testSandbox.InfraContainer()).To(BeNil())
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 
 			// When
 			err := testSandbox.SetInfraContainer(testContainer)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to set a nil infra container", func() {
@@ -281,17 +281,17 @@ var _ = t.Describe("Sandbox", func() {
 			err := testSandbox.SetInfraContainer(nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should set containerenv file", func() {
 			ctx := context.TODO()
 			// Given
 			Expect(testSandbox.ContainerEnvPath()).To(BeEmpty())
-			Expect(testSandbox.SetInfraContainer(testContainer)).To(BeNil())
+			Expect(testSandbox.SetInfraContainer(testContainer)).To(Succeed())
 
 			// When
-			Expect(testSandbox.SetContainerEnvFile(ctx)).To(BeNil())
+			Expect(testSandbox.SetContainerEnvFile(ctx)).To(Succeed())
 
 			// Then
 			Expect(testSandbox.ContainerEnvPath()).To(ContainSubstring(".containerenv"))
@@ -309,7 +309,7 @@ var _ = t.Describe("Sandbox", func() {
 			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
-			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+			Expect(testSandbox.NeedsInfra(manageNS)).To(BeFalse())
 		})
 
 		It("should not need when managing NS and NS mode CONTAINER", func() {
@@ -323,7 +323,7 @@ var _ = t.Describe("Sandbox", func() {
 			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
-			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+			Expect(testSandbox.NeedsInfra(manageNS)).To(BeFalse())
 		})
 
 		It("should need when namespace mode POD", func() {
@@ -337,7 +337,7 @@ var _ = t.Describe("Sandbox", func() {
 			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
-			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(true))
+			Expect(testSandbox.NeedsInfra(manageNS)).To(BeTrue())
 		})
 
 		It("should need when not managing NS", func() {
@@ -351,7 +351,7 @@ var _ = t.Describe("Sandbox", func() {
 			testSandbox.SetNamespaceOptions(newNamespaceOption)
 
 			// Then
-			Expect(testSandbox.NeedsInfra(manageNS)).To(Equal(false))
+			Expect(testSandbox.NeedsInfra(manageNS)).To(BeFalse())
 		})
 	})
 })

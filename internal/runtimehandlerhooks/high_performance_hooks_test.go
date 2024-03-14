@@ -29,18 +29,18 @@ var _ = Describe("high_performance_hooks", func() {
 		make(map[string]string), "pauseImage", nil, nil, "",
 		&types.ContainerMetadata{}, "sandboxID", false, false,
 		false, "", "", time.Now(), "")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	var flags, bannedCPUFlags string
 
 	BeforeEach(func() {
 		err := os.MkdirAll(fixturesDir, os.ModePerm)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	AfterEach(func() {
 		err := os.RemoveAll(fixturesDir)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 	})
 
 	Describe("setIRQLoadBalancingUsingDaemonCommand", func() {
@@ -48,10 +48,10 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
 			err := setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 		}
@@ -72,7 +72,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("with enabled equals to true", func() {
@@ -101,15 +101,15 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
 			err = setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
 
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 
 			Expect(bannedCPUs).To(Equal(expectedBan))
 		}
@@ -117,11 +117,11 @@ var _ = Describe("high_performance_hooks", func() {
 		JustBeforeEach(func() {
 			// set irqbalanace config file with no banned cpus
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
 			// set container CPUs
 			container.SetSpec(
@@ -138,7 +138,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		Context("with enabled equals to true", func() {
@@ -181,7 +181,7 @@ var _ = Describe("high_performance_hooks", func() {
 			if expected != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
 					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "power", "pm_qos_resume_latency_us"))
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 				}
@@ -190,7 +190,7 @@ var _ = Describe("high_performance_hooks", func() {
 			if expected_save != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
 					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "power", "pm_qos_resume_latency_us"))
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
 				}
 			}
@@ -214,17 +214,17 @@ var _ = Describe("high_performance_hooks", func() {
 			for _, cpu := range []string{"cpu0", "cpu1"} {
 				powerDir := filepath.Join(cpuDir, cpu, "power")
 				err = os.MkdirAll(powerDir, os.ModePerm)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 
 				if pmQosResumeLatencyUs != "" {
 					err = os.WriteFile(filepath.Join(powerDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUs), 0o644)
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				}
 				if pmQosResumeLatencyUsOriginal != "" {
 					powerSaveDir := filepath.Join(cpuSaveDir, cpu, "power")
 					err = os.MkdirAll(powerSaveDir, os.ModePerm)
 					err = os.WriteFile(filepath.Join(powerSaveDir, "pm_qos_resume_latency_us"), []byte(pmQosResumeLatencyUsOriginal), 0o644)
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				}
 			}
 		})
@@ -332,7 +332,7 @@ var _ = Describe("high_performance_hooks", func() {
 			if expected != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
 					content, err := os.ReadFile(filepath.Join(cpuDir, cpu, "cpufreq", "scaling_governor"))
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected))
 				}
 			}
@@ -340,7 +340,7 @@ var _ = Describe("high_performance_hooks", func() {
 			if expected_save != "" {
 				for _, cpu := range []string{"cpu0", "cpu1"} {
 					content, err := os.ReadFile(filepath.Join(cpuSaveDir, cpu, "cpufreq", "scaling_governor"))
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 					Expect(strings.Trim(string(content), "\n")).To(Equal(expected_save))
 				}
 			}
@@ -364,21 +364,21 @@ var _ = Describe("high_performance_hooks", func() {
 			for _, cpu := range []string{"cpu0", "cpu1"} {
 				cpufreqDir := filepath.Join(cpuDir, cpu, "cpufreq")
 				err = os.MkdirAll(cpufreqDir, os.ModePerm)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 
 				if scalingGovernor != "" {
 					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_governor"), []byte(scalingGovernor), 0o644)
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				}
 				if scalingAvailableGovernors != "" {
 					err = os.WriteFile(filepath.Join(cpufreqDir, "scaling_available_governors"), []byte(scalingAvailableGovernors), 0o644)
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				}
 				if scalingGovernorOriginal != "" {
 					cpufreqSaveDir := filepath.Join(cpuSaveDir, cpu, "cpufreq")
 					err = os.MkdirAll(cpufreqSaveDir, os.ModePerm)
 					err = os.WriteFile(filepath.Join(cpufreqSaveDir, "scaling_governor"), []byte(scalingGovernorOriginal), 0o644)
-					Expect(err).To(BeNil())
+					Expect(err).ToNot(HaveOccurred())
 				}
 			}
 		})
@@ -494,28 +494,28 @@ var _ = Describe("high_performance_hooks", func() {
 		irqBannedCPUConfigFile := filepath.Join(fixturesDir, "orig_irq_banned_cpus")
 		verifyRestoreIrqBalanceConfig := func(expectedOrigBannedCPUs, expectedBannedCPUs string) {
 			err = RestoreIrqBalanceConfig(context.TODO(), irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityFile)
-			ExpectWithOffset(1, err).To(BeNil())
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqBannedCPUConfigFile)
-			ExpectWithOffset(1, err).To(BeNil())
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
 			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
 
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			ExpectWithOffset(1, err).To(BeNil())
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
 			ExpectWithOffset(1, bannedCPUs).To(Equal(expectedBannedCPUs))
 		}
 
 		JustBeforeEach(func() {
 			// create tests affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			// set irqbalanace config file with banned cpus mask
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, "0000ffff,ffffcfcc")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(bannedCPUs).To(Equal("0000ffff,ffffcfcc"))
 		})
 
@@ -535,7 +535,7 @@ var _ = Describe("high_performance_hooks", func() {
 				// create banned cpu config file
 				os.Remove(irqBannedCPUConfigFile)
 				err = os.WriteFile(irqBannedCPUConfigFile, []byte("00000000,00000000"), 0o644)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 			})
 
 			It("should restore irq balance config with content from banned cpu config file", func() {
@@ -554,7 +554,7 @@ var _ = Describe("high_performance_hooks", func() {
 			}
 
 			if expected != "" {
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(latency).To(Equal(expected))
 			}
 		}
@@ -665,7 +665,7 @@ var _ = Describe("high_performance_hooks", func() {
 			make(map[string]string), "pauseImage", nil, nil, "",
 			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		sb, err := sandbox.New("", "", "", "", "", nil,
 			map[string]string{

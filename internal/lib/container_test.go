@@ -22,7 +22,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := sut.LookupContainer(ctx, containerID)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(container).NotTo(BeNil())
 		})
 
@@ -33,7 +33,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := sut.LookupContainer(ctx, "")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(container).To(BeNil())
 		})
 	})
@@ -47,7 +47,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := sut.GetContainerFromShortID(ctx, containerID)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(container).NotTo(BeNil())
 		})
 
@@ -58,7 +58,7 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := sut.GetContainerFromShortID(ctx, "")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(container).To(BeNil())
 		})
 
@@ -69,23 +69,23 @@ var _ = t.Describe("ContainerServer", func() {
 			container, err := sut.GetContainerFromShortID(ctx, "invalid")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(container).To(BeNil())
 		})
 
 		It("should fail if container is not created", func() {
 			ctx := context.TODO()
 			// Given
-			Expect(sut.AddSandbox(ctx, mySandbox)).To(BeNil())
+			Expect(sut.AddSandbox(ctx, mySandbox)).To(Succeed())
 			sut.AddContainer(ctx, myContainer)
-			Expect(sut.CtrIDIndex().Add(containerID)).To(BeNil())
-			Expect(sut.PodIDIndex().Add(sandboxID)).To(BeNil())
+			Expect(sut.CtrIDIndex().Add(containerID)).To(Succeed())
+			Expect(sut.PodIDIndex().Add(sandboxID)).To(Succeed())
 
 			// When
 			container, err := sut.GetContainerFromShortID(ctx, containerID)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(container).To(BeNil())
 		})
 	})

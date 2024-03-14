@@ -69,7 +69,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -87,7 +87,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -103,7 +103,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -119,7 +119,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -138,7 +138,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -156,7 +156,7 @@ var _ = t.Describe("ContainerCreate", func() {
 
 			emptyTar := "empty.tar"
 			archive, err := os.OpenFile(emptyTar, os.O_RDONLY|os.O_CREATE, 0o644)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			archive.Close()
 			defer os.RemoveAll(emptyTar)
 
@@ -169,13 +169,13 @@ var _ = t.Describe("ContainerCreate", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
 		It("should fail when sandbox not found", func() {
 			// Given
-			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(BeNil())
+			Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(Succeed())
 
 			// When
 			response, err := sut.CreateContainer(context.Background(),
@@ -186,7 +186,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -201,7 +201,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 
@@ -215,7 +215,7 @@ var _ = t.Describe("ContainerCreate", func() {
 				})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})

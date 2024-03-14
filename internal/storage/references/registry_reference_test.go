@@ -12,11 +12,11 @@ import (
 var _ = t.Describe("RegistryImageReference", func() {
 	It("Should parse valid references", func() {
 		ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData("minimal")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/minimal:latest"))
 
 		ref, err = references.ParseRegistryImageReferenceFromOutOfProcessData("quay.io/ns/repo:notlatest")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(ref.StringForOutOfProcessConsumptionOnly()).To(Equal("quay.io/ns/repo:notlatest"))
 	})
 
@@ -27,7 +27,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 			"example.com/",
 		} {
 			_, err := references.ParseRegistryImageReferenceFromOutOfProcessData(input)
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		}
 	})
 
@@ -35,7 +35,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 		Expect(func() { references.RegistryImageReferenceFromRaw(nil) }).To(Panic())
 
 		nameOnly, err := reference.ParseNormalizedNamed("example.com/ns/repo-only")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(func() { references.RegistryImageReferenceFromRaw(nameOnly) }).To(Panic())
 	})
 
@@ -48,7 +48,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 		const testName = "quay.io/ns/repo:notlatest"
 
 		ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testName)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		var _ fmt.Formatter = ref // A compile-time check that ref implements Formatter
 
@@ -66,7 +66,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 		const testName = "quay.io/ns/repo:notlatest"
 
 		ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testName)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		raw := ref.Raw()
 		Expect(raw.String()).To(Equal(testName))
@@ -79,7 +79,7 @@ var _ = t.Describe("RegistryImageReference", func() {
 			{"example.com:8000/foo:tag", "example.com:8000"},
 		} {
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(c.in)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			registry := ref.Registry()
 			Expect(registry).To(Equal(c.expected))
 		}

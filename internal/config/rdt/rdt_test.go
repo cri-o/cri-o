@@ -9,7 +9,7 @@ import (
 
 func tempFileWithData(data string) string {
 	f := t.MustTempFile("")
-	Expect(os.WriteFile(f, []byte(data), 0o644)).To(BeNil())
+	Expect(os.WriteFile(f, []byte(data), 0o644)).To(Succeed())
 	return f
 }
 
@@ -18,7 +18,7 @@ var _ = t.Describe("When parsing RDT config file", func() {
 	t.Describe("non-existent file", func() {
 		It("should return an error", func() {
 			_, err := loadConfigFile("non-existent-file")
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -28,7 +28,7 @@ var _ = t.Describe("When parsing RDT config file", func() {
 - foo
 `)
 			_, err := loadConfigFile(f)
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -41,7 +41,7 @@ var _ = t.Describe("When parsing RDT config file", func() {
       default:
 `)
 			_, err := loadConfigFile(f)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

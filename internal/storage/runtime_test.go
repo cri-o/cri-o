@@ -19,7 +19,7 @@ import (
 // The actual test suite
 var _ = t.Describe("Runtime", func() {
 	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	var (
 		mockCtrl             *gomock.Controller
@@ -90,7 +90,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetRunDir("")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(dir).To(Equal("dir"))
 		})
 
@@ -106,7 +106,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetRunDir("")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(dir).To(Equal(""))
 		})
 
@@ -122,7 +122,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetRunDir("")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerID))
 			Expect(dir).To(Equal(""))
 		})
@@ -145,7 +145,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetWorkDir("")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(dir).To(Equal("dir"))
 		})
 
@@ -161,7 +161,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetWorkDir("")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(dir).To(Equal(""))
 		})
 
@@ -177,7 +177,7 @@ var _ = t.Describe("Runtime", func() {
 			dir, err := sut.GetWorkDir("")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerID))
 			Expect(dir).To(Equal(""))
 		})
@@ -199,7 +199,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.StopContainer(ctx, "id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail to stop a container on empty ID", func() {
@@ -208,7 +208,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.StopContainer(ctx, "")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerID))
 		})
 
@@ -224,7 +224,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.StopContainer(ctx, "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to stop a container on unmount error", func() {
@@ -242,7 +242,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.StopContainer(ctx, "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -262,7 +262,7 @@ var _ = t.Describe("Runtime", func() {
 			mount, err := sut.StartContainer("id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(mount).To(Equal("mount"))
 		})
 
@@ -278,7 +278,7 @@ var _ = t.Describe("Runtime", func() {
 			mount, err := sut.StartContainer("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(mount).To(Equal(""))
 		})
 
@@ -294,7 +294,7 @@ var _ = t.Describe("Runtime", func() {
 			mount, err := sut.StartContainer("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerID))
 			Expect(mount).To(Equal(""))
 		})
@@ -311,7 +311,7 @@ var _ = t.Describe("Runtime", func() {
 			mount, err := sut.StartContainer("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(mount).To(Equal(""))
 		})
 
@@ -330,7 +330,7 @@ var _ = t.Describe("Runtime", func() {
 			mount, err := sut.StartContainer("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(mount).To(Equal(""))
 		})
 	})
@@ -348,7 +348,7 @@ var _ = t.Describe("Runtime", func() {
 			metadata, err := sut.GetContainerMetadata("id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(metadata).NotTo(BeNil())
 			Expect(metadata.Pod).To(BeTrue())
 		})
@@ -365,7 +365,7 @@ var _ = t.Describe("Runtime", func() {
 			metadata, err := sut.GetContainerMetadata("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(metadata).NotTo(BeNil())
 		})
 
@@ -381,7 +381,7 @@ var _ = t.Describe("Runtime", func() {
 			metadata, err := sut.GetContainerMetadata("id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(metadata).NotTo(BeNil())
 		})
 	})
@@ -401,7 +401,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.SetContainerMetadata("id", metadata)
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail to set the container on store error", func() {
@@ -417,7 +417,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.SetContainerMetadata("id", metadata)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -439,7 +439,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail to delete a container on invalid ID", func() {
@@ -448,7 +448,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.DeleteContainer(ctx, "")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerID))
 		})
 
@@ -464,7 +464,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to delete a container on store deletion error", func() {
@@ -484,7 +484,7 @@ var _ = t.Describe("Runtime", func() {
 			err := sut.DeleteContainer(ctx, "id")
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
@@ -529,7 +529,7 @@ var _ = t.Describe("Runtime", func() {
 			It("should succeed to create a pod sandbox", func() {
 				// Given
 				pauseImage, err2 := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
-				Expect(err2).To(BeNil())
+				Expect(err2).ToNot(HaveOccurred())
 				mockutils.InOrder(
 					mockCreatePodSandboxImageExists(),
 					mockUnderlyingCreateContainerSuccess(),
@@ -545,7 +545,7 @@ var _ = t.Describe("Runtime", func() {
 
 			AfterEach(func() {
 				// Then
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(info).NotTo(BeNil())
 				Expect(info.ID).To(Equal("id"))
 				Expect(info.Dir).To(Equal("dir"))
@@ -564,7 +564,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidPodName))
 		})
 
@@ -579,7 +579,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidPodName))
 		})
 
@@ -594,7 +594,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(err).To(Equal(storage.ErrInvalidContainerName))
 		})
 
@@ -625,7 +625,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to create a container on container dir error", func() {
@@ -652,13 +652,13 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to create a pod sandbox on set names error", func() {
 			// Given
 			pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				mockCreatePodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
@@ -679,13 +679,13 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to create a pod sandbox on main creation error", func() {
 			// Given
 			pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("imagename:latest")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				mockCreatePodSandboxImageExists(),
 				storeMock.EXPECT().CreateContainer(gomock.Any(), gomock.Any(),
@@ -701,7 +701,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to create a container on main creation error", func() {
@@ -721,7 +721,7 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 
 		It("should fail to create a container on error accessing local image", func() {
@@ -746,21 +746,21 @@ var _ = t.Describe("Runtime", func() {
 			)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 
 	t.Describe("pauseImage", func() {
 		pauseImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("pauseimagename:latest")
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		var info storage.ContainerInfo
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
 			pauseImageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pauseimagename:latest")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImageRef.Raw(), "")
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockResolveReference(storeMock, storageTransportMock,
@@ -826,7 +826,7 @@ var _ = t.Describe("Runtime", func() {
 
 		AfterEach(func() {
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(info).NotTo(BeNil())
 			Expect(info.ID).To(Equal("id"))
 			Expect(info.Dir).To(Equal("dir"))

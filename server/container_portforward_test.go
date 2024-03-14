@@ -29,7 +29,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 				})
 
 			// Then
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			Expect(response).NotTo(BeNil())
 		})
 
@@ -40,7 +40,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 				&types.PortForwardRequest{})
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 			Expect(response).To(BeNil())
 		})
 	})
@@ -52,7 +52,7 @@ var _ = t.Describe("ContainerPortforward", func() {
 			err := testStreamService.PortForward(context.Background(), testSandbox.ID(), 0, nil)
 
 			// Then
-			Expect(err).NotTo(BeNil())
+			Expect(err).To(HaveOccurred())
 		})
 	})
 })

@@ -28,7 +28,7 @@ var _ = Describe("Utils", func() {
 		DescribeTable("testing cpu mask",
 			func(c TestData) {
 				mask, invMask, err := UpdateIRQSmpAffinityMask(c.input.cpus, c.input.mask, c.input.set)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(mask).To(Equal(c.expected.mask))
 				Expect(invMask).To(Equal(c.expected.invMask))
 			},

@@ -33,23 +33,23 @@ var _ = t.Describe("Oci", func() {
 		)
 		BeforeEach(func() {
 			sleepProcess = exec.Command("sleep", "100000")
-			Expect(sleepProcess.Start()).To(BeNil())
+			Expect(sleepProcess.Start()).To(Succeed())
 
 			Expect(sleepProcess.Process.Pid).NotTo(Equal(0))
 
 			sut = getTestContainer()
 			state := &oci.ContainerState{}
 			state.Pid = sleepProcess.Process.Pid
-			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(BeNil())
+			Expect(state.SetInitPid(sleepProcess.Process.Pid)).To(Succeed())
 			sut.SetState(state)
 
 			runner = runnerMock.NewMockCommandRunner(mockCtrl)
 			cmdrunner.SetMocked(runner)
 
 			cfg, err := libconfig.DefaultConfig()
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			r, err := oci.New(cfg)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(HaveOccurred())
 			runtime = oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})
 		})
 		AfterEach(func() {
@@ -66,7 +66,7 @@ var _ = t.Describe("Oci", func() {
 			state.Status = oci.ContainerStatePaused
 			sut.SetState(state)
 
-			Expect(sut.ShouldBeStopped()).NotTo(BeNil())
+			Expect(sut.ShouldBeStopped()).NotTo(Succeed())
 		})
 		It("should fail to stop if container stopped", func() {
 			state := &oci.ContainerState{}
@@ -80,7 +80,7 @@ var _ = t.Describe("Oci", func() {
 			gomock.InOrder(
 				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
 					func(_ string, _ ...string) interface{} {
-						Expect(oci.Kill(sleepProcess.Process.Pid)).To(BeNil())
+						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 						return exec.Command("/bin/false")
 					},
@@ -102,7 +102,7 @@ var _ = t.Describe("Oci", func() {
 			gomock.InOrder(
 				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
 					func(_ string, _ ...string) interface{} {
-						Expect(oci.Kill(sleepProcess.Process.Pid)).To(BeNil())
+						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 						return exec.Command("/bin/true")
 					},
@@ -211,9 +211,9 @@ var _ = t.Describe("Oci", func() {
 			test := test
 			It(test.title, func() {
 				fileName := t.MustTempFile("to-read")
-				Expect(os.WriteFile(fileName, test.contents, 0o644)).To(BeNil())
+				Expect(os.WriteFile(fileName, test.contents, 0o644)).To(Succeed())
 				found, err := oci.TruncateAndReadFile(context.Background(), fileName, test.size)
-				Expect(err).To(BeNil())
+				Expect(err).ToNot(HaveOccurred())
 				Expect(found).To(Equal(test.expected))
 			})
 		}
@@ -229,7 +229,7 @@ func containerIgnoreSignalCmdrunnerMock(sleepProcess *exec.Cmd, runner *runnerMo
 		),
 		runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
 			func(_ string, _ ...string) interface{} {
-				Expect(oci.Kill(sleepProcess.Process.Pid)).To(BeNil())
+				Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 				waitForKillToComplete(sleepProcess)
 				return exec.Command("/bin/true")
 			},
@@ -261,11 +261,11 @@ func verifyContainerStopped(sut *oci.Container, sleepProcess *exec.Cmd) {
 	waitForKillToComplete(sleepProcess)
 	pid, err := sut.Pid()
 	Expect(pid).To(Equal(0))
-	Expect(err).NotTo(BeNil())
+	Expect(err).To(HaveOccurred())
 }
 
 func waitForKillToComplete(sleepProcess *exec.Cmd) {
-	Expect(sleepProcess.Wait()).NotTo(BeNil())
+	Expect(sleepProcess.Wait()).NotTo(Succeed())
 	// this fixes a race with the kernel cleaning up the /proc entry
 	// even adding a Kill() in the call to Pid() doesn't fix
 	time.Sleep(inSeconds(shortTimeout))
@@ -274,7 +274,7 @@ func waitForKillToComplete(sleepProcess *exec.Cmd) {
 func verifyContainerNotStopped(sut *oci.Container) {
 	pid, err := sut.Pid()
 	Expect(pid).NotTo(Equal(0))
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 }
 
 func inSeconds(d int64) time.Duration {

@@ -20,7 +20,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		err := sut.SetConfig(config, sboxConfig)
 
 		// Then
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 		Expect(sut.Config()).To(Equal(config))
 		Expect(sut.SandboxConfig()).To(Equal(sboxConfig))
 	})
@@ -31,7 +31,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		err := sut.SetConfig(nil, nil)
 
 		// Then
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 		Expect(sut.Config()).To(BeNil())
 	})
 
@@ -43,7 +43,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		err := sut.SetConfig(config, nil)
 
 		// Then
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 		Expect(sut.Config()).To(BeNil())
 	})
 
@@ -57,7 +57,7 @@ var _ = t.Describe("Container:SetConfig", func() {
 		err := sut.SetConfig(config, nil)
 
 		// Then
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 		Expect(sut.Config()).To(BeNil())
 	})
 
@@ -68,13 +68,13 @@ var _ = t.Describe("Container:SetConfig", func() {
 		}
 		sboxConfig := &types.PodSandboxConfig{}
 		err := sut.SetConfig(config, sboxConfig)
-		Expect(err).To(BeNil())
+		Expect(err).ToNot(HaveOccurred())
 
 		// When
 		err = sut.SetConfig(config, nil)
 
 		// Then
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 		Expect(sut.Config()).To(Equal(config))
 	})
 
@@ -86,6 +86,6 @@ var _ = t.Describe("Container:SetConfig", func() {
 
 		// Then
 		err := sut.SetConfig(config, nil)
-		Expect(err).NotTo(BeNil())
+		Expect(err).To(HaveOccurred())
 	})
 })
