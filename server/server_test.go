@@ -81,6 +81,7 @@ var _ = t.Describe("Server", func() {
 
 		It("should succeed with container restore", func() {
 			// Given
+			setCNIPlugin()
 			gomock.InOrder(
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 				libMock.EXPECT().GetStore().Return(storeMock, nil),

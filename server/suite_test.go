@@ -184,6 +184,7 @@ var afterEach = func() {
 var setupSUT = func() {
 	var err error
 	mockNewServer()
+
 	sut, err = server.New(context.Background(), libMock)
 	Expect(err).To(BeNil())
 	Expect(sut).NotTo(BeNil())
@@ -191,12 +192,10 @@ var setupSUT = func() {
 	// Inject the mock
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
-
-	gomock.InOrder(cniPluginMock.EXPECT().Status().Return(nil))
-	Expect(sut.SetCNIPlugin(cniPluginMock)).To(BeNil())
 }
 
 func mockNewServer() {
+	setCNIPlugin()
 	gomock.InOrder(
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
@@ -204,6 +203,13 @@ func mockNewServer() {
 		storeMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
 	)
+}
+
+func setCNIPlugin() {
+	gomock.InOrder(
+		cniPluginMock.EXPECT().Status().Return(nil),
+	)
+	Expect(serverConfig.SetCNIPlugin(cniPluginMock)).To(BeNil())
 }
 
 func addContainerAndSandbox() {
