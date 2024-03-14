@@ -131,7 +131,7 @@ type ImageServer interface {
 	// for further analysis. Call Close() on the resulting image.
 	PrepareImage(systemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
-	PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
+	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error)
 
 	// DeleteImage deletes a storage image (impacting all its tags)
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
@@ -551,11 +551,11 @@ func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOu
 	}
 }
 
-func (svc *imageService) pullImageParent(imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, error) {
+func (svc *imageService) pullImageParent(ctx context.Context, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, error) {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
-	cmd := reexec.CommandContext(svc.ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
+	cmd := reexec.CommandContext(ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
@@ -647,11 +647,11 @@ func (svc *imageService) pullImageParent(imageName RegistryImageReference, paren
 	return destRef, nil
 }
 
-func (svc *imageService) PullImage(imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
+func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, error) {
 	if options.CgroupPull.UseNewCgroup {
-		return svc.pullImageParent(imageName, options.CgroupPull.ParentCgroup, options)
+		return svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
 	} else {
-		return pullImageImplementation(svc.ctx, svc.lookup, svc.store, imageName, options)
+		return pullImageImplementation(ctx, svc.lookup, svc.store, imageName, options)
 	}
 }
 

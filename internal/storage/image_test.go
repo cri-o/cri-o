@@ -574,7 +574,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "/not-existing"},
 			})
 
@@ -589,7 +589,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
@@ -604,12 +604,30 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(imageRef, &storage.ImageCopyOptions{
+			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
 			// Then
 			Expect(err).To(HaveOccurred())
+			Expect(res).To(BeNil())
+		})
+
+		It("should fail on cancelled context", func() {
+			// Given
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			ctx, cancel := context.WithCancel(context.Background())
+			cancel()
+			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("context canceled"))
 			Expect(res).To(BeNil())
 		})
 	})

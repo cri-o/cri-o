@@ -157,18 +157,18 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 references.RegistryImageReference, arg1 *storage0.ImageCopyOptions) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PullImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PullImage indicates an expected call of PullImage.
-func (mr *MockImageServerMockRecorder) PullImage(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockImageServerMockRecorder) PullImage(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullImage", reflect.TypeOf((*MockImageServer)(nil).PullImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullImage", reflect.TypeOf((*MockImageServer)(nil).PullImage), arg0, arg1, arg2)
 }
 
 // UntagImage mocks base method.
