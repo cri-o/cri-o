@@ -13,7 +13,6 @@ import (
 	nettypes "github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/cgroupv2"
-	"github.com/containers/common/pkg/util"
 	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
 	"github.com/containers/storage/types"
@@ -30,7 +29,7 @@ const (
 	_defaultTransport = "docker://"
 
 	// _defaultImageVolumeMode is a mode to handle built-in image volumes.
-	_defaultImageVolumeMode = _typeBind
+	_defaultImageVolumeMode = "anonymous"
 
 	// defaultInitName is the default name of the init binary
 	defaultInitName = "catatonit"
@@ -196,7 +195,9 @@ func defaultConfig() (*Config, error) {
 	}
 
 	defaultEngineConfig.SignaturePolicyPath = DefaultSignaturePolicyPath
-	if useUserConfigLocations() {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	if unshare.GetRootlessUID() > 0 {
 		configHome, err := homedir.GetConfigHome()
 		if err != nil {
 			return nil, err
@@ -252,10 +253,11 @@ func defaultConfig() (*Config, error) {
 			Volumes:             attributedstring.Slice{},
 		},
 		Network: NetworkConfig{
+			FirewallDriver:            "",
 			DefaultNetwork:            "podman",
 			DefaultSubnet:             DefaultSubnet,
 			DefaultSubnetPools:        DefaultSubnetPools,
-			DefaultRootlessNetworkCmd: "slirp4netns",
+			DefaultRootlessNetworkCmd: "pasta",
 			DNSBindPort:               0,
 			CNIPluginDirs:             attributedstring.NewSlice(DefaultCNIPluginDirs),
 			NetavarkPluginDirs:        attributedstring.NewSlice(DefaultNetavarkPluginDirs),
@@ -284,18 +286,21 @@ func defaultMachineConfig() MachineConfig {
 	return MachineConfig{
 		CPUs:     uint64(cpus),
 		DiskSize: 100,
-		Image:    getDefaultMachineImage(),
-		Memory:   2048,
-		User:     getDefaultMachineUser(),
-		Volumes:  attributedstring.NewSlice(getDefaultMachineVolumes()),
+		// TODO: Set machine image default here
+		// Currently the default is set in Podman as we need time to stabilize
+		// VM images and locations between different providers.
+		Image:   "",
+		Memory:  2048,
+		User:    getDefaultMachineUser(),
+		Volumes: attributedstring.NewSlice(getDefaultMachineVolumes()),
+		Rosetta: true,
 	}
 }
 
 // defaultFarmConfig returns the default farms configuration.
 func defaultFarmConfig() FarmConfig {
-	emptyList := make(map[string][]string)
 	return FarmConfig{
-		List: emptyList,
+		List: map[string][]string{},
 	}
 }
 
@@ -320,7 +325,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 			return nil, err
 		}
 	}
-	storeOpts, err := types.DefaultStoreOptions(useUserConfigLocations(), unshare.GetRootlessUID())
+	storeOpts, err := types.DefaultStoreOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -338,7 +343,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 
 	c.HelperBinariesDir.Set(defaultHelperBinariesDir)
 	if additionalHelperBinariesDir != "" {
-		// Prioritize addtionalHelperBinariesDir over defaults.
+		// Prioritize additionalHelperBinariesDir over defaults.
 		c.HelperBinariesDir.Set(append([]string{additionalHelperBinariesDir}, c.HelperBinariesDir.Get()...))
 	}
 	c.HooksDir.Set(DefaultHooksDirs)
@@ -353,6 +358,7 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	c.PodmanshTimeout = uint(30)
 	c.ExitCommandDelay = uint(5 * 60)
 	c.Remote = isRemote()
+	c.Retry = 3
 	c.OCIRuntimes = map[string][]string{
 		"crun": {
 			"/usr/bin/crun",
@@ -362,6 +368,14 @@ func defaultEngineConfig() (*EngineConfig, error) {
 			"/sbin/crun",
 			"/bin/crun",
 			"/run/current-system/sw/bin/crun",
+		},
+		"crun-vm": {
+			"/usr/bin/crun-vm",
+			"/usr/local/bin/crun-vm",
+			"/usr/local/sbin/crun-vm",
+			"/sbin/crun-vm",
+			"/bin/crun-vm",
+			"/run/current-system/sw/bin/crun-vm",
 		},
 		"crun-wasm": {
 			"/usr/bin/crun-wasm",
@@ -470,7 +484,6 @@ func defaultEngineConfig() (*EngineConfig, error) {
 	// TODO - ideally we should expose a `type LockType string` along with
 	// constants.
 	c.LockType = getDefaultLockType()
-	c.MachineEnabled = false
 	c.ChownCopiedFiles = true
 
 	c.PodExitPolicy = defaultPodExitPolicy
@@ -481,11 +494,14 @@ func defaultEngineConfig() (*EngineConfig, error) {
 }
 
 func defaultTmpDir() (string, error) {
-	if !useUserConfigLocations() {
+	// NOTE: For now we want Windows to use system locations.
+	// GetRootlessUID == -1 on Windows, so exclude negative range
+	rootless := unshare.GetRootlessUID() > 0
+	if !rootless {
 		return getLibpodTmpDir(), nil
 	}
 
-	runtimeDir, err := util.GetRuntimeDir()
+	runtimeDir, err := homedir.GetRuntimeDir()
 	if err != nil {
 		return "", err
 	}
@@ -515,13 +531,13 @@ func (c EngineConfig) EventsLogMaxSize() uint64 {
 func (c *Config) SecurityOptions() []string {
 	securityOpts := []string{}
 	if c.Containers.SeccompProfile != "" && c.Containers.SeccompProfile != SeccompDefaultPath {
-		securityOpts = append(securityOpts, fmt.Sprintf("seccomp=%s", c.Containers.SeccompProfile))
+		securityOpts = append(securityOpts, "seccomp="+c.Containers.SeccompProfile)
 	}
 	if apparmor.IsEnabled() && c.Containers.ApparmorProfile != "" {
-		securityOpts = append(securityOpts, fmt.Sprintf("apparmor=%s", c.Containers.ApparmorProfile))
+		securityOpts = append(securityOpts, "apparmor="+c.Containers.ApparmorProfile)
 	}
 	if selinux.GetEnabled() && !c.Containers.EnableLabeling {
-		securityOpts = append(securityOpts, fmt.Sprintf("label=%s", selinux.DisableSecOpt()[0]))
+		securityOpts = append(securityOpts, "label="+selinux.DisableSecOpt()[0])
 	}
 	return securityOpts
 }
@@ -551,7 +567,7 @@ func (c *Config) DNSServers() []string {
 	return c.Containers.DNSServers.Get()
 }
 
-// DNSSerches returns the default DNS searches to add to resolv.conf in containers.
+// DNSSearches returns the default DNS searches to add to resolv.conf in containers.
 func (c *Config) DNSSearches() []string {
 	return c.Containers.DNSSearches.Get()
 }
@@ -636,11 +652,6 @@ func (c *Config) LogDriver() string {
 	return c.Containers.LogDriver
 }
 
-// MachineEnabled returns if podman is running inside a VM or not.
-func (c *Config) MachineEnabled() bool {
-	return c.Engine.MachineEnabled
-}
-
 // MachineVolumes returns volumes to mount into the VM.
 func (c *Config) MachineVolumes() ([]string, error) {
 	return machineVolumes(c.Machine.Volumes.Get())
@@ -668,18 +679,6 @@ func getDefaultSSHConfig() string {
 	}
 	dirname := homedir.Get()
 	return filepath.Join(dirname, ".ssh", "config")
-}
-
-func useUserConfigLocations() bool {
-	// NOTE: For now we want Windows to use system locations.
-	// GetRootlessUID == -1 on Windows, so exclude negative range
-	return unshare.GetRootlessUID() > 0
-}
-
-// getDefaultImage returns the default machine image stream
-// On Windows this refers to the Fedora major release number
-func getDefaultMachineImage() string {
-	return "testing"
 }
 
 // getDefaultMachineUser returns the user to use for rootless podman

@@ -30,23 +30,29 @@ import (
 	"sync"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/containers/common/pkg/util"
+	"github.com/containers/storage/pkg/homedir"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 )
+
+// threadNsPath is the /proc path to the current netns handle for the current thread
+const threadNsPath = "/proc/thread-self/ns/net"
 
 // GetNSRunDir returns the dir of where to create the netNS. When running
 // rootless, it needs to be at a location writable by user.
 func GetNSRunDir() (string, error) {
 	if unshare.IsRootless() {
-		rootlessDir, err := util.GetRuntimeDir()
+		rootlessDir, err := homedir.GetRuntimeDir()
 		if err != nil {
 			return "", err
 		}
 		return filepath.Join(rootlessDir, "netns"), nil
 	}
 	return "/run/netns", nil
+}
+
+func NewNSAtPath(nsPath string) (ns.NetNS, error) {
+	return newNSPath(nsPath)
 }
 
 // NewNS creates a new persistent (bind-mounted) network namespace and returns
@@ -111,8 +117,12 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 		}
 	}
 
-	// create an empty file at the mount point
 	nsPath := path.Join(nsRunDir, name)
+	return newNSPath(nsPath)
+}
+
+func newNSPath(nsPath string) (ns.NetNS, error) {
+	// create an empty file at the mount point
 	mountPointFd, err := os.OpenFile(nsPath, os.O_RDWR|os.O_CREATE|os.O_EXCL, 0o600)
 	if err != nil {
 		return nil, err
@@ -140,24 +150,10 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 		// Don't unlock. By not unlocking, golang will kill the OS thread when the
 		// goroutine is done (for go1.10+)
 
-		threadNsPath := getCurrentThreadNetNSPath()
-
-		var origNS ns.NetNS
-		origNS, err = ns.GetNS(threadNsPath)
-		if err != nil {
-			logrus.Warnf("Cannot open current network namespace %s: %q", threadNsPath, err)
-			return
-		}
-		defer func() {
-			if err := origNS.Close(); err != nil {
-				logrus.Errorf("Unable to close namespace: %q", err)
-			}
-		}()
-
 		// create a new netns on the current thread
 		err = unix.Unshare(unix.CLONE_NEWNET)
 		if err != nil {
-			logrus.Warnf("Cannot create a new network namespace: %q", err)
+			err = fmt.Errorf("unshare network namespace: %w", err)
 			return
 		}
 
@@ -181,29 +177,26 @@ func NewNSWithName(name string) (ns.NetNS, error) {
 
 // UnmountNS unmounts the given netns path
 func UnmountNS(nsPath string) error {
-	nsRunDir, err := GetNSRunDir()
-	if err != nil {
-		return err
-	}
-
+	var rErr error
 	// Only unmount if it's been bind-mounted (don't touch namespaces in /proc...)
-	if strings.HasPrefix(nsPath, nsRunDir) {
+	if !strings.HasPrefix(nsPath, "/proc/") {
 		if err := unix.Unmount(nsPath, unix.MNT_DETACH); err != nil {
-			return fmt.Errorf("failed to unmount NS: at %s: %v", nsPath, err)
+			// Do not return here, always try to remove below.
+			// This is important in case podman now is in a new userns compared to
+			// when the netns was created. The umount will fail EINVAL but removing
+			// the file will work and the kernel will destroy the bind mount in the
+			// other ns because of this. We also need it so pasta doesn't leak.
+			rErr = fmt.Errorf("failed to unmount NS: at %s: %w", nsPath, err)
 		}
 
 		if err := os.Remove(nsPath); err != nil {
-			return fmt.Errorf("failed to remove ns path %s: %v", nsPath, err)
+			err := fmt.Errorf("failed to remove ns path: %w", err)
+			if rErr != nil {
+				err = fmt.Errorf("%v, %w", err, rErr)
+			}
+			rErr = err
 		}
 	}
 
-	return nil
-}
-
-// getCurrentThreadNetNSPath copied from pkg/ns
-func getCurrentThreadNetNSPath() string {
-	// /proc/self/ns/net returns the namespace of the main thread, not
-	// of whatever thread this goroutine is running on.  Make sure we
-	// use the thread's net namespace since the thread is switching around
-	return fmt.Sprintf("/proc/%d/task/%d/ns/net", os.Getpid(), unix.Gettid())
+	return rErr
 }

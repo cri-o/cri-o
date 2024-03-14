@@ -3,6 +3,7 @@ package supplemented
 import (
 	"container/list"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 
@@ -14,6 +15,7 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 // supplementedImageReference groups multiple references together.
@@ -139,7 +141,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 		}
 		sources[manifestDigest] = src
 
-		// Parse the manifest as a list of images.
+		// Parse the manifest as a list of images and artifacts.
 		list, err := manifest.ListFromBlob(manifestBytes, manifestType)
 		if err != nil {
 			return fmt.Errorf("parsing manifest blob %q as a %q: %w", string(manifestBytes), manifestType, err)
@@ -155,7 +157,11 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 			}
 			chaseInstances = []digest.Digest{instance}
 		case cp.CopySpecificImages:
-			chaseInstances = s.instances
+			for _, instance := range list.Instances() {
+				if slices.Contains(s.instances, instance) {
+					chaseInstances = append(chaseInstances, instance)
+				}
+			}
 		case cp.CopyAllImages:
 			chaseInstances = list.Instances()
 		}
@@ -281,7 +287,7 @@ func (s *supplementedImageReference) NewImageSource(ctx context.Context, sys *ty
 }
 
 func (s *supplementedImageReference) DeleteImage(_ context.Context, _ *types.SystemContext) error {
-	return fmt.Errorf("deletion of images not implemented")
+	return errors.New("deletion of images not implemented")
 }
 
 func (s *supplementedImageSource) Close() error {
