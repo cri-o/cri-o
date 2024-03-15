@@ -7,9 +7,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/annotations"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"

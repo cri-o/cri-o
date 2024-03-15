@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/hooks"
-	"github.com/containers/podman/v4/pkg/annotations"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/truncindex"
@@ -22,7 +21,7 @@ import (
 	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	crioann "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -223,20 +222,20 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	podLinuxOverhead := types.LinuxContainerResources{}
-	if v, found := m.Annotations[crioann.PodLinuxOverhead]; found {
+	if v, found := m.Annotations[annotations.PodLinuxOverhead]; found {
 		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", crioann.PodLinuxOverhead, err)
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxOverhead, err)
 		}
 	}
 
 	podLinuxResources := types.LinuxContainerResources{}
-	if v, found := m.Annotations[crioann.PodLinuxResources]; found {
+	if v, found := m.Annotations[annotations.PodLinuxResources]; found {
 		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", crioann.PodLinuxResources, err)
+			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxResources, err)
 		}
 	}
 
-	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[crioann.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
+	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[annotations.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
 	if err != nil {
 		return nil, err
 	}
@@ -290,7 +289,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	// We should not take whether the server currently has DropInfraCtr specified, but rather
 	// whether the server used to.
 	wasSpoofed := false
-	if spoofed, ok := m.Annotations[crioann.SpoofedContainer]; ok && spoofed == "true" {
+	if spoofed, ok := m.Annotations[annotations.SpoofedContainer]; ok && spoofed == "true" {
 		wasSpoofed = true
 	}
 
@@ -456,7 +455,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		imageID = &id
 	}
 
-	platformRuntimePath, ok := m.Annotations[crioann.PlatformRuntimePath]
+	platformRuntimePath, ok := m.Annotations[annotations.PlatformRuntimePath]
 	if !ok {
 		platformRuntimePath = ""
 	}
