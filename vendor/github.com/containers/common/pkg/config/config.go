@@ -9,16 +9,14 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/BurntSushi/toml"
 	"github.com/containers/common/internal/attributedstring"
 	"github.com/containers/common/libnetwork/types"
 	"github.com/containers/common/pkg/capabilities"
-	"github.com/containers/common/pkg/util"
-	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/unshare"
 	units "github.com/docker/go-units"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -31,7 +29,7 @@ const (
 	bindirPrefix = "$BINDIR"
 )
 
-var validImageVolumeModes = []string{_typeBind, "tmpfs", "ignore"}
+var validImageVolumeModes = []string{"anonymous", "tmpfs", "ignore"}
 
 // ProxyEnv is a list of Proxy Environment variables
 var ProxyEnv = []string{
@@ -153,6 +151,13 @@ type ContainersConfig struct {
 	//
 	// Deprecated: Do not use this field directly use conf.FindInitBinary() instead.
 	InitPath string `toml:"init_path,omitempty"`
+
+	// InterfaceName tells container runtimes how to set interface names
+	// inside containers.
+	// The only valid value at the moment is "device" that indicates the
+	// interface name should be set as the network_interface name from
+	// the network config.
+	InterfaceName string `toml:"interface_name,omitempty"`
 
 	// IPCNS way to create a ipc namespace for the container
 	IPCNS string `toml:"ipcns,omitempty"`
@@ -365,11 +370,6 @@ type EngineConfig struct {
 	// LockType is the type of locking to use.
 	LockType string `toml:"lock_type,omitempty"`
 
-	// MachineEnabled indicates if Podman is running in a podman-machine VM
-	//
-	// This method is soft deprecated, use machine.IsPodmanMachine instead
-	MachineEnabled bool `toml:"machine_enabled,omitempty"`
-
 	// MultiImageArchive - if true, the container engine allows for storing
 	// archives (e.g., of the docker-archive transport) with multiple
 	// images.  By default, Podman creates single-image archives.
@@ -415,6 +415,14 @@ type EngineConfig struct {
 
 	// Indicates whether the application should be running in Remote mode
 	Remote bool `toml:"remote,omitempty"`
+
+	// Number of times to retry pulling/pushing images in case of failure
+	Retry uint `toml:"retry,omitempty"`
+
+	// Delay between retries in case pulling/pushing image fails
+	// If set, container engines will retry at the set interval,
+	// otherwise they delay 2 seconds and then exponentially back off.
+	RetryDelay string `toml:"retry_delay,omitempty"`
 
 	// RemoteURI is deprecated, see ActiveService
 	// RemoteURI containers connection information used to connect to remote system.
@@ -567,6 +575,9 @@ type NetworkConfig struct {
 	// NetavarkPluginDirs is a list of directories which contain netavark plugins.
 	NetavarkPluginDirs attributedstring.Slice `toml:"netavark_plugin_dirs,omitempty"`
 
+	// FirewallDriver is the firewall driver to be used
+	FirewallDriver string `toml:"firewall_driver,omitempty"`
+
 	// DefaultNetwork is the network name of the default network
 	// to attach pods to.
 	DefaultNetwork string `toml:"default_network,omitempty"`
@@ -652,14 +663,16 @@ type MachineConfig struct {
 	Volumes attributedstring.Slice `toml:"volumes,omitempty"`
 	// Provider is the virtualization provider used to run podman-machine VM
 	Provider string `toml:"provider,omitempty"`
+	// Rosetta is the flag to enable Rosetta in the podman-machine VM on Apple Silicon
+	Rosetta bool `toml:"rosetta,omitempty"`
 }
 
 // FarmConfig represents the "farm" TOML config tables
 type FarmConfig struct {
 	// Default is the default farm to be used when farming out builds
-	Default string `toml:"default,omitempty"`
+	Default string `json:",omitempty" toml:"default,omitempty"`
 	// List is a map of farms created where key=farm-name and value=list of connections
-	List map[string][]string `toml:"list,omitempty"`
+	List map[string][]string `json:",omitempty" toml:"list,omitempty"`
 }
 
 // Destination represents destination for remote service
@@ -668,10 +681,10 @@ type Destination struct {
 	URI string `toml:"uri"`
 
 	// Identity file with ssh key, optional
-	Identity string `toml:"identity,omitempty"`
+	Identity string `json:",omitempty" toml:"identity,omitempty"`
 
 	// isMachine describes if the remote destination is a machine.
-	IsMachine bool `toml:"is_machine,omitempty"`
+	IsMachine bool `json:",omitempty" toml:"is_machine,omitempty"`
 }
 
 // Consumes container image's os and arch and returns if any dedicated runtime was
@@ -811,6 +824,10 @@ func (c *ContainersConfig) Validate() error {
 		return err
 	}
 
+	if err := c.validateInterfaceName(); err != nil {
+		return err
+	}
+
 	if err := c.validateTZ(); err != nil {
 		return err
 	}
@@ -915,7 +932,7 @@ func (c *Config) GetDefaultEnvEx(envHost, httpProxy bool) []string {
 }
 
 // Capabilities returns the capabilities parses the Add and Drop capability
-// list from the default capabiltiies for the container
+// list from the default capabilities for the container
 func (c *Config) Capabilities(user string, addCapabilities, dropCapabilities []string) ([]string, error) {
 	userNotRoot := func(user string) bool {
 		if user == "" || user == "root" || user == "0" {
@@ -992,82 +1009,6 @@ func IsValidDeviceMode(mode string) bool {
 		legalDeviceMode[c] = false
 	}
 	return true
-}
-
-func rootlessConfigPath() (string, error) {
-	if configHome := os.Getenv("XDG_CONFIG_HOME"); configHome != "" {
-		return filepath.Join(configHome, _configPath), nil
-	}
-	home, err := unshare.HomeDir()
-	if err != nil {
-		return "", err
-	}
-
-	return filepath.Join(home, UserOverrideContainersConfig), nil
-}
-
-func Path() string {
-	if path := os.Getenv("CONTAINERS_CONF"); path != "" {
-		return path
-	}
-	if unshare.IsRootless() {
-		if rpath, err := rootlessConfigPath(); err == nil {
-			return rpath
-		}
-		return "$HOME/" + UserOverrideContainersConfig
-	}
-	return OverrideContainersConfig
-}
-
-// ReadCustomConfig reads the custom config and only generates a config based on it
-// If the custom config file does not exists, function will return an empty config
-func ReadCustomConfig() (*Config, error) {
-	path, err := customConfigFile()
-	if err != nil {
-		return nil, err
-	}
-	newConfig := &Config{}
-	if _, err := os.Stat(path); err == nil {
-		if err := readConfigFromFile(path, newConfig); err != nil {
-			return nil, err
-		}
-	} else {
-		if !errors.Is(err, os.ErrNotExist) {
-			return nil, err
-		}
-	}
-	// Let's always initialize the farm list so it is never nil
-	if newConfig.Farms.List == nil {
-		newConfig.Farms.List = make(map[string][]string)
-	}
-	return newConfig, nil
-}
-
-// Write writes the configuration to the default file
-func (c *Config) Write() error {
-	var err error
-	path, err := customConfigFile()
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-
-	opts := &ioutils.AtomicFileWriterOptions{ExplicitCommit: true}
-	configFile, err := ioutils.NewAtomicFileWriterWithOpts(path, 0o644, opts)
-	if err != nil {
-		return err
-	}
-	defer configFile.Close()
-
-	enc := toml.NewEncoder(configFile)
-	if err := enc.Encode(c); err != nil {
-		return err
-	}
-
-	// If no errors commit the changes to the config file
-	return configFile.Commit()
 }
 
 // Reload clean the cached config and reloads the configuration from containers.conf files
@@ -1225,7 +1166,7 @@ func ValidateImageVolumeMode(mode string) error {
 	if mode == "" {
 		return nil
 	}
-	if util.StringInSlice(mode, validImageVolumeModes) {
+	if slices.Contains(validImageVolumeModes, mode) {
 		return nil
 	}
 
@@ -1242,7 +1183,7 @@ func (c *Config) FindInitBinary() (string, error) {
 	if c.Engine.InitPath != "" {
 		return c.Engine.InitPath, nil
 	}
-	// keep old default working to guarantee backwards comapt
+	// keep old default working to guarantee backwards compat
 	if _, err := os.Stat(DefaultInitPath); err == nil {
 		return DefaultInitPath, nil
 	}
