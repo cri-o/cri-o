@@ -20,6 +20,16 @@ import (
 
 const (
 	fixturesDir = "fixtures/"
+
+	latencyNA = "n/a"
+
+	// A list of CPU governors typically supported on Linux.
+	governorConservative = "conservative"
+	governorOndemand     = "ondemand"
+	governorPerformance  = "performance"
+	governorPowersave    = "powersave"
+	governorSchedutil    = "schedutil"
+	governorUserspace    = "userspace"
 )
 
 // The actual test suite
@@ -244,40 +254,40 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should change the CPU PM QOS latency", func() {
-				verifySetCPUPMQOSResumeLatency("n/a", "n/a", "0", false)
+				verifySetCPUPMQOSResumeLatency(latencyNA, latencyNA, "0", false)
 			})
 		})
 
 		Context("with n/a latency and latency already saved", func() {
 			BeforeEach(func() {
-				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUs = latencyNA
 				pmQosResumeLatencyUsOriginal = "0"
 			})
 
 			It("should not change the saved CPU PM QOS latency", func() {
-				verifySetCPUPMQOSResumeLatency("n/a", "n/a", "0", false)
+				verifySetCPUPMQOSResumeLatency(latencyNA, latencyNA, "0", false)
 			})
 		})
 
 		Context("with 0 latency", func() {
 			BeforeEach(func() {
-				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUs = latencyNA
 				pmQosResumeLatencyUsOriginal = ""
 			})
 
 			It("should change the CPU PM QOS latency", func() {
-				verifySetCPUPMQOSResumeLatency("0", "0", "n/a", false)
+				verifySetCPUPMQOSResumeLatency("0", "0", latencyNA, false)
 			})
 		})
 
 		Context("with 10 latency", func() {
 			BeforeEach(func() {
-				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUs = latencyNA
 				pmQosResumeLatencyUsOriginal = ""
 			})
 
 			It("should change the CPU PM QOS latency", func() {
-				verifySetCPUPMQOSResumeLatency("10", "10", "n/a", false)
+				verifySetCPUPMQOSResumeLatency("10", "10", latencyNA, false)
 			})
 		})
 
@@ -288,13 +298,13 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should fail", func() {
-				verifySetCPUPMQOSResumeLatency("n/a", "", "", true)
+				verifySetCPUPMQOSResumeLatency(latencyNA, "", "", true)
 			})
 		})
 
 		Context("with no latency", func() {
 			BeforeEach(func() {
-				pmQosResumeLatencyUs = "n/a"
+				pmQosResumeLatencyUs = latencyNA
 				pmQosResumeLatencyUsOriginal = "0"
 			})
 
@@ -393,37 +403,57 @@ var _ = Describe("high_performance_hooks", func() {
 
 		Context("with available governor", func() {
 			BeforeEach(func() {
-				scalingGovernor = "schedutil"
-				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
+				scalingGovernor = governorSchedutil
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorSchedutil,
+					governorUserspace,
+				}, " ")
 				scalingGovernorOriginal = ""
 			})
 
 			It("should change the CPU scaling governor", func() {
-				verifySetCPUScalingGovernor("performance", "performance", "schedutil", false)
+				verifySetCPUScalingGovernor(governorPerformance, governorPerformance, governorSchedutil, false)
 			})
 		})
 
 		Context("with available governor and governor already saved", func() {
 			BeforeEach(func() {
-				scalingGovernor = "performance"
-				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
-				scalingGovernorOriginal = "schedutil"
+				scalingGovernor = governorPerformance
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorSchedutil,
+					governorUserspace,
+				}, " ")
+				scalingGovernorOriginal = governorSchedutil
 			})
 
 			It("should not change the saved CPU scaling governor", func() {
-				verifySetCPUScalingGovernor("performance", "performance", "schedutil", false)
+				verifySetCPUScalingGovernor(governorPerformance, governorPerformance, governorSchedutil, false)
 			})
 		})
 
 		Context("with unknown governor", func() {
 			BeforeEach(func() {
-				scalingGovernor = "schedutil"
-				scalingAvailableGovernors = "conservative ondemand powersave performance schedutil"
+				scalingGovernor = governorSchedutil
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorSchedutil,
+				}, " ")
 				scalingGovernorOriginal = ""
 			})
 
 			It("should fail and not change the CPU scaling governor", func() {
-				verifySetCPUScalingGovernor("userspace", "schedutil", "", true)
+				verifySetCPUScalingGovernor(governorUserspace, governorSchedutil, "", true)
 			})
 		})
 
@@ -435,55 +465,74 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should fail", func() {
-				verifySetCPUScalingGovernor("performance", "", "", true)
+				verifySetCPUScalingGovernor(governorPerformance, "", "", true)
 			})
 		})
 
 		Context("with no available scaling governors", func() {
 			BeforeEach(func() {
-				scalingGovernor = "conservative"
+				scalingGovernor = governorConservative
 				scalingAvailableGovernors = ""
 				scalingGovernorOriginal = ""
 			})
 
 			It("should fail", func() {
-				verifySetCPUScalingGovernor("performance", "", "", true)
+				verifySetCPUScalingGovernor(governorPerformance, "", "", true)
 			})
 		})
 
 		Context("with no configured scaling governor", func() {
 			BeforeEach(func() {
 				scalingGovernor = ""
-				scalingAvailableGovernors = "conservative ondemand userspace powersave performance"
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorUserspace,
+				}, " ")
 				scalingGovernorOriginal = ""
 			})
 
 			It("should fail", func() {
-				verifySetCPUScalingGovernor("performance", "", "", true)
+				verifySetCPUScalingGovernor(governorPerformance, "", "", true)
 			})
 		})
 
 		Context("with no governor", func() {
 			BeforeEach(func() {
-				scalingGovernor = "userspace"
-				scalingAvailableGovernors = "conservative ondemand userspace powersave performance"
-				scalingGovernorOriginal = "ondemand"
+				scalingGovernor = governorUserspace
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorUserspace,
+				}, " ")
+				scalingGovernorOriginal = governorOndemand
 			})
 
 			It("should restore the original CPU scaling governor", func() {
-				verifySetCPUScalingGovernor("", "ondemand", "", false)
+				verifySetCPUScalingGovernor("", governorOndemand, "", false)
 			})
 		})
 
 		Context("with no governor and no original governor", func() {
 			BeforeEach(func() {
-				scalingGovernor = "powersave"
-				scalingAvailableGovernors = "conservative ondemand userspace powersave performance schedutil"
+				scalingGovernor = governorPowersave
+				scalingAvailableGovernors = strings.Join([]string{
+					governorConservative,
+					governorOndemand,
+					governorPerformance,
+					governorPowersave,
+					governorSchedutil,
+					governorUserspace,
+				}, " ")
 				scalingGovernorOriginal = ""
 			})
 
 			It("should not change the CPU scaling governor", func() {
-				verifySetCPUScalingGovernor("", "powersave", "", false)
+				verifySetCPUScalingGovernor("", governorPowersave, "", false)
 			})
 		})
 	})
@@ -567,7 +616,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 		Context("with disable annotation", func() {
 			It("should result in latency: n/a", func() {
-				verifyConvertAnnotationToLatency("disable", "n/a", false)
+				verifyConvertAnnotationToLatency("disable", latencyNA, false)
 			})
 		})
 
