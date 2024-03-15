@@ -20,7 +20,7 @@ type metricValue struct {
 
 type metricValues []metricValue
 
-type ContainerStats struct {
+type containerMetric struct {
 	desc      *types.MetricDescriptor
 	valueFunc func() metricValues
 }
@@ -48,27 +48,27 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"cpu": {
 			{
-				Name:      "container_cpu_user_seconds_total", // stats.CpuStats.CpuUsage.UsageInUsermode (converted from nano)
+				Name:      "container_cpu_user_seconds_total",
 				Help:      "Cumulative user cpu time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			}, {
-				Name:      "container_cpu_system_seconds_total", // stats.CpuStats.CpuUsage.UsageInKernelmode (converted from nano)
+				Name:      "container_cpu_system_seconds_total",
 				Help:      "Cumulative system cpu time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			}, {
-				Name:      "container_cpu_usage_seconds_total", // stats.CpuStats.CpuUsage.TotalUsage (converted from nano)
+				Name:      "container_cpu_usage_seconds_total",
 				Help:      "Cumulative cpu time consumed in seconds.",
 				LabelKeys: append(baseLabelKeys, "cpu"),
 			}, {
-				Name:      "container_cpu_cfs_periods_total", // stats.CpuStats.ThrottlingData.Periods
+				Name:      "container_cpu_cfs_periods_total",
 				Help:      "Number of elapsed enforcement period intervals.",
 				LabelKeys: baseLabelKeys,
 			}, {
-				Name:      "container_cpu_cfs_throttled_periods_total", // stats.CpuStats.ThrottlingData.ThrottledPeriods
+				Name:      "container_cpu_cfs_throttled_periods_total",
 				Help:      "Number of throttled period intervals.",
 				LabelKeys: baseLabelKeys,
 			}, {
-				Name:      "container_cpu_cfs_throttled_seconds_total", // stats.CpuStats.ThrottlingData.ThrottledTime (converted from nano)
+				Name:      "container_cpu_cfs_throttled_seconds_total",
 				Help:      "Total time duration the container has been throttled.",
 				LabelKeys: baseLabelKeys,
 			},
@@ -177,7 +177,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		},
 		"memory": {
 			{
-				Name:      "container_memory_cache", // stats.MemoryStats.Cache
+				Name:      "container_memory_cache",
 				Help:      "Number of bytes of page cache memory.",
 				LabelKeys: baseLabelKeys,
 			},
@@ -192,37 +192,37 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_mapped_file", // ??? TODO FIXME
+				Name:      "container_memory_mapped_file",
 				Help:      "Size of memory mapped files in bytes.",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_swap", // stats.MemoryStats.SwapUsage.Usage
+				Name:      "container_memory_swap",
 				Help:      "Container swap usage in bytes.",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_failcnt", // stats.MemoryStats.Usage.Failcnt
+				Name:      "container_memory_failcnt",
 				Help:      "Number of memory usage hits limits",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_usage_bytes", // TODO FIXME
+				Name:      "container_memory_usage_bytes",
 				Help:      "Current memory usage in bytes, including all memory regardless of when it was accessed",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_max_usage_bytes", // stats.MemoryStats.Usage.MaxUsage
+				Name:      "container_memory_max_usage_bytes",
 				Help:      "Maximum memory usage recorded in bytes",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_working_set_bytes", // TODO FIXME
+				Name:      "container_memory_working_set_bytes",
 				Help:      "Current working set in bytes.",
 				LabelKeys: baseLabelKeys,
 			},
 			{
-				Name:      "container_memory_failures_total", // TODO FIXME
+				Name:      "container_memory_failures_total",
 				Help:      "Cumulative count of memory allocation failures.",
 				LabelKeys: append(baseLabelKeys, "failure_type", "scope"),
 			},
@@ -342,11 +342,11 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 }
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
-func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*ContainerStats, metric string) []*types.Metric {
-	values := append(sandboxBaseLabelValues(sb), metric)
-	metrics := make([]*types.Metric, 0, len(stats))
+func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, metrics []*containerMetric, metricName string) []*types.Metric {
+	values := append(sandboxBaseLabelValues(sb), metricName)
+	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
-	for _, m := range stats {
+	for _, m := range metrics {
 		metricValues := m.valueFunc()
 		if len(metricValues) == 0 {
 			// No metrics to process for this ContainerMetrics, move to the next one
@@ -360,9 +360,9 @@ func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, stats []*Conta
 				Value:       &types.UInt64Value{Value: v.value},
 				LabelValues: append(values, v.labels...),
 			}
-			metrics = append(metrics, newMetric)
+			calculatedMetrics = append(calculatedMetrics, newMetric)
 		}
 	}
 
-	return metrics
+	return calculatedMetrics
 }

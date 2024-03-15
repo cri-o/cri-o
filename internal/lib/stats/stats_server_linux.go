@@ -29,7 +29,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		sandboxMetrics = NewSandboxMetrics(sb)
 	}
 
-	// Sandbox stats are to fulfill the  Kubelet's /stats/summary endpoint
+	// Sandbox stats are to fulfill the Kubelet's /stats/summary endpoint
 	sandboxStats := &types.PodSandboxStats{
 		Attributes: &types.PodSandboxAttributes{
 			Id:          sb.ID(),
