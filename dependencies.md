@@ -1,19 +1,21 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Mar 2024 07:52:14 UTC for commit [a7ade69][0]._
+_Generated on Fri, 15 Mar 2024 10:15:36 UTC for commit [345b566][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a7ade69dac5cc2a347dd6eebe7b1922fc5106f6b
+[0]: https://github.com/cri-o/cri-o/commit/345b566b48ddd45d400f7a14fff5bde7caa6ab30
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
+| github.com/checkpoint-restore/go-criu/v7                                    | v7.0.0                                        | v7.1.0                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.14                            | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.4.0                                        | v1.4.1                             | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.0                            | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
+| github.com/cri-o/ocicni                                                     | v0.4.2-0.20231214012016-e3223f554ea5          | v0.4.2                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240314233913-2c50d3c393d3 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.16.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -311,7 +313,7 @@ _Generated on Fri, 15 Mar 2024 07:52:14 UTC for commit [a7ade69][0]._
 | github.com/checkpoint-restore/checkpointctl                                             | v1.1.0                                            |                                     | true   | true             |
 | github.com/checkpoint-restore/go-criu/v4                                                | v4.1.0                                            |                                     | false  | true             |
 | github.com/checkpoint-restore/go-criu/v5                                                | v5.3.0                                            |                                     | false  | true             |
-| github.com/checkpoint-restore/go-criu/v7                                                | v7.0.0                                            |                                     | true   | true             |
+| github.com/checkpoint-restore/go-criu/v7                                                | v7.0.0                                            | v7.1.0                              | true   | true             |
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d                |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                            | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589                |                                     | false  | true             |
@@ -387,7 +389,7 @@ _Generated on Fri, 15 Mar 2024 07:52:14 UTC for commit [a7ade69][0]._
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.3                                            |                                     | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.1.2-0.20231030102423-f3c783d34420              | v0.5.1                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.21                                           |                                     | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.2-0.20231214012016-e3223f554ea5              |                                     | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.2-0.20231214012016-e3223f554ea5              | v0.4.2                              | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46                | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                            |                                     | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c                |                                     | false  | true             |
