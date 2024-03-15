@@ -31,7 +31,7 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metr
 }
 
 func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs) []*types.Metric {
-	networkMetrics := []*ContainerStats{
+	networkMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
 				Name:      "container_network_receive_bytes_total",

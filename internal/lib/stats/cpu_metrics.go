@@ -18,7 +18,7 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 		return nil
 	}
 
-	cpuMetrics := []*ContainerStats{
+	cpuMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
 				Name:      "container_cpu_user_seconds_total",

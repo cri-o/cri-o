@@ -14,7 +14,7 @@ func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats i
 		logrus.Errorf("Failed to assert stats as *cgmgr.MemoryStats")
 		return nil
 	}
-	memoryMetrics := []*ContainerStats{
+	memoryMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
 				Name:      "container_memory_cache",
@@ -153,7 +153,7 @@ func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats i
 }
 
 func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64) []*types.Metric {
-	oomMetrics := []*ContainerStats{
+	oomMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
 				Name:      "container_oom_events_total",
