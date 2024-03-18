@@ -3,8 +3,10 @@ package lib
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/checkpoint-restore/go-criu/v7/stats"
@@ -253,7 +255,32 @@ func (c *ContainerServer) ContainerRestore(
 		sb.CgroupParent(),
 		sb.MountLabel(),
 	); err != nil {
-		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
+		// Save the CRIU log file as the original log file will be deleted pretty soon by cleanup code
+		// This is the only indication for a user why the checkpoint might have failed.
+		f, errLog := os.CreateTemp("", fmt.Sprintf("restore-%s-*.log", ctr.ID()))
+		if errLog != nil {
+			return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), errLog)
+		}
+		defer f.Close()
+
+		src, errLog := os.Open(filepath.Join(ctr.BundlePath(), metadata.RestoreLogFile))
+		if errLog != nil {
+			return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), errLog)
+		}
+		defer src.Close()
+
+		if _, errLog := io.Copy(f, src); errLog != nil {
+			return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), errLog)
+		}
+
+		// Adapt the original error message to point to the new logfile
+		errorMessage := strings.ReplaceAll(
+			fmt.Sprintf("%s", err),
+			filepath.Join(ctr.BundlePath(), metadata.RestoreLogFile),
+			f.Name(),
+		)
+
+		return "", fmt.Errorf("failed to restore container %s: %s", ctr.ID(), errorMessage)
 	}
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
