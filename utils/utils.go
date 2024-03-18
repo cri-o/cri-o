@@ -11,7 +11,6 @@ import (
 	"runtime/pprof"
 	"strconv"
 
-	"github.com/containers/podman/v4/pkg/lookup"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
@@ -182,7 +181,7 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
 	// if UID exists inside of container rootfs /etc/passwd then
 	// don't generate passwd
-	if _, err := lookup.GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
+	if _, err := GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
 		return "", nil
 	}
 	passwdFile := filepath.Join(rundir, "passwd")
@@ -230,6 +229,39 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	}
 
 	return passwdFile, nil
+}
+
+// GetUser takes a containermount path and user name or ID and returns
+// a matching User structure from /etc/passwd.  If it cannot locate a user
+// with the provided information, an ErrNoPasswdEntries is returned.
+// When the provided user name was an ID, a User structure with Uid
+// set is returned along with ErrNoPasswdEntries.
+func GetUser(containerMount, userIDorName string) (*user.User, error) {
+	var inputIsName bool
+	uid, err := strconv.Atoi(userIDorName)
+	if err != nil {
+		inputIsName = true
+	}
+	passwdDest, err := securejoin.SecureJoin(containerMount, "/etc/passwd")
+	if err != nil {
+		return nil, err
+	}
+	users, err := user.ParsePasswdFileFilter(passwdDest, func(u user.User) bool {
+		if inputIsName {
+			return u.Name == userIDorName
+		}
+		return u.Uid == uid
+	})
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if len(users) > 0 {
+		return &users[0], nil
+	}
+	if !inputIsName {
+		return &user.User{Uid: uid}, user.ErrNoPasswdEntries
+	}
+	return nil, user.ErrNoPasswdEntries
 }
 
 // Int32Ptr is a utility function to assign to integer pointer variables
