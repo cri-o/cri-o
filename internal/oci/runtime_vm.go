@@ -1248,3 +1248,11 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 	option := base64.StdEncoding.EncodeToString(validKataVirtualVolumeJSON)
 	return option, nil
 }
+
+func (r *runtimeVM) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+	return "", nil
+}
+
+func (r *runtimeVM) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+	return "", nil
+}

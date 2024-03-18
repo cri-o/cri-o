@@ -78,6 +78,8 @@ type RuntimeImpl interface {
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
+	ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error)
+	ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error)
 }
 
 // New creates a new Runtime with options provided
@@ -465,4 +467,22 @@ func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, cgroupPare
 	}
 
 	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
+}
+
+func (r *Runtime) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return "", err
+	}
+
+	return impl.ServeExecContainer(ctx, c, cmd, tty, stdin, stdout, stderr)
+}
+
+func (r *Runtime) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return "", err
+	}
+
+	return impl.ServeAttachContainer(ctx, c, stdin, stdout, stderr)
 }

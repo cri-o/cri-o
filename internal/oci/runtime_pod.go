@@ -171,6 +171,34 @@ func (r *runtimePod) RestoreContainer(
 	return r.oci.RestoreContainer(ctx, c, cgroupParent, mountLabel)
 }
 
+func (r *runtimePod) ServeExecContainer(ctx context.Context, c *Container, cmd []string, tty, stdin, stdout, stderr bool) (string, error) {
+	res, err := r.client.ServeExecContainer(ctx, &conmonClient.ServeExecContainerConfig{
+		ID:      c.ID(),
+		Command: cmd,
+		Tty:     tty,
+		Stdin:   stdin,
+		Stdout:  stdout,
+		Stderr:  stderr,
+	})
+	if err != nil {
+		return "", fmt.Errorf("call ServeExecContainer RPC: %w", err)
+	}
+	return res.URL, nil
+}
+
+func (r *runtimePod) ServeAttachContainer(ctx context.Context, c *Container, stdin, stdout, stderr bool) (string, error) {
+	res, err := r.client.ServeAttachContainer(ctx, &conmonClient.ServeAttachContainerConfig{
+		ID:     c.ID(),
+		Stdin:  stdin,
+		Stdout: stdout,
+		Stderr: stderr,
+	})
+	if err != nil {
+		return "", fmt.Errorf("call ServeAttachContainer RPC: %w", err)
+	}
+	return res.URL, nil
+}
+
 func (r *runtimePod) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	return r.oci.ExecContainer(ctx, c, cmd, stdin, stdout, stderr, tty, resizeChan)
 }
