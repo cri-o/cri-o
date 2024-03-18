@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/containers/podman/v4/pkg/criu"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 )
 
 func main() {

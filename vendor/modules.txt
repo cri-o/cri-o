@@ -106,11 +106,12 @@ github.com/cespare/xxhash/v2
 # github.com/checkpoint-restore/checkpointctl v1.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/checkpointctl/lib
-# github.com/checkpoint-restore/go-criu/v7 v7.0.0
+# github.com/checkpoint-restore/go-criu/v7 v7.1.0
 ## explicit; go 1.18
 github.com/checkpoint-restore/go-criu/v7
 github.com/checkpoint-restore/go-criu/v7/rpc
 github.com/checkpoint-restore/go-criu/v7/stats
+github.com/checkpoint-restore/go-criu/v7/utils
 # github.com/chzyer/readline v1.5.1
 ## explicit; go 1.15
 github.com/chzyer/readline
@@ -348,9 +349,7 @@ github.com/containers/ocicrypt/utils/keyprovider
 # github.com/containers/podman/v4 v4.9.3
 ## explicit; go 1.18
 github.com/containers/podman/v4/pkg/checkpoint/crutils
-github.com/containers/podman/v4/pkg/criu
 github.com/containers/podman/v4/pkg/errorhandling
-github.com/containers/podman/v4/pkg/lookup
 github.com/containers/podman/v4/pkg/rootless
 github.com/containers/podman/v4/pkg/selinux
 # github.com/containers/storage v1.51.0
@@ -1135,7 +1134,7 @@ golang.org/x/oauth2/internal
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.17.0
+# golang.org/x/sys v0.18.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
