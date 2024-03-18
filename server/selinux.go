@@ -1,4 +1,4 @@
-package selinux
+package server
 
 import (
 	"github.com/opencontainers/selinux/go-selinux"
