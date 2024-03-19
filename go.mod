@@ -7,7 +7,7 @@ require (
 	github.com/Microsoft/go-winio v0.6.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.1.0
-	github.com/checkpoint-restore/go-criu/v7 v7.0.0
+	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.13
 	github.com/containerd/cri-containerd v1.19.0
@@ -69,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.23.1
 	golang.org/x/net v0.21.0
 	golang.org/x/sync v0.6.0
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.18.0
 	google.golang.org/grpc v1.61.1
 	google.golang.org/protobuf v1.33.0
 	k8s.io/api v0.30.0-alpha.2

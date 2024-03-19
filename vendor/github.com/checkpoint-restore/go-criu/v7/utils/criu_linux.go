@@ -1,22 +1,17 @@
-//go:build linux
-// +build linux
-
-package criu
+package utils
 
 import (
 	"fmt"
 
 	"github.com/checkpoint-restore/go-criu/v7"
 	"github.com/checkpoint-restore/go-criu/v7/rpc"
-
 	"google.golang.org/protobuf/proto"
 )
 
-// CheckForCriu uses CRIU's go bindings to check if the CRIU
-// binary exists and if it at least the version Podman needs.
+// CheckForCRIU checks if CRIU is available and if it is as least the
+// version as specified in the "version" parameter.
 func CheckForCriu(version int) error {
-	c := criu.MakeCriu()
-	criuVersion, err := c.GetCriuVersion()
+	criuVersion, err := GetCriuVersion()
 	if err != nil {
 		return fmt.Errorf("failed to check for criu version: %w", err)
 	}
@@ -27,7 +22,8 @@ func CheckForCriu(version int) error {
 	return fmt.Errorf("checkpoint/restore requires at least CRIU %d, current version is %d", version, criuVersion)
 }
 
-func MemTrack() bool {
+// Convenience function to easily check if memory tracking is supported.
+func IsMemTrack() bool {
 	features, err := criu.MakeCriu().FeatureCheck(
 		&rpc.CriuFeatures{
 			MemTrack: proto.Bool(true),

@@ -4,7 +4,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/criu"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"

@@ -6,7 +6,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/podman/v4/pkg/criu"
+	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
