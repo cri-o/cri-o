@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 19 Mar 2024 01:52:29 UTC for commit [f35f3fc][0]._
+_Generated on Tue, 19 Mar 2024 04:18:00 UTC for commit [3643677][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f35f3fcfd7f0f6ddd37dc46dfe54ab187bc73b79
+[0]: https://github.com/cri-o/cri-o/commit/364367781f38fab7aacaf824b1dd2f5d617f90b3
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Tue, 19 Mar 2024 01:52:29 UTC for commit [f35f3fc][0]._
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2-0.20231214012016-e3223f554ea5          | v0.4.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240318163858-e3f78527388a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240319023923-99d0e5fff8d7 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.17.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -151,7 +151,7 @@ _Generated on Tue, 19 Mar 2024 01:52:29 UTC for commit [f35f3fc][0]._
 | cloud.google.com/go/servicemanagement                                                   | v1.8.0                                        | v1.9.7                              | false  | true             |
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                        | v1.8.5                              | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.4                                        | v1.7.6                              | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.53.1                                       | v1.59.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.53.1                                       | v1.60.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.21.0                                       | v1.22.1                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.33.0                                       | v1.39.1                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                       | v1.10.5                             | false  | true             |
@@ -544,7 +544,7 @@ _Generated on Tue, 19 Mar 2024 01:52:29 UTC for commit [f35f3fc][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240318163858-e3f78527388a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240319023923-99d0e5fff8d7  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -817,7 +817,7 @@ _Generated on Tue, 19 Mar 2024 01:52:29 UTC for commit [f35f3fc][0]._
 | golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611            | v0.0.0-20240318143956-a85f2c67cd81  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867            | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616            |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240318141834-19e4cdff4698  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240319015410-c58ccf4b0c87  | false  | true             |
 | golang.org/x/mod                                                                        | v0.14.0                                       | v0.16.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.21.0                                       | v0.22.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.16.0                                       | v0.18.0                             | false  | true             |
