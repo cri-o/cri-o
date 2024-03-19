@@ -1,6 +1,6 @@
 # Software versions to be used.
 declare -A VERSIONS=(
-    ["cni-plugins"]=v1.4.0
+    ["cni-plugins"]=v1.4.1
     ["conmon"]=v2.1.10
     ["conmon-rs"]=v0.6.1
     ["cri-tools"]=v1.29.0

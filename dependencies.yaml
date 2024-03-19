@@ -28,7 +28,7 @@ dependencies:
       match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.4.0
+    version: v1.4.1
     refPaths:
     - path: scripts/versions
       match: cni-plugins
