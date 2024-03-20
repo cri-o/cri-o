@@ -3,11 +3,27 @@ package oci
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
+)
+
+const (
+	procStatFile = "/proc/%d/stat"
+
+	// Fields from the /proc/<PID>/stat file. see:
+	//   https://man7.org/linux/man-pages/man5/proc.5.html
+	//
+	// Field no. 3, the process state, such as "R", "S", "D", etc.
+	// Field no. 22, the process start time, using clock ticks since the system boot.
+	//
+	// The index values are shifted three fields to the left
+	// with the process name field skipped over during parsing.
+	stateFieldIndex     = 0
+	startTimeFieldIndex = 19
 )
 
 // CleanupConmonCgroup cleans up conmon's group when using cgroupfs.
@@ -31,50 +47,60 @@ func (c *Container) CleanupConmonCgroup(ctx context.Context) {
 	}
 }
 
-// SetSeccompProfilePath sets the seccomp profile path
+// SetSeccompProfilePath sets the seccomp profile path.
 func (c *Container) SetSeccompProfilePath(pp string) {
 	c.seccompProfilePath = pp
 }
 
-// SeccompProfilePath returns the seccomp profile path
+// SeccompProfilePath returns the seccomp profile path.
 func (c *Container) SeccompProfilePath() string {
 	return c.seccompProfilePath
 }
 
-// getPidStartTime reads the kernel's /proc entry for stime for PID.
-// inspiration for this function came from https://github.com/containers/psgo/blob/master/internal/proc/stat.go
-// some credit goes to the psgo authors
-func getPidStartTime(pid int) (string, error) {
-	return GetPidStartTimeFromFile(fmt.Sprintf("/proc/%d/stat", pid))
+// GetPidStartTimeFromFile reads a file as if it were a /proc/<PID>/stat file,
+// looking for a process start time for a given PID. It is abstracted out to
+// allow for unit testing.
+func GetPidStartTimeFromFile(file string) (string, error) {
+	_, startTime, err := getPidStatDataFromFile(file)
+	return startTime, err
 }
 
-// GetPidStartTime reads a file as if it were a /proc/$pid/stat file, looking for stime for PID.
-// It is abstracted out to allow for unit testing
-func GetPidStartTimeFromFile(file string) (string, error) {
-	data, err := os.ReadFile(file)
+// getPidStartTime returns the process start time for a given PID.
+func getPidStartTime(pid int) (string, error) {
+	_, startTime, err := getPidStatDataFromFile(fmt.Sprintf(procStatFile, pid))
+	return startTime, err
+}
+
+// getPidStatData returns the process state and start time for a given PID.
+func getPidStatData(pid int) (string, string, error) { //nolint:gocritic // Ignore unnamedResult.
+	return getPidStatDataFromFile(fmt.Sprintf(procStatFile, pid))
+}
+
+// getPidStatData parses the kernel's /proc/<PID>/stat file,
+// looking for the process state and start time for a given PID.
+func getPidStatDataFromFile(file string) (string, string, error) { //nolint:gocritic // Ignore unnamedResult.
+	f, err := os.Open(file)
 	if err != nil {
-		return "", fmt.Errorf("%v: %w", err, ErrNotFound)
+		return "", "", err
 	}
-	// The command (2nd field) can have spaces, but is wrapped in ()
-	// first, trim it
-	commEnd := bytes.LastIndexByte(data, ')')
-	if commEnd == -1 {
-		return "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
+	defer f.Close()
+
+	data, err := io.ReadAll(io.LimitReader(f, 4096))
+	if err != nil {
+		return "", "", err
 	}
 
-	// start on the space after the command
-	iter := commEnd + 1
-	// for the number of fields between command and stime, trim the beginning word
-	for field := 0; field < statStartTimeLocation-statCommField; field++ {
-		// trim from the beginning to the character after the last space
-		data = data[iter+1:]
-		// find the next space
-		iter = bytes.IndexByte(data, ' ')
-		if iter == -1 {
-			return "", fmt.Errorf("invalid number of entries found in stat file %s: %d: %w", file, field-1, ErrNotFound)
-		}
+	bracket := bytes.LastIndexByte(data, ')')
+	if bracket < 0 {
+		return "", "", fmt.Errorf("unable to find ')' in stat file: %w", ErrNotFound)
 	}
 
-	// and return the startTime (not including the following space)
-	return string(data[:iter]), nil
+	// Skip the process name and the white space after the right bracket.
+	statFields := bytes.Fields(data[bracket+2:])
+
+	if len(statFields) < startTimeFieldIndex+1 {
+		return "", "", fmt.Errorf("unable to parse malformed stat file: %w", ErrNotFound)
+	}
+
+	return string(statFields[stateFieldIndex]), string(statFields[startTimeFieldIndex]), nil
 }

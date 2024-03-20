@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"os/signal"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -34,6 +35,7 @@ import (
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kclock "k8s.io/utils/clock"
 	utilexec "k8s.io/utils/exec"
 )
 
@@ -43,6 +45,24 @@ const (
 
 	// Command line flag used to specify the run root directory
 	rootFlag = "--root"
+
+	// Configuration for the stop loop exponential backoff manager.
+	stopInitialBackoff = 20 * time.Millisecond
+	stopMaximumBackoff = 2 * time.Minute
+	stopResetBackoff   = 5 * time.Minute
+	stopBackoffFactor  = 2.0
+	stopBackoffJitter  = 1.25
+
+	// When to start the blocked process reminder and
+	// how frequently the reminder should be shown.
+	stopProcessBlockedInterval = stopMaximumBackoff / 2
+
+	// Used to delay periodic process liveness check. Part of the
+	// container stop loop where a goroutine wakes up on a regular
+	// basis to check whether a given PID (process) continues to
+	// run. This allows to short-circuit stop logic if the process
+	// has already been terminated.
+	stopProcessWatchSleep = 100 * time.Millisecond
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -624,7 +644,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
-			containerPid, err := c.pid()
+			containerPid, _, err := c.pid()
 			if err != nil {
 				return err
 			}
@@ -803,21 +823,38 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	if c.SetAsStopping() {
-		go r.StopLoopForContainer(c)
+		// The API is due to be deprecated. However, the replacement is completely broken, see:
+		//   https://github.com/kubernetes/kubernetes/issues/118638
+		go r.StopLoopForContainer(c,
+			kwait.NewExponentialBackoffManager( //nolint:staticcheck // Ignore deprecated function warning.
+				stopInitialBackoff,
+				stopMaximumBackoff,
+				stopResetBackoff,
+				stopBackoffFactor,
+				stopBackoffJitter,
+				&kclock.RealClock{},
+			),
+		)
 	}
 
 	c.WaitOnStopTimeout(ctx, timeout)
 	return nil
 }
 
-func (r *runtimeOCI) StopLoopForContainer(c *Container) {
+func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager) {
 	ctx := context.Background()
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	startTime := time.Now()
+
+	// Allow for SIGINT to correctly interrupt the stop loop, especially
+	// when CRI-O is run directly in the foreground in the terminal.
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
+
 	c.opLock.Lock()
 
-	// Begin the actual kill
+	// Begin the actual kill.
 	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
@@ -840,42 +877,60 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container) {
 				close(done)
 				return
 			}
-			// the PID is still active and belongs to the container, continue to wait
-			time.Sleep(100 * time.Millisecond)
+
+			// The PID is still active and belongs to the container, continue to wait.
+			time.Sleep(stopProcessWatchSleep)
 		}
 	}()
 
 	// Operate in terms of targetTime, so that we can pause in the middle of the operation
 	// to catch a new timeout (and possibly ignore that new timeout if it's not correct to
 	// take a new one).
-	targetTime := time.Unix(1<<50-1, 0)
-	for finished := false; !finished; {
+	targetTime := time.Now().AddDate(+1, 0, 0) // A year from this one.
+
+	blockedTimer := time.AfterFunc(stopProcessBlockedInterval, func() {
+		if state, err := c.ProcessState(); err == nil && state == "D" {
+			log.Errorf(ctx,
+				"Detected process (%d) blocked in uninterruptible sleep for more than %d seconds for container %s",
+				c.state.InitPid, int(time.Since(startTime)/time.Second), c.ID(),
+			)
+		}
+	})
+	defer blockedTimer.Stop()
+
+	// Do not start the stuck process reminder immediately.
+	blockedTimer.Stop()
+
+	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
+	kwait.BackoffUntil(func() {
 		select {
 		case newTimeout := <-c.stopTimeoutChan:
-			// If a new timeout comes in,
-			// interrupt the old one, and start a new one
+			// If a new timeout comes in, interrupt the old one, and start a new one.
 			newTargetTime := time.Now().Add(time.Duration(newTimeout) * time.Second)
 
-			// but only if it's earlier
+			// But, only if it's an earlier one.
 			if newTargetTime.Before(targetTime) {
 				targetTime = newTargetTime
 			}
 
 		case <-time.After(time.Until(targetTime)):
-			log.Warnf(ctx, "Stopping container %v with stop signal timed out. Killing", c.ID())
+			log.Warnf(ctx, "Stopping container %s with stop signal timed out. Killing...", c.ID())
+
 			if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
 				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
 			}
+
 			if err := c.Living(); err != nil {
-				finished = true
-				break
+				stop()
 			}
 
+			// Reschedule the timer so that the periodic reminder can continue.
+			blockedTimer.Reset(stopProcessBlockedInterval)
+
 		case <-done:
-			finished = true
-			break
+			stop()
 		}
-	}
+	}, bm, true, ctx.Done())
 
 	c.state.Finished = time.Now()
 	c.opLock.Unlock()

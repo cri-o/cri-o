@@ -500,6 +500,47 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
+	t.Describe("ProcessState", func() {
+		It("should be false if pid uninitialized", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Pid = 0
+			sut.SetState(state)
+			// When
+			processState, err := sut.ProcessState()
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(processState).To(BeEmpty())
+		})
+		It("should succeed if pid is running", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Pid = alwaysRunningPid
+			Expect(state.SetInitPid(state.Pid)).To(Succeed())
+			sut.SetState(state)
+			// When
+			processState, err := sut.ProcessState()
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(processState).To(Equal("S")) // A process will be sleeping most of the time.
+		})
+		It("should be false if pid is not running", func() {
+			// Given
+			state := &oci.ContainerState{}
+			state.Pid = neverRunningPid
+			// SetInitPid will fail because the pid is not running
+			Expect(state.SetInitPid(state.Pid)).NotTo(Succeed())
+			sut.SetState(state)
+			// When
+			processState, err := sut.ProcessState()
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(processState).To(BeEmpty())
+		})
+	})
 	t.Describe("Pid", func() {
 		It("should fail if container state not set", func() {
 			// Given
