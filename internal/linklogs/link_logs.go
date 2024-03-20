@@ -31,17 +31,13 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 	if _, err := os.Stat(emptyDirLoggingVolumePath); err != nil {
 		return fmt.Errorf("failed to find %v: %w", emptyDirLoggingVolumePath, err)
 	}
-	logDirMountPath := filepath.Join(emptyDirLoggingVolumePath, "logs")
-	if err := os.Mkdir(logDirMountPath, 0o755); err != nil {
-		return fmt.Errorf("failed to create directory: %v", err)
-	}
 	podLogsDirectory := namespace + "_" + kubeName + "_" + kubePodUID
 	podLogsPath := filepath.Join(kubeletPodLogsRootDir, podLogsDirectory)
-	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, logDirMountPath)
-	if err := unix.Mount(podLogsPath, logDirMountPath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
-		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, logDirMountPath, err)
+	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, emptyDirLoggingVolumePath)
+	if err := unix.Mount(podLogsPath, emptyDirLoggingVolumePath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
+		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, emptyDirLoggingVolumePath, err)
 	}
-	if err := label.SetFileLabel(logDirMountPath, mountLabel); err != nil {
+	if err := label.SetFileLabel(emptyDirLoggingVolumePath, mountLabel); err != nil {
 		return fmt.Errorf("failed to set selinux label: %w", err)
 	}
 	return nil
@@ -50,10 +46,9 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 // UnmountPodLogs unmounts the pod log directory from the specified empty dir volume
 func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) error {
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
-	logDirMountPath := filepath.Join(emptyDirLoggingVolumePath, "logs")
-	log.Infof(ctx, "Unmounting %s for linked logs", logDirMountPath)
-	if _, err := os.Stat(logDirMountPath); !os.IsNotExist(err) {
-		if err := unix.Unmount(logDirMountPath, unix.MNT_DETACH); err != nil {
+	log.Infof(ctx, "Unmounting %s for linked logs", emptyDirLoggingVolumePath)
+	if _, err := os.Stat(emptyDirLoggingVolumePath); !os.IsNotExist(err) {
+		if err := unix.Unmount(emptyDirLoggingVolumePath, unix.MNT_DETACH); err != nil {
 			return fmt.Errorf("failed to unmounts logs: %w", err)
 		}
 	}
@@ -62,10 +57,9 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 
 func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id string, metadata *types.ContainerMetadata) error {
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
-	logFileMountPath := filepath.Join(emptyDirLoggingVolumePath, "logs")
 	// Symlink a relative path so the location is legitimate inside and outside the container.
 	from := fmt.Sprintf("%s/%d.log", metadata.Name, metadata.Attempt)
-	to := filepath.Join(logFileMountPath, id)
+	to := filepath.Join(emptyDirLoggingVolumePath, id+".log")
 	log.Infof(ctx, "Symlinking from %s to %s for linked logs", from, to)
 	return os.Symlink(from, to)
 }
