@@ -1,0 +1,24 @@
+name: patch release
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 1 * *'
+env:
+  GO_VERSION: '1.22'
+jobs:
+  patch-release:
+    permissions:
+      contents: none
+    if: startsWith(github.ref, 'refs/heads/release-')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_TOKEN }}
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+      - run: make patch-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
