@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
-	"github.com/containers/common/pkg/util"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -96,7 +96,7 @@ func makeAccessible(path string, uid, gid int, doChown bool) error {
 // makeMountsAccessible makes sure all the mounts are accessible from the user namespace
 func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
 	for _, m := range mounts {
-		if m.Type == "bind" || util.StringInSlice("bind", m.Options) {
+		if m.Type == "bind" || slices.Contains(m.Options, "bind") {
 			if err := makeAccessible(m.Source, uid, gid, false); err != nil {
 				return err
 			}
