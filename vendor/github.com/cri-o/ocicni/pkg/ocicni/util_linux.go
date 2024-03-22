@@ -4,6 +4,7 @@
 package ocicni
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os/exec"
@@ -13,7 +14,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-var defaultNamespaceEnterCommandName = "nsenter"
+const defaultNamespaceEnterCommandName = "nsenter"
 
 type nsManager struct {
 	nsenterPath string
@@ -27,23 +28,23 @@ func (nsm *nsManager) init() error {
 
 func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType string) (*net.IPNet, *net.HardwareAddr, error) {
 	// Try to retrieve ip inside container network namespace
-	output, err := exec.Command(nsm.nsenterPath, fmt.Sprintf("--net=%s", netnsPath), "-F", "--",
+	output, err := exec.Command(nsm.nsenterPath, "--net="+netnsPath, "-F", "--",
 		"ip", "-o", addrType, "addr", "show", "dev", interfaceName, "scope", "global").CombinedOutput()
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unexpected command output %s with error: %v", output, err)
+		return nil, nil, fmt.Errorf("unexpected command output %s with error: %w", output, err)
 	}
 
 	lines := strings.Split(string(output), "\n")
 	if len(lines) < 1 {
-		return nil, nil, fmt.Errorf("Unexpected command output %s", output)
+		return nil, nil, fmt.Errorf("unexpected command output %s", output)
 	}
 	fields := strings.Fields(lines[0])
 	if len(fields) < 4 {
-		return nil, nil, fmt.Errorf("Unexpected address output %s ", lines[0])
+		return nil, nil, fmt.Errorf("unexpected address output %s ", lines[0])
 	}
 	ip, ipNet, err := net.ParseCIDR(fields[3])
 	if err != nil {
-		return nil, nil, fmt.Errorf("CNI failed to parse ip from output %s due to %v", output, err)
+		return nil, nil, fmt.Errorf("CNI failed to parse ip from output %s due to %w", output, err)
 	}
 	if ip.To4() == nil {
 		ipNet.IP = ip
@@ -52,10 +53,10 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	}
 
 	// Try to retrieve MAC inside container network namespace
-	output, err = exec.Command(nsm.nsenterPath, fmt.Sprintf("--net=%s", netnsPath), "-F", "--",
+	output, err = exec.Command(nsm.nsenterPath, "--net="+netnsPath, "-F", "--",
 		"ip", "link", "show", "dev", interfaceName).CombinedOutput()
 	if err != nil {
-		return nil, nil, fmt.Errorf("unexpected 'ip link' command output %s with error: %v", output, err)
+		return nil, nil, fmt.Errorf("unexpected 'ip link' command output %s with error: %w", output, err)
 	}
 
 	lines = strings.Split(string(output), "\n")
@@ -68,7 +69,7 @@ func getContainerDetails(nsm *nsManager, netnsPath, interfaceName, addrType stri
 	}
 	mac, err := net.ParseMAC(fields[1])
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to parse MAC from output %s due to %v", output, err)
+		return nil, nil, fmt.Errorf("failed to parse MAC from output %s due to %w", output, err)
 	}
 
 	return ipNet, &mac, nil
@@ -112,7 +113,7 @@ func bringUpLoopback(netns string) error {
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("error adding loopback interface: %s", err)
+		return fmt.Errorf("error adding loopback interface: %w", err)
 	}
 	return nil
 }
@@ -126,12 +127,12 @@ func checkLoopback(netns string) error {
 		}
 
 		if link.Attrs().Flags&net.FlagUp != net.FlagUp {
-			return fmt.Errorf("loopback interface is down")
+			return errors.New("loopback interface is down")
 		}
 
 		return nil
 	}); err != nil {
-		return fmt.Errorf("error checking loopback interface: %v", err)
+		return fmt.Errorf("error checking loopback interface: %w", err)
 	}
 	return nil
 }
