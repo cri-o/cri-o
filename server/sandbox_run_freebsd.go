@@ -10,7 +10,7 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
-	selinux "github.com/containers/podman/v4/pkg/selinux"
+
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -429,7 +429,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		// If using a kernel separated container runtime, the process label should be set to container_kvm_t
 		// Keep in mind that kata does *not* apply any process label to containers within the VM
 		if podIsKernelSeparated {
-			processLabel, err = selinux.KVMLabel(processLabel)
+			processLabel, err = KVMLabel(processLabel)
 			if err != nil {
 				return nil, err
 			}

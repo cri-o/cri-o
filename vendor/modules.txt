@@ -351,7 +351,6 @@ github.com/containers/ocicrypt/utils/keyprovider
 github.com/containers/podman/v4/pkg/checkpoint/crutils
 github.com/containers/podman/v4/pkg/errorhandling
 github.com/containers/podman/v4/pkg/rootless
-github.com/containers/podman/v4/pkg/selinux
 # github.com/containers/storage v1.51.0
 ## explicit; go 1.19
 github.com/containers/storage

@@ -15,7 +15,7 @@ import (
 	"github.com/containers/common/pkg/timezone"
 	"github.com/containers/common/pkg/util"
 	"github.com/containers/podman/v4/pkg/rootless"
-	selinux "github.com/containers/podman/v4/pkg/selinux"
+
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -776,7 +776,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	if ctr.WillRunSystemd() {
-		processLabel, err = selinux.InitLabel(processLabel)
+		processLabel, err = InitLabel(processLabel)
 		if err != nil {
 			return nil, err
 		}
