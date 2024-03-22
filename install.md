@@ -190,18 +190,23 @@ apt update
 apt install -y -t buster-backports libseccomp2 || apt update -y -t buster-backports libseccomp2
 ```
 
+Need Packed
+
+```shell
+sudo apt install apt-transport-https ca-certificates curl gnupg2 software-properties-common -y
+```
+
 And then run the following as root:
 
 ```shell
-echo "deb [signed-by=/usr/share/keyrings/libcontainers-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
-echo "deb [signed-by=/usr/share/keyrings/libcontainers-crio-archive-keyring.gpg] https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
+sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list'
+sudo sh -c 'echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/'$VERSION'/'$OS'/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:'$VERSION'.list'
 
-mkdir -p /usr/share/keyrings
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-archive-keyring.gpg
-curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | gpg --dearmor -o /usr/share/keyrings/libcontainers-crio-archive-keyring.gpg
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
+curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/Release.key | sudo apt-key add -
 
-apt-get update
-apt-get install cri-o cri-o-runc
+sudo apt-get update
+sudo apt-get install cri-o cri-o-runc
 ```
 <!-- markdownlint-enable MD013 -->
 
