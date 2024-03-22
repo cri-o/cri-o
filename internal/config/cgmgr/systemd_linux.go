@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v5/pkg/rootless"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/dbusmgr"

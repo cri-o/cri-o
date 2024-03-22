@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/podman/v5/pkg/rootless"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
 	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"

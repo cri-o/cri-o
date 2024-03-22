@@ -70,7 +70,7 @@ func (mr *MockStoreMockRecorder) ApplyDiff(arg0, arg1 interface{}) *gomock.Call 
 }
 
 // ApplyDiffFromStagingDirectory mocks base method.
-func (m *MockStore) ApplyDiffFromStagingDirectory(arg0, arg1 string, arg2 *graphdriver.DriverWithDifferOutput, arg3 *graphdriver.ApplyDiffOpts) error {
+func (m *MockStore) ApplyDiffFromStagingDirectory(arg0, arg1 string, arg2 *graphdriver.DriverWithDifferOutput, arg3 *graphdriver.ApplyDiffWithDifferOpts) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ApplyDiffFromStagingDirectory", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
@@ -84,7 +84,7 @@ func (mr *MockStoreMockRecorder) ApplyDiffFromStagingDirectory(arg0, arg1, arg2,
 }
 
 // ApplyDiffWithDiffer mocks base method.
-func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiffOpts, arg2 graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
+func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiffWithDifferOpts, arg2 graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ApplyDiffWithDiffer", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*graphdriver.DriverWithDifferOutput)
@@ -96,6 +96,21 @@ func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiff
 func (mr *MockStoreMockRecorder) ApplyDiffWithDiffer(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffWithDiffer", reflect.TypeOf((*MockStore)(nil).ApplyDiffWithDiffer), arg0, arg1, arg2)
+}
+
+// ApplyStagedLayer mocks base method.
+func (m *MockStore) ApplyStagedLayer(arg0 storage.ApplyStagedLayerOptions) (*storage.Layer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ApplyStagedLayer", arg0)
+	ret0, _ := ret[0].(*storage.Layer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ApplyStagedLayer indicates an expected call of ApplyStagedLayer.
+func (mr *MockStoreMockRecorder) ApplyStagedLayer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyStagedLayer", reflect.TypeOf((*MockStore)(nil).ApplyStagedLayer), arg0)
 }
 
 // Changes mocks base method.
@@ -126,6 +141,20 @@ func (m *MockStore) Check(arg0 *storage.CheckOptions) (storage.CheckReport, erro
 func (mr *MockStoreMockRecorder) Check(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockStore)(nil).Check), arg0)
+}
+
+// CleanupStagedLayer mocks base method.
+func (m *MockStore) CleanupStagedLayer(arg0 *graphdriver.DriverWithDifferOutput) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanupStagedLayer", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// CleanupStagedLayer indicates an expected call of CleanupStagedLayer.
+func (mr *MockStoreMockRecorder) CleanupStagedLayer(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagedLayer", reflect.TypeOf((*MockStore)(nil).CleanupStagedLayer), arg0)
 }
 
 // CleanupStagingDirectory mocks base method.
@@ -656,6 +685,36 @@ func (mr *MockStoreMockRecorder) ImageBigDataSize(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigDataSize", reflect.TypeOf((*MockStore)(nil).ImageBigDataSize), arg0, arg1)
 }
 
+// ImageDirectory mocks base method.
+func (m *MockStore) ImageDirectory(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageDirectory", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImageDirectory indicates an expected call of ImageDirectory.
+func (mr *MockStoreMockRecorder) ImageDirectory(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageDirectory", reflect.TypeOf((*MockStore)(nil).ImageDirectory), arg0)
+}
+
+// ImageRunDirectory mocks base method.
+func (m *MockStore) ImageRunDirectory(arg0 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImageRunDirectory", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImageRunDirectory indicates an expected call of ImageRunDirectory.
+func (mr *MockStoreMockRecorder) ImageRunDirectory(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageRunDirectory", reflect.TypeOf((*MockStore)(nil).ImageRunDirectory), arg0)
+}
+
 // ImageSize mocks base method.
 func (m *MockStore) ImageSize(arg0 string) (int64, error) {
 	m.ctrl.T.Helper()
@@ -819,6 +878,21 @@ func (m *MockStore) LayersByCompressedDigest(arg0 digest.Digest) ([]storage.Laye
 func (mr *MockStoreMockRecorder) LayersByCompressedDigest(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByCompressedDigest", reflect.TypeOf((*MockStore)(nil).LayersByCompressedDigest), arg0)
+}
+
+// LayersByTOCDigest mocks base method.
+func (m *MockStore) LayersByTOCDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "LayersByTOCDigest", arg0)
+	ret0, _ := ret[0].([]storage.Layer)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LayersByTOCDigest indicates an expected call of LayersByTOCDigest.
+func (mr *MockStoreMockRecorder) LayersByTOCDigest(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByTOCDigest", reflect.TypeOf((*MockStore)(nil).LayersByTOCDigest), arg0)
 }
 
 // LayersByUncompressedDigest mocks base method.
