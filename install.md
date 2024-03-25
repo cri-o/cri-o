@@ -82,7 +82,7 @@ If there's a version or operating system that is missing, please [open an issue]
 
 ### Installation Instructions
 
-For 1.29 and above, please follow [crio-packaging](https://github.com/cri-o/packaging/blob/main/README.md).
+For 1.29 and above, please follow the instructions in the [CRI-O packaging repository.](https://github.com/cri-o/packaging/blob/main/README.md).
 
 For 1.28 and earlier, please read our [legacy installation document](./install-legacy.md).
 
