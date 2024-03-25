@@ -7,11 +7,15 @@ import (
 
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/sirupsen/logrus"
-	v1 "k8s.io/api/core/v1"
 )
 
 // DefaultProfile is the default profile name
-const DefaultProfile = "crio-default"
+const (
+	DefaultProfile = "crio-default"
+	RuntimeDefault = "runtime/default"
+	Prefix         = "localhost/"
+	Unconfined     = "unconfined"
+)
 
 // Config is the global AppArmor configuration type
 type Config struct {
@@ -35,9 +39,9 @@ func (c *Config) LoadProfile(profile string) error {
 		return nil
 	}
 
-	if profile == v1.AppArmorBetaProfileNameUnconfined {
+	if profile == Unconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
-		c.defaultProfile = v1.AppArmorBetaProfileNameUnconfined
+		c.defaultProfile = Unconfined
 		return nil
 	}
 
@@ -95,10 +99,10 @@ func (c *Config) IsEnabled() bool {
 // Apply returns the trimmed AppArmor profile to be used and reloads if the
 // default profile is specified
 func (c *Config) Apply(profile string) (string, error) {
-	if profile == "" || profile == v1.AppArmorBetaProfileRuntimeDefault {
+	if profile == "" || profile == RuntimeDefault {
 		return c.defaultProfile, nil
 	}
-	profile = strings.TrimPrefix(profile, v1.AppArmorBetaProfileNamePrefix)
+	profile = strings.TrimPrefix(profile, Prefix)
 
 	if profile == "" {
 		return "", errors.New("empty localhost AppArmor profile is forbidden")
