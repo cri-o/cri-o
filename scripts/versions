@@ -5,6 +5,6 @@ declare -A VERSIONS=(
     ["conmon-rs"]=v0.6.1
     ["cri-tools"]=v1.29.0
     ["runc"]=v1.1.12
-    ["bats"]=v1.10.0
+    ["bats"]=v1.11.0
     ["buildah"]=v1.34.0
 )

@@ -68,7 +68,7 @@ dependencies:
       match: runc
 
   - name: bats
-    version: v1.10.0
+    version: v1.11.0
     refPaths:
     - path: scripts/versions
       match: bats
