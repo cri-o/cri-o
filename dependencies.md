@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 25 Mar 2024 10:32:10 UTC for commit [941938a][0]._
+_Generated on Mon, 25 Mar 2024 12:08:30 UTC for commit [93b05e5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/941938a080623ab6dec3f6a0e29bd4e0b83b2ea2
+[0]: https://github.com/cri-o/cri-o/commit/93b05e56d222628d18e7a79fd7a8761323460bee
 
 ## Outdated Dependencies
 
@@ -869,7 +869,7 @@ _Generated on Mon, 25 Mar 2024 10:32:10 UTC for commit [941938a][0]._
 | k8s.io/kubelet                                                                          | v0.30.0-alpha.2                               | v0.30.0-beta.0                      | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.3                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240325102730-d484aa5d77a0  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240325103648-fd7cc2153e6a  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                        | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                       | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
