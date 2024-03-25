@@ -1,7 +1,7 @@
 GO ?= go
 
 export GOPROXY=https://proxy.golang.org
-export GOSUMDB=https://sum.golang.org
+export GOSUMDB=sum.golang.org
 
 TRIMPATH ?= -trimpath
 GO_ARCH=$(shell $(GO) env GOARCH)
