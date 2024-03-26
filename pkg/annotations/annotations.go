@@ -107,4 +107,17 @@ var AllAllowedAnnotations = []string{
 	CPUSharedAnnotation,
 	SeccompProfileAnnotation,
 	DisableFIPSAnnotation,
+	// Keep in sync with
+	// https://github.com/opencontainers/runc/blob/3db0871f1cf25c7025861ba0d51d25794cb21623/features.go#L67
+	// Once runc 1.2 is released, we can use the `runc features` command to get this programatically,
+	// but we should hardcode these for now to prevent misuse.
+	"bundle",
+	"org.systemd.property.",
+	"org.criu.config",
+
+	// Simiarly, keep in sync with
+	// https://github.com/containers/crun/blob/475a3fd0be/src/libcrun/container.c#L362-L366
+	"module.wasm.image/variant",
+	"io.kubernetes.cri.container-type",
+	"run.oci.",
 }
