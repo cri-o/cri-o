@@ -381,9 +381,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	// set this container's apparmor profile if it is set by sandbox
 	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(
-			securityContext.ApparmorProfile,
-		)
+		profile, err := s.Config().AppArmor().Apply(securityContext)
 		if err != nil {
 			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
 		}

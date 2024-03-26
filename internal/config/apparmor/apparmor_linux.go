@@ -8,6 +8,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
+	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // DefaultProfile is the default profile name
@@ -93,25 +94,42 @@ func (c *Config) IsEnabled() bool {
 }
 
 // Apply returns the trimmed AppArmor profile to be used and reloads if the
-// default profile is specified
-func (c *Config) Apply(profile string) (string, error) {
-	if profile == "" || profile == v1.AppArmorBetaProfileRuntimeDefault {
+// default profile is specified.
+// The AppArmor profile to the CRI via the deprecated apparmor_profile field
+// in favor of the newer structured apparmor field.
+// CRI provides the AppArmor profile via both fields to maintain backwards compatibility.
+// ref https://github.com/kubernetes/kubernetes/pull/123811
+// Process new field and fallback to deprecated. From the kubernetes side both fields are populated.
+// TODO: Clean off deprecated AppArmorProfile usage
+func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, error) {
+	// Runtime default profile
+	if p.Apparmor != nil && p.Apparmor.ProfileType == runtimeapi.SecurityProfile_RuntimeDefault {
 		return c.defaultProfile, nil
 	}
-	profile = strings.TrimPrefix(profile, v1.AppArmorBetaProfileNamePrefix)
+	if p.Apparmor == nil && p.ApparmorProfile == "" || p.ApparmorProfile == v1.AppArmorBetaProfileRuntimeDefault {
+		return c.defaultProfile, nil
+	}
+	securityProfile := ""
+	if p.Apparmor == nil && p.ApparmorProfile != "" {
+		securityProfile = p.ApparmorProfile
+	}
 
-	if profile == "" {
+	if p.Apparmor != nil && p.Apparmor.LocalhostRef != "" {
+		securityProfile = p.Apparmor.LocalhostRef
+	}
+
+	securityProfile = strings.TrimPrefix(securityProfile, v1.AppArmorBetaProfileNamePrefix)
+	if securityProfile == "" {
 		return "", errors.New("empty localhost AppArmor profile is forbidden")
 	}
 
-	// reload the profile if default
-	if profile == DefaultProfile {
+	if securityProfile == DefaultProfile {
 		if err := reloadDefaultProfile(); err != nil {
 			return "", fmt.Errorf("reloading default profile: %w", err)
 		}
 	}
 
-	return profile, nil
+	return securityProfile, nil
 }
 
 // reloadDefaultProfile reloads the default AppArmor profile and returns an
