@@ -435,7 +435,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	var cmdErr, copyError error
 	if tty {
 		execCmd.WaitDelay = 30 * time.Second
-		cmdErr = ttyCmd(execCmd, stdin, stdout, resizeChan)
+		cmdErr = ttyCmd(execCmd, stdin, stdout, resizeChan, c)
 	} else {
 		var r, w *os.File
 		if stdin != nil {
@@ -472,6 +472,12 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		if err := execCmd.Start(); err != nil {
 			return err
 		}
+
+		pid := execCmd.Process.Pid
+		if err := c.AddExecPID(pid, true); err != nil {
+			return err
+		}
+		defer c.DeleteExecPID(pid)
 
 		// The read side of the pipe should be closed after the container process has been started.
 		if r != nil {
@@ -648,6 +654,12 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			}
 		}()
 
+		// A neat trick we can do is register the exec PID before we send info down the start pipe.
+		// Doing so guarantees we can short circuit the exec process if the container is stopping already.
+		if err := c.AddExecPID(cmd.Process.Pid, false); err != nil {
+			return err
+		}
+
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
 			containerPid, _, err := c.pid()
@@ -678,8 +690,13 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		}
 	}
 
+	// defer in case the Pid is changed after Wait()
+	pid := cmd.Process.Pid
+
 	// first, wait till the command is done
 	waitErr := cmd.Wait()
+
+	c.DeleteExecPID(pid)
 
 	// regardless of what is in waitErr
 	// we should attempt to decode the output of the parent pipe
@@ -853,6 +870,8 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	defer span.End()
 
 	startTime := time.Now()
+
+	go c.KillExecPIDs()
 
 	// Allow for SIGINT to correctly interrupt the stop loop, especially
 	// when CRI-O is run directly in the foreground in the terminal.
