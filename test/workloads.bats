@@ -391,3 +391,32 @@ function check_conmon_fields() {
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
 	[[ $(crictl exec "$ctr_id" cat /sys/fs/cgroup/memory.max) != 4294967296 ]]
 }
+
+@test "test special runtime annotations not allowed" {
+	start_crio
+
+	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	[[ $(systemctl show --property CollectMode crio-$ctr_id.scope) != "CollectMode=inactive-or-failed" ]]
+}
+
+@test "test special runtime annotations allowed" {
+	create_workload_with_allowed_annotation "org.systemd.property." "org.systemd.property.CollectMode"
+
+	start_crio
+
+	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+		"$TESTDATA"/container_sleep.json > "$ctrconfig"
+
+	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
+	systemctl show --property CollectMode crio-$ctr_id.scope
+	[[ $(systemctl show --property CollectMode crio-$ctr_id.scope) == "CollectMode=inactive-or-failed" ]]
+}
