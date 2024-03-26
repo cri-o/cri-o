@@ -477,6 +477,12 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			}
 		}
 
+		if err := c.AddExecPID(execCmd.Process.Pid, true); err != nil {
+			return err
+		}
+		// defer in case the Pid is changed after Wait()
+		defer c.DeleteExecPID(execCmd.Process.Pid)
+
 		cmdErr = execCmd.Wait()
 	}
 
@@ -642,6 +648,12 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			}
 		}()
 
+		// A neat trick we can do is register the exec PID before we send info down the start pipe.
+		// Doing so guarantees we can short circuit the exec process if the container is stopping already.
+		if err := c.AddExecPID(cmd.Process.Pid, false); err != nil {
+			return err
+		}
+
 		if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer && r.config.InfraCtrCPUSet != "" {
 			// Update the exec's cgroup
 			containerPid, _, err := c.pid()
@@ -671,6 +683,9 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Err:      err,
 		}
 	}
+
+	// defer in case the Pid is changed after Wait()
+	c.DeleteExecPID(cmd.Process.Pid)
 
 	// first, wait till the command is done
 	waitErr := cmd.Wait()
@@ -847,6 +862,9 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	defer span.End()
 
 	startTime := time.Now()
+
+	// TODO FIXME is this the right place?
+	go c.KillExecPIDs()
 
 	// Allow for SIGINT to correctly interrupt the stop loop, especially
 	// when CRI-O is run directly in the foreground in the terminal.
