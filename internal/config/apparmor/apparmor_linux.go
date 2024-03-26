@@ -35,9 +35,9 @@ func (c *Config) LoadProfile(profile string) error {
 		return nil
 	}
 
-	if profile == v1.AppArmorBetaProfileNameUnconfined {
+	if profile == v1.DeprecatedAppArmorBetaProfileNameUnconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
-		c.defaultProfile = v1.AppArmorBetaProfileNameUnconfined
+		c.defaultProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
 		return nil
 	}
 
@@ -95,10 +95,10 @@ func (c *Config) IsEnabled() bool {
 // Apply returns the trimmed AppArmor profile to be used and reloads if the
 // default profile is specified
 func (c *Config) Apply(profile string) (string, error) {
-	if profile == "" || profile == v1.AppArmorBetaProfileRuntimeDefault {
+	if profile == "" || profile == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
-	profile = strings.TrimPrefix(profile, v1.AppArmorBetaProfileNamePrefix)
+	profile = strings.TrimPrefix(profile, v1.DeprecatedAppArmorBetaProfileNamePrefix)
 
 	if profile == "" {
 		return "", errors.New("empty localhost AppArmor profile is forbidden")
