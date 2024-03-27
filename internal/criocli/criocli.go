@@ -415,6 +415,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("timezone") {
 		config.Timezone = ctx.String("timezone")
 	}
+	if ctx.IsSet("automatic-reload-mirror-registry") {
+		config.AutomaticReloadMirrorRegistry = ctx.Bool("automatic-reload-mirror-registry")
+	}
 	return nil
 }
 
@@ -1183,6 +1186,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "To set the timezone for a container in CRI-O. If an empty string is provided, CRI-O retains its default behavior. Use 'Local' to match the timezone of the host machine.",
 			EnvVars: []string{"CONTAINER_TIME_ZONE"},
 			Value:   defConf.Timezone,
+		},
+		&cli.BoolFlag{
+			Name:    "automatic-reload-mirror-registry",
+			Usage:   "if true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory.",
+			EnvVars: []string{"AUTO_RELOAD_MIRROR_REGISTRY"},
+			Value:   defConf.AutomaticReloadMirrorRegistry,
 		},
 	}
 }

@@ -49,6 +49,7 @@ const (
 	certRefreshInterval            = time.Minute * 5
 	rootlessEnvName                = "_CRIO_ROOTLESS"
 	irqBalanceConfigRestoreDisable = "disable"
+	eventStaggerDuration           = 50 * time.Millisecond
 )
 
 var errSandboxNotCreated = errors.New("sandbox not created")
@@ -531,7 +532,11 @@ func New(
 	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
 
 	s.startReloadWatcher(ctx)
-
+	if s.config.AutomaticReloadMirrorRegistry {
+		go func() {
+			s.startReloadWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
+		}()
+	}
 	// Start the metrics server if configured to be enabled
 	if s.config.EnableMetrics {
 		if err := metrics.New(&s.config.MetricsConfig).Start(s.monitorsChan); err != nil {
@@ -942,4 +947,93 @@ func isNotFound(err error) bool {
 	}
 
 	return false
+}
+
+// startReloadWatcherForMirrorRegistries starts a new goroutine that
+// monitors the "registries.conf.d" directory. If not set, it defaults to
+// "/etc/containers/registries.conf.d". The routine reloads the registries
+// configuration when a file is modified, created or deleted in the directory.
+// It enforces a reload rate limit of 10 times per minute to prevent excessive
+// reloads.
+func (s *Server) startReloadWatcherForMirrorRegistries(ctx context.Context, registriesConfDDir string) {
+	if registriesConfDDir == "" {
+		log.Infof(ctx, "No registries.conf.d directory specified, using default")
+		registriesConfDDir = "/etc/containers/registries.conf.d"
+	}
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatalf(ctx, "Failed to create new watcher: %v", err)
+		return
+	}
+	defer watcher.Close()
+
+	log.Infof(ctx, "Registered reload watcher for mirror registries configuration")
+	done := make(chan struct{})
+	go s.reloadMirrorRegistriesConfiguration(ctx, watcher, done, registriesConfDDir)
+	<-done
+}
+
+func (s *Server) reloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher, done chan struct{}, path string) {
+	defer close(done)
+	if err := watcher.Add(path); err != nil {
+		log.Errorf(ctx, "Failed to add watcher for path %q: %s", path, err)
+		return
+	}
+	var (
+		mu                   sync.Mutex
+		lastReload           time.Time
+		pendingReload        = false
+		reloadCount          int
+		reloadLimitPerMinute = 10
+	)
+	ticker := time.NewTicker(1 * time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case event, ok := <-watcher.Events:
+			if !ok {
+				return
+			}
+			// Skip events for files starting with a dot
+			if strings.HasPrefix(filepath.Base(event.Name), ".") {
+				continue
+			}
+			mu.Lock()
+			if !pendingReload || time.Since(lastReload) > eventStaggerDuration {
+				if reloadCount < reloadLimitPerMinute {
+					pendingReload = true
+					lastReload = time.Now()
+					reloadCount++
+					go func() {
+						defer func() {
+							mu.Lock()
+							pendingReload = false
+							mu.Unlock()
+						}()
+
+						if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) != 0 {
+							log.Infof(ctx, "File %s modified, created or deleted, reloading registries configuration", event.Name)
+							if err := s.config.ReloadRegistries(); err != nil {
+								log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
+							}
+						}
+						time.Sleep(eventStaggerDuration)
+					}()
+				} else {
+					log.Warnf(ctx, "Rate limit exceeded, skipping reload")
+				}
+			}
+			mu.Unlock()
+		case <-ticker.C:
+			mu.Lock()
+			reloadCount = 0
+			mu.Unlock()
+		case err, ok := <-watcher.Errors:
+			if !ok {
+				return
+			}
+			log.Errorf(ctx, "Watcher error: %v", err)
+		}
+	}
 }
