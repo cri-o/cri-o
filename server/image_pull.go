@@ -242,9 +242,12 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress) // nolint:gocritic
-	go metricsFromProgressGoroutine(ctx, progress, remoteCandidateName)
 
-	_, err = s.StorageImageServer().PullImage(remoteCandidateName, &storage.ImageCopyOptions{
+	// Cancel the pull if no progress is made
+	pullCtx, cancel := context.WithCancel(context.Background())
+	go progressGoRoutine(ctx, cancel, progress, remoteCandidateName)
+
+	_, err = s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
@@ -263,9 +266,24 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	return nil
 }
 
-// metricsFromProgressGoroutine consumes progress and turns it into metrics updates.
-func metricsFromProgressGoroutine(ctx context.Context, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
+// progressGoRoutine consumes progress and turns it into metrics updates.
+// It also checks if progress is being made within a constant timeout.
+// If the timeout is reached because no progress updates have been made, then
+// the cancel function will be called.
+func progressGoRoutine(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
+	// The progress interval is 1s, but we give it a bit more time just in case
+	// that the connection revives.
+	const timeout = 10 * time.Second
+	timer := time.AfterFunc(timeout, func() {
+		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", timeout)
+		cancel()
+	})
+	timer.Stop()       // don't start the timer immediately
+	defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
+
 	for p := range progress {
+		timer.Reset(timeout)
+
 		if p.Event == imageTypes.ProgressEventSkipped {
 			// Skipped digests metrics
 			tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
