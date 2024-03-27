@@ -1014,6 +1014,10 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.Cg
 			KernelTCPUsage:  m.Memory.KernelTCP.Usage,
 			SwapUsage:       m.Memory.Swap.Usage,
 			SwapLimit:       m.Memory.Swap.Limit,
+			// There is also m.Memory.TotalMappedFile
+			// TODO: See which one is the best to use here
+			FileMapped: m.Memory.MappedFile,
+			Failcnt:    m.Memory.Usage.Failcnt,
 		},
 		CPU: &cgmgr.CPUStats{
 			TotalUsageNano:          m.CPU.Usage.Total,
@@ -1065,6 +1069,7 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.Cg
 			KernelUsage: m.Memory.KernelStack,
 			SwapUsage:   m.Memory.SwapUsage,
 			SwapLimit:   m.Memory.SwapLimit,
+			FileMapped:  m.Memory.FileMapped,
 		},
 		CPU: &cgmgr.CPUStats{
 			TotalUsageNano:          m.CPU.UsageUsec * 1000,
