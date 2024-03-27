@@ -269,6 +269,19 @@ func main() {
 			return err
 		}
 
+		// Print the current cli flags
+		flagNames := c.FlagNames()
+		logrus.Infof("Cli Flags used:")
+		for i := 0; i < len(flagNames); i++ {
+			flagvalues := c.Value(flagNames[i])
+			logrus.Infof("Flag: %v: %v \n", flagNames[i], flagvalues)
+		}
+
+		// Print the current config
+		if err := config.LogConfig(); err != nil {
+			logrus.Errorf("Unable to log configuration: %v", err)
+		}
+
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("Failed to listen: %v", err)
