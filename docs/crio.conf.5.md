@@ -309,8 +309,8 @@ the container runtime configuration.
 **device_ownership_from_security_context**=false
   Changes the default behavior of setting container devices uid/gid from CRI's SecurityContext (RunAsUser/RunAsGroup) instead of taking host's uid/gid.
 
-**enable_criu_support**=false
-  Enable CRIU integration, requires that the criu binary is available in $PATH. (default: false)
+**enable_criu_support**=true
+  Enable CRIU integration, requires that the criu binary is available in $PATH. (default: true)
 
 **enable_pod_events**=false
 Enable CRI-O to generate the container pod-level events in order to optimize the performance of the Pod Lifecycle Event Generator (PLEG) module in Kubelet.
