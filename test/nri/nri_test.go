@@ -128,7 +128,7 @@ func TestContainerEvents(stdT *testing.T) {
 	require.NotNil(t, p.WaitEvent(PostStartContainerEvent(pod, ctr), timeout), "container post-start event")
 
 	t.stopContainer(ctr)
-	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), 0), "container stop event")
+	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), timeout), "container stop event")
 
 	t.removeContainer(ctr)
 	require.NotNil(t, p.WaitEvent(RemoveContainerEvent(pod, ctr), 0), "container removal event")
