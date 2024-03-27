@@ -13,16 +13,6 @@ function setup() {
 	setup_test
 	NRITEST_BINARY=${NRITEST_BINARY:-${CRIO_ROOT}/test/nri/nri.test}
 	NRITEST_LOG="$TESTDIR/nri.test.log"
-	NRI_SOCKET="$TESTDIR/nri.sock"
-	enable_nri
-}
-
-function enable_nri() {
-	cat << EOF > "$CRIO_CONFIG_DIR/zz-nri.conf"
-[crio.nri]
-enable_nri = true
-nri_listen = "$NRI_SOCKET"
-EOF
 }
 
 function teardown() {

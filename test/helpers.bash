@@ -41,6 +41,14 @@ function setup_test() {
     CRIO_CNI_CONFIG="$TESTDIR/cni/net.d/"
     CRIO_LOG="$TESTDIR/crio.log"
 
+    # Override NRI socket to a testcase-specific location.
+    CRIO_NRI_CONFIG="$CRIO_CONFIG_DIR/10-crio-nri.conf"
+    NRI_SOCKET="$TESTDIR/nri.sock"
+    cat <<EOF >"$CRIO_NRI_CONFIG"
+[crio.nri]
+nri_listen = "$NRI_SOCKET"
+EOF
+
     # Copy all the CNI dependencies around to ensure encapsulated tests
     CRIO_CNI_PLUGIN="$TESTDIR/cni-bin"
     mkdir "$CRIO_CNI_PLUGIN"

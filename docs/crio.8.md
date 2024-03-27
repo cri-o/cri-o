@@ -236,7 +236,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-metrics**: Enable metrics endpoint for the server.
 
-**--enable-nri**: Enable NRI (Node Resource Interface) support. (default: false)
+**--enable-nri**: Enable NRI (Node Resource Interface) support. (default: true)
 
 **--enable-pod-events**: If true, CRI-O starts sending the container events to the kubelet
 
