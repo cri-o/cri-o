@@ -116,6 +116,9 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **no_pivot**=false
   If true, the runtime will not use `pivot_root`, but instead use `MS_MOVE`.
 
+**container-min-memory**="12MiB"
+  Minimum memory that must be set for a container. (default: "12MiB")
+
 **decryption_keys_path**="/etc/crio/keys/"
   Path where the keys required for image decryption are located
 
@@ -134,6 +137,11 @@ The `crio.runtime` table contains settings pertaining to the OCI runtime used an
 **default_env**=[]
   Additional environment variables to set for all the containers. These are overridden if set in the container image spec or in
 the container runtime configuration.
+
+**default_container_min_memory**="12MiB"
+  The default value of minimum memory that must be set for a container.
+  Applied for all runtimes, per runtime configuration takes precedence.
+  A lower value would result in the container failing to start, the default value 12MiB.
 
 **selinux**=false
   If true, SELinux will be used for pod separation on the host.
@@ -357,6 +365,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
     Note that the annotation works on containers as well as on images.
     For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
     can be used without the required `/POD` suffix or a container name.
+
+**container_min_memory**=""
+  ContainerMinMemory is minimum memory that must be set for a container. if not exist fallback to global container_min_memory.
 
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.

@@ -195,10 +195,10 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 	return "", nil
 }
 
-// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
-// returns the cgroup parent, cgroup path, and error.
+// SandboxCgroupPath takes the sandbox parent, and sandbox ID, and container min memory.
+// It returns the cgroup parent, cgroup path, and error.
 // It also checks there is enough memory in the given cgroup
-func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgPath string, _ error) {
+func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string, containerMinMemory int64) (cgParent, cgPath string, _ error) {
 	if sbParent == "" {
 		return "", "", nil
 	}
@@ -208,7 +208,7 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string) (cgParent, cgP
 	}
 
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
-	if err := verifyCgroupHasEnoughMemory(sbParent, m.memoryPath, m.memoryMaxFile); err != nil {
+	if err := verifyCgroupHasEnoughMemory(sbParent, m.memoryPath, m.memoryMaxFile, containerMinMemory); err != nil {
 		return "", "", err
 	}
 

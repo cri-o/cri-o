@@ -17,7 +17,7 @@ type CgroupManager interface {
 	// uses the default parent for that particular manager
 	ContainerCgroupPath(string, string) string
 	// cgroup parent, cgroup path, error
-	SandboxCgroupPath(string, string) string
+	SandboxCgroupPath(string, string, int64) string
 	// RemoveSandboxCgroup takes the sandbox parent, and sandbox ID.
 	// It removes the cgroup for that sandbox, which is useful when spoofing an infra container
 	RemoveSandboxCgroup(sbParent, containerID string) error
@@ -27,8 +27,7 @@ type CgroupManager interface {
 	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
 }
 
-type NullCgroupManager struct {
-}
+type NullCgroupManager struct{}
 
 func InitializeCgroupManager(cgroupManager string) (CgroupManager, error) {
 	return nil, errors.New("not implemented yet")
@@ -49,7 +48,7 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 }
 
 // VerifyMemoryIsEnough verifies that the cgroup memory limit is above a specified minimum memory limit.
-func VerifyMemoryIsEnough(memoryLimit int64) error {
+func VerifyMemoryIsEnough(memoryLimit, containerMinMemory int64) error {
 	return nil
 }
 
@@ -65,7 +64,7 @@ func (*NullCgroupManager) ContainerCgroupPath(string, string) string {
 	return ""
 }
 
-func (*NullCgroupManager) SandboxCgroupPath(string, string) string {
+func (*NullCgroupManager) SandboxCgroupPath(string, string, int64) string {
 	return ""
 }
 

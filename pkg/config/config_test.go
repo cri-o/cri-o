@@ -26,8 +26,9 @@ var _ = t.Describe("Config", func() {
 
 	runtimeValidConfig := func() *config.Config {
 		sut.Runtimes["runc"] = &config.RuntimeHandler{
-			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType,
+			RuntimePath: validFilePath, RuntimeType: config.DefaultRuntimeType, ContainerMinMemory: "12MiB",
 		}
+		sut.DefaultContainerMinMemory = "24MiB"
 		sut.PinnsPath = validFilePath
 		sut.NamespacesDir = os.TempDir()
 		sut.Conmon = validConmonPath()
@@ -131,6 +132,17 @@ var _ = t.Describe("Config", func() {
 		It("should fail on wrong default ulimits", func() {
 			// Given
 			sut.DefaultUlimits = []string{"invalid=-1:-1"}
+
+			// When
+			err := sut.Validate(false)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail on wrong default container min memory", func() {
+			// Given
+			sut.DefaultContainerMinMemory = "wrong"
 
 			// When
 			err := sut.Validate(false)
@@ -294,6 +306,17 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+
+		It("should inherit default value on wrong runtime container min memory", func() {
+			// Given
+			sut.Runtimes["runc"].ContainerMinMemory = "wrong"
+
+			// When
+			err := sut.RuntimeConfig.Validate(nil, false)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on wrong invalid device specification", func() {

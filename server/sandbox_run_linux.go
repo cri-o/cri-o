@@ -663,8 +663,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
-
-	cgroupParent, cgroupPath, err := s.config.CgroupManager().SandboxCgroupPath(sbox.Config().Linux.CgroupParent, sbox.ID())
+	minMemory, err := s.Runtime().GetContainerMinMemory(runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
+	cgroupParent, cgroupPath, err := s.config.CgroupManager().SandboxCgroupPath(sbox.Config().Linux.CgroupParent, sbox.ID(), minMemory)
 	if err != nil {
 		return nil, err
 	}

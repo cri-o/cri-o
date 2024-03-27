@@ -122,7 +122,11 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 				}
 				if mem := r.Memory; mem != nil {
 					if mem.Limit != nil {
-						if err := cgmgr.VerifyMemoryIsEnough(*mem.Limit); err != nil {
+						containerMinMemory, err := a.cri.Runtime().GetContainerMinMemory(criPod.RuntimeHandler())
+						if err != nil {
+							return err
+						}
+						if err := cgmgr.VerifyMemoryIsEnough(*mem.Limit, containerMinMemory); err != nil {
 							return err
 						}
 					}
