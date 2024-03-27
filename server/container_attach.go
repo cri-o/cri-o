@@ -2,6 +2,7 @@ package server
 
 import (
 	"errors"
+	"fmt"
 	"io"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -15,6 +16,20 @@ import (
 
 // Attach prepares a streaming endpoint to attach to a running container.
 func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.AttachResponse, error) {
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find container %q: %w", req.ContainerId, err)
+	}
+
+	url, err := s.Runtime().ServeAttachContainer(ctx, c, req.Stdin, req.Stdout, req.Stderr)
+	if err != nil {
+		return nil, fmt.Errorf("could not serve attach for container %q: %w", req.ContainerId, err)
+	}
+	if url != "" {
+		log.Infof(ctx, "Using attach URL from runtime: %v", url)
+		return &types.AttachResponse{Url: url}, nil
+	}
+
 	resp, err := s.getAttach(req)
 	if err != nil {
 		return nil, errors.New("unable to prepare attach endpoint")
