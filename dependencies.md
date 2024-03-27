@@ -1,24 +1,22 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
+_Generated on Wed, 27 Mar 2024 13:13:54 UTC for commit [8e58b49][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/01b30dd20902d85d40ddf0733917a65686c17745
+[0]: https://github.com/cri-o/cri-o/commit/8e58b49bf31679e476160c2787b87942dc37d337
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.14                            | true   | true             |
-| github.com/containernetworking/plugins                                      | v1.4.0                                        | v1.4.1                             | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.0                            | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
-| github.com/cri-o/ocicni                                                     | v0.4.2-0.20231214012016-e3223f554ea5          | v0.4.2                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240326023837-d16971e37e5b | true   | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.15.0                                       | v2.17.1                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240327111332-45aba769c02c | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -30,7 +28,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | go.opentelemetry.io/otel/sdk                                                | v1.23.1                                       | v1.24.0                            | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.23.1                                       | v1.24.0                            | true   | true             |
 | golang.org/x/net                                                            | v0.21.0                                       | v0.22.0                            | true   | true             |
-| google.golang.org/grpc                                                      | v1.61.1                                       | v1.62.1                            | true   | true             |
+| google.golang.org/grpc                                                      | v1.62.0                                       | v1.62.1                            | true   | true             |
 | k8s.io/api                                                                  | v0.30.0-alpha.2                               | v0.30.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                                         | v0.30.0-alpha.2                               | v0.30.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                                            | v0.30.0-alpha.2                               | v0.30.0-beta.0                     | true   | true             |
@@ -44,11 +42,11 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 |-----------------------------------------------------------------------------------------|-----------------------------------------------|-------------------------------------|--------|------------------|
 | capnproto.org/go/capnp/v3                                                               | v3.0.0-alpha.25                               | v3.0.0-alpha-29                     | false  | true             |
 | chainguard.dev/go-grpc-kit                                                              | v0.17.1                                       | v0.17.3                             | false  | true             |
-| cloud.google.com/go                                                                     | v0.111.0                                      | v0.112.1                            | false  | true             |
+| cloud.google.com/go                                                                     | v0.112.0                                      | v0.112.1                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.4                                        | v1.7.6                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                                | v1.8.4                                        | v1.8.6                              | false  | true             |
-| cloud.google.com/go/aiplatform                                                          | v1.57.0                                       | v1.65.0                             | false  | true             |
-| cloud.google.com/go/analytics                                                           | v0.21.6                                       | v0.23.1                             | false  | true             |
+| cloud.google.com/go/aiplatform                                                          | v1.58.0                                       | v1.65.0                             | false  | true             |
+| cloud.google.com/go/analytics                                                           | v0.22.0                                       | v0.23.1                             | false  | true             |
 | cloud.google.com/go/apigateway                                                          | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/apigeeconnect                                                       | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/apigeeregistry                                                      | v0.8.2                                        | v0.8.4                              | false  | true             |
@@ -56,17 +54,17 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/appengine                                                           | v1.8.4                                        | v1.8.6                              | false  | true             |
 | cloud.google.com/go/area120                                                             | v0.8.4                                        | v0.8.6                              | false  | true             |
 | cloud.google.com/go/artifactregistry                                                    | v1.14.6                                       | v1.14.8                             | false  | true             |
-| cloud.google.com/go/asset                                                               | v1.15.3                                       | v1.18.1                             | false  | true             |
+| cloud.google.com/go/asset                                                               | v1.17.0                                       | v1.18.1                             | false  | true             |
 | cloud.google.com/go/assuredworkloads                                                    | v1.11.4                                       | v1.11.6                             | false  | true             |
 | cloud.google.com/go/automl                                                              | v1.13.4                                       | v1.13.6                             | false  | true             |
 | cloud.google.com/go/baremetalsolution                                                   | v1.2.3                                        | v1.2.5                              | false  | true             |
 | cloud.google.com/go/batch                                                               | v1.7.0                                        | v1.8.3                              | false  | true             |
 | cloud.google.com/go/beyondcorp                                                          | v1.0.3                                        | v1.0.5                              | false  | true             |
-| cloud.google.com/go/bigquery                                                            | v1.57.1                                       | v1.59.1                             | false  | true             |
+| cloud.google.com/go/bigquery                                                            | v1.58.0                                       | v1.59.1                             | false  | true             |
 | cloud.google.com/go/billing                                                             | v1.18.0                                       | v1.18.4                             | false  | true             |
 | cloud.google.com/go/binaryauthorization                                                 | v1.8.0                                        | v1.8.2                              | false  | true             |
 | cloud.google.com/go/certificatemanager                                                  | v1.7.4                                        | v1.8.0                              | false  | true             |
-| cloud.google.com/go/channel                                                             | v1.17.3                                       | v1.17.6                             | false  | true             |
+| cloud.google.com/go/channel                                                             | v1.17.4                                       | v1.17.6                             | false  | true             |
 | cloud.google.com/go/cloudbuild                                                          | v1.15.0                                       | v1.16.0                             | false  | true             |
 | cloud.google.com/go/clouddms                                                            | v1.7.3                                        | v1.7.5                              | false  | true             |
 | cloud.google.com/go/cloudtasks                                                          | v1.12.4                                       | v1.12.7                             | false  | true             |
@@ -75,21 +73,21 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/contactcenterinsights                                               | v1.12.1                                       | v1.13.1                             | false  | true             |
 | cloud.google.com/go/container                                                           | v1.29.0                                       | v1.34.0                             | false  | true             |
 | cloud.google.com/go/containeranalysis                                                   | v0.11.3                                       | v0.11.5                             | false  | true             |
-| cloud.google.com/go/datacatalog                                                         | v1.19.0                                       | v1.20.0                             | false  | true             |
+| cloud.google.com/go/datacatalog                                                         | v1.19.2                                       | v1.20.0                             | false  | true             |
 | cloud.google.com/go/dataflow                                                            | v0.9.4                                        | v0.9.6                              | false  | true             |
 | cloud.google.com/go/dataform                                                            | v0.9.1                                        | v0.9.3                              | false  | true             |
 | cloud.google.com/go/datafusion                                                          | v1.7.4                                        | v1.7.6                              | false  | true             |
 | cloud.google.com/go/datalabeling                                                        | v0.8.4                                        | v0.8.6                              | false  | true             |
-| cloud.google.com/go/dataplex                                                            | v1.13.0                                       | v1.15.0                             | false  | true             |
+| cloud.google.com/go/dataplex                                                            | v1.14.0                                       | v1.15.0                             | false  | true             |
 | cloud.google.com/go/dataproc                                                            | v1.12.0                                       |                                     | false  | true             |
 | cloud.google.com/go/dataproc/v2                                                         | v2.3.0                                        | v2.4.1                              | false  | true             |
 | cloud.google.com/go/dataqna                                                             | v0.8.4                                        | v0.8.6                              | false  | true             |
 | cloud.google.com/go/datastore                                                           | v1.15.0                                       |                                     | false  | true             |
 | cloud.google.com/go/datastream                                                          | v1.10.3                                       | v1.10.5                             | false  | true             |
-| cloud.google.com/go/deploy                                                              | v1.16.0                                       | v1.17.2                             | false  | true             |
-| cloud.google.com/go/dialogflow                                                          | v1.47.0                                       | v1.51.0                             | false  | true             |
+| cloud.google.com/go/deploy                                                              | v1.17.0                                       | v1.17.2                             | false  | true             |
+| cloud.google.com/go/dialogflow                                                          | v1.48.1                                       | v1.51.0                             | false  | true             |
 | cloud.google.com/go/dlp                                                                 | v1.11.1                                       | v1.12.1                             | false  | true             |
-| cloud.google.com/go/documentai                                                          | v1.23.6                                       | v1.26.1                             | false  | true             |
+| cloud.google.com/go/documentai                                                          | v1.23.7                                       | v1.26.1                             | false  | true             |
 | cloud.google.com/go/domains                                                             | v0.9.4                                        | v0.9.6                              | false  | true             |
 | cloud.google.com/go/edgecontainer                                                       | v1.1.4                                        | v1.2.0                              | false  | true             |
 | cloud.google.com/go/errorreporting                                                      | v0.3.0                                        |                                     | false  | true             |
@@ -102,7 +100,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/gkebackup                                                           | v1.3.4                                        | v1.3.6                              | false  | true             |
 | cloud.google.com/go/gkeconnect                                                          | v0.8.4                                        | v0.8.6                              | false  | true             |
 | cloud.google.com/go/gkehub                                                              | v0.14.4                                       | v0.14.6                             | false  | true             |
-| cloud.google.com/go/gkemulticloud                                                       | v1.0.3                                        | v1.1.2                              | false  | true             |
+| cloud.google.com/go/gkemulticloud                                                       | v1.1.0                                        | v1.1.2                              | false  | true             |
 | cloud.google.com/go/grafeas                                                             | v0.2.0                                        | v0.3.5                              | false  | true             |
 | cloud.google.com/go/gsuiteaddons                                                        | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/iam                                                                 | v1.1.5                                        | v1.1.7                              | false  | true             |
@@ -112,33 +110,33 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/kms                                                                 | v1.15.5                                       | v1.15.8                             | false  | true             |
 | cloud.google.com/go/language                                                            | v1.12.2                                       | v1.12.4                             | false  | true             |
 | cloud.google.com/go/lifesciences                                                        | v0.9.4                                        | v0.9.6                              | false  | true             |
-| cloud.google.com/go/logging                                                             | v1.8.1                                        | v1.9.0                              | false  | true             |
+| cloud.google.com/go/logging                                                             | v1.9.0                                        |                                     | false  | true             |
 | cloud.google.com/go/longrunning                                                         | v0.5.4                                        | v0.5.6                              | false  | true             |
 | cloud.google.com/go/managedidentities                                                   | v1.6.4                                        | v1.6.6                              | false  | true             |
-| cloud.google.com/go/maps                                                                | v1.6.2                                        | v1.7.1                              | false  | true             |
+| cloud.google.com/go/maps                                                                | v1.6.3                                        | v1.7.1                              | false  | true             |
 | cloud.google.com/go/mediatranslation                                                    | v0.8.4                                        | v0.8.6                              | false  | true             |
 | cloud.google.com/go/memcache                                                            | v1.10.4                                       | v1.10.6                             | false  | true             |
 | cloud.google.com/go/metastore                                                           | v1.13.3                                       | v1.13.5                             | false  | true             |
-| cloud.google.com/go/monitoring                                                          | v1.16.3                                       | v1.18.1                             | false  | true             |
+| cloud.google.com/go/monitoring                                                          | v1.17.0                                       | v1.18.1                             | false  | true             |
 | cloud.google.com/go/networkconnectivity                                                 | v1.14.3                                       | v1.14.5                             | false  | true             |
 | cloud.google.com/go/networkmanagement                                                   | v1.9.3                                        | v1.12.0                             | false  | true             |
 | cloud.google.com/go/networksecurity                                                     | v0.9.4                                        | v0.9.6                              | false  | true             |
 | cloud.google.com/go/notebooks                                                           | v1.11.2                                       | v1.11.4                             | false  | true             |
 | cloud.google.com/go/optimization                                                        | v1.6.2                                        | v1.6.4                              | false  | true             |
 | cloud.google.com/go/orchestration                                                       | v1.8.4                                        | v1.9.1                              | false  | true             |
-| cloud.google.com/go/orgpolicy                                                           | v1.11.4                                       | v1.12.2                             | false  | true             |
+| cloud.google.com/go/orgpolicy                                                           | v1.12.0                                       | v1.12.2                             | false  | true             |
 | cloud.google.com/go/osconfig                                                            | v1.12.4                                       | v1.12.6                             | false  | true             |
-| cloud.google.com/go/oslogin                                                             | v1.12.2                                       | v1.13.2                             | false  | true             |
+| cloud.google.com/go/oslogin                                                             | v1.13.0                                       | v1.13.2                             | false  | true             |
 | cloud.google.com/go/phishingprotection                                                  | v0.8.4                                        | v0.8.6                              | false  | true             |
 | cloud.google.com/go/policytroubleshooter                                                | v1.10.2                                       | v1.10.4                             | false  | true             |
 | cloud.google.com/go/privatecatalog                                                      | v0.9.4                                        | v0.9.6                              | false  | true             |
 | cloud.google.com/go/profiler                                                            | v0.4.0                                        |                                     | false  | true             |
-| cloud.google.com/go/pubsub                                                              | v1.33.0                                       | v1.37.0                             | false  | true             |
+| cloud.google.com/go/pubsub                                                              | v1.34.0                                       | v1.37.0                             | false  | true             |
 | cloud.google.com/go/pubsublite                                                          | v1.8.1                                        |                                     | false  | true             |
 | cloud.google.com/go/recaptchaenterprise                                                 | v1.3.1                                        |                                     | false  | true             |
 | cloud.google.com/go/recaptchaenterprise/v2                                              | v2.9.0                                        | v2.12.0                             | false  | true             |
 | cloud.google.com/go/recommendationengine                                                | v0.8.4                                        | v0.8.6                              | false  | true             |
-| cloud.google.com/go/recommender                                                         | v1.11.3                                       | v1.12.2                             | false  | true             |
+| cloud.google.com/go/recommender                                                         | v1.12.0                                       | v1.12.2                             | false  | true             |
 | cloud.google.com/go/redis                                                               | v1.14.1                                       | v1.14.3                             | false  | true             |
 | cloud.google.com/go/resourcemanager                                                     | v1.9.4                                        | v1.9.6                              | false  | true             |
 | cloud.google.com/go/resourcesettings                                                    | v1.6.4                                        | v1.6.6                              | false  | true             |
@@ -153,7 +151,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/servicemanagement                                                   | v1.8.0                                        | v1.9.7                              | false  | true             |
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                        | v1.8.5                              | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.4                                        | v1.7.6                              | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.53.1                                       | v1.60.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.55.0                                       | v1.60.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.21.0                                       | v1.22.1                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.33.0                                       | v1.39.1                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                       | v1.10.5                             | false  | true             |
@@ -161,7 +159,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | cloud.google.com/go/texttospeech                                                        | v1.7.4                                        | v1.7.6                              | false  | true             |
 | cloud.google.com/go/tpu                                                                 | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/trace                                                               | v1.10.4                                       | v1.10.6                             | false  | true             |
-| cloud.google.com/go/translate                                                           | v1.9.3                                        | v1.10.2                             | false  | true             |
+| cloud.google.com/go/translate                                                           | v1.10.0                                       | v1.10.2                             | false  | true             |
 | cloud.google.com/go/video                                                               | v1.20.3                                       | v1.20.5                             | false  | true             |
 | cloud.google.com/go/videointelligence                                                   | v1.11.4                                       | v1.11.6                             | false  | true             |
 | cloud.google.com/go/vision                                                              | v1.2.0                                        |                                     | false  | true             |
@@ -205,10 +203,10 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/DATA-DOG/go-sqlmock                                                          | v1.5.0                                        | v1.5.2                              | false  | true             |
 | github.com/JohnCGriffin/overflow                                                        | v0.0.0-20211019200055-46fa312c352c            |                                     | false  | true             |
 | github.com/Masterminds/semver/v3                                                        | v3.2.1                                        |                                     | false  | true             |
-| github.com/Microsoft/cosesign1go                                                        | v0.0.1                                        | v1.1.0                              | false  | true             |
+| github.com/Microsoft/cosesign1go                                                        | v1.1.0                                        |                                     | false  | true             |
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                        | v0.0.3                              | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.1                                        |                                     | true   | true             |
-| github.com/Microsoft/hcsshim                                                            | v0.12.0-rc.2                                  | v0.12.1                             | false  | true             |
+| github.com/Microsoft/hcsshim                                                            | v0.12.0                                       | v0.12.1                             | false  | true             |
 | github.com/NYTimes/gziphandler                                                          | v1.1.1                                        |                                     | false  | true             |
 | github.com/OneOfOne/xxhash                                                              | v1.2.8                                        |                                     | false  | true             |
 | github.com/PaesslerAG/gval                                                              | v1.0.0                                        | v1.2.2                              | false  | true             |
@@ -229,7 +227,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/alecthomas/template                                                          | v0.0.0-20160405071501-a0175ee3bccc            | v0.0.0-20190718012654-fb15b899a751  | false  | true             |
 | github.com/alecthomas/units                                                             | v0.0.0-20211218093645-b94a6e3cc137            | v0.0.0-20231202071711-9a357b53e9c9  | false  | true             |
 | github.com/alessio/shellescape                                                          | v1.4.1                                        | v1.4.2                              | false  | true             |
-| github.com/alexflint/go-filemutex                                                       | v1.2.0                                        | v1.3.0                              | false  | true             |
+| github.com/alexflint/go-filemutex                                                       | v1.3.0                                        |                                     | false  | true             |
 | github.com/alibabacloud-go/alibabacloud-gateway-spi                                     | v0.0.4                                        |                                     | false  | true             |
 | github.com/alibabacloud-go/cr-20160607                                                  | v1.0.1                                        |                                     | false  | true             |
 | github.com/alibabacloud-go/cr-20181201                                                  | v1.0.10                                       |                                     | false  | true             |
@@ -250,7 +248,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.7                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.1                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.9                             | false  | true             |
@@ -307,12 +305,12 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/chzyer/logex                                                                 | v1.2.1                                        |                                     | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                        |                                     | false  | true             |
 | github.com/chzyer/test                                                                  | v1.0.0                                        |                                     | false  | true             |
-| github.com/cilium/ebpf                                                                  | v0.9.1                                        | v0.13.2                             | false  | true             |
+| github.com/cilium/ebpf                                                                  | v0.9.1                                        | v0.14.0                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                        |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                        |                                     | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.7                                        |                                     | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe            |                                     | false  | true             |
-| github.com/cncf/xds/go                                                                  | v0.0.0-20231109132714-523115ebc101            | v0.0.0-20240325133356-033564927e4a  | false  | true             |
+| github.com/cncf/xds/go                                                                  | v0.0.0-20231128003011-0fa0005c9caa            | v0.0.0-20240325133356-033564927e4a  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                        |                                     | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb            |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be            |                                     | false  | true             |
@@ -325,6 +323,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/containerd/containerd                                                        | v1.7.13                                       | v1.7.14                             | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                        | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                                       |                                     | true   | true             |
+| github.com/containerd/errdefs                                                           | v0.1.0                                        |                                     | false  | true             |
 | github.com/containerd/fifo                                                              | v1.1.0                                        |                                     | true   | true             |
 | github.com/containerd/go-cni                                                            | v1.1.9                                        |                                     | false  | true             |
 | github.com/containerd/go-runc                                                           | v1.1.0                                        |                                     | false  | true             |
@@ -339,8 +338,8 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/containerd/typeurl/v2                                                        | v2.1.1                                        |                                     | false  | true             |
 | github.com/containerd/zfs                                                               | v1.1.0                                        | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                        |                                     | true   | true             |
-| github.com/containernetworking/plugins                                                  | v1.4.0                                        | v1.4.1                              | true   | true             |
-| github.com/containers/buildah                                                           | v1.33.5                                       | v1.35.1                             | false  | true             |
+| github.com/containernetworking/plugins                                                  | v1.4.1                                        |                                     | true   | true             |
+| github.com/containers/buildah                                                           | v1.33.5                                       | v1.35.2                             | false  | true             |
 | github.com/containers/common                                                            | v0.57.4                                       | v0.58.0                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                          |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57          |                                     | true   | true             |
@@ -365,7 +364,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.3                                        | v2.0.4                              | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.1.2-0.20231030102423-f3c783d34420          | v0.5.1                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.21                                       |                                     | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.2-0.20231214012016-e3223f554ea5          | v0.4.2                              | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.2                                        |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46            | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                        |                                     | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c            |                                     | false  | true             |
@@ -382,7 +381,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/digitorus/timestamp                                                          | v0.0.0-20230902153158-687734543647            | v0.0.0-20231217203849-220c5c2851b7  | false  | true             |
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                        |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                        |                                     | false  | true             |
-| github.com/distribution/reference                                                       | v0.5.0                                        |                                     | false  | true             |
+| github.com/distribution/reference                                                       | v0.5.0                                        | v0.6.0                              | false  | true             |
 | github.com/docker/cli                                                                   | v24.0.7+incompatible                          | v26.0.0+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                           |                                     | true   | true             |
 | github.com/docker/docker                                                                | v24.0.7+incompatible                          | v26.0.0+incompatible                | false  | true             |
@@ -401,8 +400,8 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                                       | v3.12.0                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                                       | v1.13.2                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                                       |                                     | false  | true             |
-| github.com/envoyproxy/go-control-plane                                                  | v0.11.1                                       | v0.12.0                             | false  | true             |
-| github.com/envoyproxy/protoc-gen-validate                                               | v1.0.2                                        | v1.0.4                              | false  | true             |
+| github.com/envoyproxy/go-control-plane                                                  | v0.12.0                                       |                                     | false  | true             |
+| github.com/envoyproxy/protoc-gen-validate                                               | v1.0.4                                        |                                     | false  | true             |
 | github.com/evanphx/json-patch                                                           | v4.12.0+incompatible                          | v5.9.0+incompatible                 | false  | true             |
 | github.com/fatih/color                                                                  | v1.15.0                                       | v1.16.0                             | false  | true             |
 | github.com/felixge/httpsnoop                                                            | v1.0.3                                        | v1.0.4                              | false  | true             |
@@ -469,7 +468,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/golang-jwt/jwt/v4                                                            | v4.5.0                                        |                                     | false  | true             |
 | github.com/golang-jwt/jwt/v5                                                            | v5.0.0                                        | v5.2.1                              | false  | true             |
 | github.com/golang/freetype                                                              | v0.0.0-20170609003504-e2365dfdc4a0            |                                     | false  | true             |
-| github.com/golang/glog                                                                  | v1.1.2                                        | v1.2.0                              | false  | true             |
+| github.com/golang/glog                                                                  | v1.2.0                                        |                                     | false  | true             |
 | github.com/golang/groupcache                                                            | v0.0.0-20210331224755-41bb18bfe9da            |                                     | false  | true             |
 | github.com/golang/mock                                                                  | v1.6.0                                        |                                     | true   | true             |
 | github.com/golang/protobuf                                                              | v1.5.3                                        | v1.5.4                              | false  | true             |
@@ -503,7 +502,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/googleapis/google-cloud-go-testing                                           | v0.0.0-20200911160855-bcd43fbb19e8            | v0.0.0-20210719221736-1c9a4c676720  | false  | true             |
 | github.com/gorilla/handlers                                                             | v1.5.2                                        |                                     | false  | true             |
 | github.com/gorilla/mux                                                                  | v1.8.1                                        |                                     | false  | true             |
-| github.com/gorilla/schema                                                               | v1.2.0                                        | v1.2.1                              | false  | true             |
+| github.com/gorilla/schema                                                               | v1.2.0                                        | v1.3.0                              | false  | true             |
 | github.com/gorilla/websocket                                                            | v1.5.0                                        | v1.5.1                              | false  | true             |
 | github.com/gregjones/httpcache                                                          | v0.0.0-20180305231024-9cad4c3443a7            | v0.0.0-20190611155906-901d90724c79  | false  | true             |
 | github.com/grpc-ecosystem/go-grpc-middleware                                            | v1.4.0                                        |                                     | true   | true             |
@@ -546,7 +545,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240326023837-d16971e37e5b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240327111332-45aba769c02c  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -564,10 +563,10 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/kylelemons/godebug                                                           | v1.1.0                                        |                                     | false  | true             |
 | github.com/leodido/go-urn                                                               | v1.2.4                                        | v1.4.0                              | false  | true             |
 | github.com/lestrrat-go/backoff/v2                                                       | v2.0.8                                        |                                     | false  | true             |
-| github.com/lestrrat-go/blackmagic                                                       | v1.0.1                                        | v1.0.2                              | false  | true             |
+| github.com/lestrrat-go/blackmagic                                                       | v1.0.2                                        |                                     | false  | true             |
 | github.com/lestrrat-go/httpcc                                                           | v1.0.1                                        |                                     | false  | true             |
 | github.com/lestrrat-go/iter                                                             | v1.0.2                                        |                                     | false  | true             |
-| github.com/lestrrat-go/jwx                                                              | v1.2.26                                       | v1.2.29                             | false  | true             |
+| github.com/lestrrat-go/jwx                                                              | v1.2.28                                       | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20230720153250-52168b28f036  | false  | true             |
 | github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240326064629-3f6eccf58d8d  | false  | true             |
@@ -633,7 +632,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/oleiade/reflections                                                          | v1.0.1                                        |                                     | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                        |                                     | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.4                                       | v1.16.5                             | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.15.0                                       | v2.17.1                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.17.0                                       | v2.17.1                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.31.1                                       | v1.32.0                             | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.59.0                                       | v0.62.1                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                        |                                     | true   | true             |
@@ -783,7 +782,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | github.com/zmap/zcrypto                                                                 | v0.0.0-20230310154051-c8b263fd8300            | v0.0.0-20231219022726-a1f61fb1661c  | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.5.0                                        | v3.6.1                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                                 | v0.0.0-20220601114329-47893b162965            | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
-| go.etcd.io/bbolt                                                                        | v1.3.8                                        | v1.3.9                              | false  | true             |
+| go.etcd.io/bbolt                                                                        | v1.3.9                                        |                                     | false  | true             |
 | go.etcd.io/etcd/api/v3                                                                  | v3.5.10                                       | v3.5.12                             | false  | true             |
 | go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.10                                       | v3.5.12                             | false  | true             |
 | go.etcd.io/etcd/client/v2                                                               | v2.305.10                                     | v2.305.12                           | false  | true             |
@@ -809,7 +808,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.1                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                        |                                     | false  | true             |
-| go.uber.org/mock                                                                        | v0.3.0                                        | v0.4.0                              | false  | true             |
+| go.uber.org/mock                                                                        | v0.4.0                                        |                                     | false  | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                                       |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.26.0                                       | v1.27.0                             | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                           |                                     | false  | true             |
@@ -819,7 +818,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611            | v0.0.0-20240325151524-a685a6edb6d8  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867            | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616            |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240320162201-c76e57eead38  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240326195318-268e6c3a80d1  | false  | true             |
 | golang.org/x/mod                                                                        | v0.14.0                                       | v0.16.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.21.0                                       | v0.22.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.16.0                                       | v0.18.0                             | false  | true             |
@@ -835,10 +834,10 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | gonum.org/v1/plot                                                                       | v0.10.1                                       | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.152.0                                      | v0.171.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                        |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20231212172506-995d672761c0            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240102182953-50ed04b92917            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240102182953-50ed04b92917            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
-| google.golang.org/grpc                                                                  | v1.61.1                                       | v1.62.1                             | true   | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
+| google.golang.org/grpc                                                                  | v1.62.0                                       | v1.62.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                        |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.33.0                                       |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                        | v2.4.0                              | false  | true             |
@@ -876,7 +875,7 @@ _Generated on Tue, 26 Mar 2024 15:31:35 UTC for commit [01b30dd][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                       |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                        |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                       | v1.47.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                       | v1.48.0                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                        | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                        | v1.7.2                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                        |                                     | false  | true             |
