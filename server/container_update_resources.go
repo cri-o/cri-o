@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/gogo/protobuf/proto"
@@ -39,7 +38,10 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 		if updated == nil {
 			updated = req.Linux
 		}
-		resources := toOCIResources(updated)
+		resources, err := toOCIResources(updated)
+		if err != nil {
+			return nil, err
+		}
 		if err := s.Runtime().UpdateContainer(ctx, c, resources); err != nil {
 			return nil, err
 		}
@@ -56,7 +58,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 }
 
 // toOCIResources converts CRI resource constraints to OCI.
-func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
+func toOCIResources(r *types.LinuxContainerResources) (*rspec.LinuxResources, error) {
 	update := rspec.LinuxResources{
 		// TODO(runcom): OOMScoreAdj is missing
 		CPU: &rspec.LinuxCPU{
@@ -78,12 +80,9 @@ func toOCIResources(r *types.LinuxContainerResources) *rspec.LinuxResources {
 	memory := r.MemoryLimitInBytes
 	if memory != 0 {
 		update.Memory.Limit = proto.Int64(memory)
-
-		if node.CgroupHasMemorySwap() {
-			update.Memory.Swap = proto.Int64(memory)
-		}
 	}
-	return &update
+
+	return &update, setSwapForSpec(r.MemorySwapLimitInBytes, memory, &update)
 }
 
 // reapplySharedCPUs appends shared CPUs and update the quota to handle CPUManager
