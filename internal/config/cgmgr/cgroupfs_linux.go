@@ -232,6 +232,12 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) (err er
 	if resources.CPU.Shares != nil {
 		cg.Resources.CpuShares = *resources.CPU.Shares
 	}
+	if resources.CPU.Quota != nil {
+		cg.Resources.CpuQuota = *resources.CPU.Quota
+	}
+	if resources.CPU.Period != nil {
+		cg.Resources.CpuPeriod = *resources.CPU.Period
+	}
 
 	mgr, err := libctrCgMgr.New(cg)
 	if err != nil {

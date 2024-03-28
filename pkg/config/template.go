@@ -1319,7 +1319,9 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # that work based on annotations, rather than the CRI.
 # Note, the behavior of this table is EXPERIMENTAL and may change at any time.
 # Each workload, has a name, activation_annotation, annotation_prefix and set of resources it supports mutating.
-# The currently supported resources are "cpu" (to configure the cpu shares) and "cpuset" to configure the cpuset.
+# The currently supported resources are "cpuperiod" "cpuquota", "cpushares", "cpulimit" and "cpuset". The values for "cpuperiod" and "cpuquota" are denoted in microseconds.
+# The value for "cpulimit" is denoted in millicores, this value is used to calculate the "cpuquota" with the supplied "cpuperiod" or the default "cpuperiod".
+# Note that the "cpulimit" field overrides the "cpuquota" value supplied in this configuration.
 # Each resource can have a default value specified, or be empty.
 # For a container to opt-into this workload, the pod should be configured with the annotation $activation_annotation (key only, value is ignored).
 # To customize per-container, an annotation of the form $annotation_prefix.$resource/$ctrName = "value" can be specified
@@ -1330,8 +1332,11 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 # activation_annotation = "io.crio/workload"
 # annotation_prefix = "io.crio.workload-type"
 # [crio.runtime.workloads.workload-type.resources]
-# cpuset = 0
-# cpushares = "0-1"
+# cpuset = "0-1"
+# cpushares = "5"
+# cpuquota = "1000"
+# cpuperiod = "100000"
+# cpulimit = "35"
 # Where:
 # The workload name is workload-type.
 # To specify, the pod must have the "io.crio.workload" annotation (this is a precise string match).
@@ -1345,7 +1350,10 @@ const templateStringCrioRuntimeWorkloads = `# The workloads table defines ways t
 {{ $.Comment }}annotation_prefix = "{{ $workload_config.AnnotationPrefix }}"
 {{ if $workload_config.Resources }}{{ $.Comment }}[crio.runtime.workloads.{{ $workload_type }}.resources]
 {{ $.Comment }}cpuset = "{{ $workload_config.Resources.CPUSet }}"
-{{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}{{ end }}
+{{ $.Comment }}cpuquota = {{ $workload_config.Resources.CPUQuota }}
+{{ $.Comment }}cpuperiod = {{ $workload_config.Resources.CPUPeriod }}
+{{ $.Comment }}cpushares = {{ $workload_config.Resources.CPUShares }}
+{{ $.Comment }}cpulimit = {{ $workload_config.Resources.CPULimit }}{{ end }}
 {{ end }}
 `
 
