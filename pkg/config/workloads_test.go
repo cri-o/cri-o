@@ -88,12 +88,42 @@ var _ = t.Describe("Workloads config", func() {
 	})
 
 	It("resources should validate defaults", func() {
-		// Given
-		resources := config.Resources{}
-		// When
-		err := resources.ValidateDefaults()
-		// Then
-		Expect(err).NotTo(HaveOccurred())
+		testCases := []struct {
+			description string
+			resources   config.Resources
+		}{
+			{
+				description: "when only cpushares are provided",
+				resources: config.Resources{
+					CPUShares: 37,
+				},
+			},
+			{
+				description: "when only cpuquota is provided",
+				resources: config.Resources{
+					CPUQuota: 3700,
+				},
+			},
+			{
+				description: "when only cpuperiod is provided",
+				resources: config.Resources{
+					CPUPeriod: 37000,
+				},
+			},
+			{
+				description: "when only cpuset is provided",
+				resources: config.Resources{
+					CPUSet: "0-1",
+				},
+			},
+		}
+
+		for _, tc := range testCases {
+			By(tc.description, func() {
+				err := tc.resources.ValidateDefaults()
+				Expect(err).NotTo(HaveOccurred())
+			})
+		}
 	})
 
 	It("resources should mutate the container spec", func() {

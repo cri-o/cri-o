@@ -222,7 +222,7 @@ func (r *Resources) ValidateDefaults() error {
 	if _, err := cpuset.Parse(r.CPUSet); err != nil {
 		return fmt.Errorf("unable to parse cpuset %q: %w", r.CPUSet, err)
 	}
-	if r.CPUQuota < int64(r.CPUShares) {
+	if r.CPUQuota != 0 && r.CPUQuota < int64(r.CPUShares) {
 		return fmt.Errorf("cpuquota %d cannot be less than cpushares %d", r.CPUQuota, r.CPUShares)
 	}
 	if r.CPUPeriod != 0 && r.CPUPeriod < minQuotaPeriod {
