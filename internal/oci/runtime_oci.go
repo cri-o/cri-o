@@ -1185,12 +1185,10 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	defer conn.Close()
 
 	receiveStdout := make(chan error)
-	if outputStream != nil || errorStream != nil {
-		go func() {
-			receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
-			close(receiveStdout)
-		}()
-	}
+	go func() {
+		receiveStdout <- redirectResponseToOutputStreams(outputStream, errorStream, conn)
+		close(receiveStdout)
+	}()
 
 	stdinDone := make(chan error)
 	go func() {
@@ -1226,12 +1224,8 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 		if _, ok := err.(utils.DetachError); ok {
 			return nil
 		}
-		if outputStream != nil || errorStream != nil {
-			return <-receiveStdout
-		}
+		return <-receiveStdout
 	}
-
-	return nil
 }
 
 // ReopenContainerLog reopens the log file of a container.
