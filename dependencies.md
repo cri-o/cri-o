@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
+_Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1a8c8250d8682e39bb7eb986725360289445f827
+[0]: https://github.com/cri-o/cri-o/commit/0d2b542b20c006ba14b4feece7f1a226bda11df8
 
 ## Outdated Dependencies
 
@@ -248,7 +248,7 @@ _Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.11                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.12                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.10                            | false  | true             |
@@ -271,7 +271,7 @@ _Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                                       | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                                       | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                                       | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240323062759-1fd604ae58de  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240401192037-9c9fdbb0aac1  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                        | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                        |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                           |                                     | false  | true             |
@@ -569,7 +569,7 @@ _Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                                       | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240329195127-bce14e56f650  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240401195530-28bf76e4ce3f  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                        | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -834,9 +834,9 @@ _Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 | gonum.org/v1/plot                                                                       | v0.10.1                                       | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.152.0                                      | v0.172.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                        |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240325203815-454cdb8f5daa  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240401170217-c3f982113cda  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240401170217-c3f982113cda  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240401170217-c3f982113cda  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.62.0                                       | v1.62.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                        |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.33.0                                       |                                     | true   | true             |
@@ -869,7 +869,7 @@ _Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 | k8s.io/kubelet                                                                          | v0.30.0-alpha.2                               | v0.31.0-alpha.0                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.3                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240328165227-5fe230325f5a  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240401190221-03bf3de6e2bc  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                        | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                       | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
