@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Apr 2024 13:01:15 UTC for commit [51a8df1][0]._
+_Generated on Mon, 01 Apr 2024 16:21:05 UTC for commit [1a8c825][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/51a8df1c36881d37d30332651464b85eb8ce1df6
+[0]: https://github.com/cri-o/cri-o/commit/1a8c8250d8682e39bb7eb986725360289445f827
 
 ## Outdated Dependencies
 
@@ -183,7 +183,7 @@ _Generated on Mon, 01 Apr 2024 13:01:15 UTC for commit [51a8df1][0]._
 | github.com/AdamKorcz/go-fuzz-headers-1                                                  | v0.0.0-20230618160516-e936619f9f18            | v0.0.0-20230919221257-8b5d3ce2d11d  | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper | v0.2.0                                        |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                          |                                     | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.9.0                                        | v1.10.0                             | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.9.0                                        | v1.11.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                        | v1.4.0                                        | v1.5.1                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.5.0                                        | v1.5.2                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v1.0.1                                        | v1.1.0                              | false  | true             |
@@ -373,7 +373,7 @@ _Generated on Mon, 01 Apr 2024 13:01:15 UTC for commit [51a8df1][0]._
 | github.com/d2g/hardwareaddr                                                             | v0.0.0-20190221164911-e7d9fbe030e4            |                                     | false  | true             |
 | github.com/danieljoos/wincred                                                           | v1.2.0                                        | v1.2.1                              | false  | true             |
 | github.com/davecgh/go-spew                                                              | v1.1.2-0.20180830191138-d8f796af33cc          |                                     | false  | true             |
-| github.com/decred/dcrd/dcrec/secp256k1/v4                                               | v4.2.0                                        |                                     | false  | true             |
+| github.com/decred/dcrd/dcrec/secp256k1/v4                                               | v4.2.0                                        | v4.3.0                              | false  | true             |
 | github.com/dgryski/go-rendezvous                                                        | v0.0.0-20200823014737-9f7001d12a5f            |                                     | false  | true             |
 | github.com/digitalocean/go-libvirt                                                      | v0.0.0-20220804181439-8648fbde413e            | v0.0.0-20240308204700-df736b2945cf  | false  | true             |
 | github.com/digitalocean/go-qemu                                                         | v0.0.0-20230711162256-2e3d0186973e            |                                     | false  | true             |
