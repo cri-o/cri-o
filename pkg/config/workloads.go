@@ -10,6 +10,16 @@ import (
 	"k8s.io/utils/cpuset"
 )
 
+const (
+	milliCPUToCPU = 1000
+	// 100000 microseconds is equivalent to 100ms
+	defaultQuotaPeriod = 100000
+	// 1000 microseconds is equivalent to 1ms
+	// defined here:
+	// https://github.com/torvalds/linux/blob/cac03ac368fabff0122853de2422d4e17a32de08/kernel/sched/core.c#L10546
+	minQuotaPeriod = 1000
+)
+
 type Workloads map[string]*WorkloadConfig
 
 type WorkloadConfig struct {
@@ -32,7 +42,10 @@ type WorkloadConfig struct {
 	// Resources are the names of the resources that can be overridden by annotation.
 	// The key of the map is the resource name. The following resources are supported:
 	// `cpushares`: configure cpu shares for a given container
+	// `cpuquota`: configure cpu quota for a given container
+	// `cpuperiod`: configure cpu period for a given container
 	// `cpuset`: configure cpuset for a given container
+	// `cpulimit`: configure cpu quota in millicores for a given container, overrides the `cpuquota` field
 	// The value of the map is the default value for that resource.
 	// If a container is configured to use this workload, and does not specify
 	// the annotation with the resource and value, the default value will apply.
@@ -44,10 +57,16 @@ type WorkloadConfig struct {
 // This resources structure provides a default value, and can be overridden
 // by using the AnnotationPrefix.
 type Resources struct {
-	// Specifies the number of CPU shares this pod has access to.
+	// Specifies the number of CPU shares this Pod has access to.
 	CPUShares uint64 `json:"cpushares,omitempty"`
-	// Specifies the cpuset this pod has access to.
+	// Specifies the CPU quota this Pod is limited to in microseconds.
+	CPUQuota int64 `json:"cpuquota,omitempty"`
+	// Specifies the CPU period this Pod will use in microseconds.
+	CPUPeriod uint64 `json:"cpuperiod,omitempty"`
+	// Specifies the cpuset this Pod has access to.
 	CPUSet string `json:"cpuset,omitempty"`
+	// Specifies the CPU limit in millicores. This will be used to calculate the CPU quota.
+	CPULimit int64 `json:"cpulimit,omitempty"`
 }
 
 func (w Workloads) Validate() error {
@@ -156,19 +175,61 @@ func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]s
 	if resources.CPUShares == 0 {
 		resources.CPUShares = defaultResources.CPUShares
 	}
+	if resources.CPUQuota == 0 {
+		resources.CPUQuota = defaultResources.CPUQuota
+	}
+	if resources.CPUPeriod == 0 {
+		resources.CPUPeriod = defaultResources.CPUPeriod
+	}
+	if resources.CPULimit == 0 {
+		resources.CPULimit = defaultResources.CPULimit
+	}
+
+	// If a CPU Limit in Milli is supplied via the annotation, calculate quota with the given CPU period.
+	if resources.CPULimit != 0 {
+		resources.CPUQuota = milliCPUToQuota(resources.CPULimit, int64(resources.CPUPeriod))
+	}
 
 	return resources, nil
+}
+
+// milliCPUToQuota converts milliCPU to CFS quota and period values.
+// Input parameters and resulting value is number of microseconds.
+func milliCPUToQuota(milliCPU, period int64) (quota int64) {
+	if milliCPU == 0 {
+		return quota
+	}
+
+	if period == 0 {
+		period = defaultQuotaPeriod
+	}
+
+	// We then convert the milliCPU to a value normalized over a period.
+	quota = (milliCPU * period) / milliCPUToCPU
+
+	// quota needs to be a minimum of 1ms.
+	if quota < minQuotaPeriod {
+		quota = minQuotaPeriod
+	}
+	return quota
 }
 
 func (r *Resources) ValidateDefaults() error {
 	if r == nil {
 		return nil
 	}
-	if r.CPUSet == "" {
-		return nil
+
+	if _, err := cpuset.Parse(r.CPUSet); err != nil {
+		return fmt.Errorf("unable to parse cpuset %q: %w", r.CPUSet, err)
 	}
-	_, err := cpuset.Parse(r.CPUSet)
-	return err
+	if r.CPUQuota != 0 && r.CPUQuota < int64(r.CPUShares) {
+		return fmt.Errorf("cpuquota %d cannot be less than cpushares %d", r.CPUQuota, r.CPUShares)
+	}
+	if r.CPUPeriod != 0 && r.CPUPeriod < minQuotaPeriod {
+		return fmt.Errorf("cpuperiod %d cannot be less than 1000 microseconds", r.CPUPeriod)
+	}
+
+	return nil
 }
 
 func (r *Resources) MutateSpec(specgen *generate.Generator) {
@@ -180,5 +241,11 @@ func (r *Resources) MutateSpec(specgen *generate.Generator) {
 	}
 	if r.CPUShares != 0 {
 		specgen.SetLinuxResourcesCPUShares(r.CPUShares)
+	}
+	if r.CPUQuota != 0 {
+		specgen.SetLinuxResourcesCPUQuota(r.CPUQuota)
+	}
+	if r.CPUPeriod != 0 {
+		specgen.SetLinuxResourcesCPUPeriod(r.CPUPeriod)
 	}
 }
