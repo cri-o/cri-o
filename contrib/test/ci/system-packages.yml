@@ -90,8 +90,6 @@
       - btrfs-progs-devel
       - gpgme-devel
       - glibc-static
-      # required to test the crun-wasm workflow.
-      - crun-wasm
   when: ansible_distribution in ['Fedora']
 
 - name: Add python-boto for RHEL and CentOS
