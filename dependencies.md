@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
+_Generated on Tue, 02 Apr 2024 11:58:18 UTC for commit [54bf1be][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0d2b542b20c006ba14b4feece7f1a226bda11df8
+[0]: https://github.com/cri-o/cri-o/commit/54bf1be57b349f679170d8ed38c0f2137dbe3853
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240401015016-aa9cd232cdde | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240402012156-7795f9c016d3 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -35,6 +35,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | k8s.io/cri-api                                                              | v0.30.0-alpha.2.0.20240217224521-840a52e4cd66 | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
+| sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -271,7 +272,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                                       | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                                       | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                                       | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240401192037-9c9fdbb0aac1  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240401215612-c264f63f0692  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                        | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                        |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                           |                                     | false  | true             |
@@ -281,7 +282,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/buger/goterm                                                                 | v1.0.4                                        |                                     | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                        |                                     | false  | true             |
 | github.com/buildkite/agent/v3                                                           | v3.59.0                                       | v3.67.0                             | false  | true             |
-| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.4.1                              | false  | true             |
+| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.5.0                              | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251            |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                        |                                     | false  | true             |
 | github.com/bytedance/sonic                                                              | v1.10.1                                       | v1.11.3                             | false  | true             |
@@ -545,7 +546,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240401015016-aa9cd232cdde  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240402012156-7795f9c016d3  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -569,7 +570,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                                       | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240401195530-28bf76e4ce3f  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240401221642-2f669ed3e7ab  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                        | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -698,7 +699,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/sigstore/cosign/v2                                                           | v2.2.2                                        | v2.2.3                              | false  | true             |
 | github.com/sigstore/fulcio                                                              | v1.4.3                                        | v1.4.4                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.2.1                                        | v0.3.0                              | false  | true             |
-| github.com/sigstore/rekor                                                               | v1.3.4                                        | v1.3.5                              | false  | true             |
+| github.com/sigstore/rekor                                                               | v1.3.4                                        | v1.3.6                              | false  | true             |
 | github.com/sigstore/sigstore                                                            | v1.8.1                                        | v1.8.3                              | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.5                                        | v1.8.3                              | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/azure                                    | v1.7.5                                        | v1.8.3                              | false  | true             |
@@ -716,7 +717,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | github.com/spf13/cobra                                                                  | v1.8.0                                        |                                     | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                        |                                     | false  | true             |
 | github.com/spf13/viper                                                                  | v1.17.0                                       | v1.18.2                             | false  | true             |
-| github.com/spiffe/go-spiffe/v2                                                          | v2.1.6                                        | v2.1.7                              | false  | true             |
+| github.com/spiffe/go-spiffe/v2                                                          | v2.1.6                                        | v2.2.0                              | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20201008174630-78d3cae3a980            | v0.0.0-20230803200340-78284954bff6  | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                        | v1.3.0                              | false  | true             |
 | github.com/stretchr/objx                                                                | v0.5.1                                        | v0.5.2                              | false  | true             |
@@ -818,7 +819,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611            | v0.0.0-20240325151524-a685a6edb6d8  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867            | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616            |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240329164231-365c35338770  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240401224555-755f4ef71bbd  | false  | true             |
 | golang.org/x/mod                                                                        | v0.14.0                                       | v0.16.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.21.0                                       | v0.22.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.16.0                                       | v0.18.0                             | false  | true             |
@@ -891,7 +892,7 @@ _Generated on Mon, 01 Apr 2024 20:49:58 UTC for commit [0d2b542][0]._
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                                       | v0.30.2                             | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd            |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.11.0                                       |                                     | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.7.7                                        |                                     | true   | true             |
+| sigs.k8s.io/release-utils                                                               | v0.7.7                                        | v0.8.0                              | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
