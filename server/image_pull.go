@@ -245,7 +245,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Cancel the pull if no progress is made
 	pullCtx, cancel := context.WithCancel(context.Background())
-	go progressGoRoutine(ctx, cancel, progress, remoteCandidateName)
+	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
 
 	_, err = s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
@@ -266,11 +266,11 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	return nil
 }
 
-// progressGoRoutine consumes progress and turns it into metrics updates.
+// consumeImagePullProgress consumes progress and turns it into metrics updates.
 // It also checks if progress is being made within a constant timeout.
 // If the timeout is reached because no progress updates have been made, then
 // the cancel function will be called.
-func progressGoRoutine(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
+func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
 	// The progress interval is 1s, but we give it a bit more time just in case
 	// that the connection revives.
 	const timeout = 10 * time.Second
