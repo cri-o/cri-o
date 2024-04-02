@@ -57,7 +57,7 @@
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
 
 - name: Run configure
-  command: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun/configure --enable-embedded-yajl"
+  command: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun/configure --enable-embedded-yajl --with-wasmedge"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
 
