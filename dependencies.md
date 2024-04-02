@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
+_Generated on Tue, 02 Apr 2024 19:35:31 UTC for commit [b8cd0a9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/73ffdcea4e4935ae42efef5ae09498a9f8a77669
+[0]: https://github.com/cri-o/cri-o/commit/b8cd0a9d30ba4fbc821dc30d6152d6c9610af0c2
 
 ## Outdated Dependencies
 
@@ -36,6 +36,7 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.0                             | true   | true             |
+| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.0                             | true   | true             |
 
 ## All Dependencies
 
@@ -243,13 +244,13 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.6                                        | v1.1.0                              | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be            |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                        |                                     | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df            | v4.0.0-20240401075739-2244af362012  | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df            | v4.0.0-20240402162241-6628b008ac16  | false  | true             |
 | github.com/apache/arrow/go/v10                                                          | v10.0.1                                       |                                     | false  | true             |
 | github.com/apache/arrow/go/v11                                                          | v11.0.0                                       |                                     | false  | true             |
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.12                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.10                            | false  | true             |
@@ -315,7 +316,7 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                        |                                     | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb            |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be            |                                     | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.6.2                              | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.7.0                              | false  | true             |
 | github.com/containerd/aufs                                                              | v1.0.0                                        |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                          | v2.0.0                                        |                                     | false  | true             |
 | github.com/containerd/cgroups                                                           | v1.1.0                                        |                                     | true   | true             |
@@ -488,7 +489,7 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                        |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                           |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                        |                                     | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240327155427-868f304927ed  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240402174815-29b9bb013b0f  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                        | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                        |                                     | false  | true             |
@@ -698,7 +699,7 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | github.com/shurcooL/sanitized_anchor_name                                               | v1.0.0                                        |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                                           | v2.2.2                                        | v2.2.3                              | false  | true             |
 | github.com/sigstore/fulcio                                                              | v1.4.3                                        | v1.4.4                              | false  | true             |
-| github.com/sigstore/protobuf-specs                                                      | v0.2.1                                        | v0.3.0                              | false  | true             |
+| github.com/sigstore/protobuf-specs                                                      | v0.2.1                                        | v0.3.1                              | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.3.4                                        | v1.3.6                              | false  | true             |
 | github.com/sigstore/sigstore                                                            | v1.8.1                                        | v1.8.3                              | false  | true             |
 | github.com/sigstore/sigstore/pkg/signature/kms/aws                                      | v1.7.5                                        | v1.8.3                              | false  | true             |
@@ -870,7 +871,7 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | k8s.io/kubelet                                                                          | v0.30.0-alpha.2                               | v0.31.0-alpha.0                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.3                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240401190221-03bf3de6e2bc  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240402144403-fef5da99bd14  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                        | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                       | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
@@ -896,6 +897,6 @@ _Generated on Tue, 02 Apr 2024 14:28:03 UTC for commit [73ffdce][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        |                                     | true   | true             |
-| tags.cncf.io/container-device-interface/specs-go                                        | v0.6.0                                        |                                     | false  | true             |
+| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.0                              | true   | true             |
+| tags.cncf.io/container-device-interface/specs-go                                        | v0.6.0                                        | v0.7.0                              | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739            | v0.0.0-20230607025951-8b02fee814ae  | false  | true             |
