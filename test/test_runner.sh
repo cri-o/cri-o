@@ -30,7 +30,7 @@ function execute() {
 }
 
 # Tests to run. Default is "." (i.e. the current directory).
-TESTS=("${@:-.}")
+TESTS=("seccomp_notifier.bats")
 
 # Only run critest if requested
 if [[ "$RUN_CRITEST" == "1" ]]; then

@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"syscall"
@@ -991,7 +992,8 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
-		log.Debugf(ctx, "Skipping status update for: %+v", c.state)
+		log.Debugf(ctx, "Skipping status update for container exited with code %d: %+v", *c.state.ExitCode, c.state)
+		debug.PrintStack()
 		return nil
 	}
 
