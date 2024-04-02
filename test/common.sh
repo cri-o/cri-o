@@ -24,9 +24,6 @@ CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/bin/$CRIO_BINARY}
 # Path to the pinns binary
 PINNS_BINARY_PATH=${PINNS_BINARY_PATH:-${CRIO_ROOT}/bin/pinns}
 
-# Path to the pinns binary
-CRIOCTL_BINARY_PATH=${CRIOCTL_BINARY_PATH:-${CRIO_ROOT}/bin/crioctl}
-
 # Path of the crictl binary.
 CRICTL_PATH=$(command -v crictl || true)
 CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}

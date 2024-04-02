@@ -79,11 +79,6 @@ function crictl() {
     "$CRICTL_BINARY" -t 10m --config "$CRICTL_CONFIG_FILE" -r "unix://$CRIO_SOCKET" -i "unix://$CRIO_SOCKET" "$@"
 }
 
-# Run crictl using the binary specified by $CRICTL_BINARY.
-function crioctl() {
-    "$CRIOCTL_BINARY_PATH" -d --socket "$CRIO_SOCKET" "$@"
-}
-
 # Run the runtime binary with the specified RUNTIME_ROOT
 function runtime() {
     "$RUNTIME_BINARY_PATH" --root "$RUNTIME_ROOT" "$@"
