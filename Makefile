@@ -199,6 +199,9 @@ crio.conf: bin/crio
 release:
 	${GO_RUN} ./scripts/release
 
+patch-release:
+	${GO_RUN} ./scripts/patch-release
+
 release-notes: ${RELEASE_NOTES}
 	${GO_RUN} ./scripts/release-notes \
 		--output-path ${BUILD_PATH}/release-notes
@@ -549,5 +552,6 @@ metrics-exporter: bin/metrics-exporter
 	bin/metrics-exporter \
 	metrics-exporter \
 	release \
+	patch-release \
 	check-log-lines \
 	verify-dependencies
