@@ -1,5 +1,14 @@
 ---
 
+# Once https://github.com/opencontainers/runc/issues/4233 is fixed,
+# we can delete pull go 1.21 and link go toolchain
+
+- name: Pull Go 1.21
+  unarchive:
+    remote_src: yes
+    src: "https://storage.googleapis.com/golang/go1.21.9.linux-amd64.tar.gz"
+    dest: /usr/local/go1.21.9
+
 - name: clone runc source repo
   git:
     repo: "https://github.com/opencontainers/runc.git"
@@ -14,6 +23,8 @@
 - name: build runc
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
+    params:
+      GO: "/usr/local/go1.21.9/bin/"
 
 - name: install runc
   make:
