@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -xe
 
 TEST_USERNS=${TEST_USERNS:-}
 TEST_KEEP_ON_FAILURE=${TEST_KEEP_ON_FAILURE:-}
