@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 03 Apr 2024 01:05:51 UTC for commit [e96fd09][0]._
+_Generated on Wed, 03 Apr 2024 09:23:06 UTC for commit [4850c8c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e96fd09f24a06b389b968f9ef70098b62c2aacec
+[0]: https://github.com/cri-o/cri-o/commit/4850c8c264159cb6f66bf8952d5ea969c41474d1
 
 ## Outdated Dependencies
 
@@ -173,7 +173,7 @@ _Generated on Wed, 03 Apr 2024 01:05:51 UTC for commit [e96fd09][0]._
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.3                                       | v1.12.5                             | false  | true             |
 | code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5            | v0.0.0-20240329144308-0c372429d24b  | false  | true             |
-| cuelang.org/go                                                                          | v0.6.0                                        | v0.8.0                              | false  | true             |
+| cuelang.org/go                                                                          | v0.6.0                                        | v0.8.1                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                        |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9            | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
 | filippo.io/edwards25519                                                                 | v1.0.0                                        | v1.1.0                              | false  | true             |
