@@ -61,7 +61,7 @@
   block:
     - name: Get and extract kata tarball from upstream release
       unarchive:
-        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-x86_64.tar.xz"
+        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.xz"
         dest: "/"
         remote_src: yes
 
