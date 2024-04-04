@@ -30,6 +30,13 @@ prepare_system() {
     sudo systemctl stop docker || true
     sudo ufw disable || true
 
+    # Setup swap for integration tests
+    sudo fallocate -l 1G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+    sudo swapon /swapfile
+    sudo swapon --show
+
     # enable necessary kernel modules
     sudo ip6tables --list >/dev/null
 
