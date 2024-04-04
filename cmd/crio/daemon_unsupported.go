@@ -4,5 +4,5 @@
 package main
 
 func notifySystem() {
-	// nothing' doin'
+	// nothing' doing
 }

@@ -23,6 +23,8 @@ extend-ignore-re = [
     "ClosID",
     "stopp",
     "WRONLY",
+    "Oif",
+    "Pn",
 ]
 
 [type.sh]
