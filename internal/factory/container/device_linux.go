@@ -226,9 +226,8 @@ func (c *container) specInjectCDIDevices() error {
 		return nil
 	}
 
-	registry := cdi.GetRegistry()
-	if err := registry.Refresh(); err != nil {
-		// We don't consider registry refresh failure a fatal error.
+	if err := cdi.Refresh(); err != nil {
+		// We don't consider a refresh failure a fatal error.
 		// For instance, a dynamically generated invalid CDI Spec file for
 		// any particular vendor shouldn't prevent injection of devices of
 		// different vendors. CDI itself knows better and it will fail the
@@ -237,7 +236,7 @@ func (c *container) specInjectCDIDevices() error {
 		log.Warnf(context.TODO(), "CDI registry has errors: %v", err)
 	}
 
-	if _, err := registry.InjectDevices(c.Spec().Config, requested...); err != nil {
+	if _, err := cdi.InjectDevices(c.Spec().Config, requested...); err != nil {
 		return fmt.Errorf("CDI device injection failed: %w", err)
 	}
 
