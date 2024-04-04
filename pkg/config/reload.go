@@ -71,7 +71,9 @@ func (c *Config) Reload() error {
 	if err := c.ReloadRuntimes(newConfig); err != nil {
 		return err
 	}
-	cdi.GetRegistry(cdi.WithSpecDirs(newConfig.CDISpecDirs...))
+	if err := cdi.Configure(cdi.WithSpecDirs(newConfig.CDISpecDirs...)); err != nil {
+		return err
+	}
 
 	return nil
 }

@@ -1156,7 +1156,9 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		}
 		c.HooksDir = hooksDirs
 
-		cdi.GetRegistry(cdi.WithSpecDirs(c.CDISpecDirs...))
+		if err := cdi.Configure(cdi.WithSpecDirs(c.CDISpecDirs...)); err != nil {
+			return err
+		}
 
 		// Validate the pinns path
 		if err := c.ValidatePinnsPath("pinns"); err != nil {
