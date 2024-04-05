@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
+_Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bb2b8694c6f60dabe7897eb886642f93d0142492
+[0]: https://github.com/cri-o/cri-o/commit/bf30758326e51d3fed59d941c97500b6cbc9c653
 
 ## Outdated Dependencies
 
@@ -21,11 +21,11 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                                        | v0.2.4                             | true   | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.49.0                            | true   | true             |
-| go.opentelemetry.io/otel                                                    | v1.23.1                                       | v1.24.0                            | true   | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.24.0                            | true   | true             |
-| go.opentelemetry.io/otel/sdk                                                | v1.23.1                                       | v1.24.0                            | true   | true             |
-| go.opentelemetry.io/otel/trace                                              | v1.23.1                                       | v1.24.0                            | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.50.0                            | true   | true             |
+| go.opentelemetry.io/otel                                                    | v1.23.1                                       | v1.25.0                            | true   | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.25.0                            | true   | true             |
+| go.opentelemetry.io/otel/sdk                                                | v1.23.1                                       | v1.25.0                            | true   | true             |
+| go.opentelemetry.io/otel/trace                                              | v1.23.1                                       | v1.25.0                            | true   | true             |
 | golang.org/x/net                                                            | v0.22.0                                       | v0.24.0                            | true   | true             |
 | golang.org/x/sync                                                           | v0.6.0                                        | v0.7.0                             | true   | true             |
 | golang.org/x/sys                                                            | v0.18.0                                       | v0.19.0                            | true   | true             |
@@ -37,7 +37,7 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.0                             | true   | true             |
-| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.0                             | true   | true             |
+| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.1                             | true   | true             |
 
 ## All Dependencies
 
@@ -173,7 +173,7 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.4                                        | v1.9.6                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.3                                       | v1.12.5                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5            | v0.0.0-20240403132358-0898aa260181  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5            | v0.0.0-20240405144452-ebb2996022ca  | false  | true             |
 | cuelang.org/go                                                                          | v0.6.0                                        | v0.8.1                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                        |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9            | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
@@ -317,7 +317,7 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                        |                                     | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb            |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be            |                                     | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.7.0                              | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.7.1                              | false  | true             |
 | github.com/containerd/aufs                                                              | v1.0.0                                        |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                          | v2.0.0                                        |                                     | false  | true             |
 | github.com/containerd/cgroups                                                           | v1.1.0                                        |                                     | true   | true             |
@@ -796,17 +796,17 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | go.mongodb.org/mongo-driver                                                             | v1.12.1                                       | v1.14.0                             | false  | true             |
 | go.mozilla.org/pkcs7                                                                    | v0.0.0-20210826202110-33d05740a352            |                                     | false  | true             |
 | go.opencensus.io                                                                        | v0.24.0                                       |                                     | false  | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.48.0                                       | v0.49.0                             | true   | true             |
-| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.45.0                                       | v0.49.0                             | false  | true             |
-| go.opentelemetry.io/otel                                                                | v1.23.1                                       | v1.24.0                             | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.48.0                                       | v0.50.0                             | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.45.0                                       | v0.50.0                             | false  | true             |
+| go.opentelemetry.io/otel                                                                | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/otel/exporters/jaeger                                               | v1.0.0                                        | v1.17.0                             | false  | true             |
 | go.opentelemetry.io/otel/exporters/otlp/internal/retry                                  | v1.16.0                                       | v1.17.0                             | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                       | v1.23.1                                       | v1.24.0                             | false  | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                         | v1.23.1                                       | v1.24.0                             | true   | true             |
-| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp                         | v1.19.0                                       | v1.24.0                             | false  | true             |
-| go.opentelemetry.io/otel/metric                                                         | v1.23.1                                       | v1.24.0                             | false  | true             |
-| go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.24.0                             | true   | true             |
-| go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.24.0                             | true   | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace                                       | v1.23.1                                       | v1.25.0                             | false  | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc                         | v1.23.1                                       | v1.25.0                             | true   | true             |
+| go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp                         | v1.19.0                                       | v1.25.0                             | false  | true             |
+| go.opentelemetry.io/otel/metric                                                         | v1.23.1                                       | v1.25.0                             | false  | true             |
+| go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.25.0                             | true   | true             |
+| go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        |                                     | false  | true             |
 | go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.2                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
@@ -827,7 +827,7 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | golang.org/x/oauth2                                                                     | v0.16.0                                       | v0.19.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.6.0                                        | v0.7.0                              | true   | true             |
 | golang.org/x/sys                                                                        | v0.18.0                                       | v0.19.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2            | v0.0.0-20240404154303-b93185a3e4c3  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2            | v0.0.0-20240405141642-5e7a33625e65  | false  | true             |
 | golang.org/x/term                                                                       | v0.18.0                                       | v0.19.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                                       |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                        |                                     | false  | true             |
@@ -879,7 +879,7 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                       |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                        |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                       | v1.49.1                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                       | v1.49.2                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                        | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                        | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                        |                                     | false  | true             |
@@ -899,6 +899,6 @@ _Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.0                              | true   | true             |
+| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.1                              | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                                        | v0.6.0                                        | v0.7.0                              | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739            | v0.0.0-20230607025951-8b02fee814ae  | false  | true             |
