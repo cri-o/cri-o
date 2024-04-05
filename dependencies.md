@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
+_Generated on Fri, 05 Apr 2024 19:35:07 UTC for commit [183f28b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bf30758326e51d3fed59d941c97500b6cbc9c653
+[0]: https://github.com/cri-o/cri-o/commit/183f28b7e4ec06b004de4d54b771960e83d2f9fb
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
-| github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.14                            | true   | true             |
+| github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.15                            | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.1                            | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
@@ -36,7 +36,7 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | k8s.io/cri-api                                                              | v0.30.0-alpha.2.0.20240217224521-840a52e4cd66 | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
-| sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.0                             | true   | true             |
+| sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.1                             | true   | true             |
 | tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.1                             | true   | true             |
 
 ## All Dependencies
@@ -251,13 +251,13 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.15                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.10                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.16.9                                       | v1.17.10                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.11                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.16.9                                       | v1.17.11                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.14.9                                       | v1.16.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.76                                      | v1.16.14                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.76                                      | v1.16.15                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.2.8                                        | v1.3.5                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.5.8                                        | v2.6.5                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.7.1                                        | v1.8.0                              | false  | true             |
@@ -270,7 +270,7 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                                       | v1.17.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                                       | v1.30.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                                       | v1.53.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.18.2                                       | v1.20.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.18.2                                       | v1.20.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                                       | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                                       | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                                       | v1.20.2                             | false  | true             |
@@ -323,7 +323,7 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | github.com/containerd/cgroups                                                           | v1.1.0                                        |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                        | v3.0.2                                        | v3.0.3                              | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                        | v1.0.4                              | false  | true             |
-| github.com/containerd/containerd                                                        | v1.7.13                                       | v1.7.14                             | true   | true             |
+| github.com/containerd/containerd                                                        | v1.7.13                                       | v1.7.15                             | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                        | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                                       |                                     | true   | true             |
 | github.com/containerd/errdefs                                                           | v0.1.0                                        |                                     | false  | true             |
@@ -572,7 +572,7 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                                       | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240404165844-1f8a6e869cd4  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491            | v0.0.0-20240405175624-70d1887eeaa0  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                        | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -895,7 +895,7 @@ _Generated on Fri, 05 Apr 2024 15:30:25 UTC for commit [bf30758][0]._
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                                       | v0.30.2                             | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd            |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.11.0                                       |                                     | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.7.7                                        | v0.8.0                              | true   | true             |
+| sigs.k8s.io/release-utils                                                               | v0.7.7                                        | v0.8.1                              | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
