@@ -528,7 +528,7 @@ The `crio.stats` table specifies all necessary configuration for reporting conta
 
 ## CRIO.NRI TABLE
 The `crio.nri` table contains settings for controlling NRI (Node Resource Interface) support in CRI-O.
-**enable_nri**=false
+**enable_nri**=true
   Enable CRI-O NRI support.
 
 **nri_plugin_dir**="/opt/nri/plugins"
