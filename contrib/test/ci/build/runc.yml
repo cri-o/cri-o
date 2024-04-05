@@ -3,6 +3,12 @@
 # Once https://github.com/opencontainers/runc/issues/4233 is fixed,
 # we can delete pull go 1.21 and link go toolchain
 
+- name: Create a directory if it does not exist
+  file:
+    path: /usr/local/go1.21.9
+    state: directory
+    mode: '0755'
+
 - name: Pull Go 1.21
   unarchive:
     remote_src: yes
