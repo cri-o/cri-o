@@ -890,6 +890,7 @@ func DefaultConfig() (*Config, error) {
 			ulimitsConfig:               ulimits.New(),
 			HostNetworkDisableSELinux:   true,
 			DisableHostPortMapping:      false,
+			EnableCriuSupport:           true,
 		},
 		ImageConfig: ImageConfig{
 			DefaultTransport:   "docker://",

@@ -21,6 +21,9 @@ import (
 // checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.
 // It returns the StorageImageID of the image the input resolves to, nil otherwise.
 func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*storage.StorageImageID, error) {
+	if input == "" {
+		return nil, nil
+	}
 	if _, err := os.Stat(input); err == nil {
 		return nil, nil
 	}
