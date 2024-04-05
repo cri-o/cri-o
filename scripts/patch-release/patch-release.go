@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/blang/semver/v4"
@@ -23,6 +24,8 @@ const (
 	versionFile       = "internal/version/version.go"
 	branchPrefix      = "release-"
 )
+
+var releaseMinorVersions = []string{"1.29", "1.28", "1.27"}
 
 func main() {
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
@@ -55,29 +58,59 @@ func run() error {
 		return fmt.Errorf("open local repo: %w", err)
 	}
 
-	currentBranch, err := repo.CurrentBranch()
-	if err != nil {
-		return fmt.Errorf("get current branch: %w", err)
-	}
-	logrus.Infof("Using current branch: %s", currentBranch)
+	for _, minorVersion := range releaseMinorVersions {
+		baseBranchName := branchPrefix + minorVersion // returns "release-x.y"
 
-	newVersion, err := incVersion(version.Version)
-	if err != nil {
-		return fmt.Errorf("increment version: %w", err)
-	}
+		sv, err := getCurrentVersionFromReleaseBranch(repo, baseBranchName) // returns "x.y.z"
+		if err != nil {
+			return fmt.Errorf("current version from release branch %s to semver: %w", minorVersion, err)
+		}
 
-	logrus.Infof("Using new version: %s", util.SemverToTagString(newVersion))
+		// Bump up the patch version
+		sv.Patch++
 
-	if err := updateVersionAndCreatePR(
-		repo, newVersion, currentBranch, org, remote,
-	); err != nil {
-		return fmt.Errorf("update version in local repository: %w", err)
+		if err := updateVersionAndCreatePR(
+			repo, sv, baseBranchName, org, remote,
+		); err != nil {
+			return fmt.Errorf("update version in local repository: %w", err)
+		}
 	}
 
 	return nil
 }
 
-func incVersion(tag string) (res semver.Version, err error) {
+func getCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (res semver.Version, err error) {
+	logrus.Infof("Switching to branch: %s", baseBranchName)
+	if err := repo.Checkout(baseBranchName); err != nil {
+		return res, fmt.Errorf("checkout branch %s: %w", baseBranchName, err)
+	}
+
+	versionFromVersionFile, err := getCurrentVersionFromVersionFile(versionFile) // returns "x.xx.x"
+	if err != nil {
+		return res, fmt.Errorf("reading latest version: %w", err)
+	}
+
+	return convertStringToSemver(versionFromVersionFile)
+}
+
+func getCurrentVersionFromVersionFile(versionFile string) (string, error) {
+	versionPattern := `const\s+Version\s+=\s+"(.+)"`
+
+	content, err := os.ReadFile(versionFile)
+	if err != nil {
+		return "", err
+	}
+
+	re := regexp.MustCompile(versionPattern)
+	matches := re.FindStringSubmatch(string(content))
+	if len(matches) < 2 {
+		return "", fmt.Errorf("unable to find version in %q", versionFile)
+	}
+
+	return matches[1], nil
+}
+
+func convertStringToSemver(tag string) (res semver.Version, err error) {
 	sv, err := util.TagStringToSemver(strings.TrimSpace(tag))
 	if err != nil {
 		return res, fmt.Errorf("convert tag string %s to semver: %w", tag, err)
@@ -85,15 +118,11 @@ func incVersion(tag string) (res semver.Version, err error) {
 
 	// clear any suffix like `-dev`
 	sv.Pre = nil
-
-	// New patch version
-	sv.Patch++
-
 	return sv, nil
 }
 
 func updateVersionAndCreatePR(
-	repo *git.Repo, newVersion semver.Version, branch, org, remote string,
+	repo *git.Repo, newVersion semver.Version, baseBranchName, org, remote string,
 ) error {
 	logrus.Info("Updating repository")
 
@@ -152,7 +181,7 @@ func updateVersionAndCreatePR(
 		newVersion, "/release-note-none",
 	)
 
-	pr, err := gh.CreatePullRequest("cri-o", "cri-o", branch,
+	pr, err := gh.CreatePullRequest("cri-o", "cri-o", baseBranchName,
 		headBranchName,
 		title,
 		body,
