@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
+_Generated on Fri, 05 Apr 2024 09:51:36 UTC for commit [bb2b869][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/036e5425f1cdd3ea2351c037a89d64e64253f03f
+[0]: https://github.com/cri-o/cri-o/commit/bb2b8694c6f60dabe7897eb886642f93d0142492
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240404154648-aae2679f093a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240405054349-0e0a361f0ec5 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -155,7 +155,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                        | v1.8.5                              | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.4                                        | v1.7.6                              | false  | true             |
 | cloud.google.com/go/spanner                                                             | v1.55.0                                       | v1.60.0                             | false  | true             |
-| cloud.google.com/go/speech                                                              | v1.21.0                                       | v1.22.1                             | false  | true             |
+| cloud.google.com/go/speech                                                              | v1.21.0                                       | v1.23.0                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.33.0                                       | v1.40.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.3                                       | v1.10.5                             | false  | true             |
 | cloud.google.com/go/talent                                                              | v1.6.5                                        | v1.6.7                              | false  | true             |
@@ -295,7 +295,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | github.com/cenkalti/backoff/v4                                                          | v4.2.1                                        | v4.3.0                              | false  | true             |
 | github.com/census-instrumentation/opencensus-proto                                      | v0.4.1                                        |                                     | false  | true             |
 | github.com/cespare/xxhash                                                               | v1.1.0                                        |                                     | false  | true             |
-| github.com/cespare/xxhash/v2                                                            | v2.2.0                                        |                                     | false  | true             |
+| github.com/cespare/xxhash/v2                                                            | v2.2.0                                        | v2.3.0                              | false  | true             |
 | github.com/checkpoint-restore/checkpointctl                                             | v1.1.0                                        |                                     | true   | true             |
 | github.com/checkpoint-restore/go-criu/v5                                                | v5.3.0                                        |                                     | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                                | v7.1.0                                        |                                     | true   | true             |
@@ -548,7 +548,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240404154648-aae2679f093a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240405054349-0e0a361f0ec5  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -756,7 +756,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | github.com/vishvananda/netns                                                            | v0.0.4                                        |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6         | v0.30.2                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                        |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.94.0                                       | v0.101.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.94.0                                       | v0.102.0                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                        |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                        |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                        |                                     | false  | true             |
@@ -818,10 +818,10 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | gocloud.dev                                                                             | v0.34.0                                       | v0.37.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                        | v0.7.0                              | false  | true             |
 | golang.org/x/crypto                                                                     | v0.21.0                                       | v0.22.0                             | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611            | v0.0.0-20240325151524-a685a6edb6d8  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611            | v0.0.0-20240404231335-c0f41cb1a7a0  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867            | v0.15.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616            |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240401224555-755f4ef71bbd  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028            | v0.0.0-20240404231514-09dbf07665ed  | false  | true             |
 | golang.org/x/mod                                                                        | v0.16.0                                       | v0.17.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.22.0                                       | v0.24.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.16.0                                       | v0.19.0                             | false  | true             |
@@ -831,7 +831,7 @@ _Generated on Thu, 04 Apr 2024 19:31:46 UTC for commit [036e542][0]._
 | golang.org/x/term                                                                       | v0.18.0                                       | v0.19.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                                       |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                        |                                     | false  | true             |
-| golang.org/x/tools                                                                      | v0.19.0                                       |                                     | false  | true             |
+| golang.org/x/tools                                                                      | v0.19.0                                       | v0.20.0                             | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028            |                                     | false  | true             |
 | gonum.org/v1/gonum                                                                      | v0.11.0                                       | v0.15.0                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0            | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
