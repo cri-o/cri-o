@@ -30,7 +30,9 @@
   make:
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/opencontainers/runc"
     params:
-      GO: "/usr/local/go1.21.9/bin/"
+      GO: "/usr/local/go1.21.9/go/bin/go"
+    environment:
+      GOROOT: "/usr/local/go1.21.9/go"
 
 - name: install runc
   make:
