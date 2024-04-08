@@ -238,6 +238,7 @@ func (c *ConmonClient) startSpan(ctx context.Context, name string) (context.Cont
 	}
 	const prefix = "conmonrs-client: "
 
+	//nolint:spancheck // https://github.com/jjti/go-spancheck/issues/7
 	return c.tracer.Start(ctx, prefix+name, trace.WithSpanKind(trace.SpanKindClient))
 }
 
@@ -601,7 +602,7 @@ func (c *ConmonClient) Version(
 func (c *ConmonClient) setCgroupManager(
 	cfg CgroupManager,
 	req interface {
-		SetCgroupManager(proto.Conmon_CgroupManager)
+		SetCgroupManager(manager proto.Conmon_CgroupManager)
 	},
 ) {
 	cgroupManager := c.cgroupManager
@@ -685,6 +686,7 @@ const (
 	// LogDriverTypeContainerRuntimeInterface is the Kubernetes CRI logger
 	// type.
 	LogDriverTypeContainerRuntimeInterface LogDriverType = iota
+	LogDriverTypeJSONLogger                LogDriverType = iota
 )
 
 // CreateContainerResponse is the response of the CreateContainer method.
@@ -902,6 +904,9 @@ func (c *ConmonClient) initLogDrivers(req *proto.Conmon_CreateContainerRequest, 
 		n := newLogDrivers.At(i)
 		if logDriver.Type == LogDriverTypeContainerRuntimeInterface {
 			n.SetType(proto.Conmon_LogDriver_Type_containerRuntimeInterface)
+		}
+		if logDriver.Type == LogDriverTypeJSONLogger {
+			n.SetType(proto.Conmon_LogDriver_Type_json)
 		}
 		if err := n.SetPath(logDriver.Path); err != nil {
 			return fmt.Errorf("set log driver path: %w", err)
