@@ -17,7 +17,7 @@ permissions:
 jobs:
   test-binaries:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         run:
           - runner: ubuntu-latest
@@ -60,7 +60,7 @@ jobs:
   integration:
     needs: test-binaries
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         run:
           - name: critest / conmon
