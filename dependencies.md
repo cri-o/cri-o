@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
+_Generated on Mon, 08 Apr 2024 10:28:18 UTC for commit [d7dfd78][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/11c5cdbda29bee532d95c64abdc037b214752ccb
+[0]: https://github.com/cri-o/cri-o/commit/d7dfd78af9f238dcc6c6433aa62d2f5b2252837d
 
 ## Outdated Dependencies
 
@@ -10,12 +10,13 @@ _Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
 |-----------------------------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.13                                       | v1.7.15                            | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.1                            | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.2                             | true   | true             |
 | github.com/containers/image/v5                                              | v5.29.2                                       | v5.30.0                            | true   | true             |
 | github.com/containers/ocicrypt                                              | v1.1.9                                        | v1.1.10                            | true   | true             |
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240405223100-9d2c5b180e02 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408090436-be8f0cb52028 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -245,7 +246,7 @@ _Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
 | github.com/andybalholm/brotli                                                           | v1.0.6                                        | v1.1.0                              | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be            |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                        |                                     | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df            | v4.0.0-20240406134525-b486ce73c7a5  | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df            | v4.0.0-20240408071948-360c86c5ee2a  | false  | true             |
 | github.com/apache/arrow/go/v10                                                          | v10.0.1                                       |                                     | false  | true             |
 | github.com/apache/arrow/go/v11                                                          | v11.0.0                                       |                                     | false  | true             |
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
@@ -345,7 +346,7 @@ _Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
 | github.com/containers/buildah                                                           | v1.33.5                                       | v1.35.3                             | false  | true             |
 | github.com/containers/common                                                            | v0.57.4                                       | v0.58.1                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                          |                                     | true   | true             |
-| github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57          |                                     | true   | true             |
+| github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.2                              | true   | true             |
 | github.com/containers/gvisor-tap-vsock                                                  | v0.7.2                                        | v0.7.3                              | false  | true             |
 | github.com/containers/image/v5                                                          | v5.29.2                                       | v5.30.0                             | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                        |                                     | true   | true             |
@@ -548,7 +549,7 @@ _Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240405223100-9d2c5b180e02  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408090436-be8f0cb52028  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -807,7 +808,7 @@ _Generated on Sun, 07 Apr 2024 16:33:14 UTC for commit [11c5cdb][0]._
 | go.opentelemetry.io/otel/metric                                                         | v1.23.1                                       | v1.25.0                             | false  | true             |
 | go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.25.0                             | true   | true             |
-| go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        |                                     | false  | true             |
+| go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        | v1.2.0                              | false  | true             |
 | go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.2                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                        |                                     | false  | true             |
