@@ -348,8 +348,9 @@ EOF
 		"$TESTDATA"/container_config.json > "$TESTDIR/timezone.json"
 
 	ctr_id=$(crictl run "$TESTDIR/timezone.json" "$TESTDATA/sandbox_config.json")
-	output=$(crictl exec "$ctr_id" date +"%a %b %e %H:%M:%S %Z %Y")
-	expected_output=$(TZ="Asia/Singapore" date +"%a %b %e %H:%M:%S %Z %Y")
+	datestr=$(date +%s)
+	output=$(crictl exec "$ctr_id" date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
+	expected_output=$(TZ="Asia/Singapore" date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
 	[[ "$output" == *"$expected_output"* ]]
 }
 
@@ -361,7 +362,8 @@ EOF
 		"$TESTDATA"/container_config.json > "$TESTDIR/empty_timezone.json"
 
 	ctr_id=$(crictl run "$TESTDIR/empty_timezone.json" "$TESTDATA/sandbox_config.json")
-	output=$(crictl exec "$ctr_id" date +"%a %b %e %H:%M:%S %Z %Y")
-	expected_output=$(date +"%a %b %e %H:%M:%S %Z %Y")
+	datestr=$(date +%s)
+	output=$(crictl exec "$ctr_id" date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
+	expected_output=$(date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
 	[[ "$output" == *"$expected_output"* ]]
 }
