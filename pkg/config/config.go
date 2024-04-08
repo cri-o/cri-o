@@ -1160,11 +1160,12 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if c.EnableCriuSupport {
 			if err := validateCriuInPath(); err != nil {
 				c.EnableCriuSupport = false
-				return errors.New("cannot enable checkpoint/restore support without the criu binary in $PATH")
+				logrus.Infof("Checkpoint/restore support disabled: CRIU binary not found int $PATH")
+			} else {
+				logrus.Infof("Checkpoint/restore support enabled")
 			}
-			logrus.Infof("Checkpoint/restore support enabled")
 		} else {
-			logrus.Infof("Checkpoint/restore support disabled")
+			logrus.Infof("Checkpoint/restore support disabled via configuration")
 		}
 
 		if err := c.seccompConfig.LoadProfile(c.SeccompProfile); err != nil {
