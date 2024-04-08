@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 08 Apr 2024 12:49:18 UTC for commit [8a3ecb4][0]._
+_Generated on Mon, 08 Apr 2024 15:03:42 UTC for commit [4759ea7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8a3ecb43b3e0120df01398dd46dee481f79f1a12
+[0]: https://github.com/cri-o/cri-o/commit/4759ea748524162d57274bb97e18a6bcc4664fa1
 
 ## Outdated Dependencies
 
@@ -16,7 +16,7 @@ _Generated on Mon, 08 Apr 2024 12:49:18 UTC for commit [8a3ecb4][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408122323-42936cb92c77 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408140621-fba1d394d778 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -549,7 +549,7 @@ _Generated on Mon, 08 Apr 2024 12:49:18 UTC for commit [8a3ecb4][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408122323-42936cb92c77  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240408140621-fba1d394d778  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -578,7 +578,7 @@ _Generated on Mon, 08 Apr 2024 12:49:18 UTC for commit [8a3ecb4][0]._
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
 | github.com/linuxkit/virtsock                                                            | v0.0.0-20220523201153-1a23e78aa7a2            |                                     | false  | true             |
-| github.com/lufia/plan9stats                                                             | v0.0.0-20211012122336-39d0f177ccd0            | v0.0.0-20240226150601-1dcf7310316a  | false  | true             |
+| github.com/lufia/plan9stats                                                             | v0.0.0-20211012122336-39d0f177ccd0            | v0.0.0-20240408141607-282e7b5d6b74  | false  | true             |
 | github.com/lyft/protoc-gen-star                                                         | v0.6.1                                        | v0.6.2                              | false  | true             |
 | github.com/lyft/protoc-gen-star/v2                                                      | v2.0.1                                        | v2.0.3                              | false  | true             |
 | github.com/magefile/mage                                                                | v1.15.0                                       |                                     | false  | true             |
@@ -874,13 +874,13 @@ _Generated on Mon, 08 Apr 2024 12:49:18 UTC for commit [8a3ecb4][0]._
 | k8s.io/kubelet                                                                          | v0.30.0-alpha.2                               | v0.31.0-alpha.0                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.3                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240404013351-5d4af76051e4  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240408131417-094f1527d5fc  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                        | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                       | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                       |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                        |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                       | v1.49.2                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                       | v1.49.3                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                        | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                        | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                        |                                     | false  | true             |
