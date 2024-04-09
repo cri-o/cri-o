@@ -305,6 +305,8 @@ function teardown() {
 }
 
 @test "run container in pod with crun-wasm enabled" {
+	# remove once fedora tests are on fedora 39
+	skip "crun-wasm dependency on fedora 36 is out of date"
 	if [ -z "$CRUN_WASM_BINARY" ] || [[ "$RUNTIME_TYPE" == "vm" ]]; then
 		skip "crun-wasm not installed or runtime type is VM"
 	fi
