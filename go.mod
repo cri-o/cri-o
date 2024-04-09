@@ -22,7 +22,7 @@ require (
 	github.com/containers/common v0.55.5-0.20240105071436-8fedf2e32c8a
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.5.1
-	github.com/containers/image/v5 v5.27.0
+	github.com/containers/image/v5 v5.27.1-0.20240409053359-3e133cb4d9fb
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/podman/v4 v4.6.1
