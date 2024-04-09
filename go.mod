@@ -21,7 +21,7 @@ require (
 	github.com/containers/common v0.52.1-0.20240315151432-b891c56aeab5
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.4.0
-	github.com/containers/image/v5 v5.25.0
+	github.com/containers/image/v5 v5.25.1-0.20240409053442-438a5d8f18a2
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.8
 	github.com/containers/podman/v4 v4.4.1
@@ -406,10 +406,10 @@ require (
 )
 
 replace (
-	// TODO: Remove me when Podman uses a pinned runc version:
-	// https://github.com/containers/podman/blob/74aa681e59352257eb5f25f089dffa66d6345a3a/go.mod#L78
 	github.com/checkpoint-restore/checkpointctl => github.com/checkpoint-restore/checkpointctl v0.0.0-20220321135231-33f4a66335f0
 	github.com/container-orchestrated-devices/container-device-interface => github.com/container-orchestrated-devices/container-device-interface v0.5.3
+	// TODO: Remove me when Podman uses a pinned runc version:
+	// https://github.com/containers/podman/blob/74aa681e59352257eb5f25f089dffa66d6345a3a/go.mod#L78
 	github.com/opencontainers/runc => github.com/opencontainers/runc v1.1.1-0.20220617142545-8b9452f75cbc
 	github.com/u-root/u-root => github.com/u-root/u-root v0.8.1-0.20220307150114-d511ded1d944
 	k8s.io/api => k8s.io/kubernetes/staging/src/k8s.io/api v0.0.0-20220823173643-a866cbe2e5bb
