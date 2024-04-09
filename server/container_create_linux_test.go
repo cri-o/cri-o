@@ -217,9 +217,9 @@ func TestIsSubDirectoryOf(t *testing.T) {
 	for _, tt := range tests {
 		testname := tt.base + " " + tt.target
 		t.Run(testname, func(t *testing.T) {
-			ans := isSubDirectoryOf(tt.base, tt.target)
-			if ans != tt.want {
-				t.Errorf("got %v, want %v", ans, tt.want)
+			res := isSubDirectoryOf(tt.base, tt.target)
+			if res != tt.want {
+				t.Errorf("got %v, want %v", res, tt.want)
 			}
 		})
 	}
