@@ -23,9 +23,10 @@ import (
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/containers/storage/pkg/unshare"
+
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
@@ -835,7 +836,7 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 func GetImageService(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (ImageServer, error) {
 	if store == nil {
 		var err error
-		storeOpts, err := storage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+		storeOpts, err := storage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
 		if err != nil {
 			return nil, err
 		}

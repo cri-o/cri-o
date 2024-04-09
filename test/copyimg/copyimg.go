@@ -9,9 +9,9 @@ import (
 	"github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports/alltransports"
 	"github.com/containers/image/v5/types"
-	"github.com/containers/podman/v4/pkg/rootless"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
@@ -103,7 +103,7 @@ func main() {
 			if rootDir != "" && runrootDir == "" {
 				log.Fatalf(ctx, "Must set --root and --runroot, or neither")
 			}
-			storeOptions, err := sstorage.DefaultStoreOptions(rootless.IsRootless(), rootless.GetRootlessUID())
+			storeOptions, err := sstorage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
 			if err != nil {
 				return err
 			}

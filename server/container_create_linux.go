@@ -14,11 +14,10 @@ import (
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
 	"github.com/containers/common/pkg/util"
-	"github.com/containers/podman/v4/pkg/rootless"
-
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -750,7 +749,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		mountPoint,
 		0,
 		0,
-		rootless.IsRootless(),
+		unshare.IsRootless(),
 		ctr.DisableFips(),
 	)
 

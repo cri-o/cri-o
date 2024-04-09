@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/utils"
 	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"
@@ -227,7 +227,7 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) (err er
 			SkipDevices: true,
 			CpusetCpus:  resources.CPU.Cpus,
 		},
-		Rootless: rootless.IsRootless(),
+		Rootless: unshare.IsRootless(),
 	}
 	if resources.CPU.Shares != nil {
 		cg.Resources.CpuShares = *resources.CPU.Shares
