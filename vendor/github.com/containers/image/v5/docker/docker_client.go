@@ -497,8 +497,8 @@ func (c *dockerClient) resolveRequestURL(path string) (*url.URL, error) {
 // Checks if the auth headers in the response contain an indication of a failed
 // authorizdation because of an "insufficient_scope" error. If that's the case,
 // returns the required scope to be used for fetching a new token.
-func needsRetryWithUpdatedScope(err error, res *http.Response) (bool, *authScope) {
-	if err == nil && res.StatusCode == http.StatusUnauthorized {
+func needsRetryWithUpdatedScope(res *http.Response) (bool, *authScope) {
+	if res.StatusCode == http.StatusUnauthorized {
 		challenges := parseAuthHeader(res.Header)
 		for _, challenge := range challenges {
 			if challenge.Scheme == "bearer" {
@@ -557,6 +557,9 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 	attempts := 0
 	for {
 		res, err := c.makeRequestToResolvedURLOnce(ctx, method, requestURL, headers, stream, streamLen, auth, extraScope)
+		if err != nil {
+			return nil, err
+		}
 		attempts++
 
 		// By default we use pre-defined scopes per operation. In
@@ -572,19 +575,24 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		// We also cannot retry with a body (stream != nil) as stream
 		// was already read
 		if attempts == 1 && stream == nil && auth != noAuth {
-			if retry, newScope := needsRetryWithUpdatedScope(err, res); retry {
+			if retry, newScope := needsRetryWithUpdatedScope(res); retry {
 				logrus.Debug("Detected insufficient_scope error, will retry request with updated scope")
+				res.Body.Close()
 				// Note: This retry ignores extraScope. That’s, strictly speaking, incorrect, but we don’t currently
 				// expect the insufficient_scope errors to happen for those callers. If that changes, we can add support
 				// for more than one extra scope.
 				res, err = c.makeRequestToResolvedURLOnce(ctx, method, requestURL, headers, stream, streamLen, auth, newScope)
+				if err != nil {
+					return nil, err
+				}
 				extraScope = newScope
 			}
 		}
-		if res == nil || res.StatusCode != http.StatusTooManyRequests || // Only retry on StatusTooManyRequests, success or other failure is returned to caller immediately
+
+		if res.StatusCode != http.StatusTooManyRequests || // Only retry on StatusTooManyRequests, success or other failure is returned to caller immediately
 			stream != nil || // We can't retry with a body (which is not restartable in the general case)
 			attempts == backoffNumIterations {
-			return res, err
+			return res, nil
 		}
 		// close response body before retry or context done
 		res.Body.Close()
