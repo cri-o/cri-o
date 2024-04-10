@@ -4,8 +4,7 @@
   git:
     repo: "https://github.com/containers/crun.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
-    force: "{{ force_clone | default(False) | bool}}"
-    version: "HEAD"
+    version: "{{ crun_git_version }}"
 
 - name: Install crun dependencies
   dnf:
