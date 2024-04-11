@@ -41,12 +41,6 @@ dependencies:
     - path: scripts/versions
       match: conmon
 
-  - name: conmon-rs
-    version: v0.6.1
-    refPaths:
-    - path: scripts/versions
-      match: conmon-rs
-
   - name: cri-tools
     version: v1.29.0
     refPaths:
