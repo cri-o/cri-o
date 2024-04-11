@@ -1,4 +1,8 @@
 ---
+- name: Remove existing cri-tools directory
+  file:
+    path: "{{ ansible_env.GOPATH }}/src/github.com/kubernetes-sigs/cri-tools"
+    state: absent
 
 - name: clone cri-tools source repo
   git:
