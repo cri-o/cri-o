@@ -11,9 +11,9 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	current "github.com/containernetworking/cni/pkg/types/100"
-	"github.com/containers/podman/v4/pkg/rootless"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
@@ -320,18 +320,25 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 		return nil, errors.New("infra container not found")
 	}
 
-	uids, err := rootless.ReadMappingsProc(fmt.Sprintf("/proc/%d/uid_map", ic.State().Pid))
+	uids, gids, err := unshare.GetHostIDMappings(strconv.Itoa(ic.State().Pid))
 	if err != nil {
 		return nil, err
 	}
-	gids, err := rootless.ReadMappingsProc(fmt.Sprintf("/proc/%d/gid_map", ic.State().Pid))
-	if err != nil {
-		return nil, err
-	}
-
-	mappings := idtools.NewIDMappingsFromMaps(uids, gids)
+	mappings := convertToStorageIDMappings(uids, gids)
 	ic.SetIDMappings(mappings)
 	return mappings, nil
+}
+
+func convertToStorageIDMappings(uidMappings, gidMappings []spec.LinuxIDMapping) *idtools.IDMappings {
+	uids := make([]idtools.IDMap, len(uidMappings))
+	gids := make([]idtools.IDMap, len(gidMappings))
+	for i, v := range uidMappings {
+		uids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
+	}
+	for i, v := range gidMappings {
+		gids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
+	}
+	return idtools.NewIDMappingsFromMaps(uids, gids)
 }
 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {

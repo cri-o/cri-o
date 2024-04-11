@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/containers/podman/v4/pkg/rootless"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo/v2"
@@ -159,7 +159,7 @@ var _ = t.Describe("Utils", func() {
 		It("should fail unauthenticated", func() {
 			// Given
 			// When
-			err := utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(rootless.IsRootless()), 1, "", "")
+			err := utils.RunUnderSystemdScope(dbusmgr.NewDbusConnManager(unshare.IsRootless()), 1, "", "")
 
 			// Then
 			Expect(err).To(HaveOccurred())
