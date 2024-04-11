@@ -95,6 +95,23 @@ A roadmap that describes the direction of CRI-O can be found [here](/roadmap.md)
 The project is tracking all ongoing efforts as part of the [Feature Roadmap
 GitHub project](https://github.com/orgs/cri-o/projects/1).
 
+## CI images and jobs
+
+CRI-O's CI is split-up between GitHub actions and [OpenShift CI (Prow)](https://prow.ci.openshift.org).
+Relevant virtual machine images used for the prow jobs are built periodically in
+the jobs:
+
+- [periodic-ci-cri-o-cri-o-main-periodics-setup-periodic](https://prow.ci.openshift.org/?job=periodic-ci-cri-o-cri-o-main-periodics-setup-periodic)
+- [periodic-ci-cri-o-cri-o-main-periodics-setup-fedora-periodic](https://prow.ci.openshift.org/?job=periodic-ci-cri-o-cri-o-main-periodics-setup-fedora-periodic)
+- [periodic-ci-cri-o-cri-o-main-periodics-evented-pleg-periodic](https://prow.ci.openshift.org/?job=periodic-ci-cri-o-cri-o-main-periodics-evented-pleg-periodic)
+
+The jobs are maintained [from the openshift/release repository](https://github.com/openshift/release/blob/ecdeb0a/ci-operator/jobs/cri-o/cri-o/cri-o-cri-o-main-periodics.yaml)
+and define workflows used for the particular jobs. The actual job definitions
+can be found in the same repository under [ci-operator/jobs/cri-o/cri-o/cri-o-cri-o-main-presubmits.yaml](https://github.com/openshift/release/blob/ecdeb0a/ci-operator/jobs/cri-o/cri-o/cri-o-cri-o-main-presubmits.yaml)
+for the `main` branch as well as the corresponding files for the release
+branches. The base image configuration for those jobs is available in the same
+repository under [ci-operator/config/cri-o/cri-o](https://github.com/openshift/release/tree/ecdeb0a/ci-operator/config/cri-o/cri-o).
+
 ## Commands
 
 | Command                    | Description                             |
