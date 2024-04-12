@@ -21,6 +21,8 @@
 
 - name: clone build and install crun
   include_tasks: "build/crun.yml"
+  vars:
+    force_clone: true
 
 - name: install Kata Containers
   include_tasks: "build/kata.yml"
