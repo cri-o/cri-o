@@ -221,6 +221,7 @@ type RuntimeHandler struct {
 	//   Note that the annotation works on containers as well as on images.
 	//   For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
 	//   can be used without the required `/POD` suffix or a container name.
+	// "io.kubernetes.cri-o.DisableFIPS" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.

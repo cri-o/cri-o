@@ -80,6 +80,9 @@ const (
 	// For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
 	// can be used without the required `/POD` suffix or a container name.
 	SeccompProfileAnnotation = "seccomp-profile.kubernetes.cri-o.io"
+
+	// DisableFIPSAnnotation is used to disable FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
+	DisableFIPSAnnotation = "io.kubernetes.cri-o.DisableFIPS"
 )
 
 var AllAllowedAnnotations = []string{
@@ -103,4 +106,5 @@ var AllAllowedAnnotations = []string{
 	LinkLogsAnnotation,
 	CPUSharedAnnotation,
 	SeccompProfileAnnotation,
+	DisableFIPSAnnotation,
 }
