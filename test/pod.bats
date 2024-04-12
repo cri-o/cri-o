@@ -157,6 +157,24 @@ function teardown() {
 	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
 }
 
+@test "disable crypto.fips_enabled when FIPS_DISABLE is set" {
+	# Check if /proc/sys/crypto exists and skip the test if it does not.
+	if [ ! -d "/proc/sys/crypto" ]; then
+		skip "The directory /proc/sys/crypto does not exist on this host."
+	fi
+	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.DisableFIPS
+
+	start_crio
+
+	jq '   .labels["FIPS_DISABLE"] = "true"' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sboxconfig.json
+
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDIR"/sboxconfig.json)
+
+	output=$(crictl exec --sync "$ctr_id" cat /proc/sys/crypto/fips_enabled)
+	[[ "$output" == "0" ]]
+}
+
 @test "fail to pass pod sysctls to runtime if invalid spaces" {
 	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward = 1" crio &
 	run ! wait_until_reachable
