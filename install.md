@@ -129,6 +129,12 @@ yum install -y \
 - `CentOS 8` (or higher): `pkgconfig` package is replaced by `pkgconf-pkg-config`
 - By default btrfs is not enabled. To add the btrfs support, install the
   following package: `btrfs-progs-devel`
+- `CentOS 8`: `gpgme-devel` can be
+  installed with the powertools repo.
+  (`yum install -y gpgme-devel --enablerepo=powertools`)
+- `CentOS 9`: `gpgme-devel` can be
+  installed with the CodeReadyBuilder (crb) repo.
+  (`yum install -y gpgme-devel --enablerepo=crb`)
 - It is possible the distribution packaged version of runc is out of date.
 - If you'd like to get the latest and greatest runc, consider using
   the one found in [devel:kubic:libcontainers:stable](https://build.opensuse.org/project/show/devel:kubic:libcontainers:stable)
