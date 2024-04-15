@@ -404,6 +404,16 @@ function is_apparmor_enabled() {
     grep -q Y "$APPARMOR_PARAMETERS_FILE_PATH" 2>/dev/null
 }
 
+function is_selinux_enabled() {
+    selinuxenabled 2>/dev/null || false
+}
+
+function is_selinux_enforcing() {
+    command -v getenforce 1>/dev/null || false
+
+    [[ $(getenforce) == "Enforcing" ]]
+}
+
 function prepare_network_conf() {
     mkdir -p "$CRIO_CNI_CONFIG"
     cat >"$CRIO_CNI_CONFIG/10-crio.conf" <<-EOF

@@ -997,6 +997,14 @@ function check_oci_annotation() {
 }
 
 @test "ctr that mounts container storage as read-only option but not recursively" {
+	# When SELinux is enabled and set to Enforcing, then the read-only
+	# mounts within a container will stop sub-mounts access in a read-write
+	# manner, and this test will then fail, thus it's best to disable it.
+	# Note: This is not a problem on a systems without SELinux.
+	if is_selinux_enforcing; then
+		skip "SELinux is set to Enforcing"
+	fi
+
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
