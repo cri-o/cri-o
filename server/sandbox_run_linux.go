@@ -379,7 +379,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if _, err := s.ReservePodName(sbox.ID(), sbox.Name()); err != nil {
 		reservedID, getErr := s.PodIDForName(sbox.Name())
 		if getErr != nil {
-			return nil, fmt.Errorf("failed to get ID of pod with reserved name (%s), after failing to reserve name with %v: %w", sbox.Name(), getErr, getErr)
+			return nil, fmt.Errorf("failed to get ID of pod with reserved name (%s), after failing to reserve name with %w: %w", sbox.Name(), getErr, getErr)
 		}
 		// if we're able to find the sandbox, and it's created, this is actually a duplicate request
 		// Just return that sandbox
@@ -390,7 +390,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if resourceErr == nil {
 			return &types.RunPodSandboxResponse{PodSandboxId: cachedID}, nil
 		}
-		return nil, fmt.Errorf("%v: %w", resourceErr, err)
+		return nil, fmt.Errorf("%w: %w", resourceErr, err)
 	}
 	resourceCleaner.Add(ctx, "runSandbox: releasing pod sandbox name: "+sbox.Name(), func() error {
 		s.ReleasePodName(sbox.Name())

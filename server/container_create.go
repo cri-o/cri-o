@@ -361,7 +361,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
-		if err == sandbox.ErrIDEmpty {
+		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
 		}
 		return nil, fmt.Errorf("specified sandbox not found: %s: %w", req.PodSandboxId, err)
@@ -401,7 +401,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		reservedID, getErr := s.ContainerIDForName(ctr.Name())
 		if getErr != nil {
-			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %v: %w", ctr.Name(), getErr, getErr)
+			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %w: %w", ctr.Name(), getErr, getErr)
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// Just return that container
@@ -412,7 +412,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		if resourceErr == nil {
 			return &types.CreateContainerResponse{ContainerId: cachedID}, nil
 		}
-		return nil, fmt.Errorf("%v: %w", resourceErr, err)
+		return nil, fmt.Errorf("%w: %w", resourceErr, err)
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container creating")

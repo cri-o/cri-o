@@ -226,7 +226,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		}
 		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
 		for _, n := range names[sbID] {
-			if err := s.Store().DeleteContainer(n); err != nil && err != storageTypes.ErrNotAContainer {
+			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
@@ -243,7 +243,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 				continue
 			}
 			for _, n := range names[k] {
-				if err := s.Store().DeleteContainer(n); err != nil && err != storageTypes.ErrNotAContainer {
+				if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
@@ -264,13 +264,13 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// release the name associated with you.
 	for containerID := range podContainers {
 		err := s.LoadContainer(ctx, containerID)
-		if err == nil || err == lib.ErrIsNonCrioContainer {
+		if err == nil || errors.Is(err, lib.ErrIsNonCrioContainer) {
 			delete(containersAndTheirImages, containerID)
 			continue
 		}
 		log.Warnf(ctx, "Could not restore container %s: %v", containerID, err)
 		for _, n := range names[containerID] {
-			if err := s.Store().DeleteContainer(n); err != nil && err != storageTypes.ErrNotAContainer {
+			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the container name
@@ -523,7 +523,7 @@ func New(
 	s.stream.streamServerCloseCh = make(chan struct{})
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
-		if err := s.stream.streamServer.Start(true); err != nil && err != http.ErrServerClosed {
+		if err := s.stream.streamServer.Start(true); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf(ctx, "Failed to start streaming server: %v", err)
 		}
 	}()
@@ -548,7 +548,7 @@ func New(
 	// Set up our NRI adaptation.
 	api, err := nriIf.New(s.config.NRI.WithTracing(s.config.EnableTracing))
 	if err != nil {
-		return nil, fmt.Errorf("failed to create NRI interface: %v", err)
+		return nil, fmt.Errorf("failed to create NRI interface: %w", err)
 	}
 
 	s.nri = &nriAPI{

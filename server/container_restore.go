@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -213,7 +214,7 @@ func (s *Server) CRImportCheckpoint(
 
 	sb, err := s.getPodSandboxFromRequest(ctx, sbID)
 	if err != nil {
-		if err == sandbox.ErrIDEmpty {
+		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return "", err
 		}
 		return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
@@ -405,7 +406,7 @@ func (s *Server) CRImportCheckpoint(
 	newContainer.SetRestoreStorageImageID(restoreStorageImageID)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
-	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
+	if isContextError(ctx.Err()) {
 		log.Infof(ctx, "RestoreCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		return "", ctx.Err()
 	}

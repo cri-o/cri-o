@@ -1077,7 +1077,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 				// create the missing bind mount source for restore and return an
 				// error to the user.
 				if err = os.MkdirAll(src, 0o755); err != nil {
-					return nil, nil, fmt.Errorf("failed to mkdir %s: %s", src, err)
+					return nil, nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
 				}
 			}
 		}

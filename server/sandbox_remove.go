@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -17,10 +18,10 @@ func (s *Server) RemovePodSandbox(ctx context.Context, req *types.RemovePodSandb
 	log.Infof(ctx, "Removing pod sandbox: %s", req.PodSandboxId)
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
-		if err == sandbox.ErrIDEmpty {
+		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
 		}
-		if err == errSandboxNotCreated {
+		if errors.Is(err, errSandboxNotCreated) {
 			return nil, fmt.Errorf("sandbox %s is not yet created", req.PodSandboxId)
 		}
 

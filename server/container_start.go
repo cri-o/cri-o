@@ -40,7 +40,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		if err != nil {
 			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
 			if err1 != nil {
-				return nil, fmt.Errorf("failed to find container %s: %v", c.ID(), err1)
+				return nil, fmt.Errorf("failed to find container %s: %w", c.ID(), err1)
 			}
 			s.ReleaseContainerName(ctx, ociContainer.Name())
 			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID())

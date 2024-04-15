@@ -596,7 +596,7 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return nil, fmt.Errorf("%v: %w", waitErr, err)
+			return nil, fmt.Errorf("%w: %w", waitErr, err)
 		}
 		return nil, fmt.Errorf("json encode to pipe failed: %w", err)
 	}

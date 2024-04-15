@@ -104,7 +104,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 
 	if pullOp.err != nil {
-		wrap := func(e error) error { return fmt.Errorf("%v: %w", e, pullOp.err) }
+		wrap := func(e error) error { return fmt.Errorf("%w: %w", e, pullOp.err) }
 
 		if errors.Is(pullOp.err, syscall.ECONNREFUSED) {
 			return nil, wrap(crierrors.ErrRegistryUnavailable)

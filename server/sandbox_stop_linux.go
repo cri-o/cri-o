@@ -61,7 +61,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				c := ctr
 				waitGroup.Go(func() error {
 					if err := s.stopContainer(ctx, c, int64(10)); err != nil {
-						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
+						return fmt.Errorf("failed to stop container for pod sandbox %s: %w", sb.ID(), err)
 					}
 					return nil
 				})
@@ -73,7 +73,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	}
 
 	if err := s.stopContainer(ctx, podInfraContainer, int64(10)); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
-		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
+		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %w", sb.ID(), err)
 	}
 
 	if err := sb.RemoveManagedNamespaces(); err != nil {

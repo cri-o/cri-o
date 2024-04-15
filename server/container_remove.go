@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -56,7 +57,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	}
 
 	if err := s.Runtime().DeleteContainer(ctx, c); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
 	if err := os.Remove(filepath.Join(s.config.ContainerExitsDir, c.ID())); err != nil && !os.IsNotExist(err) {
@@ -65,19 +66,19 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 
 	c.CleanupConmonCgroup(ctx)
 
-	if err := s.StorageRuntimeServer().StopContainer(ctx, c.ID()); err != nil && err != storage.ErrContainerUnknown {
+	if err := s.StorageRuntimeServer().StopContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
 		// assume container already umounted
 		log.Warnf(ctx, "Failed to stop container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
 	}
 
-	if err := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID()); err != nil && err != storage.ErrContainerUnknown {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %v", c.Name(), sb.ID(), err)
+	if err := s.StorageRuntimeServer().DeleteContainer(ctx, c.ID()); err != nil && !errors.Is(err, storage.ErrContainerUnknown) {
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
 	s.ReleaseContainerName(ctx, c.Name())
 	s.removeContainer(ctx, c)
 	if err := s.CtrIDIndex().Delete(c.ID()); err != nil {
-		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %v", c.Name(), sb.ID(), err)
+		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %w", c.Name(), sb.ID(), err)
 	}
 	sb.RemoveContainer(ctx, c)
 
