@@ -426,7 +426,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 			memoryLimit := resources.MemoryLimitInBytes
 			if memoryLimit != 0 {
-				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit); err != nil {
+				containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
+				if err != nil {
+					return nil, err
+				}
+				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
 					return nil, err
 				}
 				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)

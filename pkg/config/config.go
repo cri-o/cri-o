@@ -41,6 +41,7 @@ import (
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
 	"github.com/opencontainers/runtime-spec/specs-go/features"
 	selinux "github.com/opencontainers/selinux/go-selinux"
 	"github.com/sirupsen/logrus"
@@ -51,6 +52,7 @@ import (
 // Defaults if none are specified
 const (
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
+	defaultContainerMinMemory  = 12 * 1024 * 1024 // 12 MiB
 	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
 	RuntimeTypePod             = "pod"
@@ -235,6 +237,9 @@ type RuntimeHandler struct {
 	// Marks the runtime as performing image pulling on its own, and doesn't
 	// require crio to do it.
 	RuntimePullImage bool `toml:"runtime_pull_image,omitempty"`
+
+	// ContainerMinMemory is the minimum memory that must be set for a container.
+	ContainerMinMemory string `toml:"container_min_memory,omitempty"`
 
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
@@ -1237,7 +1242,8 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		MonitorCgroup: defaultMonitorCgroup,
+		ContainerMinMemory: units.BytesSize(defaultContainerMinMemory),
+		MonitorCgroup:      defaultMonitorCgroup,
 	}
 }
 
@@ -1266,7 +1272,16 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 }
 
 func (c *RuntimeConfig) initializeRuntimeFeatures() {
-	for _, handler := range c.Runtimes {
+	for name, handler := range c.Runtimes {
+		memoryBytes, err := handler.SetContainerMinMemory()
+		if err != nil {
+			logrus.Errorf(
+				"Unable to set minimum container memory for runtime handler %q: %v; default value of %q will be used",
+				name, err, units.BytesSize(float64(memoryBytes)),
+			)
+		}
+		logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memoryBytes)
+
 		// If this returns an error, we just ignore it and assume the features sub-command is
 		// not supported by the runtime.
 		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
@@ -1577,6 +1592,24 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 	)
 	r.DisallowedAnnotations = disallowed
 	return nil
+}
+
+// SetContainerMinMemory sets the minimum container memory for a given runtime.
+// assigns defaultContainerMinMemory if no container_min_memory provided.
+func (r *RuntimeHandler) SetContainerMinMemory() (int64, error) {
+	if r.ContainerMinMemory == "" {
+		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
+	}
+
+	memoryBytes, err := units.RAMInBytes(r.ContainerMinMemory)
+	if err != nil {
+		err = fmt.Errorf("unable to set runtime memory to %q: %w", r.ContainerMinMemory, err)
+		// Fallback to default value if something is wrong with the configured value.
+		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
+		return int64(defaultContainerMinMemory), err
+	}
+
+	return memoryBytes, nil
 }
 
 // RuntimeSupportsIDMap returns whether this runtime supports the "runtime features"

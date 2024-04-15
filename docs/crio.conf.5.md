@@ -358,6 +358,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
     For images, the plain annotation `seccomp-profile.kubernetes.cri-o.io`
     can be used without the required `/POD` suffix or a container name.
 
+**container_min_memory**=""
+  The minimum memory that must be set for a container. This value can be used to override the currently set global value for a specific runtime. If not set, a global default value of "12 MiB" will be used.
+
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.
 

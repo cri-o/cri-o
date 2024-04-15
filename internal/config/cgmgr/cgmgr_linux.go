@@ -21,10 +21,6 @@ import (
 
 const (
 	CrioPrefix = "crio"
-	// minMemoryLimit is the minimum memory that must be set for a container.
-	// A lower value would result in the container failing to start.
-	// this value has been arrived at for runc on x86_64 hardware
-	minMemoryLimit = 12 * 1024 * 1024
 	// CgroupfsCgroupManager represents cgroupfs native cgroup manager
 	cgroupfsCgroupManager = "cgroupfs"
 	// SystemdCgroupManager represents systemd native cgroup manager
@@ -65,10 +61,10 @@ type CgroupManager interface {
 	// It creates a new cgroup if one does not already exist.
 	// It returns the cgroup stats for that container.
 	ContainerCgroupStats(sbParent, containerID string) (*CgroupStats, error)
-	// SandboxCgroupPath takes the sandbox parent, and sandbox ID. It
+	// SandboxCgroupPath takes the sandbox parent, and sandbox ID, and container minimum memory. It
 	// returns the cgroup parent, cgroup path, and error. For systemd cgroups,
 	// it also checks there is enough memory in the given cgroup
-	SandboxCgroupPath(string, string) (string, string, error)
+	SandboxCgroupPath(string, string, int64) (string, string, error)
 	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 	// It returns the raw libcontainer cgroup manager for that sandbox.
 	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
@@ -124,7 +120,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	}
 }
 
-func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilename string) error {
+func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilename string, containerMinMemory int64) error {
 	// read in the memory limit from memory max file
 	fileData, err := os.ReadFile(filepath.Join(memorySubsystemPath, slicePath, memoryMaxFilename))
 	if err != nil {
@@ -143,7 +139,7 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 			return fmt.Errorf("error converting cgroup memory value from string to int %q: %w", strMemory, err)
 		}
 		// Compare with the minimum allowed memory limit
-		if err := VerifyMemoryIsEnough(memoryLimit); err != nil {
+		if err := VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
 			return fmt.Errorf("pod %w", err)
 		}
 	}
@@ -151,9 +147,9 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 }
 
 // VerifyMemoryIsEnough verifies that the cgroup memory limit is above a specified minimum memory limit.
-func VerifyMemoryIsEnough(memoryLimit int64) error {
-	if memoryLimit != 0 && memoryLimit < minMemoryLimit {
-		return fmt.Errorf("set memory limit %d too low; should be at least %d", memoryLimit, minMemoryLimit)
+func VerifyMemoryIsEnough(memoryLimit, minMemory int64) error {
+	if memoryLimit != 0 && memoryLimit < minMemory {
+		return fmt.Errorf("set memory limit %d too low; should be at least %d bytes", memoryLimit, minMemory)
 	}
 	return nil
 }

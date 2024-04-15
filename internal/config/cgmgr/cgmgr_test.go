@@ -136,7 +136,7 @@ var _ = t.Describe("Cgmgr", func() {
 				// Given
 				sbParent := "sandbox-parent.slice"
 				// When
-				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID)
+				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID, int64(0))
 
 				// Then
 				Expect(cgParent).To(BeEmpty())
@@ -146,7 +146,7 @@ var _ = t.Describe("Cgmgr", func() {
 			It("can override sandbox parent", func() {
 				// Given
 				// When
-				cgParent, cgPath, err := sut.SandboxCgroupPath(genericSandboxParent, sbID)
+				cgParent, cgPath, err := sut.SandboxCgroupPath(genericSandboxParent, sbID, int64(0))
 
 				// Then
 				Expect(cgParent).To(Equal(genericSandboxParent))
@@ -221,7 +221,7 @@ var _ = t.Describe("Cgmgr", func() {
 				// Given
 				sbParent := "slice"
 				// When
-				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID)
+				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID, int64(0))
 
 				// Then
 				Expect(cgParent).To(BeEmpty())
@@ -232,12 +232,26 @@ var _ = t.Describe("Cgmgr", func() {
 				// Given
 				sbParent := "systemd.invalid"
 				// When
-				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID)
+				cgParent, cgPath, err := sut.SandboxCgroupPath(sbParent, sbID, int64(0))
 
 				// Then
 				Expect(cgParent).To(BeEmpty())
 				Expect(cgPath).To(BeEmpty())
 				Expect(err).To(HaveOccurred())
+			})
+			It("should fail container minimum memory limit check", func() {
+				// When
+				err := cgmgr.VerifyMemoryIsEnough(100, 200)
+
+				// Then
+				Expect(err).To(HaveOccurred())
+			})
+			It("should not fail container minimum memory limit check", func() {
+				// When
+				err := cgmgr.VerifyMemoryIsEnough(151, 150)
+
+				// Then
+				Expect(err).ToNot(HaveOccurred())
 			})
 		})
 		t.Describe("MoveConmonToCgroup", func() {

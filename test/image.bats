@@ -9,6 +9,7 @@ SIGNED_IMAGE=registry.access.redhat.com/rhel7-atomic:latest
 IMAGE_LIST_TAG=quay.io/crio/alpine:3.9
 IMAGE_LIST_DIGEST_FOR_TAG=quay.io/crio/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
 IMAGE_LIST_DIGEST_FOR_TAG_AMD64=quay.io/crio/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
+IMAGE_LIST_DIGEST_FOR_TAG_ARM64=quay.io/crio/alpine@sha256:f920ccc826134587fffcf1ddc6b2a554947e0f1a5ae5264bbf3435da5b2e8e61
 
 IMAGE_LIST_DIGEST_AMD64=quay.io/crio/alpine@sha256:65b3a80ebe7471beecbc090c5b2cdd0aafeaefa0715f8f12e40dc918a3a70e32
 IMAGE_LIST_DIGEST=quay.io/crio/alpine@sha256:414e0518bb9228d35e4cd5165567fb91d26c6a214e9c95899e1e056fcd349011
@@ -368,4 +369,150 @@ EOF
 	output=$(crictl exec "$ctr_id" date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
 	expected_output=$(date -d "@$datestr" +"%a %b %e %H:%M:%S %Z %Y")
 	[[ "$output" == *"$expected_output"* ]]
+}
+
+@test "run container with memory_limit_in_bytes -1" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+EOF
+	start_crio
+
+	case $(go env GOARCH) in
+	amd64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		;;
+	arm64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		;;
+	esac
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = -1
+		| .image.image = $image' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run ! crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with memory_limit_in_bytes 12.5MiB" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+container_min_memory = "7.5MiB"
+EOF
+	start_crio
+
+	case $(go env GOARCH) in
+	amd64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		;;
+	arm64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		;;
+	esac
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 12582912
+		| .image.image = $image' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with container_min_memory 17.5MiB" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+container_min_memory = "17.5MiB"
+EOF
+	start_crio
+
+	case $(go env GOARCH) in
+	amd64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		;;
+	arm64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		;;
+	esac
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 12582912
+		| .image.image = $image' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with container_min_memory 5.5MiB" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+container_min_memory = "5.5MiB"
+EOF
+	start_crio
+
+	case $(go env GOARCH) in
+	amd64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		;;
+	arm64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		;;
+	esac
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .image.image = $image' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with empty container_min_memory" {
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+EOF
+	start_crio
+
+	case $(go env GOARCH) in
+	amd64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
+		;;
+	arm64)
+		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
+		;;
+	esac
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .image.image = $image' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
