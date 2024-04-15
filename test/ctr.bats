@@ -1032,6 +1032,11 @@ function check_oci_annotation() {
 }
 
 @test "ctr that mounts container storage as recursively read-only" {
+	requires_kernel "5.12"
+
+	# Check for the minimum cri-tools version that supports RRO mounts.
+	requires_crictl "1.30"
+
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
@@ -1069,6 +1074,9 @@ function check_oci_annotation() {
 }
 
 @test "ctr that fails to mount container storage as recursively read-only without readonly option" {
+	# Check for the minimum cri-tools version that supports RRO mounts.
+	requires_crictl "1.30"
+
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
@@ -1092,6 +1100,9 @@ function check_oci_annotation() {
 }
 
 @test "ctr that fails to mount container storage as recursively read-only without private propagation" {
+	# Check for the minimum cri-tools version that supports RRO mounts.
+	requires_crictl "1.30"
+
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
