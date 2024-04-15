@@ -214,6 +214,18 @@ func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {
 	return rh.RuntimeSupportsIDMap()
 }
 
+// RuntimeSupportsRROMounts returns whether the runtime of runtimeHandler supports
+// the "runtime features" command and that the output advertises support for the
+// Recursive Read-only (RRO) mount as an option.
+func (r *Runtime) RuntimeSupportsRROMounts(runtimeHandler string) bool {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
+	if err != nil {
+		return false
+	}
+
+	return rh.RuntimeSupportsRROMounts()
+}
+
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {

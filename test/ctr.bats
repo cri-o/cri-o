@@ -996,6 +996,125 @@ function check_oci_annotation() {
 	crictl exec --sync "$ctr_id" findmnt -no TARGET,PROPAGATION "$CTR_DIR" | grep -v private
 }
 
+@test "ctr that mounts container storage as read-only option but not recursively" {
+	# See https://www.shellcheck.net/wiki/SC2154 for more details.
+	declare stderr
+
+	# Parent of "--root", keep in sync with test/helpers.bash file.
+	TEST_VOLUME="$TESTDIR"/test-volume
+
+	mkdir -p "$TEST_VOLUME"
+	mount -t tmpfs none "$TEST_VOLUME"
+
+	mkdir -p "$TEST_VOLUME"/test-sub-volume
+	mount -t tmpfs none "$TEST_VOLUME"/test-sub-volume
+
+	PARENT_DIR="$TEST_VOLUME"
+	CTR_DIR="/host"
+
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			readonly: true,
+			propagation: 0
+		} ]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/config
+
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDIR"/config "$TESTDATA"/sandbox_config.json)
+
+	run ! --separate-stderr crictl exec --sync "$ctr_id" touch /host/test
+	[[ "$stderr" == *"Read-only file system"* ]]
+
+	crictl exec --sync "$ctr_id" touch /host/test-sub-volume/test
+}
+
+@test "ctr that mounts container storage as recursively read-only" {
+	# See https://www.shellcheck.net/wiki/SC2154 for more details.
+	declare stderr
+
+	# Parent of "--root", keep in sync with test/helpers.bash file.
+	TEST_VOLUME="$TESTDIR"/test-volume
+
+	mkdir -p "$TEST_VOLUME"
+	mount -t tmpfs none "$TEST_VOLUME"
+
+	mkdir -p "$TEST_VOLUME"/test-sub-volume
+	mount -t tmpfs none "$TEST_VOLUME"/test-sub-volume
+
+	PARENT_DIR="$TEST_VOLUME"
+	CTR_DIR="/host"
+
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			readonly: true,
+			recursive_read_only: true,
+			propagation: 0
+		} ]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/config
+
+	start_crio
+
+	ctr_id=$(crictl run "$TESTDIR"/config "$TESTDATA"/sandbox_config.json)
+
+	run ! --separate-stderr crictl exec --sync "$ctr_id" touch /host/test
+	[[ "$stderr" == *"Read-only file system"* ]]
+
+	run ! --separate-stderr crictl exec --sync "$ctr_id" touch /host/test-sub-volume/test
+	[[ "$stderr" == *"Read-only file system"* ]]
+}
+
+@test "ctr that fails to mount container storage as recursively read-only without readonly option" {
+	# See https://www.shellcheck.net/wiki/SC2154 for more details.
+	declare stderr
+
+	# Parent of "--root", keep in sync with test/helpers.bash file.
+	PARENT_DIR="$TESTDIR"
+	CTR_DIR="/host"
+
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			readonly: false,
+			recursive_read_only: true,
+		} ]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/config
+
+	start_crio
+
+	run ! --separate-stderr crictl run "$TESTDIR"/config "$TESTDATA"/sandbox_config.json
+	[[ "$stderr" == *"recursive read-only mount conflicts with read-write mount"* ]]
+}
+
+@test "ctr that fails to mount container storage as recursively read-only without private propagation" {
+	# See https://www.shellcheck.net/wiki/SC2154 for more details.
+	declare stderr
+
+	# Parent of "--root", keep in sync with test/helpers.bash file.
+	PARENT_DIR="$TESTDIR"
+	CTR_DIR="/host"
+
+	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
+		'  .mounts = [ {
+			host_path: $path,
+			container_path: $ctr_dir,
+			readonly: true,
+			recursive_read_only: true,
+			propagation: 2
+		} ]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/config
+
+	start_crio
+
+	run ! --separate-stderr crictl run "$TESTDIR"/config "$TESTDATA"/sandbox_config.json
+	[[ "$stderr" == *"recursive read-only mount requires private propagation"* ]]
+}
+
 @test "ctr has containerenv" {
 	start_crio
 	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)

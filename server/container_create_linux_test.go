@@ -31,7 +31,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +75,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
+	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,6 +87,148 @@ func TestAddOCIBindsForSys(t *testing.T) {
 	}
 	if howManySys != 1 {
 		t.Error("there is not a single /sys bind mount")
+	}
+}
+
+func TestAddOCIBindsRROMounts(t *testing.T) {
+	t.Parallel()
+
+	const hostPath = "/mnt"
+
+	ctr, err := container.New()
+	if err != nil {
+		t.Fatalf("Should create a container, got: %v", err)
+	}
+
+	err = ctr.SetConfig(&types.ContainerConfig{
+		Mounts: []*types.Mount{
+			{
+				HostPath:          hostPath,
+				ContainerPath:     "/host",
+				Readonly:          true,
+				RecursiveReadOnly: true,
+				Propagation:       0,
+			},
+		},
+		Metadata: &types.ContainerMetadata{
+			Name: "test-container",
+		},
+	}, &types.PodSandboxConfig{
+		Metadata: &types.PodSandboxMetadata{
+			Name: "test-pod",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Should set container configuration, got: %v", err)
+	}
+
+	ctx := context.TODO()
+
+	_, binds, err := addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, true, "")
+	if err != nil {
+		t.Errorf("Should not fail to create RRO mount, got: %v", err)
+	}
+
+	hasRRO := false
+	for _, m := range binds {
+		if m.Source == hostPath {
+			for _, o := range m.Options {
+				if o == "rro" {
+					hasRRO = true
+				}
+			}
+		}
+	}
+
+	if !hasRRO {
+		t.Errorf("Should add an RRO mount to be created, got: %#v", binds)
+	}
+}
+
+func TestAddOCIBindsRROMountsError(t *testing.T) {
+	t.Parallel()
+
+	cases := []struct {
+		description string
+		rroSupport  bool
+		given       *types.Mount
+		want        string
+	}{
+		{
+			"should fail to add an RRO mount without RRO mounts support",
+			false,
+			&types.Mount{
+				HostPath:          "/mnt",
+				ContainerPath:     "/host",
+				Readonly:          true,
+				RecursiveReadOnly: true,
+				Propagation:       0,
+			},
+			`recursive read-only mount support is not available for hostPath "/mnt"`,
+		},
+		{
+			"should fail to add an RRO mount without readonly option",
+			true,
+			&types.Mount{
+				HostPath:          "/mnt",
+				ContainerPath:     "/host",
+				Readonly:          false,
+				RecursiveReadOnly: true,
+				Propagation:       0,
+			},
+			`recursive read-only mount conflicts with read-write mount for hostPath "/mnt"`,
+		},
+		{
+			"should fail to add an RRO mount without private propagation",
+			true,
+			&types.Mount{
+				HostPath:          "/mnt",
+				ContainerPath:     "/host",
+				Readonly:          true,
+				RecursiveReadOnly: true,
+				Propagation:       2,
+			},
+			`recursive read-only mount requires private propagation for hostPath "/mnt", got: PROPAGATION_BIDIRECTIONAL`,
+		},
+	}
+
+	ctx := context.TODO()
+
+	for _, tc := range cases {
+		tc := tc
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			ctr, err := container.New()
+			if err != nil {
+				t.Fatalf("Should create a container, got: %v", err)
+			}
+
+			err = ctr.SetConfig(&types.ContainerConfig{
+				Mounts: []*types.Mount{
+					tc.given,
+				},
+				Metadata: &types.ContainerMetadata{
+					Name: "test-container",
+				},
+			}, &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{
+					Name: "test-pod",
+				},
+			})
+			if err != nil {
+				t.Fatalf("Should set container configuration, got: %v", err)
+			}
+
+			_, _, err = addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, tc.rroSupport, "")
+			if err == nil {
+				t.Error("Should fail to add an RRO mount with a specific error")
+			}
+
+			if tc.want != err.Error() {
+				t.Errorf("Should fail to add an RRO mount with error %s, got %v", tc.want, err)
+			}
+		})
 	}
 }
 
@@ -107,7 +249,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -141,7 +283,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		t.Error(err)
 	}
 	var hasCgroupRO bool
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -189,12 +331,12 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")
 	}
 
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, "")
+	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, false, "")
 	if err != nil {
 		t.Errorf("%v", err)
 	}

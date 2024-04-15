@@ -130,6 +130,10 @@ kata_skip_ctr_tests:
   - 'test "ctr with default_env set in configuration"'
   - 'test "ctr with absent mount that should be rejected"'
   - 'test "ctr stop loop kill retry attempts"'
+  - 'test "ctr that mounts container storage as read-only option but not recursively"'
+  - 'test "ctr that mounts container storage as recursively read-only"'
+  - 'test "ctr that fails to mount container storage as recursively read-only without readonly option"'
+  - 'test "ctr that fails to mount container storage as recursively read-only without private propagation"'
 kata_skip_devices_tests:
   - 'test "additional devices permissions"'
   - 'test "annotation devices support"'

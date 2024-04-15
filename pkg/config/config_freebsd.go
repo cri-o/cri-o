@@ -1,5 +1,7 @@
 package config
 
+import "github.com/cri-o/cri-o/utils/errdefs"
+
 // Defaults if none are specified
 // Defaults for linux/unix if none are specified
 const (
@@ -39,6 +41,11 @@ const (
 
 func selinuxEnabled() bool {
 	return false
+}
+
+// checkKernelRROMountSupport checks the kernel support for the Recursive Read-only (RRO) mounts.
+func checkKernelRROMountSupport() error {
+	return errdefs.ErrNotImplemented
 }
 
 func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {

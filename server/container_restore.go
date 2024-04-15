@@ -322,6 +322,8 @@ func (s *Server) CRImportCheckpoint(
 			switch opt {
 			case "ro":
 				mount.Readonly = true
+			case "rro":
+				mount.RecursiveReadOnly = true
 			case "rprivate":
 				mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
 			case "rshared":
@@ -329,6 +331,13 @@ func (s *Server) CRImportCheckpoint(
 			case "rslaved":
 				mount.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 			}
+		}
+
+		// Recursive Read-only (RRO) support requires the mount to be
+		// read-only and the mount propagation set to private.
+		if mount.RecursiveReadOnly {
+			mount.Readonly = true
+			mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
 		}
 
 		log.Debugf(ctx, "Adding mounts %#v", mount)

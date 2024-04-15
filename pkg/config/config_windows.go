@@ -1,5 +1,7 @@
 package config
 
+import "github.com/cri-o/cri-o/utils/errdefs"
+
 // Defaults for linux/unix if none are specified
 const (
 	cniConfigDir             = "C:\\cni\\etc\\net.d\\"
@@ -19,3 +21,8 @@ const (
 	// CrioVersionPath is where the CRI-O version file is located
 	CrioConfigPath = "C:\\crio\\etc\\version"
 )
+
+// checkKernelRROMountSupport checks the kernel support for the Recursive Read-only (RRO) mounts.
+func checkKernelRROMountSupport() error {
+	return errdefs.ErrNotImplemented
+}
