@@ -1273,6 +1273,15 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 
 func (c *RuntimeConfig) initializeRuntimeFeatures() {
 	for name, handler := range c.Runtimes {
+		versionOutput, err := cmdrunner.CombinedOutput(handler.RuntimePath, "--version")
+		if err != nil {
+			logrus.Errorf("Unable to determine version of runtime handler %s: %v", name, err)
+			continue
+		}
+
+		versionString := strings.ReplaceAll(strings.TrimSpace(string(versionOutput)), "\n", ", ")
+		logrus.Infof("Using runtime %s", versionString)
+
 		memoryBytes, err := handler.SetContainerMinMemory()
 		if err != nil {
 			logrus.Errorf(
@@ -1284,7 +1293,7 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 
 		// If this returns an error, we just ignore it and assume the features sub-command is
 		// not supported by the runtime.
-		output, err := cmdrunner.Command(handler.RuntimePath, "features").CombinedOutput()
+		output, err := cmdrunner.CombinedOutput(handler.RuntimePath, "features")
 		if err != nil {
 			logrus.Errorf("Getting %s OCI runtime features failed: %s: %v", handler.RuntimePath, output, err)
 			continue
