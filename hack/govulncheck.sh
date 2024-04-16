@@ -13,7 +13,6 @@ export PKG_CONFIG_PATH=/usr/lib/x86_64-linux-gnu/pkgconfig
 GOPATH_BIN=$(go env GOPATH)/bin
 export PATH="$PATH:$GOPATH_BIN"
 
-# Install gosec
 go install golang.org/x/vuln/cmd/govulncheck@latest
 
 # Generate report
