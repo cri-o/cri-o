@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
+_Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/281e88a0719c22962dc3255e910b7aee2930344f
+[0]: https://github.com/cri-o/cri-o/commit/df0b6be1c27abea1c5f4e9ac2acf7a7e68d5bc1b
 
 ## Outdated Dependencies
 
@@ -38,7 +38,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.1                             | true   | true             |
-| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.1                             | true   | true             |
+| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.2                             | true   | true             |
 
 ## All Dependencies
 
@@ -189,7 +189,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                          |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.9.0                                        | v1.11.1                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                        | v1.4.0                                        | v1.5.2                              | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.5.0                                        | v1.5.2                              | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.5.0                                        | v1.6.0                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v1.0.1                                        | v1.1.0                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal                        | v1.0.0                                        | v1.0.1                              | false  | true             |
 | github.com/Azure/go-ansiterm                                                            | v0.0.0-20230124172434-306776ec8161            |                                     | false  | true             |
@@ -252,7 +252,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.21                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.22                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.11                            | false  | true             |
@@ -318,7 +318,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                        |                                     | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb            |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be            |                                     | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.7.1                              | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface                    | v0.6.0                                        | v0.7.2                              | false  | true             |
 | github.com/containerd/aufs                                                              | v1.0.0                                        |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                          | v2.0.0                                        |                                     | false  | true             |
 | github.com/containerd/cgroups                                                           | v1.1.0                                        |                                     | true   | true             |
@@ -490,7 +490,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | github.com/google/go-querystring                                                        | v1.1.0                                        |                                     | false  | true             |
 | github.com/google/gofuzz                                                                | v1.2.0                                        |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                           |                                     | false  | true             |
-| github.com/google/martian/v3                                                            | v3.3.2                                        |                                     | false  | true             |
+| github.com/google/martian/v3                                                            | v3.3.2                                        | v3.3.3                              | false  | true             |
 | github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240416155748-26353dc0451f  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                        | v0.6.0                              | false  | true             |
@@ -672,7 +672,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | github.com/prometheus/client_model                                                      | v0.5.0                                        | v0.6.1                              | false  | true             |
 | github.com/prometheus/common                                                            | v0.45.0                                       | v0.52.3                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.12.0                                       | v0.13.0                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf            | v0.0.0-20240116145035-ef3ab179eed6  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf            | v0.0.0-20240416193709-1e18ef0a7fdc  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475            |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.3.0                                        | v9.5.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0            | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -837,7 +837,7 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | gonum.org/v1/gonum                                                                      | v0.11.0                                       | v0.15.0                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0            | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                                       | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.152.0                                      | v0.172.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.152.0                                      | v0.173.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                        |                                     | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240415180920-8c6c420018be  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240415180920-8c6c420018be  | false  | true             |
@@ -900,6 +900,6 @@ _Generated on Tue, 16 Apr 2024 18:26:48 UTC for commit [281e88a][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.1                              | true   | true             |
+| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.2                              | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                                        | v0.6.0                                        | v0.7.0                              | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739            | v0.0.0-20230607025951-8b02fee814ae  | false  | true             |
