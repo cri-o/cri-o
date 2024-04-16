@@ -87,11 +87,12 @@ func (c *Container) CRIAttributes() *types.ContainerAttributes {
 
 // ContainerVolume is a bind mount for the container.
 type ContainerVolume struct {
-	ContainerPath  string                 `json:"container_path"`
-	HostPath       string                 `json:"host_path"`
-	Readonly       bool                   `json:"readonly"`
-	Propagation    types.MountPropagation `json:"propagation"`
-	SelinuxRelabel bool                   `json:"selinux_relabel"`
+	ContainerPath     string                 `json:"container_path"`
+	HostPath          string                 `json:"host_path"`
+	Readonly          bool                   `json:"readonly"`
+	RecursiveReadOnly bool                   `json:"recursive_read_only"`
+	Propagation       types.MountPropagation `json:"propagation"`
+	SelinuxRelabel    bool                   `json:"selinux_relabel"`
 }
 
 // ContainerState represents the status of a container.

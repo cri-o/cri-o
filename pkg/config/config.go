@@ -190,6 +190,12 @@ func (c *RootConfig) GetStore() (storage.Store, error) {
 	})
 }
 
+// runtimeHandlerFeatures represents the supported features of the runtime.
+type runtimeHandlerFeatures struct {
+	RecursiveReadOnlyMounts bool `json:"-"` // Internal use only.
+	features.Features
+}
+
 // RuntimeHandler represents each item of the "crio.runtime.runtimes" TOML
 // config table.
 type RuntimeHandler struct {
@@ -243,7 +249,7 @@ type RuntimeHandler struct {
 
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
-	features features.Features
+	features runtimeHandlerFeatures
 }
 
 // Multiple runtime Handlers in a map
@@ -1258,7 +1264,7 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 				return err
 			}
 
-			logrus.Warnf("'%s is being ignored due to: %q", name, err)
+			logrus.Warnf("Runtime handler %q is being ignored due to: %v", name, err)
 			failedValidation = append(failedValidation, name)
 		}
 	}
@@ -1275,12 +1281,12 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 	for name, handler := range c.Runtimes {
 		versionOutput, err := cmdrunner.CombinedOutput(handler.RuntimePath, "--version")
 		if err != nil {
-			logrus.Errorf("Unable to determine version of runtime handler %s: %v", name, err)
+			logrus.Errorf("Unable to determine version of runtime handler %q: %v", name, err)
 			continue
 		}
 
 		versionString := strings.ReplaceAll(strings.TrimSpace(string(versionOutput)), "\n", ", ")
-		logrus.Infof("Using runtime %s", versionString)
+		logrus.Infof("Using runtime handler %s", versionString)
 
 		memoryBytes, err := handler.SetContainerMinMemory()
 		if err != nil {
@@ -1298,10 +1304,33 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 			logrus.Errorf("Getting %s OCI runtime features failed: %s: %v", handler.RuntimePath, output, err)
 			continue
 		}
-		// Ignore errors to Unmarshal too, we can't populate it.
-		if err := json.Unmarshal(output, &handler.features); err != nil {
-			logrus.Errorf("Unmarshalling OCI features failed: %s", err)
+
+		// Ignore error if we can't load runtime features.
+		if err := handler.LoadRuntimeFeatures(output); err != nil {
+			logrus.Errorf("Unable to load OCI features for runtime handler %q: %v", name, err)
+			continue
 		}
+
+		if handler.RuntimeSupportsIDMap() {
+			logrus.Debugf("Runtime handler %q supports User and Group ID-mappings", name)
+		}
+
+		// Recursive Read-only (RRO) mounts require runtime handler support,
+		// such as runc v1.1 or crun v1.4. For Linux, the minimum kernel
+		// version 5.12 or a kernel with the necessary changes backported
+		// is required.
+		rro := handler.RuntimeSupportsMountFlag("rro")
+		if rro {
+			logrus.Debugf("Runtime handler %q supports Recursive Read-only (RRO) mounts", name)
+
+			// A given runtime might support Recursive Read-only (RRO) mounts,
+			// but the current kernel might not.
+			if err := checkKernelRROMountSupport(); err != nil {
+				logrus.Warnf("Runtime handler %q supports Recursive Read-only (RRO) mounts, but kernel does not: %v", name, err)
+				rro = false
+			}
+		}
+		handler.features.RecursiveReadOnlyMounts = rro
 	}
 }
 
@@ -1619,6 +1648,29 @@ func (r *RuntimeHandler) SetContainerMinMemory() (int64, error) {
 	return memoryBytes, nil
 }
 
+// LoadRuntimeFeatures loads features for a given runtime handler using the "features"
+// sub-command output, where said output contains a JSON document called "Features
+// Structure" that describes the runtime handler's supported features.
+func (r *RuntimeHandler) LoadRuntimeFeatures(input []byte) error {
+	if err := json.Unmarshal(input, &r.features); err != nil {
+		return fmt.Errorf("unable to unmarshal features structure: %w", err)
+	}
+
+	// All other properties of the Features Structure are optional and might be
+	// either absent, empty, or set to the null value, with the exception of
+	// OCIVersionMin and OCIVersionMax, which are required. Thus, the lack of
+	// them should indicate that the Features Structure document is potentially
+	// not valid.
+	//
+	// See the following for more details about the Features Structure:
+	//   https://github.com/opencontainers/runtime-spec/blob/main/features.md
+	if r.features.OCIVersionMin == "" || r.features.OCIVersionMax == "" {
+		return errors.New("runtime features structure is not valid")
+	}
+
+	return nil
+}
+
 // RuntimeSupportsIDMap returns whether this runtime supports the "runtime features"
 // command, and that the output of that command advertises IDMap mounts as an option
 func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
@@ -1629,6 +1681,11 @@ func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
 		return false
 	}
 	return true
+}
+
+// RuntimeSupportsRROMounts returns whether this runtime supports the Recursive Read-only mount as an option.
+func (r *RuntimeHandler) RuntimeSupportsRROMounts() bool {
+	return r.features.RecursiveReadOnlyMounts
 }
 
 // RuntimeSupportsMountFlag returns whether this runtime supports the specified mount option.

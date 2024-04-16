@@ -1420,4 +1420,115 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 	})
+
+	t.Describe("RuntimeHandlerFeatures", func() {
+		It("should fail to load runtime features with nothing to load", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures([]byte(``))
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail to load runtime features with an empty document", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures([]byte(`{}`))
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail to load OCI runtime features when required attributes are missing", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "mountOptions": ["ro"]
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should fail to load OCI runtime features when malformed document is used", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "ociVersionMax": "1.2.0",
+					  "mountOptions": ["ro",]
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).To(HaveOccurred())
+		})
+
+		It("should succeed to load OCI runtime features with support for RRO mounts", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "ociVersionMax": "1.2.0",
+					  "mountOptions": ["ro", "rro"]
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			ok := handler.RuntimeSupportsMountFlag("rro")
+
+			// Then
+			Expect(ok).To(BeTrue())
+		})
+
+		It("should succeed to load OCI runtime features with support for ID-mapping", func() {
+			// Given
+			handler := &config.RuntimeHandler{}
+
+			err := handler.LoadRuntimeFeatures(
+				[]byte(`
+					{
+					  "ociVersionMin": "1.0.0",
+					  "ociVersionMax": "1.2.0",
+					  "linux": {
+					    "mountExtensions": {
+					      "idmap": {
+					        "enabled": true
+					      }
+					    }
+					  }
+					}
+				`),
+			)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			ok := handler.RuntimeSupportsIDMap()
+
+			// Then
+			Expect(ok).To(BeTrue())
+		})
+	})
 })

@@ -48,10 +48,7 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 			}
 		}
 
-		// TODO: enable when CRI-O implemented Recursive Read-only (RRO) mounts
-		// rro := runtime.RuntimeSupportsMountFlag("rro")
-		rro := false
-
+		rro := runtime.RuntimeSupportsRROMounts()
 		userns := runtime.RuntimeSupportsIDMap()
 		h := makeRuntimeHandler(name, rro, userns)
 		resp.RuntimeHandlers = append(resp.RuntimeHandlers, h)

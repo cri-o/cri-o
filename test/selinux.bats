@@ -22,7 +22,7 @@ function teardown() {
 }
 
 @test "selinux skips relabeling if TrySkipVolumeSELinuxLabel annotation is present" {
-	if [[ $(getenforce) != "Enforcing" ]]; then
+	if ! is_selinux_enforcing; then
 		skip "not enforcing"
 	fi
 
@@ -86,7 +86,7 @@ function teardown() {
 }
 
 @test "selinux skips relabeling for super privileged container" {
-	if [[ $(getenforce) != "Enforcing" ]]; then
+	if ! is_selinux_enforcing; then
 		skip "not enforcing"
 	fi
 	VOLUME="$TESTDIR"/dir

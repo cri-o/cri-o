@@ -53,11 +53,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	mounts := []*types.Mount{}
 	for _, cv := range c.Volumes() {
 		mounts = append(mounts, &types.Mount{
-			ContainerPath:  cv.ContainerPath,
-			HostPath:       cv.HostPath,
-			Readonly:       cv.Readonly,
-			Propagation:    cv.Propagation,
-			SelinuxRelabel: cv.SelinuxRelabel,
+			ContainerPath:     cv.ContainerPath,
+			HostPath:          cv.HostPath,
+			Readonly:          cv.Readonly,
+			RecursiveReadOnly: cv.RecursiveReadOnly,
+			Propagation:       cv.Propagation,
+			SelinuxRelabel:    cv.SelinuxRelabel,
 		})
 	}
 	resp.Status.Mounts = mounts

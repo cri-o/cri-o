@@ -264,6 +264,44 @@ function host_and_port_listens() {
     netstat -ln46 | grep -E -q "${host}:${port}\b"
 }
 
+function check_kernel_version() {
+    local version="$1"
+
+    required_major=${version%%.*}
+    required_minor=${version##*.}
+
+    [[ $(uname -r) =~ ([0-9]+)\.([0-9]+) ]]
+    major=${BASH_REMATCH[1]}
+    minor=${BASH_REMATCH[2]}
+
+    ((major > required_major)) || ((major == required_major && minor >= required_minor))
+}
+
+function check_crictl_version() {
+    local version="$1"
+
+    required_major=${version%%.*}
+    required_minor=${version##*.}
+
+    crictl_binary=${CRICTL_BINARY:-/usr/bin/crictl}
+
+    [[ $($crictl_binary --version) =~ ([0-9]+)\.([0-9]+) ]]
+    major=${BASH_REMATCH[1]}
+    minor=${BASH_REMATCH[2]}
+
+    ((major > required_major)) || ((major == required_major && minor >= required_minor))
+}
+
+function requires_kernel() {
+    check_kernel_version "$@" ||
+        skip "requires kernel version \"$1\" or newer"
+}
+
+function requires_crictl() {
+    check_crictl_version "$@" ||
+        skip "requires crictl version \"$1\" or newer"
+}
+
 function cleanup_ctrs() {
     crictl rm -a -f
     rm -f "$HOOKSCHECK"
@@ -364,6 +402,16 @@ function remove_apparmor_profile() {
 
 function is_apparmor_enabled() {
     grep -q Y "$APPARMOR_PARAMETERS_FILE_PATH" 2>/dev/null
+}
+
+function is_selinux_enabled() {
+    selinuxenabled 2>/dev/null || false
+}
+
+function is_selinux_enforcing() {
+    command -v getenforce 1>/dev/null || false
+
+    [[ $(getenforce) == "Enforcing" ]]
 }
 
 function prepare_network_conf() {

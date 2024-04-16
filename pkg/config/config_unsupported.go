@@ -1,6 +1,9 @@
-//go:build !linux && !freebsd
+//go:build !linux && !freebsd && !windows
+// +build !linux,!freebsd,!windows
 
 package config
+
+import "github.com/cri-o/cri-o/utils/errdefs"
 
 // Defaults if none are specified
 // This uses the Linux values, just to have something that compiles. They don’t even pass unit tests.
@@ -17,4 +20,9 @@ const (
 
 func selinuxEnabled() bool {
 	return false
+}
+
+// checkKernelRROMountSupport checks the kernel support for the Recursive Read-only (RRO) mounts.
+func checkKernelRROMountSupport() error {
+	return errdefs.ErrNotImplemented
 }

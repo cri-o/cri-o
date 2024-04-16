@@ -333,7 +333,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, s.Config().Root)
+	rroSupport := s.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
+	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -995,7 +996,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1086,11 +1087,7 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			}
 		}
 
-		options := []string{"rw"}
-		if m.Readonly {
-			options = []string{"ro"}
-		}
-		options = append(options, "rbind")
+		options := []string{"rbind"}
 
 		// mount propagation
 		switch m.Propagation {
@@ -1122,6 +1119,34 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 			options = append(options, "rprivate")
 		}
 
+		// Recursive Read-only (RRO) support requires the mount to be
+		// read-only and the mount propagation set to private.
+		switch {
+		case m.RecursiveReadOnly && m.Readonly:
+			if !rroSupport {
+				return nil, nil, fmt.Errorf(
+					"recursive read-only mount support is not available for hostPath %q",
+					m.HostPath,
+				)
+			}
+			if m.Propagation != types.MountPropagation_PROPAGATION_PRIVATE {
+				return nil, nil, fmt.Errorf(
+					"recursive read-only mount requires private propagation for hostPath %q, got: %s",
+					m.HostPath, m.Propagation,
+				)
+			}
+			options = append(options, "rro")
+		case m.RecursiveReadOnly:
+			return nil, nil, fmt.Errorf(
+				"recursive read-only mount conflicts with read-write mount for hostPath %q",
+				m.HostPath,
+			)
+		case m.Readonly:
+			options = append(options, "ro")
+		default:
+			options = append(options, "rw")
+		}
+
 		if m.SelinuxRelabel {
 			if skipRelabel {
 				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
@@ -1133,11 +1158,12 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		}
 
 		volumes = append(volumes, oci.ContainerVolume{
-			ContainerPath:  dest,
-			HostPath:       src,
-			Readonly:       m.Readonly,
-			Propagation:    m.Propagation,
-			SelinuxRelabel: m.SelinuxRelabel,
+			ContainerPath:     dest,
+			HostPath:          src,
+			Readonly:          m.Readonly,
+			RecursiveReadOnly: m.RecursiveReadOnly,
+			Propagation:       m.Propagation,
+			SelinuxRelabel:    m.SelinuxRelabel,
 		})
 
 		uidMappings := getOCIMappings(m.UidMappings)
