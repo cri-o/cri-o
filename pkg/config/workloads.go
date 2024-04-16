@@ -117,7 +117,7 @@ func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[st
 	if err != nil {
 		return err
 	}
-	logrus.Warnf("Allowed annotations are specified for workload %v", allowed)
+	logrus.Infof("Allowed annotations are specified for workload %v", allowed)
 
 	for ann := range toFilter {
 		for _, d := range disallowed {
