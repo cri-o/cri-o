@@ -428,7 +428,7 @@ func main() {
 		<-serverMonitorsCh
 		logrus.Debugf("Closed monitors")
 		err = <-hookSync
-		if err == nil || err == context.Canceled {
+		if err == nil || errors.Is(err, context.Canceled) {
 			logrus.Debugf("Closed hook monitor")
 		} else {
 			logrus.Errorf("Hook monitor failed: %v", err)

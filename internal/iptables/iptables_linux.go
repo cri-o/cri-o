@@ -68,7 +68,7 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 	// Roughly duplicate iptables 1.6.x xtables_lock() function.
 	l.lock16, err = os.OpenFile(lockfilePath16x, os.O_CREATE, 0o600)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open iptables lock %s: %v", lockfilePath16x, err)
+		return nil, fmt.Errorf("failed to open iptables lock %s: %w", lockfilePath16x, err)
 	}
 
 	if err := wait.PollImmediate(200*time.Millisecond, 2*time.Second, func() (bool, error) { //nolint:staticcheck
@@ -77,7 +77,7 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 		}
 		return true, nil
 	}); err != nil {
-		return nil, fmt.Errorf("failed to acquire new iptables lock: %v", err)
+		return nil, fmt.Errorf("failed to acquire new iptables lock: %w", err)
 	}
 
 	// Roughly duplicate iptables 1.4.x xtables_lock() function.
@@ -88,7 +88,7 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 		}
 		return true, nil
 	}); err != nil {
-		return nil, fmt.Errorf("failed to acquire old iptables lock: %v", err)
+		return nil, fmt.Errorf("failed to acquire old iptables lock: %w", err)
 	}
 
 	success = true

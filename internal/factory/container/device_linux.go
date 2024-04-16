@@ -134,7 +134,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 		}
 		// if the device is not a device node
 		// try to see if it's a directory holding many devices
-		if err == devices.ErrNotADevice {
+		if errors.Is(err, devices.ErrNotADevice) {
 			// check if it is a directory
 			if e := utils.IsDirectory(path); e == nil {
 				// mount the internal devices recursively

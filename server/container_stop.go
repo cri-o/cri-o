@@ -50,10 +50,10 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	if ctr.StateNoLock().Status == oci.ContainerStatePaused {
 		if err := s.Runtime().UnpauseContainer(ctx, ctr); err != nil {
-			return fmt.Errorf("failed to stop container %s: %v", ctr.Name(), err)
+			return fmt.Errorf("failed to stop container %s: %w", ctr.Name(), err)
 		}
 		if err := s.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
-			return fmt.Errorf("failed to update container status %s: %v", ctr.Name(), err)
+			return fmt.Errorf("failed to update container status %s: %w", ctr.Name(), err)
 		}
 	}
 

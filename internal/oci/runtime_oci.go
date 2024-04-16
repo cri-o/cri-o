@@ -226,13 +226,14 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
 				if killErr != nil {
-					retErr = fmt.Errorf("failed to kill %+v after failing with: %w", killErr, retErr)
+					retErr = fmt.Errorf("failed to kill %w after failing with: %w", killErr, retErr)
 				}
 				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
 				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
 				// error in this case to reduce noise.
-				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
-					retErr = fmt.Errorf("failed to wait %+v after failing with: %w", waitErr, retErr)
+				var exitErr *exec.ExitError
+				if !errors.As(waitErr, &exitErr) || exitErr.ExitCode() != -1 {
+					retErr = fmt.Errorf("failed to wait %w after failing with: %w", waitErr, retErr)
 				}
 			}
 		}()
@@ -471,7 +472,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		if r != nil {
 			if err := r.Close(); err != nil {
 				if waitErr := execCmd.Wait(); waitErr != nil {
-					return fmt.Errorf("%v: %w", waitErr, err)
+					return fmt.Errorf("%w: %w", waitErr, err)
 				}
 				return err
 			}
@@ -483,7 +484,8 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	if copyError != nil {
 		return copyError
 	}
-	if exitErr, ok := cmdErr.(*exec.ExitError); ok {
+	var exitErr *exec.ExitError
+	if errors.As(cmdErr, &exitErr) {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
 	return cmdErr
@@ -631,13 +633,14 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 				killErr := cmd.Process.Kill()
 				waitErr := cmd.Wait()
 				if killErr != nil {
-					retErr = fmt.Errorf("failed to kill %+v after failing with: %w", killErr, retErr)
+					retErr = fmt.Errorf("failed to kill %w after failing with: %w", killErr, retErr)
 				}
 				// Per https://pkg.go.dev/os#ProcessState.ExitCode, the exit code is -1 when the process died because
 				// of a signal. We expect this in this case, as we've just killed it with a signal. Don't append the
 				// error in this case to reduce noise.
-				if exitErr, ok := waitErr.(*exec.ExitError); !ok || exitErr.ExitCode() != -1 {
-					retErr = fmt.Errorf("failed to wait %+v after failing with: %w", waitErr, retErr)
+				var exitErr *exec.ExitError
+				if !errors.As(waitErr, &exitErr) || exitErr.ExitCode() != -1 {
+					retErr = fmt.Errorf("failed to wait %w after failing with: %w", waitErr, retErr)
 				}
 			}
 		}()
@@ -698,7 +701,8 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	if waitErr != nil {
 		// if we aren't a ExitError, some I/O problems probably occurred
-		if _, ok := waitErr.(*exec.ExitError); !ok {
+		var exitErr *exec.ExitError
+		if !errors.As(waitErr, &exitErr) {
 			return nil, &ExecSyncError{
 				Stdout:   stdoutBuf,
 				Stderr:   stderrBuf,
@@ -1004,7 +1008,8 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			// went away we do not error out stopping kubernetes to recover.
 			// We always populate the fields below so kube can restart/reschedule
 			// containers failing.
-			if exitErr, isExitError := err.(*exec.ExitError); isExitError {
+			var exitErr *exec.ExitError
+			if errors.As(err, &exitErr) {
 				log.Errorf(ctx, "Failed to update container state for %s: stdout: %s, stderr: %s", c.ID(), out, string(exitErr.Stderr))
 			} else {
 				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
@@ -1018,7 +1023,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		}
 		state := *c.state
 		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
-			return &state, false, fmt.Errorf("failed to decode container status for %s: %s", c.ID(), err)
+			return &state, false, fmt.Errorf("failed to decode container status for %s: %w", c.ID(), err)
 		}
 		return &state, false, nil
 	}
@@ -1221,7 +1226,8 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 		if c.stdin && !c.StdinOnce() && !tty {
 			return nil
 		}
-		if _, ok := err.(utils.DetachError); ok {
+		var detachErr utils.DetachError
+		if errors.As(err, &detachErr) {
 			return nil
 		}
 		return <-receiveStdout

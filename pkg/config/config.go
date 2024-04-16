@@ -1551,8 +1551,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		r.RuntimePath = executable
 		logrus.Debugf("Using runtime executable from $PATH %q", executable)
 	} else if _, err := os.Stat(r.RuntimePath); err != nil && os.IsNotExist(err) {
-		return fmt.Errorf("invalid runtime_path for runtime '%s': %q",
-			name, err)
+		return fmt.Errorf("invalid runtime_path for runtime '%s': %w", name, err)
 	}
 
 	ok := r.ValidateRuntimeVMBinaryPattern()
@@ -1585,8 +1584,7 @@ func (r *RuntimeHandler) ValidateRuntimeConfigPath(name string) error {
 		return errors.New("runtime_config_path can only be used with the 'vm' runtime type")
 	}
 	if _, err := os.Stat(r.RuntimeConfigPath); err != nil && os.IsNotExist(err) {
-		return fmt.Errorf("invalid runtime_config_path for runtime '%s': %q",
-			name, err)
+		return fmt.Errorf("invalid runtime_config_path for runtime '%s': %w", name, err)
 	}
 	return nil
 }

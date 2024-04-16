@@ -148,7 +148,7 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 }
 
 func isContextError(err error) bool {
-	return err == context.Canceled || err == context.DeadlineExceeded
+	return errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded)
 }
 
 func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType string) (string, error) {

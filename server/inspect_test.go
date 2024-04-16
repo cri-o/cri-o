@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -165,7 +166,7 @@ func TestGetContainerInfoCtrNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}
-	if err != errCtrNotFound {
+	if !errors.Is(err, errCtrNotFound) {
 		t.Fatalf("expected errCtrNotFound error, got %v", err)
 	}
 }
@@ -205,7 +206,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}
-	if err != errCtrStateNil {
+	if !errors.Is(err, errCtrStateNil) {
 		t.Fatalf("expected errCtrStateNil error, got %v", err)
 	}
 }
@@ -242,7 +243,7 @@ func TestGetContainerInfoSandboxNotFound(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected an error but got nothing")
 	}
-	if err != errSandboxNotFound {
+	if !errors.Is(err, errSandboxNotFound) {
 		t.Fatalf("expected errSandboxNotFound error, got %v", err)
 	}
 }

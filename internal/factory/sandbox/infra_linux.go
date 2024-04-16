@@ -23,7 +23,7 @@ func SetupShm(podSandboxRunDir, mountLabel string, shmSize int64) (shmPath strin
 	shmOptions := "mode=1777,size=" + strconv.FormatInt(shmSize, 10)
 	if err := unix.Mount("shm", shmPath, "tmpfs", unix.MS_NOEXEC|unix.MS_NOSUID|unix.MS_NODEV,
 		label.FormatMountLabel(shmOptions, mountLabel)); err != nil {
-		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %v", err)
+		return "", fmt.Errorf("failed to mount shm tmpfs for pod: %w", err)
 	}
 	return shmPath, nil
 }

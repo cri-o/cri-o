@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -18,10 +19,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.PodSandboxId)
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
-		if err == sandbox.ErrIDEmpty {
+		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
 		}
-		if err == errSandboxNotCreated {
+		if errors.Is(err, errSandboxNotCreated) {
 			return nil, fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.PodSandboxId)
 		}
 

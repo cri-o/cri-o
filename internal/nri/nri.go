@@ -104,7 +104,7 @@ func New(cfg *config.Config) (*local, error) {
 
 	vInfo, err := version.Get(false)
 	if err != nil {
-		return nil, fmt.Errorf("failed to determine version: %v", err)
+		return nil, fmt.Errorf("failed to determine version: %w", err)
 	}
 
 	var (

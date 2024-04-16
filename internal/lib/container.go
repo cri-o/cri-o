@@ -60,7 +60,7 @@ func (c *ContainerServer) LookupContainer(ctx context.Context, idOrName string) 
 
 	ctrID, err := c.ctrNameIndex.Get(idOrName)
 	if err != nil {
-		if err == registrar.ErrNameNotReserved {
+		if errors.Is(err, registrar.ErrNameNotReserved) {
 			ctrID = idOrName
 		} else {
 			return nil, err
@@ -77,7 +77,7 @@ func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, e
 
 	podID, err := c.podIDIndex.Get(pid)
 	if err != nil {
-		return nil, fmt.Errorf("pod with ID starting with %s not found: %v", pid, err)
+		return nil, fmt.Errorf("pod with ID starting with %s not found: %w", pid, err)
 	}
 
 	sb := c.GetSandbox(podID)
@@ -95,7 +95,7 @@ func (c *ContainerServer) LookupSandbox(idOrName string) (*sandbox.Sandbox, erro
 
 	podID, err := c.podNameIndex.Get(idOrName)
 	if err != nil {
-		if err == registrar.ErrNameNotReserved {
+		if errors.Is(err, registrar.ErrNameNotReserved) {
 			podID = idOrName
 		} else {
 			return nil, err

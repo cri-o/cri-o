@@ -1,6 +1,7 @@
 package sandbox
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
@@ -244,7 +245,7 @@ func infraPid(infra *oci.Container) int {
 		// Later users of this pid will either find we have a valid pinned namespace (which we will in this case),
 		// or find we have an invalid /proc entry (a negative pid).
 		// Thus, we don't need to error here if the pid is not initialized
-		if err != nil && err != oci.ErrNotInitialized {
+		if err != nil && !errors.Is(err, oci.ErrNotInitialized) {
 			logrus.Errorf("Pid for infra container %s not found: %v", infra.ID(), err)
 		}
 	}
