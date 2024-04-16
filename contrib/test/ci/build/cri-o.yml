@@ -95,6 +95,13 @@
       enable_pod_events = true
   when: "evented_pleg_fg | default(False) | bool"
 
+- name: set log level to debug
+  copy:
+    dest: /etc/crio/crio.conf.d/99-log-level.conf
+    content: |
+      [crio.runtime]
+      log_level = "debug"
+
 - name: install configs
   copy:
     src: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/{{ item.src }}"
