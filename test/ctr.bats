@@ -34,6 +34,26 @@ function check_oci_annotation() {
 	[ "$(jq -r .annotations.\""$key"\" < "$config")" = "$value" ]
 }
 
+# Helper to create two read/write volumes within the test directory,
+# where the second volume, or a mount point, rather, will be nested
+# within the first one. The helper outputs the path to the test
+# volume (mount point) where it was created.
+# Note: There is no need to explicitly clean, or unmount if you wish,
+# the mounts points this helper creates, as these will be automatically
+# cleaned up as part of the test teardown() function run.
+function create_test_rro_mounts() {
+	# Parent of "--root", keep in sync with test/helpers.bash file.
+	directory="$TESTDIR"/test-volume
+
+	mkdir -p "$directory"
+	mount -t tmpfs none "$directory"
+
+	mkdir -p "$directory"/test-sub-volume
+	mount -t tmpfs none "$directory"/test-sub-volume
+
+	echo "$directory"
+}
+
 @test "ctr not found correct error message" {
 	start_crio
 	run ! crictl inspect "container_not_exist"
@@ -1008,16 +1028,7 @@ function check_oci_annotation() {
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
-	# Parent of "--root", keep in sync with test/helpers.bash file.
-	TEST_VOLUME="$TESTDIR"/test-volume
-
-	mkdir -p "$TEST_VOLUME"
-	mount -t tmpfs none "$TEST_VOLUME"
-
-	mkdir -p "$TEST_VOLUME"/test-sub-volume
-	mount -t tmpfs none "$TEST_VOLUME"/test-sub-volume
-
-	PARENT_DIR="$TEST_VOLUME"
+	PARENT_DIR="$(create_test_rro_mounts)"
 	CTR_DIR="/host"
 
 	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
@@ -1048,16 +1059,7 @@ function check_oci_annotation() {
 	# See https://www.shellcheck.net/wiki/SC2154 for more details.
 	declare stderr
 
-	# Parent of "--root", keep in sync with test/helpers.bash file.
-	TEST_VOLUME="$TESTDIR"/test-volume
-
-	mkdir -p "$TEST_VOLUME"
-	mount -t tmpfs none "$TEST_VOLUME"
-
-	mkdir -p "$TEST_VOLUME"/test-sub-volume
-	mount -t tmpfs none "$TEST_VOLUME"/test-sub-volume
-
-	PARENT_DIR="$TEST_VOLUME"
+	PARENT_DIR="$(create_test_rro_mounts)"
 	CTR_DIR="/host"
 
 	jq --arg path "$PARENT_DIR" --arg ctr_dir "$CTR_DIR" \
