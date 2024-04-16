@@ -2,7 +2,7 @@ package statsserver
 
 import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/sirupsen/logrus"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/vishvananda/netlink"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
@@ -12,16 +12,15 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metr
 
 	links, err := netlink.LinkList()
 	if err != nil {
-		logrus.Errorf("Unable to retrieve network namespace links %s: %v", sb.ID(), err)
+		log.Errorf(ss.ctx, "Unable to retrieve network namespace links %s: %v", sb.ID(), err)
 		return nil
 	}
 	if len(links) == 0 {
-		logrus.Infof("Network links are not available.")
+		log.Warnf(ss.ctx, "Network links are not available.")
 		return nil
 	}
 	for i := range links {
-		attrs := links[i].Attrs()
-		if attrs != nil {
+		if attrs := links[i].Attrs(); attrs != nil {
 			networkMetrics := generateSandboxNetworkMetrics(sb, attrs)
 			metrics = append(metrics, networkMetrics...)
 		}
@@ -130,5 +129,5 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, nil, networkMetrics, "network")
+	return computeSandboxMetrics(sb, networkMetrics, "network")
 }

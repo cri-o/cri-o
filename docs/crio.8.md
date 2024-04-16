@@ -289,7 +289,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--imagestore**="": Store newly pulled images in the specified path, rather than the path provided by --root.
 
-**--included-pod-metrics**="": A list of included pod metrics. Specify the names of the metrics to be included in this list.
+**--included-pod-metrics**="": A list of pod metrics to include. Specify the names of the metrics to include in this list.
 
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
@@ -404,7 +404,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--signature-policy-dir**="": Path to the root directory for namespaced signature policies. Must be an absolute path. (default: "/etc/crio/policies")
 
-**--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. This option is deprecated and will be removed in the future. (default: 0)
+**--stats-collection-period**="": The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. DEPRECATED: This option will be removed in the future. (default: 0)
 
 **--storage-driver, -s**="": OCI storage driver.
 

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -43,21 +42,21 @@ func NewSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetrics {
 	}
 }
 
-// store metricdescriptors statically at startup, populate the list
+// PopulateMetricDescriptors stores metricdescriptors statically at startup and populates the list.
 func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[string][]*types.MetricDescriptor {
 	descriptorsMap := map[string][]*types.MetricDescriptor{
 		"cpu": {
 			{
 				Name:      "container_cpu_user_seconds_total",
-				Help:      "Cumulative user cpu time consumed in seconds.",
+				Help:      "Cumulative user CPU time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			}, {
 				Name:      "container_cpu_system_seconds_total",
-				Help:      "Cumulative system cpu time consumed in seconds.",
+				Help:      "Cumulative system CPU time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			}, {
 				Name:      "container_cpu_usage_seconds_total",
-				Help:      "Cumulative cpu time consumed in seconds.",
+				Help:      "Cumulative CPU time consumed in seconds.",
 				LabelKeys: append(baseLabelKeys, "cpu"),
 			}, {
 				Name:      "container_cpu_cfs_periods_total",
@@ -76,7 +75,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 		"cpuLoad": {
 			{
 				Name:      "container_cpu_load_average_10s",
-				Help:      "Value of container cpu load average over the last 10 seconds.",
+				Help:      "Value of container CPU load average over the last 10 seconds.",
 				LabelKeys: baseLabelKeys,
 			}, {
 				Name:      "container_tasks_state",
@@ -171,7 +170,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			},
 			{
 				Name:      "container_blkio_device_usage_total",
-				Help:      "Blkio Device bytes usage",
+				Help:      "Blkio device bytes usage",
 				LabelKeys: append(baseLabelKeys, "device", "major", "minor", "operation"),
 			},
 		},
@@ -342,17 +341,12 @@ func sandboxBaseLabelValues(sb *sandbox.Sandbox) []string {
 }
 
 // ComputeSandboxMetrics computes the metrics for both pod and container sandbox.
-func ComputeSandboxMetrics(sb *sandbox.Sandbox, c *oci.Container, metrics []*containerMetric, metricName string) []*types.Metric {
+func computeSandboxMetrics(sb *sandbox.Sandbox, metrics []*containerMetric, metricName string) []*types.Metric {
 	values := append(sandboxBaseLabelValues(sb), metricName)
 	calculatedMetrics := make([]*types.Metric, 0, len(metrics))
 
 	for _, m := range metrics {
-		metricValues := m.valueFunc()
-		if len(metricValues) == 0 {
-			// No metrics to process for this ContainerMetrics, move to the next one
-			continue
-		}
-		for _, v := range metricValues {
+		for _, v := range m.valueFunc() {
 			newMetric := &types.Metric{
 				Name:        m.desc.Name,
 				Timestamp:   time.Now().UnixNano(),

@@ -25,7 +25,7 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 
 // metricsForPodSandbox is an internal, non-locking version of MetricsForPodSandbox
 // that returns (and occasionally gathers) the metrics for the given sandbox.
-// Note: caller must hold the lock on the StatsServer
+// Note: the caller must hold the lock on the StatsServer
 func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	return &SandboxMetrics{}
 }

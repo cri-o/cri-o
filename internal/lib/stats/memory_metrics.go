@@ -4,16 +4,10 @@ import (
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}, sm *SandboxMetrics) []*types.Metric {
-	mem, ok := stats.(*cgmgr.MemoryStats)
-	if !ok {
-		logrus.Errorf("Failed to assert stats as *cgmgr.MemoryStats")
-		return nil
-	}
+func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) []*types.Metric {
 	memoryMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
@@ -149,7 +143,7 @@ func GenerateSandboxMemoryMetrics(sb *sandbox.Sandbox, c *oci.Container, stats i
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, memoryMetrics, "memory")
+	return computeSandboxMetrics(sb, memoryMetrics, "memory")
 }
 
 func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64) []*types.Metric {
@@ -165,5 +159,5 @@ func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount u
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, oomMetrics, "oom")
+	return computeSandboxMetrics(sb, oomMetrics, "oom")
 }

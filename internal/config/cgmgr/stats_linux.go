@@ -37,9 +37,9 @@ type MemoryStats struct {
 	KernelTCPUsage  uint64
 	SwapUsage       uint64
 	SwapLimit       uint64
-	// Amount of cached filesystem data mapped with mmap()
+	// Amount of cached filesystem data mapped with mmap().
 	FileMapped uint64
-	// The number of memory usage hits limits. For cgroup v1 only
+	// The number of memory usage hits limits. For cgroup v1 only.
 	Failcnt uint64
 }
 
@@ -151,10 +151,9 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		inactiveFileName = "total_inactive_file"
 		rssBytes = memStats.Stats["total_rss"]
 		memSwap = memStats.SwapUsage.Usage
+		fileMapped = memStats.Stats["mapped_file"]
 		if memStats.UseHierarchy {
 			fileMapped = memStats.Stats["total_mapped_file"]
-		} else {
-			fileMapped = memStats.Stats["mapped_file"]
 		}
 		failcnt = memStats.Usage.Failcnt
 		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault

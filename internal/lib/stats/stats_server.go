@@ -1,6 +1,7 @@
 package statsserver
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -23,6 +24,7 @@ type StatsServer struct {
 	sboxStats        map[string]*types.PodSandboxStats
 	ctrStats         map[string]*types.ContainerStats
 	sboxMetrics      map[string]*SandboxMetrics
+	ctx              context.Context
 	parentServerIface
 	mutex sync.Mutex
 }
@@ -39,7 +41,7 @@ type parentServerIface interface {
 }
 
 // New returns a new StatsServer, deriving the needed information from the provided parentServerIface.
-func New(cs parentServerIface) *StatsServer {
+func New(ctx context.Context, cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
 		shutdown:          make(chan struct{}, 1),
 		alreadyShutdown:   false,
@@ -48,6 +50,7 @@ func New(cs parentServerIface) *StatsServer {
 		ctrStats:          make(map[string]*types.ContainerStats),
 		sboxMetrics:       make(map[string]*SandboxMetrics),
 		parentServerIface: cs,
+		ctx:               ctx,
 	}
 	go ss.updateLoop()
 	return ss
@@ -238,7 +241,7 @@ func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics
 	return ss.metricsForPodSandbox(sb)
 }
 
-// MetricsForPodSandboxList returns the metrics for the given list of sandboxes
+// MetricsForPodSandboxList returns the metrics for the given list of sandboxes.
 func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()

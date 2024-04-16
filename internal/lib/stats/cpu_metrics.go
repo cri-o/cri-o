@@ -6,23 +6,15 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats interface{}) []*types.Metric {
-	cpu, ok := stats.(*cgmgr.CPUStats)
-	if !ok {
-		logrus.Errorf("Failed to assert stats as *cgmgr.CpuStats")
-		return nil
-	}
-
+func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*types.Metric {
 	cpuMetrics := []*containerMetric{
 		{
 			desc: &types.MetricDescriptor{
 				Name:      "container_cpu_user_seconds_total",
-				Help:      "Cumulative user cpu time consumed in seconds.",
+				Help:      "Cumulative user CPU time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
@@ -34,7 +26,7 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 		}, {
 			desc: &types.MetricDescriptor{
 				Name:      "container_cpu_system_seconds_total",
-				Help:      "Cumulative system cpu time consumed in seconds.",
+				Help:      "Cumulative system CPU time consumed in seconds.",
 				LabelKeys: baseLabelKeys,
 			},
 			valueFunc: func() metricValues {
@@ -46,7 +38,7 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 		}, {
 			desc: &types.MetricDescriptor{
 				Name:      "container_cpu_usage_seconds_total",
-				Help:      "Cumulative cpu time consumed in seconds.",
+				Help:      "Cumulative CPU time consumed in seconds.",
 				LabelKeys: append(baseLabelKeys, "cpu"),
 			},
 			valueFunc: func() metricValues {
@@ -109,5 +101,5 @@ func GenerateSandboxCPUMetrics(sb *sandbox.Sandbox, c *oci.Container, stats inte
 			},
 		},
 	}
-	return ComputeSandboxMetrics(sb, c, cpuMetrics, "cpu")
+	return computeSandboxMetrics(sb, cpuMetrics, "cpu")
 }
