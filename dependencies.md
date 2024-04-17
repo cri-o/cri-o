@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
+_Generated on Wed, 17 Apr 2024 05:55:42 UTC for commit [fbb899b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/826c993af081cd6d5408858ed59b1c4728469b8e
+[0]: https://github.com/cri-o/cri-o/commit/fbb899bb89a73917da0649a5c702964637454b32
 
 ## Outdated Dependencies
 
@@ -19,7 +19,6 @@ _Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240416231703-af3b19ed187e | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
-| github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                                        | v0.2.4                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.50.0                            | true   | true             |
@@ -285,7 +284,7 @@ _Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 | github.com/buger/goterm                                                                 | v1.0.4                                        |                                     | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                        |                                     | false  | true             |
 | github.com/buildkite/agent/v3                                                           | v3.59.0                                       | v3.69.0                             | false  | true             |
-| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.6.0                              | false  | true             |
+| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.7.0                              | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251            |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                        |                                     | false  | true             |
 | github.com/bytedance/sonic                                                              | v1.10.1                                       | v1.11.4                             | false  | true             |
@@ -303,7 +302,7 @@ _Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d            |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                        | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589            |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89            | v0.0.0-20240328024531-fe04f09ede24  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89            | v0.0.0-20240417023356-ab6d61991462  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                        | v0.9.5                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                        |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                        |                                     | false  | true             |
@@ -456,7 +455,7 @@ _Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 | github.com/go-playground/universal-translator                                           | v0.18.1                                       |                                     | false  | true             |
 | github.com/go-playground/validator/v10                                                  | v10.15.5                                      | v10.19.0                            | false  | true             |
 | github.com/go-redis/redismock/v9                                                        | v9.2.0                                        |                                     | false  | true             |
-| github.com/go-rod/rod                                                                   | v0.114.5                                      | v0.114.8                            | false  | true             |
+| github.com/go-rod/rod                                                                   | v0.114.5                                      | v0.115.0                            | false  | true             |
 | github.com/go-sql-driver/mysql                                                          | v1.7.1                                        | v1.8.1                              | false  | true             |
 | github.com/go-stack/stack                                                               | v1.8.0                                        | v1.8.1                              | false  | true             |
 | github.com/go-task/slim-sprig                                                           | v0.0.0-20230315185526-52ccab3ef572            |                                     | false  | true             |
@@ -642,7 +641,7 @@ _Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                        |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                        |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.12                                       |                                     | true   | true             |
-| github.com/opencontainers/runtime-spec                                                  | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                              | true   | true             |
+| github.com/opencontainers/runtime-spec                                                  | v1.2.0                                        |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc          |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                                       |                                     | true   | true             |
 | github.com/openshift/imagebuilder                                                       | v1.2.6-0.20231110114814-35a50d57f722          | v1.2.9                              | false  | true             |
