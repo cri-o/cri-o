@@ -353,6 +353,9 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
   "io.kubernetes.cri-o.UnifiedCgroup.$CTR_NAME" for configuring the cgroup v2 unified block for a container.
   "io.containers.trace-syscall" for tracing syscalls via the OCI seccomp BPF hook.
 
+**container_min_memory**=""
+  The minimum memory that must be set for a container. This value can be used to override the currently set global value for a specific runtime. If not set, a global default value of "12 MiB" will be used.
+
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.
 
