@@ -152,6 +152,9 @@ type ImageServer interface {
 	// CandidatesForPotentiallyShortImageName resolves an image name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
 	// It will only return an empty slice if err != nil.
 	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error)
+
+	// UpdatePinnedImagesList updates pinned and pause images list in imageService.
+	UpdatePinnedImagesList(imageList []string)
 }
 
 func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
@@ -896,6 +899,11 @@ type nativeStorageTransport struct{}
 
 func (st nativeStorageTransport) ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error) {
 	return istorage.ResolveReference(ref)
+}
+
+// UpdatePinnedImagesList updates pinned images list in imageService.
+func (svc *imageService) UpdatePinnedImagesList(pinnedImages []string) {
+	svc.regexForPinnedImages = CompileRegexpsForPinnedImages(pinnedImages)
 }
 
 // FilterPinnedImage checks if the given image needs to be pinned

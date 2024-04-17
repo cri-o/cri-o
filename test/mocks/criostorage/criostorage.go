@@ -185,6 +185,18 @@ func (mr *MockImageServerMockRecorder) UntagImage(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UntagImage", reflect.TypeOf((*MockImageServer)(nil).UntagImage), arg0, arg1)
 }
 
+// UpdatePinnedImagesList mocks base method.
+func (m *MockImageServer) UpdatePinnedImagesList(arg0 []string) {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "UpdatePinnedImagesList", arg0)
+}
+
+// UpdatePinnedImagesList indicates an expected call of UpdatePinnedImagesList.
+func (mr *MockImageServerMockRecorder) UpdatePinnedImagesList(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePinnedImagesList", reflect.TypeOf((*MockImageServer)(nil).UpdatePinnedImagesList), arg0)
+}
+
 // MockRuntimeServer is a mock of RuntimeServer interface.
 type MockRuntimeServer struct {
 	ctrl     *gomock.Controller

@@ -98,6 +98,10 @@ kata_skip_cgroups_tests:
 kata_skip_command_tests:
   - 'test "crio commands"'
   - 'test "log max boundary testing"'
+kata_skip_reload_config_tests:
+  - "test \"reload config should update 'pinned_images'\""
+  - "test \"reload config should update 'pinned_images' and only 'pause_image' is pinned\""
+  - "test \"reload config should update 'pause_image' and it becomes 'pinned_images'\""
 kata_skip_config_tests:
   - 'test "choose different default runtime should succeed"'
   - 'test "runc not existing when default_runtime changed should succeed"'
