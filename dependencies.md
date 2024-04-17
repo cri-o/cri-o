@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Apr 2024 14:25:06 UTC for commit [0b3323b][0]._
+_Generated on Wed, 17 Apr 2024 19:48:41 UTC for commit [03b2830][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0b3323b22d4d8babe46491169e52d56d97dad564
+[0]: https://github.com/cri-o/cri-o/commit/03b2830f371fac79851ca6a048484a19469b767c
 
 ## Outdated Dependencies
 
@@ -250,7 +250,7 @@ _Generated on Wed, 17 Apr 2024 14:25:06 UTC for commit [0b3323b][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.22                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.23                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.11                            | false  | true             |
