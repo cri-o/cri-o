@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
+_Generated on Wed, 17 Apr 2024 00:29:15 UTC for commit [826c993][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/df0b6be1c27abea1c5f4e9ac2acf7a7e68d5bc1b
+[0]: https://github.com/cri-o/cri-o/commit/826c993af081cd6d5408858ed59b1c4728469b8e
 
 ## Outdated Dependencies
 
@@ -16,7 +16,7 @@ _Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240416163933-c26dad8fe5e9 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240416231703-af3b19ed187e | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
 | github.com/opencontainers/runtime-spec                                      | v1.1.1-0.20230922153023-c0e90434df2a          | v1.2.0                             | true   | true             |
@@ -549,7 +549,7 @@ _Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240416163933-c26dad8fe5e9  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240416231703-af3b19ed187e  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -809,7 +809,7 @@ _Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        | v1.2.0                              | false  | true             |
-| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.5                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.6                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                        |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                        |                                     | false  | true             |
@@ -872,7 +872,7 @@ _Generated on Tue, 16 Apr 2024 21:00:28 UTC for commit [df0b6be][0]._
 | k8s.io/kms                                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                     | false  | true             |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20231113174909-778a5567bc1e            | v0.0.0-20240411171206-dc4e619f62f3  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.0-alpha.2                               | v0.31.0-alpha.0                     | true   | true             |
-| k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.3                             | false  | true             |
+| k8s.io/kubernetes                                                                       | v1.28.4                                       | v1.29.4                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57  | true   | true             |
 | knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e            | v0.0.0-20240416145024-0f34a8815650  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                        | v1.3.0                              | false  | true             |
