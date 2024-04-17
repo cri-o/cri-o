@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Apr 2024 05:55:42 UTC for commit [fbb899b][0]._
+_Generated on Wed, 17 Apr 2024 10:20:17 UTC for commit [71838a2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fbb899bb89a73917da0649a5c702964637454b32
+[0]: https://github.com/cri-o/cri-o/commit/71838a2343412f1a0cc43b930dd15edad879aaa9
 
 ## Outdated Dependencies
 
@@ -37,7 +37,6 @@ _Generated on Wed, 17 Apr 2024 05:55:42 UTC for commit [fbb899b][0]._
 | k8s.io/kubelet                                                              | v0.30.0-alpha.2                               | v0.31.0-alpha.0                    | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e            | v0.0.0-20240310230437-4693a0247e57 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.7.7                                        | v0.8.1                             | true   | true             |
-| tags.cncf.io/container-device-interface                                     | v0.6.2                                        | v0.7.2                             | true   | true             |
 
 ## All Dependencies
 
@@ -899,6 +898,6 @@ _Generated on Wed, 17 Apr 2024 05:55:42 UTC for commit [fbb899b][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                        | v0.4.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                                 | v0.6.2                                        | v0.7.2                              | true   | true             |
-| tags.cncf.io/container-device-interface/specs-go                                        | v0.6.0                                        | v0.7.0                              | false  | true             |
+| tags.cncf.io/container-device-interface                                                 | v0.7.2                                        |                                     | true   | true             |
+| tags.cncf.io/container-device-interface/specs-go                                        | v0.7.0                                        |                                     | false  | true             |
 | zenhack.net/go/util                                                                     | v0.0.0-20230218002511-744d2d6d1739            | v0.0.0-20230607025951-8b02fee814ae  | false  | true             |
