@@ -83,7 +83,7 @@ require (
 	sigs.k8s.io/release-sdk v0.11.0
 	sigs.k8s.io/release-utils v0.7.7
 	sigs.k8s.io/yaml v1.4.0
-	tags.cncf.io/container-device-interface v0.6.2
+	tags.cncf.io/container-device-interface v0.7.2
 )
 
 require (
@@ -227,6 +227,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20231113174909-778a5567bc1e // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
-	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
+	tags.cncf.io/container-device-interface/specs-go v0.7.0 // indirect
 	zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739 // indirect
 )
