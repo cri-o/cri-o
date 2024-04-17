@@ -13,8 +13,6 @@ function teardown() {
 }
 
 @test "image fs info with default settings should return matching container_filesystem and image_filesystem" {
-	version=$(crictl --version)
-	echo "$version"
 	output=$(crictl imagefsinfo)
 	[ "$output" != "" ]
 
@@ -25,9 +23,6 @@ function teardown() {
 }
 
 @test "image fs info with imagestore set should return different filesystems" {
-	version=$(crictl --version)
-	echo "$version"
-
 	stop_crio
 	CONTAINER_IMAGESTORE="$TESTDIR/imagestore" start_crio
 	output=$(crictl imagefsinfo)
