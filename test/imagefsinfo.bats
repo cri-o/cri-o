@@ -5,7 +5,6 @@ load helpers
 
 function setup() {
 	setup_test
-	start_crio
 }
 
 function teardown() {
@@ -13,6 +12,7 @@ function teardown() {
 }
 
 @test "image fs info with default settings should return matching container_filesystem and image_filesystem" {
+	start_crio
 	output=$(crictl imagefsinfo)
 	[ "$output" != "" ]
 
@@ -23,7 +23,6 @@ function teardown() {
 }
 
 @test "image fs info with imagestore set should return different filesystems" {
-	stop_crio
 	CONTAINER_IMAGESTORE="$TESTDIR/imagestore" start_crio
 	output=$(crictl imagefsinfo)
 	[ "$output" != "" ]
