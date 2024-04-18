@@ -23,6 +23,14 @@ function list_all_children {
 	done
 }
 
+function crictl_rm_preserve_logs {
+	ARGS=
+	if check_crictl_version 1.30; then
+		ARGS=-k
+	fi
+	crictl rm $ARGS "$1"
+}
+
 function check_oci_annotation() {
 	# check for OCI annotation in container's config.json
 	local ctr_id="$1"
@@ -206,7 +214,7 @@ function create_test_rro_mounts() {
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	crictl rm "$ctr_id"
+	crictl_rm_preserve_logs "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
@@ -287,7 +295,7 @@ function create_test_rro_mounts() {
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	crictl rm "$ctr_id"
+	crictl_rm_preserve_logs "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
@@ -309,7 +317,7 @@ function create_test_rro_mounts() {
 
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	crictl rm "$ctr_id"
+	crictl_rm_preserve_logs "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
@@ -332,7 +340,7 @@ function create_test_rro_mounts() {
 
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	crictl rm "$ctr_id"
+	crictl_rm_preserve_logs "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
@@ -352,7 +360,7 @@ function create_test_rro_mounts() {
 	ctr_id=$(crictl create "$pod_id" "$newconfig" "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
 	wait_until_exit "$ctr_id"
-	crictl rm "$ctr_id"
+	crictl_rm_preserve_logs "$ctr_id"
 
 	# Check that the output is what we expect.
 	logpath="$DEFAULT_LOG_PATH/$pod_id/$ctr_id.log"
