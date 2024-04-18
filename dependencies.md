@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 18 Apr 2024 11:25:58 UTC for commit [e29d508][0]._
+_Generated on Thu, 18 Apr 2024 13:34:45 UTC for commit [51cccd7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e29d50839911bebdcf92a56c210e2bd875e109d3
+[0]: https://github.com/cri-o/cri-o/commit/51cccd79fccf7ec08effe6c8c727ebe894004cf2
 
 ## Outdated Dependencies
 
@@ -668,7 +668,7 @@ _Generated on Thu, 18 Apr 2024 11:25:58 UTC for commit [e29d508][0]._
 | github.com/proglottis/gpgme                                                             | v0.1.3                                        |                                     | false  | true             |
 | github.com/prometheus/client_golang                                                     | v1.18.0                                       | v1.19.0                             | true   | true             |
 | github.com/prometheus/client_model                                                      | v0.5.0                                        | v0.6.1                              | false  | true             |
-| github.com/prometheus/common                                                            | v0.45.0                                       | v0.52.3                             | false  | true             |
+| github.com/prometheus/common                                                            | v0.45.0                                       | v0.53.0                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.12.0                                       | v0.13.0                             | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf            | v0.0.0-20240416193709-1e18ef0a7fdc  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475            |                                     | false  | true             |
