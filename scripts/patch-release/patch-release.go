@@ -23,6 +23,7 @@ const (
 	orgEnvKey         = "ORG"
 	versionFile       = "internal/version/version.go"
 	branchPrefix      = "release-"
+	crioOrgRepo       = "cri-o"
 )
 
 var releaseMinorVersions = []string{"1.29", "1.28", "1.27"}
@@ -40,17 +41,11 @@ func run() error {
 			"run: $%s environment variable is not set", githubTokenEnvKey,
 		)
 	}
-	if !env.IsSet(orgEnvKey) {
-		return fmt.Errorf(
-			"run: $%s environment variable is not set %s",
-			orgEnvKey,
-			"(should be set to your CRI-O fork organization, like 'gh-name')",
-		)
-	}
+
 	remote := env.Default(gitRemoteEnvKey, "origin")
 	logrus.Infof("Using repository fork remote: %s", remote)
 
-	org := os.Getenv(orgEnvKey)
+	org := env.Default(orgEnvKey, crioOrgRepo)
 	logrus.Infof("Using repository fork organization: %s", org)
 
 	repo, err := git.OpenRepo(".")
@@ -181,7 +176,7 @@ func updateVersionAndCreatePR(
 		newVersion, "/release-note-none",
 	)
 
-	pr, err := gh.CreatePullRequest("cri-o", "cri-o", baseBranchName,
+	pr, err := gh.CreatePullRequest(crioOrgRepo, crioOrgRepo, baseBranchName,
 		headBranchName,
 		title,
 		body,
