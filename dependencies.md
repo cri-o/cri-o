@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 18 Apr 2024 13:34:45 UTC for commit [51cccd7][0]._
+_Generated on Thu, 18 Apr 2024 16:10:03 UTC for commit [c79592e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/51cccd79fccf7ec08effe6c8c727ebe894004cf2
+[0]: https://github.com/cri-o/cri-o/commit/c79592e0ba32b6aafdc2c8495bade92f917e2ace
 
 ## Outdated Dependencies
 
@@ -18,7 +18,7 @@ _Generated on Thu, 18 Apr 2024 13:34:45 UTC for commit [51cccd7][0]._
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240418083627-bf16b18180e2 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
-| github.com/onsi/gomega                                                      | v1.31.1                                       | v1.32.0                            | true   | true             |
+| github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                                        | v0.2.4                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.50.0                            | true   | true             |
@@ -635,7 +635,7 @@ _Generated on Thu, 18 Apr 2024 13:34:45 UTC for commit [51cccd7][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                        |                                     | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.4                                       | v1.16.5                             | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.17.0                                       | v2.17.1                             | true   | true             |
-| github.com/onsi/gomega                                                                  | v1.31.1                                       | v1.32.0                             | true   | true             |
+| github.com/onsi/gomega                                                                  | v1.31.1                                       | v1.33.0                             | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.59.0                                       | v0.63.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                        |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                        |                                     | true   | true             |
