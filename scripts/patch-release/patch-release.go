@@ -177,8 +177,8 @@ func updateVersionAndCreatePR(
 	headBranchName := fmt.Sprintf("%s:%s", org, newBranch)
 	title := "Bump version to " + newVersion
 	body := fmt.Sprintf(
-		"Automated version bump to version `%s`\n\n%s",
-		newVersion, "/release-note-none",
+		"Automated version bump to version `%s`\n\n```release-note\nNone\n```",
+		newVersion,
 	)
 
 	pr, err := gh.CreatePullRequest(org, crioOrgRepo, baseBranchName,
