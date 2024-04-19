@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Apr 2024 10:28:04 UTC for commit [39caf16][0]._
+_Generated on Fri, 19 Apr 2024 13:12:27 UTC for commit [558e686][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/39caf167c4f9ebee524b89168b274f8ab75ac77f
+[0]: https://github.com/cri-o/cri-o/commit/558e686bc4566c63364d2c8960ec8828b4fe2124
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Fri, 19 Apr 2024 10:28:04 UTC for commit [39caf16][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419093808-12964256a415 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419102613-7e12d588c0cf | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -522,7 +522,7 @@ _Generated on Fri, 19 Apr 2024 10:28:04 UTC for commit [39caf16][0]._
 | github.com/hashicorp/go-sockaddr                                                        | v1.0.2                                        | v1.0.6                              | false  | true             |
 | github.com/hashicorp/golang-lru                                                         | v1.0.2                                        |                                     | false  | true             |
 | github.com/hashicorp/hcl                                                                | v1.0.1-vault-5                                |                                     | false  | true             |
-| github.com/hashicorp/vault/api                                                          | v1.10.0                                       | v1.12.2                             | false  | true             |
+| github.com/hashicorp/vault/api                                                          | v1.10.0                                       | v1.13.0                             | false  | true             |
 | github.com/howeyc/gopass                                                                | v0.0.0-20210920133722-c8aef6fb66ef            |                                     | false  | true             |
 | github.com/hpcloud/tail                                                                 | v1.0.0                                        |                                     | false  | true             |
 | github.com/hugelgupf/p9                                                                 | v0.3.1-0.20230822151754-54f5c5530921          |                                     | false  | true             |
@@ -548,7 +548,7 @@ _Generated on Fri, 19 Apr 2024 10:28:04 UTC for commit [39caf16][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419093808-12964256a415  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419102613-7e12d588c0cf  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
