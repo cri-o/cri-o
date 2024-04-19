@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/cri-o/cri-o/internal/version"
 	goGit "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
@@ -48,6 +47,10 @@ func run() error {
 	org := env.Default(orgEnvKey, crioOrgRepo)
 	logrus.Infof("Using repository fork organization: %s", org)
 
+	if err := git.ConfigureGlobalDefaultUserAndEmail(); err != nil {
+		return fmt.Errorf("configure global default user and email: %w", err)
+	}
+
 	repo, err := git.OpenRepo(".")
 	if err != nil {
 		return fmt.Errorf("open local repo: %w", err)
@@ -62,10 +65,12 @@ func run() error {
 		}
 
 		// Bump up the patch version
+		oldVersion := sv.String()
 		sv.Patch++
+		newVersion := sv.String()
 
 		if err := updateVersionAndCreatePR(
-			repo, sv, baseBranchName, org, remote,
+			repo, newVersion, oldVersion, baseBranchName, org, remote,
 		); err != nil {
 			return fmt.Errorf("update version in local repository: %w", err)
 		}
@@ -117,11 +122,11 @@ func convertStringToSemver(tag string) (res semver.Version, err error) {
 }
 
 func updateVersionAndCreatePR(
-	repo *git.Repo, newVersion semver.Version, baseBranchName, org, remote string,
+	repo *git.Repo, newVersion, oldVersion string, baseBranchName, org, remote string,
 ) error {
-	logrus.Info("Updating repository")
+	logrus.Infof("Updating repository from %s to %s", oldVersion, newVersion)
 
-	newBranch := branchPrefix + newVersion.String()
+	newBranch := branchPrefix + newVersion
 	doesTheBranchExistRemotely, err := repo.HasRemoteBranch(newBranch)
 	if err != nil {
 		return fmt.Errorf("remote has branch %s: %w", newBranch, err)
@@ -146,7 +151,7 @@ func updateVersionAndCreatePR(
 	}
 
 	logrus.Infof("Updating new tag in file %s", versionFile)
-	if err := modifyVersionFile(versionFile, version.Version, newVersion.String()); err != nil {
+	if err := modifyVersionFile(versionFile, oldVersion, newVersion); err != nil {
 		return fmt.Errorf("update version file: %w", err)
 	}
 
@@ -156,7 +161,7 @@ func updateVersionAndCreatePR(
 	}
 
 	if err := repo.UserCommit(
-		"version: bump to " + newVersion.String(),
+		"version: bump to " + newVersion,
 	); err != nil {
 		return fmt.Errorf("commit changes: %w", err)
 	}
@@ -170,13 +175,13 @@ func updateVersionAndCreatePR(
 	gh := github.New()
 
 	headBranchName := fmt.Sprintf("%s:%s", org, newBranch)
-	title := fmt.Sprintf("Bump version for %s", newVersion)
+	title := "Bump version to " + newVersion
 	body := fmt.Sprintf(
 		"Automated version bump to version `%s`\n\n%s",
 		newVersion, "/release-note-none",
 	)
 
-	pr, err := gh.CreatePullRequest(crioOrgRepo, crioOrgRepo, baseBranchName,
+	pr, err := gh.CreatePullRequest(org, crioOrgRepo, baseBranchName,
 		headBranchName,
 		title,
 		body,
