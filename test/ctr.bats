@@ -1084,6 +1084,8 @@ function create_test_rro_mounts() {
 }
 
 @test "ctr that fails to mount container storage as recursively read-only without readonly option" {
+	requires_kernel "5.12"
+
 	# Check for the minimum cri-tools version that supports RRO mounts.
 	requires_crictl "1.30"
 
@@ -1110,6 +1112,8 @@ function create_test_rro_mounts() {
 }
 
 @test "ctr that fails to mount container storage as recursively read-only without private propagation" {
+	requires_kernel "5.12"
+
 	# Check for the minimum cri-tools version that supports RRO mounts.
 	requires_crictl "1.30"
 
