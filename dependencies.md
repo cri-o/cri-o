@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 19 Apr 2024 03:43:46 UTC for commit [a0a1ff7][0]._
+_Generated on Fri, 19 Apr 2024 10:28:04 UTC for commit [39caf16][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a0a1ff78de130f7308990ef6fabe51e3d6701a22
+[0]: https://github.com/cri-o/cri-o/commit/39caf167c4f9ebee524b89168b274f8ab75ac77f
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Fri, 19 Apr 2024 03:43:46 UTC for commit [a0a1ff7][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240418164850-6dd038fd585c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419093808-12964256a415 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -548,7 +548,7 @@ _Generated on Fri, 19 Apr 2024 03:43:46 UTC for commit [a0a1ff7][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240418164850-6dd038fd585c  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240419093808-12964256a415  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -883,7 +883,7 @@ _Generated on Fri, 19 Apr 2024 03:43:46 UTC for commit [a0a1ff7][0]._
 | modernc.org/mathutil                                                                    | v1.5.0                                        | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                        | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                        |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                                       | v1.29.7                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                                       | v1.29.8                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                        | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                                       | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                        | v1.1.0                              | false  | true             |
