@@ -8,7 +8,7 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/test.yml
       match: GO_VERSION
-    - path: .github/workflows/cron.yml
+    - path: .github/workflows/release-branch-forward.yml
       match: GO_VERSION
     - path: .github/workflows/patch-release.yml
       match: GO_VERSION
