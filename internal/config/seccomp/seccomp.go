@@ -19,6 +19,7 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -28,44 +29,81 @@ var (
 )
 
 // DefaultProfile is used to allow mutations from the DefaultProfile from the seccomp library.
-// Specifically, it is used to filter `unshare` from the default profile, as it is a risky syscall for unprivileged containers
-// to have access to.
+// Specifically, it is used to filter syscalls which can create namespaces from the default
+// profile, as it is risky for unprivileged containers to have access to create Linux
+// namespaces.
 func DefaultProfile() *seccomp.Seccomp {
 	defaultProfileOnce.Do(func() {
-		const (
-			unshareName              = "unshare"
-			unshareParentStructIndex = 1
-			unshareIndex             = 363
-		)
+		removeSyscalls := []struct {
+			Name              string
+			ParentStructIndex int
+			Index             int
+		}{
+			{"clone", 1, 23},
+			{"clone3", 1, 24},
+			{"unshare", 1, 363},
+		}
+
 		prof := seccomp.DefaultProfile()
 		// We know the default profile at compile time
 		// though a vendor change may update it.
 		// Panic on error and have CI catch errors on vendor bumps,
 		// to avoid combing through.
-		if prof.Syscalls[unshareParentStructIndex].Names[unshareIndex] != unshareName {
-			for i, name := range prof.Syscalls[unshareParentStructIndex].Names {
-				if name == unshareName {
-					_, file, _, _ := runtime.Caller(1)
-					logrus.Errorf("Change the `unshareIndex` variable in %s to %d", file, i)
-					break
+		for _, remove := range removeSyscalls {
+			if prof.Syscalls[remove.ParentStructIndex].Names[remove.Index] != remove.Name {
+				for i, name := range prof.Syscalls[remove.ParentStructIndex].Names {
+					if name == remove.Name {
+						_, file, _, _ := runtime.Caller(1)
+						logrus.Errorf("Change the Index for %q in %s to %d", remove.Name, file, i)
+						break
+					}
 				}
+				logrus.Fatalf(
+					"Default seccomp profile updated and syscall moved. Found unexpected syscall: %q",
+					prof.Syscalls[remove.ParentStructIndex].Names[remove.Index],
+				)
 			}
-			logrus.Fatalf(
-				"Default seccomp profile updated and unshare syscall moved. Found unexpected syscall: %q",
-				prof.Syscalls[unshareParentStructIndex].Names[unshareIndex],
-			)
+			removeStringFromSlice(prof.Syscalls[remove.ParentStructIndex].Names, remove.Index)
 		}
-		removeStringFromSlice(prof.Syscalls[unshareParentStructIndex].Names, unshareIndex)
 
 		prof.Syscalls = append(prof.Syscalls, &seccomp.Syscall{
 			Names: []string{
-				unshareName,
+				"clone",
+				"clone3",
+				"unshare",
 			},
 			Action: seccomp.ActAllow,
 			Includes: seccomp.Filter{
 				Caps: []string{"CAP_SYS_ADMIN"},
 			},
 		})
+
+		var flagsIndex uint = 0
+		if runtime.GOARCH == "s390" || runtime.GOARCH == "s390x" {
+			flagsIndex = 1
+		}
+
+		prof.Syscalls = append(prof.Syscalls, &seccomp.Syscall{
+			Names: []string{
+				"clone",
+			},
+			Action: seccomp.ActAllow,
+			Args: []*seccomp.Arg{
+				{
+					Index:    flagsIndex,
+					Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
+					ValueTwo: 0,
+					Op:       seccomp.OpMaskedEqual,
+				},
+			},
+		},
+			&seccomp.Syscall{
+				Names: []string{
+					"clone",
+				},
+				Action: seccomp.ActErrno,
+				Errno:  "EPERM",
+			})
 		defaultProfile = prof
 	})
 
