@@ -1191,7 +1191,6 @@ const templateStringCrioRuntimeEnablePodEvents = `# Enable/disable the generatio
 `
 
 const templateStringCrioRuntimeDefaultRuntime = `# default_runtime is the _name_ of the OCI runtime to be used as the default.
-# default_runtime is the _name_ of the OCI runtime to be used as the default.
 # The name is matched against the runtimes map below.
 {{ $.Comment }}default_runtime = "{{ .DefaultRuntime }}"
 
