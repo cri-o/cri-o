@@ -78,11 +78,30 @@ function teardown() {
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
 
-# 8. test running with ctr runtime/default don't allow unshare
+# 8. test running with ctr runtime/default doesn't allow unshare
 @test "ctr seccomp profiles runtime/default block unshare" {
 	unset CONTAINER_SECCOMP_PROFILE
 	restart_crio
 
 	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 	run ! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
+}
+
+# 9. test running with ctr runtime/default don't allow clone with namespace flags
+@test "ctr seccomp profiles runtime/default blocks clone creating namespaces" {
+	unset CONTAINER_SECCOMP_PROFILE
+	restart_crio
+
+	jq --arg TESTDATA "$TESTDATA" '.linux.security_context.seccomp.profile_type = 0 |
+          .mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
+	crictl exec --sync "$ctr_id" /usr/bin/make -C / clone-ns
+	run crictl exec --sync "$ctr_id" /clone-ns
+	[[ "$output" =~ "Operation not permitted" ]]
 }
