@@ -380,12 +380,12 @@ runtime_path = "$RUNTIME_BINARY_PATH"
 EOF
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		;;
-	arm64)
+	aarch64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		;;
@@ -410,12 +410,12 @@ container_min_memory = "7.5MiB"
 EOF
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		;;
-	arm64)
+	aarch64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		;;
@@ -427,7 +427,7 @@ EOF
 		| .image.image = $image' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
 
-	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "run container with container_min_memory 17.5MiB" {
@@ -440,12 +440,12 @@ container_min_memory = "17.5MiB"
 EOF
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		;;
-	arm64)
+	aarch64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		;;
@@ -457,7 +457,7 @@ EOF
 		| .image.image = $image' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
 
-	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+	run ! crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "run container with container_min_memory 5.5MiB" {
@@ -470,12 +470,12 @@ container_min_memory = "5.5MiB"
 EOF
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		;;
-	arm64)
+	aarch64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		;;
@@ -486,7 +486,7 @@ EOF
 		| .image.image = $image' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
 
-	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
 
 @test "run container with empty container_min_memory" {
@@ -498,12 +498,12 @@ runtime_path = "$RUNTIME_BINARY_PATH"
 EOF
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}
 		;;
-	arm64)
+	aarch64)
 		crictl pull ${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		IMAGE=${IMAGE_LIST_DIGEST_FOR_TAG_ARM64}
 		;;
@@ -514,5 +514,7 @@ EOF
 		| .image.image = $image' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
 
-	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+	wait_for_log 'Runtime handler \\"runc\\" container minimum memory set to 12582912 bytes'
+	wait_for_log 'Runtime handler \\"mem\\" container minimum memory set to 12582912 bytes'
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
