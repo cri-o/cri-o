@@ -57,6 +57,7 @@ kata_skip_files:
   - "ctr_seccomp.bats"  # see https://github.com/kata-containers/tests/issues/4587
   - "ctr_userns.bats"
   - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
+  - "hooks.bats"        # hook test is being dropped while we wait for https://github.com/kata-containers/kata-containers/issues/9523
   - "infra_ctr_cpuset.bats"
   - "imagefsinfo.bats"  # image and container filesystems is not in kata at the moment
   - "inspect.bats"
