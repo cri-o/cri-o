@@ -38,7 +38,7 @@ func New(conmonPath string) (*ConmonManager, error) {
 
 	c := new(ConmonManager)
 	if err := c.parseConmonVersion(fields[2]); err != nil {
-		return nil, fmt.Errorf("get conmon version: %w", err)
+		return nil, fmt.Errorf("parse conmon version: %w", err)
 	}
 
 	c.initializeSupportsSync()
