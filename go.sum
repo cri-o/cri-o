@@ -743,8 +743,8 @@ github.com/containers/kubensmnt v1.2.0 h1:BDtkaOFQ5fN7FnB9kC6peMW50KkwI1KI8E9ROB
 github.com/containers/kubensmnt v1.2.0/go.mod h1:1/HG09N/a1+WSD3zkurzeWtqlKRSfUUnlIF/08zloqk=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
-github.com/containers/ocicrypt v1.1.9 h1:2Csfba4jse85Raxk5HIyEk8OwZNjRvfkhEGijOjIdEM=
-github.com/containers/ocicrypt v1.1.9/go.mod h1:dTKx1918d8TDkxXvarscpNVY+lyPakPNFN4jwA9GBys=
+github.com/containers/ocicrypt v1.1.10 h1:r7UR6o8+lyhkEywetubUUgcKFjOWOaWz8cEBrCPX0ic=
+github.com/containers/ocicrypt v1.1.10/go.mod h1:YfzSSr06PTHQwSTUKqDSjish9BeW1E4HUmreluQcMd8=
 github.com/containers/podman/v4 v4.9.3 h1:3tEnvIqijxBYtILRdHcbn0UNHAyUiQ1Y5hcvkYmutZA=
 github.com/containers/podman/v4 v4.9.3/go.mod h1:J2qLop+mWjAOxh0QQyYPdnPA3jI6ay2eU0OKakgMniQ=
 github.com/containers/storage v1.51.0 h1:AowbcpiWXzAjHosKz7MKvPEqpyX+ryZA/ZurytRrFNA=

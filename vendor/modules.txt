@@ -333,7 +333,7 @@ github.com/containers/kubensmnt
 # github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01
 ## explicit
 github.com/containers/libtrust
-# github.com/containers/ocicrypt v1.1.9
+# github.com/containers/ocicrypt v1.1.10
 ## explicit; go 1.20
 github.com/containers/ocicrypt
 github.com/containers/ocicrypt/blockcipher
