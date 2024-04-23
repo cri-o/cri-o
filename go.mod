@@ -23,7 +23,7 @@ require (
 	github.com/containers/conmon-rs v0.4.0
 	github.com/containers/image/v5 v5.25.0
 	github.com/containers/kubensmnt v1.2.0
-	github.com/containers/ocicrypt v1.1.8
+	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/podman/v4 v4.4.1
 	github.com/containers/storage v1.46.2-0.20240109024019-79f7d7a094a5
 	github.com/coreos/go-systemd/v22 v22.5.0
