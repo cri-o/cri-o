@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
+_Generated on Tue, 23 Apr 2024 11:37:12 UTC for commit [a0c3136][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d90763d245d0756977cf4db0f9b8c0bbf2796f8f
+[0]: https://github.com/cri-o/cri-o/commit/a0c31366e46c25c8cb34d506d82795d099ac17e4
 
 ## Outdated Dependencies
 
@@ -18,7 +18,7 @@ _Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240422113606-6ca0f0971074 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240423010445-469c4e4f441d | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -285,7 +285,7 @@ _Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
 | github.com/buger/goterm                                                                 | v1.0.4                                        |                                     | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                        |                                     | false  | true             |
 | github.com/buildkite/agent/v3                                                           | v3.59.0                                       | v3.70.0                             | false  | true             |
-| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.7.0                              | false  | true             |
+| github.com/buildkite/go-pipeline                                                        | v0.2.0                                        | v0.8.0                              | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251            |                                     | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                        |                                     | false  | true             |
 | github.com/bytedance/sonic                                                              | v1.10.1                                       | v1.11.5                             | false  | true             |
@@ -386,9 +386,9 @@ _Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                        |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                        |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.5.0                                        | v0.6.0                              | false  | true             |
-| github.com/docker/cli                                                                   | v24.0.7+incompatible                          | v26.0.2+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v24.0.7+incompatible                          | v26.1.0+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                           |                                     | true   | true             |
-| github.com/docker/docker                                                                | v24.0.7+incompatible                          | v26.0.2+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v24.0.7+incompatible                          | v26.1.0+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.0                                        | v0.8.1                              | false  | true             |
 | github.com/docker/go-connections                                                        | v0.4.1-0.20231031175723-0b8c1f4e07a0          | v0.5.0                              | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c            |                                     | false  | true             |
@@ -549,7 +549,7 @@ _Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240422113606-6ca0f0971074  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240423010445-469c4e4f441d  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -809,7 +809,7 @@ _Generated on Mon, 22 Apr 2024 19:10:49 UTC for commit [d90763d][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.25.0                             | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        | v1.2.0                              | false  | true             |
-| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.6                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.7                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                        |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                        |                                     | false  | true             |
