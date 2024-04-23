@@ -10,6 +10,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

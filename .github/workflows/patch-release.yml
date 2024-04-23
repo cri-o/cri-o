@@ -9,7 +9,7 @@ jobs:
   patch-release:
     permissions:
       contents: none
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
