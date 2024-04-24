@@ -7,6 +7,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -18,7 +19,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo) error {
+func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
 	var err error
 	s.infra, err = container.New()
 	if err != nil {
@@ -45,7 +46,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 	}
 	g.SetProcessArgs(pauseCommand)
 
-	if err := s.createResolvConf(podContainer); err != nil {
+	if err := s.createResolvConf(podContainer, sandboxIDMappings); err != nil {
 		return fmt.Errorf("create resolv conf: %w", err)
 	}
 
@@ -86,7 +87,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return cmd, nil
 }
 
-func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr error) {
+func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) (retErr error) {
 	// set DNS options
 	s.resolvPath = podContainer.RunDir + "/resolv.conf"
 
@@ -112,6 +113,12 @@ func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo) (retErr 
 
 	if err := label.Relabel(s.resolvPath, podContainer.MountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return err
+	}
+	if sandboxIDMappings != nil {
+		rootPair := sandboxIDMappings.RootPair()
+		if err := os.Chown(s.resolvPath, rootPair.UID, rootPair.GID); err != nil {
+			return fmt.Errorf("cannot chown %s to %d:%d: %w", s.resolvPath, rootPair.UID, rootPair.GID, err)
+		}
 	}
 	mnt := spec.Mount{
 		Type:        "bind",

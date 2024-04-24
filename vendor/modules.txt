@@ -253,7 +253,6 @@ github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/subscriptions
 github.com/containers/common/pkg/timezone
 github.com/containers/common/pkg/umask
-github.com/containers/common/pkg/util
 github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit

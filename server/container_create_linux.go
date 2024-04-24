@@ -13,7 +13,6 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
-	"github.com/containers/common/pkg/util"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
@@ -53,24 +52,16 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, false); err != nil {
+			if err := makeAccessible(path, rootPair.UID, rootPair.GID); err != nil {
 				return fmt.Errorf("cannot make %s accessible to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
 			}
-		}
-		if err := makeMountsAccessible(rootPair.UID, rootPair.GID, container.Spec().Mounts); err != nil {
-			return err
 		}
 	}
 	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x
-func makeAccessible(path string, uid, gid int, doChown bool) error {
-	if doChown {
-		if err := os.Chown(path, uid, gid); err != nil {
-			return fmt.Errorf("cannot chown %s to %d:%d: %w", path, uid, gid, err)
-		}
-	}
+func makeAccessible(path string, uid, gid int) error {
 	for ; path != "/"; path = filepath.Dir(path) {
 		var st unix.Stat_t
 		err := unix.Stat(path, &st)
@@ -86,18 +77,6 @@ func makeAccessible(path string, uid, gid int, doChown bool) error {
 		perm := os.FileMode(st.Mode) & os.ModePerm
 		if perm&0o111 != 0o111 {
 			if err := os.Chmod(path, perm|0o111); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
-}
-
-// makeMountsAccessible makes sure all the mounts are accessible from the user namespace
-func makeMountsAccessible(uid, gid int, mounts []rspec.Mount) error {
-	for _, m := range mounts {
-		if m.Type == "bind" || util.StringInSlice("bind", m.Options) {
-			if err := makeAccessible(m.Source, uid, gid, false); err != nil {
 				return err
 			}
 		}
@@ -746,14 +725,20 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	rootUID, rootGID := 0, 0
+	if containerIDMappings != nil {
+		rootPair := containerIDMappings.RootPair()
+		rootUID, rootGID = rootPair.UID, rootPair.GID
+	}
+
 	// Add secrets from the default and override mounts.conf files
 	secretMounts := subscriptions.MountsWithUIDGID(
 		mountLabel,
 		containerInfo.RunDir,
 		s.config.DefaultMountsFile,
 		mountPoint,
-		0,
-		0,
+		rootUID,
+		rootGID,
 		unshare.IsRootless(),
 		ctr.DisableFips(),
 	)
@@ -824,7 +809,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.AddManagedPIDNamespace(ctr.PidNamespace())
 
 	ociContainer.SetIDMappings(containerIDMappings)
-	var rootPair idtools.IDPair
 	if containerIDMappings != nil {
 		s.finalizeUserMapping(sb, specgen, containerIDMappings)
 
@@ -835,15 +819,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
 
-		rootPair = containerIDMappings.RootPair()
-
-		pathsToChown := []string{mountPoint, containerInfo.RunDir}
-		for _, m := range secretMounts {
-			pathsToChown = append(pathsToChown, m.Source)
-		}
-		for _, path := range pathsToChown {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
-				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
+		for _, path := range []string{mountPoint, containerInfo.RunDir} {
+			if err := makeAccessible(path, rootUID, rootGID); err != nil {
+				return nil, fmt.Errorf("cannot make %s accessible to %d:%d: %w", path, rootUID, rootGID, err)
 			}
 		}
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
@@ -862,13 +840,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.Config.Process.User.Umask = &umask
 	}
 
-	if containerIDMappings == nil {
-		rootPair = idtools.IDPair{UID: 0, GID: 0}
-	}
-
 	etc := filepath.Join(mountPoint, "/etc")
 	// create the `/etc` folder only when it doesn't exist
 	if _, err := os.Stat(etc); err != nil && os.IsNotExist(err) {
+		rootPair := idtools.IDPair{UID: 0, GID: 0}
+		if containerIDMappings != nil {
+			rootPair = containerIDMappings.RootPair()
+		}
 		if err := idtools.MkdirAllAndChown(etc, 0o755, rootPair); err != nil {
 			return nil, fmt.Errorf("error creating mtab directory: %w", err)
 		}

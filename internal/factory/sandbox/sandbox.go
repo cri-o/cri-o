@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -31,7 +32,7 @@ type Sandbox interface {
 	Name() string
 
 	// InitInfraContainer initializes the sandbox's infra container
-	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo) error
+	InitInfraContainer(*libconfig.Config, *storage.ContainerInfo, *idtools.IDMappings) error
 
 	// Spec returns the infra container's generator
 	// Must be called after InitInfraContainer

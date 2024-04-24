@@ -349,8 +349,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, fmt.Errorf("setting sandbox config: %w", err)
 	}
 
-	pathsToChown := []string{}
-
 	kubeName := sbox.Config().Metadata.Name
 	kubePodUID := sbox.Config().Metadata.Uid
 	namespace := sbox.Config().Metadata.Namespace
@@ -507,10 +505,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	// TODO: factor generating/updating the spec into something other projects can vendor
-	if err := sbox.InitInfraContainer(&s.config, &podContainer); err != nil {
+	if err := sbox.InitInfraContainer(&s.config, &podContainer, sandboxIDMappings); err != nil {
 		return nil, err
 	}
-	pathsToChown = append(pathsToChown, sbox.ResolvPath())
 
 	// add metadata
 	metadata := sbox.Config().Metadata
@@ -578,7 +575,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err != nil {
 			return nil, err
 		}
-		pathsToChown = append(pathsToChown, shmPath)
+		if sandboxIDMappings != nil {
+			rootPair := sandboxIDMappings.RootPair()
+			if err := os.Chown(shmPath, rootPair.UID, rootPair.GID); err != nil {
+				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", shmPath, rootPair.UID, rootPair.GID, err)
+			}
+		}
 		resourceCleaner.Add(ctx, "runSandbox: unmounting shmPath for sandbox "+sbox.ID(), func() error {
 			if err := unix.Unmount(shmPath, unix.MNT_DETACH); err != nil {
 				return fmt.Errorf("failed to unmount shm for sandbox: %w", err)
@@ -833,13 +835,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return nil, err
 	}
+	if sandboxIDMappings != nil {
+		rootPair := sandboxIDMappings.RootPair()
+		if err := os.Chown(hostnamePath, rootPair.UID, rootPair.GID); err != nil {
+			return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", hostnamePath, rootPair.UID, rootPair.GID, err)
+		}
+	}
 	mnt = spec.Mount{
 		Type:        "bind",
 		Source:      hostnamePath,
 		Destination: "/etc/hostname",
 		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
-	pathsToChown = append(pathsToChown, hostnamePath, mountPoint)
 	g.AddMount(mnt)
 	g.AddAnnotation(annotations.HostnamePath, hostnamePath)
 	sb.AddHostnamePath(hostnamePath)
@@ -875,12 +882,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 				Options:     []string{"rw", "rbind", "nodev", "nosuid", "noexec"},
 			}
 			g.AddMount(proc)
-		}
-		rootPair := sandboxIDMappings.RootPair()
-		for _, path := range pathsToChown {
-			if err := os.Chown(path, rootPair.UID, rootPair.GID); err != nil {
-				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
-			}
 		}
 	}
 	g.SetRootPath(mountPoint)
@@ -974,18 +975,6 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		s.removeInfraContainer(ctx, container)
 		return nil
 	})
-
-	if sandboxIDMappings != nil {
-		rootPair := sandboxIDMappings.RootPair()
-		for _, path := range pathsToChown {
-			if err := makeAccessible(path, rootPair.UID, rootPair.GID, true); err != nil {
-				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", path, rootPair.UID, rootPair.GID, err)
-			}
-		}
-		if err := makeMountsAccessible(rootPair.UID, rootPair.GID, g.Config.Mounts); err != nil {
-			return nil, err
-		}
-	}
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox container runtime creation")
 	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings); err != nil {
