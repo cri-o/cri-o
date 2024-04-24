@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 24 Apr 2024 20:57:54 UTC for commit [5441fa5][0]._
+_Generated on Wed, 24 Apr 2024 23:35:59 UTC for commit [6fdfd95][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5441fa5febb55099f2f60d849b8025ca912f66ed
+[0]: https://github.com/cri-o/cri-o/commit/6fdfd9572d17d9743450ad2db24481a6b5351ff4
 
 ## Outdated Dependencies
 
@@ -311,7 +311,7 @@ _Generated on Wed, 24 Apr 2024 20:57:54 UTC for commit [5441fa5][0]._
 | github.com/cilium/ebpf                                                                  | v0.9.1                                        | v0.15.0                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                        |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                        |                                     | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.7                                        |                                     | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.7                                        | v1.3.8                              | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe            |                                     | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20231128003011-0fa0005c9caa            | v0.0.0-20240423153145-555b57ec207b  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                        |                                     | false  | true             |
@@ -490,7 +490,7 @@ _Generated on Wed, 24 Apr 2024 20:57:54 UTC for commit [5441fa5][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                        |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                           |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                        | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240424203803-57759fc7b526  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240424215950-a892ee059fd6  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                        | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                        |                                     | false  | true             |
