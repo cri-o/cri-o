@@ -130,15 +130,16 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			privilegedWithoutHostDevices := false
 			runtimeConfigPath := ""
 			var (
-				containerMinMemory int64
+				containerMinMemory string
 				err                error
 			)
 
 			switch len(fields) {
 			case 7:
-				containerMinMemory, err = units.RAMInBytes(fields[6])
+				containerMinMemory = fields[6]
+				_, err = units.RAMInBytes(containerMinMemory)
 				if err != nil {
-					return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", fields[6], err)
+					return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", containerMinMemory, err)
 				}
 				fallthrough
 			case 6:
@@ -159,7 +160,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					RuntimeType:                  runtimeType,
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
 					RuntimeConfigPath:            runtimeConfigPath,
-					ContainerMinMemory:           units.BytesSize(float64(containerMinMemory)),
+					ContainerMinMemory:           containerMinMemory,
 				}
 			default:
 				return fmt.Errorf("invalid format for --runtimes: %q", r)

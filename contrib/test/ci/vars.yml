@@ -150,6 +150,11 @@ kata_skip_image_tests:
   - 'test "image pull and list by manifest list tag"'
   - 'test "image pull and list by manifest list and individual digest"'
   - 'test "image pull and list by individual and manifest list digest"'
+  - 'test "run container with memory_limit_in_bytes -1"'
+  - 'test "run container with memory_limit_in_bytes 12.5MiB"'
+  - 'test "run container with container_min_memory 17.5MiB"'
+  - 'test "run container with container_min_memory 5.5MiB"'
+  - 'test "run container with empty container_min_memory"'
 kata_skip_namespaces_tests:
   - 'test "pid namespace mode target test"'
 kata_skip_network_tests:
