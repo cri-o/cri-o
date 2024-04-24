@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
+_Generated on Wed, 24 Apr 2024 20:57:54 UTC for commit [5441fa5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2f72dc6ef7238d95c34f281b70189de34599fb92
+[0]: https://github.com/cri-o/cri-o/commit/5441fa5febb55099f2f60d849b8025ca912f66ed
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240424150419-2400a4d249dc | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240424194029-b4360e7e373f | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -63,7 +63,7 @@ _Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 | cloud.google.com/go/baremetalsolution                                                   | v1.2.3                                        | v1.2.5                              | false  | true             |
 | cloud.google.com/go/batch                                                               | v1.7.0                                        | v1.8.4                              | false  | true             |
 | cloud.google.com/go/beyondcorp                                                          | v1.0.3                                        | v1.0.5                              | false  | true             |
-| cloud.google.com/go/bigquery                                                            | v1.58.0                                       | v1.60.0                             | false  | true             |
+| cloud.google.com/go/bigquery                                                            | v1.58.0                                       | v1.61.0                             | false  | true             |
 | cloud.google.com/go/billing                                                             | v1.18.0                                       | v1.18.4                             | false  | true             |
 | cloud.google.com/go/binaryauthorization                                                 | v1.8.0                                        | v1.8.2                              | false  | true             |
 | cloud.google.com/go/certificatemanager                                                  | v1.7.4                                        | v1.8.0                              | false  | true             |
@@ -251,7 +251,7 @@ _Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.27                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.28                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.11                            | false  | true             |
@@ -490,7 +490,7 @@ _Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                        |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                           |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                        | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240422182052-72c8669ad3e7  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15            | v0.0.0-20240424203803-57759fc7b526  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                        | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                        |                                     | false  | true             |
@@ -548,7 +548,7 @@ _Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240424150419-2400a4d249dc  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240424194029-b4360e7e373f  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
