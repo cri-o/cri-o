@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
@@ -20,7 +21,7 @@ func (c *Config) Reload() error {
 	// Reload the config
 	newConfig, err := DefaultConfig()
 	if err != nil {
-		return errors.New("unable to create default config")
+		return fmt.Errorf("unable to create default config: %w", err)
 	}
 
 	if _, err := os.Stat(c.singleConfigPath); !os.IsNotExist(err) {
@@ -145,17 +146,23 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 }
 
 // ReloadPinnedImages updates the PinnedImages with the provided `newConfig`.
+// The method print log in case of any updates.
 func (c *Config) ReloadPinnedImages(newConfig *Config) {
 	updatedPinnedImages := make([]string, len(newConfig.PinnedImages))
+	updatedPinnedImageList := false
+
 	for i, image := range newConfig.PinnedImages {
 		if i < len(c.PinnedImages) && image == c.PinnedImages[i] {
-			updatedPinnedImages[i] = c.PinnedImages[i]
-		} else {
-			updatedPinnedImages[i] = image
+			continue
 		}
+		updatedPinnedImages[i] = image
+		updatedPinnedImageList = true
 	}
-	logrus.Infof("Updated new pinned images: %+v", updatedPinnedImages)
-	c.PinnedImages = updatedPinnedImages
+
+	if updatedPinnedImageList {
+		logConfig("pinned_images", strings.Join(updatedPinnedImages, ", "))
+		c.PinnedImages = updatedPinnedImages
+	}
 }
 
 // ReloadRegistries reloads the registry configuration from the Configs

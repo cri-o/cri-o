@@ -577,6 +577,9 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 				logrus.Errorf("Unable to reload configuration: %v", err)
 				continue
 			}
+			// ImageServer compiles the list with regex for both
+			// pinned and sandbox/pause images, we need to update them
+			s.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 		}
 	}()
 
