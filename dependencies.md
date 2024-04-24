@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 24 Apr 2024 16:07:41 UTC for commit [987cab7][0]._
+_Generated on Wed, 24 Apr 2024 18:38:08 UTC for commit [2f72dc6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/987cab793e451f13086cfaabffaa48ca2a59be07
+[0]: https://github.com/cri-o/cri-o/commit/2f72dc6ef7238d95c34f281b70189de34599fb92
 
 ## Outdated Dependencies
 
@@ -22,7 +22,7 @@ _Generated on Wed, 24 Apr 2024 16:07:41 UTC for commit [987cab7][0]._
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                                        | v0.2.4                             | true   | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.50.0                            | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.51.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.23.1                                       | v1.26.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.26.0                            | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.23.1                                       | v1.26.0                            | true   | true             |
@@ -274,7 +274,7 @@ _Generated on Wed, 24 Apr 2024 16:07:41 UTC for commit [987cab7][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                                       | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                                       | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                                       | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240423222621-8fda21025646  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240424172504-2b9fe9c03898  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                        | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                        |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                           |                                     | false  | true             |
@@ -796,8 +796,8 @@ _Generated on Wed, 24 Apr 2024 16:07:41 UTC for commit [987cab7][0]._
 | go.mongodb.org/mongo-driver                                                             | v1.12.1                                       | v1.15.0                             | false  | true             |
 | go.mozilla.org/pkcs7                                                                    | v0.0.0-20210826202110-33d05740a352            |                                     | false  | true             |
 | go.opencensus.io                                                                        | v0.24.0                                       |                                     | false  | true             |
-| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.48.0                                       | v0.50.0                             | true   | true             |
-| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.45.0                                       | v0.50.0                             | false  | true             |
+| go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc             | v0.48.0                                       | v0.51.0                             | true   | true             |
+| go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp                           | v0.45.0                                       | v0.51.0                             | false  | true             |
 | go.opentelemetry.io/otel                                                                | v1.23.1                                       | v1.26.0                             | true   | true             |
 | go.opentelemetry.io/otel/exporters/jaeger                                               | v1.0.0                                        | v1.17.0                             | false  | true             |
 | go.opentelemetry.io/otel/exporters/otlp/internal/retry                                  | v1.16.0                                       | v1.17.0                             | false  | true             |
