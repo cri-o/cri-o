@@ -74,6 +74,7 @@ type Container struct {
 	restoreStorageImageID *storage.StorageImageID
 	resources             *types.ContainerResources
 	runtimePath           string // runtime path for a given platform
+	execPIDs              map[int]bool
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -160,6 +161,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopSignal:      stopSignal,
 		stopTimeoutChan: make(chan int64, 10),
 		stopWatchers:    []chan struct{}{},
+		execPIDs:        map[int]bool{},
 	}
 	return c, nil
 }
@@ -761,4 +763,55 @@ func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
 		return r.handler.RuntimePath
 	}
 	return c.runtimePath
+}
+
+// AddExecPID registers a PID associated with an exec session.
+// It is tracked so exec sessions can be cancelled when the container is being stopped.
+// If the PID is conmon, shouldKill should be false, as we should not call SIGKILL on conmon.
+// If it is an exec session, shouldKill should be true, as we can't guarantee the exec process
+// will have a SIGINT handler.
+func (c *Container) AddExecPID(pid int, shouldKill bool) error {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	if c.stopping {
+		return errors.New("cannot register an exec PID: container is stopping")
+	}
+	c.execPIDs[pid] = shouldKill
+	return nil
+}
+
+// DeleteExecPID is for deregistering a pid after it has exited.
+func (c *Container) DeleteExecPID(pid int) {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	delete(c.execPIDs, pid)
+}
+
+// KillExecPIDs loops through the saved execPIDs and sends a signal to them.
+// If shouldKill is true, the signal is SIGKILL. Otherwise, SIGINT.
+func (c *Container) KillExecPIDs() {
+	c.stopLock.Lock()
+	toKill := c.execPIDs
+	c.stopLock.Unlock()
+
+	for len(toKill) != 0 {
+		unkilled := map[int]bool{}
+		for pid, shouldKill := range toKill {
+			if pid == 0 {
+				// The caller may accidentally register `0` (for instance if the PID of the cmd has already exited)
+				// and killing 0 is the way to ask the kernel to kill the whole process group of the calling process.
+				// We definitely don't want to kill the CRI-O process group, so add this check just in case.
+				continue
+			}
+			sig := syscall.SIGINT
+			if shouldKill {
+				sig = syscall.SIGKILL
+			}
+			if err := syscall.Kill(pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
+				unkilled[pid] = shouldKill
+			}
+		}
+		toKill = unkilled
+		time.Sleep(stopProcessWatchSleep)
+	}
 }

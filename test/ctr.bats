@@ -565,6 +565,21 @@ function create_test_rro_mounts() {
 	[[ $(crictl exec --sync "$ctr_id" /bin/sh -c "for i in $(seq 1 50000000); do echo -n 'a'; done" | wc -c) -le 16777216 ]]
 }
 
+@test "ctr exec{,sync} should be cancelled when container is stopped" {
+	start_crio
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+
+	crictl exec --sync "$ctr_id" /bin/bash -c 'while true; do echo XXXXXXXXXXXXXXXXXXXXXXXX; done' &
+	pid1=$!
+	crictl exec "$ctr_id" /bin/bash -c 'while true; do echo XXXXXXXXXXXXXXXXXXXXXXXX; done' || true &
+	pid2=$!
+
+	sleep 1s
+
+	crictl stop "$ctr_id"
+	wait "$pid1" "$pid2"
+}
+
 @test "ctr device add" {
 	# In an user namespace we can only bind mount devices from the host, not mknod
 	# https://github.com/opencontainers/runc/blob/master/libcontainer/rootfs_linux.go#L480-L481
