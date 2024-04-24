@@ -1,4 +1,6 @@
-{ pkgs }:
+{ stdenv
+, pkgs
+}:
 with pkgs; buildGo122Module {
   name = "cri-o";
   src = ./..;
@@ -15,9 +17,10 @@ with pkgs; buildGo122Module {
     pkg-config
     which
   ];
-  buildInputs = [
+  buildInputs = lib.optionals (!stdenv.hostPlatform.isMusl) [
     glibc
     glibc.static
+  ] ++ [
     gpgme
     libassuan
     libgpgerror
