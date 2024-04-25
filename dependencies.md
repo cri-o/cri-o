@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 25 Apr 2024 07:22:06 UTC for commit [a1e1aa4][0]._
+_Generated on Thu, 25 Apr 2024 08:20:04 UTC for commit [86ae720][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a1e1aa44b2001f1cfc65ff186fe03b4520bf2487
+[0]: https://github.com/cri-o/cri-o/commit/86ae72019955a8ad54be8f13ad9e5847a10131af
 
 ## Outdated Dependencies
 
@@ -736,7 +736,7 @@ _Generated on Thu, 25 Apr 2024 07:22:06 UTC for commit [a1e1aa4][0]._
 | github.com/titanous/rocacheck                                                           | v0.0.0-20171023193734-afe73141d399            |                                     | false  | true             |
 | github.com/tjfoc/gmsm                                                                   | v1.4.1                                        |                                     | false  | true             |
 | github.com/tklauser/go-sysconf                                                          | v0.3.12                                       | v0.3.13                             | false  | true             |
-| github.com/tklauser/numcpus                                                             | v0.6.1                                        | v0.7.0                              | false  | true             |
+| github.com/tklauser/numcpus                                                             | v0.6.1                                        | v0.8.0                              | false  | true             |
 | github.com/tmc/grpc-websocket-proxy                                                     | v0.0.0-20220101234140-673ab2c3ae75            |                                     | false  | true             |
 | github.com/transparency-dev/merkle                                                      | v0.0.2                                        |                                     | false  | true             |
 | github.com/twitchyliquid64/golang-asm                                                   | v0.15.1                                       |                                     | false  | true             |
