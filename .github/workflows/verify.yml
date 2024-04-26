@@ -49,8 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-    - uses: lumaxis/shellcheck-problem-matchers@b02a1715a00c729b20eed3ebb7edf56fa9a433ba # v2.1.0
-    - run: make shellcheck
+      - uses: lumaxis/shellcheck-problem-matchers@b02a1715a00c729b20eed3ebb7edf56fa9a433ba # v2.1.0
+      - run: make shellcheck
 
   shfmt:
     runs-on: ubuntu-latest
