@@ -743,6 +743,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		ctr.DisableFips(),
 	)
 
+	if ctr.DisableFips() && sb.Annotations()[crioann.DisableFIPSAnnotation] == "true" {
+		if err := disableFipsForContainer(ctr, containerInfo.RunDir); err != nil {
+			return nil, fmt.Errorf("failed to disable FIPS for container %s: %w", containerID, err)
+		}
+	}
+
 	mounts := []rspec.Mount{}
 	mounts = append(mounts, ociMounts...)
 	mounts = append(mounts, volumeMounts...)
@@ -914,6 +920,25 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	return ociContainer, nil
+}
+
+func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) error {
+	// Create a unique filename for the FIPS setting file.
+	fileName := filepath.Join(containerDir, "sysctl-fips")
+	content := []byte("0\n")
+
+	// Write the value '0' to disable FIPS directly to the file.
+	if err := os.WriteFile(fileName, content, 0o444); err != nil {
+		return fmt.Errorf("failed to write to file: %w", err)
+	}
+	ctr.SpecAddMount(rspec.Mount{
+		Destination: "/proc/sys/crypto/fips_enabled",
+		Source:      fileName,
+		Type:        "bind",
+		Options:     []string{"noexec", "nosuid", "nodev", "ro", "bind"},
+	})
+
+	return nil
 }
 
 func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, containerID string, options []string, ctr ctrfactory.Container) error {

@@ -391,6 +391,7 @@ A workload is chosen for a pod based on whether the workload's **activation_anno
     - a specific container by using: "seccomp-profile.kubernetes.cri-o.io/<CONTAINER_NAME>"
     - a whole pod by using: "seccomp-profile.kubernetes.cri-o.io/POD"
     Note that the annotation works on containers as well as on images.
+  "io.kubernetes.cri-o.DisableFIPS" for disabling FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 
 #### Using the seccomp notifier feature:
 

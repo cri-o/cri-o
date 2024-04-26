@@ -172,6 +172,7 @@ kata_skip_pod_tests:
   - 'test "restart crio and still get pod status"'
   - 'test "systemd cgroup_parent correctly set"'
   - 'test "kubernetes pod terminationGracePeriod passthru"'
+  - 'test "disable crypto.fips_enabled when FIPS_DISABLE is set"'
 kata_skip_seccomp_oci_artifacts_tests:
   - 'test "seccomp OCI artifact with pod annotation"'
   - 'test "seccomp OCI artifact with container annotation"'

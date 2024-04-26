@@ -58,7 +58,7 @@ dependencies:
       match: buildah
 
   - name: runc
-    version: v1.1.12
+    version: main
     refPaths:
     - path: scripts/versions
       match: runc

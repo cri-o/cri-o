@@ -106,17 +106,26 @@ install_cni_plugins() {
 }
 
 install_runc() {
-    URL=https://github.com/opencontainers/runc/releases/download/"${VERSIONS["runc"]}"
-    BINARY=/usr/sbin/runc
-    sudo wget -O "$BINARY" "$URL/runc.$GOARCH"
-    sudo chmod +x "$BINARY"
+    # Once https://github.com/opencontainers/runc/issues/4233 is fixed,
+    # we can delete go 1.21.9 and link the latest go toolchain.
+    GO_BINARY_URL="https://storage.googleapis.com/golang/go1.21.9.linux-$GOARCH.tar.gz"
+    GO_INSTALLATION_DIR="$(pwd)/go1.21.9"
+    RUNC_DIR="$(pwd)/runc"
 
-    # Verify the SHA256
-    SUMFILE=runc.sha256sum
-    wget "$URL"/$SUMFILE
-    grep -qw "$(sha256sum "$BINARY" | awk '{ print $1 }')" $SUMFILE
-    rm $SUMFILE
+    mkdir -p "$GO_INSTALLATION_DIR"
+    curl -L -o - "$GO_BINARY_URL" | tar -xz -C "$GO_INSTALLATION_DIR"
 
+    git clone https://github.com/opencontainers/runc.git "$RUNC_DIR"
+
+    pushd "$RUNC_DIR"
+    git checkout "${VERSIONS["runc"]}"
+    GOROOT="$GO_INSTALLATION_DIR/go"
+    make GO="$GOROOT/bin/go"
+    sudo install -D -m0755 runc /usr/sbin/runc
+    popd
+    # Remove the runc and go repositories.
+    rm -rf "$RUNC_DIR"
+    rm -rf "$GO_INSTALLATION_DIR"
     runc --version
 }
 
