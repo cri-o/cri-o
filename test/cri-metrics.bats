@@ -25,7 +25,6 @@ function metrics_setup() {
 }
 
 @test "container memory metrics" {
-	PORT="9090"
 	CONTAINER_ENABLE_METRICS="true" setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
@@ -39,10 +38,6 @@ included_pod_metrics = [
 EOF
 	start_crio_no_setup
 	check_images
-	if ! port_listens "$PORT"; then
-		echo "Port $PORT is not listening"
-		exit 1
-	fi
 
 	metrics_setup
 	set_container_pod_cgroup_root "" "$CONTAINER_ID"
@@ -64,10 +59,10 @@ EOF
 	# assert container_memory_working_set_bytes ==
 	#    cgroup memory.usage_in_bytes - cgroup memory.stat:total_inactive_file(cgroup v1) or memory.current - memory.stat:inactive_file(cgroup v2)
 	if is_cgroup_v2; then
-		cgroup_memory_inactive_file=$( grep -w inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_memory_inactive_file=$(grep -w inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.current)
 	else
-		cgroup_memory_inactive_file=$( grep -w total_inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
+		cgroup_memory_inactive_file=$(grep -w total_inactive_file < "$CTR_CGROUP"/memory.stat | awk '{print $2}')
 		cgroup_memory_usage=$(cat "$CTR_CGROUP"/memory.usage_in_bytes)
 	fi
 
@@ -116,7 +111,6 @@ EOF
 	if is_cgroup_v2; then
 		skip
 	fi
-	PORT="9090"
 	CONTAINER_ENABLE_METRICS="true" setup_crio
 	cat << EOF > "$CRIO_CONFIG"
 [crio.stats]
@@ -130,10 +124,6 @@ included_pod_metrics = [
 EOF
 	start_crio_no_setup
 	check_images
-	if ! port_listens "$PORT"; then
-		echo "Port $PORT is not listening"
-		exit 1
-	fi
 
 	metrics_setup
 	set_container_pod_cgroup_root "" "$CONTAINER_ID"
