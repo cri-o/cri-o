@@ -42,14 +42,12 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				LabelKeys: append(baseLabelKeys, "cpu"),
 			},
 			valueFunc: func() metricValues {
-				if len(cpu.PerCPUUsage) == 0 {
-					if cpu.TotalUsageNano > 0 {
-						return metricValues{{
-							value:      cpu.TotalUsageNano / uint64(time.Second),
-							labels:     []string{"total"},
-							metricType: types.MetricType_COUNTER,
-						}}
-					}
+				if len(cpu.PerCPUUsage) == 0 && cpu.TotalUsageNano > 0 {
+					return metricValues{{
+						value:      cpu.TotalUsageNano / uint64(time.Second),
+						labels:     []string{"total"},
+						metricType: types.MetricType_COUNTER,
+					}}
 				}
 				metricValues := make(metricValues, 0, len(cpu.PerCPUUsage))
 				for i, value := range cpu.PerCPUUsage {
