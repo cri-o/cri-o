@@ -36,7 +36,7 @@ logrus.WithContext(ctx).
 	Error("something failed")
 ```
 
-See [example](/example/) for details.
+See [example](./example/) for details.
 
 ## Options
 
