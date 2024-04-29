@@ -393,6 +393,12 @@ function check_conmon_fields() {
 }
 
 @test "test special runtime annotations not allowed" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+	if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then
+		skip "need systemd cgroup manager"
+	fi
 	start_crio
 
 	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
@@ -402,10 +408,16 @@ function check_conmon_fields() {
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(systemctl show --property CollectMode crio-$ctr_id.scope) != "CollectMode=inactive-or-failed" ]]
+	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) != "CollectMode=inactive-or-failed" ]]
 }
 
 @test "test special runtime annotations allowed" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+	if [[ "$CONTAINER_CGROUP_MANAGER" == "cgroupfs" ]]; then
+		skip "need systemd cgroup manager"
+	fi
 	create_workload_with_allowed_annotation "org.systemd.property." "org.systemd.property.CollectMode"
 
 	start_crio
@@ -417,6 +429,5 @@ function check_conmon_fields() {
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	systemctl show --property CollectMode crio-$ctr_id.scope
-	[[ $(systemctl show --property CollectMode crio-$ctr_id.scope) == "CollectMode=inactive-or-failed" ]]
+	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) == "CollectMode=inactive-or-failed" ]]
 }
