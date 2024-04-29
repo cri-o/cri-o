@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
+_Generated on Mon, 29 Apr 2024 07:02:48 UTC for commit [d5666af][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a3de11a8aa3070c8b040054461ce82314c95baf2
+[0]: https://github.com/cri-o/cri-o/commit/d5666af4172c38c6ed56b40eddfb9af11edb7c62
 
 ## Outdated Dependencies
 
@@ -17,11 +17,12 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240426155804-62bad976e03c | true   | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.1                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240428105207-7b039eb1b9e6 | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.2                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.0                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                                        | v0.2.4                             | true   | true             |
+| github.com/urfave/cli/v2                                                    | v2.27.1                                       | v2.27.2                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.48.0                                       | v0.51.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.23.1                                       | v1.26.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.23.1                                       | v1.26.0                            | true   | true             |
@@ -173,7 +174,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.4                                        | v1.9.6                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.4                                        | v1.6.6                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.3                                       | v1.12.5                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5            | v0.0.0-20240425163905-bcdc1ad063ea  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5            | v0.0.0-20240428164225-8dbfccd1fe46  | false  | true             |
 | cuelang.org/go                                                                          | v0.6.0                                        | v0.8.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                        |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9            | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
@@ -251,7 +252,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                       | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5            |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2            |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.29                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                                       | v1.51.30                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                                       | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                                       | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                                      | v1.27.11                            | false  | true             |
@@ -274,7 +275,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                                       | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                                       | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                                       | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240424172504-2b9fe9c03898  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8            | v0.0.0-20240426211023-ec7efeed6ed3  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                        | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                        |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                           |                                     | false  | true             |
@@ -302,7 +303,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/chenzhuoyu/base64x                                                           | v0.0.0-20230717121745-296ad89f973d            |                                     | false  | true             |
 | github.com/chenzhuoyu/iasm                                                              | v0.9.0                                        | v0.9.1                              | false  | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589            |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89            | v0.0.0-20240421230201-ab917191657d  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89            | v0.0.0-20240426225625-909263490071  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                        | v0.9.5                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                        |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                        |                                     | false  | true             |
@@ -548,7 +549,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240426155804-62bad976e03c  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240428105207-7b039eb1b9e6  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -635,9 +636,9 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/oleiade/reflections                                                          | v1.0.1                                        |                                     | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                        |                                     | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.4                                       | v1.16.5                             | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.17.0                                       | v2.17.1                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.17.0                                       | v2.17.2                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.31.1                                       | v1.33.0                             | true   | true             |
-| github.com/open-policy-agent/opa                                                        | v0.59.0                                       | v0.64.0                             | false  | true             |
+| github.com/open-policy-agent/opa                                                        | v0.59.0                                       | v0.64.1                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                        |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                        |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.12                                       |                                     | true   | true             |
@@ -745,8 +746,8 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | github.com/ulikunitz/xz                                                                 | v0.5.11                                       | v0.5.12                             | false  | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.2.3                                        | v0.2.4                              | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.2.3                                        | v0.2.4                              | false  | true             |
-| github.com/urfave/cli                                                                   | v1.22.14                                      |                                     | false  | true             |
-| github.com/urfave/cli/v2                                                                | v2.27.1                                       |                                     | true   | true             |
+| github.com/urfave/cli                                                                   | v1.22.14                                      | v1.22.15                            | false  | true             |
+| github.com/urfave/cli/v2                                                                | v2.27.1                                       | v2.27.2                             | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                                       |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                                       |                                     | false  | true             |
 | github.com/vbauerster/mpb/v8                                                            | v8.6.2                                        | v8.7.3                              | false  | true             |
@@ -808,7 +809,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.23.1                                       | v1.26.0                             | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.23.1                                       | v1.26.0                             | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.1.0                                        | v1.2.0                              | false  | true             |
-| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.7                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.38.0                                       | v0.44.8                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                        | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                        |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                        |                                     | false  | true             |
@@ -879,7 +880,7 @@ _Generated on Fri, 26 Apr 2024 16:56:34 UTC for commit [a3de11a][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                       | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                       |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                        |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                       | v1.50.3                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                       | v1.50.4                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                        | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                        | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                        |                                     | false  | true             |
