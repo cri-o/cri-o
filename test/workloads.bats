@@ -390,14 +390,14 @@ function check_conmon_fields() {
 	fi
 	start_crio
 
-	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+	jq --arg val "'inactive'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+	jq --arg val "'inactive'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) != "CollectMode=inactive-or-failed" ]]
+	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) != "CollectMode=inactive" ]]
 }
 
 @test "test special runtime annotations allowed" {
@@ -411,12 +411,12 @@ function check_conmon_fields() {
 
 	start_crio
 
-	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+	jq --arg val "'inactive'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
 		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
 
-	jq --arg val "'inactive-or-failed'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
+	jq --arg val "'inactive'" '   .annotations["org.systemd.property.CollectMode"] = $val' \
 		"$TESTDATA"/container_sleep.json > "$ctrconfig"
 
 	ctr_id=$(crictl run "$ctrconfig" "$sboxconfig")
-	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) == "CollectMode=inactive-or-failed" ]]
+	[[ $(systemctl show --property CollectMode crio-"$ctr_id".scope) == "CollectMode=inactive" ]]
 }
