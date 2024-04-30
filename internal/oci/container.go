@@ -807,6 +807,8 @@ func (c *Container) KillExecPIDs() {
 			if shouldKill {
 				sig = syscall.SIGKILL
 			}
+
+			logrus.Debugf("Stopping exec PID %d for container %s with signal %s ...", pid, c.ID(), unix.SignalName(sig))
 			if err := syscall.Kill(pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
 				unkilled[pid] = shouldKill
 			}
