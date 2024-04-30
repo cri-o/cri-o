@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Apr 2024 13:35:53 UTC for commit [2968b3d][0]._
+_Generated on Tue, 30 Apr 2024 16:35:22 UTC for commit [43a95aa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2968b3d7e1d7e4ca7d44d7ba9d383904598a0229
+[0]: https://github.com/cri-o/cri-o/commit/43a95aadf6b214f67f50baa597e05de43c3f5182
 
 ## Outdated Dependencies
 
@@ -387,9 +387,9 @@ _Generated on Tue, 30 Apr 2024 13:35:53 UTC for commit [2968b3d][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                        |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                        |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.5.0                                        | v0.6.0                              | false  | true             |
-| github.com/docker/cli                                                                   | v24.0.7+incompatible                          | v26.1.0+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v24.0.7+incompatible                          | v26.1.1+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                           |                                     | true   | true             |
-| github.com/docker/docker                                                                | v24.0.7+incompatible                          | v26.1.0+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v24.0.7+incompatible                          | v26.1.1+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.0                                        | v0.8.1                              | false  | true             |
 | github.com/docker/go-connections                                                        | v0.4.1-0.20231031175723-0b8c1f4e07a0          | v0.5.0                              | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c            |                                     | false  | true             |
