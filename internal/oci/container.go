@@ -764,6 +764,8 @@ func (c *Container) SetRestoreIsOCIImage(restoreIsOCIImage bool) {
 func (c *Container) AddExecPID(pid int, shouldKill bool) error {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
+	logrus.Debugf("Starting to track exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
 	if c.stopping {
 		return errors.New("cannot register an exec PID: container is stopping")
 	}
