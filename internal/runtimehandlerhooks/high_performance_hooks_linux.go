@@ -397,7 +397,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 		})
 	}
 	if childState != nil {
-		managers = append(managers, childState)
+		managers[len(managers)-1] = childState
 	}
 
 	if len(managers) == 0 {
