@@ -26,7 +26,7 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: scripts/github-actions-packages
-      - uses: golangci/golangci-lint-action@82d40c283aeb1f2b6595839195e95c2d6a49081b # v5.0.0
+      - uses: golangci/golangci-lint-action@9d1e0624a798bb64f6c3cea93db47765312263dc # v5.1.0
         with:
           version: ${{ env.GOLANGCI_LINT_VERSION }}
           args: --timeout=10m
