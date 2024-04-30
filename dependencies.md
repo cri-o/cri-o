@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
+_Generated on Tue, 30 Apr 2024 13:35:53 UTC for commit [2968b3d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/32cee2f388187778dcaca0dbb7c8e84b999ff4a0
+[0]: https://github.com/cri-o/cri-o/commit/2968b3d7e1d7e4ca7d44d7ba9d383904598a0229
 
 ## Outdated Dependencies
 
@@ -13,11 +13,11 @@ _Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
 | github.com/containerd/nri                                                   | v0.6.0                                        | v0.6.1                             | true   | true             |
 | github.com/containernetworking/cni                                          | v1.1.2                                        | v1.2.0                             | true   | true             |
 | github.com/containers/common                                                | v0.57.4                                       | v0.58.2                            | true   | true             |
-| github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.2                             | true   | true             |
+| github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.3                             | true   | true             |
 | github.com/containers/podman/v4                                             | v4.9.3                                        | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                                       | v1.53.0                            | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                                        | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240429210035-28078ded8463 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240430082149-eae429a39be1 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                                       | v2.17.2                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                                       | v1.33.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.18.0                                       | v1.19.0                            | true   | true             |
@@ -32,6 +32,7 @@ _Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
 | golang.org/x/sync                                                           | v0.6.0                                        | v0.7.0                             | true   | true             |
 | golang.org/x/sys                                                            | v0.18.0                                       | v0.19.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.62.0                                       | v1.63.2                            | true   | true             |
+| google.golang.org/protobuf                                                  | v1.33.0                                       | v1.34.0                            | true   | true             |
 | k8s.io/api                                                                  | v0.30.0-alpha.2                               | v0.30.0                            | true   | true             |
 | k8s.io/apimachinery                                                         | v0.30.0-alpha.2                               | v0.30.0                            | true   | true             |
 | k8s.io/client-go                                                            | v0.30.0-alpha.2                               | v0.30.0                            | true   | true             |
@@ -346,7 +347,7 @@ _Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
 | github.com/containers/buildah                                                           | v1.33.5                                       | v1.35.3                             | false  | true             |
 | github.com/containers/common                                                            | v0.57.4                                       | v0.58.2                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                          |                                     | true   | true             |
-| github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.2                              | true   | true             |
+| github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57          | v0.6.3                              | true   | true             |
 | github.com/containers/gvisor-tap-vsock                                                  | v0.7.2                                        | v0.7.3                              | false  | true             |
 | github.com/containers/image/v5                                                          | v5.29.3-0.20240409133913-ea4fcca19343         |                                     | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                        |                                     | true   | true             |
@@ -549,7 +550,7 @@ _Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                        | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                        |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5          | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240429210035-28078ded8463  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240430082149-eae429a39be1  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51            |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                        | v1.7.0                              | false  | true             |
@@ -844,7 +845,7 @@ _Generated on Tue, 30 Apr 2024 06:55:15 UTC for commit [32cee2f][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240123012728-ef4313101c80            | v0.0.0-20240429193739-8cf5692501f6  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.62.0                                       | v1.63.2                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                        |                                     | false  | true             |
-| google.golang.org/protobuf                                                              | v1.33.0                                       |                                     | true   | true             |
+| google.golang.org/protobuf                                                              | v1.33.0                                       | v1.34.0                             | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                        | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c            |                                     | false  | true             |
 | gopkg.in/errgo.v2                                                                       | v2.1.0                                        |                                     | false  | true             |
