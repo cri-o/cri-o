@@ -46,8 +46,6 @@ dependencies:
   - name: cri-tools
     version: v1.30.0
     refPaths:
-    - path: scripts/versions
-      match: cri-tools
     - path: contrib/test/ci/vars.yml
       match: cri_tools_git_version
 

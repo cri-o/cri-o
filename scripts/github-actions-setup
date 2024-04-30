@@ -58,15 +58,29 @@ prepare_system() {
     sudo systemctl restart systemd-journald
 }
 
-install_bats() {
-    git clone https://github.com/bats-core/bats-core
-    pushd bats-core
-    git checkout "${VERSIONS["bats"]}"
-    sudo ./install.sh /usr/local
+install_from_github_org_repo() {
+    URL=https://github.com/$1/$2
+    DIR=$(mktemp -ud)
+
+    git clone "$URL" "$DIR"
+    pushd "$DIR"
+    git checkout "$3"
+    "${@:4}"
     popd
-    rm -rf bats-core
+    sudo rm -rf "$DIR"
+}
+
+install_bats() {
+    install_from_github_org_repo \
+        bats-core \
+        bats-core \
+        "${VERSIONS["bats"]}" \
+        sudo ./install.sh /usr/local
+
     mkdir -p ~/.parallel
     touch ~/.parallel/will-cite
+
+    bats --version
 }
 
 install_conmon() {
@@ -82,14 +96,12 @@ install_conmonrs() {
 }
 
 install_critools() {
-    URL=https://github.com/kubernetes-sigs/cri-tools
+    install_from_github_org_repo \
+        kubernetes-sigs \
+        cri-tools \
+        master \
+        sudo -E PATH="$PATH" make BINDIR=/usr/bin install
 
-    git clone $URL
-    pushd cri-tools
-    git checkout "${VERSIONS["cri-tools"]}"
-    sudo -E PATH="$PATH" make BINDIR=/usr/bin install
-    popd
-    sudo rm -rf cri-tools
     sudo critest --version
     sudo crictl --version
 }
