@@ -170,8 +170,8 @@ function teardown() {
 	[ "$output" != "" ]
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST}"* ]]
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[ "$output" != "" ]
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
@@ -200,8 +200,8 @@ function teardown() {
 	fi
 	[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG}"* ]]
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_FOR_TAG_AMD64}"* ]]
 		;;
@@ -220,8 +220,8 @@ function teardown() {
 	imageid=$(crictl images --quiet ${IMAGE_LIST_DIGEST})
 	[ "$imageid" != "" ]
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
@@ -240,8 +240,8 @@ function teardown() {
 @test "image pull and list by individual and manifest list digest" {
 	start_crio
 
-	case $(go env GOARCH) in
-	amd64)
+	case $ARCH in
+	x86_64)
 		crictl pull ${IMAGE_LIST_DIGEST_AMD64}
 		output=$(crictl images -v ${IMAGE_LIST_DIGEST_AMD64})
 		[[ "$output" == *"RepoDigests: ${IMAGE_LIST_DIGEST_AMD64}"* ]]
