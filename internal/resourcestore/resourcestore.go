@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/dolthub/swiss"
 	"github.com/sirupsen/logrus"
 )
 
@@ -23,7 +24,7 @@ const (
 // Another routine can request a watcher for a resource by calling WatcherForResource.
 // All watchers will be notified when the resource has successfully been created.
 type ResourceStore struct {
-	resources map[string]*Resource
+	resources *swiss.Map[string, *Resource]
 	timeout   time.Duration
 	closeChan chan struct{}
 	closed    bool
@@ -66,7 +67,7 @@ func New() *ResourceStore {
 // Most callers should use New instead.
 func NewWithTimeout(timeout time.Duration) *ResourceStore {
 	rc := &ResourceStore{
-		resources: make(map[string]*Resource),
+		resources: swiss.NewMap[string, *Resource](0),
 		closeChan: make(chan struct{}, 1),
 		timeout:   timeout,
 	}
@@ -98,8 +99,9 @@ func (rc *ResourceStore) cleanupStaleResources() {
 		case <-time.After(rc.timeout):
 		}
 		resourcesToReap := []*Resource{}
+
 		rc.mutex.Lock()
-		for name, r := range rc.resources {
+		rc.resources.Iter(func(name string, r *Resource) (stop bool) {
 			// this resource shouldn't be marked as stale if it
 			// hasn't yet been added to the store.
 			// This can happen if a creation is in progress, and a watcher is added
@@ -107,14 +109,15 @@ func (rc *ResourceStore) cleanupStaleResources() {
 			// If this resource isn't skipped from being marked as stale,
 			// we risk segfaulting in the Cleanup() step.
 			if !r.wasPut() {
-				continue
+				return false
 			}
 			if r.stale {
 				resourcesToReap = append(resourcesToReap, r)
-				delete(rc.resources, name)
+				rc.resources.Delete(name)
 			}
 			r.stale = true
-		}
+			return false
+		})
 		// no need to hold the lock when running the cleanup functions
 		rc.mutex.Unlock()
 
@@ -135,7 +138,7 @@ func (rc *ResourceStore) Get(name string) string {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 
-	r, ok := rc.resources[name]
+	r, ok := rc.resources.Get(name)
 	if !ok {
 		return ""
 	}
@@ -144,7 +147,7 @@ func (rc *ResourceStore) Get(name string) string {
 	if !r.wasPut() {
 		return ""
 	}
-	delete(rc.resources, name)
+	rc.resources.Delete(name)
 	r.resource.SetCreated()
 	return r.resource.ID()
 }
@@ -157,11 +160,11 @@ func (rc *ResourceStore) Put(name string, resource IdentifiableCreatable, cleane
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 
-	r, ok := rc.resources[name]
+	r, ok := rc.resources.Get(name)
 	// if we don't already have a resource, create it
 	if !ok {
 		r = &Resource{}
-		rc.resources[name] = r
+		rc.resources.Put(name, r)
 	}
 	// make sure the resource hasn't already been added to the store
 	if ok && r.wasPut() {
@@ -185,7 +188,7 @@ func (rc *ResourceStore) Delete(name string) {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 
-	delete(rc.resources, name)
+	rc.resources.Delete(name)
 }
 
 // WatcherForResource looks up a Resource by name, and gives it a watcher.
@@ -199,12 +202,12 @@ func (rc *ResourceStore) WatcherForResource(name string) (watcher chan struct{},
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
 	watcher = make(chan struct{}, 1)
-	r, ok := rc.resources[name]
+	r, ok := rc.resources.Get(name)
 	if !ok {
-		rc.resources[name] = &Resource{
+		rc.resources.Put(name, &Resource{
 			watchers: []chan struct{}{watcher},
 			name:     name,
-		}
+		})
 		return watcher, StageUnknown
 	}
 	r.watchers = append(r.watchers, watcher)
@@ -214,14 +217,14 @@ func (rc *ResourceStore) WatcherForResource(name string) (watcher chan struct{},
 func (rc *ResourceStore) SetStageForResource(ctx context.Context, name, stage string) {
 	rc.mutex.Lock()
 	defer rc.mutex.Unlock()
-	r, ok := rc.resources[name]
+	r, ok := rc.resources.Get(name)
 	if !ok {
 		log.Debugf(ctx, "Initializing stage for resource %s to %s", name, stage)
-		rc.resources[name] = &Resource{
+		rc.resources.Put(name, &Resource{
 			watchers: []chan struct{}{},
 			name:     name,
 			stage:    stage,
-		}
+		})
 		return
 	}
 	log.Debugf(ctx, "Setting stage for resource %s from %s to %s", name, r.stage, stage)
