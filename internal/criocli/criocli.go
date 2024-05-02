@@ -133,8 +133,14 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 				containerMinMemory string
 				err                error
 			)
+			runtimePullImage := false
 
 			switch len(fields) {
+			case 8:
+				if fields[7] == "true" {
+					runtimePullImage = true
+				}
+				fallthrough
 			case 7:
 				containerMinMemory = fields[6]
 				_, err = units.RAMInBytes(containerMinMemory)
@@ -161,6 +167,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 					PrivilegedWithoutHostDevices: privilegedWithoutHostDevices,
 					RuntimeConfigPath:            runtimeConfigPath,
 					ContainerMinMemory:           containerMinMemory,
+					RuntimePullImage:             runtimePullImage,
 				}
 			default:
 				return fmt.Errorf("invalid format for --runtimes: %q", r)

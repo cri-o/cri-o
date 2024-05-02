@@ -88,6 +88,7 @@ kata_int_test_env:
     PRIVILEGED_WITHOUT_HOST_DEVICES: true
     RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
     PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
+    RUNTIME_PULL_IMAGE: true
 
 kata_skip_cgroups_tests:
   - 'test "pids limit"'
