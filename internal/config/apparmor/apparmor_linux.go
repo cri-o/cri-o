@@ -36,9 +36,9 @@ func (c *Config) LoadProfile(profile string) error {
 		return nil
 	}
 
-	if profile == v1.AppArmorBetaProfileNameUnconfined {
+	if profile == v1.DeprecatedAppArmorBetaProfileNameUnconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
-		c.defaultProfile = v1.AppArmorBetaProfileNameUnconfined
+		c.defaultProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 	if p.Apparmor != nil && p.Apparmor.ProfileType == runtimeapi.SecurityProfile_RuntimeDefault {
 		return c.defaultProfile, nil
 	}
-	if p.Apparmor == nil && p.ApparmorProfile == "" || p.ApparmorProfile == v1.AppArmorBetaProfileRuntimeDefault {
+	if p.Apparmor == nil && p.ApparmorProfile == "" || p.ApparmorProfile == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
 	securityProfile := ""
@@ -118,7 +118,7 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 		securityProfile = p.Apparmor.LocalhostRef
 	}
 
-	securityProfile = strings.TrimPrefix(securityProfile, v1.AppArmorBetaProfileNamePrefix)
+	securityProfile = strings.TrimPrefix(securityProfile, v1.DeprecatedAppArmorBetaProfileNamePrefix)
 	if securityProfile == "" {
 		return "", errors.New("empty localhost AppArmor profile is forbidden")
 	}

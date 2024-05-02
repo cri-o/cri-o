@@ -11,13 +11,7 @@
 %global debug_package %{nil}
 %endif
 
-%if ! 0%{?centos} && 0%{?rhel}
-# Golang minor version
-%global gominver 19
-%define gobuild(o:) scl enable go-toolset-1.%{gominver} -- go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
-%else
 %define gobuild(o:) go build -buildmode pie -compiler gc -tags="rpm_crashtraceback no_openssl ${BUILDTAGS:-}" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n') -extldflags '%__global_ldflags'" -a -v -x %{?**};
-%endif
 
 %global provider github
 %global provider_tld com
@@ -38,12 +32,8 @@ Summary: Kubernetes Container Runtime Interface for OCI-based containers
 License: ASL 2.0
 URL: %{git0}
 Source0: %{name}-test.tar.gz
-%if ! 0%{?centos} && 0%{?rhel}
-BuildRequires: go-toolset-1.%{gominver}
-%else
 # Assume pre-installed golang (which is the case in our CI)
 BuildRequires: make
-%endif
 BuildRequires: git
 BuildRequires: glib2-devel
 BuildRequires: glibc-static

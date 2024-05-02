@@ -219,7 +219,6 @@ var _ = t.Describe("Oci", func() {
 			},
 		}
 		for _, test := range tests {
-			test := test
 			It(test.title, func() {
 				fileName := t.MustTempFile("to-read")
 				Expect(os.WriteFile(fileName, test.contents, 0o644)).To(Succeed())

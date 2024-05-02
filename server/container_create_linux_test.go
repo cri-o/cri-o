@@ -195,7 +195,6 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 	ctx := context.TODO()
 
 	for _, tc := range cases {
-		tc := tc
 		t.Run(tc.description, func(t *testing.T) {
 			t.Parallel()
 

@@ -54,7 +54,6 @@ var _ = t.Describe("Container", func() {
 		}
 
 		for _, test := range tests {
-			test := test
 			It(test.testDescription, func() {
 				// Given
 				config := &types.ContainerConfig{
@@ -147,7 +146,6 @@ var _ = t.Describe("Container", func() {
 		}
 
 		for _, test := range tests {
-			test := test
 			It(test.testDescription, func() {
 				// Given
 				config := &types.ContainerConfig{
@@ -402,7 +400,6 @@ containerEdits:
 		}
 
 		for _, test := range tests {
-			test := test
 			It(test.testDescription, func() {
 				// Given
 				config := &types.ContainerConfig{
