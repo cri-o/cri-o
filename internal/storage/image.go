@@ -517,7 +517,6 @@ func pullImageChild() {
 	progress := make(chan types.ProgressProperties)
 	go func() {
 		for p := range progress {
-			p := p
 			output <- pullImageOutputItem{Progress: &p}
 		}
 	}()

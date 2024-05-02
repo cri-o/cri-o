@@ -281,7 +281,6 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// Cleanup the deletedPods in the networking plugin
 	wipeResourceCleaner := resourcestore.NewResourceCleaner()
 	for _, sb := range deletedPods {
-		sb := sb
 		cleanupFunc := func() error {
 			err := s.networkStop(context.Background(), sb)
 			if err == nil {
