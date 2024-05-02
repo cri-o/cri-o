@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 02 May 2024 18:41:15 UTC for commit [c4a0387][0]._
+_Generated on Thu, 02 May 2024 22:04:34 UTC for commit [827c809][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c4a038787a654c35b3a93e276c316c6e8c6f3bac
+[0]: https://github.com/cri-o/cri-o/commit/827c809349a67d959636e7fa6b275f0132bfdd0b
 
 ## Outdated Dependencies
 
@@ -185,7 +185,7 @@ _Generated on Thu, 02 May 2024 18:41:15 UTC for commit [c4a0387][0]._
 | github.com/Azure/azure-sdk-for-go                                                       | v68.0.0+incompatible                  |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                            | v1.9.0                                | v1.11.1                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                        | v1.4.0                                | v1.5.2                              | false  | true             |
-| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.5.0                                | v1.6.0                              | false  | true             |
+| github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.5.0                                | v1.7.0                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v1.0.1                                | v1.1.0                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal                        | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/Azure/go-ansiterm                                                            | v0.0.0-20230124172434-306776ec8161    |                                     | false  | true             |
@@ -248,7 +248,7 @@ _Generated on Thu, 02 May 2024 18:41:15 UTC for commit [c4a0387][0]._
 | github.com/apache/thrift                                                                | v0.16.0                               | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.52.0                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.52.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                               | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                               | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                              | v1.27.11                            | false  | true             |
