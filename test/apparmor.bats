@@ -20,6 +20,7 @@ function teardown() {
 	run_a_container_after_unloading_default_apparmor_profile_new_field
 	run_a_container_after_unloading_default_apparmor_profile
 	run_a_container_with_invalid_localhost_apparmor_profile_name
+	run_a_container_with_unconfined_apparmor_profile_name
 }
 
 # 1. test running with loading the default apparmor profile.
@@ -171,6 +172,29 @@ run_a_container_with_invalid_localhost_apparmor_profile_name() {
 	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
 
 	run ! crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
+
+	cleanup_test
+}
+
+# 8. test running with unconfined profile name. unconfined means no apparmor enforcement.
+run_a_container_with_unconfined_apparmor_profile_name() {
+	local output status
+
+	setup_test
+	start_crio
+
+	# Disable the feature for the sandbox or the container
+	# appArmorProfile.type="unconfined"
+	jq '.linux.security_context.apparmor.profile_type = 1' \
+		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/apparmor4.json
+
+	# appArmorProfile.type="unconfined"
+	jq '.linux.security_context.apparmor.profile_type = 1' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR"/apparmor_container4.json
+
+	pod_id=$(crictl runp "$TESTDIR"/apparmor4.json)
+
+	crictl create "$pod_id" "$TESTDIR"/apparmor_container4.json "$TESTDIR"/apparmor4.json
 
 	cleanup_test
 }

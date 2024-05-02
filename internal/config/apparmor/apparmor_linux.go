@@ -109,6 +109,7 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 	if p.Apparmor == nil && p.ApparmorProfile == "" || p.ApparmorProfile == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
+
 	securityProfile := ""
 	if p.Apparmor == nil && p.ApparmorProfile != "" {
 		securityProfile = p.ApparmorProfile
@@ -116,6 +117,14 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 
 	if p.Apparmor != nil && p.Apparmor.LocalhostRef != "" {
 		securityProfile = p.Apparmor.LocalhostRef
+	}
+
+	if p.Apparmor == nil && strings.EqualFold(p.ApparmorProfile, v1.DeprecatedAppArmorBetaProfileNameUnconfined) {
+		securityProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
+	}
+
+	if p.Apparmor != nil && strings.EqualFold(p.Apparmor.ProfileType.String(), v1.DeprecatedAppArmorBetaProfileNameUnconfined) {
+		securityProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
 	}
 
 	securityProfile = strings.TrimPrefix(securityProfile, v1.DeprecatedAppArmorBetaProfileNamePrefix)

@@ -103,6 +103,30 @@ var _ = t.Describe("Config", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(profile).To(Equal("some-profile"))
 		})
+
+		It("should not return error if Apparmor is unconfined", func() {
+			// When
+			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
+				Apparmor: &runtimeapi.SecurityProfile{
+					ProfileType: runtimeapi.SecurityProfile_Unconfined,
+				},
+			})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(profile).To(Equal("unconfined"))
+		})
+
+		It("should not return error if ApparmorProfile is unconfined", func() {
+			// When
+			profile, err := sut.Apply(&runtimeapi.LinuxContainerSecurityContext{
+				ApparmorProfile: "unconfined",
+			})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(profile).To(Equal("unconfined"))
+		})
 	})
 
 	t.Describe("IsEnabled", func() {
