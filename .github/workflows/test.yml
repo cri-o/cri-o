@@ -313,6 +313,8 @@ jobs:
           branch=${raw##*/}
           echo "CURRENT_BRANCH=$branch" >> $GITHUB_ENV
       - run: make release-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: release-notes
@@ -333,6 +335,8 @@ jobs:
         with:
           go-version: ${{ env.GO_VERSION }}
       - run: make dependencies
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: dependencies
