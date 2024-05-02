@@ -773,6 +773,8 @@ func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
 func (c *Container) AddExecPID(pid int, shouldKill bool) error {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
+	logrus.Debugf("Starting to track exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
 	if c.stopping {
 		return errors.New("cannot register an exec PID: container is stopping")
 	}
@@ -807,6 +809,8 @@ func (c *Container) KillExecPIDs() {
 			if shouldKill {
 				sig = syscall.SIGKILL
 			}
+
+			logrus.Debugf("Stopping exec PID %d for container %s with signal %s ...", pid, c.ID(), unix.SignalName(sig))
 			if err := syscall.Kill(pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
 				unkilled[pid] = shouldKill
 			}
