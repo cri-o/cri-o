@@ -127,12 +127,19 @@ type ContainerState struct {
 func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, someRepoDigest string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
+
+	imageIDString := ""
+	if imageID != nil {
+		imageIDString = imageID.IDStringForOutOfProcessConsumptionOnly()
+	}
+
 	externalImageRef := ""
 	if someRepoDigest != "" {
 		externalImageRef = someRepoDigest
-	} else if imageID != nil {
-		externalImageRef = imageID.IDStringForOutOfProcessConsumptionOnly()
+	} else {
+		externalImageRef = imageIDString
 	}
+
 	c := &Container{
 		criContainer: &types.Container{
 			Id:           id,
@@ -145,6 +152,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 				Image: userRequestedImage,
 			},
 			ImageRef: externalImageRef,
+			ImageId:  imageIDString,
 		},
 		name:            name,
 		bundlePath:      bundlePath,
