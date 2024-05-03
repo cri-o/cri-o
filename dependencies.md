@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
+_Generated on Fri, 03 May 2024 13:53:36 UTC for commit [175cc34][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3923f4f1745819983c0f9f952d05d1f67eec8979
+[0]: https://github.com/cri-o/cri-o/commit/175cc348898edafed7565998ce19466f46a201c2
 
 ## Outdated Dependencies
 
@@ -16,6 +16,7 @@ _Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
 | github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57 | v0.6.3                             | true   | true             |
 | github.com/containers/podman/v4                                             | v4.9.3                               | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                              | v1.53.0                            | true   | true             |
+| github.com/cyphar/filepath-securejoin                                       | v0.2.4                               | v0.2.5                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                               | v0.7.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240502082710-e5e0983b5653 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                              | v2.17.2                            | true   | true             |
@@ -366,7 +367,7 @@ _Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
 | github.com/creack/pty                                                                   | v1.1.21                               |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.2                                |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46    | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
-| github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                |                                     | true   | true             |
+| github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                | v0.2.5                              | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c    |                                     | false  | true             |
 | github.com/d2g/dhcp4client                                                              | v1.0.0                                |                                     | false  | true             |
 | github.com/d2g/dhcp4server                                                              | v0.0.0-20181031114812-7d4a0a7f59a5    |                                     | false  | true             |
@@ -461,7 +462,7 @@ _Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
 | github.com/gobwas/glob                                                                  | v0.2.3                                |                                     | false  | true             |
 | github.com/gobwas/httphead                                                              | v0.1.0                                |                                     | false  | true             |
 | github.com/gobwas/pool                                                                  | v0.2.1                                |                                     | false  | true             |
-| github.com/gobwas/ws                                                                    | v1.2.1                                | v1.3.2                              | false  | true             |
+| github.com/gobwas/ws                                                                    | v1.2.1                                | v1.4.0                              | false  | true             |
 | github.com/goccy/go-json                                                                | v0.10.2                               |                                     | false  | true             |
 | github.com/godbus/dbus/v5                                                               | v5.1.1-0.20230522191255-76236955d466  |                                     | true   | true             |
 | github.com/gogo/protobuf                                                                | v1.3.2                                |                                     | true   | true             |
@@ -876,7 +877,7 @@ _Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.50.4                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.50.5                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
@@ -889,7 +890,7 @@ _Generated on Fri, 03 May 2024 05:47:18 UTC for commit [3923f4f][0]._
 | rsc.io/pdf                                                                              | v0.1.1                                |                                     | false  | true             |
 | rsc.io/quote/v3                                                                         | v3.1.0                                |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                | v1.99.99                            | false  | true             |
-| sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                               | v0.30.2                             | false  | true             |
+| sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                               | v0.30.3                             | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.11.0                               |                                     | true   | true             |
 | sigs.k8s.io/release-utils                                                               | v0.7.7                                | v0.8.1                              | true   | true             |
