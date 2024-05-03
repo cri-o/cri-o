@@ -19,6 +19,7 @@ h
 --address
 --allowed-devices
 --apparmor-profile
+--auto-reload-registries
 --big-files-temporary-dir
 --bind-mount-prefix
 --blockio-config-file

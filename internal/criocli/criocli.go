@@ -401,6 +401,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
+	if ctx.IsSet("auto-reload-registries") {
+		config.AutoReloadRegistries = ctx.Bool("auto-reload-registries")
+	}
 	if ctx.IsSet("separate-pull-cgroup") {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
@@ -927,6 +930,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   `Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.`,
 			EnvVars: []string{"CONTAINER_BIG_FILES_TEMPORARY_DIR"},
 			Value:   defConf.BigFilesTemporaryDir,
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reload-registries",
+			Usage:   "If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.",
+			EnvVars: []string{"AUTO_RELOAD_REGISTRIES"},
+			Value:   defConf.AutoReloadRegistries,
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",

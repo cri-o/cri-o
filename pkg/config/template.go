@@ -536,6 +536,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.BigFilesTemporaryDir, c.BigFilesTemporaryDir),
 		},
 		{
+			templateString: templateStringCrioImageAutoReloadRegistries,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.AutoReloadRegistries, c.AutoReloadRegistries),
+		},
+		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
 			group:          crioNetworkConfig,
 			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
@@ -1479,6 +1484,12 @@ const templateStringCrioImageImageVolumes = `# Controls how image volumes are ha
 
 const templateStringCrioImageBigFilesTemporaryDir = `# Temporary directory to use for storing big files
 {{ $.Comment }}big_files_temporary_dir = "{{ .BigFilesTemporaryDir }}"
+
+`
+
+const templateStringCrioImageAutoReloadRegistries = `# If true, CRI-O will automatically reload the mirror registry when
+# there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
+{{ $.Comment }}auto_reload_registries = {{ .AutoReloadRegistries }}
 
 `
 

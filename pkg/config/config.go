@@ -547,6 +547,10 @@ type ImageConfig struct {
 	Registries []string `toml:"registries"`
 	// Temporary directory for big files
 	BigFilesTemporaryDir string `toml:"big_files_temporary_dir"`
+	// AutoReloadRegistries if set to true, will automatically
+	// reload the mirror registry when there is an update to the
+	// 'registries.conf.d' directory.
+	AutoReloadRegistries bool `toml:"auto_reload_registries"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table

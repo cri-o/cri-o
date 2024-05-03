@@ -476,6 +476,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **separate_pull_cgroup**=""
   [EXPERIMENTAL] If its value is set, then images are pulled into the specified cgroup.  If its value is set to "pod", then the pod's cgroup is used.  It is currently supported only with the systemd cgroup manager.
 
+**auto_reload_registries**=false
+ If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
+
 ## CRIO.NETWORK TABLE
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
 
