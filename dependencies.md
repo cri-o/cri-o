@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 03 May 2024 13:53:36 UTC for commit [175cc34][0]._
+_Generated on Fri, 03 May 2024 16:07:57 UTC for commit [67b59ab][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/175cc348898edafed7565998ce19466f46a201c2
+[0]: https://github.com/cri-o/cri-o/commit/67b59ab39eeafea94891b476bb3f1f4479bbd614
 
 ## Outdated Dependencies
 
@@ -498,7 +498,7 @@ _Generated on Fri, 03 May 2024 13:53:36 UTC for commit [175cc34][0]._
 | github.com/google/uuid                                                                  | v1.6.0                                |                                     | true   | true             |
 | github.com/google/wire                                                                  | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                |                                     | false  | true             |
-| github.com/googleapis/gax-go/v2                                                         | v2.12.0                               | v2.12.3                             | false  | true             |
+| github.com/googleapis/gax-go/v2                                                         | v2.12.0                               | v2.12.4                             | false  | true             |
 | github.com/googleapis/go-type-adapters                                                  | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/googleapis/google-cloud-go-testing                                           | v0.0.0-20200911160855-bcd43fbb19e8    | v0.0.0-20210719221736-1c9a4c676720  | false  | true             |
 | github.com/gorilla/handlers                                                             | v1.5.2                                |                                     | false  | true             |
