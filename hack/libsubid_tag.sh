@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-if test $(${GO:-go} env GOOS) != "linux" ; then
+if [ "$(${GO:-go} env GOOS)" != "linux" ] ; then
 	exit 0
 fi
 tmpdir="$PWD/tmp.$RANDOM"
