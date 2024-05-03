@@ -1,8 +1,5 @@
 GO ?= go
 
-export GOPROXY=https://proxy.golang.org
-export GOSUMDB=https://sum.golang.org
-
 TRIMPATH ?= -trimpath
 GO_ARCH=$(shell $(GO) env GOARCH)
 GO_MAJOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
