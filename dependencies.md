@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 03 May 2024 16:07:57 UTC for commit [67b59ab][0]._
+_Generated on Fri, 03 May 2024 18:30:31 UTC for commit [d519447][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/67b59ab39eeafea94891b476bb3f1f4479bbd614
+[0]: https://github.com/cri-o/cri-o/commit/d519447937c4711db9ad3e783ab2b8121b39b996
 
 ## Outdated Dependencies
 
@@ -570,7 +570,7 @@ _Generated on Fri, 03 May 2024 16:07:57 UTC for commit [67b59ab][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240502221405-ab8497fae6b7  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240503175130-d219948d3aa5  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
