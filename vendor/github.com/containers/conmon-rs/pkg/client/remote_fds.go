@@ -22,7 +22,7 @@ var (
 type serverError string
 
 func (s serverError) Error() string {
-	return fmt.Sprintf("server error: %s", string(s))
+	return "server error: " + string(s)
 }
 
 const (
