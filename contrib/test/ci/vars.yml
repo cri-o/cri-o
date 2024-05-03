@@ -74,6 +74,7 @@ kata_skip_files:
   - "userns_annotation.bats"
   - "version.bats"
   - "workloads.bats"
+  - "cri-metrics.bats"
 
 kata_int_test_env:
     CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"

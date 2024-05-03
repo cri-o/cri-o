@@ -37,13 +37,19 @@ type MemoryStats struct {
 	KernelTCPUsage  uint64
 	SwapUsage       uint64
 	SwapLimit       uint64
+	// Amount of cached filesystem data mapped with mmap().
+	FileMapped uint64
+	// The number of memory usage hits limits. For cgroup v1 only.
+	Failcnt uint64
 }
 
 type CPUStats struct {
-	TotalUsageNano    uint64
-	PerCPUUsage       []uint64
+	TotalUsageNano uint64
+	PerCPUUsage    []uint64
+	// Time spent by tasks of the cgroup in kernel mode in nanoseconds.
 	UsageInKernelmode uint64
-	UsageInUsermode   uint64
+	// Time spent by tasks of the cgroup in user mode in nanoseconds.
+	UsageInUsermode uint64
 	// Number of periods with throttling active
 	ThrottlingActivePeriods uint64
 	// Number of periods when the container hit its throttling limit.
@@ -125,6 +131,8 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		availableBytes   uint64
 		inactiveFileName string
 		memSwap          uint64
+		fileMapped       uint64
+		failcnt          uint64
 	)
 	usageBytes = memStats.Usage.Usage
 	if node.CgroupIsV2() {
@@ -134,6 +142,7 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		inactiveFileName = "inactive_file"
 		pageFaults = memStats.Stats["pgfault"]
 		majorPageFaults = memStats.Stats["pgmajfault"]
+		fileMapped = memStats.Stats["file_mapped"]
 		// libcontainer adds memory.swap.current to memory.current and reports them as SwapUsage to be compatible with cgroup v1,
 		// because cgroup v1 reports SwapUsage as mem+swap combined.
 		// Here we subtract SwapUsage from memory usage to get the actual swap value.
@@ -142,6 +151,11 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		inactiveFileName = "total_inactive_file"
 		rssBytes = memStats.Stats["total_rss"]
 		memSwap = memStats.SwapUsage.Usage
+		fileMapped = memStats.Stats["mapped_file"]
+		if memStats.UseHierarchy {
+			fileMapped = memStats.Stats["total_mapped_file"]
+		}
+		failcnt = memStats.Usage.Failcnt
 		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
 	}
 	workingSetBytes = usageBytes
@@ -170,6 +184,8 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		KernelTCPUsage:  memStats.KernelTCPUsage.Usage,
 		SwapUsage:       memSwap,
 		SwapLimit:       memStats.SwapUsage.Limit,
+		FileMapped:      fileMapped,
+		Failcnt:         failcnt,
 	}
 }
 

@@ -159,7 +159,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		},
 		config: config,
 	}
-	c.StatsServer = statsserver.New(c)
+	c.StatsServer = statsserver.New(ctx, c)
 	return c, nil
 }
 

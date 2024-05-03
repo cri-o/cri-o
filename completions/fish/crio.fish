@@ -24,6 +24,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -l clean-shutdown-file -r -d 'Lo
 complete -c crio -n '__fish_crio_no_subcommand' -l cni-config-dir -r -d 'CNI configuration files directory.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-default-network -r -d 'Name of the default CNI network to select. If not set or "", then CRI-O will pick-up the first one found in --cni-config-dir.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l cni-plugin-dir -r -d 'CNI plugin binaries directory.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l collection-period -r -d 'The number of seconds between collecting pod/container stats and pod sandbox metrics. If set to 0, the metrics/stats are collected on-demand instead.'
 complete -c crio -n '__fish_crio_no_subcommand' -l config -s c -r -d 'Path to configuration file'
 complete -c crio -n '__fish_crio_no_subcommand' -l config-dir -s d -r -d 'Path to the configuration drop-in directory.
     This directory will be recursively iterated and each file gets applied
@@ -89,6 +90,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l image-volumes -r -d 'Image
        mounted into the container for the volumes.
 	3. ignore: All volumes are just ignored and no action is taken.'
 complete -c crio -n '__fish_crio_no_subcommand' -l imagestore -r -d 'Store newly pulled images in the specified path, rather than the path provided by --root.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l included-pod-metrics -r -d 'A list of pod metrics to include. Specify the names of the metrics to include in this list.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l infra-ctr-cpuset -r -d 'CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l insecure-registry -r -d 'Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
     1. List of insecure registries can contain an element with CIDR notation to
@@ -150,7 +152,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l separate-pull-cgroup -r -d
 complete -c crio -n '__fish_crio_no_subcommand' -f -l shared-cpuset -r -d 'CPUs set that will be used for guaranteed containers that want access to shared cpus'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy -r -d 'Path to signature policy JSON file.'
 complete -c crio -n '__fish_crio_no_subcommand' -l signature-policy-dir -r -d 'Path to the root directory for namespaced signature policies. Must be an absolute path.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l stats-collection-period -r -d 'The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l stats-collection-period -r -d 'The number of seconds between collecting pod and container stats. If set to 0, the stats are collected on-demand instead. DEPRECATED: This option will be removed in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-driver -s s -r -d 'OCI storage driver.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l storage-opt -r -d 'OCI storage driver option.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l stream-address -r -d 'Bind address for streaming socket.'

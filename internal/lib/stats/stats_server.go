@@ -1,6 +1,7 @@
 package statsserver
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -22,6 +23,8 @@ type StatsServer struct {
 	collectionPeriod time.Duration
 	sboxStats        map[string]*types.PodSandboxStats
 	ctrStats         map[string]*types.ContainerStats
+	sboxMetrics      map[string]*SandboxMetrics
+	ctx              context.Context
 	parentServerIface
 	mutex sync.Mutex
 }
@@ -38,14 +41,16 @@ type parentServerIface interface {
 }
 
 // New returns a new StatsServer, deriving the needed information from the provided parentServerIface.
-func New(cs parentServerIface) *StatsServer {
+func New(ctx context.Context, cs parentServerIface) *StatsServer {
 	ss := &StatsServer{
 		shutdown:          make(chan struct{}, 1),
 		alreadyShutdown:   false,
-		collectionPeriod:  time.Duration(cs.Config().StatsCollectionPeriod) * time.Second,
+		collectionPeriod:  time.Duration(cs.Config().CollectionPeriod) * time.Second,
 		sboxStats:         make(map[string]*types.PodSandboxStats),
 		ctrStats:          make(map[string]*types.ContainerStats),
+		sboxMetrics:       make(map[string]*SandboxMetrics),
 		parentServerIface: cs,
+		ctx:               ctx,
 	}
 	go ss.updateLoop()
 	return ss
@@ -203,13 +208,13 @@ func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.Contai
 // that returns (and occasionally gathers) the stats for the given container.
 func (ss *StatsServer) statsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
 	if ss.collectionPeriod == 0 {
-		return ss.updateContainer(c, sb)
+		return ss.updateContainerStats(c, sb)
 	}
 	ctrStat, ok := ss.ctrStats[c.ID()]
 	if ok {
 		return ctrStat
 	}
-	return ss.updateContainer(c, sb)
+	return ss.updateContainerStats(c, sb)
 }
 
 // RemoveStatsForContainer removes the saved entry for the specified container
@@ -227,4 +232,32 @@ func (ss *StatsServer) Shutdown() {
 	}
 	close(ss.shutdown)
 	ss.alreadyShutdown = true
+}
+
+// MetricsForPodSandbox returns the metrics for the given sandbox pod/container.
+func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	return ss.metricsForPodSandbox(sb)
+}
+
+// MetricsForPodSandboxList returns the metrics for the given list of sandboxes.
+func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	metricsList := make([]*SandboxMetrics, 0, len(sboxes))
+	for _, sb := range sboxes {
+		if metrics := ss.metricsForPodSandbox(sb); metrics != nil {
+			metricsList = append(metricsList, metrics)
+		}
+	}
+	return metricsList
+}
+
+// RemoveMetricsForPodSandbox removes the saved entry for the specified sandbox
+// to prevent the map from always growing.
+func (ss *StatsServer) RemoveMetricsForPodSandbox(sb *sandbox.Sandbox) {
+	ss.mutex.Lock()
+	defer ss.mutex.Unlock()
+	delete(ss.sboxMetrics, sb.ID())
 }

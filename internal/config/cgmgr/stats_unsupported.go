@@ -28,6 +28,8 @@ type MemoryStats struct {
 	KernelTCPUsage  uint64
 	SwapUsage       uint64
 	SwapLimit       uint64
+	FileMapped      uint64
+	Failcnt         uint64
 }
 
 type CPUStats struct {
