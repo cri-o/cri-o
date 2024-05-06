@@ -29,15 +29,21 @@ func setSize(fd uintptr, size remotecommand.TerminalSize) error {
 	return unix.IoctlSetWinsize(int(fd), unix.TIOCSWINSZ, winsize)
 }
 
-func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan remotecommand.TerminalSize) error {
+func ttyCmd(execCmd *exec.Cmd, stdin io.Reader, stdout io.WriteCloser, resizeChan <-chan remotecommand.TerminalSize, c *Container) error {
 	p, err := pty.Start(execCmd)
 	if err != nil {
 		return err
 	}
 	defer p.Close()
-
 	// make sure to close the stdout stream
 	defer stdout.Close()
+
+	pid := execCmd.Process.Pid
+	if err := c.AddExecPID(pid, true); err != nil {
+		return err
+	}
+
+	defer c.DeleteExecPID(pid)
 
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		if err := setSize(p.Fd(), size); err != nil {
