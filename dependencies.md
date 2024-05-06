@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 06 May 2024 11:10:35 UTC for commit [60168a9][0]._
+_Generated on Mon, 06 May 2024 14:52:58 UTC for commit [e1be9be][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/60168a9b390d166a355ade4007b8b0a0fe13e7d3
+[0]: https://github.com/cri-o/cri-o/commit/e1be9be90027b91b924da90587c5c7ee90231ec0
 
 ## Outdated Dependencies
 
@@ -33,7 +33,7 @@ _Generated on Mon, 06 May 2024 11:10:35 UTC for commit [60168a9][0]._
 | golang.org/x/sync                                                           | v0.6.0                               | v0.7.0                             | true   | true             |
 | golang.org/x/sys                                                            | v0.18.0                              | v0.20.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.62.0                              | v1.63.2                            | true   | true             |
-| google.golang.org/protobuf                                                  | v1.33.0                              | v1.34.0                            | true   | true             |
+| google.golang.org/protobuf                                                  | v1.33.0                              | v1.34.1                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e   | v0.0.0-20240502163921-fe8a2dddb1d0 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.7.7                               | v0.8.1                             | true   | true             |
 
@@ -815,7 +815,7 @@ _Generated on Mon, 06 May 2024 11:10:35 UTC for commit [60168a9][0]._
 | goa.design/goa                                                                          | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                             | v0.34.0                               | v0.37.0                             | false  | true             |
 | golang.org/x/arch                                                                       | v0.5.0                                | v0.8.0                              | false  | true             |
-| golang.org/x/crypto                                                                     | v0.21.0                               | v0.22.0                             | false  | true             |
+| golang.org/x/crypto                                                                     | v0.21.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20231214170342-aacd6d4b4611    | v0.0.0-20240416160154-fe59bbe5cc7f  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.16.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
@@ -841,7 +841,7 @@ _Generated on Mon, 06 May 2024 11:10:35 UTC for commit [60168a9][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240123012728-ef4313101c80    | v0.0.0-20240429193739-8cf5692501f6  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.62.0                               | v1.63.2                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                |                                     | false  | true             |
-| google.golang.org/protobuf                                                              | v1.33.0                               | v1.34.0                             | true   | true             |
+| google.golang.org/protobuf                                                              | v1.33.0                               | v1.34.1                             | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
 | gopkg.in/errgo.v2                                                                       | v2.1.0                                |                                     | false  | true             |
