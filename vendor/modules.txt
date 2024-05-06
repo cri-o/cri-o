@@ -169,6 +169,7 @@ github.com/containerd/containerd/pkg/cri/io
 github.com/containerd/containerd/pkg/cri/util
 github.com/containerd/containerd/pkg/dialer
 github.com/containerd/containerd/pkg/ioutil
+github.com/containerd/containerd/pkg/runtimeoptions/v1
 github.com/containerd/containerd/pkg/shutdown
 github.com/containerd/containerd/pkg/ttrpcutil
 github.com/containerd/containerd/pkg/userns
@@ -181,9 +182,6 @@ github.com/containerd/containerd/runtime/v2/shim
 github.com/containerd/containerd/sys
 github.com/containerd/containerd/sys/reaper
 github.com/containerd/containerd/version
-# github.com/containerd/cri-containerd v1.19.0
-## explicit
-github.com/containerd/cri-containerd/pkg/api/runtimeoptions/v1
 # github.com/containerd/errdefs v0.1.0
 ## explicit; go 1.20
 github.com/containerd/errdefs
