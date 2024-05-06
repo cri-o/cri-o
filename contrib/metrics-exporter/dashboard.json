@@ -101,11 +101,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(container_runtime_crio_operations{instance=~\"$node\"}[5m])",
+          "expr": "rate(container_runtime_crio_operations_total{instance=~\"$node\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{instance}} - {{operation_type}}",
+          "legendFormat": "{{instance}} - {{operation}}",
           "refId": "A"
         }
       ],
@@ -202,11 +202,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(container_runtime_crio_operations_errors{instance=~\"$node\"}[5m])",
+          "expr": "rate(container_runtime_crio_operations_errors_total{instance=~\"$node\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{instance}} - {{operation_type}}",
+          "legendFormat": "{{instance}} - {{operation}}",
           "refId": "A"
         }
       ],
@@ -303,11 +303,11 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": " rate(container_runtime_crio_operations_latency_microseconds_count{instance=~\"$node\"}[5m])",
+          "expr": " rate(container_runtime_crio_operations_latency_seconds_total_count{instance=~\"$node\"}[5m])",
           "format": "time_series",
           "instant": false,
           "interval": "",
-          "legendFormat": "{{instance}} - {{operation_type}}",
+          "legendFormat": "{{instance}} - {{operation}}",
           "refId": "A"
         }
       ],
@@ -333,7 +333,7 @@
       "yaxes": [
         {
           "$$hashKey": "object:57",
-          "format": "µs",
+          "format": "s",
           "label": null,
           "logBase": 1,
           "max": null,
