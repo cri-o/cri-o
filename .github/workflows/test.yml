@@ -296,7 +296,12 @@ jobs:
         with:
           name: unit-amd64
           path: build/coverage
-      - run: make codecov
+      - uses: codecov/codecov-action@5ecb98a3c6b747ed38dc09f787459979aebb39be # v4.3.1
+        with:
+          files: build/coverage/coverprofile
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   release-notes:
     permissions:
