@@ -12,7 +12,6 @@ require (
 	github.com/checkpoint-restore/go-criu/v7 v7.1.0
 	github.com/containerd/cgroups v1.1.0
 	github.com/containerd/containerd v1.7.13
-	github.com/containerd/cri-containerd v1.19.0
 	github.com/containerd/fifo v1.1.0
 	github.com/containerd/nri v0.6.0
 	github.com/containerd/otelttrpc v0.0.0-20240305015340-ea5083fda723
