@@ -256,12 +256,12 @@ func recursiveEntries(
 
 	switch v.Kind() {
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			recursiveEntries(v.Index(i), entries, seen)
 		}
 	case reflect.Struct:
 		t := v.Type()
-		for i := 0; i < t.NumField(); i++ {
+		for i := range t.NumField() {
 			field := t.Field(i)
 			tag := strings.TrimSuffix(field.Tag.Get("toml"), ",omitempty")
 			name := field.Name

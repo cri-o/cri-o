@@ -19,16 +19,16 @@ import (
 )
 
 func (s *Server) getIDMappingsInfo() types.IDMappings {
-	max := int64(int(^uint(0) >> 1))
-	if max > math.MaxUint32 {
-		max = math.MaxUint32
+	sizeMax := int64(int(^uint(0) >> 1))
+	if sizeMax > math.MaxUint32 {
+		sizeMax = math.MaxUint32
 	}
 
 	if s.defaultIDMappings == nil {
 		fullMapping := idtools.IDMap{
 			ContainerID: 0,
 			HostID:      0,
-			Size:        int(max),
+			Size:        int(sizeMax),
 		}
 		return types.IDMappings{
 			Uids: []idtools.IDMap{fullMapping},

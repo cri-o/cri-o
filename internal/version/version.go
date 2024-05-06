@@ -209,7 +209,7 @@ func (i *Info) String() string {
 
 	v := reflect.ValueOf(*i)
 	t := v.Type()
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		field := t.Field(i)
 		value := v.FieldByName(field.Name)
 

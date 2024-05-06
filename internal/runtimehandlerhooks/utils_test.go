@@ -72,7 +72,7 @@ var _ = Describe("Utils", func() {
 				Expect(err).ToNot(HaveOccurred())
 
 				attempts := 10 // random number, no special meaning
-				for idx := 0; idx < attempts; idx++ {
+				for idx := range attempts {
 					data := fmt.Sprintf("000000000,0000000%02x", idx)
 					err = updateIrqBalanceConfigFile(fakeFile, data)
 					Expect(err).ToNot(HaveOccurred())

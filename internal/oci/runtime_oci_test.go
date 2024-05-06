@@ -167,7 +167,7 @@ var _ = t.Describe("Oci", func() {
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, longTimeout*10)
 
 			// When
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				go sut.WaitOnStopTimeout(context.Background(), int64(rand.Intn(100)+20))
 				time.Sleep(time.Second)
 			}

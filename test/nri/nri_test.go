@@ -49,18 +49,16 @@ func TestPluginSynchronization(stdT *testing.T) {
 		},
 	)
 
-	var (
-		t = nriTest{
-			plugins: []*plugin{nil},
-		}
-		containerCount = 3
-		pods           []string
-		ctrs           []string
-	)
+	t := nriTest{
+		plugins: []*plugin{nil},
+	}
+	const containerCount = 3
+	pods := make([]string, 0, containerCount)
+	ctrs := make([]string, 0, containerCount)
 
 	t.Setup(stdT)
 
-	for i := 0; i < containerCount; i++ {
+	for range containerCount {
 		pod, ctr := t.runContainer()
 		pods = append(pods, pod)
 		ctrs = append(ctrs, ctr)
