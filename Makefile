@@ -392,10 +392,6 @@ mock-ociartifact-types: ${MOCKGEN}
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/config/ociartifact Impl
 
-codecov: SHELL := $(shell which bash)
-codecov:
-	bash <(curl -s https://codecov.io/bash) -f ${COVERAGE_PATH}/coverprofile
-
 localintegration: clean binaries test-binaries
 	./test/test_runner.sh ${TESTFLAGS}
 
