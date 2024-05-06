@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 06 May 2024 07:30:50 UTC for commit [cb8bb35][0]._
+_Generated on Mon, 06 May 2024 11:10:35 UTC for commit [60168a9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cb8bb35a6be9c1966a1dc249cc74893e30a37dfe
+[0]: https://github.com/cri-o/cri-o/commit/60168a9b390d166a355ade4007b8b0a0fe13e7d3
 
 ## Outdated Dependencies
 
@@ -426,8 +426,8 @@ _Generated on Mon, 06 May 2024 07:30:50 UTC for commit [cb8bb35][0]._
 | github.com/go-git/go-billy/v5                                                           | v5.5.0                                |                                     | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                                    | v4.3.2-0.20231010084843-55a94097c399  |                                     | false  | true             |
 | github.com/go-git/go-git/v5                                                             | v5.12.0                               |                                     | true   | true             |
-| github.com/go-gl/glfw                                                                   | v0.0.0-20190409004039-e6da0acd62b1    | v0.0.0-20240307211618-a69d953ea142  | false  | true             |
-| github.com/go-gl/glfw/v3.3/glfw                                                         | v0.0.0-20200222043503-6f7a984d4dc4    | v0.0.0-20240307211618-a69d953ea142  | false  | true             |
+| github.com/go-gl/glfw                                                                   | v0.0.0-20190409004039-e6da0acd62b1    | v0.0.0-20240506104042-037f3cc74f2a  | false  | true             |
+| github.com/go-gl/glfw/v3.3/glfw                                                         | v0.0.0-20200222043503-6f7a984d4dc4    | v0.0.0-20240506104042-037f3cc74f2a  | false  | true             |
 | github.com/go-ini/ini                                                                   | v1.67.0                               |                                     | false  | true             |
 | github.com/go-jose/go-jose/v3                                                           | v3.0.3                                |                                     | false  | true             |
 | github.com/go-kit/kit                                                                   | v0.8.0                                | v0.13.0                             | false  | true             |
@@ -783,7 +783,7 @@ _Generated on Mon, 06 May 2024 07:30:50 UTC for commit [cb8bb35][0]._
 | github.com/zmap/zcrypto                                                                 | v0.0.0-20230310154051-c8b263fd8300    | v0.0.0-20231219022726-a1f61fb1661c  | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.5.0                                | v3.6.2                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                                 | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
-| go.etcd.io/bbolt                                                                        | v1.3.9                                |                                     | false  | true             |
+| go.etcd.io/bbolt                                                                        | v1.3.9                                | v1.3.10                             | false  | true             |
 | go.etcd.io/etcd/api/v3                                                                  | v3.5.10                               | v3.5.13                             | false  | true             |
 | go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.10                               | v3.5.13                             | false  | true             |
 | go.etcd.io/etcd/client/v2                                                               | v2.305.10                             | v2.305.13                           | false  | true             |
