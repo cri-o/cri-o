@@ -25,7 +25,6 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/containers/storage/pkg/unshare"
 
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -838,7 +837,7 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 func GetImageService(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (ImageServer, error) {
 	if store == nil {
 		var err error
-		storeOpts, err := storage.DefaultStoreOptions(unshare.IsRootless(), unshare.GetRootlessUID())
+		storeOpts, err := storage.DefaultStoreOptions()
 		if err != nil {
 			return nil, err
 		}

@@ -212,7 +212,7 @@ func MountsWithUIDGID(mountLabel, containerRunDir, mountFile, mountPoint string,
 }
 
 func rchown(chowndir string, uid, gid int) error {
-	return filepath.Walk(chowndir, func(filePath string, f os.FileInfo, err error) error {
+	return filepath.Walk(chowndir, func(filePath string, _ os.FileInfo, err error) error {
 		return os.Lchown(filePath, uid, gid)
 	})
 }
@@ -231,7 +231,7 @@ func addSubscriptionsFromMountsFile(filePath, mountLabel, containerRunDir string
 		fileInfo, err := os.Stat(hostDirOrFile)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				logrus.Warnf("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
+				logrus.Infof("Path %q from %q doesn't exist, skipping", hostDirOrFile, filePath)
 				continue
 			}
 			return nil, err

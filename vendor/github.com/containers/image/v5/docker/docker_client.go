@@ -497,8 +497,8 @@ func (c *dockerClient) resolveRequestURL(path string) (*url.URL, error) {
 // Checks if the auth headers in the response contain an indication of a failed
 // authorizdation because of an "insufficient_scope" error. If that's the case,
 // returns the required scope to be used for fetching a new token.
-func needsRetryWithUpdatedScope(res *http.Response) (bool, *authScope) {
-	if res.StatusCode == http.StatusUnauthorized {
+func needsRetryWithUpdatedScope(err error, res *http.Response) (bool, *authScope) {
+	if err == nil && res.StatusCode == http.StatusUnauthorized {
 		challenges := parseAuthHeader(res.Header)
 		for _, challenge := range challenges {
 			if challenge.Scheme == "bearer" {
@@ -557,9 +557,6 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 	attempts := 0
 	for {
 		res, err := c.makeRequestToResolvedURLOnce(ctx, method, requestURL, headers, stream, streamLen, auth, extraScope)
-		if err != nil {
-			return nil, err
-		}
 		attempts++
 
 		// By default we use pre-defined scopes per operation. In
@@ -575,24 +572,19 @@ func (c *dockerClient) makeRequestToResolvedURL(ctx context.Context, method stri
 		// We also cannot retry with a body (stream != nil) as stream
 		// was already read
 		if attempts == 1 && stream == nil && auth != noAuth {
-			if retry, newScope := needsRetryWithUpdatedScope(res); retry {
+			if retry, newScope := needsRetryWithUpdatedScope(err, res); retry {
 				logrus.Debug("Detected insufficient_scope error, will retry request with updated scope")
-				res.Body.Close()
 				// Note: This retry ignores extraScope. That’s, strictly speaking, incorrect, but we don’t currently
 				// expect the insufficient_scope errors to happen for those callers. If that changes, we can add support
 				// for more than one extra scope.
 				res, err = c.makeRequestToResolvedURLOnce(ctx, method, requestURL, headers, stream, streamLen, auth, newScope)
-				if err != nil {
-					return nil, err
-				}
 				extraScope = newScope
 			}
 		}
-
-		if res.StatusCode != http.StatusTooManyRequests || // Only retry on StatusTooManyRequests, success or other failure is returned to caller immediately
+		if res == nil || res.StatusCode != http.StatusTooManyRequests || // Only retry on StatusTooManyRequests, success or other failure is returned to caller immediately
 			stream != nil || // We can't retry with a body (which is not restartable in the general case)
 			attempts == backoffNumIterations {
-			return res, nil
+			return res, err
 		}
 		// close response body before retry or context done
 		res.Body.Close()
@@ -986,13 +978,10 @@ func (c *dockerClient) fetchManifest(ctx context.Context, ref dockerReference, t
 // This function can return nil reader when no url is supported by this function. In this case, the caller
 // should fallback to fetch the non-external blob (i.e. pull from the registry).
 func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.ReadCloser, int64, error) {
-	var (
-		resp *http.Response
-		err  error
-	)
 	if len(urls) == 0 {
 		return nil, 0, errors.New("internal error: getExternalBlob called with no URLs")
 	}
+	var remoteErrors []error
 	for _, u := range urls {
 		blobURL, err := url.Parse(u)
 		if err != nil || (blobURL.Scheme != "http" && blobURL.Scheme != "https") {
@@ -1001,24 +990,28 @@ func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.R
 		// NOTE: we must not authenticate on additional URLs as those
 		//       can be abused to leak credentials or tokens.  Please
 		//       refer to CVE-2020-15157 for more information.
-		resp, err = c.makeRequestToResolvedURL(ctx, http.MethodGet, blobURL, nil, nil, -1, noAuth, nil)
-		if err == nil {
-			if resp.StatusCode != http.StatusOK {
-				err = fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
-				logrus.Debug(err)
-				resp.Body.Close()
-				continue
-			}
-			break
+		resp, err := c.makeRequestToResolvedURL(ctx, http.MethodGet, blobURL, nil, nil, -1, noAuth, nil)
+		if err != nil {
+			remoteErrors = append(remoteErrors, err)
+			continue
 		}
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
+			remoteErrors = append(remoteErrors, err)
+			logrus.Debug(err)
+			resp.Body.Close()
+			continue
+		}
+		return resp.Body, getBlobSize(resp), nil
 	}
-	if resp == nil && err == nil {
+	if remoteErrors == nil {
 		return nil, 0, nil // fallback to non-external blob
 	}
-	if err != nil {
-		return nil, 0, err
+	err := fmt.Errorf("failed fetching external blob from all urls: %w", remoteErrors[0])
+	for _, e := range remoteErrors[1:] {
+		err = fmt.Errorf("%s, %w", err, e)
 	}
-	return resp.Body, getBlobSize(resp), nil
+	return nil, 0, err
 }
 
 func getBlobSize(resp *http.Response) int64 {

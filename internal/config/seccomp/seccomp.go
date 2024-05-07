@@ -35,7 +35,7 @@ func DefaultProfile() *seccomp.Seccomp {
 		const (
 			unshareName              = "unshare"
 			unshareParentStructIndex = 1
-			unshareIndex             = 363
+			unshareIndex             = 364
 		)
 		prof := seccomp.DefaultProfile()
 		// We know the default profile at compile time
