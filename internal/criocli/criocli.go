@@ -638,7 +638,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		&cli.StringSliceFlag{
 			Name:    "registry",
 			Value:   cli.NewStringSlice(defConf.Registries...),
-			Usage:   "Registry to be prepended when pulling unqualified images. Can be specified multiple times.",
+			Usage:   "Registry to be prepended when pulling unqualified images. Can be specified multiple times. This option is deprecated, and it has no effect.",
 			EnvVars: []string{"CONTAINER_REGISTRY"},
 		},
 		&cli.StringFlag{

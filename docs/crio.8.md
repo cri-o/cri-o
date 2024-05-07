@@ -387,7 +387,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on '/run', '/tmp' and '/var/tmp'.
 
-**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times.
+**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times. This option is deprecated, and it has no effect.
 
 **--root, -r**="": The CRI-O root directory. (default: "/var/lib/containers/storage")
 

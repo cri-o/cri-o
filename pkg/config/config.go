@@ -543,6 +543,8 @@ type ImageConfig struct {
 	// ImageVolumes controls how volumes specified in image config are handled
 	ImageVolumes ImageVolumesType `toml:"image_volumes"`
 	// Registries holds a list of registries used to pull unqualified images
+	// Deprecated: Support for this option has been dropped, and it has no effect.
+	// Please refer to containers-registries.conf(5) for configuring unqualified-search registries.
 	Registries []string `toml:"registries"`
 	// Temporary directory for big files
 	BigFilesTemporaryDir string `toml:"big_files_temporary_dir"`
