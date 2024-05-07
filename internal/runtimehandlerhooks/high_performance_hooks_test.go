@@ -716,14 +716,13 @@ var _ = Describe("high_performance_hooks", func() {
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
 
-		sb, err := sandbox.New("", "", "", "", "", nil,
+		sb := sandbox.New()
+		sb.SetAnnotations(
 			map[string]string{
 				crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
 			},
-			"", "", nil, "", "", false,
-			"", "", "", nil, false,
-			time.Now(), "", nil, nil)
-		Expect(err).ToNot(HaveOccurred())
+		)
+
 		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
 			h := HighPerformanceHooks{sharedCPUs: "3,4"}
 			err := h.PreCreate(context.TODO(), g, sb, c)

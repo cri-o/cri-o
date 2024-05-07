@@ -47,11 +47,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
 	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
 
+	sb := libsandbox.New()
+
 	kubeName := sbox.Config().Metadata.Name
+	sb.SetKubeName(kubeName)
+
 	namespace := sbox.Config().Metadata.Namespace
+	sb.SetNamespace(namespace)
+
 	attempt := sbox.Config().Metadata.Attempt
 
-	if err := sbox.SetNameAndID(); err != nil {
+	if err := sbox.SetNameAndID(sb); err != nil {
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
 	}
 
@@ -100,6 +106,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		securityContext.NamespaceOptions = &types.NamespaceOption{}
 	}
 	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
+	sb.SetHostNetwork(hostNetwork)
 
 	if err := s.config.CNIPluginReadyOrError(); err != nil && !hostNetwork {
 		// if the cni plugin isn't ready yet, we should wait until it is
@@ -118,14 +125,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+	sb.SetRuntimeHandler(runtimeHandler)
 
 	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
 		return nil, err
 	}
 
 	kubeAnnotations := sbox.Config().Annotations
+	sb.SetAnnotations(kubeAnnotations)
 
 	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
+	sb.SetUsernsMode(usernsMode)
 
 	containerName, err := s.ReserveSandboxContainerIDAndName(sbox.Config())
 	if err != nil {
@@ -138,6 +148,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	var labelOptions []string
 	privileged := s.privilegedSandbox(req)
+	sb.SetPrivileged(privileged)
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage creation")
 	pauseImage, err := s.config.ParsePauseImage()
@@ -182,6 +193,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return nil, err
 	}
+	sb.SetLogDir(logDir)
 
 	var sandboxIDMappings *idtools.IDMappings
 
@@ -192,6 +204,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	// add metadata
 	metadata := sbox.Config().Metadata
+	sb.SetMetadata(metadata)
+
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
@@ -208,6 +222,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if labels != nil {
 		labels[kubeletTypes.KubernetesContainerNameLabel] = oci.InfraContainerName
 	}
+	sb.SetLabels(labels)
+
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
@@ -233,6 +249,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
+	sb.SetProcessLabel(processLabel)
+	sb.SetMountLabel(mountLabel)
+
 	g := sbox.Spec()
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox spec configuration")
@@ -260,6 +279,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 	g.SetHostname(hostname)
+	sb.SetHostname(hostname)
+	sb.SetResolvPath(sbox.ResolvPath())
 
 	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))
@@ -291,10 +312,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		g.AddAnnotation("org.systemd.property.CollectMode", "'inactive-or-failed'")
 	}
 
-	created := time.Now()
+	created := time.Unix(0, sb.CreatedAt())
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(sbox.Config().PortMappings)
+	sb.SetPortMappings(portMappings)
+
 	portMappingsJSON, err := json.Marshal(portMappings)
 	if err != nil {
 		return nil, err
@@ -302,6 +325,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
 
 	overhead := sbox.Config().GetLinux().GetOverhead()
+	sb.SetPodLinuxOverhead(overhead)
+
 	overheadJSON, err := json.Marshal(overhead)
 	if err != nil {
 		return nil, err
@@ -309,16 +334,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
+	sb.SetPodLinuxResources(resources)
+
 	resourcesJSON, err := json.Marshal(resources)
 	if err != nil {
 		return nil, err
 	}
 	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
-
-	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, "", "", privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode, overhead, resources)
-	if err != nil {
-		return nil, err
-	}
 
 	sb.SetDNSConfig(sbox.Config().DnsConfig)
 

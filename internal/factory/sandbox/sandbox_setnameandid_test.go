@@ -1,6 +1,7 @@
 package sandbox_test
 
 import (
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -20,7 +21,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
-			err := sut.SetNameAndID()
+			err := sut.SetNameAndID(nil)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -30,10 +31,31 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.Name()).To(ContainSubstring("namespace"))
 		})
 
+		It("should succeed with lib sandbox", func() {
+			// Given
+			config := &types.PodSandboxConfig{
+				Metadata: &types.PodSandboxMetadata{
+					Name:      "name",
+					Uid:       "uid",
+					Namespace: "namespace",
+				},
+			}
+			Expect(sut.SetConfig(config)).To(Succeed())
+			sb := libsandbox.New()
+
+			// When
+			err := sut.SetNameAndID(sb)
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+			Expect(sb.ID()).To(Equal(sut.ID()))
+			Expect(sb.Name()).To(Equal(sut.Name()))
+		})
+
 		It("should fail with empty config", func() {
 			// Given
 			// When
-			err := sut.SetNameAndID()
+			err := sut.SetNameAndID(nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -52,7 +74,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.SetConfig(config)).NotTo(Succeed())
 
 			// When
-			err := sut.SetNameAndID()
+			err := sut.SetNameAndID(nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -71,7 +93,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
-			err := sut.SetNameAndID()
+			err := sut.SetNameAndID(nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -90,7 +112,7 @@ var _ = Describe("Sandbox:SetNameAndID", func() {
 			Expect(sut.SetConfig(config)).To(Succeed())
 
 			// When
-			err := sut.SetNameAndID()
+			err := sut.SetNameAndID(nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())

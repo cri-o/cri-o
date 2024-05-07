@@ -1,13 +1,9 @@
 package sandbox_test
 
 import (
-	"time"
-
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // The actual test suite
@@ -17,11 +13,8 @@ var _ = t.Describe("History", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
-			make(map[string]string), make(map[string]string), "", "",
-			&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-			[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-		Expect(err).ToNot(HaveOccurred())
+		otherTestSandbox := sandbox.New()
+		otherTestSandbox.SetID("sandboxID")
 		Expect(testSandbox).NotTo(BeNil())
 		sut = &sandbox.History{testSandbox, otherTestSandbox}
 	})

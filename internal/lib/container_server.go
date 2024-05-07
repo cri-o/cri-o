@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -13,7 +12,6 @@ import (
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
 	"github.com/containers/storage/pkg/truncindex"
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	statsserver "github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
@@ -175,12 +173,8 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err := json.Unmarshal(config, &m); err != nil {
 		return nil, fmt.Errorf("error unmarshalling sandbox spec: %w", err)
 	}
-	labels := make(map[string]string)
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Labels, err)
-	}
-	name := m.Annotations[annotations.Name]
-	name, err = c.ReservePodName(id, name)
+
+	name, err := c.ReservePodName(id, m.Annotations[annotations.Name])
 	if err != nil {
 		return nil, err
 	}
@@ -189,59 +183,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			c.ReleasePodName(name)
 		}
 	}()
-	var metadata types.PodSandboxMetadata
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Metadata, err)
-	}
 
-	processLabel := m.Process.SelinuxLabel
-	mountLabel := m.Linux.MountLabel
-
-	spp := m.Annotations[annotations.SeccompProfilePath]
-
-	kubeAnnotations := make(map[string]string)
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Annotations, err)
-	}
-
-	portMappings := []*hostport.PortMapping{}
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.PortMappings]), &portMappings); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PortMappings, err)
-	}
-
-	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
-	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
-	nsOpts := types.NamespaceOption{}
-	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
-		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.NamespaceOptions, err)
-	}
-
-	created, err := time.Parse(time.RFC3339Nano, m.Annotations[annotations.Created])
+	sb, err = sandbox.FromSpec(id, &m)
 	if err != nil {
-		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
+		return nil, fmt.Errorf("sandbox from spec: %w", err)
 	}
-
-	podLinuxOverhead := types.LinuxContainerResources{}
-	if v, found := m.Annotations[annotations.PodLinuxOverhead]; found {
-		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxOverhead, err)
-		}
-	}
-
-	podLinuxResources := types.LinuxContainerResources{}
-	if v, found := m.Annotations[annotations.PodLinuxResources]; found {
-		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
-			return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.PodLinuxResources, err)
-		}
-	}
-
-	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[annotations.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
-	if err != nil {
-		return nil, err
-	}
-	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
-	sb.SetSeccompProfilePath(spp)
-	sb.SetNamespaceOptions(&nsOpts)
 
 	defer func() {
 		if retErr != nil {
@@ -293,13 +239,14 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		wasSpoofed = true
 	}
 
+	created := time.Unix(0, sb.CreatedAt())
 	if !wasSpoofed {
-		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, m.Annotations[annotations.Image], nil, nil, "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+		scontainer, err = oci.NewContainer(m.Annotations[annotations.ContainerID], cname, sandboxPath, m.Annotations[annotations.LogPath], sb.Labels(), m.Annotations, sb.Annotations(), m.Annotations[annotations.Image], nil, nil, "", nil, id, false, false, false, sb.RuntimeHandler(), sandboxDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 		if err != nil {
 			return sb, err
 		}
 	} else {
-		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
+		scontainer = oci.NewSpoofedContainer(cID, cname, sb.Labels(), id, created, sandboxPath)
 	}
 	scontainer.SetSpec(&m)
 	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
@@ -353,7 +300,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sb.SetCreated()
-	if err := label.ReserveLabel(processLabel); err != nil {
+	if err := label.ReserveLabel(m.Process.SelinuxLabel); err != nil {
 		return sb, err
 	}
 

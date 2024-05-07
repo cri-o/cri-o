@@ -42,10 +42,10 @@ const (
 
 // PortMapping represents a network port in a container
 type PortMapping struct {
-	HostPort      int32
-	ContainerPort int32
-	Protocol      v1.Protocol
-	HostIP        string
+	HostPort      int32       `json:"HostPort,omitempty"`
+	ContainerPort int32       `json:"ContainerPort,omitempty"`
+	Protocol      v1.Protocol `json:"Protocol,omitempty"`
+	HostIP        string      `json:"HostIP,omitempty"`
 }
 
 // PodPortMapping represents a pod's network state and associated container port mappings

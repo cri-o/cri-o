@@ -8,6 +8,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
 	"github.com/cri-o/cri-o/internal/factory/container"
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -20,7 +21,7 @@ type Sandbox interface {
 	SetConfig(*types.PodSandboxConfig) error
 
 	// SetNameAndID sets the sandbox name and ID
-	SetNameAndID() error
+	SetNameAndID(*libsandbox.Sandbox) error
 
 	// Config returns the sandbox configuration
 	Config() *types.PodSandboxConfig
@@ -96,7 +97,7 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 }
 
 // SetNameAndID sets the sandbox name and ID
-func (s *sandbox) SetNameAndID() error {
+func (s *sandbox) SetNameAndID(lsb *libsandbox.Sandbox) error {
 	if s.config == nil {
 		return errors.New("config is nil")
 	}
@@ -114,6 +115,7 @@ func (s *sandbox) SetNameAndID() error {
 	}
 
 	s.id = stringid.GenerateNonCryptoID()
+
 	s.name = strings.Join([]string{
 		"k8s",
 		s.config.Metadata.Name,
@@ -121,6 +123,11 @@ func (s *sandbox) SetNameAndID() error {
 		s.config.Metadata.Uid,
 		strconv.FormatUint(uint64(s.config.Metadata.Attempt), 10),
 	}, "_")
+
+	if lsb != nil {
+		lsb.SetID(s.id)
+		lsb.SetName(s.name)
+	}
 
 	return nil
 }

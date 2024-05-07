@@ -10,7 +10,6 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -153,11 +152,8 @@ var beforeEach = func() {
 	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
 	// Initialize test container and sandbox
-	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+	testSandbox = sandbox.New()
+	testSandbox.SetID(sandboxID)
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
@@ -213,6 +209,7 @@ func addContainerAndSandbox() {
 	sut.AddContainer(ctx, testContainer)
 	Expect(sut.CtrIDIndex().Add(testContainer.ID())).To(Succeed())
 	Expect(sut.PodIDIndex().Add(testSandbox.ID())).To(Succeed())
+	testSandbox.SetLogDir("test")
 	testContainer.SetCreated()
 	testSandbox.SetCreated()
 }

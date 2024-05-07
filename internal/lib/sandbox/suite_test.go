@@ -2,15 +2,12 @@ package sandbox_test
 
 import (
 	"testing"
-	"time"
 
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // TestSandbox runs the created specs
@@ -37,11 +34,7 @@ var _ = AfterSuite(func() {
 
 func beforeEach() {
 	// Setup test vars
-	var err error
-	testSandbox, err = sandbox.New("sandboxID", "", "", "", "",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+	testSandbox = sandbox.New()
+	testSandbox.SetID("sandboxID")
 	Expect(testSandbox).NotTo(BeNil())
 }

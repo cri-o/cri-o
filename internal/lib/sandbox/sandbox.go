@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +14,8 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -76,36 +79,106 @@ var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
 // An infra container must be attached before the sandbox is added to the state
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string, overhead, resources *types.LinuxContainerResources) (*Sandbox, error) {
-	sb := new(Sandbox)
+func New() *Sandbox {
+	return &Sandbox{
+		criSandbox: &types.PodSandbox{
+			CreatedAt: time.Now().UnixNano(),
+			Metadata:  &types.PodSandboxMetadata{},
+		},
+		containers: oci.NewMemoryStore(),
+	}
+}
+
+// FromSpec creates a sandbox from the provided runtime spec.
+func FromSpec(id string, spec *rspec.Spec) (*Sandbox, error) {
+	sb := &Sandbox{}
+
+	created, err := time.Parse(time.RFC3339Nano, spec.Annotations[annotations.Created])
+	if err != nil {
+		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
+	}
+
+	labels := make(map[string]string)
+	if err := json.Unmarshal([]byte(spec.Annotations[annotations.Labels]), &labels); err != nil {
+		return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.Labels, err)
+	}
+
+	kubeAnnotations := make(map[string]string)
+	if err := json.Unmarshal([]byte(spec.Annotations[annotations.Annotations]), &kubeAnnotations); err != nil {
+		return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.Annotations, err)
+	}
+
+	metadata := types.PodSandboxMetadata{}
+	if err := json.Unmarshal([]byte(spec.Annotations[annotations.Metadata]), &metadata); err != nil {
+		return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.Metadata, err)
+	}
 
 	sb.criSandbox = &types.PodSandbox{
 		Id:          id,
-		CreatedAt:   createdAt.UnixNano(),
+		CreatedAt:   created.UnixNano(),
 		Labels:      labels,
-		Annotations: annotations,
-		Metadata:    metadata,
+		Annotations: kubeAnnotations,
+		Metadata:    &metadata,
 	}
-	sb.namespace = namespace
-	sb.name = name
-	sb.kubeName = kubeName
-	sb.logDir = logDir
+
+	sb.name = spec.Annotations[annotations.Name]
+	sb.namespace = spec.Annotations[annotations.Namespace]
+	sb.kubeName = spec.Annotations[annotations.KubeName]
+	sb.logDir = filepath.Dir(spec.Annotations[annotations.LogPath])
 	sb.containers = oci.NewMemoryStore()
-	sb.processLabel = processLabel
-	sb.mountLabel = mountLabel
-	sb.shmPath = shmPath
-	sb.cgroupParent = cgroupParent
-	sb.privileged = privileged
-	sb.runtimeHandler = runtimeHandler
-	sb.resolvPath = resolvPath
-	sb.hostname = hostname
+	sb.shmPath = spec.Annotations[annotations.ShmPath]
+	sb.cgroupParent = spec.Annotations[annotations.CgroupParent]
+	sb.privileged = isTrue(spec.Annotations[annotations.PrivilegedRuntime])
+	sb.runtimeHandler = spec.Annotations[annotations.RuntimeHandler]
+	sb.resolvPath = spec.Annotations[annotations.ResolvPath]
+	sb.hostname = spec.Annotations[annotations.HostName]
+	sb.hostNetwork = isTrue(spec.Annotations[annotations.HostNetwork])
+	sb.usernsMode = spec.Annotations[annotations.UsernsModeAnnotation]
+	sb.seccompProfilePath = spec.Annotations[annotations.SeccompProfilePath]
+	sb.hostnamePath = spec.Annotations[annotations.HostnamePath]
+
+	portMappings := []*hostport.PortMapping{}
+	if err := json.Unmarshal([]byte(spec.Annotations[annotations.PortMappings]), &portMappings); err != nil {
+		return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.PortMappings, err)
+	}
 	sb.portMappings = portMappings
-	sb.hostNetwork = hostNetwork
-	sb.usernsMode = usernsMode
-	sb.podLinuxOverhead = overhead
-	sb.podLinuxResources = resources
+
+	podLinuxOverhead := types.LinuxContainerResources{}
+	if v, found := spec.Annotations[annotations.PodLinuxOverhead]; found {
+		if err := json.Unmarshal([]byte(v), &podLinuxOverhead); err != nil {
+			return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.PodLinuxOverhead, err)
+		}
+	}
+	sb.podLinuxOverhead = &podLinuxOverhead
+
+	podLinuxResources := types.LinuxContainerResources{}
+	if v, found := spec.Annotations[annotations.PodLinuxResources]; found {
+		if err := json.Unmarshal([]byte(v), &podLinuxResources); err != nil {
+			return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.PodLinuxResources, err)
+		}
+	}
+	sb.podLinuxResources = &podLinuxResources
+
+	nsOpts := types.NamespaceOption{}
+	if err := json.Unmarshal([]byte(spec.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
+		return nil, fmt.Errorf("unmarshal %s annotation: %w", annotations.NamespaceOptions, err)
+	}
+	sb.nsOpts = &nsOpts
+
+	if spec != nil {
+		if spec.Process != nil {
+			sb.processLabel = spec.Process.SelinuxLabel
+		}
+		if spec.Linux != nil {
+			sb.mountLabel = spec.Linux.MountLabel
+		}
+	}
 
 	return sb, nil
+}
+
+func isTrue(annotaton string) bool {
+	return annotaton == "true"
 }
 
 func (s *Sandbox) CRISandbox() *types.PodSandbox {
@@ -318,6 +391,111 @@ func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 	s.containers.Delete(c.Name())
+}
+
+// SetName can be used to set the name of the sandbox.
+func (s *Sandbox) SetID(id string) {
+	s.criSandbox.Id = id
+}
+
+// SetName can be used to set the name of the sandbox.
+func (s *Sandbox) SetName(name string) {
+	s.name = name
+}
+
+// SetMetadata can be used to set the metadata of the sandbox.
+func (s *Sandbox) SetMetadata(metadata *types.PodSandboxMetadata) {
+	s.criSandbox.Metadata = metadata
+}
+
+// SetLabels can be used to set the labels of the sandbox.
+func (s *Sandbox) SetLabels(labels map[string]string) {
+	s.criSandbox.Labels = labels
+}
+
+// SetAnnotations can be used to set the annotations of the sandbox.
+func (s *Sandbox) SetAnnotations(anns map[string]string) {
+	s.criSandbox.Annotations = anns
+}
+
+// SetLogDir can be used to set the log dir of the sandbox.
+func (s *Sandbox) SetLogDir(logDir string) {
+	s.logDir = logDir
+}
+
+// SetNamespace can be used to set the namespace of the sandbox.
+func (s *Sandbox) SetNamespace(namespace string) {
+	s.namespace = namespace
+}
+
+// SetKubeName can be used to set the kube name of the sandbox.
+func (s *Sandbox) SetKubeName(kubeName string) {
+	s.kubeName = kubeName
+}
+
+// SetProcessLabel can be used to set the process label of the sandbox.
+func (s *Sandbox) SetProcessLabel(processLabel string) {
+	s.processLabel = processLabel
+}
+
+// SetMountLabel can be used to set the mount label of the sandbox.
+func (s *Sandbox) SetMountLabel(mountLabel string) {
+	s.mountLabel = mountLabel
+}
+
+// SetShmPath can be used to set the shm path of the sandbox.
+func (s *Sandbox) SetShmPath(shmPath string) {
+	s.shmPath = shmPath
+}
+
+// SetCgroupParent can be used to set the cgroup parent of the sandbox.
+func (s *Sandbox) SetCgroupParent(cgroupParent string) {
+	s.cgroupParent = cgroupParent
+}
+
+// SetPrivileged can be used to set the privileged state of the sandbox.
+func (s *Sandbox) SetPrivileged(privileged bool) {
+	s.privileged = privileged
+}
+
+// SetRuntimeHandler can be used to set the runtime handler of the sandbox.
+func (s *Sandbox) SetRuntimeHandler(runtimeHandler string) {
+	s.runtimeHandler = runtimeHandler
+}
+
+// SetResolvPath can be used to set the resolv path of the sandbox.
+func (s *Sandbox) SetResolvPath(resolvPath string) {
+	s.resolvPath = resolvPath
+}
+
+// SetHostname can be used to set the hostname of the sandbox.
+func (s *Sandbox) SetHostname(hostname string) {
+	s.hostname = hostname
+}
+
+// SetPortMappings can be used to set the port mappings of the sandbox.
+func (s *Sandbox) SetPortMappings(portMappings []*hostport.PortMapping) {
+	s.portMappings = portMappings
+}
+
+// SetHostNetwork can be used to set the host network state of the sandbox.
+func (s *Sandbox) SetHostNetwork(hostNetwork bool) {
+	s.hostNetwork = hostNetwork
+}
+
+// SetUsernsMode can be used to set the usernamespace mode of the sandbox.
+func (s *Sandbox) SetUsernsMode(usernsMode string) {
+	s.usernsMode = usernsMode
+}
+
+// SetPodLinuxResources can be used to set the pod linux resources of the sandbox.
+func (s *Sandbox) SetPodLinuxResources(resources *types.LinuxContainerResources) {
+	s.podLinuxResources = resources
+}
+
+// SetPodLinuxOverhead can be used to set the pod linux overhead of the sandbox.
+func (s *Sandbox) SetPodLinuxOverhead(resources *types.LinuxContainerResources) {
+	s.podLinuxOverhead = resources
 }
 
 // SetInfraContainer sets the infrastructure container of a sandbox

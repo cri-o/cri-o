@@ -40,16 +40,29 @@ var _ = t.Describe("Sandbox", func() {
 			hostname := "hostname"
 			portMappings := []*hostport.PortMapping{{}, {}}
 			hostNetwork := false
-			createdAt := time.Now()
 
 			// When
-			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
-				labels, annotations, processLabel, mountLabel, &metadata,
-				shmPath, cgroupParent, privileged, runtimeHandler,
-				resolvPath, hostname, portMappings, hostNetwork, createdAt, "", nil, nil)
+			sandbox := sandbox.New()
+			sandbox.SetID(id)
+			sandbox.SetName(name)
+			sandbox.SetNamespace(namespace)
+			sandbox.SetKubeName(kubeName)
+			sandbox.SetLogDir(logDir)
+			sandbox.SetLabels(labels)
+			sandbox.SetAnnotations(annotations)
+			sandbox.SetProcessLabel(processLabel)
+			sandbox.SetMountLabel(mountLabel)
+			sandbox.SetMetadata(&metadata)
+			sandbox.SetShmPath(shmPath)
+			sandbox.SetCgroupParent(cgroupParent)
+			sandbox.SetPrivileged(privileged)
+			sandbox.SetRuntimeHandler(runtimeHandler)
+			sandbox.SetResolvPath(resolvPath)
+			sandbox.SetHostname(hostname)
+			sandbox.SetPortMappings(portMappings)
+			sandbox.SetHostNetwork(hostNetwork)
 
 			// Then
-			Expect(err).ToNot(HaveOccurred())
 			Expect(sandbox).NotTo(BeNil())
 			Expect(sandbox.ID()).To(Equal(id))
 			Expect(sandbox.Namespace()).To(Equal(namespace))
@@ -71,7 +84,7 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.HostNetwork()).To(Equal(hostNetwork))
 			Expect(sandbox.StopMutex()).NotTo(BeNil())
 			Expect(sandbox.Containers()).NotTo(BeNil())
-			Expect(sandbox.CreatedAt()).To(Equal(createdAt.UnixNano()))
+			Expect(sandbox.CreatedAt()).NotTo(BeZero())
 		})
 	})
 

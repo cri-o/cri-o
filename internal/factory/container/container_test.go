@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cri-o/cri-o/internal/config/capabilities"
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -97,11 +96,9 @@ var _ = t.Describe("Container", func() {
 			mountPoint := "test"
 			configStopSignal := "test"
 
-			sb, err := sandbox.New("sandboxID", "", "", "", "test",
-				make(map[string]string), make(map[string]string), "", "",
-				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
-			Expect(err).ToNot(HaveOccurred())
+			sb := sandbox.New()
+			sb.SetID("sandboxID")
+			sb.SetLogDir("test")
 
 			image, err := sut.UserRequestedImage()
 			Expect(err).ToNot(HaveOccurred())

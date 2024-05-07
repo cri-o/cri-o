@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -152,11 +151,8 @@ func beforeEach() {
 	Expect(sut).NotTo(BeNil())
 
 	// Setup test vars
-	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+	mySandbox = sandbox.New()
+	mySandbox.SetID(sandboxID)
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),

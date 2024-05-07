@@ -349,9 +349,16 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, fmt.Errorf("setting sandbox config: %w", err)
 	}
 
+	sb := libsandbox.New()
+
 	kubeName := sbox.Config().Metadata.Name
+	sb.SetKubeName(kubeName)
+
 	kubePodUID := sbox.Config().Metadata.Uid
+
 	namespace := sbox.Config().Metadata.Namespace
+	sb.SetNamespace(namespace)
+
 	attempt := sbox.Config().Metadata.Attempt
 
 	// These fields are populated by the Kubelet, but not crictl. Populate if needed.
@@ -359,7 +366,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
 	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
 
-	if err := sbox.SetNameAndID(); err != nil {
+	if err := sbox.SetNameAndID(sb); err != nil {
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
 	}
 
@@ -402,7 +409,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if securityContext.NamespaceOptions == nil {
 		securityContext.NamespaceOptions = &types.NamespaceOption{}
 	}
+
 	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
+	sb.SetHostNetwork(hostNetwork)
 
 	if err := s.config.CNIPluginReadyOrError(); err != nil && !hostNetwork {
 		// if the cni plugin isn't ready yet, we should wait until it is
@@ -421,17 +430,20 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+	sb.SetRuntimeHandler(runtimeHandler)
 
 	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
 		return nil, err
 	}
 
 	kubeAnnotations := sbox.Config().Annotations
+	sb.SetAnnotations(kubeAnnotations)
 
 	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
 	if usernsMode != "" {
 		log.Warnf(ctx, "Annotation 'io.kubernetes.cri-o.userns-mode' is deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
 	}
+	sb.SetUsernsMode(usernsMode)
 
 	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext)
 	if err != nil {
@@ -454,6 +466,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	privileged := s.privilegedSandbox(req)
+	sb.SetPrivileged(privileged)
 
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox storage creation")
 	pauseImage, err := s.config.ParsePauseImage()
@@ -498,6 +511,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return nil, err
 	}
+	sb.SetLogDir(logDir)
 
 	var sandboxIDMappings *idtools.IDMappings
 	if idMappingsOptions != nil {
@@ -511,6 +525,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	// add metadata
 	metadata := sbox.Config().Metadata
+	sb.SetMetadata(metadata)
+
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
@@ -527,6 +543,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if labels != nil {
 		labels[kubeletTypes.KubernetesContainerNameLabel] = oci.InfraContainerName
 	}
+	sb.SetLabels(labels)
+
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
@@ -552,7 +570,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 	g := sbox.Spec()
 	g.SetProcessSelinuxLabel(processLabel)
+	sb.SetProcessLabel(processLabel)
 	g.SetLinuxMountLabel(mountLabel)
+	sb.SetMountLabel(mountLabel)
 
 	// Remove the default /dev/shm mount to ensure we overwrite it
 	g.RemoveMount(libsandbox.DevShmPath)
@@ -588,6 +608,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			return nil
 		})
 	}
+	sb.SetShmPath(shmPath)
 
 	// Link logs if requested
 	if emptyDirVolName, ok := kubeAnnotations[annotations.LinkLogsAnnotation]; ok {
@@ -635,6 +656,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 	g.SetHostname(hostname)
+	sb.SetHostname(hostname)
+	sb.SetResolvPath(sbox.ResolvPath())
 
 	g.AddAnnotation(annotations.Metadata, string(metadataJSON))
 	g.AddAnnotation(annotations.Labels, string(labelsJSON))
@@ -663,10 +686,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
 	}
 
-	created := time.Now()
+	created := time.Unix(0, sb.CreatedAt())
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(sbox.Config().PortMappings)
+	sb.SetPortMappings(portMappings)
+
 	portMappingsJSON, err := json.Marshal(portMappings)
 	if err != nil {
 		return nil, err
@@ -683,6 +708,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if cgroupPath != "" {
 		g.SetLinuxCgroupsPath(cgroupPath)
 	}
+	sb.SetCgroupParent(cgroupParent)
 	g.AddAnnotation(annotations.CgroupParent, cgroupParent)
 
 	if sandboxIDMappings != nil {
@@ -698,6 +724,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	overhead := sbox.Config().GetLinux().GetOverhead()
+	sb.SetPodLinuxOverhead(overhead)
+
 	overheadJSON, err := json.Marshal(overhead)
 	if err != nil {
 		return nil, err
@@ -705,16 +733,13 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
+	sb.SetPodLinuxResources(resources)
+
 	resourcesJSON, err := json.Marshal(resources)
 	if err != nil {
 		return nil, err
 	}
 	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
-
-	sb, err := libsandbox.New(sbox.ID(), namespace, sbox.Name(), kubeName, logDir, labels, kubeAnnotations, processLabel, mountLabel, metadata, shmPath, cgroupParent, privileged, runtimeHandler, sbox.ResolvPath(), hostname, portMappings, hostNetwork, created, usernsMode, overhead, resources)
-	if err != nil {
-		return nil, err
-	}
 
 	sb.SetDNSConfig(sbox.Config().DnsConfig)
 
