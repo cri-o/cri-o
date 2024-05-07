@@ -722,8 +722,8 @@ github.com/containernetworking/cni v1.1.2 h1:wtRGZVv7olUHMOqouPpn3cXJWpJgM6+EUl3
 github.com/containernetworking/cni v1.1.2/go.mod h1:sDpYKmGVENF3s6uvMvGgldDWeG8dMxakj/u+i9ht9vw=
 github.com/containernetworking/plugins v1.4.1 h1:+sJRRv8PKhLkXIl6tH1D7RMi+CbbHutDGU+ErLBORWA=
 github.com/containernetworking/plugins v1.4.1/go.mod h1:n6FFGKcaY4o2o5msgu/UImtoC+fpQXM3076VHfHbj60=
-github.com/containers/common v0.58.0 h1:iQuwMxDD4ubZ9s1tmgdsiaHxMU4TdVBpV6kctJc6Bk8=
-github.com/containers/common v0.58.0/go.mod h1:l3vMqanJGj7tZ3W/i76gEJ128VXgFUO1tLaohJXPvdk=
+github.com/containers/common v0.58.1 h1:E1DN9Lr7kgMVQy7AXLv1CYQCiqnweklMiYWbf0KOnqY=
+github.com/containers/common v0.58.1/go.mod h1:l3vMqanJGj7tZ3W/i76gEJ128VXgFUO1tLaohJXPvdk=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57 h1:EHiHMe0cOPvBzi20g/f+NzhjhPFTxpyAkpRE4h1ZAzw=
@@ -736,8 +736,8 @@ github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYgle
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.1.10 h1:r7UR6o8+lyhkEywetubUUgcKFjOWOaWz8cEBrCPX0ic=
 github.com/containers/ocicrypt v1.1.10/go.mod h1:YfzSSr06PTHQwSTUKqDSjish9BeW1E4HUmreluQcMd8=
-github.com/containers/podman/v5 v5.0.0 h1:DVjeY4oTbI9qsxQfBTswerS8xvlAy0KywLN9yNc/MAA=
-github.com/containers/podman/v5 v5.0.0/go.mod h1:lJXhiseM72otkIcp0sVDUn9aFyScHqmHmlarbboRX4I=
+github.com/containers/podman/v5 v5.0.1 h1:40OJuoOJWxt3hk1j9J0jcwWIbWpjARxpzazYYtCDiNY=
+github.com/containers/podman/v5 v5.0.1/go.mod h1:v09KUXu9AEFvzgiKSwkB49jcrVglXx2yi2qaPyaKNBE=
 github.com/containers/storage v1.53.0 h1:VSES3C/u1pxjTJIXvLrSmyP7OBtDky04oGu07UvdTEA=
 github.com/containers/storage v1.53.0/go.mod h1:pujcoOSc+upx15Jirdkebhtd8uJiLwbSd/mYT6zDJK8=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
