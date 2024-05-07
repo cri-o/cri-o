@@ -70,12 +70,14 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
+            timeout: 10
           - name: critest / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
             runtimeType: oci
             critest: 1
             userns: 0
+            timeout: 10
           - name: critest / conmon-rs
             arch: amd64
             runner: ubuntu-latest
@@ -83,6 +85,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
+            timeout: 10
           - name: critest / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
@@ -90,6 +93,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
+            timeout: 10
           - name: integration / conmon
             arch: amd64
             runner: ubuntu-latest
@@ -97,6 +101,7 @@ jobs:
             critest: 0
             userns: 0
             jobs: 2
+            timeout: 120
           - name: integration / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
@@ -104,6 +109,7 @@ jobs:
             critest: 0
             userns: 0
             jobs: 2
+            timeout: 120
           - name: integration / conmon-rs
             arch: amd64
             runner: ubuntu-latest
@@ -111,6 +117,7 @@ jobs:
             critest: 0
             userns: 1
             jobs: 2
+            timeout: 120
           - name: integration / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
@@ -118,6 +125,7 @@ jobs:
             critest: 0
             userns: 1
             jobs: 2
+            timeout: 120
           - name: integration / userns
             arch: amd64
             runner: ubuntu-latest
@@ -125,6 +133,7 @@ jobs:
             critest: 0
             userns: 1
             jobs: 2
+            timeout: 120
           - name: integration / userns
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
@@ -132,8 +141,10 @@ jobs:
             critest: 0
             userns: 1
             jobs: 2
+            timeout: 120
     name: ${{ matrix.run.name }} / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
+    timeout-minutes: ${{ matrix.run.timeout }}
     steps:
       - uses: alexellis/arkade-get@d543d47741e9217ba62ff0214444add9a35825f3
         with:
