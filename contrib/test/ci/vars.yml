@@ -169,6 +169,7 @@ kata_skip_network_tests:
   - 'test "Clean up network if pod sandbox gets killed"'
 kata_skip_pod_tests:
   - 'test "pass pod sysctls to runtime"'
+  - 'test "pass pod sysctls to runtime when in userns"'
   - 'test "skip pod sysctls to runtime if host"'
   - 'test "restart crio and still get pod status"'
   - 'test "systemd cgroup_parent correctly set"'
