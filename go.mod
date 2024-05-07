@@ -19,13 +19,13 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.4.1
-	github.com/containers/common v0.58.0
+	github.com/containers/common v0.58.1
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57
 	github.com/containers/image/v5 v5.30.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.10
-	github.com/containers/podman/v5 v5.0.0
+	github.com/containers/podman/v5 v5.0.1
 	github.com/containers/storage v1.53.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/cpuguy83/go-md2man v1.0.10
