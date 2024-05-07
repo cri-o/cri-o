@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
+_Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5c70fc2bbf71577831f673e7ebf72b1f10f24598
+[0]: https://github.com/cri-o/cri-o/commit/a88cdddb3953fef0418acb39b7ec1fdb62b41568
 
 ## Outdated Dependencies
 
@@ -18,8 +18,8 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.2.4                               | v0.2.5                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                               | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240507111535-cd84414c632b | true   | true             |
-| github.com/onsi/ginkgo/v2                                                   | v2.17.0                              | v2.17.2                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240507153427-a564422b7b48 | true   | true             |
+| github.com/onsi/ginkgo/v2                                                   | v2.17.0                              | v2.17.3                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                              | v1.33.1                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                               | v0.2.4                             | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.27.1                              | v2.27.2                            | true   | true             |
@@ -271,7 +271,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                               | v1.23.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                               | v1.28.6                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                               | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240503211702-30a8c617b9db  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240507150535-b99368f3064d  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -387,7 +387,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | github.com/distribution/reference                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/docker/cli                                                                   | v25.0.3+incompatible                  | v26.1.1+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                                | v25.0.3+incompatible                  | v26.1.1+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v25.0.5+incompatible                  | v26.1.1+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.1                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                |                                     | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    |                                     | false  | true             |
@@ -549,7 +549,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240507111535-cd84414c632b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240507153427-a564422b7b48  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -636,7 +636,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | github.com/oleiade/reflections                                                          | v1.0.1                                |                                     | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                |                                     | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.4                               | v1.16.5                             | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.17.0                               | v2.17.2                             | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.17.0                               | v2.17.3                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.31.1                               | v1.33.1                             | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.59.0                               | v0.64.1                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
@@ -828,7 +828,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | golang.org/x/oauth2                                                                     | v0.18.0                               | v0.20.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.6.0                                | v0.7.0                              | true   | true             |
 | golang.org/x/sys                                                                        | v0.18.0                               | v0.20.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240505125901-fe7049821727  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240507150523-279072785af5  | false  | true             |
 | golang.org/x/term                                                                       | v0.18.0                               | v0.20.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                               | v0.15.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
@@ -837,7 +837,7 @@ _Generated on Tue, 07 May 2024 12:37:56 UTC for commit [5c70fc2][0]._
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.0                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.152.0                              | v0.177.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.152.0                              | v0.178.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20240123012728-ef4313101c80    | v0.0.0-20240506185236-b8a5c65736ae  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240123012728-ef4313101c80    | v0.0.0-20240506185236-b8a5c65736ae  | false  | true             |
