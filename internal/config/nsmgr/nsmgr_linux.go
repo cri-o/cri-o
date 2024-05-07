@@ -132,6 +132,8 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		return nil, fmt.Errorf("failed to pin namespaces %v: %s %w", cfg.Namespaces, output, err)
 	}
 
+	logrus.Debugf("Got output from pinns: %s", output)
+
 	returnedNamespaces := make([]Namespace, 0, len(cfg.Namespaces))
 	for _, ns := range cfg.Namespaces {
 		ns, err := GetNamespace(ns.Path, ns.Type)
