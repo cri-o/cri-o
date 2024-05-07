@@ -56,6 +56,8 @@ func run() error {
 			if err := pushTagToRemote(repo, currentReleaseVersion, remote); err != nil {
 				return fmt.Errorf("unable to push tag %q: %w", currentReleaseVersion, err)
 			}
+		} else {
+			logrus.Info("Version already exists on remote, skipping")
 		}
 	}
 
