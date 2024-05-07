@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 May 2024 00:58:28 UTC for commit [088040a][0]._
+_Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/088040a863a778f8307ff03d77bb3cfa524faa73
+[0]: https://github.com/cri-o/cri-o/commit/d6f1f735445f8c6f7263428911ef8bd8ea8f8ba6
 
 ## Outdated Dependencies
 
@@ -871,7 +871,7 @@ _Generated on Tue, 07 May 2024 00:58:28 UTC for commit [088040a][0]._
 | k8s.io/kubelet                                                                          | v0.30.0                               |                                     | true   | true             |
 | k8s.io/kubernetes                                                                       | v1.28.4                               | v1.30.0                             | false  | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240102154912-e7106e64919e    | v0.0.0-20240502163921-fe8a2dddb1d0  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240506063849-f69d19cde324  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240507013158-1d1616aa15db  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
