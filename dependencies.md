@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
+_Generated on Tue, 07 May 2024 17:30:54 UTC for commit [9c2ea61][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a88cdddb3953fef0418acb39b7ec1fdb62b41568
+[0]: https://github.com/cri-o/cri-o/commit/9c2ea618bc43e3b8fa6fb6bfb11ab0e025cc6633
 
 ## Outdated Dependencies
 
@@ -12,13 +12,13 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | github.com/containerd/containerd                                            | v1.7.13                              | v1.7.16                            | true   | true             |
 | github.com/containerd/nri                                                   | v0.6.0                               | v0.6.1                             | true   | true             |
 | github.com/containernetworking/cni                                          | v1.1.2                               | v1.2.0                             | true   | true             |
-| github.com/containers/common                                                | v0.58.0                              | v0.58.2                            | true   | true             |
+| github.com/containers/common                                                | v0.58.1                              | v0.58.2                            | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57 | v0.6.3                             | true   | true             |
-| github.com/containers/podman/v5                                             | v5.0.0                               | v5.0.2                             | true   | true             |
+| github.com/containers/podman/v5                                             | v5.0.1                               | v5.0.2                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.2.4                               | v0.2.5                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                               | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240507153427-a564422b7b48 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240507161411-22087f9db9f3 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.0                              | v2.17.3                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.31.1                              | v1.33.1                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.2.3                               | v0.2.4                             | true   | true             |
@@ -170,7 +170,7 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.4                                | v1.9.7                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.4                                | v1.6.7                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.3                               | v1.12.6                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240506165048-60382360e736  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240507165102-251b29179075  | false  | true             |
 | cuelang.org/go                                                                          | v0.6.0                                | v0.8.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9    | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
@@ -339,8 +339,8 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                | v1.2.0                              | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.4.1                                |                                     | true   | true             |
-| github.com/containers/buildah                                                           | v1.35.1                               | v1.35.3                             | false  | true             |
-| github.com/containers/common                                                            | v0.58.0                               | v0.58.2                             | true   | true             |
+| github.com/containers/buildah                                                           | v1.35.3                               |                                     | false  | true             |
+| github.com/containers/common                                                            | v0.58.1                               | v0.58.2                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.2-0.20230920142715-f5a362044a57  | v0.6.3                              | true   | true             |
 | github.com/containers/gvisor-tap-vsock                                                  | v0.7.3                                |                                     | false  | true             |
@@ -351,7 +351,7 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | github.com/containers/luksy                                                             | v0.0.0-20240212203526-ceb12d4fd50c    | v0.0.0-20240506205542-84b50f50f3ee  | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.10                               |                                     | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.4                              | false  | true             |
-| github.com/containers/podman/v5                                                         | v5.0.0                                | v5.0.2                              | true   | true             |
+| github.com/containers/podman/v5                                                         | v5.0.1                                | v5.0.2                              | true   | true             |
 | github.com/containers/psgo                                                              | v1.9.0                                |                                     | false  | true             |
 | github.com/containers/storage                                                           | v1.53.0                               |                                     | true   | true             |
 | github.com/containers/winquit                                                           | v1.1.0                                |                                     | false  | true             |
@@ -490,7 +490,7 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15    | v0.0.0-20240430035430-e4905b036c4e  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15    | v0.0.0-20240507165812-eadc5834db1b  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                |                                     | false  | true             |
@@ -549,7 +549,7 @@ _Generated on Tue, 07 May 2024 15:46:01 UTC for commit [a88cddd][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240507153427-a564422b7b48  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240507161411-22087f9db9f3  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
