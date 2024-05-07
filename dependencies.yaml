@@ -12,6 +12,8 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/patch-release.yml
       match: GO_VERSION
+    - path: .github/workflows/tag-reconciler.yml
+      match: GO_VERSION
     - path: contrib/test/ci/vars.yml
       match: golang_version
 
