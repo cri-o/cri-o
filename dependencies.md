@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
+_Generated on Tue, 07 May 2024 07:59:24 UTC for commit [cdfc5b7][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d6f1f735445f8c6f7263428911ef8bd8ea8f8ba6
+[0]: https://github.com/cri-o/cri-o/commit/cdfc5b72d69a89800d160293ac46e3b41c833a57
 
 ## Outdated Dependencies
 
@@ -16,6 +16,7 @@ _Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 | github.com/containers/conmon-rs                                             | v0.6.2-0.20230920142715-f5a362044a57 | v0.6.3                             | true   | true             |
 | github.com/containers/podman/v4                                             | v4.9.3                               | v4.9.4                             | true   | true             |
 | github.com/containers/storage                                               | v1.51.0                              | v1.53.0                            | true   | true             |
+| github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.2.4                               | v0.2.5                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.6.0                               | v0.7.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20240502082710-e5e0983b5653 | true   | true             |
@@ -365,7 +366,7 @@ _Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.3                                | v2.0.4                              | false  | true             |
 | github.com/crc-org/vfkit                                                                | v0.1.2-0.20231030102423-f3c783d34420  | v0.5.1                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.21                               |                                     | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.2                                |                                     | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.2                                | v0.4.3                              | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231011164504-785e29786b46    | v0.0.0-20231217050601-ba74d44ecf5f  | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.2.4                                | v0.2.5                              | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c    |                                     | false  | true             |
@@ -396,7 +397,7 @@ _Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 | github.com/docopt/docopt-go                                                             | v0.0.0-20180111231733-ee0de3bc6815    |                                     | false  | true             |
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5  |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                |                                     | false  | true             |
-| github.com/eggsampler/acme/v3                                                           | v3.4.0                                | v3.5.0                              | false  | true             |
+| github.com/eggsampler/acme/v3                                                           | v3.4.0                                | v3.6.0                              | false  | true             |
 | github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20231117061959-7cc037d33fb5  | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                               | v3.12.0                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                               | v1.13.2                             | false  | true             |
@@ -414,7 +415,7 @@ _Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 | github.com/gabriel-vasile/mimetype                                                      | v1.4.2                                | v1.4.3                              | false  | true             |
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gin-contrib/sse                                                              | v0.1.0                                |                                     | false  | true             |
-| github.com/gin-gonic/gin                                                                | v1.9.1                                |                                     | false  | true             |
+| github.com/gin-gonic/gin                                                                | v1.9.1                                | v1.10.0                             | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
 | github.com/go-chi/chi/v5                                                                | v5.0.12                               |                                     | true   | true             |
@@ -754,7 +755,7 @@ _Generated on Tue, 07 May 2024 03:18:54 UTC for commit [d6f1f73][0]._
 | github.com/vishvananda/netns                                                            | v0.0.4                                |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6 | v0.30.2                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.94.0                               | v0.104.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.94.0                               | v0.104.1                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                |                                     | false  | true             |
