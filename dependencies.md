@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 May 2024 17:30:54 UTC for commit [9c2ea61][0]._
+_Generated on Tue, 07 May 2024 20:07:56 UTC for commit [6846596][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9c2ea618bc43e3b8fa6fb6bfb11ab0e025cc6633
+[0]: https://github.com/cri-o/cri-o/commit/6846596e8102ed5631beeb2f5f0bd32c1dc39ed4
 
 ## Outdated Dependencies
 
@@ -248,7 +248,7 @@ _Generated on Tue, 07 May 2024 17:30:54 UTC for commit [9c2ea61][0]._
 | github.com/apache/thrift                                                                | v0.16.0                               | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.52.3                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.52.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                               | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                               | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                              | v1.27.11                            | false  | true             |
@@ -490,7 +490,7 @@ _Generated on Tue, 07 May 2024 17:30:54 UTC for commit [9c2ea61][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15    | v0.0.0-20240507165812-eadc5834db1b  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20231127191134-f3a68a39ae15    | v0.0.0-20240507183855-6f11f98ebb1c  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                |                                     | false  | true             |
