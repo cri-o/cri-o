@@ -291,7 +291,7 @@ var _ = t.Describe("Container", func() {
 		Expect(containerResources.Linux.MemoryLimitInBytes).To(Equal(memoryLimitInBytes))
 		Expect(containerResources.Linux.MemorySwapLimitInBytes).To(Equal(memorySwapLimitInBytes))
 		Expect(containerResources.Linux.Unified).To(Equal(unified))
-		for i := 0; i < len(containerResources.Linux.HugepageLimits); i++ {
+		for i := range len(containerResources.Linux.HugepageLimits) {
 			Expect(containerResources.Linux.HugepageLimits[i].PageSize).To(Equal(hugepageLimits[i].Pagesize))
 			Expect(containerResources.Linux.HugepageLimits[i].Limit).To(Equal(hugepageLimits[i].Limit))
 		}

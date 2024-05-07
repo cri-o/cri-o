@@ -466,7 +466,7 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
-// nolint: gochecknoinits
+// nolint
 func init() {
 	reexec.Register("crio-pull-image", pullImageChild)
 }

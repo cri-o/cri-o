@@ -62,7 +62,7 @@ func (f *FileNameHook) findCaller() (file, function string, line int) {
 	var pc uintptr
 	// The maximum amount of frames to be iterated
 	const maxFrames = 10
-	for i := 0; i < maxFrames; i++ {
+	for i := range maxFrames {
 		// The amount of frames to be skipped to land at the actual caller
 		const skipFrames = 6
 		pc, file, line = caller(skipFrames + i)

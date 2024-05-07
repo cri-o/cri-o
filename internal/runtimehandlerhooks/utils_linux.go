@@ -13,7 +13,7 @@ import (
 )
 
 func isASCII(s string) bool {
-	for i := 0; i < len(s); i++ {
+	for i := range len(s) {
 		if s[i] > unicode.MaxASCII {
 			return false
 		}
@@ -41,9 +41,9 @@ func mapHexCharToByte(h string) ([]byte, error) {
 	}
 
 	l = len(breversed)
-	var barray []byte
+	barray := make([]byte, 0, l)
 	var rindex int
-	for i := 0; i < l; i++ {
+	for i := range l {
 		rindex = l - i - 1
 		barray = append(barray, breversed[rindex])
 	}
@@ -55,19 +55,19 @@ func mapByteToHexChar(b []byte) string {
 	// on the system rounded up to the closest 32 bit multiple.
 	// See https://bugzilla.redhat.com/show_bug.cgi?id=2181546
 
-	var breversed []byte
 	var rindex int
 	l := len(b)
+	breversed := make([]byte, 0, l)
 	// align it to 4 byte
 	if l%4 != 0 {
 		lfill := 4 - l%4
 		l += lfill
-		for i := 0; i < lfill; i++ {
+		for range lfill {
 			b = append(b, byte(0))
 		}
 	}
 
-	for i := 0; i < l; i++ {
+	for i := range l {
 		rindex = l - i - 1
 		breversed = append(breversed, b[rindex])
 	}

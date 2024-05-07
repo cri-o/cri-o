@@ -16,7 +16,7 @@ dependencies:
       match: golang_version
 
   - name: golangci-lint
-    version: v1.57.2
+    version: v1.58.0
     refPaths:
     - path: .github/workflows/verify.yml
       match: GOLANGCI_LINT_VERSION
@@ -108,7 +108,7 @@ dependencies:
         match: GO_MOD_OUTDATED_VERSION
 
   - name: gosec
-    version: 2.18.2
+    version: 2.19.0
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION

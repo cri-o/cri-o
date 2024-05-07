@@ -10,7 +10,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.22'
-  GOLANGCI_LINT_VERSION: v1.57.2
+  GOLANGCI_LINT_VERSION: v1.58.0
 permissions:
   contents: read
 
