@@ -33,6 +33,7 @@ func GetCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (
 		return res, fmt.Errorf("unable to read latest version: %w", err)
 	}
 
+	logrus.Infof("Using version: %s", versionFromVersionFile)
 	return ConvertStringToSemver(versionFromVersionFile)
 }
 
