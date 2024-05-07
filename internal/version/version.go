@@ -23,6 +23,9 @@ import (
 // Version is the version of the build.
 const Version = "1.31.0"
 
+// ReleaseMinorVersions are the currently supported minor versions.
+var ReleaseMinorVersions = []string{"1.30", "1.29", "1.28", "1.27"}
+
 // Variables injected during build-time
 var (
 	buildDate string // build date in ISO8601 format, output of $(date -u +'%Y-%m-%dT%H:%M:%SZ')

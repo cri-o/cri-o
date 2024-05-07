@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/cri-o/cri-o/scripts/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -29,7 +30,7 @@ var _ = t.Describe("Automated Releases", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			versionFromFile, err := getCurrentVersionFromVersionFile(tmpfile.Name())
+			versionFromFile, err := utils.GetCurrentVersionFromVersionFile(tmpfile.Name())
 			if err != nil {
 				Expect(err).ToNot(HaveOccurred())
 			}
