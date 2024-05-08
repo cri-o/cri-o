@@ -74,7 +74,7 @@ func (s *Server) CRImportCheckpoint(
 
 	var restoreArchivePath string
 	if restoreStorageImageID != nil {
-		log.Debugf(ctx, "Restoring from oci image %s\n", inputImage)
+		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
 
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
 		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
