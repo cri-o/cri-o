@@ -243,6 +243,7 @@ EOF
 	reload_crio
 	# image becomes pinned
 	expect_log_success $OPTION $EXAMPLE_IMAGE
+	wait_for_log "Configuration reload completed"
 	output=$(crictl images -o json | jq ".images[] | select(.repoTags[] == \"$EXAMPLE_IMAGE\") |.pinned")
 	[ "$output" == "true" ]
 }
@@ -251,6 +252,7 @@ EOF
 	OPTION="pause_image"
 	printf '[crio.image]\npinned_images = [""]\n' > "$CRIO_CONFIG_DIR"/00-default
 	reload_crio
+	wait_for_log "Configuration reload completed"
 	output=$(crictl images -o json | jq '.images[] | select(.pinned == true) | .repoTags[]')
 	# only pause image is pinned
 	[[ "$output" == *"pause"* ]]
@@ -262,6 +264,7 @@ EOF
 	printf '[crio.image]\npinned_images = [""]\npause_image = "%s"\n' $EXAMPLE_IMAGE > "$CRIO_CONFIG_DIR"/04-overwrite
 	reload_crio
 	expect_log_success $OPTION $EXAMPLE_IMAGE
+	wait_for_log "Configuration reload completed"
 	output=$(crictl images -o json | jq '.images[] | select(.pinned == true) | .repoTags[]')
 	# pause image is pinned
 	[[ "$output" == *"fedora-crio-ci"* ]]
