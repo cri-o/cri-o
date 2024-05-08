@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -62,21 +63,26 @@ func (s *Server) CRImportCheckpoint(
 ) (ctrID string, retErr error) {
 	var mountPoint string
 
-	input := createConfig.Image.Image
+	// Ensure that the image to restore the checkpoint from has been provided.
+	if createConfig.Image == nil || createConfig.Image.Image == "" {
+		return "", errors.New(`attribute "image" missing from container definition`)
+	}
+
+	inputImage := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
 
-	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
+	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, inputImage)
 	if err != nil {
 		return "", err
 	}
 
 	if checkpointIsOCIImage {
-		log.Debugf(ctx, "Restoring from oci image %s\n", input)
+		log.Debugf(ctx, "Restoring from oci image %s\n", inputImage)
 
-		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
+		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse image name: %s: %w", input, err)
+			return "", fmt.Errorf("failed to parse image name: %s: %w", inputImage, err)
 		}
 		img, err := istorage.Transport.GetStoreImage(s.ContainerServer.StorageImageServer().GetStore(), imageRef)
 		if err != nil {
@@ -86,23 +92,24 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", err
 		}
-		input = img.ID
+		inputImage = img.ID
 
-		logrus.Debugf("Checkpoint image %s mounted at %v\n", input, mountPoint)
+		logrus.Debugf("Checkpoint image %s mounted at %v\n", inputImage, mountPoint)
 
 		defer func() {
-			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(input, true); err != nil {
-				logrus.Errorf("Could not unmount checkpoint image %s: %q", input, err)
+			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(inputImage, true); err != nil {
+				logrus.Errorf("Could not unmount checkpoint image %s: %q", inputImage, err)
 			}
 		}()
 	} else {
 		// First get the container definition from the
 		// tarball to a temporary directory
-		archiveFile, err := os.Open(input)
+		archiveFile, err := os.Open(inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
+			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", inputImage, err)
 		}
 		defer errorhandling.CloseQuiet(archiveFile)
+
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
 			ExcludePatterns: []string{
@@ -224,11 +231,14 @@ func (s *Server) CRImportCheckpoint(
 		Labels:      originalLabels,
 	}
 
-	if createConfig.Linux.Resources != nil {
-		containerConfig.Linux.Resources = createConfig.Linux.Resources
-	}
-	if createConfig.Linux.SecurityContext != nil {
-		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+	if createConfig.Linux != nil {
+		if createConfig.Linux.Resources != nil {
+			containerConfig.Linux.Resources = createConfig.Linux.Resources
+		}
+
+		if createConfig.Linux.SecurityContext != nil {
+			containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+		}
 	}
 
 	if dumpSpec.Linux != nil {
@@ -356,7 +366,7 @@ func (s *Server) CRImportCheckpoint(
 
 	newContainer.SetCreated()
 	newContainer.SetRestore(true)
-	newContainer.SetRestoreArchive(input)
+	newContainer.SetRestoreArchive(inputImage)
 	newContainer.SetRestoreIsOCIImage(checkpointIsOCIImage)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
