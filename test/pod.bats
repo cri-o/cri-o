@@ -157,6 +157,41 @@ function teardown() {
 	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
 }
 
+@test "pass pod sysctls to runtime when in userns" {
+	if test -n "$CONTAINER_UID_MAPPINGS"; then
+		skip "userNS enabled"
+	fi
+	CONTAINER_DEFAULT_SYSCTLS="net.ipv4.ip_forward=1" start_crio
+
+	# TODO: kernel* ones fail with permission denied.
+	jq '	  .linux.sysctls = {
+			"net.ipv4.ip_local_port_range": "1024 65000",
+		} |
+		.linux.security_context.namespace_options.userns_options = {
+			"mode": 0,
+			"uids": [{
+				"host_id": 100000,
+				"container_id": 0,
+				"length": 65355
+			}],
+			"gids": [{
+				"host_id": 100000,
+				"container_id": 0,
+				"length": 65355
+			}]
+		}' "$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
+
+	pod_id=$(crictl runp "$TESTDIR"/sandbox.json)
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_redis.json "$TESTDIR"/sandbox.json)
+	crictl start "$ctr_id"
+
+	output=$(crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_local_port_range)
+	[[ "$output" == *"net.ipv4.ip_local_port_range = 1024	65000"* ]]
+
+	output=$(crictl exec --sync "$ctr_id" sysctl net.ipv4.ip_forward)
+	[[ "$output" == *"net.ipv4.ip_forward = 1"* ]]
+}
+
 @test "disable crypto.fips_enabled when FIPS_DISABLE is set" {
 	# Check if /proc/sys/crypto exists and skip the test if it does not.
 	if [ ! -d "/proc/sys/crypto" ]; then
