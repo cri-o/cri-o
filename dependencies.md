@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 08 May 2024 03:18:58 UTC for commit [2afe77b][0]._
+_Generated on Wed, 08 May 2024 10:33:55 UTC for commit [2e35523][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2afe77bca6e083927dcefa0d6f19d6c9f8c48d07
+[0]: https://github.com/cri-o/cri-o/commit/2e355230ac85f42912069aa7b995bfd7e0ac161b
 
 ## Outdated Dependencies
 
@@ -34,7 +34,7 @@ _Generated on Wed, 08 May 2024 03:18:58 UTC for commit [2afe77b][0]._
 | google.golang.org/grpc                                                      | v1.62.1                              | v1.63.2                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.33.0                              | v1.34.1                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240102154912-e7106e64919e   | v0.0.0-20240502163921-fe8a2dddb1d0 | true   | true             |
-| sigs.k8s.io/release-utils                                                   | v0.7.7                               | v0.8.1                             | true   | true             |
+| sigs.k8s.io/release-utils                                                   | v0.7.7                               | v0.8.2                             | true   | true             |
 
 ## All Dependencies
 
@@ -895,7 +895,7 @@ _Generated on Wed, 08 May 2024 03:18:58 UTC for commit [2afe77b][0]._
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                               | v0.30.3                             | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.11.0                               |                                     | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.7.7                                | v0.8.1                              | true   | true             |
+| sigs.k8s.io/release-utils                                                               | v0.7.7                                | v0.8.2                              | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.2.0                                | v0.4.0                              | false  | true             |
