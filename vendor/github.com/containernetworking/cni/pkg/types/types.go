@@ -64,53 +64,14 @@ type NetConf struct {
 	Type         string          `json:"type,omitempty"`
 	Capabilities map[string]bool `json:"capabilities,omitempty"`
 	IPAM         IPAM            `json:"ipam,omitempty"`
-	DNS          DNS             `json:"dns,omitempty"`
+	DNS          DNS             `json:"dns"`
 
 	RawPrevResult map[string]interface{} `json:"prevResult,omitempty"`
 	PrevResult    Result                 `json:"-"`
-
-	// ValidAttachments is only supplied when executing a GC operation
-	ValidAttachments []GCAttachment `json:"cni.dev/valid-attachments,omitempty"`
-}
-
-// GCAttachment is the parameters to a GC call -- namely,
-// the container ID and ifname pair that represents a
-// still-valid attachment.
-type GCAttachment struct {
-	ContainerID string `json:"containerID"`
-	IfName      string `json:"ifname"`
-}
-
-// Note: DNS should be omit if DNS is empty but default Marshal function
-// will output empty structure hence need to write a Marshal function
-func (n *NetConf) MarshalJSON() ([]byte, error) {
-	// use type alias to escape recursion for json.Marshal() to MarshalJSON()
-	type fixObjType = NetConf
-
-	bytes, err := json.Marshal(fixObjType(*n)) //nolint:all
-	if err != nil {
-		return nil, err
-	}
-
-	fixupObj := make(map[string]interface{})
-	if err := json.Unmarshal(bytes, &fixupObj); err != nil {
-		return nil, err
-	}
-
-	if n.DNS.IsEmpty() {
-		delete(fixupObj, "dns")
-	}
-
-	return json.Marshal(fixupObj)
 }
 
 type IPAM struct {
 	Type string `json:"type,omitempty"`
-}
-
-// IsEmpty returns true if IPAM structure has no value, otherwise return false
-func (i *IPAM) IsEmpty() bool {
-	return i.Type == ""
 }
 
 // NetConfList describes an ordered list of networks.
@@ -155,48 +116,31 @@ type DNS struct {
 	Options     []string `json:"options,omitempty"`
 }
 
-// IsEmpty returns true if DNS structure has no value, otherwise return false
-func (d *DNS) IsEmpty() bool {
-	if len(d.Nameservers) == 0 && d.Domain == "" && len(d.Search) == 0 && len(d.Options) == 0 {
-		return true
-	}
-	return false
-}
-
 func (d *DNS) Copy() *DNS {
 	if d == nil {
 		return nil
 	}
 
 	to := &DNS{Domain: d.Domain}
-	to.Nameservers = append(to.Nameservers, d.Nameservers...)
-	to.Search = append(to.Search, d.Search...)
-	to.Options = append(to.Options, d.Options...)
+	for _, ns := range d.Nameservers {
+		to.Nameservers = append(to.Nameservers, ns)
+	}
+	for _, s := range d.Search {
+		to.Search = append(to.Search, s)
+	}
+	for _, o := range d.Options {
+		to.Options = append(to.Options, o)
+	}
 	return to
 }
 
 type Route struct {
-	Dst      net.IPNet
-	GW       net.IP
-	MTU      int
-	AdvMSS   int
-	Priority int
-	Table    *int
-	Scope    *int
+	Dst net.IPNet
+	GW  net.IP
 }
 
 func (r *Route) String() string {
-	table := "<nil>"
-	if r.Table != nil {
-		table = fmt.Sprintf("%d", *r.Table)
-	}
-
-	scope := "<nil>"
-	if r.Scope != nil {
-		scope = fmt.Sprintf("%d", *r.Scope)
-	}
-
-	return fmt.Sprintf("{Dst:%+v GW:%v MTU:%d AdvMSS:%d Priority:%d Table:%s Scope:%s}", r.Dst, r.GW, r.MTU, r.AdvMSS, r.Priority, table, scope)
+	return fmt.Sprintf("%+v", *r)
 }
 
 func (r *Route) Copy() *Route {
@@ -204,30 +148,14 @@ func (r *Route) Copy() *Route {
 		return nil
 	}
 
-	route := &Route{
-		Dst:      r.Dst,
-		GW:       r.GW,
-		MTU:      r.MTU,
-		AdvMSS:   r.AdvMSS,
-		Priority: r.Priority,
-		Scope:    r.Scope,
+	return &Route{
+		Dst: r.Dst,
+		GW:  r.GW,
 	}
-
-	if r.Table != nil {
-		table := *r.Table
-		route.Table = &table
-	}
-
-	if r.Scope != nil {
-		scope := *r.Scope
-		route.Scope = &scope
-	}
-
-	return route
 }
 
 // Well known error codes
-// see https://github.com/containernetworking/cni/blob/main/SPEC.md#well-known-error-codes
+// see https://github.com/containernetworking/cni/blob/master/SPEC.md#well-known-error-codes
 const (
 	ErrUnknown                     uint = iota // 0
 	ErrIncompatibleCNIVersion                  // 1
@@ -237,7 +165,6 @@ const (
 	ErrIOFailure                               // 5
 	ErrDecodingFailure                         // 6
 	ErrInvalidNetworkConfig                    // 7
-	ErrInvalidNetNS                            // 8
 	ErrTryAgainLater               uint = 11
 	ErrInternal                    uint = 999
 )
@@ -273,13 +200,8 @@ func (e *Error) Print() error {
 
 // JSON (un)marshallable types
 type route struct {
-	Dst      IPNet  `json:"dst"`
-	GW       net.IP `json:"gw,omitempty"`
-	MTU      int    `json:"mtu,omitempty"`
-	AdvMSS   int    `json:"advmss,omitempty"`
-	Priority int    `json:"priority,omitempty"`
-	Table    *int   `json:"table,omitempty"`
-	Scope    *int   `json:"scope,omitempty"`
+	Dst IPNet  `json:"dst"`
+	GW  net.IP `json:"gw,omitempty"`
 }
 
 func (r *Route) UnmarshalJSON(data []byte) error {
@@ -290,24 +212,13 @@ func (r *Route) UnmarshalJSON(data []byte) error {
 
 	r.Dst = net.IPNet(rt.Dst)
 	r.GW = rt.GW
-	r.MTU = rt.MTU
-	r.AdvMSS = rt.AdvMSS
-	r.Priority = rt.Priority
-	r.Table = rt.Table
-	r.Scope = rt.Scope
-
 	return nil
 }
 
 func (r Route) MarshalJSON() ([]byte, error) {
 	rt := route{
-		Dst:      IPNet(r.Dst),
-		GW:       r.GW,
-		MTU:      r.MTU,
-		AdvMSS:   r.AdvMSS,
-		Priority: r.Priority,
-		Table:    r.Table,
-		Scope:    r.Scope,
+		Dst: IPNet(r.Dst),
+		GW:  r.GW,
 	}
 
 	return json.Marshal(rt)
