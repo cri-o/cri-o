@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 08 May 2024 15:01:33 UTC for commit [b91d6f6][0]._
+_Generated on Wed, 08 May 2024 17:39:56 UTC for commit [b134313][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b91d6f6b80316ded7f45ce5ff994045452b7d680
+[0]: https://github.com/cri-o/cri-o/commit/b1343133f11079a81c28f6e1c035ed5ee0a680af
 
 ## Outdated Dependencies
 
@@ -151,7 +151,7 @@ _Generated on Wed, 08 May 2024 15:01:33 UTC for commit [b91d6f6][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.9.7                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.6.7                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.12.6                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240507165102-251b29179075  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240508165154-767138797fdf  | false  | true             |
 | cuelang.org/go                                                                          | v0.6.0                                | v0.8.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9    | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
@@ -472,7 +472,7 @@ _Generated on Wed, 08 May 2024 15:01:33 UTC for commit [b91d6f6][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240507183855-6f11f98ebb1c  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240508145209-1db217f89380  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                |                                     | false  | true             |
@@ -555,7 +555,7 @@ _Generated on Wed, 08 May 2024 15:01:33 UTC for commit [b91d6f6][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240506202929-c1561b070b86  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240508150127-42b2240481d3  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -810,7 +810,7 @@ _Generated on Wed, 08 May 2024 15:01:33 UTC for commit [b91d6f6][0]._
 | golang.org/x/oauth2                                                                     | v0.18.0                               | v0.20.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.19.0                               | v0.20.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240507150523-279072785af5  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240508163053-51edeb470abc  | false  | true             |
 | golang.org/x/term                                                                       | v0.19.0                               | v0.20.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.14.0                               | v0.15.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
