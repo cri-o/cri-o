@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -26,15 +27,20 @@ func (s *Server) CRImportCheckpoint(
 	createConfig *types.ContainerConfig,
 	sbID, sandboxUID string,
 ) (ctrID string, retErr error) {
-	input := createConfig.Image.Image
+	// Ensure that the image to restore the checkpoint from has been provided.
+	if createConfig.Image == nil || createConfig.Image.Image == "" {
+		return "", errors.New(`attribute "image" missing from container definition`)
+	}
+
+	inputImage := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
 
 	// First get the container definition from the
 	// tarball to a temporary directory
-	archiveFile, err := os.Open(input)
+	archiveFile, err := os.Open(inputImage)
 	if err != nil {
-		return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
+		return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", inputImage, err)
 	}
 	defer errorhandling.CloseQuiet(archiveFile)
 	options := &archive.TarOptions{
@@ -59,7 +65,7 @@ func (s *Server) CRImportCheckpoint(
 	}()
 	err = archive.Untar(archiveFile, dir, options)
 	if err != nil {
-		return "", fmt.Errorf("unpacking of checkpoint archive %s failed: %w", input, err)
+		return "", fmt.Errorf("unpacking of checkpoint archive %s failed: %w", inputImage, err)
 	}
 	logrus.Debugf("Unpacked checkpoint in %s", dir)
 
@@ -157,11 +163,14 @@ func (s *Server) CRImportCheckpoint(
 		Labels:      originalLabels,
 	}
 
-	if createConfig.Linux.Resources != nil {
-		containerConfig.Linux.Resources = createConfig.Linux.Resources
-	}
-	if createConfig.Linux.SecurityContext != nil {
-		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+	if createConfig.Linux != nil {
+		if createConfig.Linux.Resources != nil {
+			containerConfig.Linux.Resources = createConfig.Linux.Resources
+		}
+
+		if createConfig.Linux.SecurityContext != nil {
+			containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+		}
 	}
 
 	ignoreMounts := map[string]bool{
@@ -279,7 +288,7 @@ func (s *Server) CRImportCheckpoint(
 
 	newContainer.SetCreated()
 	newContainer.SetRestore(true)
-	newContainer.SetRestoreArchive(input)
+	newContainer.SetRestoreArchive(inputImage)
 
 	if ctx.Err() == context.Canceled || ctx.Err() == context.DeadlineExceeded {
 		log.Infof(ctx, "RestoreCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
