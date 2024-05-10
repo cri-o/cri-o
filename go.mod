@@ -19,10 +19,10 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.4.1
-	github.com/containers/common v0.58.2
+	github.com/containers/common v0.58.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.3
-	github.com/containers/image/v5 v5.30.0
+	github.com/containers/image/v5 v5.30.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/podman/v5 v5.0.2
@@ -55,7 +55,7 @@ require (
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20230914150019-408c51e934dc
 	github.com/opencontainers/selinux v1.11.0
-	github.com/prometheus/client_golang v1.19.0
+	github.com/prometheus/client_golang v1.19.1
 	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/soheilhy/cmux v0.1.5
