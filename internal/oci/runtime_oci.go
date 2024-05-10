@@ -871,8 +871,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 
 	startTime := time.Now()
 
-	go c.KillExecPIDs()
-
 	// Allow for SIGINT to correctly interrupt the stop loop, especially
 	// when CRI-O is run directly in the foreground in the terminal.
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
@@ -956,6 +954,10 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			stop()
 		}
 	}, bm, true, ctx.Done())
+
+	// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
+	// Ref: https://github.com/kubernetes/kubernetes/issues/124743
+	c.KillExecPIDs()
 
 	c.state.Finished = time.Now()
 	c.opLock.Unlock()
