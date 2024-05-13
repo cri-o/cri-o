@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 const (
@@ -46,4 +48,9 @@ func getPidStatDataFromFile(file string) (string, error) {
 	// The /proc/<PID>/status file on FreeBSD does not currently
 	// include the process state.
 	return fields[startTimeFieldIndex], nil
+}
+
+// SetRuntimeUser sets the runtime user for the container.
+func (c *Container) SetRuntimeUser(spec *specs.Spec) {
+	// No-op.
 }

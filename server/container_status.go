@@ -52,6 +52,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 			Image: &types.ImageSpec{
 				Image: imageNameInSpec,
 			},
+			User: c.RuntimeUser(),
 		},
 	}
 

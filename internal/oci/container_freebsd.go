@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"unsafe"
 
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/sys/unix"
 )
 
@@ -47,4 +48,9 @@ func getPidStatDataFromSysctl(pid int) (string, error) {
 	kp := (*C.struct_kinfo_proc)(unsafe.Pointer(&data[0]))
 
 	return fmt.Sprintf("%d,%d", kp.ki_start.tv_sec, kp.ki_start.tv_usec), nil
+}
+
+// SetRuntimeUser sets the runtime user for the container.
+func (c *Container) SetRuntimeUser(spec *specs.Spec) {
+	// No-op.
 }
