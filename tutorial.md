@@ -8,3 +8,6 @@
 - To enable support for image decryption, see our [Image decryption support guide](tutorials/decryption.md).
 - For instructions on how to use CRI-O's experimental userns annotation, see the
   [documentation](tutorials/userns.md).
+- Learn how to build a kind (Kubernetes IN Docker) node image with
+a specific Kubernetes version and CRI-O container runtime.
+[CRI-O in kind](tutorials/crio-in-kind.md).
