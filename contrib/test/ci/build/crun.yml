@@ -1,9 +1,4 @@
 ---
-- name: Remove existing crun directory
-  file:
-    path: "{{ ansible_env.GOPATH }}/src/github.com/containers/crun"
-    state: absent
-
 - name: clone crun source repo
   git:
     repo: "https://github.com/containers/crun.git"
