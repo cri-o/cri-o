@@ -18,7 +18,7 @@ import (
 func main() {
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
 	if err := run(); err != nil {
-		logrus.Fatalf("run err:  %v", err)
+		logrus.Fatalf("Unable to run: %v", err)
 	}
 }
 
