@@ -3,9 +3,6 @@
 load helpers
 
 function setup() {
-	if test -n "$CONTAINER_UID_MAPPINGS"; then
-		skip "FIXME: can't set ping_group_range inside the container"
-	fi
 	setup_test
 	CONTAINER_DEFAULT_SYSCTLS='net.ipv4.ping_group_range=0   2147483647' start_crio
 }

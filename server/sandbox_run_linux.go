@@ -746,7 +746,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	// Add default sysctls given in crio.conf
-	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, req.Config.Linux.Sysctls)
+	sysctls := s.configureGeneratorForSysctls(ctx, g, hostNetwork, hostIPC, sandboxIDMappings, req.Config.Linux.Sysctls)
 
 	// set up namespaces
 	s.resourceStore.SetStageForResource(ctx, sbox.Name(), "sandbox namespace creation")
@@ -1062,7 +1062,7 @@ func populateSandboxLabels(labels map[string]string, kubeName, kubePodUID, names
 	return labels
 }
 
-func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.Generator, hostNetwork, hostIPC bool, sysctls map[string]string) map[string]string {
+func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.Generator, hostNetwork, hostIPC bool, sandboxIDMappings *idtools.IDMappings, sysctls map[string]string) map[string]string {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	sysctlsToReturn := make(map[string]string)
@@ -1091,7 +1091,43 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 		g.AddLinuxSysctl(key, value)
 		sysctlsToReturn[key] = value
 	}
-	return sysctlsToReturn
+	return configurePingGroupRangeGivenIDMappings(ctx, g, sandboxIDMappings, sysctlsToReturn)
+}
+
+func configurePingGroupRangeGivenIDMappings(ctx context.Context, g *generate.Generator, sandboxIDMappings *idtools.IDMappings, sysctls map[string]string) map[string]string {
+	// We have to manually fuss with this specific sysctl.
+	// It's commonly set to the max range by default "0 2147483647".
+	// However, a pod with GIDMappings may not actually have the upper range set,
+	// which means attempting to set this sysctl will fail with EINVAL
+	// Instead, update the max of the group range to be the largest group value in the IDMappings.
+	const (
+		pingGroupRangeKey        = "net.ipv4.ping_group_range"
+		pingGroupFullRangeBottom = "0"
+		pingGroupFullRangeTop    = "2147483647"
+	)
+	val, ok := sysctls[pingGroupRangeKey]
+	if !ok || sandboxIDMappings == nil {
+		return sysctls
+	}
+	// Only do this if the value is `0 2147483647`
+	currentRange := strings.Fields(val)
+	if len(currentRange) != 2 || currentRange[0] != pingGroupFullRangeBottom || currentRange[1] != pingGroupFullRangeTop {
+		return sysctls
+	}
+
+	maxID := 0
+	for _, mapping := range sandboxIDMappings.GIDs() {
+		topOfRange := mapping.ContainerID + mapping.Size - 1
+		if maxID < topOfRange {
+			maxID = topOfRange
+		}
+	}
+	newRange := "0 " + strconv.Itoa(maxID)
+
+	log.Debugf(ctx, "Mutating %s sysctl to %s", pingGroupRangeKey, newRange)
+	g.AddLinuxSysctl(pingGroupRangeKey, newRange)
+	sysctls[pingGroupRangeKey] = newRange
+	return sysctls
 }
 
 // configureGeneratorForSandboxNamespaces set the linux namespaces for the generator, based on whether the pod is sharing namespaces with the host,
