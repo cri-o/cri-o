@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 14 May 2024 16:23:11 UTC for commit [bcf969c][0]._
+_Generated on Tue, 14 May 2024 21:50:13 UTC for commit [c5f709c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bcf969c2448dce27f045e95b31ccbb7aa6c3b94d
+[0]: https://github.com/cri-o/cri-o/commit/c5f709c7be1dc75cbdb1772be80a0fbecc204d7e
 
 ## Outdated Dependencies
 
@@ -223,19 +223,19 @@ _Generated on Tue, 14 May 2024 16:23:11 UTC for commit [bcf969c][0]._
 | github.com/andybalholm/brotli                                                           | v1.1.0                                |                                     | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be    |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                |                                     | false  | true             |
-| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df    | v4.0.0-20240410203502-380ce4b8b165  | false  | true             |
+| github.com/antlr/antlr4/runtime/Go/antlr/v4                                             | v4.0.0-20230305170008-8188dc5388df    | v4.0.0-20240514203317-c0b7dd0fb1e2  | false  | true             |
 | github.com/apache/arrow/go/v10                                                          | v10.0.1                               |                                     | false  | true             |
 | github.com/apache/arrow/go/v11                                                          | v11.0.0                               |                                     | false  | true             |
 | github.com/apache/thrift                                                                | v0.16.0                               | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.53.1                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.48.7                               | v1.53.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.23.5                               | v1.26.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.4.13                               | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.25.11                              | v1.27.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.16.9                               | v1.17.13                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.14.9                               | v1.16.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.76                              | v1.16.17                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.11.76                              | v1.16.18                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.2.8                                | v1.3.5                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.5.8                                | v2.6.5                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.7.1                                | v1.8.0                              | false  | true             |
@@ -247,12 +247,12 @@ _Generated on Tue, 14 May 2024 16:23:11 UTC for commit [bcf969c][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.10.8                               | v1.11.7                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.15.4                               | v1.17.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.24.7                               | v1.31.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                               | v1.53.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.40.0                               | v1.54.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.18.2                               | v1.20.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                               | v1.24.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                               | v1.28.7                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                               | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240507150535-b99368f3064d  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240514200903-facd41e2eb50  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -810,7 +810,7 @@ _Generated on Tue, 14 May 2024 16:23:11 UTC for commit [bcf969c][0]._
 | golang.org/x/oauth2                                                                     | v0.18.0                               | v0.20.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.20.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240514153035-4a0682cf430d  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240514201107-825c3dc71965  | false  | true             |
 | golang.org/x/term                                                                       | v0.20.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.15.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
