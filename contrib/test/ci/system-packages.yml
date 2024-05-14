@@ -42,7 +42,6 @@
       - openssl-devel
       - pkgconfig
       - python3
-      - python-rhsm-certificates
       - redhat-rpm-config
       - rpcbind
       - rsync
