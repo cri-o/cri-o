@@ -224,7 +224,7 @@ type RuntimeHandler struct {
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
-	DisallowedAnnotations []string
+	DisallowedAnnotations []string `toml:"-"`
 
 	// Fields prefixed by Monitor hold the configuration for the monitor for this runtime. At present, the following monitors are supported:
 	// oci supports conmon
