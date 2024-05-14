@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 
@@ -56,19 +57,24 @@ func (s *Server) CRImportCheckpoint(
 ) (ctrID string, retErr error) {
 	var mountPoint string
 
-	input := createConfig.Image.Image
+	// Ensure that the image to restore the checkpoint from has been provided.
+	if createConfig.Image == nil || createConfig.Image.Image == "" {
+		return "", errors.New(`attribute "image" missing from container definition`)
+	}
+
+	inputImage := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
 	createLabels := createConfig.Labels
 
-	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, input)
+	restoreStorageImageID, err := s.checkIfCheckpointOCIImage(ctx, inputImage)
 	if err != nil {
 		return "", err
 	}
 
 	var restoreArchivePath string
 	if restoreStorageImageID != nil {
-		log.Debugf(ctx, "Restoring from oci image %s\n", input)
+		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
 
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
 		mountPoint, err = s.ContainerServer.StorageImageServer().GetStore().MountImage(restoreStorageImageID.IDStringForOutOfProcessConsumptionOnly(), nil, "")
@@ -87,12 +93,13 @@ func (s *Server) CRImportCheckpoint(
 	} else {
 		// First get the container definition from the
 		// tarball to a temporary directory
-		archiveFile, err := os.Open(input)
+		archiveFile, err := os.Open(inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
+			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", inputImage, err)
 		}
 		defer errorhandling.CloseQuiet(archiveFile)
-		restoreArchivePath = input
+		restoreArchivePath = inputImage
+
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
 			ExcludePatterns: []string{
@@ -264,11 +271,14 @@ func (s *Server) CRImportCheckpoint(
 		Labels:      originalLabels,
 	}
 
-	if createConfig.Linux.Resources != nil {
-		containerConfig.Linux.Resources = createConfig.Linux.Resources
-	}
-	if createConfig.Linux.SecurityContext != nil {
-		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+	if createConfig.Linux != nil {
+		if createConfig.Linux.Resources != nil {
+			containerConfig.Linux.Resources = createConfig.Linux.Resources
+		}
+
+		if createConfig.Linux.SecurityContext != nil {
+			containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+		}
 	}
 
 	if dumpSpec.Linux != nil {
