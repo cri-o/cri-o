@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"sigs.k8s.io/release-utils/command"
+
 	"github.com/cri-o/cri-o/internal/version"
 	"github.com/cri-o/cri-o/scripts/utils"
-	goGit "github.com/go-git/go-git/v5"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-sdk/github"
@@ -17,7 +18,7 @@ import (
 func main() {
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
 	if err := run(); err != nil {
-		logrus.Fatalf("Unable to %v", err)
+		logrus.Fatalf("Unable to run: %v", err)
 	}
 }
 
@@ -79,13 +80,12 @@ func updateVersionAndCreatePR(
 
 	if doesTheBranchExistRemotely {
 		// Only Rebase and force push
-		if err := repo.Rebase(newBranch); err != nil {
+		rebaseBranch := "origin/" + newBranch
+		if err := repo.Rebase(rebaseBranch); err != nil {
 			return fmt.Errorf("unable to rebase branch %q: %w", newBranch, err)
 		}
-		opts := &goGit.PushOptions{
-			Force: true,
-		}
-		if err := repo.PushToRemoteWithOptions(opts); err != nil {
+
+		if err := command.NewWithWorkDir(repo.Dir(), "git", "push", "-f").RunSilentSuccess(); err != nil {
 			return fmt.Errorf("unable to force push to remote: %q: %w", newBranch, err)
 		}
 		return nil
