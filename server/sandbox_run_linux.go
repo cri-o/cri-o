@@ -1115,12 +1115,9 @@ func configurePingGroupRangeGivenIDMappings(ctx context.Context, g *generate.Gen
 		return sysctls
 	}
 
-	maxID := 0
+	var maxID int
 	for _, mapping := range sandboxIDMappings.GIDs() {
-		topOfRange := mapping.ContainerID + mapping.Size - 1
-		if maxID < topOfRange {
-			maxID = topOfRange
-		}
+		maxID = max(maxID, mapping.ContainerID+mapping.Size-1)
 	}
 	newRange := "0 " + strconv.Itoa(maxID)
 
