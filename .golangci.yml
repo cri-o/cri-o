@@ -62,6 +62,7 @@ linters:
     - perfsprint
     - prealloc
     - reassign
+    - revive
     - rowserrcheck
     - sloglint
     - spancheck
@@ -114,7 +115,6 @@ linters:
     # - predeclared
     # - promlinter
     # - protogetter
-    # - revive
     # - tagliatelle
     # - testifylint
     # - testpackage
@@ -127,6 +127,11 @@ linters-settings:
   errcheck:
     check-type-assertions: true
     check-blank: true
+  revive:
+    rules:
+      - name: argument-limit
+        disabled: false
+        arguments: [22]
   gocritic:
     enabled-checks:
       - appendCombine
