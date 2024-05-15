@@ -272,7 +272,7 @@ func main() {
 		// Print the current CLI flags.
 		for _, flagName := range c.FlagNames() {
 			flagValue := c.Value(flagName)
-			// Turn a multi-value flag into a single command-separated list
+			// Turn a multi-value flag into a single comma-separated list
 			// of arguments, then wrap into a slice so that %v does it work
 			// for us when rendering a slice type in the output.
 			if _, ok := flagValue.(cli.StringSlice); ok {
