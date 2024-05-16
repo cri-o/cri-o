@@ -75,6 +75,11 @@ func pushTagToRemote(repo *git.Repo, tag, remote string) error {
 		return fmt.Errorf("unable to run git push: %w", err)
 	}
 
+	logrus.Infof("Running GitHub `test` workflow")
+	if err := command.NewWithWorkDir(repo.Dir(), "gh", "workflow", "run", "test", "--ref", tag).RunSilentSuccess(); err != nil {
+		return fmt.Errorf("unable to run GitHub workflow: %w", err)
+	}
+
 	return nil
 }
 
