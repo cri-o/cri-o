@@ -515,9 +515,14 @@ function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
 }
 
-function create_runtime_with_allowed_annotation() {
+# This function can be used to create a new runtime class and make it the default
+# This is a shared use case for some of our integration tests, and it needs
+# to take into account all possible runtime parameters to keep compatible with
+# all supported runtimes.
+# The function returns the path to the created config file on stdout, so that
+# the caller can append additional settings (if any)
+function create_new_default_runtime() {
     local NAME="$1"
-    local ANNOTATION="$2"
     local CONF_PATH="$CRIO_CONFIG_DIR/01-$NAME.conf"
     local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
     cat <<EOF >"$CONF_PATH"
@@ -528,13 +533,22 @@ runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
 privileged_without_host_devices = $PRIVILEGED
-allowed_annotations = ["$ANNOTATION"]
 EOF
     if [ -n "$RUNTIME_CONFIG_PATH" ]; then
         cat <<EOF >>"$CONF_PATH"
 runtime_config_path = "$RUNTIME_CONFIG_PATH"
 EOF
     fi
+    echo "$CONF_PATH"
+}
+
+function create_runtime_with_allowed_annotation() {
+    local NAME="$1"
+    local ANNOTATION="$2"
+    CONFIG_PATH=$(create_new_default_runtime "$NAME")
+    cat <<EOF >>"$CONFIG_PATH"
+allowed_annotations = ["$ANNOTATION"]
+EOF
 }
 
 function create_workload_with_allowed_annotation() {
