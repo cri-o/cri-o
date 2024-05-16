@@ -1348,12 +1348,12 @@ exec $RUNTIME_BINARY_PATH "\$@"
 EOF
 
 	setup_crio
-	cat << EOF > "$CRIO_CONFIG_DIR"/99-fake-runtime.conf
-[crio.runtime]
-default_runtime = "fake"
-[crio.runtime.runtimes.fake]
+	create_new_default_runtime fake
+	sed -i "/runtime_path/d" "$CRIO_NEW_RUNTIME_CONFIG"
+	cat << EOF >> "$CRIO_NEW_RUNTIME_CONFIG"
 runtime_path = "$FAKE_RUNTIME_BINARY_PATH"
 EOF
+
 	chmod 755 "$FAKE_RUNTIME_BINARY_PATH"
 
 	unset CONTAINER_DEFAULT_RUNTIME
