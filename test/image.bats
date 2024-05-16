@@ -370,12 +370,7 @@ EOF
 }
 
 @test "run container with memory_limit_in_bytes -1" {
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
-EOF
+	create_new_default_runtime "mem"
 	start_crio
 
 	case $ARCH in
@@ -399,11 +394,8 @@ EOF
 }
 
 @test "run container with memory_limit_in_bytes 12.5MiB" {
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
+	create_new_default_runtime "mem"
+	cat << EOF >> "$CRIO_NEW_RUNTIME_CONFIG"
 container_min_memory = "7.5MiB"
 EOF
 	start_crio
@@ -429,11 +421,8 @@ EOF
 }
 
 @test "run container with container_min_memory 17.5MiB" {
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
+	create_new_default_runtime "mem"
+	cat << EOF >> "$CRIO_NEW_RUNTIME_CONFIG"
 container_min_memory = "17.5MiB"
 EOF
 	start_crio
@@ -459,11 +448,8 @@ EOF
 }
 
 @test "run container with container_min_memory 5.5MiB" {
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
+	create_new_default_runtime "mem"
+	cat << EOF >> "$CRIO_NEW_RUNTIME_CONFIG"
 container_min_memory = "5.5MiB"
 EOF
 	start_crio
@@ -488,12 +474,7 @@ EOF
 }
 
 @test "run container with empty container_min_memory" {
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
-EOF
+	create_new_default_runtime "mem"
 	start_crio
 
 	case $ARCH in
