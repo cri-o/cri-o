@@ -1311,12 +1311,12 @@ set -eo pipefail
 exec $RUNTIME_BINARY_PATH "\$@"
 EOF
 
-	cat << EOF > "$CRIO_CONFIG_DIR"/99-fake-runtime.conf
-[crio.runtime]
-default_runtime = "fake"
-[crio.runtime.runtimes.fake]
+	CONF_PATH=$(create_new_default_runtime fake)
+	sed -i "/runtime_path/d" "$CONF_PATH"
+	cat << EOF >> "$CONF_PATH"
 runtime_path = "$FAKE_RUNTIME_BINARY_PATH"
 EOF
+
 	chmod 755 "$FAKE_RUNTIME_BINARY_PATH"
 
 	start_crio
