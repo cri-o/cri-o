@@ -518,15 +518,23 @@ function create_runtime_with_allowed_annotation() {
     local ANNOTATION="$2"
     unset CONTAINER_DEFAULT_RUNTIME
     unset CONTAINER_RUNTIMES
-    cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
+    local CONF_PATH="$CRIO_CONFIG_DIR/01-$NAME.conf"
+    local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
+    cat <<EOF >"$CONF_PATH"
 [crio.runtime]
 default_runtime = "$NAME"
 [crio.runtime.runtimes.$NAME]
 runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
+privileged_without_host_devices = $PRIVILEGED
 allowed_annotations = ["$ANNOTATION"]
 EOF
+    if [ -n "$RUNTIME_CONFIG_PATH" ]; then
+        cat <<EOF >>"$CONF_PATH"
+runtime_config_path = "$RUNTIME_CONFIG_PATH"
+EOF
+    fi
 }
 
 function create_workload_with_allowed_annotation() {
