@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 May 2024 08:54:29 UTC for commit [d7c7d2e][0]._
+_Generated on Thu, 16 May 2024 11:37:51 UTC for commit [c9310ad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d7c7d2e27d6b3248d306665724ed0bc4b832135e
+[0]: https://github.com/cri-o/cri-o/commit/c9310adea8244a4ad1e75da38651c9356b87a033
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Thu, 16 May 2024 08:54:29 UTC for commit [d7c7d2e][0]._
 | github.com/containers/image/v5                         | v5.30.0                            | v5.30.1                            | true   | true             |
 | github.com/containers/podman/v5                        | v5.0.2                             | v5.0.3                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240516005453-4d073c837d6f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240516100518-d8468cb1789d | true   | true             |
 | github.com/prometheus/client_golang                    | v1.19.0                            | v1.19.1                            | true   | true             |
 | google.golang.org/grpc                                 | v1.63.2                            | v1.64.0                            | true   | true             |
 | k8s.io/api                                             | v0.30.0                            | v0.30.1                            | true   | true             |
@@ -258,7 +258,7 @@ _Generated on Thu, 16 May 2024 08:54:29 UTC for commit [d7c7d2e][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.21.2                               | v1.24.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.26.2                               | v1.28.8                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.18.1                               | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240514230400-03fa26f5508f  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240516103428-5efe44103857  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -537,7 +537,7 @@ _Generated on Thu, 16 May 2024 08:54:29 UTC for commit [d7c7d2e][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240516005453-4d073c837d6f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240516100518-d8468cb1789d  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
