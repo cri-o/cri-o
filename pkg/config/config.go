@@ -224,7 +224,7 @@ type RuntimeHandler struct {
 	AllowedAnnotations []string `toml:"allowed_annotations,omitempty"`
 
 	// DisallowedAnnotations is the slice of experimental annotations that are not allowed for this handler.
-	DisallowedAnnotations []string
+	DisallowedAnnotations []string `toml:"-"`
 
 	// Fields prefixed by Monitor hold the configuration for the monitor for this runtime. At present, the following monitors are supported:
 	// oci supports conmon
@@ -823,6 +823,16 @@ func (c *Config) ToFile(path string) error {
 	}
 
 	return os.WriteFile(path, b, 0o644)
+}
+
+// ToString encodes the config into a string value.
+func (c *Config) ToString() (string, error) {
+	configBytes, err := c.ToBytes()
+	if err != nil {
+		return "", err
+	}
+
+	return string(configBytes), nil
 }
 
 // ToBytes encodes the config into a byte slice. It errors if the encoding

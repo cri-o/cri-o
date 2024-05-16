@@ -269,6 +269,26 @@ func main() {
 			return err
 		}
 
+		// Print the current CLI flags.
+		for _, flagName := range c.FlagNames() {
+			flagValue := c.Value(flagName)
+			// Turn a multi-value flag into a single comma-separated list
+			// of arguments, then wrap into a slice so that %v does it work
+			// for us when rendering a slice type in the output.
+			if _, ok := flagValue.(cli.StringSlice); ok {
+				flagValue = []string{strings.Join(c.StringSlice(flagName), ",")}
+			}
+			logrus.Infof("FLAG: --%s=\"%v\"\n", flagName, flagValue)
+		}
+
+		// Print the current configuration.
+		tomlConfig, err := config.ToString()
+		if err != nil {
+			logrus.Errorf("Unable to print current configuration: %v", err)
+		} else {
+			logrus.Infof("Current CRI-O configuration:\n%s", tomlConfig)
+		}
+
 		lis, err := server.Listen("unix", config.Listen)
 		if err != nil {
 			logrus.Fatalf("Failed to listen: %v", err)
