@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 16 May 2024 12:43:46 UTC for commit [09a6589][0]._
+_Generated on Thu, 16 May 2024 14:58:01 UTC for commit [9d303dc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/09a65899ab123ec07f1f97cb1154f2be6518afce
+[0]: https://github.com/cri-o/cri-o/commit/9d303dc13542470112419642c16b084b2f4ddf38
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Thu, 16 May 2024 12:43:46 UTC for commit [09a6589][0]._
 | github.com/containers/image/v5                         | v5.30.0                            | v5.30.1                            | true   | true             |
 | github.com/containers/podman/v5                        | v5.0.2                             | v5.0.3                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240516100518-d8468cb1789d | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240516131325-03c08583c32d | true   | true             |
 | github.com/prometheus/client_golang                    | v1.19.0                            | v1.19.1                            | true   | true             |
 | google.golang.org/grpc                                 | v1.63.2                            | v1.64.0                            | true   | true             |
 | k8s.io/api                                             | v0.30.0                            | v0.30.1                            | true   | true             |
@@ -372,9 +372,9 @@ _Generated on Thu, 16 May 2024 12:43:46 UTC for commit [09a6589][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
-| github.com/docker/cli                                                                   | v25.0.3+incompatible                  | v26.1.2+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v25.0.3+incompatible                  | v26.1.3+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                                | v25.0.5+incompatible                  | v26.1.2+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v25.0.5+incompatible                  | v26.1.3+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.1                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                |                                     | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    |                                     | false  | true             |
@@ -537,7 +537,7 @@ _Generated on Thu, 16 May 2024 12:43:46 UTC for commit [09a6589][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240516100518-d8468cb1789d  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240516131325-03c08583c32d  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
