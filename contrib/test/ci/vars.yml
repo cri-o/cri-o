@@ -75,17 +75,15 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-  CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
-  CONTAINER_RUNTIME: "containerd-shim-kata-v2"
-  CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
-  RUNTIME_NAME: "containerd-shim-kata-v2"
+  CONTAINER_DEFAULT_RUNTIME: "kata"
   RUNTIME_ROOT: "/run/vc"
   RUNTIME_TYPE: "vm"
+  RUNTIME_BINARY_PATH: "/opt/kata/bin/containerd-shim-kata-v2"
   TESTFLAGS:
     "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
     | map('basename') | difference(kata_skip_files) | join(' ') }}"
   JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
-  PRIVILEGED_WITHOUT_HOST_DEVICES: true
+  PRIVILEGED_WITHOUT_HOST_DEVICES: "true"
   RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
   PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
   CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
