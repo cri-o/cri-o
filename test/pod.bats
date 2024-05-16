@@ -13,15 +13,10 @@ function teardown() {
 
 function setup_runtime_with_min_memory() {
 	local mem="$1"
-	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
-[crio.runtime]
-default_runtime = "mem"
-[crio.runtime.runtimes.mem]
-runtime_path = "$RUNTIME_BINARY_PATH"
+	create_new_default_runtime "mem"
+	cat << EOF > "$CRIO_NEW_RUNTIME_CONFIG"
 container_min_memory = "$mem"
 EOF
-	unset CONTAINER_DEFAULT_RUNTIME
-	unset CONTAINER_RUNTIMES
 }
 
 # PR#59
