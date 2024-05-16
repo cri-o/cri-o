@@ -98,9 +98,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("insecure-registry") {
 		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
 	}
-	if ctx.IsSet("registry") {
-		config.Registries = StringSliceTrySplit(ctx, "registry")
-	}
 	if ctx.IsSet("default-transport") {
 		config.DefaultTransport = ctx.String("default-transport")
 	}
@@ -634,12 +631,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
        their CA to their system's list of trusted CAs instead of using
        '--insecure-registry'.`,
 			EnvVars: []string{"CONTAINER_INSECURE_REGISTRY"},
-		},
-		&cli.StringSliceFlag{
-			Name:    "registry",
-			Value:   cli.NewStringSlice(defConf.Registries...),
-			Usage:   "Registry to be prepended when pulling unqualified images. Can be specified multiple times.",
-			EnvVars: []string{"CONTAINER_REGISTRY"},
 		},
 		&cli.StringFlag{
 			Name:    "default-transport",

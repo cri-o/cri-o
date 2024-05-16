@@ -542,8 +542,6 @@ type ImageConfig struct {
 	InsecureRegistries []string `toml:"insecure_registries"`
 	// ImageVolumes controls how volumes specified in image config are handled
 	ImageVolumes ImageVolumesType `toml:"image_volumes"`
-	// Registries holds a list of registries used to pull unqualified images
-	Registries []string `toml:"registries"`
 	// Temporary directory for big files
 	BigFilesTemporaryDir string `toml:"big_files_temporary_dir"`
 	// AutoReloadRegistries if set to true, will automatically
@@ -760,13 +758,6 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 	}
 	if t.Crio.Storage == "" {
 		t.Crio.Storage = storageDriver
-	}
-
-	// Registries are deprecated in cri-o.conf and turned into a NOP.
-	// Users should use registries.conf instead, so let's log it.
-	if len(t.Crio.Image.Registries) > 0 {
-		t.Crio.Image.Registries = nil
-		logrus.Warnf("Support for the 'registries' option has been dropped but it is referenced in %q.  Please use containers-registries.conf(5) for configuring unqualified-search registries instead.", path)
 	}
 
 	t.toConfig(c)

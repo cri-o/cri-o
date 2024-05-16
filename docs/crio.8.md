@@ -105,7 +105,6 @@ crio
 [--profile]
 [--rdt-config-file]=[value]
 [--read-only]
-[--registry]=[value]
 [--root|-r]=[value]
 [--runroot]=[value]
 [--runtimes]=[value]
@@ -386,8 +385,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--rdt-config-file**="": Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
 
 **--read-only**: Setup all unprivileged containers to run as read-only. Automatically mounts the containers' tmpfs on '/run', '/tmp' and '/var/tmp'.
-
-**--registry**="": Registry to be prepended when pulling unqualified images. Can be specified multiple times.
 
 **--root, -r**="": The CRI-O root directory. (default: "/var/lib/containers/storage")
 

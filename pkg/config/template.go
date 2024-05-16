@@ -1399,10 +1399,7 @@ const templateStringCrioRuntimeTimezone = `# timezone To set the timezone for a 
 const templateStringCrioImage = `# The crio.image table contains settings pertaining to the management of OCI images.
 #
 # CRI-O reads its configured registries defaults from the system wide
-# containers-registries.conf(5) located in /etc/containers/registries.conf. If
-# you want to modify just CRI-O, you can change the registries configuration in
-# this file. Otherwise, leave insecure_registries and registries commented out to
-# use the system's defaults from /etc/containers/registries.conf.
+# containers-registries.conf(5) located in /etc/containers/registries.conf.
 [crio.image]
 
 `

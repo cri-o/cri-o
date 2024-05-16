@@ -109,7 +109,6 @@ h
 --read-only
 --registries-conf
 --registries-conf-dir
---registry
 --root
 --runroot
 --runtimes

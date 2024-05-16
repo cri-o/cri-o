@@ -177,8 +177,6 @@ function setup_crio() {
         --irqbalance-config-restore-file "$IRQBALANCE_CONFIG_RESTORE_FILE" \
         --signature-policy "$SIGNATURE_POLICY" \
         --signature-policy-dir "$SIGNATURE_POLICY_DIR" \
-        --registry "quay.io" \
-        --registry "docker.io" \
         -r "$TESTDIR/crio" \
         --runroot "$TESTDIR/crio-run" \
         --cni-default-network "$CNI_DEFAULT_NETWORK" \

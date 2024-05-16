@@ -433,7 +433,7 @@ Specifies the cpuset this pod has access to.
 ## CRIO.IMAGE TABLE
 The `crio.image` table contains settings pertaining to the management of OCI images.
 
-CRI-O reads its configured registries defaults from the system wide containers-registries.conf(5) located in /etc/containers/registries.conf. If you want to modify just CRI-O, you can change the registries configuration in this file. Otherwise, leave `insecure_registries` and `registries` commented out to use the system's defaults from /etc/containers/registries.conf.
+CRI-O reads its configured registries defaults from the system wide containers-registries.conf(5) located in /etc/containers/registries.conf.
 
 **default_transport**="docker://"
   Default transport for pulling images from a remote container storage.
@@ -466,9 +466,6 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 
 **insecure_registries**=[]
   List of registries to skip TLS verification for pulling images.
-
-**registries**=["docker.io"]
-  List of registries to be used when pulling an unqualified image. Note support for this option has been dropped and it has no effect. Please refer to `containers-registries.conf(5)` for configuring unqualified-search registries.
 
 **big_files_temporary_dir**=""
   Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.
