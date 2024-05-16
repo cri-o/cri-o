@@ -376,6 +376,11 @@ function cleanup_test() {
         cleanup_pods
         stop_crio
         cleanup_testdir
+        if [ "$RUNTIME_TYPE" == "vm" ]; then
+            # cleanup left over kata processes
+            # don't fail if there is none
+            run killall containerd-shim-kata-v2
+        fi
     else
         echo >&3 "* Failed \"$BATS_TEST_DESCRIPTION\", TESTDIR=$TESTDIR, LVM_DEVICE=${LVM_DEVICE:-}"
     fi
