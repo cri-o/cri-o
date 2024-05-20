@@ -780,12 +780,7 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 		case event := <-watcher.Events:
 			go s.handleExit(ctx, event)
 		case err := <-watcher.Errors:
-			log.Debugf(ctx, "Watch error: %v", err)
-			if s.config.EnablePodEvents {
-				close(s.ContainerEventsChan)
-			}
-			close(done)
-			return
+			log.Errorf(ctx, "Watch error: %v", err)
 		case <-s.monitorsChan:
 			log.Debugf(ctx, "Closing exit monitor...")
 			close(done)
