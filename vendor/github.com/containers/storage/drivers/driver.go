@@ -10,6 +10,7 @@ import (
 
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/directory"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
@@ -297,8 +298,8 @@ type AdditionalLayerStoreDriver interface {
 	Driver
 
 	// LookupAdditionalLayer looks up additional layer store by the specified
-	// digest and ref and returns an object representing that layer.
-	LookupAdditionalLayer(d digest.Digest, ref string) (AdditionalLayer, error)
+	// TOC digest and ref and returns an object representing that layer.
+	LookupAdditionalLayer(tocDigest digest.Digest, ref string) (AdditionalLayer, error)
 
 	// LookupAdditionalLayer looks up additional layer store by the specified
 	// ID and returns an object representing that layer.
@@ -471,7 +472,7 @@ func ScanPriorDrivers(root string) map[string]bool {
 
 	for driver := range drivers {
 		p := filepath.Join(root, driver)
-		if _, err := os.Stat(p); err == nil {
+		if err := fileutils.Exists(p); err == nil {
 			driversMap[driver] = true
 		}
 	}
