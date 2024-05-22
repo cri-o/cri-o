@@ -25,17 +25,18 @@ func (s StreamService) PortForward(ctx context.Context, podSandboxID string, por
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	// if we error in this function before Copying all of the content out of the stream,
-	// this stream will eventually get full, which causes leakages and can eventually brick CRI-O
+	// Drain the stream to prevent failure to close the connection and memory leakage.
 	// ref https://bugzilla.redhat.com/show_bug.cgi?id=1798193
-	emptyStreamOnError := true
+	// ref https://issues.redhat.com/browse/OCPBUGS-30978
 	defer func() {
-		if emptyStreamOnError && stream != nil {
-			go func() {
-				_, copyError := pools.Copy(io.Discard, stream)
-				log.Errorf(ctx, "Error closing port forward stream after other error: %v", copyError)
-			}()
+		if stream == nil {
+			return
 		}
+		go func() {
+			if _, err := pools.Copy(io.Discard, stream); err != nil {
+				log.Errorf(ctx, "Unable to drain the stream data: %v", err)
+			}
+		}()
 	}()
 
 	sandboxID, err := s.runtimeServer.PodIDIndex().Get(podSandboxID)
@@ -58,9 +59,6 @@ func (s StreamService) PortForward(ctx context.Context, podSandboxID string, por
 			"network namespace path of sandbox %s is empty", sb.ID(),
 		)
 	}
-
-	// defer responsibility of emptying stream to PortForwardContainer
-	emptyStreamOnError = false
 
 	return s.runtimeServer.Runtime().PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
 }
