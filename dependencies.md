@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 22 May 2024 13:40:21 UTC for commit [21801b7][0]._
+_Generated on Wed, 22 May 2024 15:11:04 UTC for commit [747c152][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/21801b7b3138350825b2d9f47c0e02ebbc83ef8e
+[0]: https://github.com/cri-o/cri-o/commit/747c152817970360fafa2b7264818681436c0939
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Wed, 22 May 2024 13:40:21 UTC for commit [21801b7][0]._
 | github.com/containers/storage                                               | v1.53.0                            | v1.54.0                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.1                             | v1.4.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240522100728-94f7bbf25349 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240522134923-0e33ecf7fcd0 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.17.3                            | v2.18.0                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.51.0                            | v0.52.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.26.0                            | v1.27.0                            | true   | true             |
@@ -538,7 +538,7 @@ _Generated on Wed, 22 May 2024 13:40:21 UTC for commit [21801b7][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240522100728-94f7bbf25349  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240522134923-0e33ecf7fcd0  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
