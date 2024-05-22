@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	internalManifest "github.com/containers/image/v5/internal/manifest"
@@ -13,7 +14,6 @@ import (
 	"github.com/containers/image/v5/types"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/slices"
 )
 
 // preferredManifestMIMETypes lists manifest MIME types in order of our preference, if we can't use the original manifest and need to convert.
@@ -74,7 +74,7 @@ func determineManifestConversion(in determineManifestConversionInputs) (manifest
 	srcType := in.srcMIMEType
 	normalizedSrcType := manifest.NormalizedMIMEType(srcType)
 	if srcType != normalizedSrcType {
-		logrus.Debugf("Source manifest MIME type %s, treating it as %s", srcType, normalizedSrcType)
+		logrus.Debugf("Source manifest MIME type %q, treating it as %q", srcType, normalizedSrcType)
 		srcType = normalizedSrcType
 	}
 
@@ -237,7 +237,7 @@ func (c *copier) determineListConversion(currentListMIMEType string, destSupport
 		}
 	}
 
-	logrus.Debugf("Manifest list has MIME type %s, ordered candidate list [%s]", currentListMIMEType, strings.Join(destSupportedMIMETypes, ", "))
+	logrus.Debugf("Manifest list has MIME type %q, ordered candidate list [%s]", currentListMIMEType, strings.Join(destSupportedMIMETypes, ", "))
 	if len(prioritizedTypes.list) == 0 {
 		return "", nil, fmt.Errorf("destination does not support any supported manifest list types (%v)", manifest.SupportedListMIMETypes)
 	}

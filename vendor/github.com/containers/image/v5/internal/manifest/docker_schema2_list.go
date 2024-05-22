@@ -3,13 +3,13 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	platform "github.com/containers/image/v5/internal/pkg/platform"
 	compression "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/slices"
 )
 
 // Schema2PlatformSpec describes the platform which a particular manifest is
@@ -164,7 +164,7 @@ func (list *Schema2ListPublic) ChooseInstance(ctx *types.SystemContext) (digest.
 			}
 		}
 	}
-	return "", fmt.Errorf("no image found in manifest list for architecture %s, variant %q, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
+	return "", fmt.Errorf("no image found in manifest list for architecture %q, variant %q, OS %q", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 // Serialize returns the list in a blob format.

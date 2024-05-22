@@ -10,8 +10,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
+	"github.com/containers/image/v5/internal/multierr"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/manifest"
@@ -194,7 +194,7 @@ func (pr *prSigstoreSigned) isSignatureAccepted(ctx context.Context, image priva
 	signature, err := internal.VerifySigstorePayload(publicKey, untrustedPayload, untrustedBase64Signature, internal.SigstorePayloadAcceptanceRules{
 		ValidateSignedDockerReference: func(ref string) error {
 			if !pr.SignedIdentity.matchesDockerReference(image, ref) {
-				return PolicyRequirementError(fmt.Sprintf("Signature for identity %s is not accepted", ref))
+				return PolicyRequirementError(fmt.Sprintf("Signature for identity %q is not accepted", ref))
 			}
 			return nil
 		},
@@ -253,7 +253,7 @@ func (pr *prSigstoreSigned) isRunningImageAllowed(ctx context.Context, image pri
 			// Huh?! This should not happen at all; treat it as any other invalid value.
 			fallthrough
 		default:
-			reason = fmt.Errorf(`Internal error: Unexpected signature verification result "%s"`, string(res))
+			reason = fmt.Errorf(`Internal error: Unexpected signature verification result %q`, string(res))
 		}
 		rejections = append(rejections, reason)
 	}
@@ -270,12 +270,7 @@ func (pr *prSigstoreSigned) isRunningImageAllowed(ctx context.Context, image pri
 	case 1:
 		summary = rejections[0]
 	default:
-		var msgs []string
-		for _, e := range rejections {
-			msgs = append(msgs, e.Error())
-		}
-		summary = PolicyRequirementError(fmt.Sprintf("None of the signatures were accepted, reasons: %s",
-			strings.Join(msgs, "; ")))
+		summary = PolicyRequirementError(multierr.Format("None of the signatures were accepted, reasons: ", "; ", "", rejections).Error())
 	}
 	return false, summary
 }

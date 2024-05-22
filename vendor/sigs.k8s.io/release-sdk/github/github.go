@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v60/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -43,6 +43,8 @@ const (
 	TokenEnvKey = "GITHUB_TOKEN"
 	// GitHubURL Prefix for github URLs
 	GitHubURL = "https://github.com/"
+
+	unauthenticated = "unauthenticated"
 )
 
 // GitHub is a wrapper around GitHub related functionality
@@ -154,6 +156,9 @@ type Client interface {
 	RequestPullRequestReview(
 		context.Context, string, string, int, []string, []string,
 	) (*github.PullRequest, error)
+	CheckRateLimit(
+		context.Context,
+	) (*github.RateLimits, *github.Response, error)
 }
 
 // NewIssueOptions is a struct of optional fields for new issues
@@ -201,12 +206,40 @@ func New() *GitHub {
 func NewWithToken(token string) (*GitHub, error) {
 	ctx := context.Background()
 	client := http.DefaultClient
-	state := "unauthenticated"
+	state := unauthenticated
 	if token != "" {
 		state = strings.TrimPrefix(state, "un")
 		client = oauth2.NewClient(ctx, oauth2.StaticTokenSource(
 			&oauth2.Token{AccessToken: token},
 		))
+	}
+
+	logrus.Debugf("Using %s GitHub client", state)
+	return &GitHub{
+		client:  &githubClient{github.NewClient(client)},
+		options: DefaultOptions(),
+	}, nil
+}
+
+// NewWithTokenWithClient can be used to specify a GitHub token through parameters and
+// set an custom HTTP Client.
+// Empty string will result in unauthenticated client, which makes
+// unauthenticated requests.
+func NewWithTokenWithClient(token string, httpClient *http.Client) (*GitHub, error) {
+	client := httpClient
+	state := unauthenticated
+	if token != "" {
+		state = strings.TrimPrefix(state, "un")
+		// Set the Transport of the existing httpClient to include the OAuth2 transport
+		if client == nil {
+			client = &http.Client{}
+		}
+		client.Transport = &oauth2.Transport{
+			Source: oauth2.StaticTokenSource(
+				&oauth2.Token{AccessToken: token},
+			),
+			Base: client.Transport, // Preserve the original transport
+		}
 	}
 
 	logrus.Debugf("Using %s GitHub client", state)
@@ -224,7 +257,7 @@ func NewEnterprise(baseURL, uploadURL string) (*GitHub, error) {
 func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
 	ctx := context.Background()
 	client := http.DefaultClient
-	state := "unauthenticated"
+	state := unauthenticated
 	if token != "" {
 		state = strings.TrimPrefix(state, "un")
 		client = oauth2.NewClient(ctx, oauth2.StaticTokenSource(
@@ -542,6 +575,17 @@ func (g *githubClient) ListComments(
 	}
 
 	return comments, response, nil
+}
+
+func (g *githubClient) CheckRateLimit(
+	ctx context.Context,
+) (*github.RateLimits, *github.Response, error) {
+	rt, response, err := g.RateLimit.Get(ctx)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fetching rate limit: %w", err)
+	}
+
+	return rt, response, nil
 }
 
 // SetClient can be used to manually set the internal GitHub client
@@ -1058,7 +1102,6 @@ func (g *GitHub) UpdateReleasePageWithOptions(owner, repo string,
 	release, err = g.Client().UpdateReleasePage(
 		context.Background(), owner, repo, releaseID, releaseData,
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("updating the release page: %w", err)
 	}
@@ -1136,6 +1179,11 @@ func (g *GitHub) ListTags(owner, repo string) ([]*github.RepositoryTag, error) {
 		options.Page = r.NextPage
 	}
 	return tags, nil
+}
+
+// RateLimit returns the rate limits for the current client.
+func (g *GitHub) CheckRateLimit(ctx context.Context) (*github.RateLimits, *github.Response, error) {
+	return g.Client().CheckRateLimit(ctx)
 }
 
 func (g *githubClient) UpdateIssue(
