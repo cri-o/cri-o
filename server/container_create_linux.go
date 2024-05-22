@@ -846,6 +846,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.Config.Process.User.Umask = &umask
 	}
 
+	etcPath := filepath.Join(mountPoint, "/etc")
+
+	// Warn users if the container /etc directory path points to a location
+	// that is not a regular directory. This could indicate that something
+	// might be afoot.
+	etc, err := os.Lstat(etcPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if err == nil && !etc.IsDir() {
+		log.Warnf(ctx, "Detected /etc path for container %s is not a directory", ctr.ID())
+	}
+
 	// The /etc directory can be subjected to various attempts on the path (directory)
 	// traversal attacks. As such, we need to ensure that its path will be relative to
 	// the base (or root, if you wish) of the container to mitigate a container escape.
