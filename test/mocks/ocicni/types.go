@@ -40,6 +40,20 @@ func (m *MockCNIPlugin) EXPECT() *MockCNIPluginMockRecorder {
 	return m.recorder
 }
 
+// GC mocks base method.
+func (m *MockCNIPlugin) GC(arg0 context.Context, arg1 []*ocicni.PodNetwork) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GC", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// GC indicates an expected call of GC.
+func (mr *MockCNIPluginMockRecorder) GC(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GC", reflect.TypeOf((*MockCNIPlugin)(nil).GC), arg0, arg1)
+}
+
 // GetDefaultNetworkName mocks base method.
 func (m *MockCNIPlugin) GetDefaultNetworkName() string {
 	m.ctrl.T.Helper()
@@ -154,6 +168,20 @@ func (m *MockCNIPlugin) Status() error {
 func (mr *MockCNIPluginMockRecorder) Status() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Status", reflect.TypeOf((*MockCNIPlugin)(nil).Status))
+}
+
+// StatusWithContext mocks base method.
+func (m *MockCNIPlugin) StatusWithContext(arg0 context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StatusWithContext", arg0)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StatusWithContext indicates an expected call of StatusWithContext.
+func (mr *MockCNIPluginMockRecorder) StatusWithContext(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StatusWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).StatusWithContext), arg0)
 }
 
 // TearDownPod mocks base method.
