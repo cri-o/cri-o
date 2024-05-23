@@ -228,6 +228,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
 
+	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, *imageName, imgResult.Digest); err != nil {
+		return nil, err
+	}
+
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
 	if err != nil {
 		return nil, err

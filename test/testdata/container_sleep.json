@@ -3,13 +3,15 @@
 		"name": "podsandbox-sleep"
 	},
 	"image": {
-		"image": "quay.io/crio/fedora-crio-ci:latest"
+		"image": "quay.io/crio/fedora-crio-ci:latest",
+		"user_specified_image": "quay.io/crio/fedora-crio-ci:latest"
 	},
 	"command": [
-		  "/bin/sleep", "6000"
+		"/bin/sleep",
+		"6000"
 	],
 	"args": [
-                "6000"
+		"6000"
 	],
 	"working_dir": "/",
 	"envs": [
