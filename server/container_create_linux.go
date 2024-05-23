@@ -38,6 +38,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -193,6 +194,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
+
 	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
@@ -227,6 +229,33 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
+	}
+
+	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+
+	if userSpecifiedImage == "" {
+		// Attempt to check if the image is a checkpoint OCI image
+		if _, err := s.checkIfCheckpointOCIImage(ctx, userRequestedImage); err != nil {
+			return nil, fmt.Errorf("failed to check if this is a checkpoint image: %w", err)
+		} else { // Fallback to ensure that userSpecifiedImage is valid
+			userSpecifiedImage = imageName.StringForOutOfProcessConsumptionOnly()
+		}
+	}
+
+	var userImageRef references.RegistryImageReference
+
+	userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get userImageRef from user specified image %q: %w", userSpecifiedImage, err)
+	}
+
+	if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imgResult.Digest); err != nil {
+		return nil, err
 	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())

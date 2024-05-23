@@ -26,7 +26,7 @@ function teardown() {
 @test "run container in pod with image ID" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+	jq '.image.image = "'"$REDIS_IMAGEID"'" | .image.user_specified_image = "'"$REDIS_IMAGEDIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -35,7 +35,7 @@ function teardown() {
 @test "container status when created by image ID" {
 	start_crio
 
-	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+	jq '.image.image = "'"$REDIS_IMAGEID"'" | .image.user_specified_image = "'"$REDIS_IMAGEDIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 	ctr_id=$(crictl run --no-pull "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
@@ -75,7 +75,7 @@ function teardown() {
 
 	crictl pull "$IMAGE_LIST_DIGEST"
 
-	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'"' \
+	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'" | .image.user_specified_image = "'"$IMAGE_LIST_DIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 
 	ctr_id=$(crictl run "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)

@@ -12,7 +12,7 @@ function teardown() {
 }
 
 function assert_log() {
-	grep -q "Using pull policy path\\s.*\\s$1" "$CRIO_LOG"
+	grep -q "Using pull policy path\\s.*$1" "$CRIO_LOG"
 }
 
 RESTRICTIVE_POLICY="$INTEGRATION_ROOT/policy-signature.json"
@@ -34,6 +34,18 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 @test "deny unsigned image with restrictive policy" {
 	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
 
+	run ! crictl pull "$UNSIGNED_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$RESTRICTIVE_POLICY"
+}
+
+@test "deny unsigned image with restrictive policy if already pulled" {
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
 	run ! crictl pull "$UNSIGNED_IMAGE"
 
 	[[ "$output" == *"SignatureValidationFailed"* ]]
@@ -96,4 +108,99 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	crictl pull --pod-config "$NEW_SANDBOX_CONFIG" "$SIGNED_IMAGE"
 
 	assert_log "$SIGNATURE_POLICY_DIR/restrictive.json"
+}
+
+@test "allow signed image with restrictive policy on container creation1 (fresh pull)" {
+	start_crio
+	IMAGE_DIGEST=$(crictl pull "$SIGNED_IMAGE" | cut -d' ' -f7)
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$IMAGE_DIGEST"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
+}
+
+@test "deny unsigned image with restrictive policy on container creation2 (fresh pull)" {
+	start_crio
+	IMAGE_DIGEST=$(crictl pull "$UNSIGNED_IMAGE" | cut -d' ' -f7)
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$IMAGE_DIGEST"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "allow signed image with restrictive policy on container creation3 if already pulled (by ID)" {
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	IMAGE_ID=$(crictl images -q "$SIGNED_IMAGE")
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$IMAGE_ID"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
+}
+
+@test "deny unsigned image with restrictive policy on container creation4 if already pulled (by ID)" {
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	IMAGE_ID=$(crictl images -q "$UNSIGNED_IMAGE")
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$IMAGE_ID"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "allow signed image with restrictive policy on container creation5 if already pulled (by tag)" {
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$SIGNED_IMAGE"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
+}
+
+@test "deny unsigned image with restrictive policy on container creation6 if already pulled (by tag)" {
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$UNSIGNED_IMAGE"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
 }

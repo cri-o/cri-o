@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
@@ -24,8 +25,6 @@ import (
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 )
-
-var localRegistryHostname = "localhost"
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
@@ -133,7 +132,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	sourceCtx := *s.config.SystemContext   // A shallow copy we can modify
+	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
+	if err != nil {
+		return "", fmt.Errorf("get context for namespace: %w", err)
+	}
+	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
+
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
@@ -177,69 +181,38 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 	// and they all fail, this error value should be overwritten by a real failure.
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 	for _, remoteCandidateName := range remoteCandidates {
-		err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
+		repoDigest, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
 
-			status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
-			if err != nil {
-				return "", err
+			if repoDigest != nil {
+				return repoDigest.String(), nil
 			}
-			imageRef := status.ID.IDStringForOutOfProcessConsumptionOnly()
-			if len(status.RepoDigests) > 0 {
-				imageRef = status.RepoDigests[0]
-			}
-
-			return imageRef, nil
 		}
 		lastErr = err
 	}
 	return "", lastErr
 }
 
-func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) error {
-	tmpImg, err := s.StorageImageServer().PrepareImage(sourceCtx, remoteCandidateName)
-	if err != nil {
-		// We're not able to find the image remotely, check if it's
-		// available locally, but only for localhost ones.
-		// This allows pulling localhost images even if the
-		// `imagePullPolicy` is set to `Always`.
-		if remoteCandidateName.Registry() == localRegistryHostname {
-			if _, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName); err == nil {
-				return nil
-			}
+// contextForNamespace takes the provided namespace and returns a modifiable
+// copy of the servers system context.
+func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext, error) {
+	ctx := *s.config.SystemContext // A shallow copy we can modify
+
+	if namespace != "" {
+		policyPath := filepath.Join(s.config.SignaturePolicyDir, namespace+".json")
+		if _, err := os.Stat(policyPath); err == nil {
+			ctx.SignaturePolicyPath = policyPath
+		} else if !os.IsNotExist(err) {
+			return ctx, fmt.Errorf("read policy path %s: %w", policyPath, err)
 		}
-		log.Debugf(ctx, "Error preparing image %s: %v", remoteCandidateName, err)
-		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
-		return err
-	}
-	defer tmpImg.Close()
-
-	storedImage, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, remoteCandidateName)
-	if err == nil {
-		tmpImgConfigDigest := tmpImg.ConfigInfo().Digest
-		if tmpImgConfigDigest.String() == "" {
-			// this means we are playing with a schema1 image, in which
-			// case, we're going to repull the image in any case
-			log.Debugf(ctx, "Image config digest is empty, re-pulling image")
-		} else if tmpImgConfigDigest.String() == storedImage.ConfigDigest.String() {
-			log.Debugf(ctx, "Image %s already in store, skipping pull", remoteCandidateName)
-
-			// Skipped digests metrics
-			tryRecordSkippedMetric(ctx, remoteCandidateName, tmpImgConfigDigest)
-
-			// Skipped bytes metrics
-			if storedImage.Size != nil {
-				// Metrics for image pull skipped bytes
-				metrics.Instance().MetricImagePullsSkippedBytesAdd(float64(*storedImage.Size))
-			}
-
-			return nil
-		}
-		log.Debugf(ctx, "Image in store has different ID, re-pulling %s", remoteCandidateName)
 	}
 
+	return ctx, nil
+}
+
+func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (reference.Canonical, error) {
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress)
@@ -252,7 +225,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
 
-	_, err = s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	_, repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
@@ -266,9 +239,14 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	if err != nil {
 		log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
 		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
-		return err
+		return nil, err
 	}
-	return nil
+
+	if repoDigest == nil {
+		return nil, fmt.Errorf("repoDigest cannot be nil for the successfully pulled image %v", remoteCandidateName)
+	}
+
+	return repoDigest, nil
 }
 
 // consumeImagePullProgress consumes progress and turns it into metrics updates.

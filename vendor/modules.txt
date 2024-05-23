@@ -279,6 +279,7 @@ github.com/containers/image/v5/docker/daemon
 github.com/containers/image/v5/docker/internal/tarfile
 github.com/containers/image/v5/docker/policyconfiguration
 github.com/containers/image/v5/docker/reference
+github.com/containers/image/v5/image
 github.com/containers/image/v5/internal/blobinfocache
 github.com/containers/image/v5/internal/image
 github.com/containers/image/v5/internal/imagedestination
