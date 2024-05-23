@@ -37,6 +37,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -124,6 +125,7 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 	}
 }
 
+//nolint
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -192,6 +194,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
+
 	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
@@ -226,6 +229,46 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
+	}
+
+	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+
+	if userSpecifiedImage == "" {
+		// Attempt to check if the image is a checkpoint OCI image
+		checkPointImageID, err := s.checkIfCheckpointOCIImage(ctx, userRequestedImage)
+		if err != nil {
+			return nil, fmt.Errorf("failed to check if this is a checkpoint image: %w", err)
+		}
+
+		if checkPointImageID != nil { // yes, this is a check point image
+			imgResult, imgResultErr := s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *checkPointImageID)
+			if imgResultErr != nil {
+				return nil, fmt.Errorf("error getting image by id: %w", imgResultErr)
+			}
+
+			imageName = imgResult.SomeNameOfThisImage
+			userSpecifiedImage = imageName.StringForOutOfProcessConsumptionOnly()
+		}
+
+		if checkPointImageID == nil {
+			return nil, errors.New("check point image id is null as well as userSpecifiedImage")
+		}
+	}
+
+	var userImageRef references.RegistryImageReference
+
+	userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get userImageRef: %w", err)
+	}
+
+	if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imgResult.Digest); err != nil {
+		return nil, err
 	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
