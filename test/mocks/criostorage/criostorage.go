@@ -120,6 +120,20 @@ func (m *MockImageServer) ImageStatusByName(arg0 *types.SystemContext, arg1 refe
 	return ret0, ret1
 }
 
+// IsRunningImageAllowed mocks base method.
+func (m *MockImageServer) IsRunningImageAllowed(arg0 context.Context, arg1 *types.SystemContext, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsRunningImageAllowed", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IsRunningImageAllowed indicates an expected call of IsRunningImageAllowed.
+func (mr *MockImageServerMockRecorder) IsRunningImageAllowed(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRunningImageAllowed", reflect.TypeOf((*MockImageServer)(nil).IsRunningImageAllowed), arg0, arg1, arg2, arg3)
+}
+
 // ImageStatusByName indicates an expected call of ImageStatusByName.
 func (mr *MockImageServerMockRecorder) ImageStatusByName(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
@@ -157,13 +171,30 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
+}
+
+// PullLocalManifestDigest mocks base method.
+func (m *MockImageServer) PullLocalManifestDigest(arg0 context.Context, arg1 *types.SystemContext, arg2 string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PullLocalManifestDigest", arg0, arg1, arg2)
+	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
+
+// PullLocalManifestDigest indicates an expected call of PullLocalManifestDigest.
+func (mr *MockImageServerMockRecorder) PullLocalManifestDigest(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullLocalManifestDigest", reflect.TypeOf((*MockImageServer)(nil).PullLocalManifestDigest), arg0, arg1, arg2)
+}
+
 
 // PullImage indicates an expected call of PullImage.
 func (mr *MockImageServerMockRecorder) PullImage(arg0, arg1, arg2 interface{}) *gomock.Call {

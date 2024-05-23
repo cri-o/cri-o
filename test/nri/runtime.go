@@ -31,7 +31,8 @@ type runtime struct {
 }
 
 type imageRefs struct {
-	busybox string
+	busybox     string
+	busyboxName string
 }
 
 var (
@@ -72,14 +73,17 @@ func (r *runtime) PullImages() error {
 
 	imgRefs := &imageRefs{}
 
-	for name, setRef := range map[string]func(string){
-		ciImage: func(ref string) { imgRefs.busybox = ref },
+	for name, setRef := range map[string]func(string, string){
+		ciImage: func(ref, name string) {
+			imgRefs.busybox = ref
+			imgRefs.busyboxName = name
+		},
 	} {
 		ref, err := r.PullImage(name)
 		if err != nil {
 			return err
 		}
-		setRef(ref)
+		setRef(ref, name)
 	}
 
 	r.images = imgRefs
@@ -328,7 +332,8 @@ type ContainerOption func(*cri.ContainerConfig) error
 func WithImage(image string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Image = &cri.ImageSpec{
-			Image: image,
+			Image:              image,
+			UserSpecifiedImage: image,
 		}
 		return nil
 	}
@@ -407,7 +412,8 @@ func (r *runtime) CreateContainer(pod, name, uid string, options ...ContainerOpt
 			Attempt: 1,
 		},
 		Image: &cri.ImageSpec{
-			Image: r.images.busybox,
+			Image:              r.images.busybox,
+			UserSpecifiedImage: r.images.busyboxName,
 		},
 		Command: []string{
 			"sh",

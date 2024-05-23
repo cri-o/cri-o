@@ -574,7 +574,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			res, _, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "/not-existing"},
 			})
 
@@ -589,7 +589,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			res, _, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
@@ -604,7 +604,7 @@ var _ = t.Describe("Image", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
+			res, _, err := sut.PullImage(context.Background(), imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
@@ -621,7 +621,7 @@ var _ = t.Describe("Image", func() {
 			// When
 			ctx, cancel := context.WithCancel(context.Background())
 			cancel()
-			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
+			res, _, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
 				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
 			})
 
