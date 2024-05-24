@@ -9,6 +9,8 @@ import (
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 )
@@ -145,24 +147,34 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 	return nil
 }
 
-// ReloadPinnedImages updates the PinnedImages with the provided `newConfig`.
-// The method print log in case of any updates.
+// ReloadPinnedImages replace the PinnedImages
+// with the provided `newConfig.PinnedImages`.
+// The method skips empty items and prints a log message.
 func (c *Config) ReloadPinnedImages(newConfig *Config) {
-	updatedPinnedImages := make([]string, len(newConfig.PinnedImages))
-	updatedPinnedImageList := false
+	if len(newConfig.PinnedImages) == 0 {
+		c.PinnedImages = []string{}
+		logConfig("pinned_images", "[]")
+		return
+	}
 
-	for i, image := range newConfig.PinnedImages {
-		if i < len(c.PinnedImages) && image == c.PinnedImages[i] {
-			continue
+	if cmp.Equal(c.PinnedImages, newConfig.PinnedImages,
+		cmpopts.SortSlices(func(a, b string) bool {
+			return a < b
+		}),
+	) {
+		return
+	}
+
+	pinnedImages := []string{}
+	for _, img := range newConfig.PinnedImages {
+		if img != "" {
+			pinnedImages = append(pinnedImages, img)
 		}
-		updatedPinnedImages[i] = image
-		updatedPinnedImageList = true
 	}
 
-	if updatedPinnedImageList {
-		logConfig("pinned_images", strings.Join(updatedPinnedImages, ", "))
-		c.PinnedImages = updatedPinnedImages
-	}
+	logConfig("pinned_images", strings.Join(pinnedImages, ","))
+
+	c.PinnedImages = pinnedImages
 }
 
 // ReloadRegistries reloads the registry configuration from the Configs
