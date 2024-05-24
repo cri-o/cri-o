@@ -57,6 +57,7 @@
         + ['reload_config.bats'] | product(kata_skip_reload_config_tests) \
         + ['config.bats'] | product(kata_skip_config_tests) \
         + ['config_migrate.bats'] | product(kata_skip_config_migrate_tests) \
+        + ['reload_config.bats'] | product(kata_skip_reload_config) \
         + ['crio-wipe.bats'] | product(kata_skip_crio_wipe_tests) \
         + ['ctr.bats'] | product(kata_skip_ctr_tests) \
         + ['devices.bats'] | product(kata_skip_devices_tests) \
