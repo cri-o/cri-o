@@ -416,6 +416,7 @@ function prepare_network_conf() {
     "name": "$CNI_DEFAULT_NETWORK",
     "type": "$CNI_TYPE",
     "bridge": "cni0",
+    "disableGC": true,
     "isGateway": true,
     "ipMasq": true,
     "ipam": {
