@@ -66,6 +66,17 @@ var _ = BeforeSuite(func() {
 	t = NewTestFramework(NilFunc, NilFunc)
 	t.Setup()
 
+	emptyDir = t.MustTempDir("crio-empty")
+})
+
+var _ = AfterSuite(func() {
+	t.Teardown()
+})
+
+var beforeEach = func() {
+	// Only log panics for now
+	logrus.SetLevel(logrus.PanicLevel)
+
 	// Setup the mocks
 	mockCtrl = gomock.NewController(GinkgoT())
 	libMock = libmock.NewMockIface(mockCtrl)
@@ -75,18 +86,6 @@ var _ = BeforeSuite(func() {
 	imageCloserMock = imagetypesmock.NewMockImageCloser(mockCtrl)
 	cniPluginMock = ocicnitypesmock.NewMockCNIPlugin(mockCtrl)
 	ociRuntimeMock = ocimock.NewMockRuntimeImpl(mockCtrl)
-
-	emptyDir = t.MustTempDir("crio-empty")
-})
-
-var _ = AfterSuite(func() {
-	t.Teardown()
-	mockCtrl.Finish()
-})
-
-var beforeEach = func() {
-	// Only log panics for now
-	logrus.SetLevel(logrus.PanicLevel)
 
 	// Setup test data
 	testManifest = []byte(`{
@@ -181,6 +180,7 @@ var afterEach = func() {
 	os.RemoveAll(testPath)
 	os.RemoveAll("state.json")
 	os.RemoveAll("config.json")
+	mockCtrl.Finish()
 }
 
 var setupSUT = func() {
@@ -193,19 +193,21 @@ var setupSUT = func() {
 	// Inject the mock
 	sut.SetStorageImageServer(imageServerMock)
 	sut.SetStorageRuntimeServer(runtimeServerMock)
-
-	gomock.InOrder(cniPluginMock.EXPECT().Status().Return(nil))
-	Expect(sut.SetCNIPlugin(cniPluginMock)).To(Succeed())
 }
 
 func mockNewServer() {
+	GinkgoHelper()
 	gomock.InOrder(
+		cniPluginMock.EXPECT().Status().Return(nil),
 		libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 		libMock.EXPECT().GetStore().Return(storeMock, nil),
 		libMock.EXPECT().GetData().Return(serverConfig),
 		storeMock.EXPECT().Containers().
 			Return([]cstorage.Container{}, nil),
+		cniPluginMock.EXPECT().GC(gomock.Any(), gomock.Any()).
+			Return(nil).AnyTimes(),
 	)
+	Expect(serverConfig.SetCNIPlugin(cniPluginMock)).To(Succeed())
 }
 
 func addContainerAndSandbox() {
