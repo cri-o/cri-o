@@ -1,18 +1,7 @@
 GO ?= go
 
 TRIMPATH ?= -trimpath
-GO_ARCH=$(shell $(GO) env GOARCH)
-GO_MAJOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f1)
-GO_MINOR_VERSION = $(shell $(GO) version | cut -c 14- | cut -d' ' -f1 | cut -d'.' -f2)
-GO_GT_1_17 := $(shell [ $(GO_MAJOR_VERSION) -ge 1 -a $(GO_MINOR_VERSION) -ge 17 ] && echo true)
-GO_FLAGS ?=
-ifeq ($(GO_GT_1_17),true)
-ifeq ($(GO_ARCH),386)
-GO_FLAGS += -buildvcs=false
-endif
-endif
-
-GO_BUILD ?= $(GO) build $(GO_FLAGS) $(TRIMPATH)
+GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.3.16
 
@@ -29,12 +18,13 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/apparmor_tag.sh) \
 			 $(shell hack/btrfs_installed_tag.sh) \
 			 $(shell hack/btrfs_tag.sh) \
-			 $(shell hack/libdm_installed.sh) \
-			 $(shell hack/libdm_no_deferred_remove_tag.sh) \
 			 $(shell hack/openpgp_tag.sh) \
 			 $(shell hack/seccomp_tag.sh) \
 			 $(shell hack/selinux_tag.sh) \
 			 $(shell hack/libsubid_tag.sh)
+# Device mapper is deprecated; keep this tag until the dm code
+# is removed from the c/storage vendored here.
+BUILDTAGS += exclude_graphdriver_devicemapper
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 BUILD_PATH := $(shell pwd)/build
@@ -167,19 +157,19 @@ bin/pinns:
 	$(MAKE) -C pinns
 
 test/copyimg/copyimg: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/copyimg
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/copyimg
 
 test/checkseccomp/checkseccomp: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkseccomp
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkseccomp
 
 test/checkcriu/checkcriu: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/test/checkcriu
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
 
 test/nri/nri.test: $(wildcard test/nri/*.go)
-	$(GO) test --tags "test $(BUILDTAGS)" -c $(PROJECT)/test/nri -o $@
+	$(GO) test --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
 
 bin/crio: $(GO_FILES)
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./cmd/crio
 
 build-static:
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
@@ -232,7 +222,7 @@ bin/crio.cross.%:  .explicit_phony
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" $(PROJECT)/cmd/crio
+	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion exclude_graphdriver_devicemapper" -o "$@" ./cmd/crio
 
 nixpkgs:
 	@nix run -f channel:nixpkgs-unstable nix-prefetch-git -- \
@@ -505,7 +495,7 @@ bin/metrics-exporter:
 	$(GO_BUILD) -o $@ \
 		-ldflags '-linkmode external -extldflags "-static -lm"' \
 		-tags netgo \
-		$(PROJECT)/contrib/metrics-exporter
+		./contrib/metrics-exporter
 
 metrics-exporter: bin/metrics-exporter
 	$(CONTAINER_RUNTIME) build . \

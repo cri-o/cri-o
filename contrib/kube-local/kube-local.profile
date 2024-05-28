@@ -281,7 +281,6 @@ MD2MAN_GOLANG_DIR="${GOLANG_PROJECT_HOME_SRC}/${MD2MAN_GOLANG_SRC_GITHUB}/${MD2M
 #
 # Fedora < 31 | RHEL < 7 | CentOS < 8
 CRIO_PACKAGES_FEDORA_RHEL_CENTOS="containers-common \
-device-mapper-devel \
 git \
 glib2-devel \
 glibc-devel \
@@ -298,7 +297,6 @@ runc"
 
 # Fedora >= 31 / RHEL >= 8 / CentOS >=8
 CRIO_PACKAGES_FEDORA_RHEL_CENTOS_LATEST="containers-common \
-device-mapper-devel \
 git \
 glib2-devel \
 glibc-devel \
@@ -320,7 +318,6 @@ CRIO_PACKAGES_UBUNTU="containers-common \
 git \
 golang-go \
 libassuan-dev \
-libdevmapper-dev \
 libglib2.0-dev \
 libc6-dev \
 libgpgme11-dev \
