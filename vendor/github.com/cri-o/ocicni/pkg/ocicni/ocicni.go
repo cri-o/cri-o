@@ -3,6 +3,7 @@ package ocicni
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -43,6 +44,12 @@ type cniNetworkPlugin struct {
 	podsLock sync.Mutex
 	pods     map[string]*podLock
 
+	// The gcLock blocks *all* pod operations from taking place
+	// while GC is happening.
+	//
+	// This must be acquired first, to prevent deadlocks.
+	gcLock sync.RWMutex
+
 	// For testcases
 	exec     cniinvoke.Exec
 	cacheDir string
@@ -77,9 +84,8 @@ func buildFullPodName(podNetwork *PodNetwork) string {
 // Lock network operations for a specific pod.  If that pod is not yet in
 // the pod map, it will be added.  The reference count for the pod will
 // be increased.
-func (plugin *cniNetworkPlugin) podLock(podNetwork *PodNetwork) *sync.Mutex {
+func (plugin *cniNetworkPlugin) podLock(podNetwork *PodNetwork) {
 	plugin.podsLock.Lock()
-	defer plugin.podsLock.Unlock()
 
 	fullPodName := buildFullPodName(podNetwork)
 	lock, ok := plugin.pods[fullPodName]
@@ -88,7 +94,8 @@ func (plugin *cniNetworkPlugin) podLock(podNetwork *PodNetwork) *sync.Mutex {
 		plugin.pods[fullPodName] = lock
 	}
 	lock.refcount++
-	return &lock.mu
+	plugin.podsLock.Unlock()
+	lock.mu.Lock()
 }
 
 // Unlock network operations for a specific pod.  The reference count for the
@@ -382,16 +389,6 @@ func (plugin *cniNetworkPlugin) syncNetworkConfig(ctx context.Context) error {
 	return nil
 }
 
-func (plugin *cniNetworkPlugin) getNetwork(name string) (*cniNetwork, error) {
-	plugin.RLock()
-	defer plugin.RUnlock()
-	network, ok := plugin.networks[name]
-	if !ok {
-		return nil, fmt.Errorf("CNI network %q not found", name)
-	}
-	return network, nil
-}
-
 func (plugin *cniNetworkPlugin) GetDefaultNetworkName() string {
 	plugin.RLock()
 	defer plugin.RUnlock()
@@ -399,12 +396,15 @@ func (plugin *cniNetworkPlugin) GetDefaultNetworkName() string {
 }
 
 func (plugin *cniNetworkPlugin) getDefaultNetwork() *cniNetwork {
-	defaultNetName := plugin.GetDefaultNetworkName()
+	plugin.RLock()
+	defer plugin.RUnlock()
+
+	defaultNetName := plugin.defaultNetName.name
 	if defaultNetName == "" {
 		return nil
 	}
-	network, err := plugin.getNetwork(defaultNetName)
-	if err != nil {
+	network, ok := plugin.networks[defaultNetName]
+	if !ok {
 		logrus.Debugf("Failed to get network for name: %s", defaultNetName)
 	}
 	return network
@@ -458,44 +458,80 @@ func (plugin *cniNetworkPlugin) loadNetworkFromCache(name string, rt *libcni.Run
 	return cniNet, rt, nil
 }
 
-type forEachNetworkFn func(*cniNetwork, *PodNetwork, *libcni.RuntimeConf) error
-
-func (plugin *cniNetworkPlugin) forEachNetwork(ctx context.Context, podNetwork *PodNetwork, fromCache bool, actionFn forEachNetworkFn) error {
-	networks := podNetwork.Networks
-	if len(networks) == 0 {
-		networks = append(networks, NetAttachment{
-			Name: plugin.GetDefaultNetworkName(),
+// fillPodNetworks inserts any needed values in the set of pod network requests:
+// - if no networks, add default
+// - if no interface names, synthesize
+//
+// plugin RLock must be held.
+func (plugin *cniNetworkPlugin) fillPodNetworks(podNetwork *PodNetwork) error {
+	if len(podNetwork.Networks) == 0 {
+		podNetwork.Networks = append(podNetwork.Networks, NetAttachment{
+			Name: plugin.defaultNetName.name,
 		})
 	}
 
 	allIfNames := make(map[string]bool)
-	for _, req := range networks {
-		if req.Ifname != "" {
+	for _, net := range podNetwork.Networks {
+		if net.Ifname != "" {
 			// Make sure the requested name isn't already assigned
-			if allIfNames[req.Ifname] {
-				return fmt.Errorf("network %q requested interface name %q already assigned", req.Name, req.Ifname)
+			if allIfNames[net.Ifname] {
+				return fmt.Errorf("network %q requested interface name %q already assigned", net.Name, net.Ifname)
 			}
-			allIfNames[req.Ifname] = true
+			allIfNames[net.Ifname] = true
+		}
+	}
+netLoop:
+	for i, network := range podNetwork.Networks {
+		if network.Ifname == "" {
+			for j := 0; j < 10000; j++ {
+				candidate := fmt.Sprintf("eth%d", j)
+				if !allIfNames[candidate] {
+					allIfNames[candidate] = true
+					podNetwork.Networks[i].Ifname = candidate
+					continue netLoop
+				}
+			}
+			return fmt.Errorf("failed to find free interface name for network %q", network.Name)
+		}
+	}
+	return nil
+}
+
+type forEachNetworkFn func(*cniNetwork, *PodNetwork, *libcni.RuntimeConf) error
+
+func (plugin *cniNetworkPlugin) forEachNetwork(ctx context.Context, podNetwork *PodNetwork, fromCache bool, actionFn forEachNetworkFn) error {
+	plugin.RLock()
+	defer plugin.RUnlock()
+
+	if err := plugin.fillPodNetworks(podNetwork); err != nil {
+		logrus.Errorf("Error filling interface names: %v", err)
+		return err
+	}
+
+	if !fromCache {
+		// See if we need to re-sync the configuration, which can happen
+		// in some racy podman tests. See PR #85.
+		missingNetworks := false
+		for _, net := range podNetwork.Networks {
+			if _, ok := plugin.networks[net.Name]; !ok {
+				missingNetworks = true
+				break
+			}
+		}
+
+		if missingNetworks {
+			// Need to drop the read lock, as syncNetworkConfig needs write lock.
+			// This is safe because we always acquire the pod lock first, *then* the
+			// plugin lock, so we're not at risk of deadlock.
+			plugin.RUnlock()
+			_ = plugin.syncNetworkConfig(ctx) // ignore error; this is best-effort
+			plugin.RLock()
 		}
 	}
 
-	for _, network := range networks {
-		ifName := network.Ifname
-		if ifName == "" {
-			for i := 0; i < 10000; i++ {
-				candidate := fmt.Sprintf("eth%d", i)
-				if !allIfNames[candidate] {
-					allIfNames[candidate] = true
-					ifName = candidate
-					break
-				}
-			}
-			if ifName == "" {
-				return fmt.Errorf("failed to find free interface name for network %q", network.Name)
-			}
-		}
+	for _, network := range podNetwork.Networks {
 		runtimeConfig := podNetwork.RuntimeConfig[network.Name]
-		rt, err := buildCNIRuntimeConf(podNetwork, ifName, &runtimeConfig)
+		rt, err := buildCNIRuntimeConf(podNetwork, network.Ifname, &runtimeConfig)
 		if err != nil {
 			logrus.Errorf("Error building CNI runtime config: %v", err)
 			return err
@@ -514,17 +550,9 @@ func (plugin *cniNetworkPlugin) forEachNetwork(ctx context.Context, podNetwork *
 			}
 		}
 		if cniNet == nil {
-			cniNet, err = plugin.getNetwork(network.Name)
-			if err != nil {
-				// try to load the networks again
-				if err2 := plugin.syncNetworkConfig(ctx); err2 != nil {
-					logrus.Error(err2)
-					return err
-				}
-				cniNet, err = plugin.getNetwork(network.Name)
-				if err != nil {
-					return err
-				}
+			cniNet = plugin.networks[network.Name]
+			if cniNet == nil {
+				return fmt.Errorf("failed to find requested network name %s", network.Name)
 			}
 		}
 
@@ -546,7 +574,10 @@ func (plugin *cniNetworkPlugin) SetUpPodWithContext(ctx context.Context, podNetw
 		return nil, err
 	}
 
-	plugin.podLock(&podNetwork).Lock()
+	plugin.gcLock.RLock()
+	defer plugin.gcLock.RUnlock()
+
+	plugin.podLock(&podNetwork)
 	defer plugin.podUnlock(&podNetwork)
 
 	// Set up loopback interface
@@ -666,8 +697,10 @@ func (plugin *cniNetworkPlugin) TearDownPodWithContext(ctx context.Context, podN
 	if err := plugin.networksAvailable(&podNetwork); err != nil {
 		return err
 	}
+	plugin.gcLock.RLock()
+	defer plugin.gcLock.RUnlock()
 
-	plugin.podLock(&podNetwork).Lock()
+	plugin.podLock(&podNetwork)
 	defer plugin.podUnlock(&podNetwork)
 
 	return plugin.forEachNetwork(ctx, &podNetwork, true, func(network *cniNetwork, podNetwork *PodNetwork, rt *libcni.RuntimeConf) error {
@@ -693,7 +726,7 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatus(podNetwork PodNetwork) ([]Ne
 //
 //nolint:gocritic // would be an API change
 func (plugin *cniNetworkPlugin) GetPodNetworkStatusWithContext(ctx context.Context, podNetwork PodNetwork) ([]NetResult, error) {
-	plugin.podLock(&podNetwork).Lock()
+	plugin.podLock(&podNetwork)
 	defer plugin.podUnlock(&podNetwork)
 
 	if err := checkLoopback(podNetwork.NetNS); err != nil {
@@ -724,6 +757,49 @@ func (plugin *cniNetworkPlugin) GetPodNetworkStatusWithContext(ctx context.Conte
 	}
 
 	return results, nil
+}
+
+// GC cleans up any stale attachments.
+// It preserves all attachments and resources belonging to pods in `validPods`. A CNI
+// DEL command will be issued for all known cached attachments, then a CNI GC (for CNI
+// v1.1 and higher) for any straggling resources.
+func (plugin *cniNetworkPlugin) GC(ctx context.Context, validPods []*PodNetwork) error {
+	// Must always acquire gcLock before plugin lock.
+	plugin.gcLock.Lock()
+	defer plugin.gcLock.Unlock()
+
+	// Lock plugin, so we can read config fields.
+	plugin.RLock()
+	defer plugin.RUnlock()
+
+	// for every network, determine the set of valid attachments -- (ID, ifname) pairs
+	validAttachments := map[string][]cnitypes.GCAttachment{}
+	for _, pod := range validPods {
+		_ = plugin.fillPodNetworks(pod) // cannot have error here; or else pod could not have been ADDed
+
+		for _, network := range pod.Networks {
+			validAttachments[network.Name] = append(validAttachments[network.Name], cnitypes.GCAttachment{
+				ContainerID: pod.ID,
+				IfName:      network.Ifname,
+			})
+		}
+	}
+
+	// For every known network, issue a GC
+	var result error
+
+	for netname, network := range plugin.networks {
+		args := &libcni.GCArgs{
+			ValidAttachments: validAttachments[netname],
+		}
+		err := network.gcNetwork(ctx, plugin.cniConfig, args)
+		if err != nil {
+			logrus.Warnf("Error while GCing network %s: %v", netname, err)
+			result = errors.Join(result, err)
+		}
+	}
+
+	return result
 }
 
 func (network *cniNetwork) addToNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig) (cnitypes.Result, error) {
@@ -801,6 +877,14 @@ func (network *cniNetwork) checkNetwork(ctx context.Context, rt *libcni.RuntimeC
 
 func (network *cniNetwork) deleteFromNetwork(ctx context.Context, rt *libcni.RuntimeConf, cni *libcni.CNIConfig) error {
 	return cni.DelNetworkList(ctx, network.config, rt)
+}
+
+func (network *cniNetwork) getNetworkStatus(ctx context.Context, cni *libcni.CNIConfig) error {
+	return cni.GetStatusNetworkList(ctx, network.config)
+}
+
+func (network *cniNetwork) gcNetwork(ctx context.Context, cni *libcni.CNIConfig, gcArgs *libcni.GCArgs) error {
+	return cni.GCNetworkList(ctx, network.config, gcArgs)
 }
 
 func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig *RuntimeConfig) (*libcni.RuntimeConf, error) {
@@ -887,9 +971,17 @@ func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig *R
 	return rt, nil
 }
 
+// Status returns error if the default network is not configured, or if
+// the default network reports a failing STATUS code.
 func (plugin *cniNetworkPlugin) Status() error {
-	if plugin.getDefaultNetwork() == nil {
+	return plugin.StatusWithContext(context.Background())
+}
+
+func (plugin *cniNetworkPlugin) StatusWithContext(ctx context.Context) error {
+	defaultNet := plugin.getDefaultNetwork()
+	if defaultNet == nil {
 		return fmt.Errorf(errMissingDefaultNetwork, plugin.confDir)
 	}
-	return nil
+
+	return defaultNet.getNetworkStatus(ctx, plugin.cniConfig)
 }
