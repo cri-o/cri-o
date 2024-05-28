@@ -69,20 +69,6 @@ func (mr *MockStoreMockRecorder) ApplyDiff(arg0, arg1 interface{}) *gomock.Call 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiff", reflect.TypeOf((*MockStore)(nil).ApplyDiff), arg0, arg1)
 }
 
-// ApplyDiffFromStagingDirectory mocks base method.
-func (m *MockStore) ApplyDiffFromStagingDirectory(arg0, arg1 string, arg2 *graphdriver.DriverWithDifferOutput, arg3 *graphdriver.ApplyDiffWithDifferOpts) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyDiffFromStagingDirectory", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ApplyDiffFromStagingDirectory indicates an expected call of ApplyDiffFromStagingDirectory.
-func (mr *MockStoreMockRecorder) ApplyDiffFromStagingDirectory(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffFromStagingDirectory", reflect.TypeOf((*MockStore)(nil).ApplyDiffFromStagingDirectory), arg0, arg1, arg2, arg3)
-}
-
 // ApplyDiffWithDiffer mocks base method.
 func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiffWithDifferOpts, arg2 graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
 	m.ctrl.T.Helper()
@@ -155,20 +141,6 @@ func (m *MockStore) CleanupStagedLayer(arg0 *graphdriver.DriverWithDifferOutput)
 func (mr *MockStoreMockRecorder) CleanupStagedLayer(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagedLayer", reflect.TypeOf((*MockStore)(nil).CleanupStagedLayer), arg0)
-}
-
-// CleanupStagingDirectory mocks base method.
-func (m *MockStore) CleanupStagingDirectory(arg0 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanupStagingDirectory", arg0)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// CleanupStagingDirectory indicates an expected call of CleanupStagingDirectory.
-func (mr *MockStoreMockRecorder) CleanupStagingDirectory(arg0 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagingDirectory", reflect.TypeOf((*MockStore)(nil).CleanupStagingDirectory), arg0)
 }
 
 // Container mocks base method.
