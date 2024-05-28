@@ -3,6 +3,7 @@ package hostport
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -10,23 +11,58 @@ import (
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
 	utilnet "k8s.io/utils/net"
+	"sigs.k8s.io/knftables"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
+// metaHostportManager is a HostPortManager that manages other HostPort managers internally.
 type metaHostportManager struct {
-	ipv4HostportManager HostPortManager
-	ipv6HostportManager HostPortManager
+	managers map[utilnet.IPFamily]*hostportManagers
+}
+
+type hostportManagers struct {
+	iptables HostPortManager
+	nftables HostPortManager
 }
 
 // NewMetaHostportManager creates a new HostPortManager.
-func NewMetaHostportManager(ctx context.Context) HostPortManager {
-	h := &metaHostportManager{
-		ipv4HostportManager: newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv4),
-		ipv6HostportManager: newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv6),
+func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
+	mh := &metaHostportManager{
+		managers: make(map[utilnet.IPFamily]*hostportManagers),
 	}
 
-	return h
+	iptv4, iptErr := newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv4)
+	nftv4, nftErr := newHostportManagerNFTables(knftables.IPv4Family)
+
+	if iptv4 == nil && nftv4 == nil {
+		return nil, fmt.Errorf("can't create HostPortManager: no support for iptables (%w) or nftables (%w)", iptErr, nftErr)
+	}
+
+	mh.managers[utilnet.IPv4] = &hostportManagers{
+		iptables: iptv4,
+		nftables: nftv4,
+	}
+
+	// IPv6 may fail if there's no kernel support, or no ip6tables binaries. We leave
+	// mh.managers[utilnet.IPv6] nil if there's no IPv6 support.
+	iptv6, iptErr := newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv6)
+
+	nftv6, nftErr := newHostportManagerNFTables(knftables.IPv6Family)
+
+	switch {
+	case nftv6 == nil:
+		logrus.Infof("No kernel support for IPv6: %v", nftErr)
+	case iptv6 == nil:
+		logrus.Infof("No iptables support for IPv6: %v", iptErr)
+	default:
+		mh.managers[utilnet.IPv6] = &hostportManagers{
+			iptables: iptv6,
+			nftables: nftv6,
+		}
+	}
+
+	return mh, nil
 }
 
 var netlinkFamily = map[utilnet.IPFamily]netlink.InetFamily{
@@ -42,13 +78,20 @@ func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*P
 		return nil
 	}
 
-	var err error
-	if family == utilnet.IPv6 {
-		err = mh.ipv6HostportManager.Add(id, name, podIP, hostportMappings)
-	} else {
-		err = mh.ipv4HostportManager.Add(id, name, podIP, hostportMappings)
+	managers := mh.managers[family]
+	if managers == nil {
+		// No support for IPv6 but we got an IPv6 pod. This shouldn't happen.
+		return fmt.Errorf("no HostPort support for IPv%s on this host", family)
 	}
 
+	// Use nftables if available, fall back to iptables. (We know at least one must be
+	// non-nil.)
+	hm := managers.nftables
+	if hm == nil {
+		hm = managers.iptables
+	}
+
+	err := hm.Add(id, name, podIP, hostportMappings)
 	if err != nil {
 		return err
 	}
@@ -81,21 +124,28 @@ func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*P
 func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping) error {
 	var errstrings []string
 	// Remove may not have the IP information, so we try to clean us much as possible
-	// and warn about the possible errors
+	// and warn about the possible errors. We also use both managers, if available,
+	// to handle switching between iptables and nftables on upgrade/downgrade.
 
-	hostportMappingsV4 := filterHostportMappings(hostportMappings, utilnet.IPv4)
-	if len(hostportMappingsV4) > 0 {
-		err := mh.ipv4HostportManager.Remove(id, hostportMappingsV4)
-		if err != nil {
-			errstrings = append(errstrings, err.Error())
+	for family, managers := range mh.managers {
+		mappingsForFamily := filterHostportMappings(hostportMappings, family)
+		if len(mappingsForFamily) == 0 {
+			continue
 		}
-	}
 
-	hostportMappingsV6 := filterHostportMappings(hostportMappings, utilnet.IPv6)
-	if len(hostportMappingsV6) > 0 {
-		err := mh.ipv6HostportManager.Remove(id, hostportMappingsV6)
-		if err != nil {
-			errstrings = append(errstrings, err.Error())
+		if managers.nftables != nil {
+			err := managers.nftables.Remove(id, mappingsForFamily)
+			if err != nil {
+				errstrings = append(errstrings, err.Error())
+			}
+		}
+
+		if managers.iptables != nil {
+			err := managers.iptables.Remove(id, mappingsForFamily)
+			// Ignore iptables errors if we're primarily using nftables
+			if err != nil && managers.nftables == nil {
+				errstrings = append(errstrings, err.Error())
+			}
 		}
 	}
 

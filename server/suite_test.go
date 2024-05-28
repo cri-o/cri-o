@@ -149,6 +149,10 @@ var beforeEach = func() {
 	serverConfig.Seccomp().SetNotifierPath(t.MustTempDir("seccomp-notifier"))
 	serverConfig.NRI.SocketPath = t.MustTempDir("nri")
 
+	// Nothing here tests hostport mapping, and hostport.NewMetaHostPortManager
+	// will fail if non-root
+	serverConfig.DisableHostPortMapping = true
+
 	// We want a directory that is guaranteed to exist, but it must
 	// be empty so we don't erroneously load anything and make tests
 	// unreproducible.

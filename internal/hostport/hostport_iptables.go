@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -51,12 +52,15 @@ type hostportManagerIPTables struct {
 }
 
 // newHostportManagerIPTables creates a new iptables HostPortManager.
-func newHostportManagerIPTables(ctx context.Context, protocol utiliptables.Protocol) *hostportManagerIPTables {
+func newHostportManagerIPTables(ctx context.Context, protocol utiliptables.Protocol) (*hostportManagerIPTables, error) {
 	h := &hostportManagerIPTables{
 		iptables: utiliptables.New(ctx, utilexec.New(), protocol),
 	}
+	if !h.iptables.Present() {
+		return nil, errors.New("iptables not available")
+	}
 
-	return h
+	return h, nil
 }
 
 func (hm *hostportManagerIPTables) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {

@@ -39,6 +39,7 @@
       - make
       - mlocate
       - nfs-utils
+      - nftables
       - nmap-ncat
       - openssl
       - openssl-devel
