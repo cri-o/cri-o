@@ -26,7 +26,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v60/github"
 	"github.com/sirupsen/logrus"
 )
 
@@ -51,6 +51,7 @@ const (
 	gitHubAPIListMilestones             gitHubAPI = "ListMilestones"
 	gitHubAPIListIssues                 gitHubAPI = "ListIssues"
 	gitHubAPIListComments               gitHubAPI = "ListComments"
+	gitHubAPICheckRateLimit             gitHubAPI = "CheckRateLimit"
 )
 
 type apiRecord struct {
@@ -343,6 +344,19 @@ func (c *githubNotesRecordClient) ListComments(
 		return nil, nil, err
 	}
 	return comments, resp, nil
+}
+
+func (c *githubNotesRecordClient) CheckRateLimit(
+	ctx context.Context,
+) (*github.RateLimits, *github.Response, error) {
+	rt, resp, err := c.client.CheckRateLimit(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := c.recordAPICall(gitHubAPICheckRateLimit, rt, resp); err != nil {
+		return nil, nil, err
+	}
+	return rt, resp, nil
 }
 
 // recordAPICall records a single GitHub API call into a JSON file by ensuring

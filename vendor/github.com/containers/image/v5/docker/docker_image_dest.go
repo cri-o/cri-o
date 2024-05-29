@@ -8,10 +8,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -34,8 +36,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 type dockerImageDestination struct {
@@ -347,35 +347,24 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 	}
 
 	// Then try reusing blobs from other locations.
-	candidates := options.Cache.CandidateLocations2(d.ref.Transport(), bicTransportScope(d.ref), info.Digest, options.CanSubstitute)
+	candidates := options.Cache.CandidateLocations2(d.ref.Transport(), bicTransportScope(d.ref), info.Digest, blobinfocache.CandidateLocations2Options{
+		CanSubstitute:           options.CanSubstitute,
+		PossibleManifestFormats: options.PossibleManifestFormats,
+		RequiredCompression:     options.RequiredCompression,
+	})
 	for _, candidate := range candidates {
-		var err error
-		compressionOperation, compressionAlgorithm, err := blobinfocache.OperationAndAlgorithmForCompressor(candidate.CompressorName)
-		if err != nil {
-			logrus.Debugf("OperationAndAlgorithmForCompressor Failed: %v", err)
-			continue
-		}
 		var candidateRepo reference.Named
 		if !candidate.UnknownLocation {
+			var err error
 			candidateRepo, err = parseBICLocationReference(candidate.Location)
 			if err != nil {
 				logrus.Debugf("Error parsing BlobInfoCache location reference: %s", err)
 				continue
 			}
 		}
-		if !impl.CandidateMatchesTryReusingBlobOptions(options, compressionAlgorithm) {
-			if !candidate.UnknownLocation {
-				logrus.Debugf("Ignoring candidate blob %s in %s, compression %s does not match required %s or MIME types %#v", candidate.Digest.String(), candidateRepo.Name(),
-					optionalCompressionName(compressionAlgorithm), optionalCompressionName(options.RequiredCompression), options.PossibleManifestFormats)
-			} else {
-				logrus.Debugf("Ignoring candidate blob %s with no known location, compression %s does not match required %s or MIME types %#v", candidate.Digest.String(),
-					optionalCompressionName(compressionAlgorithm), optionalCompressionName(options.RequiredCompression), options.PossibleManifestFormats)
-			}
-			continue
-		}
 		if !candidate.UnknownLocation {
-			if candidate.CompressorName != blobinfocache.Uncompressed {
-				logrus.Debugf("Trying to reuse blob with cached digest %s compressed with %s in destination repo %s", candidate.Digest.String(), candidate.CompressorName, candidateRepo.Name())
+			if candidate.CompressionAlgorithm != nil {
+				logrus.Debugf("Trying to reuse blob with cached digest %s compressed with %s in destination repo %s", candidate.Digest.String(), candidate.CompressionAlgorithm.Name(), candidateRepo.Name())
 			} else {
 				logrus.Debugf("Trying to reuse blob with cached digest %s in destination repo %s", candidate.Digest.String(), candidateRepo.Name())
 			}
@@ -390,8 +379,8 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 				continue
 			}
 		} else {
-			if candidate.CompressorName != blobinfocache.Uncompressed {
-				logrus.Debugf("Trying to reuse blob with cached digest %s compressed with %s with no location match, checking current repo", candidate.Digest.String(), candidate.CompressorName)
+			if candidate.CompressionAlgorithm != nil {
+				logrus.Debugf("Trying to reuse blob with cached digest %s compressed with %s with no location match, checking current repo", candidate.Digest.String(), candidate.CompressionAlgorithm.Name())
 			} else {
 				logrus.Debugf("Trying to reuse blob with cached digest %s in destination repo with no location match, checking current repo", candidate.Digest.String())
 			}
@@ -442,8 +431,8 @@ func (d *dockerImageDestination) TryReusingBlobWithOptions(ctx context.Context, 
 		return true, private.ReusedBlob{
 			Digest:               candidate.Digest,
 			Size:                 size,
-			CompressionOperation: compressionOperation,
-			CompressionAlgorithm: compressionAlgorithm}, nil
+			CompressionOperation: candidate.CompressionOperation,
+			CompressionAlgorithm: candidate.CompressionAlgorithm}, nil
 	}
 
 	return false, private.ReusedBlob{}, nil

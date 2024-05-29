@@ -10,12 +10,12 @@ import (
 	"encoding/asn1"
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/containers/image/v5/signature/internal"
 	"github.com/sigstore/fulcio/pkg/certificate"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"golang.org/x/exp/slices"
 )
 
 // fulcioTrustRoot contains policy allow validating Fulcio-issued certificates.
@@ -178,7 +178,7 @@ func (f *fulcioTrustRoot) verifyFulcioCertificateAtTime(relevantTime time.Time, 
 
 	// == Validate the OIDC subject
 	if !slices.Contains(untrustedCertificate.EmailAddresses, f.subjectEmail) {
-		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Required email %s not found (got %#v)",
+		return nil, internal.NewInvalidSignatureError(fmt.Sprintf("Required email %q not found (got %q)",
 			f.subjectEmail,
 			untrustedCertificate.EmailAddresses))
 	}
