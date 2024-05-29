@@ -1,6 +1,7 @@
 GO ?= go
 
 TRIMPATH ?= -trimpath
+GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.3.16
