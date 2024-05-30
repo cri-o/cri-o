@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"maps"
 	"os"
 	"runtime"
 	"strings"
@@ -18,7 +19,6 @@ import (
 	digest "github.com/opencontainers/go-digest"
 	imgspecs "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
 )
 
 type tarballImageSource struct {
@@ -117,7 +117,7 @@ func (r *tarballReference) NewImageSource(ctx context.Context, sys *types.System
 
 		history = append(history, imgspecv1.History{
 			Created:   &blobTime,
-			CreatedBy: fmt.Sprintf("/bin/sh -c #(nop) ADD file:%s in %c", diffID.Hex(), os.PathSeparator),
+			CreatedBy: fmt.Sprintf("/bin/sh -c #(nop) ADD file:%s in %c", diffID.Encoded(), os.PathSeparator),
 			Comment:   comment,
 		})
 		// Use the mtime of the most recently modified file as the image's creation time.

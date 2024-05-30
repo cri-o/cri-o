@@ -3,8 +3,10 @@ package manifest
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"math"
 	"runtime"
+	"slices"
 
 	platform "github.com/containers/image/v5/internal/pkg/platform"
 	compression "github.com/containers/image/v5/pkg/compression/types"
@@ -12,8 +14,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -260,7 +260,7 @@ func (index *OCI1IndexPublic) chooseInstance(ctx *types.SystemContext, preferGzi
 	if bestMatch != nil {
 		return bestMatch.digest, nil
 	}
-	return "", fmt.Errorf("no image found in image index for architecture %s, variant %q, OS %s", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
+	return "", fmt.Errorf("no image found in image index for architecture %q, variant %q, OS %q", wantedPlatforms[0].Architecture, wantedPlatforms[0].Variant, wantedPlatforms[0].OS)
 }
 
 func (index *OCI1Index) ChooseInstanceByCompression(ctx *types.SystemContext, preferGzip types.OptionalBool) (digest.Digest, error) {
