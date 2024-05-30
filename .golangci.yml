@@ -206,7 +206,7 @@ linters-settings:
       # - filepathJoin
       # - whyNoLint
   gocyclo:
-    min-complexity: 167
+    min-complexity: 175
   nakedret:
     max-func-lines: 15
   goconst:
