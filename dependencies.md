@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 30 May 2024 13:01:35 UTC for commit [61def6b][0]._
+_Generated on Thu, 30 May 2024 15:33:26 UTC for commit [412d467][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/61def6bcdddb79c8642a4c30de37f6f2ff610688
+[0]: https://github.com/cri-o/cri-o/commit/412d4679a1b3c6a3ea79aaeb6d54826347333ba7
 
 ## Outdated Dependencies
 
@@ -318,7 +318,7 @@ _Generated on Thu, 30 May 2024 13:01:35 UTC for commit [61def6b][0]._
 | github.com/containers/kubensmnt                                                         | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.1.10                               |                                     | true   | true             |
-| github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.4                              | false  | true             |
+| github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.5                              | false  | true             |
 | github.com/containers/storage                                                           | v1.54.0                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                                           | v0.7.0                                |                                     | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                   |                                     | false  | true             |
@@ -582,7 +582,7 @@ _Generated on Thu, 30 May 2024 13:01:35 UTC for commit [61def6b][0]._
 | github.com/onsi/ginkgo                                                                  | v1.16.4                               | v1.16.5                             | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.19.0                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.33.1                               |                                     | true   | true             |
-| github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.64.1                             | false  | true             |
+| github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.65.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.12                               |                                     | true   | true             |
