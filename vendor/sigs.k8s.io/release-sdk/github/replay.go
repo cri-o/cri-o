@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/google/go-github/v58/github"
+	"github.com/google/go-github/v60/github"
 )
 
 func NewReplayer(replayDir string) Client {
@@ -356,4 +356,19 @@ func (c *githubNotesReplayClient) ListComments(
 		return nil, nil, err
 	}
 	return comments, record.response(), nil
+}
+
+func (c *githubNotesReplayClient) CheckRateLimit(
+	_ context.Context,
+) (*github.RateLimits, *github.Response, error) {
+	data, err := c.readRecordedData(gitHubAPICheckRateLimit)
+	if err != nil {
+		return nil, nil, err
+	}
+	rt := &github.RateLimits{}
+	record := apiRecord{Result: rt}
+	if err := json.Unmarshal(data, &record); err != nil {
+		return nil, nil, err
+	}
+	return rt, record.response(), nil
 }

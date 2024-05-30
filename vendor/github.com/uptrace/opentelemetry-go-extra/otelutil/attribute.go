@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/log"
 )
 
 func Attribute(key string, value interface{}) attribute.KeyValue {
@@ -62,4 +63,51 @@ func Attribute(key string, value interface{}) attribute.KeyValue {
 		return attribute.String(key, string(b))
 	}
 	return attribute.String(key, fmt.Sprint(value))
+}
+
+func LogValue(value interface{}) log.Value {
+	switch value := value.(type) {
+	case nil:
+		return log.StringValue("<nil>")
+	case string:
+		return log.StringValue(value)
+	case int:
+		return log.IntValue(value)
+	case int64:
+		return log.Int64Value(value)
+	case uint64:
+		return log.Int64Value(int64(value))
+	case float64:
+		return log.Float64Value(value)
+	case bool:
+		return log.BoolValue(value)
+	case fmt.Stringer:
+		return log.StringValue(value.String())
+	}
+
+	rv := reflect.ValueOf(value)
+
+	switch rv.Kind() {
+	case reflect.Array:
+		rv = rv.Slice(0, rv.Len())
+		fallthrough
+	case reflect.Slice:
+		values := make([]log.Value, rv.Len())
+		for i := range values {
+			values[i] = LogValue(rv.Index(i).Interface())
+		}
+		return log.SliceValue(values...)
+	case reflect.Bool:
+		return log.BoolValue(rv.Bool())
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return log.Int64Value(rv.Int())
+	case reflect.Float64:
+		return log.Float64Value(rv.Float())
+	case reflect.String:
+		return log.StringValue(rv.String())
+	}
+	if b, err := json.Marshal(value); err == nil {
+		return log.StringValue(string(b))
+	}
+	return log.StringValue(fmt.Sprint(value))
 }
