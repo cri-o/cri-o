@@ -42,7 +42,6 @@ type Info struct {
 	Platform        string   `json:"platform,omitempty"`
 	Linkmode        string   `json:"linkmode,omitempty"`
 	BuildTags       []string `json:"buildTags,omitempty"`
-	LDFlags         string   `json:"ldFlags,omitempty"`
 	SeccompEnabled  bool     `json:"seccompEnabled"`
 	AppArmorEnabled bool     `json:"appArmorEnabled"`
 	Dependencies    []string `json:"dependencies,omitempty"`
@@ -154,7 +153,6 @@ func Get(verbose bool) (*Info, error) {
 	gitTreeState := "clean"
 	gitCommitDate := unknown
 	buildTags := []string{}
-	ldFlags := unknown
 
 	for _, s := range info.Settings {
 		switch s.Key {
@@ -171,9 +169,6 @@ func Get(verbose bool) (*Info, error) {
 
 		case "-tags":
 			buildTags = strings.Split(s.Value, ",")
-
-		case "-ldflags":
-			ldFlags = s.Value
 		}
 	}
 
@@ -198,7 +193,6 @@ func Get(verbose bool) (*Info, error) {
 		Platform:        fmt.Sprintf("%s/%s", runtime.GOOS, runtime.GOARCH),
 		Linkmode:        linkmode,
 		BuildTags:       buildTags,
-		LDFlags:         ldFlags,
 		SeccompEnabled:  seccomp.IsEnabled(),
 		AppArmorEnabled: apparmor.IsEnabled(),
 		Dependencies:    dependencies,
