@@ -39,7 +39,7 @@ package the latest versions for CRI-O
 
 ```mermaid
     flowchart TD
-        A[Start tag-reconciler Github action] --> B[Run Tag-Reconciler Script]
+        A[Start tag-reconciler Github action] --> B[Run tag-reconciler.go Script]
         --> C[Check for latest minor versions tags on remote]
         C --> D{Tag Exists?}
         D -->|Yes| E[No-op] --> H
