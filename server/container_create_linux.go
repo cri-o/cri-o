@@ -846,25 +846,51 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		specgen.Config.Process.User.Umask = &umask
 	}
 
-	etc := filepath.Join(mountPoint, "/etc")
-	// create the `/etc` folder only when it doesn't exist
-	if _, err := os.Stat(etc); err != nil && os.IsNotExist(err) {
+	etcPath := filepath.Join(mountPoint, "/etc")
+
+	// Warn users if the container /etc directory path points to a location
+	// that is not a regular directory. This could indicate that something
+	// might be afoot.
+	etc, err := os.Lstat(etcPath)
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if err == nil && !etc.IsDir() {
+		log.Warnf(ctx, "Detected /etc path for container %s is not a directory", ctr.ID())
+	}
+
+	// The /etc directory can be subjected to various attempts on the path (directory)
+	// traversal attacks. As such, we need to ensure that its path will be relative to
+	// the base (or root, if you wish) of the container to mitigate a container escape.
+	etcPath, err = securejoin.SecureJoin(mountPoint, "/etc")
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve container /etc directory path: %w", err)
+	}
+
+	// Create the /etc directory only when it doesn't exist.
+	if _, err := os.Stat(etcPath); err != nil && os.IsNotExist(err) {
 		rootPair := idtools.IDPair{UID: 0, GID: 0}
 		if containerIDMappings != nil {
 			rootPair = containerIDMappings.RootPair()
 		}
-		if err := idtools.MkdirAllAndChown(etc, 0o755, rootPair); err != nil {
-			return nil, fmt.Errorf("error creating mtab directory: %w", err)
+		if err := idtools.MkdirAllAndChown(etcPath, 0o755, rootPair); err != nil {
+			return nil, fmt.Errorf("failed to create container /etc directory: %w", err)
 		}
 	}
-	// add symlink /etc/mtab to /proc/mounts allow looking for mountfiles there in the container
-	// compatible with Docker
-	if err := os.Symlink("/proc/mounts", filepath.Join(etc, "mtab")); err != nil && !os.IsExist(err) {
+
+	// Add a symbolic link from /proc/mounts to /etc/mtab to keep compatibility with legacy
+	// Linux distributions and Docker.
+	//
+	// We cannot use SecureJoin here, as the /etc/mtab can already be symlinked from somewhere
+	// else in some cases, and doing so would resolve an existing mtab path to the symbolic
+	// link target location, for example, the /etc/proc/self/mounts, which breaks container
+	// creation.
+	if err := os.Symlink("/proc/mounts", filepath.Join(etcPath, "mtab")); err != nil && !os.IsExist(err) {
 		return nil, err
 	}
 
 	// Configure timezone for the container if it is set.
-	if err := configureTimezone(s.Runtime().Timezone(), ociContainer.BundlePath(), mountPoint, mountLabel, etc, ociContainer.ID(), options, ctr); err != nil {
+	if err := configureTimezone(s.Runtime().Timezone(), ociContainer.BundlePath(), mountPoint, mountLabel, etcPath, ociContainer.ID(), options, ctr); err != nil {
 		return nil, fmt.Errorf("failed to configure timezone for container %s: %w", ociContainer.ID(), err)
 	}
 
