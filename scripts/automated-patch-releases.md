@@ -6,7 +6,7 @@ outlined flow:
 
 ```mermaid
     flowchart TD
-      A[Start: patch-release.yml Workflow] --> B[Create version bump intent prs]
+      A[Start: patch-release.yml Workflow] --> B[Create version bump PRs]
       B --> C[Maintainers Review PRs]
       C -->|Decides Against Merges| E[Rebases on main branch] --> C
       C -->|Decides to Merge PRs| D[Run: tag-reconciler.yml Workflow]
