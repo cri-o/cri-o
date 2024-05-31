@@ -1,6 +1,6 @@
 # CRI-O Automated Patch Releases
 
-Automated Patch Releases provides an easy way of packaging and release new version
+Automated Patch Releases provide an easy way of packaging and releasing a new version
 of CRI-O
 This involves the use of Golang Scripts and Github Actions
 
