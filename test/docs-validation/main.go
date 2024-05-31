@@ -53,7 +53,6 @@ var (
 		"plugin_dirs":         "cni-plugin-dir",
 		"insecure_registries": "insecure-registry",
 		"log_to_journald":     "log-journald",
-		"registries":          "registry",
 		"storage_option":      "storage-opt",
 	}
 )
