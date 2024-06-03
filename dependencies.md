@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
+_Generated on Mon, 03 Jun 2024 09:57:22 UTC for commit [9b9452f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fd87228975e28a2d53aa2960cb14520cf51f0245
+[0]: https://github.com/cri-o/cri-o/commit/9b9452f662381706cd909a36336514025fc5fb5c
 
 ## Outdated Dependencies
 
@@ -17,7 +17,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 |                                         MODULE                                          |                VERSION                |             NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------------------|---------------------------------------|-------------------------------------|--------|------------------|
 | capnproto.org/go/capnp/v3                                                               | v3.0.0-alpha.25                       | v3.0.0-alpha-29                     | false  | true             |
-| chainguard.dev/go-grpc-kit                                                              | v0.17.2                               | v0.17.4                             | false  | true             |
+| chainguard.dev/go-grpc-kit                                                              | v0.17.2                               | v0.17.5                             | false  | true             |
 | cloud.google.com/go                                                                     | v0.112.1                              | v0.114.0                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.5                                | v1.7.7                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                                | v1.8.5                                | v1.8.7                              | false  | true             |
@@ -257,7 +257,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | github.com/buger/jsonparser                                                             | v1.1.1                                |                                     | false  | true             |
 | github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.73.1                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                | v0.9.0                              | false  | true             |
-| github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251    | v0.1.0                              | false  | true             |
+| github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251    | v0.1.1                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                |                                     | false  | true             |
 | github.com/cavaliercoder/badio                                                          | v0.0.0-20160213150051-ce5280129e9e    |                                     | false  | true             |
 | github.com/cavaliercoder/go-rpm                                                         | v0.0.0-20200122174316-8cb9fd9c31a8    | v1.2.0                              | false  | true             |
@@ -271,7 +271,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | github.com/checkpoint-restore/go-criu/v5                                                | v5.3.0                                |                                     | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                                | v7.1.0                                |                                     | true   | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589    |                                     | false  | true             |
-| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89    | v0.0.0-20240529195259-de715aab5f80  | false  | true             |
+| github.com/chromedp/cdproto                                                             | v0.0.0-20230802225258-3cf4e6d46a89    | v0.0.0-20240602235142-49d0e97b7881  | false  | true             |
 | github.com/chromedp/chromedp                                                            | v0.9.2                                | v0.9.5                              | false  | true             |
 | github.com/chromedp/sysutil                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/chzyer/logex                                                                 | v1.2.1                                |                                     | false  | true             |
@@ -521,7 +521,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240529224635-6b4577ecc491  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240601013439-764f6c2f7afe  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -657,7 +657,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | github.com/spf13/cast                                                                   | v1.6.0                                |                                     | false  | true             |
 | github.com/spf13/cobra                                                                  | v1.8.0                                |                                     | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                |                                     | false  | true             |
-| github.com/spf13/viper                                                                  | v1.18.2                               |                                     | false  | true             |
+| github.com/spf13/viper                                                                  | v1.18.2                               | v1.19.0                             | false  | true             |
 | github.com/spiffe/go-spiffe/v2                                                          | v2.2.0                                |                                     | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20230803200340-78284954bff6    |                                     | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                | v1.3.0                              | false  | true             |
@@ -774,7 +774,7 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240528184218-531527333157  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240528184218-531527333157  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.64.0                               |                                     | true   | true             |
-| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                |                                     | false  | true             |
+| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.4.0                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.1                               |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
@@ -804,17 +804,17 @@ _Generated on Fri, 31 May 2024 18:35:10 UTC for commit [fd87228][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240521193020-835d969ad83a  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.1                               |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240502163921-fe8a2dddb1d0    |                                     | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240529181700-7d52a43448b2  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240603080447-170996133132  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.50.9                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.51.0                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                               | v1.29.10                            | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                               | v1.30.0                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                               | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                | v1.1.0                              | false  | true             |
