@@ -79,9 +79,13 @@ func updateVersionAndCreatePR(
 	}
 
 	if doesTheBranchExistRemotely {
-		// Only Rebase and force push
-		rebaseBranch := "origin/" + newBranch
-		if err := repo.Rebase(rebaseBranch); err != nil {
+		// Only rebase and force push
+		logrus.Infof("Switching to existing branch: %s", newBranch)
+		if err := repo.Checkout(newBranch); err != nil {
+			return fmt.Errorf("unable to checkout existing branch %q: %w", newBranch, err)
+		}
+
+		if err := repo.Rebase("origin/" + baseBranchName); err != nil {
 			return fmt.Errorf("unable to rebase branch %q: %w", newBranch, err)
 		}
 
@@ -90,7 +94,8 @@ func updateVersionAndCreatePR(
 		}
 		return nil
 	}
-	logrus.Infof("Switching to branch: %s", newBranch)
+
+	logrus.Infof("Switching to new branch: %s", newBranch)
 	if err := repo.Checkout("-B", newBranch); err != nil {
 		return fmt.Errorf("unable to checkout branch %q: %w", newBranch, err)
 	}
