@@ -229,11 +229,19 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	}
 
 	genPasswd := true
+	genGroup := true
 	for _, mount := range specgen.Config.Mounts {
-		if mount.Destination == "/etc" ||
-			mount.Destination == "/etc/" ||
-			mount.Destination == "/etc/passwd" {
+		switch mount.Destination {
+		case "/etc", "/etc/":
 			genPasswd = false
+			genGroup = false
+		case "/etc/passwd":
+			genPasswd = false
+		case "/etc/group":
+			genGroup = false
+		}
+
+		if !genPasswd && !genGroup {
 			break
 		}
 	}
@@ -255,6 +263,28 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 				Options:     []string{"rw", "bind", "nodev", "nosuid", "noexec"},
 			}
 			specgen.AddMount(mnt)
+		}
+	}
+	if genGroup {
+		if sc.RunAsGroup != nil {
+			gid = uint32(sc.RunAsGroup.Value)
+		}
+
+		// verify gid exists in containers /etc/group, else generate a group with the group entry
+		groupPath, err := utils.GenerateGroup(gid, rootfs, ctrRunDir)
+		if err != nil {
+			return err
+		}
+		if groupPath != "" {
+			if err := securityLabel(groupPath, mountLabel, false, false); err != nil {
+				return err
+			}
+			specgen.AddMount(rspec.Mount{
+				Type:        "bind",
+				Source:      groupPath,
+				Destination: "/etc/group",
+				Options:     []string{"rw", "bind", "nodev", "nosuid", "noexec"},
+			})
 		}
 	}
 
