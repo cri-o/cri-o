@@ -309,7 +309,11 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	const maxRetries = 10
 	for i := 0; i <= maxRetries; i++ {
 		if err := command.New("git", "pull", "--rebase").RunSuccess(); err != nil {
-			return fmt.Errorf("pull and rebase from remote: %w", err)
+			logrus.Errorf("Pull and rebase from remote failed (skipping): %v", err)
+			// A failed release notes GitHub pages update is not critical and
+			// we need the release notes as part of the next CI step to
+			// actually create the release.
+			return nil
 		}
 
 		err := repo.Push(branch)
