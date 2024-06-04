@@ -1,16 +1,18 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 04 Jun 2024 10:22:18 UTC for commit [d249d32][0]._
+_Generated on Tue, 04 Jun 2024 15:08:38 UTC for commit [05cad40][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d249d323591be1a283539d0a3ee1f6dc606e44c3
+[0]: https://github.com/cri-o/cri-o/commit/05cad40b33b4b84669abeb6a82edabd423ab4b58
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.0                             | true   | true             |
+| github.com/containers/common                           | v0.59.0                            | v0.59.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240604051651-647560539f7e | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240604150536-2b8cdd9ff2af | true   | true             |
+| golang.org/x/sys                                       | v0.20.0                            | v0.21.0                            | true   | true             |
 
 ## All Dependencies
 
@@ -311,7 +313,7 @@ _Generated on Tue, 04 Jun 2024 10:22:18 UTC for commit [d249d32][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                | v1.2.0                              | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.5.0                                |                                     | true   | true             |
-| github.com/containers/common                                                            | v0.59.0                               |                                     | true   | true             |
+| github.com/containers/common                                                            | v0.59.0                               | v0.59.1                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.3                                |                                     | true   | true             |
 | github.com/containers/image/v5                                                          | v5.31.0                               |                                     | true   | true             |
@@ -498,7 +500,7 @@ _Generated on Tue, 04 Jun 2024 10:22:18 UTC for commit [d249d32][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240604051651-647560539f7e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240604150536-2b8cdd9ff2af  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -754,14 +756,14 @@ _Generated on Tue, 04 Jun 2024 10:22:18 UTC for commit [d249d32][0]._
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.16.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20240520174638-fa72addaaa1b  | false  | true             |
-| golang.org/x/mod                                                                        | v0.17.0                               |                                     | false  | true             |
+| golang.org/x/mod                                                                        | v0.17.0                               | v0.18.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.25.0                               |                                     | true   | true             |
-| golang.org/x/oauth2                                                                     | v0.20.0                               |                                     | false  | true             |
+| golang.org/x/oauth2                                                                     | v0.20.0                               | v0.21.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
-| golang.org/x/sys                                                                        | v0.20.0                               |                                     | true   | true             |
+| golang.org/x/sys                                                                        | v0.20.0                               | v0.21.0                             | true   | true             |
 | golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240603224550-f2b69109f79b  | false  | true             |
 | golang.org/x/term                                                                       | v0.20.0                               |                                     | false  | true             |
-| golang.org/x/text                                                                       | v0.15.0                               |                                     | false  | true             |
+| golang.org/x/text                                                                       | v0.15.0                               | v0.16.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
 | golang.org/x/tools                                                                      | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028    |                                     | false  | true             |
@@ -804,7 +806,7 @@ _Generated on Tue, 04 Jun 2024 10:22:18 UTC for commit [d249d32][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240521193020-835d969ad83a  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.1                               |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240502163921-fe8a2dddb1d0    |                                     | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240603145758-fce44ead15bd  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240604134003-58135c2c0694  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
