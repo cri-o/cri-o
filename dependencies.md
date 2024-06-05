@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 05 Jun 2024 13:17:44 UTC for commit [49d1988][0]._
+_Generated on Wed, 05 Jun 2024 17:25:43 UTC for commit [d481386][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/49d1988b886615d73d80202cc4525e5ef3324d05
+[0]: https://github.com/cri-o/cri-o/commit/d481386f201cf658f1e09d72d18d75afea9e133c
 
 ## Outdated Dependencies
 
@@ -251,7 +251,7 @@ _Generated on Wed, 05 Jun 2024 13:17:44 UTC for commit [49d1988][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.24.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.28.11                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.20.2                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240525144225-0fe7eafab216  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240605144053-e9736b52ea9c  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -763,7 +763,7 @@ _Generated on Wed, 05 Jun 2024 13:17:44 UTC for commit [49d1988][0]._
 | golang.org/x/oauth2                                                                     | v0.20.0                               | v0.21.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.20.0                               | v0.21.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240604175127-0767749d88e7  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240605141803-0bb84d54d407  | false  | true             |
 | golang.org/x/term                                                                       | v0.20.0                               | v0.21.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.15.0                               | v0.16.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
@@ -814,7 +814,7 @@ _Generated on Wed, 05 Jun 2024 13:17:44 UTC for commit [49d1988][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.51.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.52.1                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
