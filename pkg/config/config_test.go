@@ -848,9 +848,11 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("should create the  NetworkDir", func() {
+		It("should create the NetworkDir", func() {
 			// Given
-			tmpDir := path.Join(os.TempDir(), invalidPath)
+			tmpDir := t.MustTempDir("network")
+			Expect(os.RemoveAll(tmpDir)).ToNot(HaveOccurred())
+
 			sut.NetworkConfig.NetworkDir = tmpDir
 			sut.NetworkConfig.PluginDirs = []string{validDirPath}
 
@@ -859,7 +861,6 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
-			os.RemoveAll(tmpDir)
 		})
 
 		It("should fail on invalid NetworkDir", func() {

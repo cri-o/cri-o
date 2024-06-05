@@ -3,6 +3,7 @@ package server_test
 import (
 	"context"
 
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
@@ -25,6 +26,10 @@ var _ = t.Describe("RunPodSandbox", func() {
 		// TODO(sgrunert): refactor the internal function to reduce the
 		// cyclomatic complexity and test it separately
 		It("should fail when container creation errors", func() {
+			if unshare.IsRootless() {
+				Skip("should run as root")
+			}
+
 			// Given
 			gomock.InOrder(
 				runtimeServerMock.EXPECT().CreatePodSandbox(gomock.Any(),

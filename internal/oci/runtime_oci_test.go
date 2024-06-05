@@ -51,6 +51,7 @@ var _ = t.Describe("Oci", func() {
 
 			cfg, err := libconfig.DefaultConfig()
 			Expect(err).ToNot(HaveOccurred())
+			cfg.ContainerAttachSocketDir = t.MustTempDir("attach-socket")
 			r, err := oci.New(cfg)
 			Expect(err).ToNot(HaveOccurred())
 			runtime = oci.NewRuntimeOCI(r, &libconfig.RuntimeHandler{})

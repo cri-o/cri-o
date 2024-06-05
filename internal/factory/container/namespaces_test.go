@@ -3,6 +3,7 @@ package container_test
 import (
 	"os"
 
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	nsmgrtest "github.com/cri-o/cri-o/internal/config/nsmgr/test"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -165,6 +166,10 @@ var _ = t.Describe("Container:SpecAddNamespaces", func() {
 		Expect(found).To(BeTrue())
 	})
 	It("should use target PID namespace", func() {
+		if unshare.IsRootless() {
+			Skip("need to run as root")
+		}
+
 		// Given
 		ctrConfig := &types.ContainerConfig{
 			Metadata: &types.ContainerMetadata{Name: "name"},
