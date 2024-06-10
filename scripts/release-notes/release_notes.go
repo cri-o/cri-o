@@ -235,6 +235,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		"--repo-path=/tmp/cri-o-repo",
 		"--required-author=",
 		"--start-rev="+startTag,
+		"--skip-first-commit",
 		"--end-sha="+head,
 		"--output="+outputFilePath,
 		"--toc",
