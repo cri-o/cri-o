@@ -99,7 +99,7 @@ install_critools() {
     install_from_github_org_repo \
         kubernetes-sigs \
         cri-tools \
-        master \
+        7654680e6c7db36c93943b3cd10cba1bbab462a2 \
         sudo -E PATH="$PATH" make BINDIR=/usr/bin install
 
     sudo critest --version
