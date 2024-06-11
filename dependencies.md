@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 Jun 2024 07:24:11 UTC for commit [2235898][0]._
+_Generated on Tue, 11 Jun 2024 14:41:36 UTC for commit [8b9d675][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/22358987f500147f9d66f13f0c706d44fd3cded9
+[0]: https://github.com/cri-o/cri-o/commit/8b9d67544a9334fac0df1e9ed5b996788d028302
 
 ## Outdated Dependencies
 
@@ -13,9 +13,10 @@ _Generated on Tue, 11 Jun 2024 07:24:11 UTC for commit [2235898][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.0                             | true   | true             |
 | github.com/containers/common                           | v0.59.0                            | v0.59.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240611020145-1c8db85d5405 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240611134930-59ff40f05484 | true   | true             |
 | golang.org/x/net                                       | v0.25.0                            | v0.26.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.20.0                            | v0.21.0                            | true   | true             |
+| google.golang.org/protobuf                             | v1.34.1                            | v1.34.2                            | true   | true             |
 | sigs.k8s.io/release-sdk                                | v0.11.1                            | v0.12.0                            | true   | true             |
 
 ## All Dependencies
@@ -504,7 +505,7 @@ _Generated on Tue, 11 Jun 2024 07:24:11 UTC for commit [2235898][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240611020145-1c8db85d5405  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240611134930-59ff40f05484  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -619,7 +620,7 @@ _Generated on Tue, 11 Jun 2024 07:24:11 UTC for commit [2235898][0]._
 | github.com/prometheus/client_model                                                      | v0.6.0                                | v0.6.1                              | false  | true             |
 | github.com/prometheus/common                                                            | v0.51.1                               | v0.54.0                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.12.0                               | v0.15.1                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240416193709-1e18ef0a7fdc  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240611101534-dedd929c1c22  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.5.3                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -781,7 +782,7 @@ _Generated on Tue, 11 Jun 2024 07:24:11 UTC for commit [2235898][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240610135401-a8a62080eff3  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.64.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.4.0                              | false  | true             |
-| google.golang.org/protobuf                                                              | v1.34.1                               |                                     | true   | true             |
+| google.golang.org/protobuf                                                              | v1.34.1                               | v1.34.2                             | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
 | gopkg.in/errgo.v2                                                                       | v2.1.0                                |                                     | false  | true             |
