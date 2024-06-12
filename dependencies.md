@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 12 Jun 2024 06:28:30 UTC for commit [88c1329][0]._
+_Generated on Wed, 12 Jun 2024 12:48:50 UTC for commit [f4e4b73][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/88c1329150f962e5f297d9d792559f6b467007e3
+[0]: https://github.com/cri-o/cri-o/commit/f4e4b732032c0d8aa79a0c6f2b5717d901d35c29
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Wed, 12 Jun 2024 06:28:30 UTC for commit [88c1329][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.0                             | true   | true             |
 | github.com/containers/common                           | v0.59.0                            | v0.59.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240612043928-92cc5e0adb7c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240612092602-3a0247ed436a | true   | true             |
 | golang.org/x/net                                       | v0.25.0                            | v0.26.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.20.0                            | v0.21.0                            | true   | true             |
 | google.golang.org/protobuf                             | v1.34.1                            | v1.34.2                            | true   | true             |
@@ -505,13 +505,13 @@ _Generated on Wed, 12 Jun 2024 06:28:30 UTC for commit [88c1329][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240612043928-92cc5e0adb7c  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240612092602-3a0247ed436a  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
 | github.com/klauspost/asmfmt                                                             | v1.3.2                                |                                     | false  | true             |
-| github.com/klauspost/compress                                                           | v1.17.8                               |                                     | false  | true             |
+| github.com/klauspost/compress                                                           | v1.17.8                               | v1.17.9                             | false  | true             |
 | github.com/klauspost/cpuid/v2                                                           | v2.0.9                                | v2.2.8                              | false  | true             |
 | github.com/klauspost/pgzip                                                              | v1.2.6                                |                                     | false  | true             |
 | github.com/konsorten/go-windows-terminal-sequences                                      | v1.0.1                                | v1.0.3                              | false  | true             |
