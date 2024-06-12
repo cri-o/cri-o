@@ -13,6 +13,7 @@
     state: present
     enablerepo: powertools
     name:
+      - conntrack-tools
       - container-selinux
       - curl
       - expect
