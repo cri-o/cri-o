@@ -416,6 +416,7 @@ var _ = t.Describe("Image", func() {
 				// makeRepoDigests
 				storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 					Return(digest.Digest("a:"+testSHA256), nil),
+				storeMock.EXPECT().Layer(gomock.Any()).Return(&cs.Layer{}, nil),
 			)
 			ref, err := references.ParseRegistryImageReferenceFromOutOfProcessData(testImageName)
 			Expect(err).ToNot(HaveOccurred())
@@ -500,6 +501,7 @@ var _ = t.Describe("Image", func() {
 					// makeRepoDigests:
 					storeMock.EXPECT().ImageBigDataDigest(testSHA256, gomock.Any()).
 						Return(digest.Digest(""), nil),
+					storeMock.EXPECT().Layer(gomock.Any()).Return(&cs.Layer{}, nil),
 				)
 			}
 			mockutils.InOrder(

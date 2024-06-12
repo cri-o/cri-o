@@ -33,6 +33,8 @@ var _ = t.Describe("ImageRemove", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), gomock.Any()).
+					Return(&storage.ImageResult{}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					resolvedImageName).Return(nil),
 			)
@@ -72,6 +74,8 @@ var _ = t.Describe("ImageRemove", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
+				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), gomock.Any()).
+					Return(&storage.ImageResult{}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					resolvedImageName).Return(t.TestError),
 			)

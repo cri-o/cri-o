@@ -313,7 +313,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
 	rroSupport := s.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
-	containerVolumes, ociMounts, err := addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.Config().Root)
+	containerVolumes, ociMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -1025,7 +1025,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -1073,6 +1073,12 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 		dest := m.ContainerPath
 		if dest == "" {
 			return nil, nil, errors.New("mount.ContainerPath is empty")
+		}
+		if m.Image != nil && m.Image.Image != "" {
+			m.HostPath, err = s.mountImage(ctx, m.Image.Image, mountLabel)
+			if err != nil {
+				return nil, nil, fmt.Errorf("mount image: %w", err)
+			}
 		}
 		if m.HostPath == "" {
 			return nil, nil, errors.New("mount.HostPath is empty")
@@ -1226,6 +1232,27 @@ func addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel,
 	}
 
 	return volumes, ociMounts, nil
+}
+
+// mountImage mounts the provided imageRef using the mountLabel and returns the hostPath on success.
+func (s *Server) mountImage(ctx context.Context, imageRef, mountLabel string) (hostPath string, err error) {
+	log.Debugf(ctx, "Image ref to mount: %s", imageRef)
+	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: imageRef})
+	if err != nil {
+		return "", fmt.Errorf("get storage image status: %w", err)
+	}
+
+	id := status.ID.IDStringForOutOfProcessConsumptionOnly()
+	log.Debugf(ctx, "Image ID to mount: %v", id)
+
+	options := []string{"ro", "noexec", "nosuid", "nodev"}
+	mountPoint, err := s.Store().MountImage(id, options, mountLabel)
+	if err != nil {
+		return "", fmt.Errorf("mount storage: %w", err)
+	}
+
+	log.Infof(ctx, "Image mounted to: %s", mountPoint)
+	return mountPoint, nil
 }
 
 func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
