@@ -46,6 +46,7 @@ require (
 	github.com/intel/goresctrl v0.7.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
+	github.com/moby/sys/mountinfo v0.7.1
 	github.com/onsi/ginkgo/v2 v2.19.0
 	github.com/onsi/gomega v1.33.1
 	github.com/opencontainers/go-digest v1.0.0
@@ -85,6 +86,9 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.7.2
 )
+
+// TODO: Remove when https://github.com/kubernetes/kubernetes/pull/125659 got merged
+replace k8s.io/cri-api => github.com/saschagrunert/cri-api v0.0.0-20240702074533-15ebcf53eb88
 
 require (
 	capnproto.org/go/capnp/v3 v3.0.0-alpha.25 // indirect
@@ -167,7 +171,6 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/spdystream v0.2.0 // indirect
-	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
 	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

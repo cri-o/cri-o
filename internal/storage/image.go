@@ -25,6 +25,7 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
+	"github.com/moby/sys/mountinfo"
 
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -56,6 +57,7 @@ type ImageResult struct {
 	OCIConfig           *specs.Image
 	Annotations         map[string]string
 	Pinned              bool // pinned image to prevent it from garbage collection
+	MountPoint          string
 }
 
 type indexInfo struct {
@@ -309,6 +311,30 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 			break
 		}
 	}
+
+	// Try to retrieve the mountpoint
+	mountPoint := ""
+	if layer, err := svc.store.Layer(image.TopLayer); err == nil {
+		mountPoint = layer.MountPoint
+	} else {
+		logrus.Errorf("Unable to get image (%s) top layer (%s): %v", image.ID, image.TopLayer, err)
+	}
+	// Check if the mount actually exists
+	if mountPoint != "" {
+		infos, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mountPoint))
+		if err != nil {
+			logrus.Warnf("Unable to get mount info for path %s: %v", mountPoint, err)
+			mountPoint = ""
+		}
+		if len(infos) == 0 {
+			logrus.Warnf("Mount path %s for image (%s) is not mounted any more, unmounting it in c/storage", mountPoint, image.ID)
+			if _, err := svc.store.UnmountImage(image.ID, true); err != nil {
+				logrus.Warnf("Unable to unmount image %s: %v", image.ID, err)
+			}
+			mountPoint = ""
+		}
+	}
+
 	return ImageResult{
 		ID:                  storageImageIDFromImage(image),
 		SomeNameOfThisImage: someName,
@@ -323,6 +349,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		OCIConfig:           cacheItem.config,
 		Annotations:         cacheItem.annotations,
 		Pinned:              imagePinned,
+		MountPoint:          mountPoint,
 	}, nil
 }
 

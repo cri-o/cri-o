@@ -1557,7 +1557,7 @@ k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/watchlist
 k8s.io/client-go/util/workqueue
-# k8s.io/cri-api v0.31.0-alpha.2
+# k8s.io/cri-api v0.31.0-alpha.2 => github.com/saschagrunert/cri-api v0.0.0-20240702074533-15ebcf53eb88
 ## explicit; go 1.22.0
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
@@ -1637,3 +1637,4 @@ tags.cncf.io/container-device-interface/specs-go
 # zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739
 ## explicit; go 1.19
 zenhack.net/go/util
+# k8s.io/cri-api => github.com/saschagrunert/cri-api v0.0.0-20240702074533-15ebcf53eb88

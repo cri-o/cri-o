@@ -31,7 +31,8 @@ func TestAddOCIBindsForDev(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	sut := &Server{}
+	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -75,7 +76,8 @@ func TestAddOCIBindsForSys(t *testing.T) {
 		t.Error(err)
 	}
 
-	_, binds, err := addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	sut := &Server{}
+	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -124,7 +126,8 @@ func TestAddOCIBindsRROMounts(t *testing.T) {
 
 	ctx := context.TODO()
 
-	_, binds, err := addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, true, "")
+	sut := &Server{}
+	_, binds, err := sut.addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, true, "")
 	if err != nil {
 		t.Errorf("Should not fail to create RRO mount, got: %v", err)
 	}
@@ -219,7 +222,8 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 				t.Fatalf("Should set container configuration, got: %v", err)
 			}
 
-			_, _, err = addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, tc.rroSupport, "")
+			sut := &Server{}
+			_, _, err = sut.addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, tc.rroSupport, "")
 			if err == nil {
 				t.Error("Should fail to add an RRO mount with a specific error")
 			}
@@ -248,7 +252,8 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, false, "")
+	sut := &Server{}
+	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -282,7 +287,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 		t.Error(err)
 	}
 	var hasCgroupRO bool
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -330,12 +335,13 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	sut := &Server{}
+	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")
 	}
 
-	_, _, err = addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, false, "")
+	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, false, "")
 	if err != nil {
 		t.Errorf("%v", err)
 	}
