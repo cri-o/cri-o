@@ -18,13 +18,13 @@ packages:
       get-current-version: "bash -ec 'grep \"^const Version\" internal/version/version.go | cut -d\\\" -f2'"
       post-upstream-clone:
         # Use the Fedora Rawhide specfile
-        - "git clone https://src.fedoraproject.org/rpms/cri-o .packit_rpm --depth=1"
+        - git clone https://src.fedoraproject.org/rpms/cri-o .packit_rpm --depth=1
         # Drop the "sources" file
-        - "rm -fv .packit_rpm/sources"
+        - rm -fv .packit_rpm/sources
         # Update %global commit0 <sha> in specfile
-        - "sed -i \"s/^%global commit0.*/%global commit0 $(git rev-parse HEAD)/\" .packit_rpm/cri-o.spec"
+        - sed -i "s/^%global commit0.*/%global commit0 $(git rev-parse HEAD)/" .packit_rpm/cri-o.spec
         # Remove downstream patches (if any)
-        - "sed -ri '/^Patch[0-9].*/d' .packit_rpm/cri-o.spec"
+        - sed -ri "/^Patch[0-9].*/d" .packit_rpm/cri-o.spec
   fedora-40:
     # v1.28.x
     # Propose minor and patch releases downstream
