@@ -125,6 +125,23 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 	}
 }
 
+// this function takes a container config and makes sure its SecurityContext
+// is not nil. If it is, it makes sure to set default values for every field.
+func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
+	if containerConfig.Linux == nil {
+		containerConfig.Linux = &types.LinuxContainerConfig{}
+	}
+	if containerConfig.Linux.SecurityContext == nil {
+		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
+	}
+	if containerConfig.Linux.SecurityContext.NamespaceOptions == nil {
+		containerConfig.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{}
+	}
+	if containerConfig.Linux.SecurityContext.SelinuxOptions == nil {
+		containerConfig.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{}
+	}
+}
+
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -147,12 +164,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
-	if containerConfig.Linux == nil {
-		containerConfig.Linux = &types.LinuxContainerConfig{}
-	}
-	if containerConfig.Linux.SecurityContext == nil {
-		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
-	}
+	setContainerConfigSecurityContext(containerConfig)
 	securityContext := containerConfig.Linux.SecurityContext
 
 	// creates a spec Generator with the default spec.
@@ -310,9 +322,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
-	if securityContext.NamespaceOptions == nil {
-		securityContext.NamespaceOptions = &types.NamespaceOption{}
-	}
 	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE
 	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE
 	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
@@ -333,9 +342,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	skipRelabel := false
 	const superPrivilegedType = "spc_t"
-	if securityContext.SelinuxOptions == nil {
-		securityContext.SelinuxOptions = &types.SELinuxOption{}
-	}
 	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
 		(ctr.SandboxConfig().Linux != nil &&
 			ctr.SandboxConfig().Linux.SecurityContext != nil &&
@@ -460,7 +466,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	var nsTargetCtr *oci.Container
-	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
+	if target := securityContext.NamespaceOptions.TargetId; target != "" {
 		nsTargetCtr = s.GetContainer(ctx, target)
 	}
 
