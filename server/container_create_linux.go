@@ -148,39 +148,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	setContainerConfigSecurityContext(containerConfig)
 	securityContext := containerConfig.Linux.SecurityContext
 
-	// creates a spec Generator with the default spec.
-	specgen := ctr.Spec()
-	specgen.HostSpecific = true
-	specgen.ClearProcessRlimits()
-
-	for _, u := range s.config.Ulimits() {
-		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
-	}
-
-	readOnlyRootfs := ctr.ReadOnly(s.config.ReadOnly)
-	specgen.SetRootReadonly(readOnlyRootfs)
-
-	if s.config.ReadOnly {
-		// tmpcopyup is a runc extension and is not part of the OCI spec.
-		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
-		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
-		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
-		mounts := map[string]string{
-			"/run":     "mode=0755",
-			"/tmp":     "mode=1777",
-			"/var/tmp": "mode=1777",
-		}
-		for target, mode := range mounts {
-			if !isInCRIMounts(target, containerConfig.Mounts) {
-				ctr.SpecAddMount(rspec.Mount{
-					Destination: target,
-					Type:        "tmpfs",
-					Source:      "tmpfs",
-					Options:     append(options, mode),
-				})
-			}
-		}
-	}
+	specgen := s.getSpecGen(ctr, containerConfig)
 
 	userRequestedImage, err := ctr.UserRequestedImage()
 	if err != nil {
@@ -307,19 +275,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
-	configuredDevices := s.config.Devices()
-
-	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	err = s.specSetDevices(ctr, sb)
 	if err != nil {
-		return nil, err
-	}
-
-	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext); err != nil {
 		return nil, err
 	}
 
@@ -346,32 +303,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(securityContext)
-		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
-		}
-
-		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
-		specgen.SetProcessApparmorProfile(profile)
+	err = s.specSetApparmorProfile(ctx, specgen, ctr, securityContext)
+	if err != nil {
+		return nil, err
 	}
 
-	// Get blockio class
-	if s.Config().BlockIO().Enabled() {
-		if blockioClass, err := blockio.ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations()); blockioClass != "" && err == nil {
-			if s.Config().BlockIO().ReloadRequired() {
-				if err := s.Config().BlockIO().Reload(); err != nil {
-					log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
-				}
-			}
-			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
-				if specgen.Config.Linux.Resources == nil {
-					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
-				}
-				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
-			}
-		}
+	err = s.specSetBlockioClass(specgen, metadata.Name, containerConfig.Annotations, sb.Annotations())
+	if err != nil {
+		log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
 	}
 
 	logPath, err := ctr.LogPath(sb.LogDir())
@@ -486,7 +425,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	})
 
 	options := []string{"rw"}
-	if readOnlyRootfs {
+	if ctr.ReadOnly(s.config.ReadOnly) {
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
@@ -1321,4 +1260,91 @@ func isSubDirectoryOf(base, target string) bool {
 		base += "/"
 	}
 	return strings.HasPrefix(base, target)
+}
+
+// Returns the spec Generator for the container, with some values set.
+func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.ContainerConfig) *generate.Generator {
+	specgen := ctr.Spec()
+	specgen.HostSpecific = true
+	specgen.ClearProcessRlimits()
+
+	for _, u := range s.config.Ulimits() {
+		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
+	}
+
+	specgen.SetRootReadonly(ctr.ReadOnly(s.config.ReadOnly))
+
+	if s.config.ReadOnly {
+		// tmpcopyup is a runc extension and is not part of the OCI spec.
+		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
+		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
+		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
+		mounts := map[string]string{
+			"/run":     "mode=0755",
+			"/tmp":     "mode=1777",
+			"/var/tmp": "mode=1777",
+		}
+		for target, mode := range mounts {
+			if !isInCRIMounts(target, containerConfig.Mounts) {
+				ctr.SpecAddMount(rspec.Mount{
+					Destination: target,
+					Type:        "tmpfs",
+					Source:      "tmpfs",
+					Options:     append(options, mode),
+				})
+			}
+		}
+	}
+
+	return specgen
+}
+
+func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.Generator, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext) error {
+	// set this container's apparmor profile if it is set by sandbox
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		profile, err := s.Config().AppArmor().Apply(securityContext)
+		if err != nil {
+			return fmt.Errorf("applying apparmor profile to container %s: %w", ctr.ID(), err)
+		}
+
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
+		specgen.SetProcessApparmorProfile(profile)
+	}
+	return nil
+}
+
+func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName string, containerAnnotations, sandboxAnnotations map[string]string) error {
+	// Get blockio class
+	if s.Config().BlockIO().Enabled() {
+		if blockioClass, err := blockio.ContainerClassFromAnnotations(containerName, containerAnnotations, sandboxAnnotations); blockioClass != "" && err == nil {
+			if s.Config().BlockIO().ReloadRequired() {
+				if err := s.Config().BlockIO().Reload(); err != nil {
+					return err
+				}
+			}
+			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
+				if specgen.Config.Linux.Resources == nil {
+					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
+				}
+				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) error {
+	configuredDevices := s.config.Devices()
+
+	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	if err != nil {
+		return err
+	}
+
+	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
+	if err != nil {
+		return err
+	}
+
+	return ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext)
 }
