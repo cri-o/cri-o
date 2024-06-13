@@ -1138,6 +1138,12 @@ func (r *Repo) Add(filename string) error {
 
 // GetUserName Reads the local user's name from the git configuration
 func GetUserName() (string, error) {
+	// check first if the env var is set otherwise check the git config
+	userNameFromEnv := os.Getenv("GIT_COMMITTER_NAME")
+	if userNameFromEnv != "" {
+		return userNameFromEnv, nil
+	}
+
 	// Retrieve username from git
 	userName, err := filterCommand(
 		"", "config", "--get", "user.name",
@@ -1145,17 +1151,25 @@ func GetUserName() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("reading the user name from git: %w", err)
 	}
+
 	return userName.OutputTrimNL(), nil
 }
 
 // GetUserEmail reads the user's name from git
 func GetUserEmail() (string, error) {
+	// check first if the env var is set otherwise check the git config
+	userEmailFromEnv := os.Getenv("GIT_COMMITTER_EMAIL")
+	if userEmailFromEnv != "" {
+		return userEmailFromEnv, nil
+	}
+
 	userEmail, err := filterCommand(
 		"", "config", "--get", "user.email",
 	).RunSilentSuccessOutput()
 	if err != nil {
 		return "", fmt.Errorf("reading the user's email from git: %w", err)
 	}
+
 	return userEmail.OutputTrimNL(), nil
 }
 
@@ -1476,7 +1490,7 @@ func (r *Repo) ShowLastCommit() (logData string, err error) {
 
 // LastCommitSha returns the sha of the last commit in the repository
 func (r *Repo) LastCommitSha() (string, error) {
-	shaval, err := r.runGitCmd("log", "--pretty=format:'%H'", "-n1")
+	shaval, err := r.runGitCmd("log", "--pretty=format:%H", "-n1")
 	if err != nil {
 		return "", fmt.Errorf("trying to retrieve the last commit sha: %w", err)
 	}
@@ -1616,4 +1630,18 @@ func (r *Repo) LatestReleaseBranch() (string, error) {
 
 func semverToReleaseBranch(v semver.Version) string {
 	return fmt.Sprintf("%s%d.%d", releaseBranchPrefix, v.Major, v.Minor)
+}
+
+// NextCommit determines the next child commit for the provided rev and branch.
+func (r *Repo) NextCommit(rev, branch string) (string, error) {
+	shaList, err := r.runGitCmd("log", "--reverse", "--ancestry-path", "--pretty=format:%H", fmt.Sprintf("%s...%s", rev, branch))
+	if err != nil {
+		return "", fmt.Errorf("get next commit from log: %w", err)
+	}
+	shaSplit := strings.Fields(shaList)
+	if len(shaSplit) == 0 {
+		// no child available
+		return "", nil
+	}
+	return shaSplit[0], nil
 }
