@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 14 Jun 2024 07:01:38 UTC for commit [0af4f26][0]._
+_Generated on Fri, 14 Jun 2024 13:13:34 UTC for commit [ec58e4c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0af4f26f8907fd55be23a5be5e88564850f87955
+[0]: https://github.com/cri-o/cri-o/commit/ec58e4cf5df32b71076d7e8d7e56aca73e5136eb
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Fri, 14 Jun 2024 07:01:38 UTC for commit [0af4f26][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.0                             | true   | true             |
 | github.com/containers/common                           | v0.59.0                            | v0.59.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240613220715-824287d64a9f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240614121256-ab8a9882c18b | true   | true             |
 | github.com/opencontainers/runc                         | v1.1.12                            | v1.1.13                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus   | v0.3.0                             | v0.3.1                             | true   | true             |
 | golang.org/x/net                                       | v0.25.0                            | v0.26.0                            | true   | true             |
@@ -512,7 +512,7 @@ _Generated on Fri, 14 Jun 2024 07:01:38 UTC for commit [0af4f26][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240613220715-824287d64a9f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240614121256-ab8a9882c18b  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -723,7 +723,7 @@ _Generated on Fri, 14 Jun 2024 07:01:38 UTC for commit [0af4f26][0]._
 | github.com/ysmood/got                                                                   | v0.34.1                               | v0.40.0                             | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                |                                     | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                |                                     | false  | true             |
-| github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.1                              | false  | true             |
+| github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.2                              | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.3                                | v0.2.5                              | false  | true             |
 | github.com/zeebo/assert                                                                 | v1.3.0                                | v1.3.1                              | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                |                                     | false  | true             |
@@ -824,7 +824,7 @@ _Generated on Fri, 14 Jun 2024 07:01:38 UTC for commit [0af4f26][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.53.2                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.53.3                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
