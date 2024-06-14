@@ -86,6 +86,9 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			if err := s.nri.stopContainer(ctx, sandbox, c); err != nil {
 				log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 			}
+			if err := s.removeContainerInPod(ctx, sandbox, c); err != nil {
+				log.Warnf(ctx, "Failed to delete container in runtime %s: %v", c.ID(), err)
+			}
 		}
 		if err := s.ContainerStateToDisk(ctx, c); err != nil {
 			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
