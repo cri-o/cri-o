@@ -456,42 +456,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))
 
-		if ctr.Privileged() {
-			specgen.SetupPrivileged(true)
-		} else {
-			capabilities := securityContext.Capabilities
-			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities, s.config.AddInheritableCapabilities); err != nil {
-				return nil, err
-			}
-		}
-
-		if securityContext.NoNewPrivs {
-			const sysAdminCap = "CAP_SYS_ADMIN"
-			for _, cap := range specgen.Config.Process.Capabilities.Bounding {
-				if cap == sysAdminCap {
-					log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
-				}
-			}
-
-			if ctr.Privileged() {
-				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
-			}
-		}
-
-		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
-
-		if !ctr.Privileged() {
-			if securityContext.MaskedPaths != nil {
-				for _, path := range securityContext.MaskedPaths {
-					specgen.AddLinuxMaskedPaths(path)
-				}
-			}
-
-			if securityContext.ReadonlyPaths != nil {
-				for _, path := range securityContext.ReadonlyPaths {
-					specgen.AddLinuxReadonlyPaths(path)
-				}
-			}
+		err = ctr.SpecSetPrivileges(ctx, securityContext, &s.config)
+		if err != nil {
+			return nil, err
 		}
 	}
 
