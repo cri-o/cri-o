@@ -12,6 +12,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
+	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	pkgConfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 var _ = t.Describe("Container", func() {
@@ -631,6 +633,100 @@ var _ = t.Describe("Container", func() {
 
 			Expect(sut.SpecSetupCapabilities(caps, serverCaps, true)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(HaveLen(1))
+		})
+	})
+	t.Describe("SpecSetPrivileges", func() {
+		It("Non privileged container should get selected capabilities", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				Capabilities: &types.Capability{
+					AddCapabilities:  []string{"CHOWN"},
+					DropCapabilities: nil,
+				},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.Capabilities.Bounding).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Effective).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Permitted).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(BeEmpty())
+			Expect(sut.Spec().Config.Process.Capabilities.Ambient).To(BeEmpty())
+		})
+		It("Privileged container gets all capabilities", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{}
+			cfg := &pkgConfig.Config{}
+			config := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Linux: &types.LinuxContainerConfig{
+					SecurityContext: &types.LinuxContainerSecurityContext{
+						Privileged: true,
+					},
+				},
+			}
+			sboxConfig := &types.PodSandboxConfig{
+				Linux: &types.LinuxPodSandboxConfig{
+					SecurityContext: &types.LinuxSandboxSecurityContext{
+						Privileged: true,
+					},
+				},
+			}
+			expectedSize := len(capability.List())
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+			Expect(sut.SetPrivileged()).To(Succeed())
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.Capabilities.Bounding).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Effective).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Permitted).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Ambient).To(HaveLen(expectedSize))
+		})
+		It("Should set NoNewPrivs flag if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				NoNewPrivs: true,
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.NoNewPrivileges).To(BeTrue())
+		})
+		It("Should add masked paths if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				MaskedPaths: []string{"path1", "path2"},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.MaskedPaths).To(HaveLen(2))
+		})
+		It("Should add readonly paths if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				ReadonlyPaths: []string{"path1", "path2"},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.ReadonlyPaths).To(HaveLen(2))
 		})
 	})
 })

@@ -123,6 +123,9 @@ type Container interface {
 	// SpecSetupCapabilities sets up the container's capabilities
 	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
 
+	// SpecSetPrivileges sets the container's privileges
+	SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error
+
 	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
 	PidNamespace() nsmgr.Namespace
 
@@ -756,4 +759,46 @@ func getOCICapabilitiesList() []string {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 	return caps
+}
+
+func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error {
+	specgen := c.Spec()
+	if c.Privileged() {
+		specgen.SetupPrivileged(true)
+	} else {
+		caps := securityContext.Capabilities
+		if err := c.SpecSetupCapabilities(caps, cfg.DefaultCapabilities, cfg.AddInheritableCapabilities); err != nil {
+			return err
+		}
+	}
+
+	if securityContext.NoNewPrivs {
+		const sysAdminCap = "CAP_SYS_ADMIN"
+		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+			if cap == sysAdminCap {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+			}
+		}
+
+		if c.Privileged() {
+			log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+		}
+	}
+
+	specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+
+	if !c.Privileged() {
+		if securityContext.MaskedPaths != nil {
+			for _, path := range securityContext.MaskedPaths {
+				specgen.AddLinuxMaskedPaths(path)
+			}
+		}
+
+		if securityContext.ReadonlyPaths != nil {
+			for _, path := range securityContext.ReadonlyPaths {
+				specgen.AddLinuxReadonlyPaths(path)
+			}
+		}
+	}
+	return nil
 }
