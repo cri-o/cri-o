@@ -729,4 +729,119 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Linux.ReadonlyPaths).To(HaveLen(2))
 		})
 	})
+	t.Describe("SpecSetLinuxContainerResources", func() {
+		It("Sets all fields to their expected values", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				CpuPeriod:   1,
+				CpuQuota:    2,
+				CpuShares:   3,
+				OomScoreAdj: 4,
+				CpusetCpus:  "5",
+				CpusetMems:  "6",
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Period).To(Equal(uint64(resources.CpuPeriod)))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Quota).To(Equal(resources.CpuQuota))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.CpuShares)))
+			Expect(*sut.Spec().Config.Process.OOMScoreAdj).To(Equal(int(resources.OomScoreAdj)))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Cpus).To(Equal(resources.CpusetCpus))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Mems).To(Equal(resources.CpusetMems))
+		})
+		It("Fails to set memory limit if invalid", func() {
+			// Given
+			minMemory := int64(2048)
+
+			// When
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 1024, // must be >= minMemory
+			}
+
+			// Then
+			Expect(sut.SpecSetLinuxContainerResources(resources, minMemory)).NotTo(Succeed())
+		})
+		It("Fails to set memory swap limit if invalid", func() {
+			// Given
+			minMemory := int64(2048)
+
+			// When
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes:     2048,
+				MemorySwapLimitInBytes: 1024, // must be >= MemoryLimitInBytes
+			}
+
+			// Then
+			Expect(sut.SpecSetLinuxContainerResources(resources, minMemory)).NotTo(Succeed())
+		})
+		It("Set memory limit to both swap and RAM when only MemoryLimit is set", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 4096,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemoryLimitInBytes))
+		})
+		It("Set memory limits appropriately when Limit and SwapLimit are set", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes:     4096,
+				MemorySwapLimitInBytes: 4096,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemorySwapLimitInBytes))
+		})
+		It("Set hugepage limits", func() {
+			// Given
+			hugepageLimits := []*types.HugepageLimit{
+				{
+					PageSize: "1KB",
+					Limit:    1024,
+				},
+				{
+					PageSize: "2KB",
+					Limit:    2048,
+				},
+			}
+			resources := &types.LinuxContainerResources{
+				HugepageLimits: hugepageLimits,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			for i, pageLimit := range sut.Spec().Config.Linux.Resources.HugepageLimits {
+				Expect(pageLimit.Pagesize).To(Equal(hugepageLimits[i].PageSize))
+				Expect(pageLimit.Limit).To(Equal(hugepageLimits[i].Limit))
+			}
+		})
+		It("Set Cgroupv2 resources", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				Unified: make(map[string]string, 2),
+			}
+			resources.Unified["memory.high"] = "8000000"
+			resources.Unified["memory.low"] = "100000"
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveLen(len(resources.Unified)))
+		})
+	})
 })

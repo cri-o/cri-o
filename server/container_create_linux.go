@@ -26,7 +26,6 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/rdt"
@@ -400,57 +399,13 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if linux != nil {
 		resources := linux.Resources
 		if resources != nil {
-			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
-			specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
-			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
-
-			memoryLimit := resources.MemoryLimitInBytes
-			if memoryLimit != 0 {
-				containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
-				if err != nil {
-					return nil, err
-				}
-				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
-					return nil, err
-				}
-				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				if resources.MemorySwapLimitInBytes != 0 {
-					if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
-						return nil, fmt.Errorf(
-							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
-							ctr.ID(),
-							resources.MemorySwapLimitInBytes,
-							resources.MemoryLimitInBytes,
-						)
-					}
-					memoryLimit = resources.MemorySwapLimitInBytes
-				}
-				// If node doesn't have memory swap, then skip setting
-				// otherwise the container creation fails.
-				if node.CgroupHasMemorySwap() {
-					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
-				}
+			containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
+			if err != nil {
+				return nil, err
 			}
-
-			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
-			specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
-			specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
-
-			// If the kernel has no support for hugetlb, silently ignore the limits
-			if node.CgroupHasHugetlb() {
-				hugepageLimits := resources.HugepageLimits
-				for _, limit := range hugepageLimits {
-					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
-				}
-			}
-
-			if node.CgroupIsV2() && len(resources.Unified) != 0 {
-				if specgen.Config.Linux.Resources.Unified == nil {
-					specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
-				}
-				for key, value := range resources.Unified {
-					specgen.Config.Linux.Resources.Unified[key] = value
-				}
+			err = ctr.SpecSetLinuxContainerResources(resources, containerMinMemory)
+			if err != nil {
+				return nil, err
 			}
 		}
 
