@@ -341,6 +341,11 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("ReloadRuntimes", func() {
+		var existingRuntimePath string
+		BeforeEach(func() {
+			existingRuntimePath = t.MustTempFile("runc")
+		})
+
 		It("should succeed without any config change", func() {
 			// Given
 			// When
@@ -365,7 +370,7 @@ var _ = t.Describe("Config", func() {
 		It("should add a new runtime", func() {
 			// Given
 			newRuntimeHandler := &config.RuntimeHandler{
-				RuntimePath:                  "/usr/bin/runc",
+				RuntimePath:                  existingRuntimePath,
 				PrivilegedWithoutHostDevices: true,
 			}
 			newConfig := &config.Config{}
@@ -383,7 +388,7 @@ var _ = t.Describe("Config", func() {
 		It("should change the default runtime", func() {
 			// Given
 			sut.Runtimes["existing"] = &config.RuntimeHandler{
-				RuntimePath: "/usr/bin/runc",
+				RuntimePath: existingRuntimePath,
 			}
 			newConfig := &config.Config{}
 			newConfig.Runtimes = sut.Runtimes
@@ -400,12 +405,12 @@ var _ = t.Describe("Config", func() {
 		It("should overwrite existing runtime", func() {
 			// Given
 			existingRuntime := &config.RuntimeHandler{
-				RuntimePath: "/usr/bin/runc",
+				RuntimePath: existingRuntimePath,
 			}
 			sut.Runtimes["existing"] = existingRuntime
 
 			newRuntime := &config.RuntimeHandler{
-				RuntimePath:                  "/usr/bin/runc",
+				RuntimePath:                  existingRuntimePath,
 				PrivilegedWithoutHostDevices: true,
 			}
 			newConfig := &config.Config{}

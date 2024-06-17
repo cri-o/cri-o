@@ -145,6 +145,8 @@ var beforeEach = func() {
 	serverConfig.LogDir = path.Join(testPath, "log")
 	serverConfig.CleanShutdownFile = path.Join(testPath, "clean.shutdown")
 	serverConfig.EnablePodEvents = true
+	serverConfig.Seccomp().SetNotifierPath(t.MustTempDir("seccomp-notifier"))
+	serverConfig.NRI.SocketPath = t.MustTempDir("nri")
 
 	// We want a directory that is guaranteed to exist, but it must
 	// be empty so we don't erroneously load anything and make tests

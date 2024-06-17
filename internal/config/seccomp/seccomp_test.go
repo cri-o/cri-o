@@ -90,6 +90,12 @@ var _ = t.Describe("Config", func() {
 	})
 
 	t.Describe("Setup", func() {
+		BeforeEach(func() {
+			if sut.IsDisabled() {
+				Skip("tests need to run as root and enabled seccomp")
+			}
+		})
+
 		It("should succeed with custom profile from field", func() {
 			// Given
 			generator, err := generate.New("linux")

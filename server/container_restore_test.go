@@ -8,6 +8,7 @@ import (
 
 	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/unshare"
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -445,6 +446,10 @@ var _ = t.Describe("ContainerRestore", func() {
 		}
 		for _, image := range images {
 			It(fmt.Sprintf("should succeed (%s)", image.config), func() {
+				if unshare.IsRootless() {
+					Skip("should run as root")
+				}
+
 				// Given
 				addContainerAndSandbox()
 				testContainer.SetStateAndSpoofPid(&oci.ContainerState{
