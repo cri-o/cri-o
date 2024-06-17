@@ -23,6 +23,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -106,7 +107,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, isSystemd bool, seccompRef, platformRuntimePath string) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -171,7 +172,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec
-func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -221,12 +222,12 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	}
 
 	c.spec.AddAnnotation(annotations.Image, userRequestedImage)
-	imageName := ""
-	if imageResult.SomeNameOfThisImage != nil {
-		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
+	imageNameStr := ""
+	if imageName != nil {
+		imageNameStr = imageName.StringForOutOfProcessConsumptionOnly()
 	}
-	c.spec.AddAnnotation(annotations.ImageName, imageName)
-	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
+	c.spec.AddAnnotation(annotations.ImageName, imageNameStr)
+	c.spec.AddAnnotation(annotations.ImageRef, imageID.IDStringForOutOfProcessConsumptionOnly())
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())
