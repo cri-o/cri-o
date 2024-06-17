@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 17 Jun 2024 13:23:01 UTC for commit [6524644][0]._
+_Generated on Mon, 17 Jun 2024 16:03:57 UTC for commit [1ba7ce5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6524644fa0a89c2b9b4a2bc8ea1aec3939713036
+[0]: https://github.com/cri-o/cri-o/commit/1ba7ce5ee9c96e22cad01c8fb87e8567bcd8fab4
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containernetworking/cni                     | v1.1.2                             | v1.2.0                             | true   | true             |
+| github.com/containernetworking/cni                     | v1.1.2                             | v1.2.1                             | true   | true             |
+| github.com/containernetworking/plugins                 | v1.5.0                             | v1.5.1                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240617102807-cce735a09e73 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240617152339-4a41cee5347e | true   | true             |
 | k8s.io/klog/v2                                         | v2.120.1                           | v2.130.0                           | true   | true             |
 
 ## All Dependencies
@@ -310,8 +311,8 @@ _Generated on Mon, 17 Jun 2024 13:23:01 UTC for commit [6524644][0]._
 | github.com/containerd/typeurl                                                           | v1.0.3-0.20220422153119-7f6e6d160d67  |                                     | true   | true             |
 | github.com/containerd/typeurl/v2                                                        | v2.1.1                                |                                     | false  | true             |
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
-| github.com/containernetworking/cni                                                      | v1.1.2                                | v1.2.0                              | true   | true             |
-| github.com/containernetworking/plugins                                                  | v1.5.0                                |                                     | true   | true             |
+| github.com/containernetworking/cni                                                      | v1.1.2                                | v1.2.1                              | true   | true             |
+| github.com/containernetworking/plugins                                                  | v1.5.0                                | v1.5.1                              | true   | true             |
 | github.com/containers/common                                                            | v0.59.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.3                                |                                     | true   | true             |
@@ -499,7 +500,7 @@ _Generated on Mon, 17 Jun 2024 13:23:01 UTC for commit [6524644][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240617102807-cce735a09e73  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240617152339-4a41cee5347e  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -522,7 +523,7 @@ _Generated on Mon, 17 Jun 2024 13:23:01 UTC for commit [6524644][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240329202137-02fd711bd744  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240614173440-063db40db29a  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240617152149-1ece848ae580  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -659,7 +660,7 @@ _Generated on Mon, 17 Jun 2024 13:23:01 UTC for commit [6524644][0]._
 | github.com/spf13/cobra                                                                  | v1.8.0                                | v1.8.1                              | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                |                                     | false  | true             |
 | github.com/spf13/viper                                                                  | v1.18.2                               | v1.19.0                             | false  | true             |
-| github.com/spiffe/go-spiffe/v2                                                          | v2.2.0                                |                                     | false  | true             |
+| github.com/spiffe/go-spiffe/v2                                                          | v2.2.0                                | v2.3.0                              | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20230803200340-78284954bff6    |                                     | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.2.0                                | v1.3.0                              | false  | true             |
 | github.com/stretchr/objx                                                                | v0.5.2                                |                                     | false  | true             |
