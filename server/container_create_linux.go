@@ -15,12 +15,14 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
+	"github.com/containers/image/v5/manifest"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
+	"github.com/opencontainers/go-digest"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/sys/unix"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -161,10 +164,30 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	isRuntimePullImage := false
+	if sb.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sb.RuntimeHandler()]
+		if ok {
+			isRuntimePullImage = r.RuntimePullImage
+		}
+	}
+
+	var someNameOfTheImage *references.RegistryImageReference
+	var imageID storage.StorageImageID
+	var someRepoDigest string
+	var imageAnnotations map[string]string
+
 	// Get imageName and imageID that are later requested in container status
-	someNameOfTheImage, imageID, someRepoDigest, imageAnnotations, err := s.getInfoFromImage(userRequestedImage)
-	if err != nil {
-		return nil, err
+	if isRuntimePullImage {
+		someNameOfTheImage, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromArtifact(ctx, userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		someNameOfTheImage, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromImage(userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
 	}
 	// == Image lookup done.
 	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
@@ -865,6 +888,38 @@ func (s *Server) getInfoFromImage(userRequestedImage string) (someNameOfTheImage
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
 	return imgResult.SomeNameOfThisImage, imgResult.ID, someRepoDigest, imgResult.Annotations, nil
+}
+
+func (s *Server) getInfoFromArtifact(ctx context.Context, userRequestedImage string) (imageName *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	artifact := ociartifact.New()
+	pullOpts := &ociartifact.PullOptions{}
+
+	var imgManifest manifest.Manifest
+	imgManifest, err = artifact.GetManifest(ctx, userRequestedImage, pullOpts)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var name references.RegistryImageReference
+	name, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userRequestedImage)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var diffIDs []digest.Digest
+	var strID string
+	strID, err = imgManifest.ImageID(diffIDs)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var ID storage.StorageImageID
+	ID, err = storage.ParseStorageImageIDFromOutOfProcessData(strID)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	return &name, ID, imgManifest.ConfigInfo().Digest.String(), imgManifest.ConfigInfo().Annotations, nil
 }
 
 func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) error {
