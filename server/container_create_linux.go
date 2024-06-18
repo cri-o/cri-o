@@ -14,12 +14,14 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
+	"github.com/containers/image/v5/manifest"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
+	"github.com/opencontainers/go-digest"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -188,6 +191,43 @@ func (s *Server) getInfoFromImage(userRequestedImage string) (imageName *referen
 	return
 }
 
+func (s *Server) getInfoFromArtifact(ctx context.Context, userRequestedImage string) (imageName *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	artifact := ociartifact.New()
+	pullOpts := &ociartifact.PullOptions{}
+
+	var manifest manifest.Manifest
+	manifest, err = artifact.GetManifest(ctx, userRequestedImage, pullOpts)
+	if err != nil {
+		return
+	}
+
+	var name references.RegistryImageReference
+	name, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userRequestedImage)
+	if err != nil {
+		return
+	}
+
+	var diffIDs []digest.Digest
+	var strID string
+	strID, err = manifest.ImageID(diffIDs)
+	if err != nil {
+		return
+	}
+
+	var ID storage.StorageImageID
+	ID, err = storage.ParseStorageImageIDFromOutOfProcessData(strID)
+	if err != nil {
+		return
+	}
+
+	imageName = &name
+	imageID = ID
+	imageAnnotations = manifest.ConfigInfo().Annotations
+	someRepoDigest = manifest.ConfigInfo().Digest.String()
+
+	return
+}
+
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -224,10 +264,30 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	isRuntimePullImage := false
+	if sb.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sb.RuntimeHandler()]
+		if ok {
+			isRuntimePullImage = r.RuntimePullImage
+		}
+	}
+
+	var imageName *references.RegistryImageReference
+	var imageID storage.StorageImageID
+	var someRepoDigest string
+	var imageAnnotations map[string]string
+
 	// Get imageName and imageID that are later requested in container status
-	imageName, imageID, someRepoDigest, imageAnnotations, err := s.getInfoFromImage(userRequestedImage)
-	if err != nil {
-		return nil, err
+	if isRuntimePullImage {
+		imageName, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromArtifact(ctx, userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		imageName, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromImage(userRequestedImage)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
