@@ -1,19 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
+_Generated on Tue, 18 Jun 2024 16:27:44 UTC for commit [004b5dc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/18c6f6b361f15680463bc72dc11231a29481ccdc
+[0]: https://github.com/cri-o/cri-o/commit/004b5dc40823f9bce9b34c6da2a769778725c0f5
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/checkpoint-restore/checkpointctl            | v1.2.0                             | v1.2.1                             | true   | true             |
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.1                             | true   | true             |
-| github.com/containernetworking/plugins                 | v1.5.0                             | v1.5.1                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240618015328-388cd7dde4e6 | true   | true             |
-| k8s.io/klog/v2                                         | v2.120.1                           | v2.130.0                           | true   | true             |
+| github.com/go-chi/chi/v5                               | v5.0.12                            | v5.0.13                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240618130541-36093e86e007 | true   | true             |
 
 ## All Dependencies
 
@@ -270,7 +268,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | github.com/census-instrumentation/opencensus-proto                                      | v0.4.1                                |                                     | false  | true             |
 | github.com/cespare/xxhash                                                               | v1.1.0                                |                                     | false  | true             |
 | github.com/cespare/xxhash/v2                                                            | v2.2.0                                | v2.3.0                              | false  | true             |
-| github.com/checkpoint-restore/checkpointctl                                             | v1.2.0                                | v1.2.1                              | true   | true             |
+| github.com/checkpoint-restore/checkpointctl                                             | v1.2.1                                |                                     | true   | true             |
 | github.com/checkpoint-restore/go-criu/v5                                                | v5.3.0                                |                                     | false  | true             |
 | github.com/checkpoint-restore/go-criu/v7                                                | v7.1.0                                |                                     | true   | true             |
 | github.com/chrismellard/docker-credential-acr-env                                       | v0.0.0-20230304212654-82a0ddb27589    |                                     | false  | true             |
@@ -313,7 +311,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | github.com/containerd/typeurl/v2                                                        | v2.1.1                                |                                     | false  | true             |
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.1.2                                | v1.2.1                              | true   | true             |
-| github.com/containernetworking/plugins                                                  | v1.5.0                                | v1.5.1                              | true   | true             |
+| github.com/containernetworking/plugins                                                  | v1.5.1                                |                                     | true   | true             |
 | github.com/containers/common                                                            | v0.59.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.3                                |                                     | true   | true             |
@@ -376,7 +374,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                                | v5.0.12                               |                                     | true   | true             |
+| github.com/go-chi/chi/v5                                                                | v5.0.12                               | v5.0.13                             | true   | true             |
 | github.com/go-fonts/dejavu                                                              | v0.1.0                                | v0.3.3                              | false  | true             |
 | github.com/go-fonts/latin-modern                                                        | v0.2.0                                | v0.3.2                              | false  | true             |
 | github.com/go-fonts/liberation                                                          | v0.2.0                                | v0.3.2                              | false  | true             |
@@ -501,7 +499,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240618015328-388cd7dde4e6  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240618130541-36093e86e007  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -628,7 +626,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | github.com/russross/blackfriday/v2                                                      | v2.1.0                                |                                     | false  | true             |
 | github.com/ruudk/golang-pdf417                                                          | v0.0.0-20201230142125-a7e3863a1245    |                                     | false  | true             |
 | github.com/ryanuber/go-glob                                                             | v1.0.0                                |                                     | false  | true             |
-| github.com/safchain/ethtool                                                             | v0.3.0                                | v0.4.0                              | false  | true             |
+| github.com/safchain/ethtool                                                             | v0.4.0                                |                                     | false  | true             |
 | github.com/sagikazarmark/locafero                                                       | v0.4.0                                | v0.6.0                              | false  | true             |
 | github.com/sagikazarmark/slog-shim                                                      | v0.1.0                                |                                     | false  | true             |
 | github.com/sassoftware/relic                                                            | v7.2.1+incompatible                   |                                     | false  | true             |
@@ -802,7 +800,7 @@ _Generated on Tue, 18 Jun 2024 09:38:44 UTC for commit [18c6f6b][0]._
 | k8s.io/component-base                                                                   | v0.30.2                               |                                     | false  | true             |
 | k8s.io/cri-api                                                                          | v0.30.2                               |                                     | true   | true             |
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240404160639-a0386bf69313  | false  | true             |
-| k8s.io/klog/v2                                                                          | v2.120.1                              | v2.130.0                            | true   | true             |
+| k8s.io/klog/v2                                                                          | v2.130.0                              |                                     | true   | true             |
 | k8s.io/kms                                                                              | v0.30.2                               |                                     | false  | true             |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240521193020-835d969ad83a  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.2                               |                                     | true   | true             |
