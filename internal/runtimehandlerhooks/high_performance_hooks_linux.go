@@ -480,6 +480,10 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(mgr cgroups.Manager,
 		targetCpus = currentCpus.Difference(cpus)
 	}
 
+	if targetCpus.Equals(currentCpus) {
+		return nil
+	}
+
 	// if we're writing to cpuset.cpus.exclusive, libcontainer manager doesn't have a field to manage it,
 	// so write to a file instead.
 	if file == cpusetCpusExclusive {
