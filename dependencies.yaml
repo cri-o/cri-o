@@ -86,7 +86,7 @@ dependencies:
         match: NIX_VERSION
 
   - name: release-notes
-    version: 0.16.8
+    version: 0.17.0
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
