@@ -630,6 +630,24 @@ var _ = t.Describe("Image", func() {
 			Expect(err.Error()).To(ContainSubstring("context canceled"))
 			Expect(res).To(BeNil())
 		})
+
+		It("should fail on timed out context", func() {
+			// Given
+			imageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/busybox:latest")
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			ctx, cancel := context.WithTimeout(context.Background(), 0)
+			defer cancel()
+			res, err := sut.PullImage(ctx, imageRef, &storage.ImageCopyOptions{
+				SourceCtx: &types.SystemContext{SignaturePolicyPath: "../../test/policy.json"},
+			})
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("context deadline exceeded"))
+			Expect(res).To(BeNil())
+		})
 	})
 
 	t.Describe("CompileRegexpsForPinnedImages", func() {

@@ -243,8 +243,12 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress) // nolint:gocritic
 
+	if deadline, ok := ctx.Deadline(); ok {
+		log.Debugf(ctx, "Pull timeout is: %s", time.Until(deadline))
+	}
+
 	// Cancel the pull if no progress is made
-	pullCtx, cancel := context.WithCancel(context.Background())
+	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
 
 	_, err = s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
