@@ -412,3 +412,20 @@ function teardown() {
 	output=$(crictl inspect -o table "$ctr_id" | grep ^State)
 	[[ "${output}" == "${ctr_status_info}" ]]
 }
+
+@test "crio restore volumes for containers" {
+	start_crio
+
+	jq --arg path "$TESTDIR" \
+		'.mounts = [{
+			host_path: $path,
+			container_path: "/host"
+		}]' \
+		"$TESTDATA/container_redis.json" > "$TESTDIR/container.json"
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl inspect "$ctr_id" | jq -e '.status.mounts != []'
+
+	stop_crio
+	start_crio
+	crictl inspect "$ctr_id" | jq -e '.status.mounts != []'
+}

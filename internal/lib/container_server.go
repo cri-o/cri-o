@@ -304,14 +304,8 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	scontainer.SetSpec(&m)
 	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
-	if m.Annotations[annotations.Volumes] != "" {
-		containerVolumes := []oci.ContainerVolume{}
-		if err = json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
-			return sb, fmt.Errorf("failed to unmarshal container volumes: %w", err)
-		}
-		for _, cv := range containerVolumes {
-			scontainer.AddVolume(cv)
-		}
+	if err := restoreVolumes(&m, scontainer); err != nil {
+		return sb, fmt.Errorf("restore volumes: %w", err)
 	}
 
 	if err := sb.SetInfraContainer(scontainer); err != nil {
@@ -474,6 +468,11 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	if err != nil {
 		return err
 	}
+
+	if err := restoreVolumes(&m, ctr); err != nil {
+		return fmt.Errorf("restore volumes: %w", err)
+	}
+
 	ctr.SetSpec(&m)
 	ctr.SetMountPoint(m.Annotations[annotations.MountPoint])
 	spp := m.Annotations[annotations.SeccompProfilePath]
@@ -495,6 +494,19 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	c.AddContainer(ctx, ctr)
 
 	return c.ctrIDIndex.Add(id)
+}
+
+func restoreVolumes(m *rspec.Spec, ctr *oci.Container) error {
+	if m.Annotations[annotations.Volumes] != "" {
+		containerVolumes := []oci.ContainerVolume{}
+		if err := json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
+			return fmt.Errorf("failed to unmarshal container volumes: %w", err)
+		}
+		for _, cv := range containerVolumes {
+			ctr.AddVolume(cv)
+		}
+	}
+	return nil
 }
 
 func isTrue(annotaton string) bool {
