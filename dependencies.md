@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 20 Jun 2024 07:15:06 UTC for commit [f1bab2b][0]._
+_Generated on Thu, 20 Jun 2024 09:48:42 UTC for commit [8fa8f94][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f1bab2bc981359dbecd8a6b2d3aa35c770b2152e
+[0]: https://github.com/cri-o/cri-o/commit/8fa8f94a82f22b0df049733384bb545da131f913
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Thu, 20 Jun 2024 07:15:06 UTC for commit [f1bab2b][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.1                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/go-chi/chi/v5                               | v5.0.12                            | v5.0.13                            | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240620043906-0f2a4d202e90 | true   | true             |
 | k8s.io/klog/v2                                         | v2.130.0                           | v2.130.1                           | true   | true             |
 
@@ -375,7 +374,7 @@ _Generated on Thu, 20 Jun 2024 07:15:06 UTC for commit [f1bab2b][0]._
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                                | v5.0.12                               | v5.0.13                             | true   | true             |
+| github.com/go-chi/chi/v5                                                                | v5.0.13                               |                                     | true   | true             |
 | github.com/go-fonts/dejavu                                                              | v0.1.0                                | v0.3.3                              | false  | true             |
 | github.com/go-fonts/latin-modern                                                        | v0.2.0                                | v0.3.2                              | false  | true             |
 | github.com/go-fonts/liberation                                                          | v0.2.0                                | v0.3.2                              | false  | true             |
