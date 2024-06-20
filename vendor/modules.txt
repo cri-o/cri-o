@@ -489,7 +489,7 @@ github.com/felixge/httpsnoop
 # github.com/fsnotify/fsnotify v1.7.0
 ## explicit; go 1.17
 github.com/fsnotify/fsnotify
-# github.com/go-chi/chi/v5 v5.0.12
+# github.com/go-chi/chi/v5 v5.0.13
 ## explicit; go 1.14
 github.com/go-chi/chi/v5
 # github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376
