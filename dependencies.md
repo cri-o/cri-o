@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
+_Generated on Thu, 20 Jun 2024 07:15:06 UTC for commit [f1bab2b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/439301c43335fe28a817a48b45fd37b178cd0535
+[0]: https://github.com/cri-o/cri-o/commit/f1bab2bc981359dbecd8a6b2d3aa35c770b2152e
 
 ## Outdated Dependencies
 
@@ -11,7 +11,8 @@ _Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.1                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.12                            | v5.0.13                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240619171002-81972f6ffce5 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240620043906-0f2a4d202e90 | true   | true             |
+| k8s.io/klog/v2                                         | v2.130.0                           | v2.130.1                           | true   | true             |
 
 ## All Dependencies
 
@@ -226,12 +227,12 @@ _Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
 | github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.54.5                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.29.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.30.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                | v1.6.2                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.21                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.21                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.0                               | v1.16.8                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.4                                | v1.3.12                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.4                                | v2.6.12                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                |                                     | false  | true             |
@@ -242,7 +243,7 @@ _Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.3.5                                | v1.3.14                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.6                               | v1.11.14                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.3                               | v1.17.12                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.30.0                               | v1.34.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.30.0                               | v1.34.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.56.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.20.3                               | v1.21.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.25.1                             | false  | true             |
@@ -499,7 +500,7 @@ _Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240619171002-81972f6ffce5  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240620043906-0f2a4d202e90  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -800,7 +801,7 @@ _Generated on Wed, 19 Jun 2024 18:58:53 UTC for commit [439301c][0]._
 | k8s.io/component-base                                                                   | v0.30.2                               |                                     | false  | true             |
 | k8s.io/cri-api                                                                          | v0.30.2                               |                                     | true   | true             |
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240404160639-a0386bf69313  | false  | true             |
-| k8s.io/klog/v2                                                                          | v2.130.0                              |                                     | true   | true             |
+| k8s.io/klog/v2                                                                          | v2.130.0                              | v2.130.1                            | true   | true             |
 | k8s.io/kms                                                                              | v0.30.2                               |                                     | false  | true             |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240521193020-835d969ad83a  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.2                               |                                     | true   | true             |
