@@ -65,7 +65,7 @@ GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
-RELEASE_NOTES_VERSION := v0.15.1
+RELEASE_NOTES_VERSION := v0.17.0
 ZEITGEIST_VERSION := v0.4.1
 BOM := ${BUILD_BIN_PATH}/bom
 BOM_VERSION := v0.5.1
@@ -287,7 +287,7 @@ define curl_to
 endef
 
 $(RELEASE_NOTES): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes/release/releases/download/$(RELEASE_NOTES_VERSION)/release-notes-linux-amd64,$(RELEASE_NOTES))
+	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes/release/$(RELEASE_NOTES_VERSION)/release-notes-amd64-linux,$(RELEASE_NOTES))
 
 $(SHFMT): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
