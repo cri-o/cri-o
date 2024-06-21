@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 0 * * 0'  # At 00:00 on Sunday
 env:
-  NIX_VERSION: '2.19.2'
+  NIX_VERSION: '2.22.1'
 jobs:
   update-nixpkgs:
     permissions:
