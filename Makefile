@@ -60,7 +60,7 @@ RELEASE_NOTES_VERSION := v0.17.0
 SHFMT := ${BUILD_BIN_PATH}/shfmt
 SHFMT_VERSION := v3.7.0
 SHELLCHECK := ${BUILD_BIN_PATH}/shellcheck
-SHELLCHECK_VERSION := v0.9.0
+SHELLCHECK_VERSION := v0.10.0
 BATS_FILES := $(wildcard test/*.bats)
 
 ifeq ($(shell bash -c '[[ `command -v git` && `git rev-parse --git-dir 2>/dev/null` ]] && echo true'), true)
@@ -277,7 +277,7 @@ $(GOLANGCI_LINT):
 
 $(SHELLCHECK): $(BUILD_BIN_PATH)
 	URL=https://github.com/koalaman/shellcheck/releases/download/$(SHELLCHECK_VERSION)/shellcheck-$(SHELLCHECK_VERSION).linux.x86_64.tar.xz \
-	SHA256SUM=7087178d54de6652b404c306233264463cb9e7a9afeb259bb663cc4dbfd64149 && \
+	SHA256SUM=f35ae15a4677945428bdfe61ccc297490d89dd1e544cc06317102637638c6deb && \
 	curl -sSfL $$URL | tar xfJ - -C ${BUILD_BIN_PATH} --strip 1 shellcheck-$(SHELLCHECK_VERSION)/shellcheck && \
 	sha256sum ${SHELLCHECK} | grep -q $$SHA256SUM
 
