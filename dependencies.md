@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 21 Jun 2024 13:58:00 UTC for commit [3dd9056][0]._
+_Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3dd9056f8cf1e41bfba10bae28bd5a0d358911e7
+[0]: https://github.com/cri-o/cri-o/commit/80f4fb8b35bbaa4220c238e59b1cc39abbd72fda
 
 ## Outdated Dependencies
 
@@ -763,7 +763,7 @@ _Generated on Fri, 21 Jun 2024 13:58:00 UTC for commit [3dd9056][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.21.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240614130327-d92499019833  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240621194115-a740542b267c  | false  | true             |
 | golang.org/x/term                                                                       | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
@@ -808,7 +808,7 @@ _Generated on Fri, 21 Jun 2024 13:58:00 UTC for commit [3dd9056][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240620174524-b456828f718b  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.30.2                               |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240502163921-fe8a2dddb1d0    |                                     | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240620215714-915c00977757  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240621201938-fc0720b7a660  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
