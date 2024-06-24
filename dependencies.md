@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
+_Generated on Mon, 24 Jun 2024 07:41:16 UTC for commit [cff5a39][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/80f4fb8b35bbaa4220c238e59b1cc39abbd72fda
+[0]: https://github.com/cri-o/cri-o/commit/cff5a39e31fbb3a1243523bd65a9664258a556fc
 
 ## Outdated Dependencies
 
@@ -150,7 +150,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.9.7                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.6.7                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.12.6                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240618173554-fb9a5f32a571  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240622173923-7a5a4f8651ac  | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240412105620-eedc705cef15  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.9.1                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
@@ -373,7 +373,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | github.com/fogleman/gg                                                                  | v1.3.0                                |                                     | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.5                               | v1.14.6                             | false  | true             |
 | github.com/fsnotify/fsnotify                                                            | v1.7.0                                |                                     | true   | true             |
-| github.com/fxamacker/cbor/v2                                                            | v2.6.0                                |                                     | false  | true             |
+| github.com/fxamacker/cbor/v2                                                            | v2.6.0                                | v2.7.0                              | false  | true             |
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
@@ -417,7 +417,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | github.com/go-stack/stack                                                               | v1.8.0                                | v1.8.1                              | false  | true             |
 | github.com/go-task/slim-sprig                                                           | v0.0.0-20230315185526-52ccab3ef572    |                                     | false  | true             |
 | github.com/go-task/slim-sprig/v3                                                        | v3.0.0                                |                                     | false  | true             |
-| github.com/go-test/deep                                                                 | v1.1.0                                |                                     | false  | true             |
+| github.com/go-test/deep                                                                 | v1.1.0                                | v1.1.1                              | false  | true             |
 | github.com/goadesign/goa                                                                | v2.2.5+incompatible                   |                                     | false  | true             |
 | github.com/gobwas/glob                                                                  | v0.2.3                                |                                     | false  | true             |
 | github.com/gobwas/httphead                                                              | v0.1.0                                |                                     | false  | true             |
@@ -448,7 +448,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240618054019-d3b898a103f8  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240622144329-c177fd99eaa9  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                |                                     | false  | true             |
@@ -629,7 +629,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | github.com/russross/blackfriday/v2                                                      | v2.1.0                                |                                     | false  | true             |
 | github.com/ruudk/golang-pdf417                                                          | v0.0.0-20201230142125-a7e3863a1245    |                                     | false  | true             |
 | github.com/ryanuber/go-glob                                                             | v1.0.0                                |                                     | false  | true             |
-| github.com/safchain/ethtool                                                             | v0.4.0                                |                                     | false  | true             |
+| github.com/safchain/ethtool                                                             | v0.4.0                                | v0.4.1                              | false  | true             |
 | github.com/sagikazarmark/locafero                                                       | v0.4.0                                | v0.6.0                              | false  | true             |
 | github.com/sagikazarmark/slog-shim                                                      | v0.1.0                                |                                     | false  | true             |
 | github.com/sassoftware/relic                                                            | v7.2.1+incompatible                   |                                     | false  | true             |
@@ -713,7 +713,7 @@ _Generated on Sat, 22 Jun 2024 08:25:01 UTC for commit [80f4fb8][0]._
 | github.com/ysmood/got                                                                   | v0.34.1                               | v0.40.0                             | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                |                                     | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                |                                     | false  | true             |
-| github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.2                              | false  | true             |
+| github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.3                              | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.3                                | v0.2.5                              | false  | true             |
 | github.com/zeebo/assert                                                                 | v1.3.0                                | v1.3.1                              | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                |                                     | false  | true             |
