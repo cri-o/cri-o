@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
+_Generated on Mon, 24 Jun 2024 17:26:29 UTC for commit [7f0dcc3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/86c32839bf9f370518d2c790161f3fadedbc17f2
+[0]: https://github.com/cri-o/cri-o/commit/7f0dcc3d4859517febe544161d3265d6a40a5cdb
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | github.com/containers/image/v5                         | v5.31.0                            | v5.31.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.13                            | v5.0.14                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240624131105-bcdc4fde10b9 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240624155801-b0cdf4eb0dcc | true   | true             |
 | k8s.io/klog/v2                                         | v2.130.0                           | v2.130.1                           | true   | true             |
 
 ## All Dependencies
@@ -502,7 +502,7 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240624131105-bcdc4fde10b9  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240624155801-b0cdf4eb0dcc  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -525,7 +525,7 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240620165639-de9c06129bec  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491    | v0.0.0-20240624150147-805ae5345237  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -693,7 +693,7 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | github.com/vishvananda/netns                                                            | v0.0.4                                |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.1-0.20230620154423-38c92ad2d5c6 | v0.40.0                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.105.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.106.0                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                |                                     | false  | true             |
@@ -763,7 +763,7 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.21.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240624133633-3610f651eb93  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240624145040-38a44306ed05  | false  | true             |
 | golang.org/x/term                                                                       | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
@@ -774,9 +774,9 @@ _Generated on Mon, 24 Jun 2024 13:58:14 UTC for commit [86c3283][0]._
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.172.0                              | v0.185.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240617180043-68d350f18fd4  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240617180043-68d350f18fd4  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240617180043-68d350f18fd4  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5    | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.64.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.4.0                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                               |                                     | true   | true             |
