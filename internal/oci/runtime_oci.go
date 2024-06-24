@@ -830,13 +830,6 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return nil
 	}
 
-	if err := c.ShouldBeStopped(); err != nil {
-		if errors.Is(err, ErrContainerStopped) {
-			err = nil
-		}
-		return err
-	}
-
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
 		c.state.Finished = time.Now()
