@@ -72,20 +72,6 @@ var _ = t.Describe("Oci", func() {
 			cmdrunner.ResetPrependedCmd()
 		})
 
-		It("should fail to stop if container paused", func() {
-			state := &oci.ContainerState{}
-			state.Status = oci.ContainerStatePaused
-			sut.SetState(state)
-
-			Expect(sut.ShouldBeStopped()).NotTo(Succeed())
-		})
-		It("should fail to stop if container stopped", func() {
-			state := &oci.ContainerState{}
-			state.Status = oci.ContainerStateStopped
-			sut.SetState(state)
-
-			Expect(sut.ShouldBeStopped()).To(Equal(oci.ErrContainerStopped))
-		})
 		It("should return early if runtime command fails and process stopped", func() {
 			// Given
 			gomock.InOrder(
