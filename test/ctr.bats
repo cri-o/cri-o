@@ -1384,3 +1384,27 @@ EOF
 
 	run ! crictl inspect "$ctr_id"
 }
+
+@test "ctr multiple stop calls" {
+	start_crio
+
+	# Create a container with a long-running command to simulate a scenario where
+	# a container takes a while to stop gracefully.
+	jq '.command = ["/bin/sh", "-c", "sleep 600"]' \
+		"$TESTDATA"/container_config.json > "$newconfig"
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	# Issue the first crictl stop command with a long timeout.
+	crictl stop --timeout 3600 "$ctr_id" &
+	sleep 5 # Ensure the first stop command has time to start.
+
+	# Attempt to issue another crictl stop command while the first one is still active.
+	crictl stop --timeout 0 "$ctr_id" &> /dev/null
+
+	# Verify that the container has either stopped or exited.
+	final_state=$(crictl inspect "$ctr_id" | grep -Po '(?<="state": ")[^"]*')
+	if [ "$final_state" != "CONTAINER_STOPPED" ] && [ "$final_state" != "CONTAINER_EXITED" ]; then
+		echo "Test failed: Container did not stop or exit as expected."
+		exit 1
+	fi
+}
