@@ -1,6 +1,6 @@
 # Software versions to be used.
 declare -A VERSIONS=(
-    ["cni-plugins"]=v1.5.0
+    ["cni-plugins"]=v1.5.1
     ["conmon"]=v2.1.12
     ["runc"]=main
     ["bats"]=v1.11.0
