@@ -867,6 +867,12 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
 	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	if c.state.Status == ContainerStatePaused {
+		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
+			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
+		}
+	}
 
 	// Begin the actual kill.
 	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
@@ -874,7 +880,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
-			c.opLock.Unlock()
 			c.SetAsDoneStopping()
 			return
 		}
@@ -951,7 +956,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	c.KillExecPIDs()
 
 	c.state.Finished = time.Now()
-	c.opLock.Unlock()
 	c.SetAsDoneStopping()
 }
 
