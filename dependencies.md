@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 24 Jun 2024 23:35:02 UTC for commit [d27c9c0][0]._
+_Generated on Tue, 25 Jun 2024 07:01:09 UTC for commit [9d6a596][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d27c9c043f2d8a0d47553aff64e63115f7a5d520
+[0]: https://github.com/cri-o/cri-o/commit/9d6a596aecea3e64ba17eccd55b6fd75818a9b98
 
 ## Outdated Dependencies
 
@@ -448,7 +448,7 @@ _Generated on Mon, 24 Jun 2024 23:35:02 UTC for commit [d27c9c0][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240622144329-c177fd99eaa9  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240424215950-a892ee059fd6    | v0.0.0-20240625030939-27f56978b8b0  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                |                                     | false  | true             |
