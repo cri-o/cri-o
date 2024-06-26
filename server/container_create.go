@@ -284,7 +284,7 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 		}
 
 	default:
-		return fmt.Errorf("not implemented in this CRI-O release:SupplementalGroupsPolicy=%v", supplementalGroupsPolicy)
+		return fmt.Errorf("not implemented in this CRI-O release: SupplementalGroupsPolicy=%v", supplementalGroupsPolicy)
 	}
 
 	return nil
