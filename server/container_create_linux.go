@@ -159,8 +159,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	setContainerConfigSecurityContext(containerConfig)
-	securityContext := containerConfig.Linux.SecurityContext
+	securityContext := setContainerConfigSecurityContext(containerConfig)
 
 	specgen := s.getSpecGen(ctr, containerConfig)
 
@@ -902,7 +901,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 // this function takes a container config and makes sure its SecurityContext
 // is not nil. If it is, it makes sure to set default values for every field.
-func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
+func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) *types.LinuxContainerSecurityContext {
 	if containerConfig.Linux == nil {
 		containerConfig.Linux = &types.LinuxContainerConfig{}
 	}
@@ -918,6 +917,8 @@ func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
 	if containerConfig.Linux.SecurityContext.SelinuxOptions == nil {
 		containerConfig.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{}
 	}
+
+	return containerConfig.Linux.SecurityContext
 }
 
 func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) error {
