@@ -353,14 +353,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(securityContext)
-		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
-		}
-
-		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
-		specgen.SetProcessApparmorProfile(profile)
+	if err := s.setAppArmorProfile(ctx, ctr, securityContext, specgen); err != nil {
+		return nil, err
 	}
 
 	// Get blockio class
@@ -1394,4 +1388,18 @@ func isSubDirectoryOf(base, target string) bool {
 		base += "/"
 	}
 	return strings.HasPrefix(base, target)
+}
+
+func (s *Server) setAppArmorProfile(ctx context.Context, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext, specgen *generate.Generator) error {
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		containerID := ctr.ID()
+		profile, err := s.Config().AppArmor().Apply(securityContext)
+		if err != nil {
+			return fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
+		}
+
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
+		specgen.SetProcessApparmorProfile(profile)
+	}
+	return nil
 }
