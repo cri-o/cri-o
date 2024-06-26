@@ -525,12 +525,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	ctr.SpecAddMount(rspec.Mount{
-		Destination: "/dev/shm",
-		Type:        "bind",
-		Source:      sb.ShmPath(),
-		Options:     []string{"rw", "bind"},
-	})
+	addShmMount(ctr, sb)
 
 	options := []string{"rw"}
 	if readOnlyRootfs {
@@ -1380,4 +1375,13 @@ func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerCo
 			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
 		})
 	}
+}
+
+func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
+	ctr.SpecAddMount(rspec.Mount{
+		Destination: "/dev/shm",
+		Type:        "bind",
+		Source:      sb.ShmPath(),
+		Options:     []string{"rw", "bind"},
+	})
 }
