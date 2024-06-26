@@ -47,6 +47,12 @@ const (
 	cgroupSysFsSystemdPath = "/sys/fs/cgroup/systemd"
 )
 
+var tmpfsMounts = map[string]string{
+	"/run":     "mode=0755",
+	"/tmp":     "mode=1777",
+	"/var/tmp": "mode=1777",
+}
+
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer().
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
 	ctx, span := log.StartSpan(ctx)
@@ -167,12 +173,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
 		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
 		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
-		mounts := map[string]string{
-			"/run":     "mode=0755",
-			"/tmp":     "mode=1777",
-			"/var/tmp": "mode=1777",
-		}
-		for target, mode := range mounts {
+		for target, mode := range tmpfsMounts {
 			if !isInCRIMounts(target, containerConfig.Mounts) {
 				ctr.SpecAddMount(rspec.Mount{
 					Destination: target,
