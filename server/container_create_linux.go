@@ -544,38 +544,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}()
 
-	// If the sandbox is configured to run in the host network, do not create a new network namespace
-	if hostNet {
-		if !isInCRIMounts("/sys", containerConfig.Mounts) {
-			ctr.SpecAddMount(rspec.Mount{
-				Destination: "/sys",
-				Type:        "sysfs",
-				Source:      "sysfs",
-				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
-			})
-			ctr.SpecAddMount(rspec.Mount{
-				Destination: cgroupSysFsPath,
-				Type:        "cgroup",
-				Source:      "cgroup",
-				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
-			})
-		}
-	}
-
-	if ctr.Privileged() {
-		ctr.SpecAddMount(rspec.Mount{
-			Destination: "/sys",
-			Type:        "sysfs",
-			Source:      "sysfs",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
-		})
-		ctr.SpecAddMount(rspec.Mount{
-			Destination: cgroupSysFsPath,
-			Type:        "cgroup",
-			Source:      "cgroup",
-			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
-		})
-	}
+	addSysfsMounts(ctr, containerConfig, hostNet)
 
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
@@ -1517,4 +1486,39 @@ func (s *Server) setAppArmorProfile(ctx context.Context, ctr ctrfactory.Containe
 		specgen.SetProcessApparmorProfile(profile)
 	}
 	return nil
+}
+
+func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerConfig, hostNet bool) {
+	// If the sandbox is configured to run in the host network, do not create a new network namespace
+	if hostNet {
+		if !isInCRIMounts("/sys", containerConfig.Mounts) {
+			ctr.SpecAddMount(rspec.Mount{
+				Destination: "/sys",
+				Type:        "sysfs",
+				Source:      "sysfs",
+				Options:     []string{"nosuid", "noexec", "nodev", "ro"},
+			})
+			ctr.SpecAddMount(rspec.Mount{
+				Destination: cgroupSysFsPath,
+				Type:        "cgroup",
+				Source:      "cgroup",
+				Options:     []string{"nosuid", "noexec", "nodev", "relatime", "ro"},
+			})
+		}
+	}
+
+	if ctr.Privileged() {
+		ctr.SpecAddMount(rspec.Mount{
+			Destination: "/sys",
+			Type:        "sysfs",
+			Source:      "sysfs",
+			Options:     []string{"nosuid", "noexec", "nodev", "rw", "rslave"},
+		})
+		ctr.SpecAddMount(rspec.Mount{
+			Destination: cgroupSysFsPath,
+			Type:        "cgroup",
+			Source:      "cgroup",
+			Options:     []string{"nosuid", "noexec", "nodev", "rw", "relatime", "rslave"},
+		})
+	}
 }
