@@ -148,13 +148,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
-	if containerConfig.Linux == nil {
-		containerConfig.Linux = &types.LinuxContainerConfig{}
-	}
-	if containerConfig.Linux.SecurityContext == nil {
-		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
-	}
-	securityContext := containerConfig.Linux.SecurityContext
+	securityContext := getSecurityContext(containerConfig)
 
 	// creates a spec Generator with the default spec.
 	specgen := ctr.Spec()
@@ -1467,6 +1461,16 @@ func isBindMount(mountOptions []string) bool {
 		}
 	}
 	return false
+}
+
+func getSecurityContext(containerConfig *types.ContainerConfig) *types.LinuxContainerSecurityContext {
+	if containerConfig.Linux == nil {
+		containerConfig.Linux = &types.LinuxContainerConfig{}
+	}
+	if containerConfig.Linux.SecurityContext == nil {
+		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
+	}
+	return containerConfig.Linux.SecurityContext
 }
 
 func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
