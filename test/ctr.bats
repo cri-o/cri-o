@@ -929,6 +929,37 @@ function create_test_rro_mounts() {
 	crictl exec --sync "$ctr_id" grep Groups:.1000 /proc/1/status
 }
 
+@test "ctr has gid in supplemental groups with Merge policy" {
+	start_crio
+	jq '	  .linux.security_context.supplemental_groups_policy = "Merge"' \
+		"$TESTDATA"/sandbox_config.json > "$newconfig"
+
+	pod_id=$(crictl runp "$newconfig")
+	jq '	  .image.image = "quay.io/crio/fedora-crio-ci:latest"
+	    |     .linux.security_context.supplemental_groups = [10]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container_sleep_modified.json
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_sleep_modified.json "$newconfig")
+
+	crictl exec --sync "$ctr_id" id | grep -q "10"
+}
+
+@test "ctr has only specified gid in supplemental groups with Strict policy" {
+	start_crio
+	jq '	  .linux.security_context.supplemental_groups_policy = "Strict"' \
+		"$TESTDATA"/sandbox_config.json > "$newconfig"
+
+	pod_id=$(crictl runp "$newconfig")
+	jq '	  .image.image = "quay.io/crio/fedora-crio-ci:latest"
+	    |     .linux.security_context.supplemental_groups = [10]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR"/container_sleep_modified.json
+
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR"/container_sleep_modified.json "$newconfig")
+
+	# Ensure 10 should not be present in supplemental groups.
+	crictl exec --sync "$ctr_id" id | grep -vq "10"
+}
+
 @test "ctr with low memory configured should not be created" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)

@@ -295,15 +295,28 @@ func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs
 	specgen.SetProcessGID(gid)
 	specgen.AddProcessAdditionalGid(gid)
 
-	for _, group := range addGroups {
-		specgen.AddProcessAdditionalGid(group)
+	supplementalGroupsPolicy := sc.GetSupplementalGroupsPolicy()
+
+	switch supplementalGroupsPolicy {
+	case types.SupplementalGroupsPolicy_Merge:
+		// Add groups from /etc/passwd and SupplementalGroups defined
+		// in security context.
+		for _, group := range addGroups {
+			specgen.AddProcessAdditionalGid(group)
+		}
+		for _, group := range sc.SupplementalGroups {
+			specgen.AddProcessAdditionalGid(uint32(group))
+		}
+	case types.SupplementalGroupsPolicy_Strict:
+		// Don't merge group defined in /etc/passwd.
+		for _, group := range sc.SupplementalGroups {
+			specgen.AddProcessAdditionalGid(uint32(group))
+		}
+
+	default:
+		return fmt.Errorf("not implemented in this CRI-O release: SupplementalGroupsPolicy=%v", supplementalGroupsPolicy)
 	}
 
-	// Add groups from CRI
-	groups := sc.SupplementalGroups
-	for _, group := range groups {
-		specgen.AddProcessAdditionalGid(uint32(group))
-	}
 	return nil
 }
 

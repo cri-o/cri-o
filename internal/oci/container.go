@@ -75,6 +75,7 @@ type Container struct {
 	resources             *types.ContainerResources
 	runtimePath           string // runtime path for a given platform
 	execPIDs              map[int]bool
+	runtimeUser           *types.ContainerUser
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -224,6 +225,7 @@ func (c *Container) CRIContainer() *types.Container {
 func (c *Container) SetSpec(s *specs.Spec) {
 	c.spec = s
 	c.SetResources(s)
+	c.SetRuntimeUser(s)
 }
 
 // Spec returns a copy of the spec for the container
@@ -826,4 +828,9 @@ func (c *Container) KillExecPIDs() {
 		toKill = unkilled
 		time.Sleep(stopProcessWatchSleep)
 	}
+}
+
+// RuntimeUser returns the runtime user for the container.
+func (c *Container) RuntimeUser() *types.ContainerUser {
+	return c.runtimeUser
 }
