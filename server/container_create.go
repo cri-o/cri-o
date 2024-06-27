@@ -961,8 +961,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}
 
 	var nsTargetCtr *oci.Container
-	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
-		nsTargetCtr = s.GetContainer(ctx, target)
+	if containerConfig.Linux != nil {
+		if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
+			nsTargetCtr = s.GetContainer(ctx, target)
+		}
 	}
 
 	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
