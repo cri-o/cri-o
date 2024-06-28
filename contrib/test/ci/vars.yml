@@ -106,6 +106,8 @@ kata_skip_config_tests:
 kata_skip_config_migrate_tests:
   - 'test "config migrate should succeed with default config"'
   - 'test "config migrate should succeed with 1.17 config"'
+kata_skip_reload_config:
+  - 'test "reload config should remove pinned images when an empty list is provided"'
 kata_skip_crio_wipe_tests:
   - 'test "clear neither when remove persist"'
   - "test \"don't clear containers on a forced restart of crio\""
