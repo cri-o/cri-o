@@ -10,7 +10,7 @@
 [![Release Notes](https://img.shields.io/badge/release-notes-blue.svg)](https://cri-o.github.io/cri-o)
 [![Dependencies](https://img.shields.io/badge/report-dependencies-blue.svg)](https://cri-o.github.io/cri-o/dependencies)
 [![GoDoc](https://godoc.org/github.com/cri-o/cri-o?status.svg)](https://godoc.org/github.com/cri-o/cri-o)
-[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/cri-o/cri-o/badge)](https://api.securityscorecards.dev/projects/github.com/cri-o/cri-o)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/cri-o/cri-o/badge)](https://scorecard.dev/viewer/?uri=github.com/cri-o/cri-o)
 [![OpenSSF Best Practices](https://bestpractices.coreinfrastructure.org/projects/2298/badge)](https://bestpractices.coreinfrastructure.org/projects/2298)
 [![Go Report Card](https://goreportcard.com/badge/github.com/cri-o/cri-o)](https://goreportcard.com/report/github.com/cri-o/cri-o)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fcri-o%2Fcri-o?ref=badge_shield)
