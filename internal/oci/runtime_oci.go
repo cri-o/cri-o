@@ -47,11 +47,11 @@ const (
 	rootFlag = "--root"
 
 	// Configuration for the stop loop exponential backoff manager.
-	stopInitialBackoff = 20 * time.Millisecond
-	stopMaximumBackoff = 2 * time.Minute
-	stopResetBackoff   = 5 * time.Minute
-	stopBackoffFactor  = 2.0
-	stopBackoffJitter  = 1.25
+	stopInitialBackoff = 50 * time.Millisecond
+	stopMaximumBackoff = 10 * time.Second
+	stopResetBackoff   = 20 * time.Second
+	stopBackoffFactor  = 1.02
+	stopBackoffJitter  = 1.02
 
 	// When to start the blocked process reminder and
 	// how frequently the reminder should be shown.

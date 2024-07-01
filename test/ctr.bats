@@ -1329,7 +1329,7 @@ function create_test_rro_mounts() {
 	# exponential backoff configuration of the container
 	# stop loop retry logic.
 	FAKE_RUNTIME_ATTEMPTS_LIMIT=10
-	FAKE_RUNTIME_ATTEMPTS_TIME_DURATION=30 # Seconds.
+	FAKE_RUNTIME_ATTEMPTS_TIME_DURATION=10 # Seconds.
 
 	cat << EOF > "$FAKE_RUNTIME_BINARY_PATH"
 #!/usr/bin/env bash
