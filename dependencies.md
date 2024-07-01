@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
+_Generated on Mon, 01 Jul 2024 13:58:29 UTC for commit [ccc270f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/892994d312e9ecb1b4a3b01f13596df3a4835b8e
+[0]: https://github.com/cri-o/cri-o/commit/ccc270fe9833644f624b2863351438452757f808
 
 ## Outdated Dependencies
 
@@ -11,11 +11,13 @@ _Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
 | github.com/containerd/ttrpc                            | v1.2.4                                        | v1.2.5                             | true   | true             |
 | github.com/containernetworking/cni                     | v1.1.2                                        | v1.2.2                             | true   | true             |
 | github.com/containers/image/v5                         | v5.31.0                                       | v5.31.1                            | true   | true             |
+| github.com/containers/ocicrypt                         | v1.1.10                                       | v1.2.0                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                                        | v0.4.3                             | true   | true             |
 | github.com/go-chi/chi/v5                               | v5.0.13                                       | v5.1.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20240701062428-f0187ff96931 | true   | true             |
 | k8s.io/cri-api                                         | v0.31.0-alpha.0.0.20240529224029-3a66d9d86654 | v0.31.0-alpha.2                    | true   | true             |
 | k8s.io/klog/v2                                         | v2.130.0                                      | v2.130.1                           | true   | true             |
+| sigs.k8s.io/release-sdk                                | v0.12.0                                       | v0.12.1                            | true   | true             |
 
 ## All Dependencies
 
@@ -322,7 +324,7 @@ _Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
 | github.com/containers/image/v5                                                          | v5.31.0                                       | v5.31.1                             | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                        |                                     | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01            |                                     | false  | true             |
-| github.com/containers/ocicrypt                                                          | v1.1.10                                       |                                     | true   | true             |
+| github.com/containers/ocicrypt                                                          | v1.1.10                                       | v1.2.0                              | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.2.0                                        | v4.9.5                              | false  | true             |
 | github.com/containers/storage                                                           | v1.54.0                                       |                                     | true   | true             |
 | github.com/coreos/go-iptables                                                           | v0.7.0                                        |                                     | false  | true             |
@@ -349,9 +351,9 @@ _Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                        |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                        |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.6.0                                        |                                     | false  | true             |
-| github.com/docker/cli                                                                   | v26.1.3+incompatible                          | v27.0.2+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v26.1.3+incompatible                          | v27.0.3+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                           |                                     | true   | true             |
-| github.com/docker/docker                                                                | v26.1.3+incompatible                          | v27.0.2+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v26.1.3+incompatible                          | v27.0.3+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.1                                        | v0.8.2                              | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                        |                                     | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c            |                                     | false  | true             |
@@ -775,9 +777,9 @@ _Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
 | gonum.org/v1/plot                                                                       | v0.10.1                                       | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.172.0                                      | v0.186.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                        |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7            | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240520151616-dc85e6b867a5            | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5            | v0.0.0-20240624140628-dc46fd24d27d  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7            | v0.0.0-20240701130421-f6361c86f094  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240520151616-dc85e6b867a5            | v0.0.0-20240701130421-f6361c86f094  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240520151616-dc85e6b867a5            | v0.0.0-20240701130421-f6361c86f094  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.64.0                                       |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                        | v1.4.0                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                                       |                                     | true   | true             |
@@ -830,7 +832,7 @@ _Generated on Mon, 01 Jul 2024 08:00:16 UTC for commit [892994d][0]._
 | rsc.io/sampler                                                                          | v1.3.0                                        | v1.99.99                            | false  | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.29.0                                       | v0.30.3                             | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd            |                                     | false  | true             |
-| sigs.k8s.io/release-sdk                                                                 | v0.12.0                                       |                                     | true   | true             |
+| sigs.k8s.io/release-sdk                                                                 | v0.12.0                                       | v0.12.1                             | true   | true             |
 | sigs.k8s.io/release-utils                                                               | v0.8.2                                        |                                     | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                        |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                        |                                     | true   | true             |
