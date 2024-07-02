@@ -4,13 +4,13 @@ _cli_bash_autocomplete() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     opts="complete
 completion
+config
 man
 markdown
 md
-config
+status
 version
 wipe
-status
 help
 h
 --absent-mount-sources-to-reject
