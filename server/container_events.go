@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"sync"
 
 	"google.golang.org/grpc/codes"
@@ -16,7 +17,7 @@ type containerEventConn struct {
 // GetContainerEvents sends the stream of container events to clients
 func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.RuntimeService_GetContainerEventsServer) error {
 	if !s.Config().EnablePodEvents {
-		return nil
+		return fmt.Errorf("enable_pod_events is false. Set to true to produce container events")
 	}
 
 	s.containerEventStreamBroadcaster.Do(func() {
