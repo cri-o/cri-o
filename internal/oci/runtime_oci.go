@@ -47,11 +47,11 @@ const (
 	rootFlag = "--root"
 
 	// Configuration for the stop loop exponential backoff manager.
-	stopInitialBackoff = 20 * time.Millisecond
-	stopMaximumBackoff = 2 * time.Minute
-	stopResetBackoff   = 5 * time.Minute
-	stopBackoffFactor  = 2.0
-	stopBackoffJitter  = 1.25
+	stopInitialBackoff = 50 * time.Millisecond
+	stopMaximumBackoff = 10 * time.Second
+	stopResetBackoff   = 20 * time.Second
+	stopBackoffFactor  = 1.02
+	stopBackoffJitter  = 1.02
 
 	// When to start the blocked process reminder and
 	// how frequently the reminder should be shown.
@@ -830,13 +830,6 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return nil
 	}
 
-	if err := c.ShouldBeStopped(); err != nil {
-		if errors.Is(err, ErrContainerStopped) {
-			err = nil
-		}
-		return err
-	}
-
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
 		c.state.Finished = time.Now()
@@ -874,6 +867,12 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
 	c.opLock.Lock()
+	defer c.opLock.Unlock()
+	if c.state.Status == ContainerStatePaused {
+		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
+			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
+		}
+	}
 
 	// Begin the actual kill.
 	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
@@ -881,7 +880,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
-			c.opLock.Unlock()
 			c.SetAsDoneStopping()
 			return
 		}
@@ -958,7 +956,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	c.KillExecPIDs()
 
 	c.state.Finished = time.Now()
-	c.opLock.Unlock()
 	c.SetAsDoneStopping()
 }
 
