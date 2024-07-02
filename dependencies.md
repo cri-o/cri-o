@@ -1,19 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
+_Generated on Tue, 02 Jul 2024 11:45:29 UTC for commit [b93c69b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c8ea3000b6c938a90e4638e10a821f60460d437c
+[0]: https://github.com/cri-o/cri-o/commit/b93c69bebf780f7a1d22f87d9612c56eb1436838
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
-| github.com/containers/ocicrypt                         | v1.1.10                            | v1.2.0                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/go-chi/chi/v5                               | v5.0.14                            | v5.1.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240702051503-dd12089e0deb | true   | true             |
-| sigs.k8s.io/release-sdk                                | v0.12.0                            | v0.12.1                            | true   | true             |
 
 ## All Dependencies
 
@@ -317,7 +314,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | github.com/containers/image/v5                                                          | v5.31.1                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
-| github.com/containers/ocicrypt                                                          | v1.1.10                               | v1.2.0                              | true   | true             |
+| github.com/containers/ocicrypt                                                          | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.5                              | false  | true             |
 | github.com/containers/storage                                                           | v1.54.0                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                                           | v0.7.0                                |                                     | false  | true             |
@@ -372,7 +369,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                                | v5.0.14                               | v5.1.0                              | true   | true             |
+| github.com/go-chi/chi/v5                                                                | v5.1.0                                |                                     | true   | true             |
 | github.com/go-fonts/dejavu                                                              | v0.1.0                                | v0.3.3                              | false  | true             |
 | github.com/go-fonts/latin-modern                                                        | v0.2.0                                | v0.3.2                              | false  | true             |
 | github.com/go-fonts/liberation                                                          | v0.2.0                                | v0.3.2                              | false  | true             |
@@ -385,7 +382,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | github.com/go-gl/glfw/v3.3/glfw                                                         | v0.0.0-20200222043503-6f7a984d4dc4    | v0.0.0-20240506104042-037f3cc74f2a  | false  | true             |
 | github.com/go-ini/ini                                                                   | v1.67.0                               |                                     | false  | true             |
 | github.com/go-jose/go-jose/v3                                                           | v3.0.3                                |                                     | false  | true             |
-| github.com/go-jose/go-jose/v4                                                           | v4.0.1                                | v4.0.2                              | false  | true             |
+| github.com/go-jose/go-jose/v4                                                           | v4.0.2                                |                                     | false  | true             |
 | github.com/go-kit/kit                                                                   | v0.8.0                                | v0.13.0                             | false  | true             |
 | github.com/go-kit/log                                                                   | v0.2.1                                |                                     | false  | true             |
 | github.com/go-latex/latex                                                               | v0.0.0-20210823091927-c0d11ff05a81    | v0.0.0-20231108140139-5c1ce85aa4ea  | false  | true             |
@@ -432,7 +429,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | github.com/google/flatbuffers                                                           | v2.0.8+incompatible                   | v24.3.25+incompatible               | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.9-0.20230804172637-c7be7c783f49  |                                     | false  | true             |
 | github.com/google/go-cmp                                                                | v0.6.0                                |                                     | true   | true             |
-| github.com/google/go-containerregistry                                                  | v0.19.1                               | v0.19.2                             | false  | true             |
+| github.com/google/go-containerregistry                                                  | v0.19.2                               |                                     | false  | true             |
 | github.com/google/go-github/v55                                                         | v55.0.0                               |                                     | false  | true             |
 | github.com/google/go-github/v60                                                         | v60.0.0                               |                                     | false  | true             |
 | github.com/google/go-intervals                                                          | v0.0.2                                |                                     | false  | true             |
@@ -462,7 +459,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | github.com/hashicorp/errwrap                                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                                       | v0.5.2                                |                                     | false  | true             |
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                |                                     | false  | true             |
-| github.com/hashicorp/go-retryablehttp                                                   | v0.7.6                                | v0.7.7                              | false  | true             |
+| github.com/hashicorp/go-retryablehttp                                                   | v0.7.7                                |                                     | false  | true             |
 | github.com/hashicorp/go-rootcerts                                                       | v1.0.2                                |                                     | false  | true             |
 | github.com/hashicorp/go-secure-stdlib/parseutil                                         | v0.1.7                                | v0.1.8                              | false  | true             |
 | github.com/hashicorp/go-secure-stdlib/strutil                                           | v0.1.2                                |                                     | false  | true             |
@@ -822,7 +819,7 @@ _Generated on Tue, 02 Jul 2024 07:59:31 UTC for commit [c8ea300][0]._
 | rsc.io/sampler                                                                          | v1.3.0                                | v1.99.99                            | false  | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.30.3                               |                                     | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    |                                     | false  | true             |
-| sigs.k8s.io/release-sdk                                                                 | v0.12.0                               | v0.12.1                             | true   | true             |
+| sigs.k8s.io/release-sdk                                                                 | v0.12.1                               |                                     | true   | true             |
 | sigs.k8s.io/release-utils                                                               | v0.8.2                                |                                     | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                |                                     | true   | true             |
