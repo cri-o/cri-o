@@ -55,6 +55,7 @@ function teardown() {
 @test "choose different default runtime should succeed" {
 	# when
 	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
 	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun-default.conf -d "" config 2>&1)
 
 	# then
@@ -66,6 +67,7 @@ function teardown() {
 @test "runc not existing when default_runtime changed should succeed" {
 	# when
 	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
 	cat << EOF > "$TESTDIR"/50-runc-new-path.conf
 [crio.runtime]
 default_runtime = "crun"
@@ -83,6 +85,7 @@ EOF
 }
 
 @test "retain default runtime should succeed" {
+	unset CONTAINER_DEFAULT_RUNTIME
 	# when
 	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun.conf -d "" config 2>&1)
 
@@ -93,9 +96,7 @@ EOF
 }
 
 @test "monitor fields should be translated" {
-	if [[ "$RUNTIME_TYPE" == "vm" ]]; then
-		skip "not applicable to vm runtime type"
-	fi
+	unset CONTAINER_DEFAULT_RUNTIME
 	# when
 	RES=$("$CRIO_BINARY_PATH" --conmon-cgroup="pod" --conmon="/bin/true" -c "" -d "" config 2>&1)
 
