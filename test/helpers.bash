@@ -376,6 +376,11 @@ function cleanup_test() {
         cleanup_pods
         stop_crio
         cleanup_testdir
+        if [ "$RUNTIME_TYPE" == "vm" ]; then
+            # cleanup left over kata processes
+            # don't fail if there is none
+            run killall containerd-shim-kata-v2
+        fi
     else
         echo >&3 "* Failed \"$BATS_TEST_DESCRIPTION\", TESTDIR=$TESTDIR, LVM_DEVICE=${LVM_DEVICE:-}"
     fi
@@ -508,16 +513,38 @@ function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
 }
 
-function create_runtime_with_allowed_annotation() {
+# This function can be used to create a new runtime class and make it the default
+# This is a shared use case for some of our integration tests, and it needs
+# to take into account all possible runtime parameters to keep compatible with
+# all supported runtimes.
+# The function returns the path to the created config file on stdout, so that
+# the caller can append additional settings (if any)
+function create_new_default_runtime() {
     local NAME="$1"
-    local ANNOTATION="$2"
-    cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
+    local CONF_PATH="$CRIO_CONFIG_DIR/01-$NAME.conf"
+    local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
+    cat <<EOF >"$CONF_PATH"
 [crio.runtime]
 default_runtime = "$NAME"
 [crio.runtime.runtimes.$NAME]
 runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
+privileged_without_host_devices = $PRIVILEGED
+EOF
+    if [ -n "$RUNTIME_CONFIG_PATH" ]; then
+        cat <<EOF >>"$CONF_PATH"
+runtime_config_path = "$RUNTIME_CONFIG_PATH"
+EOF
+    fi
+    echo "$CONF_PATH"
+}
+
+function create_runtime_with_allowed_annotation() {
+    local NAME="$1"
+    local ANNOTATION="$2"
+    CONFIG_PATH=$(create_new_default_runtime "$NAME")
+    cat <<EOF >>"$CONFIG_PATH"
 allowed_annotations = ["$ANNOTATION"]
 EOF
 }

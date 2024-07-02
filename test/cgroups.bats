@@ -18,13 +18,8 @@ function teardown() {
 function configure_monitor_cgroup_for_conmonrs() {
 	local MONITOR_CGROUP="$1"
 	local NAME=conmonrs
-	cat << EOF > "$CRIO_CONFIG_DIR/01-$NAME.conf"
-[crio.runtime]
-default_runtime = "$NAME"
-[crio.runtime.runtimes.$NAME]
-runtime_path = "$RUNTIME_BINARY_PATH"
-runtime_root = "$RUNTIME_ROOT"
-runtime_type = "$RUNTIME_TYPE"
+	CONFIG_PATH=$(create_new_default_runtime $NAME)
+	cat << EOF >> "$CONFIG_PATH"
 monitor_cgroup = "$MONITOR_CGROUP"
 EOF
 }
