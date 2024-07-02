@@ -4,15 +4,15 @@ _cli_zsh_autocomplete() {
   cmds=(
         'complete:Generate bash, fish or zsh completions.'
         'completion:Generate bash, fish or zsh completions.'
-        'man:Generate the man page documentation.'
-        'markdown:Generate the markdown documentation.'
-        'md:Generate the markdown documentation.'
         'config:Outputs a commented version of the configuration file that could be used
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
+        'man:Generate the man page documentation.'
+        'markdown:Generate the markdown documentation.'
+        'md:Generate the markdown documentation.'
+        'status:Display status information'
         'version:display detailed version information'
         "wipe:wipe CRI-O's container and image storage"
-        'status:Display status information'
         'help:Shows a list of commands or help for one command'
         'h:Shows a list of commands or help for one command'
   )

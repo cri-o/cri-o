@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"runtime/pprof"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -148,13 +149,17 @@ func main() {
 	}
 
 	app.Commands = criocli.DefaultCommands
-	app.Commands = append(app.Commands, []*cli.Command{
+	app.Commands = append(app.Commands,
 		criocli.ConfigCommand,
 		criocli.PublishCommand,
 		criocli.VersionCommand,
 		criocli.WipeCommand,
 		criocli.StatusCommand,
-	}...)
+	)
+
+	slices.SortFunc(app.Commands, func(a, b *cli.Command) int {
+		return strings.Compare(a.Name, b.Name)
+	})
 
 	app.Before = func(c *cli.Context) (err error) {
 		config, err := criocli.GetAndMergeConfigFromContext(c)
