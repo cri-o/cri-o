@@ -15,7 +15,7 @@ const (
 	// ImageVolumesBind option is for using bind mounted volumes
 	ImageVolumesBind ImageVolumesType = "invalid ImageVolumesBind"
 	// DefaultPauseImage is default pause image
-	DefaultPauseImage string = "registry.k8s.io/pause:3.9"
+	DefaultPauseImage string = "registry.k8s.io/pause:3.10"
 )
 
 func selinuxEnabled() bool {
