@@ -931,7 +931,7 @@ function create_test_rro_mounts() {
 
 @test "ctr has gid in supplemental groups with Merge policy" {
 	start_crio
-	jq '	  .linux.security_context.supplemental_groups_policy = "Merge"' \
+	jq '	  .linux.security_context.supplemental_groups_policy = 0' \
 		"$TESTDATA"/sandbox_config.json > "$newconfig"
 
 	pod_id=$(crictl runp "$newconfig")
@@ -946,7 +946,7 @@ function create_test_rro_mounts() {
 
 @test "ctr has only specified gid in supplemental groups with Strict policy" {
 	start_crio
-	jq '	  .linux.security_context.supplemental_groups_policy = "Strict"' \
+	jq '	  .linux.security_context.supplemental_groups_policy = 1' \
 		"$TESTDATA"/sandbox_config.json > "$newconfig"
 
 	pod_id=$(crictl runp "$newconfig")
