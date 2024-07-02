@@ -223,6 +223,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	imageName := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
+
+	// Avoid image removal during container creation
+	imageRemovalLock := s.StorageImageServer().ImageRemovalLock(imageID)
+	imageRemovalLock.RLock()
+	defer imageRemovalLock.RUnlock()
+
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
