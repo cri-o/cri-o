@@ -130,8 +130,8 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 		}
 	}
 
-	maskString := mapByteToHexChar(currentMaskArray)
-	invertedMaskString := mapByteToHexChar(invertedMaskArray)
+	maskString := fixMask(mapByteToHexChar(currentMaskArray), len(s))
+	invertedMaskString := fixMask(mapByteToHexChar(invertedMaskArray), len(s))
 
 	maskStringWithComma := maskString[0:8]
 	invertedMaskStringWithComma := invertedMaskString[0:8]
@@ -140,6 +140,13 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
 	}
 	return maskStringWithComma, invertedMaskStringWithComma, nil
+}
+
+func fixMask(maskString string, maskLen int) string {
+	if maskLen >= len(maskString) {
+		return maskString
+	}
+	return strings.Repeat("0", len(maskString)-maskLen) + maskString[len(maskString)-maskLen:]
 }
 
 func restartIrqBalanceService() error {
