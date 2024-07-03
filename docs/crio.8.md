@@ -445,20 +445,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 Generate bash, fish or zsh completions.
 
-## man
-
-Generate the man page documentation.
-
-## markdown, md
-
-Generate the markdown documentation.
-
-**--help, -h**: show help
-
-### help, h
-
-Shows a list of commands or help for one command
-
 ## config
 
 Outputs a commented version of the configuration file that could be used
@@ -483,19 +469,19 @@ it later with **--config**. Global options will modify the output.
     be in a drop-in configuration file instead.
     Possible values: "1.17" (default: "1.17")
 
-## version
+## man
 
-display detailed version information
+Generate the man page documentation.
 
-**--json, -j**: print JSON instead of text
+## markdown, md
 
-**--verbose, -v**: print verbose information (for example all golang dependencies)
+Generate the markdown documentation.
 
-## wipe
+**--help, -h**: show help
 
-wipe CRI-O's container and image storage
+### help, h
 
-**--force, -f**: force wipe by skipping the version check
+Shows a list of commands or help for one command
 
 ## status
 
@@ -516,6 +502,20 @@ Display detailed information about the provided container ID.
 ### info, i
 
 Retrieve generic information about CRI-O, such as the cgroup and storage driver.
+
+## version
+
+display detailed version information
+
+**--json, -j**: print JSON instead of text
+
+**--verbose, -v**: print verbose information (for example all golang dependencies)
+
+## wipe
+
+wipe CRI-O's container and image storage
+
+**--force, -f**: force wipe by skipping the version check
 
 ## help, h
 
