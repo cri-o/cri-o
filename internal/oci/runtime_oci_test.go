@@ -109,7 +109,7 @@ var _ = t.Describe("Oci", func() {
 			go runtime.StopLoopForContainer(sut, bm)
 
 			// Then
-			waitOnContainerTimeout(sut, longTimeout, mediumTimeout, sleepProcess)
+			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
 		})
 		It("should fall back to KILL after timeout", func() {
 			// Given
