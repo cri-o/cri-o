@@ -219,16 +219,6 @@ func (CinderVolumeSource) SwaggerDoc() map[string]string {
 	return map_CinderVolumeSource
 }
 
-var map_ClaimSource = map[string]string{
-	"":                          "ClaimSource describes a reference to a ResourceClaim.\n\nExactly one of these fields should be set.  Consumers of this type must treat an empty object as if it has an unknown value.",
-	"resourceClaimName":         "ResourceClaimName is the name of a ResourceClaim object in the same namespace as this pod.",
-	"resourceClaimTemplateName": "ResourceClaimTemplateName is the name of a ResourceClaimTemplate object in the same namespace as this pod.\n\nThe template will be used to create a new ResourceClaim, which will be bound to this pod. When this pod is deleted, the ResourceClaim will also be deleted. The pod name and resource name, along with a generated component, will be used to form a unique name for the ResourceClaim, which will be recorded in pod.status.resourceClaimStatuses.\n\nThis field is immutable and no changes will be made to the corresponding ResourceClaim by the control plane after creating the ResourceClaim.",
-}
-
-func (ClaimSource) SwaggerDoc() map[string]string {
-	return map_ClaimSource
-}
-
 var map_ClientIPConfig = map[string]string{
 	"":               "ClientIPConfig represents the configurations of Client IP based session affinity.",
 	"timeoutSeconds": "timeoutSeconds specifies the seconds of ClientIP type session sticky time. The value must be >0 && <=86400(for 1 day) if ServiceAffinity == \"ClientIP\". Default value is 10800(for 3 hours).",
@@ -1301,7 +1291,7 @@ func (NodeSpec) SwaggerDoc() map[string]string {
 
 var map_NodeStatus = map[string]string{
 	"":                "NodeStatus is information about the current status of a node.",
-	"capacity":        "Capacity represents the total resources of a node. More info: https://kubernetes.io/docs/concepts/storage/persistent-volumes#capacity",
+	"capacity":        "Capacity represents the total resources of a node. More info: https://kubernetes.io/docs/reference/node/node-status/#capacity",
 	"allocatable":     "Allocatable represents the resources of a node that are available for scheduling. Defaults to Capacity.",
 	"phase":           "NodePhase is the recently observed lifecycle phase of the node. More info: https://kubernetes.io/docs/concepts/nodes/node/#phase The field is never populated, and now is deprecated.",
 	"conditions":      "Conditions is an array of current observed node conditions. More info: https://kubernetes.io/docs/concepts/nodes/node/#condition",
@@ -1717,9 +1707,10 @@ func (PodReadinessGate) SwaggerDoc() map[string]string {
 }
 
 var map_PodResourceClaim = map[string]string{
-	"":       "PodResourceClaim references exactly one ResourceClaim through a ClaimSource. It adds a name to it that uniquely identifies the ResourceClaim inside the Pod. Containers that need access to the ResourceClaim reference it with this name.",
-	"name":   "Name uniquely identifies this resource claim inside the pod. This must be a DNS_LABEL.",
-	"source": "Source describes where to find the ResourceClaim.",
+	"":                          "PodResourceClaim references exactly one ResourceClaim, either directly or by naming a ResourceClaimTemplate which is then turned into a ResourceClaim for the pod.\n\nIt adds a name to it that uniquely identifies the ResourceClaim inside the Pod. Containers that need access to the ResourceClaim reference it with this name.",
+	"name":                      "Name uniquely identifies this resource claim inside the pod. This must be a DNS_LABEL.",
+	"resourceClaimName":         "ResourceClaimName is the name of a ResourceClaim object in the same namespace as this pod.\n\nExactly one of ResourceClaimName and ResourceClaimTemplateName must be set.",
+	"resourceClaimTemplateName": "ResourceClaimTemplateName is the name of a ResourceClaimTemplate object in the same namespace as this pod.\n\nThe template will be used to create a new ResourceClaim, which will be bound to this pod. When this pod is deleted, the ResourceClaim will also be deleted. The pod name and resource name, along with a generated component, will be used to form a unique name for the ResourceClaim, which will be recorded in pod.status.resourceClaimStatuses.\n\nThis field is immutable and no changes will be made to the corresponding ResourceClaim by the control plane after creating the ResourceClaim.\n\nExactly one of ResourceClaimName and ResourceClaimTemplateName must be set.",
 }
 
 func (PodResourceClaim) SwaggerDoc() map[string]string {
