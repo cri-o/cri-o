@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 Jul 2024 16:24:18 UTC for commit [f1bc4a5][0]._
+_Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f1bc4a5a798d280658e208fd26a3ed7b7d087274
+[0]: https://github.com/cri-o/cri-o/commit/48511b47f2005ed70698b4c35278b83928449f4e
 
 ## Outdated Dependencies
 
@@ -153,7 +153,7 @@ _Generated on Thu, 04 Jul 2024 16:24:18 UTC for commit [f1bc4a5][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.9.9                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.6.9                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.12.8                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240625174231-fca5dc407bce  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240704175130-b175bb555329  | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240703134027-fa95d0563666  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.9.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
