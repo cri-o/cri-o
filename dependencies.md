@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 Jul 2024 10:59:27 UTC for commit [efca564][0]._
+_Generated on Thu, 04 Jul 2024 16:24:18 UTC for commit [f1bc4a5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/efca56466ba29862acce9a442879182704dac32d
+[0]: https://github.com/cri-o/cri-o/commit/f1bc4a5a798d280658e208fd26a3ed7b7d087274
 
 ## Outdated Dependencies
 
@@ -11,6 +11,7 @@ _Generated on Thu, 04 Jul 2024 10:59:27 UTC for commit [efca564][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240704080458-ddb8a94677b4 | true   | true             |
+| golang.org/x/sys                                       | v0.21.0                            | v0.22.0                            | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
@@ -755,11 +756,11 @@ _Generated on Thu, 04 Jul 2024 10:59:27 UTC for commit [efca564][0]._
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.18.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20240604190613-2782386b8afd  | false  | true             |
-| golang.org/x/mod                                                                        | v0.17.0                               | v0.18.0                             | false  | true             |
+| golang.org/x/mod                                                                        | v0.17.0                               | v0.19.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.26.0                               |                                     | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
-| golang.org/x/sys                                                                        | v0.21.0                               |                                     | true   | true             |
+| golang.org/x/sys                                                                        | v0.21.0                               | v0.22.0                             | true   | true             |
 | golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240703200001-5377abf9626c  | false  | true             |
 | golang.org/x/term                                                                       | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                               |                                     | false  | true             |
