@@ -133,7 +133,7 @@ func main() {
 		logrus.Fatal(err)
 	}
 
-	app.Version = version.Version + "\n" + info.String()
+	app.Version = strings.TrimSpace(strings.ReplaceAll(info.String(), "\n", "\n   "))
 
 	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
 	if err != nil {
