@@ -25,8 +25,7 @@ CRIO_BINARY_PATH=${CRIO_BINARY_PATH:-${CRIO_ROOT}/bin/$CRIO_BINARY}
 PINNS_BINARY_PATH=${PINNS_BINARY_PATH:-${CRIO_ROOT}/bin/pinns}
 
 # Path of the crictl binary.
-CRICTL_PATH=$(command -v crictl || true)
-CRICTL_BINARY=${CRICTL_PATH:-/usr/bin/crictl}
+CRICTL_BINARY=${CRICTL_BINARY:-$(command -v crictl)}
 # Path of the conmon binary set as a variable to allow overwriting.
 CONMON_BINARY=${CONMON_BINARY:-$(command -v conmon)}
 # Cgroup for the conmon process
