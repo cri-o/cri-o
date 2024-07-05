@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Jul 2024 13:59:31 UTC for commit [0ea19a8][0]._
+_Generated on Fri, 05 Jul 2024 21:44:35 UTC for commit [45bd35a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0ea19a8a1b87ce0a607639ae540e77a3b569fda4
+[0]: https://github.com/cri-o/cri-o/commit/45bd35a727d9609dfa7a3f3ce63edcdda7201e93
 
 ## Outdated Dependencies
 
@@ -149,7 +149,7 @@ _Generated on Fri, 05 Jul 2024 13:59:31 UTC for commit [0ea19a8][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.9.9                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.6.9                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.12.8                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240704175130-b175bb555329  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240705175204-221292338951  | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240703134027-fa95d0563666  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.9.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
@@ -227,7 +227,7 @@ _Generated on Fri, 05 Jul 2024 13:59:31 UTC for commit [0ea19a8][0]._
 | github.com/apache/thrift                                                                | v0.16.0                               | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.54.14                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.54.15                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.30.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                | v1.6.3                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.24                            | false  | true             |
