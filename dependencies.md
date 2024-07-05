@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
+_Generated on Fri, 05 Jul 2024 09:27:40 UTC for commit [3f3b318][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/48511b47f2005ed70698b4c35278b83928449f4e
+[0]: https://github.com/cri-o/cri-o/commit/3f3b31818b7768c97b16a2247ba969060c2ad6f5
 
 ## Outdated Dependencies
 
@@ -12,9 +12,6 @@ _Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240704080458-ddb8a94677b4 | true   | true             |
 | golang.org/x/sys                                       | v0.21.0                            | v0.22.0                            | true   | true             |
-| k8s.io/api                                             | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
-| k8s.io/apimachinery                                    | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
-| k8s.io/client-go                                       | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
 | k8s.io/cri-api                                         | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
 | k8s.io/kubelet                                         | v0.31.0-alpha.2                    | v0.31.0-alpha.3                    | true   | true             |
 
@@ -374,7 +371,7 @@ _Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 | github.com/fogleman/gg                                                                  | v1.3.0                                |                                     | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.5                               | v1.14.6                             | false  | true             |
 | github.com/fsnotify/fsnotify                                                            | v1.7.0                                |                                     | true   | true             |
-| github.com/fxamacker/cbor/v2                                                            | v2.7.0-beta                           | v2.7.0                              | false  | true             |
+| github.com/fxamacker/cbor/v2                                                            | v2.7.0                                |                                     | false  | true             |
 | github.com/ghodss/yaml                                                                  | v1.0.0                                |                                     | false  | true             |
 | github.com/gliderlabs/ssh                                                               | v0.3.7                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                                   | v4.1.2+incompatible                   |                                     | false  | true             |
@@ -557,7 +554,7 @@ _Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 | github.com/mndrix/tap-go                                                                | v0.0.0-20171203230836-629fa407e90b    |                                     | false  | true             |
 | github.com/moby/docker-image-spec                                                       | v1.3.1                                |                                     | false  | true             |
 | github.com/moby/locker                                                                  | v1.0.1                                |                                     | false  | true             |
-| github.com/moby/spdystream                                                              | v0.2.0                                | v0.4.0                              | false  | true             |
+| github.com/moby/spdystream                                                              | v0.4.0                                |                                     | false  | true             |
 | github.com/moby/sys/mountinfo                                                           | v0.7.1                                |                                     | false  | true             |
 | github.com/moby/sys/sequential                                                          | v0.5.0                                |                                     | false  | true             |
 | github.com/moby/sys/signal                                                              | v0.7.0                                |                                     | false  | true             |
@@ -761,8 +758,8 @@ _Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.21.0                               | v0.22.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240703200001-5377abf9626c  | false  | true             |
-| golang.org/x/term                                                                       | v0.21.0                               |                                     | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240704191351-af73eac657e1  | false  | true             |
+| golang.org/x/term                                                                       | v0.21.0                               | v0.22.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
 | golang.org/x/tools                                                                      | v0.21.1-0.20240508182429-e35e4ccd0d2d | v0.22.0                             | false  | true             |
@@ -795,10 +792,10 @@ _Generated on Thu, 04 Jul 2024 18:55:34 UTC for commit [48511b4][0]._
 | gotest.tools                                                                            | v2.2.0+incompatible                   |                                     | false  | true             |
 | gotest.tools/v3                                                                         | v3.5.1                                |                                     | false  | true             |
 | honnef.co/go/tools                                                                      | v0.1.3                                | v0.4.7                              | false  | true             |
-| k8s.io/api                                                                              | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | true   | true             |
-| k8s.io/apimachinery                                                                     | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | true   | true             |
+| k8s.io/api                                                                              | v0.31.0-alpha.3                       |                                     | true   | true             |
+| k8s.io/apimachinery                                                                     | v0.31.0-alpha.3                       |                                     | true   | true             |
 | k8s.io/apiserver                                                                        | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | false  | true             |
-| k8s.io/client-go                                                                        | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | true   | true             |
+| k8s.io/client-go                                                                        | v0.31.0-alpha.3                       |                                     | true   | true             |
 | k8s.io/component-base                                                                   | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | false  | true             |
 | k8s.io/cri-api                                                                          | v0.31.0-alpha.2                       | v0.31.0-alpha.3                     | true   | true             |
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240404160639-a0386bf69313  | false  | true             |
