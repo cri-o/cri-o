@@ -8,6 +8,10 @@ updates:
     - "release-note-none"
   open-pull-requests-limit: 10
   groups:
+    kubernetes:
+      patterns:
+        - "k8s.io/*"
+        - "sigs.k8s.io/*"
     gomod:
       update-types:
         - "major"
