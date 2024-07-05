@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/blang/semver/v4"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 var (
@@ -22,7 +23,7 @@ type ConmonManager struct {
 	supportsLogGlobalSizeMax bool
 }
 
-// this function is heavily based on github.com/containers/common#probeConmon
+// this function is heavily based on github.com/containers/common#probeConmon.
 func New(conmonPath string) (*ConmonManager, error) {
 	if !path.IsAbs(conmonPath) {
 		return nil, fmt.Errorf("conmon path is not absolute: %s", conmonPath)

@@ -1,9 +1,8 @@
 package nri
 
 import (
-	specs "github.com/opencontainers/runtime-spec/specs-go"
-
 	nri "github.com/containerd/nri/pkg/adaptation"
+	specs "github.com/opencontainers/runtime-spec/specs-go"
 )
 
 // Container interface for interacting with NRI.

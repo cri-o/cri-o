@@ -2,10 +2,10 @@ package hostport
 
 import "github.com/sirupsen/logrus"
 
-// This interface implements, when hostport mapping is disabled in CRI-O
+// This interface implements, when hostport mapping is disabled in CRI-O.
 type noopHostportManager struct{}
 
-// NewNoopHostportManager creates a new HostPortManager
+// NewNoopHostportManager creates a new HostPortManager.
 func NewNoopHostportManager() HostPortManager {
 	logrus.Info("HostPort Mapping is Disabled in CRI-O")
 	return &noopHostportManager{}

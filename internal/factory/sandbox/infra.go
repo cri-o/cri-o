@@ -8,15 +8,16 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/factory/container"
-	"github.com/cri-o/cri-o/internal/storage"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/factory/container"
+	"github.com/cri-o/cri-o/internal/storage"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
@@ -58,7 +59,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 	return nil
 }
 
-// Spec can only be called after a successful call to InitInfraContainer
+// Spec can only be called after a successful call to InitInfraContainer.
 func (s *sandbox) Spec() *generate.Generator {
 	return s.infra.Spec()
 }

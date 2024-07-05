@@ -11,26 +11,27 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
-	// ContainerStateCreated represents the created state of a container
+	// ContainerStateCreated represents the created state of a container.
 	ContainerStateCreated = "created"
-	// ContainerStatePaused represents the paused state of a container
+	// ContainerStatePaused represents the paused state of a container.
 	ContainerStatePaused = "paused"
-	// ContainerStateRunning represents the running state of a container
+	// ContainerStateRunning represents the running state of a container.
 	ContainerStateRunning = "running"
-	// ContainerStateStopped represents the stopped state of a container
+	// ContainerStateStopped represents the stopped state of a container.
 	ContainerStateStopped = "stopped"
-	// ContainerCreateTimeout represents the value of container creating timeout
+	// ContainerCreateTimeout represents the value of container creating timeout.
 	ContainerCreateTimeout = 240 * time.Second
 
 	// killContainerTimeout is the timeout that we wait for the container to
@@ -81,7 +82,7 @@ type RuntimeImpl interface {
 	RestoreContainer(context.Context, *Container, string, string) error
 }
 
-// New creates a new Runtime with options provided
+// New creates a new Runtime with options provided.
 func New(c *config.Config) (*Runtime, error) {
 	execNotifyDir := filepath.Join(c.ContainerAttachSocketDir, "exec-pid-dir")
 	if err := os.MkdirAll(execNotifyDir, 0o750); err != nil {
@@ -204,7 +205,7 @@ func (r *Runtime) GetContainerMinMemory(runtimeHandler string) (int64, error) {
 }
 
 // RuntimeSupportsIDMap returns whether the runtime of runtimeHandler supports the "runtime features"
-// command, and that the output of that command advertises IDMapped mounts as an option
+// command, and that the output of that command advertises IDMapped mounts as an option.
 func (r *Runtime) RuntimeSupportsIDMap(runtimeHandler string) bool {
 	rh, err := r.getRuntimeHandler(runtimeHandler)
 	if err != nil {
@@ -245,7 +246,7 @@ func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	return newRuntimeOCI(r, rh), nil
 }
 
-// RuntimeImpl returns the runtime implementation for a given container
+// RuntimeImpl returns the runtime implementation for a given container.
 func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
@@ -318,7 +319,7 @@ func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command [
 	return impl.ExecSyncContainer(ctx, c, command, timeout)
 }
 
-// UpdateContainer updates container resources
+// UpdateContainer updates container resources.
 func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()

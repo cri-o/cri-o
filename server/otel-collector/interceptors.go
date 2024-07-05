@@ -5,11 +5,12 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/uuid"
+	"google.golang.org/grpc"
+
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/google/uuid"
-	"google.golang.org/grpc"
 )
 
 type ServerStream struct {

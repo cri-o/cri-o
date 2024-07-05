@@ -6,7 +6,7 @@ import (
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-// All possible migration scenarios
+// All possible migration scenarios.
 const (
 	FromPrevious = From1_17
 	From1_17     = "1.17"

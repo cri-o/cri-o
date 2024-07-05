@@ -3,12 +3,13 @@ package migrate
 import (
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/sirupsen/logrus"
 )
 
-// migrateFrom1_17 migrates a config from the 1.17.x version
+// migrateFrom1_17 migrates a config from the 1.17.x version.
 func migrateFrom1_17(cfg *config.Config) error {
 	// Remove NET_RAW and SYS_CHROOT capability by default
 	// https://github.com/cri-o/cri-o/pull/3119

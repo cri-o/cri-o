@@ -3,10 +3,11 @@ package runtimehandlerhooks
 import (
 	"context"
 
+	"github.com/opencontainers/runtime-tools/generate"
+
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/opencontainers/runtime-tools/generate"
 )
 
 // DefaultCPULoadBalanceHooks is used to run additional hooks that will configure containers for CPU load balancing.
@@ -17,17 +18,17 @@ import (
 // This is the only case it seeks to fix, and thus does not define any other members of the RuntimeHandlerHooks functions.
 type DefaultCPULoadBalanceHooks struct{}
 
-// No-op
+// No-op.
 func (*DefaultCPULoadBalanceHooks) PreCreate(context.Context, *generate.Generator, *sandbox.Sandbox, *oci.Container) error {
 	return nil
 }
 
-// No-op
+// No-op.
 func (*DefaultCPULoadBalanceHooks) PreStart(context.Context, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }
 
-// No-op
+// No-op.
 func (*DefaultCPULoadBalanceHooks) PreStop(context.Context, *oci.Container, *sandbox.Sandbox) error {
 	return nil
 }

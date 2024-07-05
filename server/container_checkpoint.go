@@ -4,15 +4,16 @@ import (
 	"errors"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/lib"
+	"github.com/cri-o/cri-o/internal/log"
 )
 
-// CheckpointContainer checkpoints a container
+// CheckpointContainer checkpoints a container.
 func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) (*types.CheckpointContainerResponse, error) {
 	if !s.config.RuntimeConfig.CheckpointRestore() {
 		return nil, errors.New("checkpoint/restore support not available")

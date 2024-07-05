@@ -4,15 +4,16 @@ import (
 	"context"
 
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/storage"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("RunPodSandbox", func() {
 	// Prepare the sut
 	BeforeEach(func() {

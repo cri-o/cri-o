@@ -22,7 +22,7 @@ import (
 	"fmt"
 )
 
-// MakeChainLine return an iptables-save/restore formatted chain line given a Chain
+// MakeChainLine return an iptables-save/restore formatted chain line given a Chain.
 func MakeChainLine(chain Chain) string {
 	return fmt.Sprintf(":%s - [0:0]", chain)
 }

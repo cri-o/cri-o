@@ -4,16 +4,17 @@ import (
 	"context"
 
 	imageTypes "github.com/containers/image/v5/types"
-	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	digest "github.com/opencontainers/go-digest"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("ImagePull", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 	Expect(err).ToNot(HaveOccurred())

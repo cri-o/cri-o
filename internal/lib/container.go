@@ -6,12 +6,13 @@ import (
 	"fmt"
 
 	cstorage "github.com/containers/storage"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/registrar"
 )
 
-// GetStorageContainer searches for a container with the given name or ID in the given store
+// GetStorageContainer searches for a container with the given name or ID in the given store.
 func (c *ContainerServer) GetStorageContainer(ctx context.Context, container string) (*cstorage.Container, error) {
 	ociCtr, err := c.LookupContainer(ctx, container)
 	if err != nil {
@@ -20,7 +21,7 @@ func (c *ContainerServer) GetStorageContainer(ctx context.Context, container str
 	return c.store.Container(ociCtr.ID())
 }
 
-// GetContainerTopLayerID gets the ID of the top layer of the given container
+// GetContainerTopLayerID gets the ID of the top layer of the given container.
 func (c *ContainerServer) GetContainerTopLayerID(ctx context.Context, containerID string) (string, error) {
 	ctr, err := c.GetStorageContainer(ctx, containerID)
 	if err != nil {
@@ -29,7 +30,7 @@ func (c *ContainerServer) GetContainerTopLayerID(ctx context.Context, containerI
 	return ctr.LayerID, nil
 }
 
-// GetContainerFromShortID gets an oci container matching the specified full or partial id
+// GetContainerFromShortID gets an oci container matching the specified full or partial id.
 func (c *ContainerServer) GetContainerFromShortID(ctx context.Context, cid string) (*oci.Container, error) {
 	if cid == "" {
 		return nil, errors.New("container ID should not be empty")
@@ -52,7 +53,7 @@ func (c *ContainerServer) GetContainerFromShortID(ctx context.Context, cid strin
 	return ctr, nil
 }
 
-// LookupContainer returns the container with the given name or full or partial id
+// LookupContainer returns the container with the given name or full or partial id.
 func (c *ContainerServer) LookupContainer(ctx context.Context, idOrName string) (*oci.Container, error) {
 	if idOrName == "" {
 		return nil, errors.New("container ID or name should not be empty")
@@ -87,7 +88,7 @@ func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, e
 	return sb, nil
 }
 
-// LookupSandbox returns the pod sandbox with the given name or full or partial id
+// LookupSandbox returns the pod sandbox with the given name or full or partial id.
 func (c *ContainerServer) LookupSandbox(idOrName string) (*sandbox.Sandbox, error) {
 	if idOrName == "" {
 		return nil, errors.New("container ID or name should not be empty")

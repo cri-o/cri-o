@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 type entry struct {
@@ -25,7 +26,7 @@ const (
 )
 
 var (
-	// Tags which should be not checked at all
+	// Tags which should be not checked at all.
 	excludedTags = []string{
 		"plugin_dir",                  // deprecated
 		"runtimes",                    // printed as separate table
@@ -33,7 +34,7 @@ var (
 		"manage_network_ns_lifecycle", // deprecated
 	}
 
-	// Tags where it should not validate the values
+	// Tags where it should not validate the values.
 	excludedTagsValue = []string{
 		"apparmor_profile", // contains dynamic version number
 		"root",             // user dependent
@@ -41,12 +42,12 @@ var (
 		"storage_driver",   // user dependent
 	}
 
-	// Tags where it should not validate the values
+	// Tags where it should not validate the values.
 	excludedCLI = []string{
 		"workloads", // too complex an option for a CLI flag
 	}
 
-	// Mapping for inconsistencies between tags and CLI arguments
+	// Mapping for inconsistencies between tags and CLI arguments.
 	tagToCLIOption = map[string]string{
 		"network_dir":         "cni-config-dir",
 		"plugin_dir":          "cni-plugin-dir",

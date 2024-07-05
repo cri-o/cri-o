@@ -3,13 +3,14 @@ package container_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/internal/factory/container"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/factory/container"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestContainer runs the specs
+// TestContainer runs the specs.
 func TestContainer(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Container")

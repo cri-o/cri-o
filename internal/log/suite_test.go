@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"testing"
 
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestLog runs the created specs
+// TestLog runs the created specs.
 func TestLog(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Log")

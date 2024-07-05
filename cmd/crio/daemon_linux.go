@@ -11,7 +11,7 @@ func sdNotify() {
 	}
 }
 
-// notifySystem sends a message to the host when the server is ready to be used
+// notifySystem sends a message to the host when the server is ready to be used.
 func notifySystem() {
 	// Tell the init daemon we are accepting requests
 	go sdNotify()

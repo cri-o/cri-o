@@ -10,12 +10,12 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/config/seccomp"
-	"github.com/cri-o/cri-o/internal/log"
-
-	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/config/seccomp"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/metrics"
 )
 
 func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
@@ -124,7 +124,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 }
 
 // configureMaxThreads sets the Go runtime max threads threshold
-// which is 90% of the kernel setting from /proc/sys/kernel/threads-max
+// which is 90% of the kernel setting from /proc/sys/kernel/threads-max.
 func configureMaxThreads() error {
 	mt, err := os.ReadFile("/proc/sys/kernel/threads-max")
 	if err != nil {

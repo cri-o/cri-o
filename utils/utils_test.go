@@ -7,10 +7,11 @@ import (
 	"strings"
 
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/cri-o/cri-o/internal/dbusmgr"
-	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/utils"
 )
 
 type errorReaderWriter struct{}
@@ -23,7 +24,7 @@ func (m *errorReaderWriter) Read(p []byte) (int, error) {
 	return 0, t.TestError
 }
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Utils", func() {
 	t.Describe("StatusToExitCode", func() {
 		It("should succeed", func() {
@@ -396,7 +397,7 @@ func createEtcFiles() string {
 	// Create an /etc/passwd and /etc/group file that match
 	// those of the alpine image
 	// This will be created in a temp directory like /tmp/uid-test*
-	// nolint: gosec
+	//nolint: gosec
 	alpinePasswdFile := `root:x:0:0:root:/root:/bin/ash
 bin:x:1:1:bin:/bin:/sbin/nologin
 daemon:x:2:2:daemon:/sbin:/sbin/nologin

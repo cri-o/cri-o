@@ -6,12 +6,13 @@ import (
 	"slices"
 
 	"github.com/containernetworking/plugins/pkg/ns"
+	"github.com/vishvananda/netlink"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/vishvananda/netlink"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // updateSandbox updates the StatsServer's entry for this sandbox, as well as each child container.
@@ -150,7 +151,7 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 
 // metricsForPodSandbox is an internal, non-locking version of MetricsForPodSandbox
 // that returns (and occasionally gathers) the metrics for the given sandbox.
-// Note: caller must hold the lock on the StatsServer
+// Note: caller must hold the lock on the StatsServer.
 func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	if ss.collectionPeriod == 0 {
 		return ss.updatePodSandboxMetrics(sb)

@@ -4,13 +4,14 @@ import (
 	"context"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
+	oci "github.com/cri-o/cri-o/internal/oci"
 )
 
-// filterContainer returns whether passed container matches filtering criteria
+// filterContainer returns whether passed container matches filtering criteria.
 func filterContainer(c *types.Container, filter *types.ContainerFilter) bool {
 	if filter != nil {
 		if filter.State != nil {

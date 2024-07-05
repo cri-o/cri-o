@@ -5,12 +5,13 @@ import (
 	"os"
 
 	cstorage "github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/internal/version"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/lib"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/version"
 )
 
 var WipeCommand = &cli.Command{

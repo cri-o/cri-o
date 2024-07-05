@@ -3,12 +3,13 @@ package server_test
 import (
 	"os"
 
-	"github.com/cri-o/cri-o/server"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/server"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Listen", func() {
 	t.Describe("Listen", func() {
 		It("should succeed", func() {

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/cri-o/cri-o/internal/log"
+	nri "github.com/containerd/nri/pkg/adaptation"
 	"github.com/sirupsen/logrus"
 
-	nri "github.com/containerd/nri/pkg/adaptation"
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // Domain implements the functions the generic NRI interface
@@ -75,8 +75,8 @@ func (t *domainTable) updateContainers(ctx context.Context, updates []*nri.Conta
 	for _, u := range updates {
 		err := t.domain.UpdateContainer(ctx, u)
 		if err != nil {
-			log.Errorf(ctx, "NRI update of container %s failed: %v", u.ContainerId, err)
-			if !u.IgnoreFailure {
+			log.Errorf(ctx, "NRI update of container %s failed: %v", u.GetContainerId(), err)
+			if !u.GetIgnoreFailure() {
 				failed = append(failed, u)
 			}
 		}
@@ -95,7 +95,7 @@ func (t *domainTable) evictContainers(ctx context.Context, evict []*nri.Containe
 	for _, e := range evict {
 		err := t.domain.EvictContainer(ctx, e)
 		if err != nil {
-			log.Errorf(ctx, "NRI eviction of container %s failed: %v", e.ContainerId, err)
+			log.Errorf(ctx, "NRI eviction of container %s failed: %v", e.GetContainerId(), err)
 			failed = append(failed, e)
 		}
 	}

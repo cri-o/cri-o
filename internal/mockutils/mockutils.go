@@ -11,7 +11,7 @@ type MockSequence struct {
 	first, last *gomock.Call // may be both nil (= the default value of mockSequence) to mean empty sequence
 }
 
-// like gomock.InOrder, but can be nested
+// like gomock.InOrder, but can be nested.
 func InOrder(calls ...interface{}) MockSequence {
 	var first, last *gomock.Call
 	// This implementation does a few more assignments and checks than strictly necessary, but it is O(N) and reasonably easy to read, so, whatever.

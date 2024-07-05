@@ -42,34 +42,34 @@ var (
 	ErrNotImplemented     = errors.New("not implemented") // represents not supported and unimplemented
 )
 
-// IsInvalidArgument returns true if the error is due to an invalid argument
+// IsInvalidArgument returns true if the error is due to an invalid argument.
 func IsInvalidArgument(err error) bool {
 	return errors.Is(err, ErrInvalidArgument)
 }
 
-// IsNotFound returns true if the error is due to a missing object
+// IsNotFound returns true if the error is due to a missing object.
 func IsNotFound(err error) bool {
 	return errors.Is(err, ErrNotFound)
 }
 
 // IsAlreadyExists returns true if the error is due to an already existing
-// metadata item
+// metadata item.
 func IsAlreadyExists(err error) bool {
 	return errors.Is(err, ErrAlreadyExists)
 }
 
 // IsFailedPrecondition returns true if an operation could not proceed to the
-// lack of a particular condition
+// lack of a particular condition.
 func IsFailedPrecondition(err error) bool {
 	return errors.Is(err, ErrFailedPrecondition)
 }
 
-// IsUnavailable returns true if the error is due to a resource being unavailable
+// IsUnavailable returns true if the error is due to a resource being unavailable.
 func IsUnavailable(err error) bool {
 	return errors.Is(err, ErrUnavailable)
 }
 
-// IsNotImplemented returns true if the error is due to not being implemented
+// IsNotImplemented returns true if the error is due to not being implemented.
 func IsNotImplemented(err error) bool {
 	return errors.Is(err, ErrNotImplemented)
 }

@@ -14,15 +14,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/process"
-	"github.com/cri-o/cri-o/internal/storage/references"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/util/cert"
+
+	"github.com/cri-o/cri-o/internal/process"
+	"github.com/cri-o/cri-o/internal/storage/references"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 )
 
 // SinceInMicroseconds gets the time since the specified start in microseconds.

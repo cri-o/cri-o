@@ -10,7 +10,7 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-// SetupShim mounts a path to pod sandbox's shared memory
+// SetupShim mounts a path to pod sandbox's shared memory.
 func SetupShm(podSandboxRunDir, mountLabel string, shmSize int64) (shmPath string, _ error) {
 	if shmSize <= 0 {
 		return "", fmt.Errorf("shm size %d must be greater than 0", shmSize)

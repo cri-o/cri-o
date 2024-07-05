@@ -6,7 +6,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Container:SetConfig", func() {
 	It("should succeed", func() {
 		// Given

@@ -4,7 +4,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 )
 
-// ContainerInfo stores information about containers
+// ContainerInfo stores information about containers.
 type ContainerInfo struct {
 	Name            string            `json:"name"`
 	Pid             int               `json:"pid"`
@@ -26,7 +26,7 @@ type IDMappings struct {
 	Gids []idtools.IDMap `json:"gids"`
 }
 
-// CrioInfo stores information about the crio daemon
+// CrioInfo stores information about the crio daemon.
 type CrioInfo struct {
 	StorageDriver     string     `json:"storage_driver"`
 	StorageImage      string     `json:"storage_image"`

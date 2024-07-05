@@ -7,11 +7,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/cri-o/cri-o/internal/log"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 	kubeletEmptyDirLogDir = "kubernetes.io~empty-dir"
 )
 
-// MountPodLogs bind mounts the kubelet pod log directory under the specified empty dir volume
+// MountPodLogs bind mounts the kubelet pod log directory under the specified empty dir volume.
 func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, kubeName, mountLabel string) error {
 	// Validate the empty dir volume name
 	// This uses the same validation as the one in kubernetes
@@ -44,7 +45,7 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 	return nil
 }
 
-// UnmountPodLogs unmounts the pod log directory from the specified empty dir volume
+// UnmountPodLogs unmounts the pod log directory from the specified empty dir volume.
 func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) error {
 	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
 	log.Infof(ctx, "Unmounting %s for linked logs", emptyDirLoggingVolumePath)

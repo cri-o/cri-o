@@ -12,21 +12,22 @@ import (
 
 	"github.com/containers/storage/pkg/unshare"
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/cri-o/cri-o/internal/dbusmgr"
-	"github.com/cri-o/cri-o/utils"
 	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/dbusmgr"
+	"github.com/cri-o/cri-o/utils"
 )
 
 const defaultSystemdParent = "system.slice"
 
 // SystemdManager is the parent type of SystemdV{1,2}Manager.
-// it defines all of the common functionality between V1 and V2
+// it defines all of the common functionality between V1 and V2.
 type SystemdManager struct {
 	memoryPath, memoryMaxFile string
 	// a map of container ID to cgroup manager for cgroup v1
@@ -55,19 +56,19 @@ func NewSystemdManager() *SystemdManager {
 	return &systemdMgr
 }
 
-// Name returns the name of the cgroup manager (systemd)
+// Name returns the name of the cgroup manager (systemd).
 func (*SystemdManager) Name() string {
 	return systemdCgroupManager
 }
 
-// IsSystemd returns that it is a systemd cgroup manager
+// IsSystemd returns that it is a systemd cgroup manager.
 func (*SystemdManager) IsSystemd() bool {
 	return true
 }
 
 // ContainerCgroupPath takes arguments sandbox parent cgroup and container ID and returns
 // the cgroup path for that containerID. If parentCgroup is empty, it
-// uses the default parent system.slice
+// uses the default parent system.slice.
 func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string {
 	parent := defaultSystemdParent
 	if sbParent != "" {
@@ -133,7 +134,7 @@ func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*Cg
 	return libctrStatsToCgroupStats(stats), nil
 }
 
-// RemoveContainerCgManager removes the cgroup manager for the container
+// RemoveContainerCgManager removes the cgroup manager for the container.
 func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
@@ -146,7 +147,7 @@ func (m *SystemdManager) RemoveContainerCgManager(containerID string) {
 // It attempts to move conmon to the correct cgroup.
 // cgroupPathToClean should always be returned empty. It is part of the interface to return the cgroup path
 // that cri-o is responsible for cleaning up upon the container's death.
-// Systemd takes care of this cleaning for us, so return an empty string
+// Systemd takes care of this cleaning for us, so return an empty string.
 func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if strings.HasSuffix(conmonCgroup, ".slice") {
 		cgroupParent = conmonCgroup
@@ -271,7 +272,7 @@ func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats
 	return libctrStatsToCgroupStats(stats), nil
 }
 
-// RemoveSandboxCgroupManager removes cgroup manager for the sandbox
+// RemoveSandboxCgroupManager removes cgroup manager for the sandbox.
 func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
@@ -280,7 +281,7 @@ func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 	}
 }
 
-// nolint: unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
+//nolint:unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
 func sandboxCgroupAbsolutePath(sbParent string) (cgParent, slicePath string, err error) {
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
 	slicePath, err = systemd.ExpandSlice(cgParent)
@@ -291,7 +292,7 @@ func sandboxCgroupAbsolutePath(sbParent string) (cgParent, slicePath string, err
 }
 
 // convertCgroupFsNameToSystemd converts an expanded cgroupfs name to its systemd name.
-// For example, it will convert test.slice/test-a.slice/test-a-b.slice to become test-a-b.slice
+// For example, it will convert test.slice/test-a.slice/test-a-b.slice to become test-a-b.slice.
 func convertCgroupFsNameToSystemd(cgroupfsName string) string {
 	// TODO: see if libcontainer systemd implementation could use something similar, and if so, move
 	// this function up to that library.  At that time, it would most likely do validation specific to systemd

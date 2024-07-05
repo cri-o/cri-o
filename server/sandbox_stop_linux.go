@@ -5,15 +5,16 @@ import (
 	"fmt"
 
 	"github.com/containers/storage"
+	"golang.org/x/net/context"
+	"golang.org/x/sync/errgroup"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/linklogs"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
-	"golang.org/x/net/context"
-	"golang.org/x/sync/errgroup"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {

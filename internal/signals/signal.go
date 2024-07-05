@@ -2,7 +2,7 @@ package signals
 
 import "os"
 
-// Cross platform signal synonyms
+// Cross platform signal synonyms.
 var (
 	Interrupt = os.Interrupt
 	Kill      = os.Kill

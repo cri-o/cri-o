@@ -3,12 +3,13 @@ package main
 import (
 	"testing"
 
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestVersion runs the created specs
+// TestVersion runs the created specs.
 func TestVersion(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Version")

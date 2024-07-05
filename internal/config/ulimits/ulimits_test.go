@@ -1,9 +1,10 @@
 package ulimits_test
 
 import (
-	"github.com/cri-o/cri-o/internal/config/ulimits"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/config/ulimits"
 )
 
 var _ = t.Describe("New", func() {

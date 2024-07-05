@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/client"
-
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/client"
 )
 
 const (

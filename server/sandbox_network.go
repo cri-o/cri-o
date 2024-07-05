@@ -8,18 +8,18 @@ import (
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
 	cnicurrent "github.com/containernetworking/cni/pkg/types/100"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"k8s.io/apimachinery/pkg/api/resource"
+	utilnet "k8s.io/utils/net"
+
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"k8s.io/apimachinery/pkg/api/resource"
-
-	utilnet "k8s.io/utils/net"
 )
 
 // networkStart sets up the sandbox's network and returns the pod IP on success
-// or an error
+// or an error.
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -100,7 +100,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				IP:           ip,
 				HostNetwork:  false,
 			}
-			// nolint:gocritic // using a switch statement is not much different
+			//nolint:gocritic // using a switch statement is not much different
 			if utilnet.IsIPv6(ip) {
 				if foundIPv6 {
 					// we have already done the portmap for IPv6
@@ -128,7 +128,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	return podIPs, result, err
 }
 
-// getSandboxIP retrieves the IP address for the sandbox
+// getSandboxIP retrieves the IP address for the sandbox.
 func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]string, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -160,7 +160,7 @@ func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]stri
 }
 
 // networkStop cleans up and removes a pod's network.  It is best-effort and
-// must call the network plugin even if the network namespace is already gone
+// must call the network plugin even if the network namespace is already gone.
 func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()

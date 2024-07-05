@@ -12,16 +12,17 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/cri-o/cri-o/utils"
 	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/utils"
 )
 
-// CgroupfsManager defines functionality whrn **** TODO: Update this
+// CgroupfsManager defines functionality whrn **** TODO: Update this.
 type CgroupfsManager struct {
 	memoryPath, memoryMaxFile string
 	// a map of container ID to cgroup manager for cgroup v1
@@ -37,19 +38,19 @@ const (
 	defaultCgroupfsParent = "/crio"
 )
 
-// Name returns the name of the cgroup manager (cgroupfs)
+// Name returns the name of the cgroup manager (cgroupfs).
 func (*CgroupfsManager) Name() string {
 	return cgroupfsCgroupManager
 }
 
-// IsSystemd returns that this is not a systemd cgroup manager
+// IsSystemd returns that this is not a systemd cgroup manager.
 func (*CgroupfsManager) IsSystemd() bool {
 	return false
 }
 
 // ContainerCgroupPath takes arguments sandbox parent cgroup and container ID and returns
 // the cgroup path for that containerID. If parentCgroup is empty, it
-// uses the default parent /crio
+// uses the default parent /crio.
 func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string {
 	parent := defaultCgroupfsParent
 	if sbParent != "" {
@@ -59,7 +60,7 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 }
 
 // ContainerCgroupAbsolutePath just calls ContainerCgroupPath,
-// because they both return the absolute path
+// because they both return the absolute path.
 func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID string) (string, error) {
 	return m.ContainerCgroupPath(sbParent, containerID), nil
 }
@@ -104,7 +105,7 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 	return libctrStatsToCgroupStats(stats), nil
 }
 
-// RemoveContainerCgManager removes the cgroup manager for the container
+// RemoveContainerCgManager removes the cgroup manager for the container.
 func (m *CgroupfsManager) RemoveContainerCgManager(containerID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
@@ -168,7 +169,7 @@ func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStat
 	return libctrStatsToCgroupStats(stats), nil
 }
 
-// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
+// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox.
 func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 	if !node.CgroupIsV2() {
 		m.mutex.Lock()
@@ -180,7 +181,7 @@ func (m *CgroupfsManager) RemoveSandboxCgManager(sbID string) {
 // MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config) and conmon's PID
 // It attempts to move conmon to the correct cgroup.
 // It returns the cgroupfs parent that conmon was put into
-// so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us)
+// so that CRI-O can clean the cgroup path of the newly added conmon once the process terminates (systemd handles this for us).
 func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup string, pid int, resources *rspec.LinuxResources) (cgroupPathToClean string, _ error) {
 	if conmonCgroup != utils.PodCgroupName && conmonCgroup != "" {
 		return "", fmt.Errorf("conmon cgroup %s invalid for cgroupfs", conmonCgroup)

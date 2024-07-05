@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/containers/storage"
-	crioStorage "github.com/cri-o/cri-o/utils"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	crioStorage "github.com/cri-o/cri-o/utils"
 )
 
 func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {

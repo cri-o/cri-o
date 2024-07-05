@@ -25,13 +25,13 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-
-	"github.com/cri-o/cri-o/internal/storage/references"
-	"github.com/cri-o/cri-o/pkg/config"
 	json "github.com/json-iterator/go"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/storage/references"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
@@ -428,7 +428,7 @@ func imageSize(img types.Image) *uint64 {
 	return nil
 }
 
-// remoteImageReference creates an image reference for a CRI-O image reference
+// remoteImageReference creates an image reference for a CRI-O image reference.
 func (svc *imageLookupService) remoteImageReference(imageName RegistryImageReference) (types.ImageReference, error) {
 	if svc.DefaultTransport == "" {
 		return nil, errors.New("DefaultTransport is not set")
@@ -439,7 +439,7 @@ func (svc *imageLookupService) remoteImageReference(imageName RegistryImageRefer
 	return alltransports.ParseImageName(svc.DefaultTransport + imageName.StringForOutOfProcessConsumptionOnly())
 }
 
-// prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image
+// prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image.
 func (svc *imageLookupService) prepareReference(inputSystemContext *types.SystemContext, imageName RegistryImageReference) (*types.SystemContext, types.ImageReference, error) {
 	srcRef, err := svc.remoteImageReference(imageName)
 	if err != nil {
@@ -465,7 +465,7 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
-// nolint
+//nolint
 func init() {
 	reexec.Register("crio-pull-image", pullImageChild)
 }
@@ -721,7 +721,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, name Reg
 	return svc.DeleteImage(systemContext, newExactStorageImageID(img.ID))
 }
 
-// DeleteImage deletes a storage image (impacting all its tags)
+// DeleteImage deletes a storage image (impacting all its tags).
 func (svc *imageService) DeleteImage(systemContext *types.SystemContext, id StorageImageID) error {
 	ref, err := id.imageRef(svc)
 	if err != nil {
@@ -888,7 +888,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 	return is, nil
 }
 
-// StorageTransport is a level of indirection to allow mocking istorage.ResolveReference
+// StorageTransport is a level of indirection to allow mocking istorage.ResolveReference.
 type StorageTransport interface {
 	ResolveReference(ref types.ImageReference) (types.ImageReference, *storage.Image, error)
 }

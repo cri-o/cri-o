@@ -5,7 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Sysctl", func() {
 	BeforeEach(beforeEach)
 

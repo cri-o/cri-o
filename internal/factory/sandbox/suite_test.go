@@ -3,13 +3,14 @@ package sandbox_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/internal/factory/sandbox"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/factory/sandbox"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestSandbox runs the specs
+// TestSandbox runs the specs.
 func TestSandbox(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Sandbox")

@@ -3,12 +3,13 @@ package hostport
 import (
 	"testing"
 
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestHostPort runs the created specs
+// TestHostPort runs the created specs.
 func TestHostPort(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "HostPort")

@@ -22,9 +22,10 @@ import (
 	"strings"
 	"testing"
 
-	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
+
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
 func TestOpenCloseHostports(t *testing.T) {

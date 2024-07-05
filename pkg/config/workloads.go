@@ -12,7 +12,7 @@ import (
 
 const (
 	milliCPUToCPU = 1000
-	// 100000 microseconds is equivalent to 100ms
+	// 100000 microseconds is equivalent to 100ms.
 	defaultQuotaPeriod = 100000
 	// 1000 microseconds is equivalent to 1ms
 	// defined here:

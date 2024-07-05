@@ -7,14 +7,15 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/opencontainers/runtime-tools/generate"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/storage"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/opencontainers/runtime-tools/generate"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// Sandbox is the interface for managing pod sandboxes
+// Sandbox is the interface for managing pod sandboxes.
 type Sandbox interface {
 	// SetConfig sets the sandbox configuration and validates it
 	SetConfig(*types.PodSandboxConfig) error
@@ -42,7 +43,7 @@ type Sandbox interface {
 	ResolvPath() string
 }
 
-// sandbox is the hidden default type behind the Sandbox interface
+// sandbox is the hidden default type behind the Sandbox interface.
 type sandbox struct {
 	config     *types.PodSandboxConfig
 	id         string
@@ -51,14 +52,14 @@ type sandbox struct {
 	resolvPath string
 }
 
-// New creates a new, empty Sandbox instance
+// New creates a new, empty Sandbox instance.
 func New() Sandbox {
 	return &sandbox{
 		config: nil,
 	}
 }
 
-// SetConfig sets the sandbox configuration and validates it
+// SetConfig sets the sandbox configuration and validates it.
 func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	if s.config != nil {
 		return errors.New("config already set")
@@ -95,7 +96,7 @@ func (s *sandbox) SetConfig(config *types.PodSandboxConfig) error {
 	return nil
 }
 
-// SetNameAndID sets the sandbox name and ID
+// SetNameAndID sets the sandbox name and ID.
 func (s *sandbox) SetNameAndID() error {
 	if s.config == nil {
 		return errors.New("config is nil")
@@ -125,17 +126,17 @@ func (s *sandbox) SetNameAndID() error {
 	return nil
 }
 
-// Config returns the sandbox configuration
+// Config returns the sandbox configuration.
 func (s *sandbox) Config() *types.PodSandboxConfig {
 	return s.config
 }
 
-// ID returns the id of the pod sandbox
+// ID returns the id of the pod sandbox.
 func (s *sandbox) ID() string {
 	return s.id
 }
 
-// Name returns the id of the pod sandbox
+// Name returns the id of the pod sandbox.
 func (s *sandbox) Name() string {
 	return s.name
 }

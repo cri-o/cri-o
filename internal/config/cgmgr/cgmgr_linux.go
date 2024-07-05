@@ -11,25 +11,26 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/config/node"
 )
 
 const (
 	CrioPrefix = "crio"
-	// CgroupfsCgroupManager represents cgroupfs native cgroup manager
+	// CgroupfsCgroupManager represents cgroupfs native cgroup manager.
 	cgroupfsCgroupManager = "cgroupfs"
-	// SystemdCgroupManager represents systemd native cgroup manager
+	// SystemdCgroupManager represents systemd native cgroup manager.
 	systemdCgroupManager = "systemd"
 
 	DefaultCgroupManager = systemdCgroupManager
 
 	// these constants define the path and name of the memory max file
-	// for v1 and v2 respectively
+	// for v1 and v2 respectively.
 	cgroupMemoryPathV1    = "/sys/fs/cgroup/memory"
 	cgroupMemoryMaxFileV1 = "memory.limit_in_bytes"
 	cgroupMemoryPathV2    = "/sys/fs/cgroup"
@@ -87,7 +88,7 @@ type CgroupManager interface {
 	SandboxCgroupStats(sbParent, sbID string) (*CgroupStats, error)
 }
 
-// New creates a new CgroupManager with defaults
+// New creates a new CgroupManager with defaults.
 func New() CgroupManager {
 	cm, err := SetCgroupManager(DefaultCgroupManager)
 	if err != nil {
@@ -97,7 +98,7 @@ func New() CgroupManager {
 }
 
 // SetCgroupManager takes a string and branches on it to return
-// the type of cgroup manager configured
+// the type of cgroup manager configured.
 func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 	switch cgroupManager {
 	case systemdCgroupManager:
@@ -154,7 +155,7 @@ func VerifyMemoryIsEnough(memoryLimit, minMemory int64) error {
 	return nil
 }
 
-// MoveProcessToContainerCgroup moves process to the container cgroup
+// MoveProcessToContainerCgroup moves process to the container cgroup.
 func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 	parentCgroupFile := fmt.Sprintf("/proc/%d/cgroup", containerPid)
 	cgmap, err := libctr.ParseCgroupFile(parentCgroupFile)

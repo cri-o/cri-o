@@ -7,17 +7,18 @@ import (
 	"os"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/annotations"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/lib"
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/annotations"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("ContainerServer", func() {
 	ctx := context.TODO()
 	// Prepare the sut

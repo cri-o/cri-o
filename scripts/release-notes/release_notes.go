@@ -10,11 +10,12 @@ import (
 	"time"
 
 	"github.com/blang/semver/v4"
-	"github.com/cri-o/cri-o/internal/version"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/util"
+
+	"github.com/cri-o/cri-o/internal/version"
 )
 
 const (
@@ -366,7 +367,7 @@ func decVersion(tag string) string {
 	// clear any RC
 	sv.Pre = nil
 
-	if sv.Patch > 0 { // nolint: gocritic
+	if sv.Patch > 0 { //nolint: gocritic
 		sv.Patch-- // 1.17.2 -> 1.17.1
 	} else if sv.Minor > 0 {
 		sv.Minor-- // 1.18.0 -> 1.17.0

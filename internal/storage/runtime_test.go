@@ -6,17 +6,18 @@ import (
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Runtime", func() {
 	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 	Expect(err).ToNot(HaveOccurred())
@@ -73,7 +74,7 @@ var _ = t.Describe("Runtime", func() {
 		)
 	}
 
-	// nolint: dupl
+	//nolint: dupl
 	t.Describe("GetRunDir", func() {
 		It("should succeed to retrieve the run dir", func() {
 			// Given
@@ -128,7 +129,7 @@ var _ = t.Describe("Runtime", func() {
 		})
 	})
 
-	// nolint: dupl
+	//nolint: dupl
 	t.Describe("GetWorkDir", func() {
 		It("should succeed to retrieve the work dir", func() {
 			// Given

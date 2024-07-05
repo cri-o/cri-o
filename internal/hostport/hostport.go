@@ -23,24 +23,24 @@ import (
 	"strings"
 
 	"github.com/sirupsen/logrus"
+	v1 "k8s.io/api/core/v1"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
-	// the hostport chain
+	// the hostport chain.
 	kubeHostportsChain utiliptables.Chain = "KUBE-HOSTPORTS"
-	// prefix for hostport chains
+	// prefix for hostport chains.
 	kubeHostportChainPrefix string = "KUBE-HP-"
 
-	// the masquerade chain
+	// the masquerade chain.
 	crioMasqueradeChain utiliptables.Chain = "CRIO-HOSTPORTS-MASQ"
-	// prefix for masquerade chains
+	// prefix for masquerade chains.
 	crioMasqueradeChainPrefix string = "CRIO-MASQ-"
 )
 
-// PortMapping represents a network port in a container
+// PortMapping represents a network port in a container.
 type PortMapping struct {
 	HostPort      int32
 	ContainerPort int32
@@ -48,7 +48,7 @@ type PortMapping struct {
 	HostIP        string
 }
 
-// PodPortMapping represents a pod's network state and associated container port mappings
+// PodPortMapping represents a pod's network state and associated container port mappings.
 type PodPortMapping struct {
 	Namespace    string
 	Name         string
@@ -60,7 +60,7 @@ type PodPortMapping struct {
 // ipFamily refers to a specific family if not empty, i.e. "4" or "6".
 type ipFamily string
 
-// Constants for valid IPFamily:
+// Constants for valid IPFamily:.
 const (
 	IPv4 ipFamily = "4"
 	IPv6 ipFamily = "6"
@@ -121,7 +121,7 @@ func openLocalPort(hp *hostport) (closeable, error) {
 	return socket, nil
 }
 
-// portMappingToHostport creates hostport structure based on input portmapping
+// portMappingToHostport creates hostport structure based on input portmapping.
 func portMappingToHostport(portMapping *PortMapping, family ipFamily) hostport {
 	return hostport{
 		ipFamily: family,
@@ -131,7 +131,7 @@ func portMappingToHostport(portMapping *PortMapping, family ipFamily) hostport {
 	}
 }
 
-// ensureKubeHostportChains ensures the KUBE-HOSTPORTS chain is setup correctly
+// ensureKubeHostportChains ensures the KUBE-HOSTPORTS chain is setup correctly.
 func ensureKubeHostportChains(iptables utiliptables.Interface, natInterfaceName string) error {
 	logrus.Info("Ensuring kubelet hostport chains")
 	// Ensure kubeHostportChain

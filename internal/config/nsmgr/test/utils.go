@@ -4,12 +4,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/opencontainers/runtime-spec/specs-go"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	"github.com/opencontainers/runtime-spec/specs-go"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 type SpoofedNamespace struct {
@@ -74,7 +75,7 @@ func ContainerWithPid(pid int) (*oci.Container, error) {
 		Pid: pid,
 	}
 	// eat error here because callers may send invalid pids to test against
-	_ = cstate.SetInitPid(pid) // nolint:errcheck
+	_ = cstate.SetInitPid(pid) //nolint:errcheck
 	testContainer.SetState(cstate)
 
 	return testContainer, nil

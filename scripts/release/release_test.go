@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cri-o/cri-o/scripts/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/scripts/utils"
 )
 
 var _ = t.Describe("Automated Releases", func() {

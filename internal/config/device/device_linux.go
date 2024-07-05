@@ -10,7 +10,7 @@ import (
 
 // DeviceAnnotationDelim is the character
 // used to separate devices in the annotation
-// `io.kubernetes.cri-o.Devices`
+// `io.kubernetes.cri-o.Devices`.
 const DeviceAnnotationDelim = ","
 
 // Config is the internal device configuration
@@ -22,13 +22,13 @@ type Config struct {
 }
 
 // Device holds the runtime spec
-// fields needed for a device
+// fields needed for a device.
 type Device struct {
 	Device   rspec.LinuxDevice
 	Resource rspec.LinuxDeviceCgroup
 }
 
-// New creates a new device Config
+// New creates a new device Config.
 func New() *Config {
 	return &Config{
 		devices: make([]Device, 0),
@@ -50,7 +50,7 @@ func (d *Config) LoadDevices(devsFromConfig []string) error {
 
 // DevicesFromAnnotation takes an annotation string of the form
 // io.kubernetes.cri-o.Device=$PATH:$PATH:$MODE,$PATH...
-// and returns a Device object that can be passed to a create config
+// and returns a Device object that can be passed to a create config.
 func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device, error) {
 	allowedMap := make(map[string]struct{})
 	for _, d := range allowedDevices {
@@ -64,7 +64,7 @@ func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device
 // The second is where the device will be put in the container (optional)
 // and the third is the mode the device will be mounted with (optional)
 // It returns a slice of Device structs, ready to be saved or given to a container
-// runtime spec generator
+// runtime spec generator.
 func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struct{}) ([]Device, error) {
 	linuxdevs := make([]Device, 0, len(devsFromConfig))
 
@@ -120,12 +120,12 @@ func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struc
 	return linuxdevs, nil
 }
 
-// Devices returns the devices saved in the Config
+// Devices returns the devices saved in the Config.
 func (d *Config) Devices() []Device {
 	return d.devices
 }
 
-// ParseDevice parses device mapping string to a src, dest & permissions string
+// ParseDevice parses device mapping string to a src, dest & permissions string.
 func parseDevice(device string) (src, dst, permissions string, err error) {
 	permissions = "rwm"
 	arr := strings.Split(device, ":")

@@ -4,9 +4,10 @@ import (
 	"errors"
 	"strings"
 
-	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
+
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
 type metaHostportManager struct {
@@ -14,7 +15,7 @@ type metaHostportManager struct {
 	ipv6HostportManager HostPortManager
 }
 
-// NewMetaHostportManager creates a new HostPortManager
+// NewMetaHostportManager creates a new HostPortManager.
 func NewMetaHostportManager() HostPortManager {
 	exec := utilexec.New()
 	// Create IPv4 handler

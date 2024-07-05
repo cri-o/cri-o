@@ -7,15 +7,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
-	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
 )
 
 const (
@@ -32,7 +33,7 @@ const (
 	governorUserspace    = "userspace"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = Describe("high_performance_hooks", func() {
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),

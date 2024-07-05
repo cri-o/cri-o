@@ -9,10 +9,11 @@ import (
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
-	"github.com/cri-o/cri-o/internal/log"
 	json "github.com/json-iterator/go"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 var (
@@ -388,7 +389,7 @@ func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {
 		if ml == layerID {
 			// if the layer is used by other containers, DeleteLayer
 			// will fail.
-			store.DeleteLayer(layerID) // nolint: errcheck
+			store.DeleteLayer(layerID) //nolint: errcheck
 			return
 		}
 	}

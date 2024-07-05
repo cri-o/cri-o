@@ -13,16 +13,17 @@ import (
 	"github.com/containers/common/pkg/resize"
 	conmonClient "github.com/containers/conmon-rs/pkg/client"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/opentelemetry"
-	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/opentelemetry"
+	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/utils"
 )
 
 // runtimePod is the Runtime interface implementation relying on conmon-rs to
@@ -36,7 +37,7 @@ type runtimePod struct {
 	serverDir string
 }
 
-// newRuntimePod creates a new runtimePod instance
+// newRuntimePod creates a new runtimePod instance.
 func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (RuntimeImpl, error) {
 	// If the container is not an infra container, use the client of the infra container.
 	if !c.IsInfra() {

@@ -4,13 +4,14 @@ import (
 	"errors"
 	"io"
 
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 // Attach prepares a streaming endpoint to attach to a running container.
@@ -23,7 +24,7 @@ func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.A
 	return resp, nil
 }
 
-// Attach endpoint for streaming.Runtime
+// Attach endpoint for streaming.Runtime.
 func (s StreamService) Attach(ctx context.Context, containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()

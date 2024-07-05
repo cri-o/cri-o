@@ -7,7 +7,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("PodSandboxRemove", func() {
 	ctx := context.TODO()
 	// Prepare the sut

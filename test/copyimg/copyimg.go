@@ -11,9 +11,10 @@ import (
 	"github.com/containers/image/v5/types"
 	sstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 func main() {

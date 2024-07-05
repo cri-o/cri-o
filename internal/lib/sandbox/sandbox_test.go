@@ -4,17 +4,18 @@ import (
 	"context"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Sandbox", func() {
 	// Setup the SUT
 	BeforeEach(beforeEach)

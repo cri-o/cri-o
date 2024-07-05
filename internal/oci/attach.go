@@ -7,7 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-/* Sync with stdpipe_t in conmon.c */
+/* Sync with stdpipe_t in conmon.c. */
 const (
 	AttachPipeStdin  = 1
 	AttachPipeStdout = 2

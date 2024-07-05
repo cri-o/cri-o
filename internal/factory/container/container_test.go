@@ -7,6 +7,14 @@ import (
 	"strconv"
 	"time"
 
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -15,13 +23,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
 var _ = t.Describe("Container", func() {

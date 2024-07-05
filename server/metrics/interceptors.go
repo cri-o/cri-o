@@ -8,7 +8,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// UnaryInterceptor adds all necessary metrics to incoming gRPC requests
+// UnaryInterceptor adds all necessary metrics to incoming gRPC requests.
 func UnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,

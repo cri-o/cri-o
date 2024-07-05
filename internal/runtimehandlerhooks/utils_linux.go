@@ -7,9 +7,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/sirupsen/logrus"
 	"k8s.io/utils/cpuset"
+
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 func isASCII(s string) bool {
@@ -74,7 +75,7 @@ func mapByteToHexChar(b []byte) string {
 	return hex.EncodeToString(breversed)
 }
 
-// take a byte array and invert each byte
+// take a byte array and invert each byte.
 func invertByteArray(in []byte) (out []byte) {
 	for _, b := range in {
 		out = append(out, byte(0xff)-b)

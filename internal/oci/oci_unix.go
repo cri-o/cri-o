@@ -10,10 +10,11 @@ import (
 
 	"github.com/containers/storage/pkg/pools"
 	"github.com/creack/pty"
-	"github.com/cri-o/cri-o/utils"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
+
+	"github.com/cri-o/cri-o/utils"
 )
 
 func Kill(pid int) error {

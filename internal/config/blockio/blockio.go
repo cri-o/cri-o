@@ -5,10 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/intel/goresctrl/pkg/blockio"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/yaml"
-
-	"github.com/intel/goresctrl/pkg/blockio"
 )
 
 type Config struct {
@@ -18,7 +17,7 @@ type Config struct {
 	config  *blockio.Config
 }
 
-// New creates a new blockio config instance
+// New creates a new blockio config instance.
 func New() *Config {
 	c := &Config{
 		config: &blockio.Config{},
@@ -26,23 +25,23 @@ func New() *Config {
 	return c
 }
 
-// Enabled returns true if blockio is enabled in the system
+// Enabled returns true if blockio is enabled in the system.
 func (c *Config) Enabled() bool {
 	return c.enabled
 }
 
-// SetReload sets the blockio reload option
+// SetReload sets the blockio reload option.
 func (c *Config) SetReload(reload bool) {
 	c.reload = reload
 }
 
 // ReloadRequired returns true if reloading configuration and
-// rescanning devices is required
+// rescanning devices is required.
 func (c *Config) ReloadRequired() bool {
 	return c.reload
 }
 
-// Reload (re-)reads the configuration file and rescans block devices in the system
+// Reload (re-)reads the configuration file and rescans block devices in the system.
 func (c *Config) Reload() error {
 	if c.path == "" {
 		return nil
@@ -65,7 +64,7 @@ func (c *Config) Reload() error {
 	return nil
 }
 
-// Load loads and validates blockio config
+// Load loads and validates blockio config.
 func (c *Config) Load(path string) error {
 	c.enabled = false
 	c.path = ""

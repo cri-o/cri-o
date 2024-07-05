@@ -12,6 +12,12 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/stringid"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -19,11 +25,6 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // sync with https://github.com/containers/storage/blob/7fe03f6c765f2adbc75a5691a1fb4f19e56e7071/pkg/truncindex/truncindex.go#L92
@@ -43,7 +44,7 @@ func (m orderedMounts) Less(i, j int) bool {
 	return m.parts(i) < m.parts(j)
 }
 
-// Swap swaps two items in an array of mounts. Used in sorting
+// Swap swaps two items in an array of mounts. Used in sorting.
 func (m orderedMounts) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
@@ -71,7 +72,7 @@ func (m criOrderedMounts) Less(i, j int) bool {
 	return m.parts(i) < m.parts(j)
 }
 
-// Swap swaps two items in an array of mounts. Used in sorting
+// Swap swaps two items in an array of mounts. Used in sorting.
 func (m criOrderedMounts) Swap(i, j int) {
 	m[i], m[j] = m[j], m[i]
 }
@@ -186,7 +187,7 @@ func resolveSymbolicLink(scope, path string) (string, error) {
 	return securejoin.SecureJoin(scope, path)
 }
 
-// setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config
+// setupContainerUser sets the UID, GID and supplemental groups in OCI runtime config.
 func setupContainerUser(ctx context.Context, specgen *generate.Generator, rootfs, mountLabel, ctrRunDir string, sc *types.LinuxContainerSecurityContext, imageConfig *v1.Image) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -339,7 +340,7 @@ func generateUserString(username, imageUser string, uid *types.Int64Value) strin
 	return userstr
 }
 
-// CreateContainer creates a new container in specified PodSandbox
+// CreateContainer creates a new container in specified PodSandbox.
 func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainerRequest) (res *types.CreateContainerResponse, retErr error) {
 	if req.Config == nil {
 		return nil, errors.New("config is nil")

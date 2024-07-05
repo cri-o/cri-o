@@ -4,13 +4,13 @@ import (
 	"os"
 	"path/filepath"
 
-	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
-	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
-
-	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+
+	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
+	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 const (
@@ -52,8 +52,8 @@ var _ = Describe("Sandbox", func() {
 			defer os.Remove(c.Path)
 			Expect(err).ToNot(HaveOccurred())
 
-			expect, _ := os.ReadFile(c.Want) // nolint: errcheck
-			result, _ := os.ReadFile(c.Path) // nolint: errcheck
+			expect, _ := os.ReadFile(c.Want) //nolint: errcheck
+			result, _ := os.ReadFile(c.Path) //nolint: errcheck
 			Expect(result).To(Equal(expect))
 		}
 	})

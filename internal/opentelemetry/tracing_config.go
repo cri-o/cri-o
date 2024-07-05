@@ -23,7 +23,7 @@ func Tracer() trace.Tracer {
 	return tracer
 }
 
-// InitTracing configures opentelemetry exporter and tracer provider
+// InitTracing configures opentelemetry exporter and tracer provider.
 func InitTracing(ctx context.Context, collectorAddress string, samplingRate int) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
 	var tp *sdktrace.TracerProvider
 	hostname, err := os.Hostname()

@@ -3,13 +3,14 @@ package conmonmgr
 import (
 	"testing"
 
-	. "github.com/cri-o/cri-o/test/framework"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestLib runs the created specs
+// TestLib runs the created specs.
 func TestLibConfig(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "ConmonManager")

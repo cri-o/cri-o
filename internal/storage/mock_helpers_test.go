@@ -4,14 +4,15 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	istorage "github.com/containers/image/v5/storage"
 	cstorage "github.com/containers/storage"
+	"github.com/golang/mock/gomock"
+	. "github.com/onsi/gomega"
+
 	"github.com/cri-o/cri-o/internal/mockutils"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"
 	criostoragemock "github.com/cri-o/cri-o/test/mocks/criostorage"
-	"github.com/golang/mock/gomock"
-	. "github.com/onsi/gomega"
 )
 
-// containers/image/storage.storageReference.StringWithinTransport
+// containers/image/storage.storageReference.StringWithinTransport.
 func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
 	return mockutils.InOrder(
 		storeMock.EXPECT().GraphOptions().Return([]string{}),
@@ -23,7 +24,7 @@ func mockStorageReferenceStringWithinTransport(storeMock *containerstoragemock.M
 
 // containers/image/storage.ResolveReference
 // expectedImageName must be in the fully normalized format (reference.Named.String())!
-// resolvedImageID may be "" to simulate a missing image
+// resolvedImageID may be "" to simulate a missing image.
 func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTransportMock *criostoragemock.MockStorageTransport, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence { //nolint:unparam
 	var namedRef reference.Named
 	if expectedImageName != "" {
@@ -52,7 +53,7 @@ func mockResolveReference(storeMock *containerstoragemock.MockStore, storageTran
 // containers/image/storage.storageReference.resolveImage
 // expectedImageName, if not "", must be in the fully normalized format (reference.Named.String())!
 // expectedImageID may be ""
-// resolvedImageID may be "" to simulate a missing image
+// resolvedImageID may be "" to simulate a missing image.
 func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
 	lookupKey := expectedImageID
 	if lookupKey == "" {
@@ -72,7 +73,7 @@ func mockResolveImage(storeMock *containerstoragemock.MockStore, expectedImageNa
 	)
 }
 
-// containers/image/storage.storageImageSource.getSize
+// containers/image/storage.storageImageSource.getSize.
 func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mockutils.MockSequence {
 	return mockutils.InOrder(
 		storeMock.EXPECT().ListImageBigData(gomock.Any()).
@@ -83,7 +84,7 @@ func mockStorageImageSourceGetSize(storeMock *containerstoragemock.MockStore) mo
 	)
 }
 
-// containers/image/storage.storageReference.newImage
+// containers/image/storage.storageReference.newImage.
 func mockNewImage(storeMock *containerstoragemock.MockStore, expectedImageName, expectedImageID, resolvedImageID string) mockutils.MockSequence {
 	return mockutils.InOrder(
 		mockResolveImage(storeMock, expectedImageName, expectedImageID, resolvedImageID),

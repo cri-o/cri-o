@@ -5,22 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/log"
+	"github.com/containerd/nri/pkg/api"
+	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
 	"github.com/intel/goresctrl/pkg/blockio"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/nri"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
-
-	"github.com/containerd/nri/pkg/api"
-	nrigen "github.com/containerd/nri/pkg/runtime-tools/generate"
-	"github.com/cri-o/cri-o/internal/nri"
 )
 
 type nriAPI struct {
@@ -385,10 +384,10 @@ func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
 }
 
 func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) error {
-	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), u.ContainerId)
+	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), u.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
-		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.ContainerId, err)
+		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
 		return nil
 	}
 
@@ -396,13 +395,13 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 		return nil
 	}
 
-	resources := u.Linux.Resources.ToOCI()
+	resources := u.GetLinux().GetResources().ToOCI()
 	if err = a.cri.Runtime().UpdateContainer(ctx, ctr, resources); err != nil {
-		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.ContainerId, err)
-		if u.IgnoreFailure {
+		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
+		if u.GetIgnoreFailure() {
 			return nil
 		}
-		return fmt.Errorf("failed to update CRI container %q: %w", u.ContainerId, err)
+		return fmt.Errorf("failed to update CRI container %q: %w", u.GetContainerId(), err)
 	}
 
 	a.cri.UpdateContainerLinuxResources(ctr, resources)
@@ -411,14 +410,14 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 }
 
 func (a *nriAPI) EvictContainer(ctx context.Context, e *api.ContainerEviction) error {
-	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), e.ContainerId)
+	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), e.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
-		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.ContainerId, err)
+		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.GetContainerId(), err)
 		return nil
 	}
 	if err = a.cri.stopContainer(ctx, ctr, 0); err != nil {
-		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.ContainerId, err)
+		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.GetContainerId(), err)
 		return err
 	}
 

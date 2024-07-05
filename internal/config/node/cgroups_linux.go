@@ -32,7 +32,7 @@ func CgroupIsV2() bool {
 	return cgroupIsV2
 }
 
-// CgroupHasMemorySwap returns whether the memory swap controller is present
+// CgroupHasMemorySwap returns whether the memory swap controller is present.
 func CgroupHasMemorySwap() bool {
 	cgroupHasMemorySwapOnce.Do(func() {
 		if CgroupIsV2() {
@@ -63,13 +63,13 @@ func CgroupHasMemorySwap() bool {
 	return cgroupHasMemorySwap
 }
 
-// CgroupHasHugetlb returns whether the hugetlb controller is present
+// CgroupHasHugetlb returns whether the hugetlb controller is present.
 func CgroupHasHugetlb() bool {
 	checkRelevantControllers()
 	return cgroupHasHugetlb
 }
 
-// CgroupHasPid returns whether the pid controller is present
+// CgroupHasPid returns whether the pid controller is present.
 func CgroupHasPid() bool {
 	checkRelevantControllers()
 	return cgroupHasPid

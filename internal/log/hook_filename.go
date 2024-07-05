@@ -20,7 +20,7 @@ type wrapper struct {
 	hook *FileNameHook
 }
 
-// NewFilenameHook creates a new default FileNameHook
+// NewFilenameHook creates a new default FileNameHook.
 func NewFilenameHook() *FileNameHook {
 	return &FileNameHook{
 		field:      "file",
@@ -32,12 +32,12 @@ func NewFilenameHook() *FileNameHook {
 }
 
 // Levels returns the levels for which the hook is activated. This contains
-// currently only the DebugLevel
+// currently only the DebugLevel.
 func (f *FileNameHook) Levels() []logrus.Level {
 	return []logrus.Level{logrus.DebugLevel}
 }
 
-// Fire executes the hook for every logrus entry
+// Fire executes the hook for every logrus entry.
 func (f *FileNameHook) Fire(entry *logrus.Entry) error {
 	if f.formatter != entry.Logger.Formatter {
 		f.formatter = &wrapper{entry.Logger.Formatter, f}
@@ -46,7 +46,7 @@ func (f *FileNameHook) Fire(entry *logrus.Entry) error {
 	return nil
 }
 
-// Format returns the log format including the caller as field
+// Format returns the log format including the caller as field.
 func (w *wrapper) Format(entry *logrus.Entry) ([]byte, error) {
 	field := entry.WithField(
 		w.hook.field,
@@ -57,7 +57,7 @@ func (w *wrapper) Format(entry *logrus.Entry) ([]byte, error) {
 	return w.old.Format(field)
 }
 
-// findCaller returns the file, function and line number for the current call
+// findCaller returns the file, function and line number for the current call.
 func (f *FileNameHook) findCaller() (file, function string, line int) {
 	var pc uintptr
 	// The maximum amount of frames to be iterated
@@ -103,7 +103,7 @@ func caller(skip int) (pc uintptr, file string, line int) {
 	return pc, file, line
 }
 
-// shouldSkipPrefix returns true if the hook should be skipped, otherwise false
+// shouldSkipPrefix returns true if the hook should be skipped, otherwise false.
 func (f *FileNameHook) shouldSkipPrefix(file string) bool {
 	for i := range f.skipPrefix {
 		if strings.HasPrefix(file, f.skipPrefix[i]) {

@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/go-chi/chi/v5"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
+
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 var _ = t.Describe("Inspect", func() {

@@ -14,12 +14,13 @@ import (
 
 	"github.com/containers/common/pkg/seccomp"
 	imagetypes "github.com/containers/image/v5/types"
-	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
-	"github.com/cri-o/cri-o/internal/log"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 var (
@@ -77,14 +78,14 @@ func removeStringFromSlice(s []string, i int) []string {
 	return s[:len(s)-1]
 }
 
-// Config is the global seccomp configuration type
+// Config is the global seccomp configuration type.
 type Config struct {
 	enabled      bool
 	profile      *seccomp.Seccomp
 	notifierPath string
 }
 
-// New creates a new default seccomp configuration instance
+// New creates a new default seccomp configuration instance.
 func New() *Config {
 	return &Config{
 		enabled:      seccomp.IsEnabled(),
@@ -156,7 +157,7 @@ func (c *Config) IsDisabled() bool {
 	return !c.enabled
 }
 
-// Profile returns the currently loaded seccomp profile
+// Profile returns the currently loaded seccomp profile.
 func (c *Config) Profile() *seccomp.Seccomp {
 	return c.profile
 }
