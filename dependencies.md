@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 05 Jul 2024 12:25:34 UTC for commit [ab6e164][0]._
+_Generated on Fri, 05 Jul 2024 13:59:31 UTC for commit [0ea19a8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ab6e16486e0de70b69642bf4bb8018fdb53609b6
+[0]: https://github.com/cri-o/cri-o/commit/0ea19a8a1b87ce0a607639ae540e77a3b569fda4
 
 ## Outdated Dependencies
 
@@ -11,6 +11,7 @@ _Generated on Fri, 05 Jul 2024 12:25:34 UTC for commit [ab6e164][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240705092108-543c90f1455f | true   | true             |
+| golang.org/x/net                                       | v0.26.0                            | v0.27.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.21.0                            | v0.22.0                            | true   | true             |
 
 ## All Dependencies
@@ -752,7 +753,7 @@ _Generated on Fri, 05 Jul 2024 12:25:34 UTC for commit [ab6e164][0]._
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20240604190613-2782386b8afd  | false  | true             |
 | golang.org/x/mod                                                                        | v0.17.0                               | v0.19.0                             | false  | true             |
-| golang.org/x/net                                                                        | v0.26.0                               |                                     | true   | true             |
+| golang.org/x/net                                                                        | v0.26.0                               | v0.27.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.21.0                               | v0.22.0                             | true   | true             |
