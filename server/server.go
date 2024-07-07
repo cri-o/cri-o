@@ -18,6 +18,7 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	storageTypes "github.com/containers/storage/types"
 	"github.com/fsnotify/fsnotify"
+	"github.com/urfave/cli/v2"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -389,6 +390,7 @@ func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 func New(
 	ctx context.Context,
 	configIface libconfig.Iface,
+	cliCtx *cli.Context,
 ) (*Server, error) {
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, errors.New("provided configuration interface or its data is nil")
@@ -553,7 +555,7 @@ func New(
 
 	log.Debugf(ctx, "Sandboxes: %v", s.ListSandboxes())
 
-	s.startReloadWatcher(ctx)
+	s.startReloadWatcher(ctx, cliCtx)
 
 	if s.config.AutoReloadRegistries {
 		go s.startWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
@@ -596,7 +598,7 @@ func New(
 }
 
 // startReloadWatcher starts a new SIGHUP go routine.
-func (s *Server) startReloadWatcher(ctx context.Context) {
+func (s *Server) startReloadWatcher(ctx context.Context, cliCtx *cli.Context) {
 	// Setup the signal notifier
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, signals.Hup)
@@ -606,7 +608,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// Block until the signal is received
 			<-ch
 
-			if err := s.config.Reload(ctx); err != nil {
+			if err := s.config.Reload(ctx, cliCtx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 
 				continue

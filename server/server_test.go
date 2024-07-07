@@ -7,6 +7,7 @@ import (
 	cstorage "github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/urfave/cli/v2"
 	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/server"
@@ -28,9 +29,10 @@ var _ = t.Describe("Server", func() {
 		It("should succeed", func() {
 			// Given
 			mockNewServer()
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -41,9 +43,10 @@ var _ = t.Describe("Server", func() {
 		It("should succeed with valid config path", func() {
 			// Given
 			mockNewServer()
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -56,9 +59,10 @@ var _ = t.Describe("Server", func() {
 			mockNewServer()
 			serverConfig.UIDMappings = "1:1:1"
 			serverConfig.GIDMappings = "1:1:1"
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -71,9 +75,10 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamEnableTLS = true
 			serverConfig.StreamTLSKey = "../test/testdata/key.pem"
 			serverConfig.StreamTLSCert = "../test/testdata/cert.pem"
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -118,9 +123,10 @@ var _ = t.Describe("Server", func() {
 					Return(nil),
 			)
 			Expect(serverConfig.SetCNIPlugin(cniPluginMock)).To(Succeed())
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -129,8 +135,9 @@ var _ = t.Describe("Server", func() {
 
 		It("should fail when provided config is nil", func() {
 			// Given
+			ctx := cli.Context{}
 			// When
-			server, err := server.New(context.Background(), nil)
+			server, err := server.New(context.Background(), nil, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -143,9 +150,10 @@ var _ = t.Describe("Server", func() {
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 			)
 			serverConfig.ContainerAttachSocketDir = invalidDir
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -158,9 +166,10 @@ var _ = t.Describe("Server", func() {
 				libMock.EXPECT().GetData().Times(2).Return(serverConfig),
 			)
 			serverConfig.ContainerExitsDir = invalidDir
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -177,9 +186,10 @@ var _ = t.Describe("Server", func() {
 
 			serverConfig.UIDMappings = u
 			serverConfig.GIDMappings = g
+			ctx := cli.Context{}
 
 			// When
-			sut, err := server.New(context.Background(), libMock)
+			sut, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -195,9 +205,10 @@ var _ = t.Describe("Server", func() {
 			mockNewServer()
 			serverConfig.StreamAddress = invalid
 			serverConfig.StreamPort = invalid
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -210,9 +221,10 @@ var _ = t.Describe("Server", func() {
 			serverConfig.StreamEnableTLS = true
 			serverConfig.StreamTLSCert = invalid
 			serverConfig.StreamTLSKey = invalid
+			ctx := cli.Context{}
 
 			// When
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -221,24 +233,27 @@ var _ = t.Describe("Server", func() {
 		It("should fail with invalid timeout duration", func() {
 			mockNewServer()
 			serverConfig.StreamIdleTimeout = "invalid duration"
+			ctx := cli.Context{}
 
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 			Expect(err).To(HaveOccurred())
 			Expect(server).To(BeNil())
 		})
 		It("should succeed to set a valid timeout duration", func() {
 			mockNewServer()
 			serverConfig.StreamIdleTimeout = "200ms"
+			ctx := cli.Context{}
 
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(server).ToNot(BeNil())
 		})
 		It("should succeed with hostport mapping disabled", func() {
 			mockNewServer()
 			serverConfig.DisableHostPortMapping = true
+			ctx := cli.Context{}
 
-			server, err := server.New(context.Background(), libMock)
+			server, err := server.New(context.Background(), libMock, &ctx)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(server).ToNot(BeNil())
 		})

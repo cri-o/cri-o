@@ -354,7 +354,7 @@ func main() {
 			grpc.MaxRecvMsgSize(config.GRPCMaxRecvMsgSize),
 		)
 
-		crioServer, err := server.New(ctx, config)
+		crioServer, err := server.New(ctx, config, c)
 		if err != nil {
 			logrus.Fatal(err)
 		}

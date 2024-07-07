@@ -38,7 +38,7 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.UpdateFromFile(context.Background(), filePath)).To(Succeed())
 
 			// When
-			err := sut.Reload(context.Background())
+			err := sut.Reload(context.Background(), cliCtx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -52,7 +52,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload(context.Background())
+			err := sut.Reload(context.Background(), cliCtx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -66,7 +66,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload(context.Background())
+			err := sut.Reload(context.Background(), cliCtx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -78,9 +78,8 @@ var _ = t.Describe("Config", func() {
 				`seccomp_profile = ""`,
 				`seccomp_profile = "`+invalidPath+`"`,
 			)
-
 			// When
-			err := sut.Reload(context.Background())
+			err := sut.Reload(context.Background(), cliCtx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())

@@ -33,26 +33,17 @@ function expect_log_failure() {
 	ps --pid "$CRIO_PID" &> /dev/null
 }
 
-@test "reload config should succeed with 'log_level'" {
+@test "log_level set via command line remains after reload" {
 	# given
-	NEW_LEVEL="warn"
+	CONFIG_LEVEL="warn"
 	OPTION="log_level"
 
 	# when
-	replace_config $OPTION $NEW_LEVEL
+	replace_config $OPTION $CONFIG_LEVEL
 	reload_crio
 
 	# then
-	expect_log_success $OPTION $NEW_LEVEL
-}
-
-@test "reload config should fail with 'log_level' if invalid" {
-	# when
-	replace_config "log_level" "invalid"
-	reload_crio
-
-	# then
-	expect_log_failure "not a valid logrus Level"
+	wait_for_log 'FLAG: --log-level=\\"debug\\"'
 }
 
 @test "reload config should fail with if config is malformed" {

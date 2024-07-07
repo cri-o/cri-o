@@ -12,6 +12,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/log"
@@ -19,7 +20,7 @@ import (
 
 // Reload reloads the configuration for the single crio.conf and the drop-in
 // configuration directory.
-func (c *Config) Reload(ctx context.Context) error {
+func (c *Config) Reload(ctx context.Context, cliCtx *cli.Context) error {
 	log.Infof(ctx, "Reloading configuration")
 
 	// Reload the config
@@ -42,6 +43,29 @@ func (c *Config) Reload(ctx context.Context) error {
 		}
 	} else {
 		log.Infof(ctx, "Skipping not-existing config path %q", c.dropInConfigDir)
+	}
+
+	// Apply the CLI flags on top of the newConfig
+	err = MergeConfig(newConfig, cliCtx)
+	if err != nil {
+		logrus.Errorf("Failed to merge cli flags with new config: %s", err)
+
+		return err
+	}
+
+	cliCtx.App.Metadata["config"] = newConfig
+
+	// Print the current CLI flags.
+	for _, flagName := range cliCtx.FlagNames() {
+		flagValue := cliCtx.Value(flagName)
+		// Turn a multi-value flag into a single comma-separated list
+		// of arguments, then wrap into a slice so that %v does it work
+		// for us when rendering a slice type in the output.
+		if _, ok := flagValue.(cli.StringSlice); ok {
+			flagValue = []string{strings.Join(cliCtx.StringSlice(flagName), ",")}
+		}
+
+		logrus.Infof("FLAG: --%s=\"%v\"\n", flagName, flagValue)
 	}
 
 	// Reload all available options

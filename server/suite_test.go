@@ -13,6 +13,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"github.com/urfave/cli/v2"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/kubelet/pkg/cri/streaming"
@@ -211,7 +212,8 @@ var afterEach = func() {
 var setupSUT = func() {
 	var err error
 	mockNewServer()
-	sut, err = server.New(context.Background(), libMock)
+	ctx := cli.Context{}
+	sut, err = server.New(context.Background(), libMock, &ctx)
 	Expect(err).ToNot(HaveOccurred())
 	Expect(sut).NotTo(BeNil())
 
