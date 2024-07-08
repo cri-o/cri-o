@@ -115,7 +115,7 @@ var AllAllowedAnnotations = []string{
 	"org.systemd.property.",
 	"org.criu.config",
 
-	// Simiarly, keep in sync with
+	// Similarly, keep in sync with
 	// https://github.com/containers/crun/blob/475a3fd0be/src/libcrun/container.c#L362-L366
 	"module.wasm.image/variant",
 	"io.kubernetes.cri.container-type",
