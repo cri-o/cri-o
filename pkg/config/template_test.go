@@ -3,12 +3,13 @@ package config_test
 import (
 	"bytes"
 
-	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Config", func() {
 	t.Describe("WriteTemplate", func() {
 		BeforeEach(beforeEach)

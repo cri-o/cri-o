@@ -1,11 +1,12 @@
 package server
 
 import (
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
 	"k8s.io/apimachinery/pkg/fields"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // ListPodSandbox returns a list of SandBoxes.
@@ -82,7 +83,7 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 	return finalList
 }
 
-// filterSandbox returns whether passed container matches filtering criteria
+// filterSandbox returns whether passed container matches filtering criteria.
 func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
 	if filter != nil {
 		if filter.State != nil {

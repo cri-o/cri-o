@@ -3,14 +3,15 @@ package sandbox_test
 import (
 	"time"
 
-	"github.com/cri-o/cri-o/internal/hostport"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("History", func() {
 	var sut *sandbox.History
 

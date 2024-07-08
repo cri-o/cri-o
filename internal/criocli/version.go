@@ -3,9 +3,10 @@ package criocli
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/version"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/version"
 )
 
 const (

@@ -7,11 +7,12 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
+	"github.com/sirupsen/logrus"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/sirupsen/logrus"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // StatsServer is responsible for maintaining a list of container and sandbox stats.
@@ -136,14 +137,14 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 	return writableLayer, nil
 }
 
-// StatsForSandbox returns the stats for the given sandbox
+// StatsForSandbox returns the stats for the given sandbox.
 func (ss *StatsServer) StatsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	return ss.statsForSandbox(sb)
 }
 
-// StatsForSandboxes returns the stats for the given list of sandboxes
+// StatsForSandboxes returns the stats for the given list of sandboxes.
 func (ss *StatsServer) StatsForSandboxes(sboxes []*sandbox.Sandbox) []*types.PodSandboxStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
@@ -178,14 +179,14 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 	delete(ss.sboxStats, sb.ID())
 }
 
-// StatsForContainer returns the stats for the given container
+// StatsForContainer returns the stats for the given container.
 func (ss *StatsServer) StatsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
 	return ss.statsForContainer(c, sb)
 }
 
-// StatsForContainers returns the stats for the given list of containers
+// StatsForContainers returns the stats for the given list of containers.
 func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.ContainerStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()

@@ -7,11 +7,12 @@ import (
 	"os"
 
 	"github.com/containers/common/pkg/cgroups"
-	"github.com/cri-o/cri-o/internal/log"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 const (

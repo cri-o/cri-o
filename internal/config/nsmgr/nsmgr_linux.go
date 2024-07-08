@@ -10,11 +10,12 @@ import (
 
 	nspkg "github.com/containernetworking/plugins/pkg/ns"
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/utils"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 // NamespaceManager manages the server's namespaces.
@@ -216,7 +217,7 @@ func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ N
 }
 
 // dirForType returns the sub-directory for that particular NSType
-// which is of the form `$namespaceDir/$nsType+"ns"`
+// which is of the form `$namespaceDir/$nsType+"ns"`.
 func (mgr *NamespaceManager) dirForType(ns NSType) string {
 	return filepath.Join(mgr.namespacesDir, string(ns)+"ns")
 }

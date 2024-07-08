@@ -5,11 +5,12 @@ import (
 	"os"
 
 	criu "github.com/checkpoint-restore/go-criu/v7/utils"
-	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 var _ = t.Describe("ContainerCheckpoint", func() {

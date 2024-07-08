@@ -1,13 +1,14 @@
 package oci_test
 
 import (
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/utils"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/utils"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("MemoryStore", func() {
 	t.Describe("NewMemoryStore", func() {
 		It("should succeed to create a new memory store", func() {

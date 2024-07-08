@@ -20,8 +20,9 @@ import (
 	"bytes"
 	"testing"
 
-	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 	"github.com/stretchr/testify/assert"
+
+	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
 func TestRestoreFlushRules(t *testing.T) {

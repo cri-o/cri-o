@@ -10,12 +10,12 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 )
 
-// SetStorageRuntimeServer sets the runtime server for the ContainerServer
+// SetStorageRuntimeServer sets the runtime server for the ContainerServer.
 func (c *ContainerServer) SetStorageRuntimeServer(server storage.RuntimeServer) {
 	c.storageRuntimeServer = server
 }
 
-// SetStorageImageServer sets the ImageServer for the ContainerServer
+// SetStorageImageServer sets the ImageServer for the ContainerServer.
 func (c *ContainerServer) SetStorageImageServer(server storage.ImageServer) {
 	c.storageImageServer = server
 }

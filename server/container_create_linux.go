@@ -17,6 +17,15 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
+	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/intel/goresctrl/pkg/blockio"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -29,15 +38,6 @@ import (
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
-	securejoin "github.com/cyphar/filepath-securejoin"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
-
-	"github.com/intel/goresctrl/pkg/blockio"
 )
 
 const (
@@ -45,7 +45,7 @@ const (
 	cgroupSysFsSystemdPath = "/sys/fs/cgroup/systemd"
 )
 
-// createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
+// createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer().
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -60,7 +60,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
-// makeAccessible changes the path permission and each parent directory to have --x--x--x
+// makeAccessible changes the path permission and each parent directory to have --x--x--x.
 func makeAccessible(path string, uid, gid int) error {
 	for ; path != "/"; path = filepath.Dir(path) {
 		var st unix.Stat_t
@@ -1243,7 +1243,7 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 	return ids
 }
 
-// mountExists returns true if dest exists in the list of mounts
+// mountExists returns true if dest exists in the list of mounts.
 func mountExists(specMounts []rspec.Mount, dest string) bool {
 	for _, m := range specMounts {
 		if m.Destination == dest {
@@ -1254,7 +1254,7 @@ func mountExists(specMounts []rspec.Mount, dest string) bool {
 }
 
 // systemd expects to have /run, /run/lock and /tmp on tmpfs
-// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal
+// It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal.
 func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
 	for _, dest := range []string{"/run", "/run/lock"} {
@@ -1354,7 +1354,7 @@ func newLinuxContainerSecurityContext() *types.LinuxContainerSecurityContext {
 // isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage") returns true
 // isSubDirectoryOf("/var/lib/containers/storage", "/var/lib/containers/storage/extra") returns false
 // isSubDirectoryOf("/var/lib/containers/storage", "/va") returns false
-// isSubDirectoryOf("/var/lib/containers/storage", "/var/tmp/containers") returns false
+// isSubDirectoryOf("/var/lib/containers/storage", "/var/tmp/containers") returns false.
 func isSubDirectoryOf(base, target string) bool {
 	if !strings.HasSuffix(target, "/") {
 		target += "/"

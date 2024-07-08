@@ -86,7 +86,7 @@ func makeOCIConfigurationRootless(g *generate.Generator) {
 	g.SetLinuxCgroupsPath("")
 }
 
-// getAvailableV2Controllers returns the entries in /sys/fs/cgroup/<SELF>/cgroup.controllers
+// getAvailableV2Controllers returns the entries in /sys/fs/cgroup/<SELF>/cgroup.controllers.
 func getAvailableV2Controllers() map[string]struct{} {
 	procSelfCgroup, err := cgroups.ParseCgroupFile("/proc/self/cgroup")
 	if err != nil {

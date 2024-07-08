@@ -6,14 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/dbusmgr"
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
+	"github.com/cri-o/cri-o/internal/dbusmgr"
 )
 
-// RunUnderSystemdScope adds the specified pid to a systemd scope
+// RunUnderSystemdScope adds the specified pid to a systemd scope.
 func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName string, properties ...systemdDbus.Property) (err error) {
 	ctx := context.Background()
 	// sanity check
@@ -60,7 +60,7 @@ func RunUnderSystemdScope(mgr *dbusmgr.DbusConnManager, pid int, slice, unitName
 	return nil
 }
 
-// Syncfs ensures the file system at path is synced to disk
+// Syncfs ensures the file system at path is synced to disk.
 func Syncfs(path string) error {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0o755)
 	if err != nil {

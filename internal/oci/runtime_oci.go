@@ -20,12 +20,6 @@ import (
 	"github.com/containers/common/pkg/crutils"
 	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/storage/pkg/pools"
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/utils"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/fsnotify/fsnotify"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -37,13 +31,20 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kclock "k8s.io/utils/clock"
 	utilexec "k8s.io/utils/exec"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 const (
 	// RuntimeTypeOCI is the type representing the RuntimeOCI implementation.
 	RuntimeTypeOCI = "oci"
 
-	// Command line flag used to specify the run root directory
+	// Command line flag used to specify the run root directory.
 	rootFlag = "--root"
 
 	// Configuration for the stop loop exponential backoff manager.
@@ -74,7 +75,7 @@ type runtimeOCI struct {
 	handler *config.RuntimeHandler
 }
 
-// newRuntimeOCI creates a new runtimeOCI instance
+// newRuntimeOCI creates a new runtimeOCI instance.
 func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
 	runRoot := config.DefaultRuntimeRoot
 	if handler.RuntimeRoot != "" {
@@ -88,13 +89,13 @@ func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
 	}
 }
 
-// syncInfo is used to return data from monitor process to daemon
+// syncInfo is used to return data from monitor process to daemon.
 type syncInfo struct {
 	Pid     int    `json:"pid"`
 	Message string `json:"message,omitempty"`
 }
 
-// exitCodeInfo is used to return the monitored process exit code to the daemon
+// exitCodeInfo is used to return the monitored process exit code to the daemon.
 type exitCodeInfo struct {
 	ExitCode int32  `json:"exit_code"`
 	Message  string `json:"message,omitempty"`
@@ -181,7 +182,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		"args": args,
 	}).Debugf("running conmon: %s", r.handler.MonitorPath)
 
-	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
+	cmd := cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	cmd.Dir = c.bundlePath
 	cmd.SysProcAttr = sysProcAttrPlatform()
 	cmd.Stdin = os.Stdin
@@ -423,7 +424,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
-	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) // nolint: gosec
+	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
@@ -586,10 +587,10 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	var cmd *exec.Cmd
 
-	if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { // nolint: gocritic
-		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) // nolint: gosec
+	if r.handler.MonitorExecCgroup == config.MonitorExecCgroupDefault || r.config.InfraCtrCPUSet == "" { //nolint: gocritic
+		cmd = cmdrunner.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else if r.handler.MonitorExecCgroup == config.MonitorExecCgroupContainer {
-		cmd = exec.Command(r.handler.MonitorPath, args...) // nolint: gosec
+		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else {
 		msg := "Unsupported monitor_exec_cgroup value: " + r.handler.MonitorExecCgroup
 		return &types.ExecSyncResponse{
@@ -787,7 +788,7 @@ func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, 
 	return os.ReadFile(path)
 }
 
-// UpdateContainer updates container resources
+// UpdateContainer updates container resources.
 func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
@@ -799,7 +800,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 		return nil
 	}
 
-	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID()) // nolint: gosec
+	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID()) //nolint: gosec
 	var stdout bytes.Buffer
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
@@ -1327,7 +1328,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 }
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
-// caller is responsible for removing the returned file, if prepareProcessExec succeeds
+// caller is responsible for removing the returned file, if prepareProcessExec succeeds.
 func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
 	f, err := os.CreateTemp("", "exec-process-")
 	if err != nil {
@@ -1364,7 +1365,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 
 // ReadConmonPidFile attempts to read conmon's pid from its pid file
 // This function makes no verification that this file should exist
-// it is up to the caller to verify that this container has a conmon
+// it is up to the caller to verify that this container has a conmon.
 func ReadConmonPidFile(c *Container) (int, error) {
 	contents, err := os.ReadFile(c.conmonPidFilePath())
 	if err != nil {
@@ -1383,7 +1384,7 @@ func (c *Container) conmonPidFilePath() string {
 }
 
 // runtimeCmd executes a command with args and returns its output as a string along
-// with an error, if any
+// with an error, if any.
 func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	runtimeArgs := append(r.defaultRuntimeArgs(), args...)
 	cmd := cmdrunner.Command(r.handler.RuntimePath, runtimeArgs...)

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	config "github.com/cri-o/cri-o/internal/config/nri"
-	"github.com/cri-o/cri-o/internal/log"
+	nri "github.com/containerd/nri/pkg/adaptation"
 	"github.com/sirupsen/logrus"
 
-	nri "github.com/containerd/nri/pkg/adaptation"
+	config "github.com/cri-o/cri-o/internal/config/nri"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/version"
 )
 
@@ -216,16 +216,16 @@ func (l *local) CreateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 	}
 
 	response, err := l.nri.CreateContainer(ctx, request)
-	l.setState(request.Container.Id, Created)
+	l.setState(request.GetContainer().GetId(), Created)
 	if err != nil {
 		return nil, err
 	}
 
-	if _, err := l.applyUpdates(ctx, response.Update); err != nil {
+	if _, err := l.applyUpdates(ctx, response.GetUpdate()); err != nil {
 		return nil, err
 	}
 
-	return response.Adjust, nil
+	return response.GetAdjust(), nil
 }
 
 func (l *local) PostCreateContainer(ctx context.Context, pod PodSandbox, ctr Container) error {
@@ -261,7 +261,7 @@ func (l *local) StartContainer(ctx context.Context, pod PodSandbox, ctr Containe
 
 	err := l.nri.StartContainer(ctx, request)
 
-	l.setState(request.Container.Id, Running)
+	l.setState(request.GetContainer().GetId(), Running)
 
 	return err
 }
@@ -303,24 +303,24 @@ func (l *local) UpdateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 		return nil, err
 	}
 
-	_, err = l.evictContainers(ctx, response.Evict)
+	_, err = l.evictContainers(ctx, response.GetEvict())
 	if err != nil {
 		return nil, err
 	}
 
-	cnt := len(response.Update)
+	cnt := len(response.GetUpdate())
 	if cnt == 0 {
 		return nil, nil
 	}
 
 	if cnt > 1 {
-		_, err = l.applyUpdates(ctx, response.Update[0:cnt-1])
+		_, err = l.applyUpdates(ctx, response.GetUpdate()[0:cnt-1])
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	return response.Update[cnt-1].GetLinux().GetResources(), nil
+	return response.GetUpdate()[cnt-1].GetLinux().GetResources(), nil
 }
 
 func (l *local) PostUpdateContainer(ctx context.Context, pod PodSandbox, ctr Container) error {
@@ -363,12 +363,12 @@ func (l *local) stopContainer(ctx context.Context, pod PodSandbox, ctr Container
 	}
 
 	response, err := l.nri.StopContainer(ctx, request)
-	l.setState(request.Container.Id, Stopped)
+	l.setState(request.GetContainer().GetId(), Stopped)
 	if err != nil {
 		return err
 	}
 
-	_, err = l.applyUpdates(ctx, response.Update)
+	_, err = l.applyUpdates(ctx, response.GetUpdate())
 
 	return err
 }
@@ -395,7 +395,7 @@ func (l *local) RemoveContainer(ctx context.Context, pod PodSandbox, ctr Contain
 	}
 
 	err := l.nri.RemoveContainer(ctx, request)
-	l.setState(request.Container.Id, Removed)
+	l.setState(request.GetContainer().GetId(), Removed)
 
 	return err
 }

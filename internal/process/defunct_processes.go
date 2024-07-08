@@ -61,7 +61,7 @@ func DefunctProcessesForPath(path string) (defunctCount uint, retErr error) {
 	return defunctCount, nil
 }
 
-// processStats returns status information of a process as defined in /proc/[pid]/stat
+// processStats returns status information of a process as defined in /proc/[pid]/stat.
 func processStats(fsPath, pid string) (*Stat, error) {
 	bytes, err := os.ReadFile(filepath.Join(fsPath, pid, "stat"))
 	if err != nil {

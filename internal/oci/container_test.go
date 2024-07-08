@@ -9,12 +9,13 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/storage"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 )
 
 const (
@@ -22,7 +23,7 @@ const (
 	alwaysRunningPid = 1
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Container", func() {
 	// The system under test
 	var sut *oci.Container

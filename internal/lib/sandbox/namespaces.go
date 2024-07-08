@@ -4,27 +4,28 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
 )
 
 // ManagedNamespace is a structure that holds all the necessary information a caller would
 // need for a sandbox managed namespace
 // Where nsmgr.Namespace does hold similar information, ManagedNamespace exists to allow this library
 // to not return data not necessarily in a Namespace (for instance, when a namespace is not managed
-// by CRI-O, but instead is based off of the infra pid)
+// by CRI-O, but instead is based off of the infra pid).
 type ManagedNamespace struct {
 	nsPath string
 	nsType nsmgr.NSType
 }
 
-// Type returns the namespace type
+// Type returns the namespace type.
 func (m *ManagedNamespace) Type() nsmgr.NSType {
 	return m.nsType
 }
 
-// Type returns the namespace path
+// Type returns the namespace path.
 func (m *ManagedNamespace) Path() string {
 	return m.nsPath
 }
@@ -57,7 +58,7 @@ func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 
 // NamespacePaths returns all the paths of the namespaces of the sandbox. If a namespace is not
 // managed by the sandbox, the namespace of the infra container will be returned.
-// It returns a slice of ManagedNamespaces
+// It returns a slice of ManagedNamespaces.
 func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
 	pid := infraPid(s.InfraContainer())
 
@@ -121,13 +122,13 @@ func (s *Sandbox) runFunctionOnNamespaces(toRun func(nsmgr.Namespace) error) err
 // NetNs specific functions
 
 // NetNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, the empty string is returned
+// If the sandbox uses the host namespace, the empty string is returned.
 func (s *Sandbox) NetNsPath() string {
 	return s.nsPath(s.netns, nsmgr.NETNS)
 }
 
 // NetNsJoin attempts to join the sandbox to an existing network namespace
-// This will fail if the sandbox is already part of a network namespace
+// This will fail if the sandbox is already part of a network namespace.
 func (s *Sandbox) NetNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.NETNS, s.netns)
 	// Regardless of error, set the namespace
@@ -142,13 +143,13 @@ func (s *Sandbox) NetNsJoin(nspath string) error {
 // IpcNs specific functions
 
 // IpcNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, the empty string is returned
+// If the sandbox uses the host namespace, the empty string is returned.
 func (s *Sandbox) IpcNsPath() string {
 	return s.nsPath(s.ipcns, nsmgr.IPCNS)
 }
 
 // IpcNsJoin attempts to join the sandbox to an existing IPC namespace
-// This will fail if the sandbox is already part of a IPC namespace
+// This will fail if the sandbox is already part of a IPC namespace.
 func (s *Sandbox) IpcNsJoin(nspath string) error {
 	if s.stopped {
 		return nil
@@ -166,13 +167,13 @@ func (s *Sandbox) IpcNsJoin(nspath string) error {
 // UtsNs specific functions
 
 // UtsNsPath returns the path to the network namespace of the sandbox.
-// If the sandbox uses the host namespace, the empty string is returned
+// If the sandbox uses the host namespace, the empty string is returned.
 func (s *Sandbox) UtsNsPath() string {
 	return s.nsPath(s.utsns, nsmgr.UTSNS)
 }
 
 // UtsNsJoin attempts to join the sandbox to an existing UTS namespace
-// This will fail if the sandbox is already part of a UTS namespace
+// This will fail if the sandbox is already part of a UTS namespace.
 func (s *Sandbox) UtsNsJoin(nspath string) error {
 	if s.stopped {
 		return nil
@@ -190,13 +191,13 @@ func (s *Sandbox) UtsNsJoin(nspath string) error {
 // UserNs specific functions
 
 // UserNsPath returns the path to the user namespace of the sandbox.
-// If the sandbox uses the host namespace, the empty string is returned
+// If the sandbox uses the host namespace, the empty string is returned.
 func (s *Sandbox) UserNsPath() string {
 	return s.nsPath(s.userns, nsmgr.USERNS)
 }
 
 // UserNsJoin attempts to join the sandbox to an existing User namespace
-// This will fail if the sandbox is already part of a User namespace
+// This will fail if the sandbox is already part of a User namespace.
 func (s *Sandbox) UserNsJoin(nspath string) error {
 	ns, err := nsJoin(nspath, nsmgr.USERNS, s.userns)
 	// Regardless of error, set the namespace
@@ -216,7 +217,7 @@ func (s *Sandbox) PidNsPath() string {
 	return s.nsPath(nil, nsmgr.PIDNS)
 }
 
-// nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath
+// nsJoin checks if the current iface is nil, and if so gets the namespace at nsPath.
 func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.Namespace) (nsmgr.Namespace, error) {
 	if currentIface != nil {
 		return currentIface, fmt.Errorf("sandbox already has a %s namespace, cannot join another", nsType)
@@ -226,13 +227,13 @@ func nsJoin(nsPath string, nsType nsmgr.NSType, currentIface nsmgr.Namespace) (n
 }
 
 // nsPath returns the path to a namespace of the sandbox.
-// If the sandbox uses the host namespace, nil is returned
+// If the sandbox uses the host namespace, nil is returned.
 func (s *Sandbox) nsPath(ns nsmgr.Namespace, nsType nsmgr.NSType) string {
 	return nsPathGivenInfraPid(ns, nsType, infraPid(s.InfraContainer()))
 }
 
 // infraPid returns the pid of the passed in infra container
-// if the infra container is nil, pid is returned negative
+// if the infra container is nil, pid is returned negative.
 func infraPid(infra *oci.Container) int {
 	pid := -1
 	if infra != nil && !infra.Spoofed() {
@@ -253,7 +254,7 @@ func infraPid(infra *oci.Container) int {
 }
 
 // nsPathGivenInfraPid allows callers to cache the infra pid, rather than
-// calling a container.State() in batch operations
+// calling a container.State() in batch operations.
 func nsPathGivenInfraPid(ns nsmgr.Namespace, nsType nsmgr.NSType, infraPid int) string {
 	// caller is responsible for checking if infraContainer
 	// is valid. If not, infraPid should be less than or equal to 0

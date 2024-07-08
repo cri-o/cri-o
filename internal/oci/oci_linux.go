@@ -4,11 +4,12 @@ import (
 	"os"
 	"syscall"
 
-	"github.com/cri-o/cri-o/utils"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
+
+	"github.com/cri-o/cri-o/utils"
 )
 
 const InfraContainerName = "POD"
@@ -52,7 +53,7 @@ func sysProcAttrPlatform() *syscall.SysProcAttr {
 	}
 }
 
-// newPipe creates a unix socket pair for communication
+// newPipe creates a unix socket pair for communication.
 func newPipe() (parent, child *os.File, _ error) {
 	fds, err := unix.Socketpair(unix.AF_LOCAL, unix.SOCK_STREAM|unix.SOCK_CLOEXEC, 0)
 	if err != nil {

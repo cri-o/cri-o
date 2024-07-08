@@ -7,8 +7,9 @@ import (
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"github.com/cri-o/cri-o/internal/log"
 	"golang.org/x/net/context"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // PortForwardContainer forwards the specified port into the provided container.

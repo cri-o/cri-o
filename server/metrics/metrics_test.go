@@ -4,19 +4,20 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cri-o/cri-o/server/metrics"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/server/metrics"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestMetrics runs the created specs
+// TestMetrics runs the created specs.
 func TestMetrics(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Metrics")
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var t *TestFramework
 
 var _ = BeforeSuite(func() {
@@ -28,7 +29,7 @@ var _ = AfterSuite(func() {
 	t.Teardown()
 })
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Metrics", func() {
 	t.Describe("SinceInMicroseconds", func() {
 		It("should succeed", func() {

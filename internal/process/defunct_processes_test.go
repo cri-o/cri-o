@@ -7,7 +7,7 @@ import (
 	"github.com/cri-o/cri-o/internal/process"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Process", func() {
 	t.Describe("DefunctProcessesForPath", func() {
 		Context("Should succeed", func() {

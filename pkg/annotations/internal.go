@@ -108,7 +108,7 @@ const (
 	ContainerManager = "io.container.manager"
 )
 
-// ContainerType values
+// ContainerType values.
 const (
 	// ContainerTypeSandbox represents a pod sandbox container.
 	ContainerTypeSandbox = "sandbox"

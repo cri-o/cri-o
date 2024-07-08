@@ -6,14 +6,15 @@ import (
 	"os"
 	"strings"
 
-	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 )
 
-// DefaultCommands are the flags commands can be added to every binary
+// DefaultCommands are the flags commands can be added to every binary.
 var DefaultCommands = []*cli.Command{
 	completion(),
 	man(),

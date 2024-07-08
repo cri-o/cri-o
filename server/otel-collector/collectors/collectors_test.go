@@ -3,19 +3,20 @@ package collectors_test
 import (
 	"testing"
 
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestCollectors runs the created specs
+// TestCollectors runs the created specs.
 func TestCollectors(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "Collectors")
 }
 
-// nolint: gochecknoglobals
+//nolint:gochecknoglobals
 var t *TestFramework
 
 var _ = BeforeSuite(func() {
@@ -27,7 +28,7 @@ var _ = AfterSuite(func() {
 	t.Teardown()
 })
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Collectors", func() {
 	t.Describe("All", func() {
 		It("should contain all available metrics", func() {

@@ -31,13 +31,6 @@ import (
 	"github.com/containerd/ttrpc"
 	"github.com/containerd/typeurl"
 	conmonconfig "github.com/containers/conmon/runner/config"
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/utils"
-	"github.com/cri-o/cri-o/utils/errdefs"
 	katavolume "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
@@ -47,6 +40,14 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	utilexec "k8s.io/utils/exec"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/utils"
+	"github.com/cri-o/cri-o/utils/errdefs"
 )
 
 // runtimeVM is the Runtime interface implementation that is more appropriate
@@ -78,7 +79,7 @@ const (
 	execTimeout = -2
 )
 
-// newRuntimeVM creates a new runtimeVM instance
+// newRuntimeVM creates a new runtimeVM instance.
 func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl {
 	logrus.Debug("oci.newRuntimeVM() start")
 	defer logrus.Debug("oci.newRuntimeVM() end")
@@ -213,7 +214,7 @@ func (r *runtimeVM) CreateContainer(ctx context.Context, c *Container, cgroupPar
 		// Create the container
 		if resp, err := r.task.Create(r.ctx, request); err != nil {
 			createdCh <- errdefs.FromGRPC(err)
-		} else if err := c.state.SetInitPid(int(resp.Pid)); err != nil {
+		} else if err := c.state.SetInitPid(int(resp.GetPid())); err != nil {
 			createdCh <- err
 		}
 
@@ -578,7 +579,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	return exitCode, err
 }
 
-// UpdateContainer updates container resources
+// UpdateContainer updates container resources.
 func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
 	log.Debugf(ctx, "RuntimeVM.UpdateContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.UpdateContainer() end")
@@ -786,7 +787,7 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	}
 
 	status := c.state.Status
-	switch response.Status {
+	switch response.GetStatus() {
 	case tasktypes.Status_CREATED:
 		status = ContainerStateCreated
 	case tasktypes.Status_RUNNING:
@@ -798,10 +799,10 @@ func (r *runtimeVM) updateContainerStatus(ctx context.Context, c *Container) err
 	}
 
 	c.state.Status = status
-	c.state.Finished = response.ExitedAt.AsTime()
-	exitCode := int32(response.ExitStatus)
+	c.state.Finished = response.GetExitedAt().AsTime()
+	exitCode := int32(response.GetExitStatus())
 	c.state.ExitCode = &exitCode
-	c.state.Pid = int(response.Pid)
+	c.state.Pid = int(response.GetPid())
 
 	if exitCode != 0 {
 		oomFilePath := filepath.Join(c.bundlePath, "oom")
@@ -828,10 +829,10 @@ func (r *runtimeVM) restoreContainerIO(ctx context.Context, c *Container, state 
 	r.Unlock()
 
 	cioCfg := ctrio.Config{
-		Terminal: state.Terminal,
-		Stdin:    state.Stdin,
-		Stdout:   state.Stdout,
-		Stderr:   state.Stderr,
+		Terminal: state.GetTerminal(),
+		Stdin:    state.GetStdin(),
+		Stdout:   state.GetStdout(),
+		Stderr:   state.GetStderr(),
 	}
 	// The existing fifos is created by NewFIFOSetInDir. stdin, stdout, stderr should exist
 	// in a same temporary directory under r.fifoDir. crio is responsible for removing these
@@ -963,7 +964,7 @@ func (r *runtimeVM) ContainerStats(ctx context.Context, c *Container, _ string) 
 		return nil, errors.New("could not retrieve container stats")
 	}
 
-	stats, err := typeurl.UnmarshalAny(resp.Stats)
+	stats, err := typeurl.UnmarshalAny(resp.GetStats())
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract container metrics: %w", err)
 	}
@@ -1174,7 +1175,7 @@ func (r *runtimeVM) wait(ctrID, execID string) (int32, error) {
 		return -1, errdefs.ErrNotFound
 	}
 
-	return int32(resp.ExitStatus), nil
+	return int32(resp.GetExitStatus()), nil
 }
 
 func (r *runtimeVM) kill(ctrID, execID string, signal syscall.Signal, all bool) error {
@@ -1228,7 +1229,7 @@ func (r *runtimeVM) closeIO(ctrID, execID string) error {
 	return nil
 }
 
-// CheckpointContainer not implemented for runtimeVM
+// CheckpointContainer not implemented for runtimeVM.
 func (r *runtimeVM) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
 	log.Debugf(ctx, "RuntimeVM.CheckpointContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.CheckpointContainer() end")
@@ -1236,7 +1237,7 @@ func (r *runtimeVM) CheckpointContainer(ctx context.Context, c *Container, specg
 	return errors.New("checkpointing not implemented for runtimeVM")
 }
 
-// RestoreContainer not implemented for runtimeVM
+// RestoreContainer not implemented for runtimeVM.
 func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupParent, mountLabel string) error {
 	log.Debugf(ctx, "RuntimeVM.RestoreContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.RestoreContainer() end")

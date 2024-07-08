@@ -16,12 +16,13 @@ import (
 	"time"
 
 	"github.com/containers/common/pkg/seccomp"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/pkg/annotations"
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-spec/specs-go"
 	libseccomp "github.com/seccomp/libseccomp-golang"
 	"golang.org/x/sys/unix"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/pkg/annotations"
 )
 
 // Notifier wraps a seccomp notifier instance for a container.

@@ -6,10 +6,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/config/node"
 	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
 	"github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
+
+	"github.com/cri-o/cri-o/internal/config/node"
 )
 
 // This is a universal stats object to be used across different runtime implementations.
@@ -65,7 +66,7 @@ type PidsStats struct {
 
 // MemLimitGivenSystem limit returns the memory limit for a given cgroup
 // If the configured memory limit is larger than the total memory on the sys, the
-// physical system memory size is returned
+// physical system memory size is returned.
 func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	si := &syscall.Sysinfo_t{}
 	err := syscall.Sysinfo(si)

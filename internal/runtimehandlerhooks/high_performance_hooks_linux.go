@@ -13,13 +13,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
-	"github.com/cri-o/cri-o/internal/config/node"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
-	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/opencontainers/runc/libcontainer/cgroups"
 	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	"github.com/opencontainers/runc/libcontainer/configs"
@@ -28,12 +21,20 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/utils/cpuset"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
+	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
+	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 const (
-	// HighPerformance contains the high-performance runtime handler name
+	// HighPerformance contains the high-performance runtime handler name.
 	HighPerformance = "high-performance"
-	// IrqSmpAffinityProcFile contains the default smp affinity mask configuration
+	// IrqSmpAffinityProcFile contains the default smp affinity mask configuration.
 	IrqSmpAffinityProcFile = "/proc/irq/default_smp_affinity"
 )
 
@@ -60,7 +61,7 @@ const (
 	SharedCPUsEnvVar     = "OPENSHIFT_SHARED_CPUS"
 )
 
-// HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads
+// HighPerformanceHooks used to run additional hooks that will configure a system for the latency sensitive workloads.
 type HighPerformanceHooks struct {
 	irqBalanceConfigFile string
 	cpusetLock           sync.Mutex
@@ -698,7 +699,7 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 	return libCtrMgr.New(cg)
 }
 
-// safe fetch of cgroup manager from managers slice
+// safe fetch of cgroup manager from managers slice.
 func getManagerByIndex(idx int, containerManagers []cgroups.Manager) (cgroups.Manager, error) {
 	length := len(containerManagers)
 	if length == 0 {
@@ -900,7 +901,7 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 	return nil
 }
 
-// RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings
+// RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings.
 func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBannedCPUConfigFile, irqSmpAffinityProcFile string) error {
 	content, err := os.ReadFile(irqSmpAffinityProcFile)
 	if err != nil {
@@ -1018,7 +1019,7 @@ func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
 //
 // cpu-c-states.crio.io: "disable" (disable all c-states)
 // cpu-c-states.crio.io: "enable" (enable all c-states)
-// cpu-c-states.crio.io: "max_latency:10" (use a max latency of 10us)
+// cpu-c-states.crio.io: "max_latency:10" (use a max latency of 10us).
 func convertAnnotationToLatency(annotation string) (maxLatency string, err error) {
 	//nolint:gocritic // this would not be better as a switch statement
 	if annotation == annotationEnable {
@@ -1026,7 +1027,7 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 		return "0", nil
 	} else if annotation == annotationDisable {
 		// Disable all c-states.
-		return "n/a", nil //nolint:goconst // there are not 4 occurrences of this string
+		return "n/a", nil
 	} else if strings.HasPrefix(annotation, "max_latency:") {
 		// Use the latency provided
 		latency, err := strconv.Atoi(strings.TrimPrefix(annotation, "max_latency:"))

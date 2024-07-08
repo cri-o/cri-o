@@ -11,16 +11,16 @@ import (
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// DefaultProfile is the default profile name
+// DefaultProfile is the default profile name.
 const DefaultProfile = "crio-default"
 
-// Config is the global AppArmor configuration type
+// Config is the global AppArmor configuration type.
 type Config struct {
 	enabled        bool
 	defaultProfile string
 }
 
-// New creates a new default AppArmor configuration instance
+// New creates a new default AppArmor configuration instance.
 func New() *Config {
 	return &Config{
 		enabled:        apparmor.IsEnabled(),
@@ -100,7 +100,7 @@ func (c *Config) IsEnabled() bool {
 // CRI provides the AppArmor profile via both fields to maintain backwards compatibility.
 // ref https://github.com/kubernetes/kubernetes/pull/123811
 // Process new field and fallback to deprecated. From the kubernetes side both fields are populated.
-// TODO: Clean off deprecated AppArmorProfile usage
+// TODO: Clean off deprecated AppArmorProfile usage.
 func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, error) {
 	// Runtime default profile
 	if p.Apparmor != nil && p.Apparmor.ProfileType == runtimeapi.SecurityProfile_RuntimeDefault {

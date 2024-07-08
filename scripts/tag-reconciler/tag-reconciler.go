@@ -4,12 +4,13 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/cri-o/cri-o/internal/version"
-	"github.com/cri-o/cri-o/scripts/utils"
 	"github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-sdk/git"
 	"sigs.k8s.io/release-utils/command"
 	"sigs.k8s.io/release-utils/env"
+
+	"github.com/cri-o/cri-o/internal/version"
+	"github.com/cri-o/cri-o/scripts/utils"
 )
 
 func main() {

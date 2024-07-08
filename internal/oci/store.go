@@ -5,7 +5,7 @@ package oci
 type StoreFilter func(*Container) bool
 
 // StoreReducer defines a function to
-// manipulate containers in the store
+// manipulate containers in the store.
 type StoreReducer func(*Container)
 
 // ContainerStorer defines an interface that any container store must implement.

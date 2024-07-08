@@ -11,18 +11,17 @@ import (
 	"runtime/pprof"
 	"strconv"
 
+	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	securejoin "github.com/cyphar/filepath-securejoin"
+	"github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/user"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-
-	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/godbus/dbus/v5"
 )
 
-// StatusToExitCode converts wait status code to an exit code
+// StatusToExitCode converts wait status code to an exit code.
 func StatusToExitCode(status int) int {
 	return ((status) & 0xff00) >> 8
 }
@@ -126,7 +125,7 @@ func GenerateID() (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
-// openContainerFile opens a file inside a container rootfs safely
+// openContainerFile opens a file inside a container rootfs safely.
 func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 	fp, err := securejoin.SecureJoin(rootfs, path)
 	if err != nil {
@@ -143,7 +142,7 @@ func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 }
 
 // GetUserInfo returns UID, GID and additional groups for specified user
-// by looking them up in /etc/passwd and /etc/group
+// by looking them up in /etc/passwd and /etc/group.
 func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uint32, _ error) {
 	// We don't care if we can't open the file because
 	// not all images will have these files
@@ -177,7 +176,7 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 }
 
 // GeneratePasswd generates a container specific passwd file,
-// iff uid is not defined in the containers /etc/passwd
+// iff uid is not defined in the containers /etc/passwd.
 func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
 	if _, err := GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
 		return "", nil
@@ -211,7 +210,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 }
 
 // GenerateGroup generates a container specific group file,
-// iff gid is not defined in the containers /etc/group
+// iff gid is not defined in the containers /etc/group.
 func GenerateGroup(gid uint32, rootfs, rundir string) (string, error) {
 	if _, err := GetGroup(rootfs, strconv.Itoa(int(gid))); err == nil {
 		return "", nil
@@ -354,7 +353,7 @@ func GetUser(containerMount, userIDorName string) (*user.User, error) {
 	return nil, user.ErrNoPasswdEntries
 }
 
-// Int32Ptr is a utility function to assign to integer pointer variables
+// Int32Ptr is a utility function to assign to integer pointer variables.
 func Int32Ptr(i int32) *int32 {
 	return &i
 }
@@ -401,12 +400,12 @@ func GetLabelOptions(selinuxOptions *types.SELinuxOption) []string {
 	return labels
 }
 
-// SyncParent ensures a path's parent directory is synced to disk
+// SyncParent ensures a path's parent directory is synced to disk.
 func SyncParent(path string) error {
 	return Sync(filepath.Dir(path))
 }
 
-// Sync ensures a path is synced to disk
+// Sync ensures a path is synced to disk.
 func Sync(path string) error {
 	f, err := os.OpenFile(path, os.O_RDONLY, 0o755)
 	if err != nil {

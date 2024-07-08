@@ -3,10 +3,11 @@ package log_test
 import (
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 var _ = t.Describe("HookFilter", func() {

@@ -7,9 +7,10 @@
 package config
 
 import (
+	"github.com/cri-o/ocicni/pkg/ocicni"
+
 	"github.com/cri-o/cri-o/internal/config/cnimgr"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
-	"github.com/cri-o/ocicni/pkg/ocicni"
 )
 
 // SetCNIPlugin sets the network plugin for the Configuration. The function

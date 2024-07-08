@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
-// ReopenContainerLog reopens the containers log file
+// ReopenContainerLog reopens the containers log file.
 func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) (*types.ReopenContainerLogResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()

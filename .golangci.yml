@@ -33,6 +33,7 @@ linters:
     - exportloopref
     - fatcontext
     - forcetypeassert
+    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoinits
@@ -40,6 +41,7 @@ linters:
     - goconst
     - gocritic
     - gocyclo
+    - godot
     - gofmt
     - gofumpt
     - goheader
@@ -58,9 +60,11 @@ linters:
     - misspell
     - musttag
     - nakedret
+    - nolintlint
     - nosprintfhostport
     - perfsprint
     - prealloc
+    - protogetter
     - reassign
     - revive
     - rowserrcheck
@@ -90,10 +94,8 @@ linters:
     # - exhaustruct
     # - forbidigo
     # - funlen
-    # - gci
     # - gochecknoglobals
     # - gocognit
-    # - godot
     # - godox
     # - gomoddirectives
     # - gomodguard
@@ -109,12 +111,10 @@ linters:
     # - nilnil
     # - nlreturn
     # - noctx
-    # - nolintlint
     # - nonamedreturns
     # - paralleltest
     # - predeclared
     # - promlinter
-    # - protogetter
     # - tagliatelle
     # - testifylint
     # - testpackage
@@ -124,6 +124,11 @@ linters:
     # - wrapcheck
     # - wsl
 linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - localmodule
   errcheck:
     check-type-assertions: true
     check-blank: true

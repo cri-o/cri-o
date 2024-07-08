@@ -9,17 +9,17 @@ func NewSysctl(key, value string) *Sysctl {
 	return &Sysctl{key, value}
 }
 
-// Sysctl is a generic abstraction over key value based sysctls
+// Sysctl is a generic abstraction over key value based sysctls.
 type Sysctl struct {
 	key, value string
 }
 
-// Key returns the key of the sysctl (key=value format)
+// Key returns the key of the sysctl (key=value format).
 func (s *Sysctl) Key() string {
 	return s.key
 }
 
-// Value returns the value of the sysctl (key=value format)
+// Value returns the value of the sysctl (key=value format).
 func (s *Sysctl) Value() string {
 	return s.value
 }
@@ -53,10 +53,10 @@ func (c *RuntimeConfig) Sysctls() ([]Sysctl, error) {
 type Namespace string
 
 const (
-	// IpcNamespace is the Linux IPC namespace
+	// IpcNamespace is the Linux IPC namespace.
 	IpcNamespace = Namespace("ipc")
 
-	// NetNamespace is the network namespace
+	// NetNamespace is the network namespace.
 	NetNamespace = Namespace("net")
 )
 

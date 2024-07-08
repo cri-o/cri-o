@@ -4,16 +4,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/hostport"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestSandbox runs the created specs
+// TestSandbox runs the created specs.
 func TestSandbox(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Sandbox")

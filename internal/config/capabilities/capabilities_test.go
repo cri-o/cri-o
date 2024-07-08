@@ -1,12 +1,13 @@
 package capabilities_test
 
 import (
-	"github.com/cri-o/cri-o/internal/config/capabilities"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/config/capabilities"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Capabilities", func() {
 	It("should succeed to validate the default capabilities", func() {
 		// Given

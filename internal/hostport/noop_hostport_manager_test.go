@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// To make CodeCov happy
+// To make CodeCov happy.
 func TestNoopHostportManager(t *testing.T) {
 	manager := NewNoopHostportManager()
 	assert.NotNil(t, manager)

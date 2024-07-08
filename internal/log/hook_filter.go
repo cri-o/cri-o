@@ -13,7 +13,7 @@ type FilterHook struct {
 	predefined *regexp.Regexp
 }
 
-// NewFilterHook creates a new default FilterHook
+// NewFilterHook creates a new default FilterHook.
 func NewFilterHook(filter string) (*FilterHook, error) {
 	var (
 		custom *regexp.Regexp
@@ -32,12 +32,12 @@ func NewFilterHook(filter string) (*FilterHook, error) {
 }
 
 // Levels returns the levels for which the hook is activated. This contains
-// currently only the DebugLevel
+// currently only the DebugLevel.
 func (f *FilterHook) Levels() []logrus.Level {
 	return logrus.AllLevels
 }
 
-// Fire executes the hook for every logrus entry
+// Fire executes the hook for every logrus entry.
 func (f *FilterHook) Fire(entry *logrus.Entry) error {
 	// Custom specified filters get skipped completely
 	if f.custom != nil && !f.custom.MatchString(entry.Message) {

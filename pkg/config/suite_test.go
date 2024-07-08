@@ -5,13 +5,14 @@ import (
 	"os/exec"
 	"testing"
 
-	"github.com/cri-o/cri-o/pkg/config"
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/pkg/config"
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestLib runs the created specs
+// TestLib runs the created specs.
 func TestLibConfig(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "LibConfig")

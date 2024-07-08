@@ -8,11 +8,12 @@ import (
 	"strings"
 
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
-	"github.com/cri-o/cri-o/internal/log"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/sirupsen/logrus"
 	"tags.cncf.io/container-device-interface/pkg/cdi"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // Reload reloads the configuration for the single crio.conf and the drop-in
@@ -83,7 +84,7 @@ func (c *Config) Reload() error {
 
 // logConfig logs a config set operation as with info verbosity. Please always
 // use this function for setting configuration options to ensure consistent
-// log outputs
+// log outputs.
 func logConfig(option, value string) {
 	logrus.Infof("Set config %s to %q", option, value)
 }
@@ -235,7 +236,7 @@ func (c *Config) ReloadAppArmorProfile(newConfig *Config) error {
 	return nil
 }
 
-// ReloadBlockIOConfig reloads the blockio configuration from the new config
+// ReloadBlockIOConfig reloads the blockio configuration from the new config.
 func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 	if c.BlockIOConfigFile != newConfig.BlockIOConfigFile {
 		if err := c.BlockIO().Load(newConfig.BlockIOConfigFile); err != nil {
@@ -251,7 +252,7 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 	return nil
 }
 
-// ReloadRdtConfig reloads the RDT configuration if changed
+// ReloadRdtConfig reloads the RDT configuration if changed.
 func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 	if c.RdtConfigFile != newConfig.RdtConfigFile {
 		if err := c.Rdt().Load(newConfig.RdtConfigFile); err != nil {
@@ -263,7 +264,7 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 	return nil
 }
 
-// ReloadRuntimes reloads the runtimes configuration if changed
+// ReloadRuntimes reloads the runtimes configuration if changed.
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	var updated bool
 	if !RuntimesEqual(c.Runtimes, newConfig.Runtimes) {

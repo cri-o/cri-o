@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cri-o/cri-o/internal/config/migrate"
-	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/config/migrate"
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
 var from string

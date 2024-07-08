@@ -8,15 +8,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	devicecfg "github.com/cri-o/cri-o/internal/config/device"
-	"tags.cncf.io/container-device-interface/pkg/cdi"
-
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/utils"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/devices"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+
+	devicecfg "github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/utils"
 )
 
 func (c *container) SpecAddDevices(configuredDevices, annotationDevices []devicecfg.Device, privilegedWithoutHostDevices, enableDeviceOwnershipFromSecurityContext bool) error {
@@ -134,7 +134,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			// check if it is a directory
 			if e := utils.IsDirectory(path); e == nil {
 				// mount the internal devices recursively
-				// nolint: errcheck
+				//nolint: errcheck
 				filepath.Walk(path, func(dpath string, f os.FileInfo, e error) error {
 					// filepath.Walk failed, skip
 					if e != nil {

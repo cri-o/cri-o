@@ -43,7 +43,7 @@ func (*fakeFileInfo) ModTime() time.Time { return time.Now().Add(-5 * time.Secon
 func (*fakeFileInfo) IsDir() bool        { return false }
 func (*fakeFileInfo) Sys() any           { return nil }
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("OCIArtifact", func() {
 	t.Describe("Pull", func() {
 		var (
@@ -102,7 +102,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should succeed with cached artifact", func() {
 			// Given
-			//nolint:dupl
+
 			gomock.InOrder(
 				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
 				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
@@ -219,7 +219,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should remove cached artifact if it read fails and succeed if write fails", func() {
 			// Given
-			//nolint:dupl
+
 			gomock.InOrder(
 				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
 				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
@@ -249,7 +249,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should succeed if cache creation fails", func() {
 			// Given
-			//nolint:dupl
+
 			gomock.InOrder(
 				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
 				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),
@@ -275,7 +275,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 		It("should succeed if read cache dir fails", func() {
 			// Given
-			//nolint:dupl
+
 			gomock.InOrder(
 				implMock.EXPECT().ParseNormalizedNamed(gomock.Any()).Return(testRef, nil),
 				implMock.EXPECT().NewReference(gomock.Any()).Return(nil, nil),

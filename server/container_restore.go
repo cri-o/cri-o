@@ -8,15 +8,16 @@ import (
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/storage/pkg/archive"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"golang.org/x/net/context"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubetypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/net/context"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubetypes "k8s.io/kubelet/pkg/types"
 )
 
 // checkIfCheckpointOCIImage returns checks if the input refers to a checkpoint image.
@@ -49,7 +50,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 	return &status.ID, nil
 }
 
-// taken from Podman
+// taken from Podman.
 func (s *Server) CRImportCheckpoint(
 	ctx context.Context,
 	createConfig *types.ContainerConfig,

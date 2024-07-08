@@ -14,6 +14,16 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/unshare"
+	json "github.com/json-iterator/go"
+	spec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/opencontainers/selinux/go-selinux/label"
+	"golang.org/x/net/context"
+	"golang.org/x/sys/unix"
+	"k8s.io/apimachinery/pkg/api/resource"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
@@ -27,18 +37,9 @@ import (
 	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	json "github.com/json-iterator/go"
-	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/opencontainers/selinux/go-selinux/label"
-	"golang.org/x/net/context"
-	"golang.org/x/sys/unix"
-	"k8s.io/apimachinery/pkg/api/resource"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
-// DefaultUserNSSize is the default size for the user namespace created
+// DefaultUserNSSize is the default size for the user namespace created.
 const DefaultUserNSSize = 65536
 
 // addToMappingsIfMissing ensures the specified id is mapped from the host.

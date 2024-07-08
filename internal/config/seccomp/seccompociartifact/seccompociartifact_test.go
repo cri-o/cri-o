@@ -16,7 +16,7 @@ import (
 	seccompociartifactmock "github.com/cri-o/cri-o/test/mocks/seccompociartifact"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("SeccompOCIArtifact", func() {
 	t.Describe("TryPull", func() {
 		const testProfileContent = "{}"

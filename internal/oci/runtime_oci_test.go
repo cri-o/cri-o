@@ -7,15 +7,16 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/oci"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
-	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	kwait "k8s.io/apimachinery/pkg/util/wait"
 	kclock "k8s.io/utils/clock"
+
+	"github.com/cri-o/cri-o/internal/oci"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 const (
@@ -24,7 +25,7 @@ const (
 	longTimeout   int64 = 15
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Oci", func() {
 	Context("StopContainer", func() {
 		var (
@@ -65,10 +66,10 @@ var _ = t.Describe("Oci", func() {
 			)
 		})
 		AfterEach(func() {
-			// nolint:errcheck
+			//nolint:errcheck
 			oci.Kill(sleepProcess.Process.Pid)
 			// make sure the entry in the process table is cleaned up
-			// nolint:errcheck
+			//nolint:errcheck
 			sleepProcess.Wait()
 			cmdrunner.ResetPrependedCmd()
 		})

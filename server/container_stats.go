@@ -4,8 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/cri-o/cri-o/internal/log"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // ContainerStats returns stats of the container. If the container does not

@@ -3,12 +3,13 @@ package utils_test
 import (
 	"testing"
 
-	. "github.com/cri-o/cri-o/test/framework"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	. "github.com/cri-o/cri-o/test/framework"
 )
 
-// TestUtils runs the created specs
+// TestUtils runs the created specs.
 func TestUtils(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunFrameworkSpecs(t, "Utils")

@@ -4,13 +4,14 @@ import (
 	"errors"
 	"fmt"
 
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Container, serverConfig *config.Config) error {
@@ -66,7 +67,7 @@ func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Contai
 }
 
 // ConfigureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
-// to add or replace the defaults to these paths
+// to add or replace the defaults to these paths.
 func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g *generate.Generator) error {
 	typeToSpec := map[nsmgr.NSType]rspec.LinuxNamespaceType{
 		nsmgr.IPCNS:  rspec.IPCNamespace,

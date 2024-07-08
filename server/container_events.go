@@ -13,7 +13,7 @@ type containerEventConn struct {
 	err error
 }
 
-// GetContainerEvents sends the stream of container events to clients
+// GetContainerEvents sends the stream of container events to clients.
 func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.RuntimeService_GetContainerEventsServer) error {
 	if !s.Config().EnablePodEvents {
 		return nil
@@ -39,7 +39,7 @@ func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.Runtime
 
 func (s *Server) broadcastEvents() {
 	// notify all connections that ContainerEventsChan has been closed
-	defer s.containerEventClients.Range(func(_, value any) bool { // nolint: unparam
+	defer s.containerEventClients.Range(func(_, value any) bool { //nolint: unparam
 		conn, ok := value.(*containerEventConn)
 		if !ok {
 			return true

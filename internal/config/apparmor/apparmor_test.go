@@ -1,13 +1,14 @@
 package apparmor_test
 
 import (
-	"github.com/cri-o/cri-o/internal/config/apparmor"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/config/apparmor"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Config", func() {
 	var sut *apparmor.Config
 

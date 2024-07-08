@@ -97,7 +97,7 @@ func (c *prependableCommandRunner) CommandContext(ctx context.Context, cmd strin
 	return exec.CommandContext(ctx, realCmd, realArgs...)
 }
 
-// GetPrependedCmd returns the prepended command if one is configured, else the empty string
+// GetPrependedCmd returns the prepended command if one is configured, else the empty string.
 func GetPrependedCmd() string {
 	if c, ok := commandRunner.(*prependableCommandRunner); ok {
 		return c.prependCmd
@@ -105,7 +105,7 @@ func GetPrependedCmd() string {
 	return ""
 }
 
-// ResetPrependedCmd resets the singleton for more reliable unit testing
+// ResetPrependedCmd resets the singleton for more reliable unit testing.
 func ResetPrependedCmd() {
 	commandRunner = nil
 }

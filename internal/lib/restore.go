@@ -11,11 +11,12 @@ import (
 	"github.com/checkpoint-restore/go-criu/v7/stats"
 	"github.com/containers/common/pkg/crutils"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/opencontainers/runtime-tools/generate"
+	"github.com/sirupsen/logrus"
+
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/annotations"
-	"github.com/opencontainers/runtime-tools/generate"
-	"github.com/sirupsen/logrus"
 )
 
 // ContainerRestore restores a checkpointed container.

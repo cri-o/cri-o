@@ -9,16 +9,17 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
+	"k8s.io/apimachinery/pkg/fields"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/sirupsen/logrus"
-	"k8s.io/apimachinery/pkg/fields"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// DevShmPath is the default system wide shared memory path
+// DevShmPath is the default system wide shared memory path.
 const DevShmPath = "/dev/shm"
 
 var (
@@ -26,7 +27,7 @@ var (
 	sbNetworkStoppedFilename = "network-stopped"
 )
 
-// Sandbox contains data surrounding kubernetes sandboxes on the server
+// Sandbox contains data surrounding kubernetes sandboxes on the server.
 type Sandbox struct {
 	criSandbox   *types.PodSandbox
 	portMappings []*hostport.PortMapping
@@ -67,15 +68,15 @@ type Sandbox struct {
 	podLinuxResources  *types.LinuxContainerResources
 }
 
-// DefaultShmSize is the default shm size
+// DefaultShmSize is the default shm size.
 const DefaultShmSize = 64 * 1024 * 1024
 
-// ErrIDEmpty is the error returned when the id of the sandbox is empty
+// ErrIDEmpty is the error returned when the id of the sandbox is empty.
 var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 
 // New creates and populates a new pod sandbox
 // New sandboxes have no containers, no infra container, and no network namespaces associated with them
-// An infra container must be attached before the sandbox is added to the state
+// An infra container must be attached before the sandbox is added to the state.
 func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string, overhead, resources *types.LinuxContainerResources) (*Sandbox, error) {
 	sb := new(Sandbox)
 
@@ -125,52 +126,52 @@ func (s *Sandbox) CreatedAt() int64 {
 	return s.criSandbox.CreatedAt
 }
 
-// SetSeccompProfilePath sets the seccomp profile path
+// SetSeccompProfilePath sets the seccomp profile path.
 func (s *Sandbox) SetSeccompProfilePath(pp string) {
 	s.seccompProfilePath = pp
 }
 
-// SeccompProfilePath returns the seccomp profile path
+// SeccompProfilePath returns the seccomp profile path.
 func (s *Sandbox) SeccompProfilePath() string {
 	return s.seccompProfilePath
 }
 
-// AddIPs stores the ip in the sandbox
+// AddIPs stores the ip in the sandbox.
 func (s *Sandbox) AddIPs(ips []string) {
 	s.ips = ips
 }
 
-// SetNamespaceOptions sets whether the pod is running using host network
+// SetNamespaceOptions sets whether the pod is running using host network.
 func (s *Sandbox) SetNamespaceOptions(nsOpts *types.NamespaceOption) {
 	s.nsOpts = nsOpts
 }
 
-// NamespaceOptions returns the namespace options for the sandbox
+// NamespaceOptions returns the namespace options for the sandbox.
 func (s *Sandbox) NamespaceOptions() *types.NamespaceOption {
 	return s.nsOpts
 }
 
-// SetDNSConfig sets the DNSConfig
+// SetDNSConfig sets the DNSConfig.
 func (s *Sandbox) SetDNSConfig(dnsConfig *types.DNSConfig) {
 	s.dnsConfig = dnsConfig
 }
 
-// DNSConfig returns the dnsConfig for the sandbox
+// DNSConfig returns the dnsConfig for the sandbox.
 func (s *Sandbox) DNSConfig() *types.DNSConfig {
 	return s.dnsConfig
 }
 
-// StopMutex returns the mutex to use when stopping the sandbox
+// StopMutex returns the mutex to use when stopping the sandbox.
 func (s *Sandbox) StopMutex() *sync.RWMutex {
 	return &s.stopMutex
 }
 
-// IPs returns the ip of the sandbox
+// IPs returns the ip of the sandbox.
 func (s *Sandbox) IPs() []string {
 	return s.ips
 }
 
-// ID returns the id of the sandbox
+// ID returns the id of the sandbox.
 func (s *Sandbox) ID() string {
 	return s.criSandbox.Id
 }
@@ -180,69 +181,69 @@ func (s *Sandbox) UsernsMode() string {
 	return s.usernsMode
 }
 
-// Namespace returns the namespace for the sandbox
+// Namespace returns the namespace for the sandbox.
 func (s *Sandbox) Namespace() string {
 	return s.namespace
 }
 
-// Name returns the name of the sandbox
+// Name returns the name of the sandbox.
 func (s *Sandbox) Name() string {
 	return s.name
 }
 
-// KubeName returns the kubernetes name for the sandbox
+// KubeName returns the kubernetes name for the sandbox.
 func (s *Sandbox) KubeName() string {
 	return s.kubeName
 }
 
-// LogDir returns the location of the logging directory for the sandbox
+// LogDir returns the location of the logging directory for the sandbox.
 func (s *Sandbox) LogDir() string {
 	return s.logDir
 }
 
-// Labels returns the labels associated with the sandbox
+// Labels returns the labels associated with the sandbox.
 func (s *Sandbox) Labels() fields.Set {
 	return s.criSandbox.Labels
 }
 
-// Annotations returns a list of annotations for the sandbox
+// Annotations returns a list of annotations for the sandbox.
 func (s *Sandbox) Annotations() map[string]string {
 	return s.criSandbox.Annotations
 }
 
 // Containers returns the ContainerStorer that contains information on all
-// of the containers in the sandbox
+// of the containers in the sandbox.
 func (s *Sandbox) Containers() oci.ContainerStorer {
 	return s.containers
 }
 
-// ProcessLabel returns the process label for the sandbox
+// ProcessLabel returns the process label for the sandbox.
 func (s *Sandbox) ProcessLabel() string {
 	return s.processLabel
 }
 
-// MountLabel returns the mount label for the sandbox
+// MountLabel returns the mount label for the sandbox.
 func (s *Sandbox) MountLabel() string {
 	return s.mountLabel
 }
 
-// Metadata returns a set of metadata about the sandbox
+// Metadata returns a set of metadata about the sandbox.
 func (s *Sandbox) Metadata() *types.PodSandboxMetadata {
 	return s.criSandbox.Metadata
 }
 
-// ShmPath returns the shm path of the sandbox
+// ShmPath returns the shm path of the sandbox.
 func (s *Sandbox) ShmPath() string {
 	return s.shmPath
 }
 
-// CgroupParent returns the cgroup parent of the sandbox
+// CgroupParent returns the cgroup parent of the sandbox.
 func (s *Sandbox) CgroupParent() string {
 	return s.cgroupParent
 }
 
 // Privileged returns whether or not the containers in the sandbox are
-// privileged containers
+// privileged containers.
 func (s *Sandbox) Privileged() bool {
 	return s.privileged
 }
@@ -254,66 +255,66 @@ func (s *Sandbox) RuntimeHandler() string {
 	return s.runtimeHandler
 }
 
-// HostNetwork returns whether the sandbox runs in the host network namespace
+// HostNetwork returns whether the sandbox runs in the host network namespace.
 func (s *Sandbox) HostNetwork() bool {
 	return s.hostNetwork
 }
 
-// ResolvPath returns the resolv path for the sandbox
+// ResolvPath returns the resolv path for the sandbox.
 func (s *Sandbox) ResolvPath() string {
 	return s.resolvPath
 }
 
-// AddHostnamePath adds the hostname path to the sandbox
+// AddHostnamePath adds the hostname path to the sandbox.
 func (s *Sandbox) AddHostnamePath(hostname string) {
 	s.hostnamePath = hostname
 }
 
-// HostnamePath retrieves the hostname path from a sandbox
+// HostnamePath retrieves the hostname path from a sandbox.
 func (s *Sandbox) HostnamePath() string {
 	return s.hostnamePath
 }
 
-// ContainerEnvPath retrieves the .containerenv path from a sandbox
+// ContainerEnvPath retrieves the .containerenv path from a sandbox.
 func (s *Sandbox) ContainerEnvPath() string {
 	return s.containerEnvPath
 }
 
-// Hostname returns the hostname of the sandbox
+// Hostname returns the hostname of the sandbox.
 func (s *Sandbox) Hostname() string {
 	return s.hostname
 }
 
-// PortMappings returns a list of port mappings between the host and the sandbox
+// PortMappings returns a list of port mappings between the host and the sandbox.
 func (s *Sandbox) PortMappings() []*hostport.PortMapping {
 	return s.portMappings
 }
 
-// PodLinuxOverhead returns the overheads associated with this sandbox
+// PodLinuxOverhead returns the overheads associated with this sandbox.
 func (s *Sandbox) PodLinuxOverhead() *types.LinuxContainerResources {
 	return s.podLinuxOverhead
 }
 
-// PodLinuxResources returns the sum of container resources for this sandbox
+// PodLinuxResources returns the sum of container resources for this sandbox.
 func (s *Sandbox) PodLinuxResources() *types.LinuxContainerResources {
 	return s.podLinuxResources
 }
 
-// AddContainer adds a container to the sandbox
+// AddContainer adds a container to the sandbox.
 func (s *Sandbox) AddContainer(ctx context.Context, c *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 	s.containers.Add(c.Name(), c)
 }
 
-// GetContainer retrieves a container from the sandbox
+// GetContainer retrieves a container from the sandbox.
 func (s *Sandbox) GetContainer(ctx context.Context, name string) *oci.Container {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 	return s.containers.Get(name)
 }
 
-// RemoveContainer deletes a container from the sandbox
+// RemoveContainer deletes a container from the sandbox.
 func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
@@ -321,7 +322,7 @@ func (s *Sandbox) RemoveContainer(ctx context.Context, c *oci.Container) {
 }
 
 // SetInfraContainer sets the infrastructure container of a sandbox
-// Attempts to set the infrastructure container after one is already present will throw an error
+// Attempts to set the infrastructure container after one is already present will throw an error.
 func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
 	if s.infraContainer != nil {
 		return errors.New("sandbox already has an infra container")
@@ -334,12 +335,12 @@ func (s *Sandbox) SetInfraContainer(infraCtr *oci.Container) error {
 	return nil
 }
 
-// InfraContainer returns the infrastructure container for the sandbox
+// InfraContainer returns the infrastructure container for the sandbox.
 func (s *Sandbox) InfraContainer() *oci.Container {
 	return s.infraContainer
 }
 
-// RemoveInfraContainer removes the infrastructure container of a sandbox
+// RemoveInfraContainer removes the infrastructure container of a sandbox.
 func (s *Sandbox) RemoveInfraContainer() {
 	s.infraContainer = nil
 }
@@ -348,7 +349,7 @@ func (s *Sandbox) RemoveInfraContainer() {
 // This should be set after a stop operation succeeds
 // so that subsequent stops can return fast.
 // if createFile is true, it also creates a "stopped" file in the infra container's persistent dir
-// this is used to track the sandbox is stopped over reboots
+// this is used to track the sandbox is stopped over reboots.
 func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -369,12 +370,12 @@ func (s *Sandbox) Stopped() bool {
 	return s.stopped
 }
 
-// SetCreated sets the created status of sandbox to true
+// SetCreated sets the created status of sandbox to true.
 func (s *Sandbox) SetCreated() {
 	s.created = true
 }
 
-// NetworkStopped returns whether the network has been stopped
+// NetworkStopped returns whether the network has been stopped.
 func (s *Sandbox) NetworkStopped() bool {
 	return s.networkStopped
 }
@@ -385,7 +386,7 @@ func (s *Sandbox) NetworkStopped() bool {
 // if createFile is true, it creates a "network-stopped" file
 // in the infra container's persistent dir
 // this is used to track the network is stopped over reboots
-// returns an error if an error occurred when creating the network-stopped file
+// returns an error if an error occurred when creating the network-stopped file.
 func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -465,7 +466,7 @@ func (s *Sandbox) fileExistsInInfraDir(filename string) bool {
 	return true
 }
 
-// Created returns the created status of sandbox
+// Created returns the created status of sandbox.
 func (s *Sandbox) Created() bool {
 	return s.created
 }

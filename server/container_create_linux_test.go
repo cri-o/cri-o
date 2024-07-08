@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/cri-o/cri-o/internal/factory/container"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/factory/container"
 )
 
 func TestAddOCIBindsForDev(t *testing.T) {

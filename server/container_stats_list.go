@@ -1,9 +1,10 @@
 package server
 
 import (
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 // ListContainerStats returns stats of all running containers.

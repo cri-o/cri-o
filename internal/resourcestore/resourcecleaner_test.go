@@ -3,13 +3,14 @@ package resourcestore_test
 import (
 	"errors"
 
-	"github.com/cri-o/cri-o/internal/resourcestore"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"golang.org/x/net/context"
+
+	"github.com/cri-o/cri-o/internal/resourcestore"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("ResourceCleaner", func() {
 	It("should call the cleanup functions", func() {
 		// Given

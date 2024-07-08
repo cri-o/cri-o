@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*types.Metric {

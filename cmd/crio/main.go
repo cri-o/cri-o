@@ -18,15 +18,6 @@ import (
 
 	"github.com/containers/kubensmnt"
 	"github.com/containers/storage/pkg/reexec"
-	"github.com/cri-o/cri-o/internal/criocli"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/opentelemetry"
-	"github.com/cri-o/cri-o/internal/signals"
-	"github.com/cri-o/cri-o/internal/version"
-	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server"
-	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
-	"github.com/cri-o/cri-o/utils"
 	grpc_middleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"github.com/sirupsen/logrus"
 	"github.com/soheilhy/cmux"
@@ -37,6 +28,16 @@ import (
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc"
 	v1 "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/criocli"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/opentelemetry"
+	"github.com/cri-o/cri-o/internal/signals"
+	"github.com/cri-o/cri-o/internal/version"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
+	"github.com/cri-o/cri-o/server"
+	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
+	"github.com/cri-o/cri-o/utils"
 )
 
 func writeCrioGoroutineStacks() {
@@ -80,7 +81,7 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 				}
 			}
 			gserver.GracefulStop()
-			hserver.Shutdown(ctx) // nolint: errcheck
+			hserver.Shutdown(ctx) //nolint: errcheck
 			if err := sserver.StopStreamServer(); err != nil {
 				log.Warnf(ctx, "Error shutting down streaming server: %v", err)
 			}

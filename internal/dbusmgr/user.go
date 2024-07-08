@@ -13,9 +13,10 @@ import (
 	"strings"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	dbus "github.com/godbus/dbus/v5"
 	"github.com/opencontainers/runc/libcontainer/userns"
+
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 // newUserSystemdDbus creates a connection for systemd user-instance.

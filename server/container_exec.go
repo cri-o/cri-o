@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
 )
 
 // Exec prepares a streaming endpoint to execute a command in the container.
@@ -24,7 +25,7 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 	return resp, nil
 }
 
-// Exec endpoint for streaming.Runtime
+// Exec endpoint for streaming.Runtime.
 func (s StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()

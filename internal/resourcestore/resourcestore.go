@@ -6,8 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cri-o/cri-o/internal/log"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 const (
@@ -57,7 +58,7 @@ type IdentifiableCreatable interface {
 	SetCreated()
 }
 
-// New creates a new ResourceStore, with a default timeout, and starts the cleanup function
+// New creates a new ResourceStore, with a default timeout, and starts the cleanup function.
 func New() *ResourceStore {
 	return NewWithTimeout(sleepTimeBeforeCleanup)
 }

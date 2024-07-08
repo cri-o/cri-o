@@ -8,14 +8,15 @@ import (
 	"net/http/pprof"
 
 	"github.com/containers/storage/pkg/idtools"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/go-chi/chi/v5"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
+
+	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/types"
 )
 
 func (s *Server) getIDMappingsInfo() types.IDMappings {
@@ -125,7 +126,7 @@ const (
 	InspectUnpauseEndpoint    = "/unpause"
 )
 
-// GetExtendInterfaceMux returns the mux used to serve extend interface requests
+// GetExtendInterfaceMux returns the mux used to serve extend interface requests.
 func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux := chi.NewMux()
 

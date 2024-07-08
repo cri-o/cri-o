@@ -14,14 +14,15 @@ import (
 	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/storage"
-	"github.com/cri-o/cri-o/server/metrics"
-	"github.com/cri-o/cri-o/utils"
 	"github.com/docker/distribution/registry/api/errcode"
 	"github.com/opencontainers/go-digest"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	crierrors "k8s.io/cri-api/pkg/errors"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/server/metrics"
+	"github.com/cri-o/cri-o/utils"
 )
 
 var localRegistryHostname = "localhost"
@@ -241,7 +242,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
-	defer close(progress) // nolint:gocritic
+	defer close(progress)
 
 	if deadline, ok := ctx.Deadline(); ok {
 		log.Debugf(ctx, "Pull timeout is: %s", time.Until(deadline))
@@ -330,7 +331,7 @@ func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err 
 		}
 	}
 	if label == labelUnknown {
-		if strings.Contains(err.Error(), "connection refused") { // nolint: gocritic
+		if strings.Contains(err.Error(), "connection refused") { //nolint:gocritic
 			label = "CONNECTION_REFUSED"
 		} else if strings.Contains(err.Error(), "connection timed out") {
 			label = "CONNECTION_TIMEOUT"

@@ -66,7 +66,7 @@ func ToGRPCf(err error, format string, args ...interface{}) error {
 	return ToGRPC(fmt.Errorf(format+": %w", append(args, err)...))
 }
 
-// FromGRPC returns the underlying error from a grpc service based on the grpc error code
+// FromGRPC returns the underlying error from a grpc service based on the grpc error code.
 func FromGRPC(err error) error {
 	if err == nil {
 		return nil

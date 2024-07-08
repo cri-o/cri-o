@@ -7,7 +7,7 @@ import (
 	"text/template"
 )
 
-// WriteTemplate write the configuration template to the provided writer
+// WriteTemplate write the configuration template to the provided writer.
 func (c *Config) WriteTemplate(displayAllConfig bool, w io.Writer) error {
 	const templateName = "config"
 	tpl, err := template.New(templateName).Parse(assembleTemplateString(displayAllConfig, c))

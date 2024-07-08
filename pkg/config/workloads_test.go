@@ -1,19 +1,20 @@
 package config_test
 
 import (
-	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+
+	"github.com/cri-o/cri-o/pkg/config"
 )
 
-// Helper function for pointer reference
+// Helper function for pointer reference.
 func pointer[A any](m A) *A {
 	return &m
 }
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Workloads config", func() {
 	BeforeEach(beforeEach)
 

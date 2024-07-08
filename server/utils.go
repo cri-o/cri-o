@@ -13,12 +13,13 @@ import (
 	encconfig "github.com/containers/ocicrypt/config"
 	cryptUtils "github.com/containers/ocicrypt/utils"
 	"github.com/containers/storage/pkg/mount"
-	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/server/metrics"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
+
+	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/server/metrics"
 )
 
 const (
@@ -78,12 +79,12 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 	return envs
 }
 
-// Translate container labels to a description of the container
+// Translate container labels to a description of the container.
 func translateLabelsToDescription(labels map[string]string) string {
 	return fmt.Sprintf("%s/%s/%s", labels[kubeletTypes.KubernetesPodNamespaceLabel], labels[kubeletTypes.KubernetesPodNameLabel], labels[kubeletTypes.KubernetesContainerNameLabel])
 }
 
-// getDecryptionKeys reads the keys from the given directory
+// getDecryptionKeys reads the keys from the given directory.
 func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 	if _, err := os.Stat(keysPath); os.IsNotExist(err) {
 		logrus.Debugf("Skipping non-existing decryption_keys_path: %s", keysPath)

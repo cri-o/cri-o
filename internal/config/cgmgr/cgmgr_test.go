@@ -3,9 +3,10 @@ package cgmgr_test
 import (
 	"path/filepath"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 )
 
 const (
@@ -16,7 +17,7 @@ const (
 	cgroupfsManager      = "cgroupfs"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Cgmgr", func() {
 	var sut cgmgr.CgroupManager
 

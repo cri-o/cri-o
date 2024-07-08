@@ -34,7 +34,7 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 }
 
 func (c *CNIManager) pollUntilReady() {
-	// nolint:errcheck,staticcheck
+	//nolint:errcheck,staticcheck
 	_ = wait.PollInfinite(500*time.Millisecond, c.pollFunc)
 }
 
@@ -63,14 +63,14 @@ func (c *CNIManager) ReadyOrError() error {
 	return c.lastError
 }
 
-// Plugin returns the CNI plugin
+// Plugin returns the CNI plugin.
 func (c *CNIManager) Plugin() ocicni.CNIPlugin {
 	return c.plugin
 }
 
 // Add watcher creates a new watcher for the CNI manager
 // said watcher will send a `true` value if the CNI plugin was successfully ready
-// or `false` if the server shutdown first
+// or `false` if the server shutdown first.
 func (c *CNIManager) AddWatcher() chan bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
@@ -81,7 +81,7 @@ func (c *CNIManager) AddWatcher() chan bool {
 }
 
 // Shutdown shuts down the CNI manager, and notifies the watcher
-// that the CNI manager is not ready
+// that the CNI manager is not ready.
 func (c *CNIManager) Shutdown() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()

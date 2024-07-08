@@ -38,13 +38,13 @@ import (
 	utiltrace "k8s.io/utils/trace"
 )
 
-// RulePosition holds the -I/-A flags for iptable
+// RulePosition holds the -I/-A flags for iptable.
 type RulePosition string
 
 const (
-	// Prepend is the insert flag for iptable
+	// Prepend is the insert flag for iptable.
 	Prepend RulePosition = "-I"
-	// Append is the append flag for iptable
+	// Append is the append flag for iptable.
 	Append RulePosition = "-A"
 )
 
@@ -99,41 +99,41 @@ type Interface interface {
 	Present() bool
 }
 
-// Protocol defines the ip protocol either ipv4 or ipv6
+// Protocol defines the ip protocol either ipv4 or ipv6.
 type Protocol string
 
 const (
-	// ProtocolIPv4 represents ipv4 protocol in iptables
+	// ProtocolIPv4 represents ipv4 protocol in iptables.
 	ProtocolIPv4 Protocol = "IPv4"
-	// ProtocolIPv6 represents ipv6 protocol in iptables
+	// ProtocolIPv6 represents ipv6 protocol in iptables.
 	ProtocolIPv6 Protocol = "IPv6"
 )
 
-// Table represents different iptable like filter,nat, mangle and raw
+// Table represents different iptable like filter,nat, mangle and raw.
 type Table string
 
 const (
-	// TableNAT represents the built-in nat table
+	// TableNAT represents the built-in nat table.
 	TableNAT Table = "nat"
-	// TableFilter represents the built-in filter table
+	// TableFilter represents the built-in filter table.
 	TableFilter Table = "filter"
-	// TableMangle represents the built-in mangle table
+	// TableMangle represents the built-in mangle table.
 	TableMangle Table = "mangle"
 )
 
-// Chain represents the different rules
+// Chain represents the different rules.
 type Chain string
 
 const (
-	// ChainPostrouting used for source NAT in nat table
+	// ChainPostrouting used for source NAT in nat table.
 	ChainPostrouting Chain = "POSTROUTING"
-	// ChainPrerouting used for DNAT (destination NAT) in nat table
+	// ChainPrerouting used for DNAT (destination NAT) in nat table.
 	ChainPrerouting Chain = "PREROUTING"
-	// ChainOutput used for the packets going out from local
+	// ChainOutput used for the packets going out from local.
 	ChainOutput Chain = "OUTPUT"
-	// ChainInput used for incoming packets
+	// ChainInput used for incoming packets.
 	ChainInput Chain = "INPUT"
-	// ChainForward used for the packets for another NIC
+	// ChainForward used for the packets for another NIC.
 	ChainForward Chain = "FORWARD"
 )
 
@@ -146,22 +146,22 @@ const (
 	cmdIP6Tables        string = "ip6tables"
 )
 
-// RestoreCountersFlag is an option flag for Restore
+// RestoreCountersFlag is an option flag for Restore.
 type RestoreCountersFlag bool
 
-// RestoreCounters a boolean true constant for the option flag RestoreCountersFlag
+// RestoreCounters a boolean true constant for the option flag RestoreCountersFlag.
 const RestoreCounters RestoreCountersFlag = true
 
-// NoRestoreCounters a boolean false constant for the option flag RestoreCountersFlag
+// NoRestoreCounters a boolean false constant for the option flag RestoreCountersFlag.
 const NoRestoreCounters RestoreCountersFlag = false
 
-// FlushFlag an option flag for Flush
+// FlushFlag an option flag for Flush.
 type FlushFlag bool
 
-// FlushTables a boolean true constant for option flag FlushFlag
+// FlushTables a boolean true constant for option flag FlushFlag.
 const FlushTables FlushFlag = true
 
-// NoFlushTables a boolean false constant for option flag FlushFlag
+// NoFlushTables a boolean false constant for option flag FlushFlag.
 const NoFlushTables FlushFlag = false
 
 // MinCheckVersion minimum version to be checked
@@ -170,37 +170,37 @@ const NoFlushTables FlushFlag = false
 var MinCheckVersion = utilversion.MustParseGeneric("1.4.11")
 
 // RandomFullyMinVersion is the minimum version from which the --random-fully flag is supported,
-// used for port mapping to be fully randomized
+// used for port mapping to be fully randomized.
 var RandomFullyMinVersion = utilversion.MustParseGeneric("1.6.2")
 
-// WaitMinVersion a minimum iptables versions supporting the -w and -w<seconds> flags
+// WaitMinVersion a minimum iptables versions supporting the -w and -w<seconds> flags.
 var WaitMinVersion = utilversion.MustParseGeneric("1.4.20")
 
-// WaitIntervalMinVersion a minimum iptables versions supporting the wait interval useconds
+// WaitIntervalMinVersion a minimum iptables versions supporting the wait interval useconds.
 var WaitIntervalMinVersion = utilversion.MustParseGeneric("1.6.1")
 
-// WaitSecondsMinVersion a minimum iptables versions supporting the wait seconds
+// WaitSecondsMinVersion a minimum iptables versions supporting the wait seconds.
 var WaitSecondsMinVersion = utilversion.MustParseGeneric("1.4.22")
 
-// WaitRestoreMinVersion a minimum iptables versions supporting the wait restore seconds
+// WaitRestoreMinVersion a minimum iptables versions supporting the wait restore seconds.
 var WaitRestoreMinVersion = utilversion.MustParseGeneric("1.6.2")
 
-// WaitString a constant for specifying the wait flag
+// WaitString a constant for specifying the wait flag.
 const WaitString = "-w"
 
-// WaitSecondsValue a constant for specifying the default wait seconds
+// WaitSecondsValue a constant for specifying the default wait seconds.
 const WaitSecondsValue = "5"
 
-// WaitIntervalString a constant for specifying the wait interval flag
+// WaitIntervalString a constant for specifying the wait interval flag.
 const WaitIntervalString = "-W"
 
-// WaitIntervalUsecondsValue a constant for specifying the default wait interval useconds
+// WaitIntervalUsecondsValue a constant for specifying the default wait interval useconds.
 const WaitIntervalUsecondsValue = "100000"
 
-// LockfilePath16x is the iptables 1.6.x lock file acquired by any process that's making any change in the iptable rule
+// LockfilePath16x is the iptables 1.6.x lock file acquired by any process that's making any change in the iptable rule.
 const LockfilePath16x = "/run/xtables.lock"
 
-// LockfilePath14x is the iptables 1.4.x lock file acquired by any process that's making any change in the iptable rule
+// LockfilePath14x is the iptables 1.4.x lock file acquired by any process that's making any change in the iptable rule.
 const LockfilePath14x = "@xtables"
 
 // runner implements Interface in terms of exec("iptables").
@@ -217,7 +217,7 @@ type runner struct {
 }
 
 // newInternal returns a new Interface which will exec iptables, and allows the
-// caller to change the iptables-restore lockfile path
+// caller to change the iptables-restore lockfile path.
 func newInternal(exec utilexec.Interface, protocol Protocol, lockfilePath14x, lockfilePath16x string) Interface {
 	version, err := getIPTablesVersion(exec, protocol)
 	if err != nil {
@@ -391,7 +391,7 @@ type iptablesLocker interface {
 	Close() error
 }
 
-// restoreInternal is the shared part of Restore/RestoreAll
+// restoreInternal is the shared part of Restore/RestoreAll.
 func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFlag, counters RestoreCountersFlag) error {
 	runner.mu.Lock()
 	defer runner.mu.Unlock()
@@ -541,7 +541,7 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 	return false, nil
 }
 
-// Executes the rule check using the "-C" flag
+// Executes the rule check using the "-C" flag.
 func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
@@ -565,13 +565,13 @@ func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 }
 
 const (
-	// Max time we wait for an iptables flush to complete after we notice it has started
+	// Max time we wait for an iptables flush to complete after we notice it has started.
 	iptablesFlushTimeout = 5 * time.Second
-	// How often we poll while waiting for an iptables flush to complete
+	// How often we poll while waiting for an iptables flush to complete.
 	iptablesFlushPollTime = 100 * time.Millisecond
 )
 
-// Monitor is part of Interface
+// Monitor is part of Interface.
 func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), interval time.Duration, stopCh <-chan struct{}) {
 	for {
 		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck
@@ -621,7 +621,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 	}
 }
 
-// ChainExists is part of Interface
+// ChainExists is part of Interface.
 func (runner *runner) ChainExists(table Table, chain Chain) (bool, error) {
 	fullArgs := makeFullArgs(table, chain)
 
@@ -652,7 +652,7 @@ func makeFullArgs(table Table, chain Chain, args ...string) []string {
 
 const iptablesVersionPattern = `v([0-9]+(\.[0-9]+)+)`
 
-// getIPTablesVersion runs "iptables --version" and parses the returned version
+// getIPTablesVersion runs "iptables --version" and parses the returned version.
 func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversion.Version, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
 	iptablesCmd := iptablesCommand(protocol)
@@ -673,7 +673,7 @@ func getIPTablesVersion(exec utilexec.Interface, protocol Protocol) (*utilversio
 	return version, nil
 }
 
-// Checks if iptables version has a "wait" flag
+// Checks if iptables version has a "wait" flag.
 func getIPTablesWaitFlag(version *utilversion.Version) []string {
 	switch {
 	case version.AtLeast(WaitIntervalMinVersion):
@@ -687,7 +687,7 @@ func getIPTablesWaitFlag(version *utilversion.Version) []string {
 	}
 }
 
-// Checks if iptables-restore has a "wait" flag
+// Checks if iptables-restore has a "wait" flag.
 func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Interface, protocol Protocol) []string {
 	if version.AtLeast(WaitRestoreMinVersion) {
 		return []string{WaitString, WaitSecondsValue, WaitIntervalString, WaitIntervalUsecondsValue}
@@ -708,7 +708,7 @@ func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Inte
 }
 
 // getIPTablesRestoreVersionString runs "iptables-restore --version" to get the version string
-// in the form "X.X.X"
+// in the form "X.X.X".
 func getIPTablesRestoreVersionString(exec utilexec.Interface, protocol Protocol) (string, error) {
 	// this doesn't access mutable state so we don't need to use the interface / runner
 
@@ -735,7 +735,7 @@ func (runner *runner) HasRandomFully() bool {
 }
 
 // Present tests if iptable is supported on current kernel by checking the existence
-// of default table and chain
+// of default table and chain.
 func (runner *runner) Present() bool {
 	if _, err := runner.ChainExists(TableNAT, ChainPostrouting); err != nil {
 		return false
@@ -831,7 +831,7 @@ var regexpParseError = regexp.MustCompile("line ([1-9][0-9]*) failed$") //nolint
 // input: iptables-restore: line 51 failed
 // output: parseError:  cmd = iptables-restore, line = 51
 // NOTE: parseRestoreError depends on the error format of iptables, if it ever changes
-// we need to update this function
+// we need to update this function.
 func parseRestoreError(str string) (ParseError, bool) {
 	errs := strings.Split(str, ":")
 	if len(errs) != 2 {
@@ -850,7 +850,7 @@ func parseRestoreError(str string) (ParseError, bool) {
 }
 
 // ExtractLines extracts the -count and +count data from the lineNum row of lines and return
-// NOTE: lines start from line 1
+// NOTE: lines start from line 1.
 func ExtractLines(lines []byte, line, count int) []LineData {
 	// first line is line 1, so line can't be smaller than 1
 	if line < 1 {

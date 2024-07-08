@@ -3,16 +3,17 @@ package conmonmgr
 import (
 	"errors"
 
-	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 const validPath = "/bin/ls"
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("ConmonManager", func() {
 	var runner *runnerMock.MockCommandRunner
 	t.Describe("New", func() {

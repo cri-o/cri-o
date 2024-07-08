@@ -8,10 +8,10 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// Capabilities is the default representation for capabilities
+// Capabilities is the default representation for capabilities.
 type Capabilities []string
 
-// Default returns the default capabilities as string slice
+// Default returns the default capabilities as string slice.
 func Default() Capabilities {
 	return []string{
 		"CHOWN",
@@ -26,7 +26,7 @@ func Default() Capabilities {
 	}
 }
 
-// Validate checks if the provided capabilities are available on the system
+// Validate checks if the provided capabilities are available on the system.
 func (c Capabilities) Validate() error {
 	caps := Capabilities{}
 	for _, cap := range c {

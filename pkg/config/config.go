@@ -20,6 +20,14 @@ import (
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
+	"github.com/cri-o/ocicni/pkg/ocicni"
+	"github.com/docker/go-units"
+	"github.com/opencontainers/runtime-spec/specs-go/features"
+	selinux "github.com/opencontainers/selinux/go-selinux"
+	"github.com/sirupsen/logrus"
+	"k8s.io/utils/cpuset"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
+
 	"github.com/cri-o/cri-o/internal/config/apparmor"
 	"github.com/cri-o/cri-o/internal/config/blockio"
 	"github.com/cri-o/cri-o/internal/config/capabilities"
@@ -39,16 +47,9 @@ import (
 	"github.com/cri-o/cri-o/server/useragent"
 	"github.com/cri-o/cri-o/utils"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
-	"github.com/cri-o/ocicni/pkg/ocicni"
-	"github.com/docker/go-units"
-	"github.com/opencontainers/runtime-spec/specs-go/features"
-	selinux "github.com/opencontainers/selinux/go-selinux"
-	"github.com/sirupsen/logrus"
-	"k8s.io/utils/cpuset"
-	"tags.cncf.io/container-device-interface/pkg/cdi"
 )
 
-// Defaults if none are specified
+// Defaults if none are specified.
 const (
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	defaultContainerMinMemory  = 12 * 1024 * 1024 // 12 MiB
@@ -82,31 +83,31 @@ type Config struct {
 	SystemContext *types.SystemContext
 }
 
-// Iface provides a config interface for data encapsulation
+// Iface provides a config interface for data encapsulation.
 type Iface interface {
 	GetStore() (storage.Store, error)
 	GetData() *Config
 }
 
-// GetData returns the Config of a Iface
+// GetData returns the Config of a Iface.
 func (c *Config) GetData() *Config {
 	return c
 }
 
-// ImageVolumesType describes image volume handling strategies
+// ImageVolumesType describes image volume handling strategies.
 type ImageVolumesType string
 
 const (
-	// ImageVolumesMkdir option is for using mkdir to handle image volumes
+	// ImageVolumesMkdir option is for using mkdir to handle image volumes.
 	ImageVolumesMkdir ImageVolumesType = "mkdir"
-	// ImageVolumesIgnore option is for ignoring image volumes altogether
+	// ImageVolumesIgnore option is for ignoring image volumes altogether.
 	ImageVolumesIgnore ImageVolumesType = "ignore"
-	// ImageVolumesBind option is for using bind mounted volumes
+	// ImageVolumesBind option is for using bind mounted volumes.
 )
 
 const (
 	// DefaultPidsLimit is the default value for maximum number of processes
-	// allowed inside a container
+	// allowed inside a container.
 	DefaultPidsLimit = -1
 
 	// DefaultLogSizeMax is the default value for the maximum log size
@@ -115,14 +116,14 @@ const (
 )
 
 const (
-	// DefaultBlockIOConfigFile is the default value for blockio controller configuration file
+	// DefaultBlockIOConfigFile is the default value for blockio controller configuration file.
 	DefaultBlockIOConfigFile = ""
 	// DefaultBlockIOReload is the default value for reloading blockio with changed config file and block devices.
 	DefaultBlockIOReload = false
 )
 
 const (
-	// DefaultIrqBalanceConfigFile default irqbalance service configuration file path
+	// DefaultIrqBalanceConfigFile default irqbalance service configuration file path.
 	DefaultIrqBalanceConfigFile = "/etc/sysconfig/irqbalance"
 	// DefaultIrqBalanceConfigRestoreFile contains the banned cpu mask configuration to restore. Name due to backward compatibility.
 	DefaultIrqBalanceConfigRestoreFile = "/etc/sysconfig/orig_irq_banned_cpus"
@@ -178,7 +179,7 @@ type RootConfig struct {
 	InternalRepair bool `toml:"internal_repair"`
 }
 
-// GetStore returns the container storage for a given configuration
+// GetStore returns the container storage for a given configuration.
 func (c *RootConfig) GetStore() (storage.Store, error) {
 	return storage.GetStore(storage.StoreOptions{
 		RunRoot:            c.RunRoot,
@@ -252,7 +253,7 @@ type RuntimeHandler struct {
 	features runtimeHandlerFeatures
 }
 
-// Multiple runtime Handlers in a map
+// Multiple runtime Handlers in a map.
 type Runtimes map[string]*RuntimeHandler
 
 // RuntimeConfig represents the "crio.runtime" TOML config table.
@@ -550,7 +551,7 @@ type ImageConfig struct {
 	AutoReloadRegistries bool `toml:"auto_reload_registries"`
 }
 
-// NetworkConfig represents the "crio.network" TOML config table
+// NetworkConfig represents the "crio.network" TOML config table.
 type NetworkConfig struct {
 	// CNIDefaultNetwork is the default CNI network name to be selected
 	CNIDefaultNetwork string `toml:"cni_default_network"`
@@ -605,7 +606,7 @@ type APIConfig struct {
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
-// metrics retrieval
+// metrics retrieval.
 type MetricsConfig struct {
 	// EnableMetrics can be used to globally enable or disable metrics support
 	EnableMetrics bool `toml:"enable_metrics"`
@@ -629,7 +630,7 @@ type MetricsConfig struct {
 	MetricsKey string `toml:"metrics_key"`
 }
 
-// TracingConfig specifies all necessary configuration for opentelemetry trace exports
+// TracingConfig specifies all necessary configuration for opentelemetry trace exports.
 type TracingConfig struct {
 	// EnableTracing can be used to globally enable or disable tracing support
 	EnableTracing bool `toml:"enable_tracing"`
@@ -675,7 +676,7 @@ type tomlConfig struct {
 	} `toml:"crio"`
 }
 
-// SetSystemContext configures the SystemContext used by containers/image library
+// SetSystemContext configures the SystemContext used by containers/image library.
 func (t *tomlConfig) SetSystemContext(c *Config) {
 	c.SystemContext.BigFilesTemporaryDir = c.ImageConfig.BigFilesTemporaryDir
 }
@@ -765,7 +766,7 @@ func (c *Config) UpdateFromDropInFile(path string) error {
 }
 
 // removeDupStorageOpts removes duplicated storage option from the list
-// keeps the last appearance
+// keeps the last appearance.
 func removeDupStorageOpts(storageOpts []string) []string {
 	var resOpts []string
 	opts := make(map[string]bool)
@@ -783,7 +784,7 @@ func removeDupStorageOpts(storageOpts []string) []string {
 }
 
 // UpdateFromPath recursively iterates the provided path and updates the
-// configuration for it
+// configuration for it.
 func (c *Config) UpdateFromPath(path string) error {
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil
@@ -1269,7 +1270,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 	}
 }
 
-// ValidateRuntimes checks every runtime if its members are valid
+// ValidateRuntimes checks every runtime if its members are valid.
 func (c *RuntimeConfig) ValidateRuntimes() error {
 	var failedValidation []string
 
@@ -1424,37 +1425,37 @@ func validateCriuInPath() error {
 	return err
 }
 
-// Seccomp returns the seccomp configuration
+// Seccomp returns the seccomp configuration.
 func (c *RuntimeConfig) Seccomp() *seccomp.Config {
 	return c.seccompConfig
 }
 
-// AppArmor returns the AppArmor configuration
+// AppArmor returns the AppArmor configuration.
 func (c *RuntimeConfig) AppArmor() *apparmor.Config {
 	return c.apparmorConfig
 }
 
-// BlockIO returns the blockio configuration
+// BlockIO returns the blockio configuration.
 func (c *RuntimeConfig) BlockIO() *blockio.Config {
 	return c.blockioConfig
 }
 
-// Rdt returns the RDT configuration
+// Rdt returns the RDT configuration.
 func (c *RuntimeConfig) Rdt() *rdt.Config {
 	return c.rdtConfig
 }
 
-// CgroupManager returns the CgroupManager configuration
+// CgroupManager returns the CgroupManager configuration.
 func (c *RuntimeConfig) CgroupManager() cgmgr.CgroupManager {
 	return c.cgroupManager
 }
 
-// NamespaceManager returns the NamespaceManager configuration
+// NamespaceManager returns the NamespaceManager configuration.
 func (c *RuntimeConfig) NamespaceManager() *nsmgr.NamespaceManager {
 	return c.namespaceManager
 }
 
-// Ulimits returns the Ulimits configuration
+// Ulimits returns the Ulimits configuration.
 func (c *RuntimeConfig) Ulimits() []ulimits.Ulimit {
 	return c.ulimitsConfig.Ulimits()
 }
@@ -1688,7 +1689,7 @@ func (r *RuntimeHandler) LoadRuntimeFeatures(input []byte) error {
 }
 
 // RuntimeSupportsIDMap returns whether this runtime supports the "runtime features"
-// command, and that the output of that command advertises IDMap mounts as an option
+// command, and that the output of that command advertises IDMap mounts as an option.
 func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
 	if r.features.Linux == nil || r.features.Linux.MountExtensions == nil || r.features.Linux.MountExtensions.IDMap == nil {
 		return false
@@ -1727,27 +1728,27 @@ func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallow
 	return disallowed, nil
 }
 
-// CNIPlugin returns the network configuration CNI plugin
+// CNIPlugin returns the network configuration CNI plugin.
 func (c *NetworkConfig) CNIPlugin() ocicni.CNIPlugin {
 	return c.cniManager.Plugin()
 }
 
-// CNIPluginReadyOrError returns whether the cni plugin is ready
+// CNIPluginReadyOrError returns whether the cni plugin is ready.
 func (c *NetworkConfig) CNIPluginReadyOrError() error {
 	return c.cniManager.ReadyOrError()
 }
 
-// CNIPluginAddWatcher returns the network configuration CNI plugin
+// CNIPluginAddWatcher returns the network configuration CNI plugin.
 func (c *NetworkConfig) CNIPluginAddWatcher() chan bool {
 	return c.cniManager.AddWatcher()
 }
 
-// CNIManagerShutdown shuts down the CNI Manager
+// CNIManagerShutdown shuts down the CNI Manager.
 func (c *NetworkConfig) CNIManagerShutdown() {
 	c.cniManager.Shutdown()
 }
 
-// SetSingleConfigPath set single config path for config
+// SetSingleConfigPath set single config path for config.
 func (c *Config) SetSingleConfigPath(singleConfigPath string) {
 	c.singleConfigPath = singleConfigPath
 }

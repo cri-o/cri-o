@@ -13,6 +13,16 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
+	v1 "github.com/opencontainers/image-spec/specs-go/v1"
+	rspec "github.com/opencontainers/runtime-spec/specs-go"
+	"github.com/opencontainers/runtime-tools/generate"
+	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
+	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/sirupsen/logrus"
+	"github.com/syndtr/gocapability/capability"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	kubeletTypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
@@ -24,18 +34,9 @@ import (
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
-	v1 "github.com/opencontainers/image-spec/specs-go/v1"
-	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"github.com/opencontainers/runtime-tools/generate"
-	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
-	"github.com/opencontainers/selinux/go-selinux/label"
-	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 )
 
-// Container is the main public container interface
+// Container is the main public container interface.
 type Container interface {
 	// All set methods are usually called in order of their definition
 
@@ -130,7 +131,7 @@ type Container interface {
 	WillRunSystemd() bool
 }
 
-// container is the hidden default type behind the Container interface
+// container is the hidden default type behind the Container interface.
 type container struct {
 	config     *types.ContainerConfig
 	sboxConfig *types.PodSandboxConfig
@@ -142,7 +143,7 @@ type container struct {
 	pidns      nsmgr.Namespace
 }
 
-// New creates a new, empty Sandbox instance
+// New creates a new, empty Sandbox instance.
 func New() (Container, error) {
 	// TODO: use image os
 	spec, err := generate.New(runtime.GOOS)
@@ -162,7 +163,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 	c.spec.AddMount(r)
 }
 
-// SpecAddAnnotation adds all annotations to the spec
+// SpecAddAnnotation adds all annotations to the spec.
 func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -292,7 +293,7 @@ func (c *container) Spec() *generate.Generator {
 	return &c.spec
 }
 
-// SetConfig sets the configuration to the container and validates it
+// SetConfig sets the configuration to the container and validates it.
 func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodSandboxConfig) error {
 	if c.config != nil {
 		return errors.New("config already set")
@@ -323,7 +324,7 @@ func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodS
 	return nil
 }
 
-// SetNameAndID sets a container name and ID
+// SetNameAndID sets a container name and ID.
 func (c *container) SetNameAndID(oldID string) error {
 	if c.config == nil {
 		return errors.New("config is not set")
@@ -357,38 +358,38 @@ func (c *container) SetNameAndID(oldID string) error {
 	return nil
 }
 
-// Config returns the container configuration
+// Config returns the container configuration.
 func (c *container) Config() *types.ContainerConfig {
 	return c.config
 }
 
-// SandboxConfig returns the sandbox configuration
+// SandboxConfig returns the sandbox configuration.
 func (c *container) SandboxConfig() *types.PodSandboxConfig {
 	return c.sboxConfig
 }
 
-// ID returns the container ID
+// ID returns the container ID.
 func (c *container) ID() string {
 	return c.id
 }
 
-// Name returns the container name
+// Name returns the container name.
 func (c *container) Name() string {
 	return c.name
 }
 
 // Restore returns if the container is marked as being
-// restored from a checkpoint
+// restored from a checkpoint.
 func (c *container) Restore() bool {
 	return c.restore
 }
 
-// SetRestore marks the container as being restored from a checkpoint
+// SetRestore marks the container as being restored from a checkpoint.
 func (c *container) SetRestore(restore bool) {
 	c.restore = restore
 }
 
-// SetPrivileged sets the privileged bool for the container
+// SetPrivileged sets the privileged bool for the container.
 func (c *container) SetPrivileged() error {
 	if c.config == nil {
 		return nil
@@ -421,14 +422,14 @@ func (c *container) SetPrivileged() error {
 	return nil
 }
 
-// Privileged returns whether this container is privileged
+// Privileged returns whether this container is privileged.
 func (c *container) Privileged() bool {
 	return c.privileged
 }
 
 // LogPath returns the log path for the container
 // It takes as input the LogDir of the sandbox, which is used
-// if there is no LogDir configured in the sandbox CRI config
+// if there is no LogDir configured in the sandbox CRI config.
 func (c *container) LogPath(sboxLogDir string) (string, error) {
 	sboxLogDirConfig := c.sboxConfig.LogDirectory
 	if sboxLogDirConfig != "" {
@@ -457,7 +458,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	return logPath, nil
 }
 
-// DisableFips returns whether the container should disable fips mode
+// DisableFips returns whether the container should disable fips mode.
 func (c *container) DisableFips() bool {
 	if value, ok := c.sboxConfig.Labels["FIPS_DISABLE"]; ok && value == "true" {
 		return true
@@ -465,7 +466,7 @@ func (c *container) DisableFips() bool {
 	return false
 }
 
-// UserRequestedImage returns the image specified in the container spec, or an error
+// UserRequestedImage returns the image specified in the container spec, or an error.
 func (c *container) UserRequestedImage() (string, error) {
 	imageSpec := c.config.Image
 	if imageSpec == nil {
@@ -482,7 +483,7 @@ func (c *container) UserRequestedImage() (string, error) {
 // ReadOnly returns whether the rootfs should be readonly
 // it takes a bool as to whether crio was configured to
 // be readonly, which it defaults to if the container wasn't
-// specifically asked to be read only
+// specifically asked to be read only.
 func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 	if c.config.Linux != nil && c.config.Linux.SecurityContext.ReadonlyRootfs {
 		return true
@@ -491,7 +492,7 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 }
 
 // SelinuxLabel returns the container's SelinuxLabel
-// it takes the sandbox's label, which it falls back upon
+// it takes the sandbox's label, which it falls back upon.
 func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	selinuxConfig := c.config.Linux.SecurityContext.SelinuxOptions
 
@@ -519,7 +520,7 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	return ret, nil
 }
 
-// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
+// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation.
 func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error {
 	if c.config == nil || c.config.Labels == nil {
 		return nil
@@ -564,7 +565,7 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 }
 
 // SpecSetProcessArgs sets the process args in the spec,
-// given the image information and passed-in container config
+// given the image information and passed-in container config.
 func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
 	kubeCommands := c.config.Command
 	kubeArgs := c.config.Args

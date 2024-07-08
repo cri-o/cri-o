@@ -7,7 +7,7 @@ import (
 )
 
 // GetDiskUsageStats accepts a path to a directory or file
-// and returns the number of bytes and inodes used by the path
+// and returns the number of bytes and inodes used by the path.
 func GetDiskUsageStats(path string) (dirSize, inodeCount uint64, _ error) {
 	if err := filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		// Walk does not follow symbolic links

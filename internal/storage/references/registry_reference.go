@@ -24,7 +24,7 @@ type RegistryImageReference struct {
 // RegistryImageReferenceFromRaw is an internal constructor of a RegistryImageReference.
 //
 // This should only be called from internal/storage.
-// It’s the caller’s responsibility to provide a valid value (!IsNameOnly, and registry-qualified)
+// It’s the caller’s responsibility to provide a valid value (!IsNameOnly, and registry-qualified).
 func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageReference {
 	// Ideally this would be better encapsulated, e.g. in internal/storage/internal, but
 	// that would require using a type defined with the internal package with a public alias,
@@ -74,7 +74,7 @@ func (ref RegistryImageReference) Format(f fmt.State, verb rune) {
 	fmt.Fprintf(f, fmt.FormatString(f, verb), ref.privateNamed.String())
 }
 
-// Registry returns the host[:port] part of the reference
+// Registry returns the host[:port] part of the reference.
 func (ref RegistryImageReference) Registry() string {
 	ref.ensureInitialized()
 	return reference.Domain(ref.privateNamed)

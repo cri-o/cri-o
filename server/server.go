@@ -15,17 +15,24 @@ import (
 	"sync"
 	"time"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	imageTypes "github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/idtools"
 	storageTypes "github.com/containers/storage/types"
+	"github.com/fsnotify/fsnotify"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/kubelet/pkg/cri/streaming"
+	kubetypes "k8s.io/kubelet/pkg/types"
+
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
+	nriIf "github.com/cri-o/cri-o/internal/nri"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
@@ -35,14 +42,6 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
-	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sys/unix"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	"k8s.io/kubelet/pkg/cri/streaming"
-	kubetypes "k8s.io/kubelet/pkg/types"
-
-	nriIf "github.com/cri-o/cri-o/internal/nri"
 )
 
 const (
@@ -64,7 +63,7 @@ type StreamService struct {
 	streaming.Runtime
 }
 
-// Server implements the RuntimeService and ImageService
+// Server implements the RuntimeService and ImageService.
 type Server struct {
 	config          libconfig.Config
 	stream          StreamService
@@ -154,27 +153,27 @@ func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.
 	return config, nil
 }
 
-// StopStreamServer stops the stream server
+// StopStreamServer stops the stream server.
 func (s *Server) StopStreamServer() error {
 	return s.stream.streamServer.Stop()
 }
 
-// StreamingServerCloseChan returns the close channel for the streaming server
+// StreamingServerCloseChan returns the close channel for the streaming server.
 func (s *Server) StreamingServerCloseChan() chan struct{} {
 	return s.stream.streamServerCloseCh
 }
 
-// getExec returns exec stream request
+// getExec returns exec stream request.
 func (s *Server) getExec(req *types.ExecRequest) (*types.ExecResponse, error) {
 	return s.stream.streamServer.GetExec(req)
 }
 
-// getAttach returns attach stream request
+// getAttach returns attach stream request.
 func (s *Server) getAttach(req *types.AttachRequest) (*types.AttachResponse, error) {
 	return s.stream.streamServer.GetAttach(req)
 }
 
-// getPortForward returns port forward stream request
+// getPortForward returns port forward stream request.
 func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwardResponse, error) {
 	return s.stream.streamServer.GetPortForward(req)
 }
@@ -320,7 +319,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	return imagesOfDeletedContainers
 }
 
-// Shutdown attempts to shut down the server's storage cleanly
+// Shutdown attempts to shut down the server's storage cleanly.
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.config.CNIManagerShutdown()
 	s.resourceStore.Close()
@@ -382,7 +381,7 @@ func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 	return idtools.NewIDMappingsFromMaps(parsedUIDsMappings, parsedGIDsMappings), nil
 }
 
-// New creates a new Server with the provided context and configuration
+// New creates a new Server with the provided context and configuration.
 func New(
 	ctx context.Context,
 	configIface libconfig.Iface,
@@ -746,18 +745,18 @@ func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID stri
 	return sb, nil
 }
 
-// StopMonitors stops all the monitors
+// StopMonitors stops all the monitors.
 func (s *Server) StopMonitors() {
 	close(s.monitorsChan)
 }
 
-// MonitorsCloseChan returns the close chan for the exit monitor
+// MonitorsCloseChan returns the close chan for the exit monitor.
 func (s *Server) MonitorsCloseChan() chan struct{} {
 	return s.monitorsChan
 }
 
 // StartExitMonitor start a routine that monitors container exits
-// and updates the container status
+// and updates the container status.
 func (s *Server) StartExitMonitor(ctx context.Context) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {

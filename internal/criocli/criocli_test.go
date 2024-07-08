@@ -3,13 +3,14 @@ package criocli_test
 import (
 	"flag"
 
-	"github.com/cri-o/cri-o/internal/criocli"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/urfave/cli/v2"
+
+	"github.com/cri-o/cri-o/internal/criocli"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("CLI", func() {
 	const flagName = "flag"
 
@@ -90,7 +91,7 @@ var _ = t.Describe("completion generation", func() {
 	)
 })
 
-// CLI Flags/Parameter test suite
+// CLI Flags/Parameter test suite.
 var _ = t.Describe("CLI Flags", func() {
 	const flagName = "crio"
 

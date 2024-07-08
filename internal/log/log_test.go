@@ -3,13 +3,14 @@ package log_test
 import (
 	"context"
 
-	"github.com/cri-o/cri-o/internal/log"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Log", func() {
 	var ctx context.Context
 
@@ -57,7 +58,7 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to debug on nil context", func() {
 			// Given
 			// When
-			// nolint: staticcheck
+			//nolint: staticcheck
 			log.Debugf(nil, msg)
 
 			// Then

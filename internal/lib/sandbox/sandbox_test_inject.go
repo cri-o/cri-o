@@ -10,7 +10,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 )
 
-// SetPortMappings sets the PortMappings for the Sandbox
+// SetPortMappings sets the PortMappings for the Sandbox.
 func (s *Sandbox) SetPortMappings(portMappings []*hostport.PortMapping) {
 	s.portMappings = portMappings
 }

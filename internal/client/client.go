@@ -9,9 +9,10 @@ import (
 	"syscall"
 	"time"
 
+	json "github.com/json-iterator/go"
+
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/cri-o/cri-o/server"
-	json "github.com/json-iterator/go"
 )
 
 const (
@@ -42,7 +43,7 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	return nil
 }
 
-// New returns a crio client
+// New returns a crio client.
 func New(crioSocketPath string) (CrioClient, error) {
 	tr := new(http.Transport)
 	if err := configureUnixTransport(tr, "unix", crioSocketPath); err != nil {
@@ -106,7 +107,7 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 	return &cInfo, nil
 }
 
-// ConfigInfo returns current config as TOML string
+// ConfigInfo returns current config as TOML string.
 func (c *crioClientImpl) ConfigInfo() (string, error) {
 	req, err := c.getRequest(server.InspectConfigEndpoint)
 	if err != nil {

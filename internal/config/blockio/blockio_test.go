@@ -3,9 +3,10 @@ package blockio_test
 import (
 	"os"
 
-	"github.com/cri-o/cri-o/internal/config/blockio"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/internal/config/blockio"
 )
 
 func tempFileWithData(data string) string {
@@ -30,7 +31,7 @@ var _ = t.Describe("New", func() {
 	})
 })
 
-// The actual test suite
+// The actual test suite.
 var _ = t.Describe("Load", func() {
 	t.Describe("non-existent file", func() {
 		It("should return an error and disable blockio", func() {

@@ -3,9 +3,10 @@ package cmdrunner_test
 import (
 	"os/exec"
 
-	"github.com/cri-o/cri-o/utils/cmdrunner"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+
+	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
 var _ = t.Describe("CommandRunner", func() {

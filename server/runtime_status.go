@@ -11,7 +11,7 @@ import (
 // networkNotReadyReason is the reason reported when network is not ready.
 const networkNotReadyReason = "NetworkPluginNotReady"
 
-// Status returns the status of the runtime
+// Status returns the status of the runtime.
 func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.StatusResponse, error) {
 	runtimeCondition := &types.RuntimeCondition{
 		Type:   types.RuntimeReady,

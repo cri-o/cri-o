@@ -4,7 +4,7 @@ import (
 	"github.com/opencontainers/selinux/go-selinux"
 )
 
-// KVMLabel returns labels for running kvm isolated containers
+// KVMLabel returns labels for running kvm isolated containers.
 func KVMLabel(cLabel string) (string, error) {
 	if cLabel == "" {
 		// selinux is disabled
@@ -15,7 +15,7 @@ func KVMLabel(cLabel string) (string, error) {
 	return swapSELinuxLabel(cLabel, processLabel)
 }
 
-// InitLabel returns labels for running systemd based containers
+// InitLabel returns labels for running systemd based containers.
 func InitLabel(cLabel string) (string, error) {
 	if cLabel == "" {
 		// selinux is disabled

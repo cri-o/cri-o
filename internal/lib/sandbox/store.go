@@ -5,7 +5,7 @@ package sandbox
 type StoreFilter func(*Sandbox) bool
 
 // StoreReducer defines a function to
-// manipulate sandboxes in the store
+// manipulate sandboxes in the store.
 type StoreReducer func(*Sandbox)
 
 // Storer defines an interface that any container store must implement.
