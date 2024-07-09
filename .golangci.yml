@@ -76,6 +76,7 @@ linters:
     - tagalign
     - tenv
     - testableexamples
+    - testifylint
     - tparallel
     - typecheck
     - unconvert
@@ -116,7 +117,6 @@ linters:
     # - predeclared
     # - promlinter
     # - tagliatelle
-    # - testifylint
     # - testpackage
     # - thelper
     # - varnamelen
