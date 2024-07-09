@@ -12,7 +12,6 @@ It is assumed you are running a Linux machine.
 
 <!-- toc -->
 - [Install packaged versions of CRI-O](#install-packaged-versions-of-cri-o)
-  - [Installation Instructions](#installation-instructions)
 - [Build and install CRI-O from source](#build-and-install-cri-o-from-source)
   - [Runtime dependencies](#runtime-dependencies)
   - [Build and Run Dependencies](#build-and-run-dependencies)
@@ -45,48 +44,18 @@ It is assumed you are running a Linux machine.
 ## Install packaged versions of CRI-O
 
 CRI-O follows the [Kubernetes support cycle](https://kubernetes.io/docs/setup/release/version-skew-policy/#supported-versions)
-of three minor releases.
-CRI-O also attempts to package for the following operating systems:
+of three minor releases. CRI-O also attempts to package generically for Debian
+(deb) and Red Hat (RPM) based distributions and package managers.
 
-```text
-Fedora 31+
-openSUSE
-CentOS 9 Stream
-CentOS 8
-CentOS 8 Stream
-CentOS 7
-Debian 10
-Debian 11
-Debian 12
-Rasbian 10
-Rasbian 11
-xUbuntu 22.04
-xUbuntu 21.10
-xUbuntu 20.04
-xUbuntu 18.04
-```
-
-To install, choose a supported version for your operating system, and export it
-as a variable, like so: `export VERSION=1.19`
-
-We also save releases as subprojects. If you'd, for instance, like to use `1.24.5`
-you can set `export VERSION=1.24.5` and
-`export SUBVERSION=$(echo $VERSION | awk -F'.' '{print $1"."$2}')`
-
-Packaging for CRI-O is done best-effort, and is largely driven by requests.
 If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
 
-### Installation Instructions
-
-For 1.29 and above, please follow the instructions in the [CRI-O packaging repository.](https://github.com/cri-o/packaging/blob/main/README.md).
-
-For 1.28 and earlier, please read our [legacy installation document](./install-legacy.md).
+For more information, please follow the instructions in the [CRI-O packaging repository.](https://github.com/cri-o/packaging/blob/main/README.md).
 
 ## Build and install CRI-O from source
 
 ### Runtime dependencies
 
-- runc, Clear Containers runtime, or any other OCI compatible runtime
+- runc, crun or any other OCI compatible runtime
 - iproute
 - iptables
 
@@ -533,45 +502,6 @@ sudo yum update cri-o
 
 ### APT based operating systems
 
-If updating to a patch version (for example, ``VERSION=1.8.3``
-  ), run
-
 ```shell
-apt upgrade cri-o cri-o-runc
+sudo apt upgrade cri-o
 ```
-<!-- markdownlint-enable MD024 -->
-
-Otherwise, be sure that the environment variable ```$OS``` is set to the
-appropriate value from the following table for your operating system.
-To install on the following operating systems, set the environment variable ```$OS```
-to the appropriate value from the following table:
-
-| Operating system | $OS               |
-| ---------------- | ----------------- |
-| Debian Unstable  | `Debian_Unstable` |
-| Debian Testing   | `Debian_Testing`  |
-| Debian 11        | `Debian_11`       |
-| Debian 10        | `Debian_10`       |
-| Ubuntu 22.04     | `xUbuntu_22.04`   |
-| Ubuntu 21.10     | `xUbuntu_21.10`   |
-| Ubuntu 21.04     | `xUbuntu_21.04`   |
-| Ubuntu 20.10     | `xUbuntu_20.10`   |
-| Ubuntu 20.04     | `xUbuntu_20.04`   |
-| Ubuntu 18.04     | `xUbuntu_18.04`   |
-
-To upgrade, choose a supported version for your operating system,
-and export it as a variable, like so:
-`export VERSION=1.18`, and run the following as root
-
-<!-- markdownlint-disable MD013 -->
-```shell
-rm /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
-
-echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$VERSION/$OS/ /" > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$VERSION.list
-
-curl -L https://download.opensuse.org/repositories/devel:kubic:libcontainers:stable:cri-o:$VERSION/$OS/Release.key | apt-key add -
-
-apt update
-apt install cri-o cri-o-runc
-```
-<!-- markdownlint-enable MD013 -->
