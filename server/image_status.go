@@ -52,6 +52,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 			Spec: &types.ImageSpec{
 				Annotations: status.Annotations,
 			},
+			Pinned: status.Pinned,
 		},
 	}
 	if req.Verbose {
