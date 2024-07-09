@@ -222,6 +222,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("log-journald") {
 		config.LogToJournald = ctx.Bool("log-journald")
 	}
+	if ctx.IsSet("no-sync-log") {
+		config.NoSyncLog = ctx.Bool("no-sync-log")
+	}
 	if ctx.IsSet("cni-default-network") {
 		config.CNIDefaultNetwork = ctx.String("cni-default-network")
 	}
@@ -716,6 +719,11 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "Log to systemd journal (journald) in addition to kubernetes log file.",
 			EnvVars: []string{"CONTAINER_LOG_JOURNALD"},
 			Value:   defConf.LogToJournald,
+		},
+		&cli.BoolFlag{
+			Name:  "no-sync-log",
+			Usage: "Disable fsync of log files on rotate or container exit.",
+			Value: defConf.NoSyncLog,
 		},
 		&cli.StringFlag{
 			Name:    "cni-default-network",

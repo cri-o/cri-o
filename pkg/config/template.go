@@ -356,6 +356,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.LogToJournald, c.LogToJournald),
 		},
 		{
+			templateString: templateStringCrioRuntimeNoSyncLog,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.NoSyncLog, c.NoSyncLog),
+		},
+		{
 			templateString: templateStringCrioRuntimeContainerExitsDir,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ContainerExitsDir, c.ContainerExitsDir),
@@ -1077,6 +1082,11 @@ const templateStringCrioRuntimeLogSizeMax = `# Maximum sized allowed for the con
 
 const templateStringCrioRuntimeLogToJournald = `# Whether container output should be logged to journald in addition to the kubernetes log file
 {{ $.Comment }}log_to_journald = {{ .LogToJournald }}
+
+`
+
+const templateStringCrioRuntimeNoSyncLog = `# no_sync_log if enabled will disable syncing the log file on rotate or container exit.
+{{ $.Comment }}no_sync_log = {{ .NoSyncLog }}
 
 `
 

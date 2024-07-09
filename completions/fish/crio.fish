@@ -125,6 +125,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-gid -r -d
 complete -c crio -n '__fish_crio_no_subcommand' -f -l minimum-mappable-uid -r -d 'Specify the lowest host UID which can be specified in mappings for a pod that will be run as a UID other than 0. This option is deprecated, and will be replaced with Kubernetes user namespace support (KEP-127) in the future.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l namespaces-dir -r -d 'The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l no-pivot -d 'If true, the runtime will not use \'pivot_root\', but instead use \'MS_MOVE\'.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l no-sync-log -d 'Disable fsync of log files on rotate or container exit.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-disable-connections -r -d 'Disable connections from externally started NRI plugins. (default: false)'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-listen -r -d 'Socket to listen on for externally started NRI plugins to connect to. (default: "/var/run/nri/nri.sock")'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-plugin-config-dir -r -d 'Directory to scan for configuration of pre-installed NRI plugins. (default: "/etc/nri/conf.d")'
