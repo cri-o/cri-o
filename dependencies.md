@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
+_Generated on Tue, 09 Jul 2024 07:08:32 UTC for commit [0450024][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/15bf5274e53335d13306a99f47dc15bb22461abf
+[0]: https://github.com/cri-o/cri-o/commit/04500243ec0cd775e76bcec1c822aaa3faa11177
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240706193755-67ba0ad0ad4c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240708195555-cb0fb91bdd76 | true   | true             |
 | golang.org/x/net                                       | v0.26.0                            | v0.27.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.21.0                            | v0.22.0                            | true   | true             |
 | sigs.k8s.io/release-utils                              | v0.8.2                             | v0.8.3                             | true   | true             |
@@ -150,7 +150,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.9.9                              | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.6.9                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.12.8                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240705175204-221292338951  | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.0.0-20240708175629-0bd12a0c6f6b  | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240703134027-fa95d0563666  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.9.2                              | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
@@ -228,7 +228,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | github.com/apache/thrift                                                                | v0.16.0                               | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.54.15                            | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.54.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.30.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                | v1.6.3                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.24                            | false  | true             |
@@ -325,7 +325,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | github.com/containers/storage                                                           | v1.54.0                               |                                     | true   | true             |
 | github.com/coreos/go-iptables                                                           | v0.7.0                                |                                     | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                   |                                     | false  | true             |
-| github.com/coreos/go-oidc/v3                                                            | v3.10.0                               |                                     | false  | true             |
+| github.com/coreos/go-oidc/v3                                                            | v3.10.0                               | v3.11.0                             | false  | true             |
 | github.com/coreos/go-semver                                                             | v0.3.1                                |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                                        | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man                                                           | v1.0.10                               |                                     | true   | true             |
@@ -435,7 +435,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | github.com/google/flatbuffers                                                           | v2.0.8+incompatible                   | v24.3.25+incompatible               | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.9-0.20230804172637-c7be7c783f49  |                                     | false  | true             |
 | github.com/google/go-cmp                                                                | v0.6.0                                |                                     | true   | true             |
-| github.com/google/go-containerregistry                                                  | v0.19.2                               |                                     | false  | true             |
+| github.com/google/go-containerregistry                                                  | v0.19.2                               | v0.20.0                             | false  | true             |
 | github.com/google/go-github/v55                                                         | v55.0.0                               |                                     | false  | true             |
 | github.com/google/go-github/v60                                                         | v60.0.0                               |                                     | false  | true             |
 | github.com/google/go-intervals                                                          | v0.0.2                                |                                     | false  | true             |
@@ -497,7 +497,7 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240706193755-67ba0ad0ad4c  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240708195555-cb0fb91bdd76  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -801,16 +801,16 @@ _Generated on Mon, 08 Jul 2024 16:15:54 UTC for commit [15bf527][0]._
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240404160639-a0386bf69313  | false  | true             |
 | k8s.io/klog/v2                                                                          | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                              | v0.31.0-alpha.3                       |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240703190633-0aa61b46e8c2  | false  | true             |
+| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240709000822-3c01b740850f  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0-alpha.3                       |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240502163921-fe8a2dddb1d0    |                                     | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240704013837-7ecd5485cbc6  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240708181110-b4e5f07a2c37  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.54.2                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.54.3                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
