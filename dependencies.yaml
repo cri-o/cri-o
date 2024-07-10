@@ -114,3 +114,9 @@ dependencies:
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
+
+  - name: mdtoc
+    version: v1.4.0
+    refPaths:
+      - path: Makefile
+        match: MDTOC_VERSION

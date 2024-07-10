@@ -5,17 +5,13 @@ that we follow.
 
 ## Topics
 
-<!-- TOC start -->
-
-- [Contributing to CRI-O](#contributing-to-cri-o)
-  - [Topics](#topics)
-  - [Reporting Issues](#reporting-issues)
-  - [Submitting Pull Requests](#submitting-pull-requests)
-    - [Dependency management](#dependency-management)
-    - [Sign your PRs](#sign-your-prs)
-  - [Communications](#communications)
-
-<!-- TOC end -->
+<!-- toc -->
+- [Reporting Issues](#reporting-issues)
+- [Submitting Pull Requests](#submitting-pull-requests)
+  - [Dependency management](#dependency-management)
+  - [Sign your PRs](#sign-your-prs)
+- [Communications](#communications)
+<!-- /toc -->
 
 ## Reporting Issues
 

@@ -53,6 +53,8 @@ GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
 GO_MOD_OUTDATED_VERSION := 0.9.0
 GOSEC := ${BUILD_BIN_PATH}/gosec
 GOSEC_VERSION := 2.19.0
+MDTOC := ${BUILD_BIN_PATH}/mdtoc
+MDTOC_VERSION := v1.4.0
 RELEASE_NOTES := ${BUILD_BIN_PATH}/release-notes
 ZEITGEIST := ${BUILD_BIN_PATH}/zeitgeist
 ZEITGEIST_VERSION := v0.5.3
@@ -255,7 +257,7 @@ $(SHFMT): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/mvdan/sh/releases/download/$(SHFMT_VERSION)/shfmt_$(SHFMT_VERSION)_linux_amd64,$(SHFMT))
 
 $(ZEITGEIST): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/kubernetes-sigs/zeitgeist/releases/download/$(ZEITGEIST_VERSION)/zeitgeist-amd64-linux,$(BUILD_BIN_PATH)/zeitgeist)
+	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes-sigs/zeitgeist/$(ZEITGEIST_VERSION)/zeitgeist-amd64-linux,$(ZEITGEIST))
 
 $(MOCKGEN): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_$(GO_ARCH).tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
@@ -268,6 +270,9 @@ $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 $(GOSEC): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/securego/gosec/releases/download/v$(GOSEC_VERSION)/gosec_$(GOSEC_VERSION)_linux_amd64.tar.gz,$(BUILD_BIN_PATH)/gosec.tar.gz)
 	tar xf $(BUILD_BIN_PATH)/gosec.tar.gz -C $(BUILD_BIN_PATH)
+
+$(MDTOC): $(BUILD_BIN_PATH)
+	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes-sigs/mdtoc/$(MDTOC_VERSION)/mdtoc-amd64-linux,$(MDTOC))
 
 $(GOLANGCI_LINT):
 	export VERSION=$(GOLANGCI_LINT_VERSION) \
@@ -424,6 +429,10 @@ verify-gosec: ${GOSEC}
 
 verify-govulncheck:
 	./hack/govulncheck.sh
+
+verify-mdtoc: ${MDTOC}
+	git grep --name-only '<!-- toc -->' | grep -v Makefile | xargs ${MDTOC} -i -m=5
+	./hack/tree_status.sh
 
 install: install.bin install.man install.completions install.systemd install.config
 
