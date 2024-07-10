@@ -87,6 +87,7 @@ crio
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
 [--no-pivot]
+[--no-sync-log]
 [--nri-disable-connections]=[value]
 [--nri-listen]=[value]
 [--nri-plugin-config-dir]=[value]
@@ -349,6 +350,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--namespaces-dir**="": The directory where the state of the managed namespaces gets tracked. Only used when manage-ns-lifecycle is true. (default: "/var/run")
 
 **--no-pivot**: If true, the runtime will not use 'pivot_root', but instead use 'MS_MOVE'.
+
+**--no-sync-log**: Disable fsync of log files on rotate or container exit.
 
 **--nri-disable-connections**="": Disable connections from externally started NRI plugins. (default: false)
 
