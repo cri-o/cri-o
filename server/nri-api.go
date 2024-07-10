@@ -53,7 +53,7 @@ func (a *nriAPI) runPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) err
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	err := a.nri.RunPodSandbox(ctx, pod)
 	if err != nil {
 		if undoErr := a.nri.StopPodSandbox(ctx, pod); undoErr != nil {
@@ -72,7 +72,7 @@ func (a *nriAPI) stopPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) er
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 
 	return a.nri.StopPodSandbox(ctx, pod)
 }
@@ -82,7 +82,7 @@ func (a *nriAPI) removePodSandbox(ctx context.Context, criPod *sandbox.Sandbox) 
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 
 	return a.nri.RemovePodSandbox(ctx, pod)
 }
@@ -92,7 +92,7 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api:  a,
 		ctr:  criCtr,
@@ -174,7 +174,7 @@ func (a *nriAPI) postCreateContainer(ctx context.Context, criPod *sandbox.Sandbo
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -188,7 +188,7 @@ func (a *nriAPI) startContainer(ctx context.Context, criPod *sandbox.Sandbox, cr
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -202,7 +202,7 @@ func (a *nriAPI) postStartContainer(ctx context.Context, criPod *sandbox.Sandbox
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -219,7 +219,7 @@ func (a *nriAPI) updateContainer(ctx context.Context, criCtr *oci.Container, req
 	const noOomAdj = 0
 
 	criPod := a.cri.getSandbox(ctx, criCtr.Sandbox())
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -239,7 +239,7 @@ func (a *nriAPI) postUpdateContainer(ctx context.Context, criCtr *oci.Container)
 	}
 
 	criPod := a.cri.getSandbox(ctx, criCtr.Sandbox())
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -273,7 +273,7 @@ func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, cri
 		}
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 
 	return a.nri.StopContainer(ctx, pod, ctr)
 }
@@ -283,7 +283,7 @@ func (a *nriAPI) removeContainer(ctx context.Context, criPod *sandbox.Sandbox, c
 		return nil
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api: a,
 		ctr: criCtr,
@@ -297,7 +297,7 @@ func (a *nriAPI) undoCreateContainer(ctx context.Context, specgen *generate.Gene
 		return
 	}
 
-	pod := nriPodSandbox(criPod)
+	pod := nriPodSandbox(ctx, criPod)
 	ctr := &criContainer{
 		api:  a,
 		ctr:  criCtr,
@@ -329,11 +329,11 @@ func (a *nriAPI) GetName() string {
 	return nriDomain
 }
 
-func (a *nriAPI) ListPodSandboxes() []nri.PodSandbox {
+func (a *nriAPI) ListPodSandboxes(ctx context.Context) []nri.PodSandbox {
 	pods := []nri.PodSandbox{}
 	for _, pod := range a.cri.ContainerServer.ListSandboxes() {
 		if pod.Created() {
-			pods = append(pods, nriPodSandbox(pod))
+			pods = append(pods, nriPodSandbox(ctx, pod))
 		}
 	}
 	return pods
@@ -357,7 +357,7 @@ func (a *nriAPI) ListContainers() []nri.Container {
 	return containers
 }
 
-func (a *nriAPI) GetPodSandbox(id string) (nri.PodSandbox, bool) {
+func (a *nriAPI) GetPodSandbox(ctx context.Context, id string) (nri.PodSandbox, bool) {
 	sandboxID, err := a.cri.PodIDIndex().Get(id)
 	if err != nil {
 		return nil, false
@@ -368,7 +368,7 @@ func (a *nriAPI) GetPodSandbox(id string) (nri.PodSandbox, bool) {
 		return nil, false
 	}
 
-	return nriPodSandbox(pod), true
+	return nriPodSandbox(ctx, pod), true
 }
 
 func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
@@ -434,7 +434,7 @@ type criPodSandbox struct {
 	pid  int
 }
 
-func nriPodSandbox(pod *sandbox.Sandbox) *criPodSandbox {
+func nriPodSandbox(ctx context.Context, pod *sandbox.Sandbox) *criPodSandbox {
 	criPod := &criPodSandbox{
 		Sandbox: pod,
 		spec:    &rspec.Spec{},
@@ -442,12 +442,15 @@ func nriPodSandbox(pod *sandbox.Sandbox) *criPodSandbox {
 
 	if ic := pod.InfraContainer(); ic != nil {
 		spec := ic.Spec()
-		pid, err := ic.Pid()
-		if err != nil {
-			log.Warnf(context.TODO(), "Failed to get pid for pod infra container: %v", err)
+		if !ic.Spoofed() {
+			pid, err := ic.Pid()
+			if err != nil {
+				log.Debugf(ctx, "Failed to get pid for pod infra container: %v", err)
+			} else {
+				criPod.pid = pid
+			}
 		}
 		criPod.spec = &spec
-		criPod.pid = pid
 	}
 
 	return criPod

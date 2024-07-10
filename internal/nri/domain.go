@@ -19,13 +19,13 @@ type Domain interface {
 	GetName() string
 
 	// ListPodSandboxes list all pods.
-	ListPodSandboxes() []PodSandbox
+	ListPodSandboxes(context.Context) []PodSandbox
 
 	// ListContainer list all containers.
 	ListContainers() []Container
 
 	// GetPodSandbox returns the pod for the given ID.
-	GetPodSandbox(string) (PodSandbox, bool)
+	GetPodSandbox(context.Context, string) (PodSandbox, bool)
 
 	// GetContainer returns the container for the given ID.
 	GetContainer(string) (Container, bool)
@@ -55,11 +55,11 @@ func (t *domainTable) set(d Domain) {
 	t.domain = d
 }
 
-func (t *domainTable) listPodSandboxes() []PodSandbox {
+func (t *domainTable) listPodSandboxes(ctx context.Context) []PodSandbox {
 	t.Lock()
 	defer t.Unlock()
 
-	return t.domain.ListPodSandboxes()
+	return t.domain.ListPodSandboxes(ctx)
 }
 
 func (t *domainTable) listContainers() []Container {
