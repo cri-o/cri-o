@@ -250,6 +250,9 @@ the container runtime configuration.
 **log_to_journald**=false
   Whether container output should be logged to journald in addition to the kubernetes log file.
 
+**no_sync_log**=false
+  If set to true, CRI-O will not sync the log files on log rotation or container exit.
+
 **container_exits_dir**="/var/run/crio/exits"
   Path to directory in which container exit files are written to by conmon.
 
