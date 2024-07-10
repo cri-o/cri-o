@@ -18,6 +18,33 @@
 [![Gitpod ready-to-code](https://img.shields.io/badge/Gitpod-ready--to--code-blue?logo=gitpod)](https://gitpod.io/#https://github.com/cri-o/cri-o)
 <a href="https://actuated.dev/"><img alt="Arm CI sponsored by Actuated" src="https://docs.actuated.dev/images/actuated-badge.png" height="20px"></img></a>
 
+<!-- toc -->
+- [Compatibility matrix: CRI-O ⬄ Kubernetes](#compatibility-matrix-cri-o--kubernetes)
+- [What is the scope of this project?](#what-is-the-scope-of-this-project)
+- [What is not in the scope of this project?](#what-is-not-in-the-scope-of-this-project)
+- [Roadmap](#roadmap)
+- [CI images and jobs](#ci-images-and-jobs)
+- [Commands](#commands)
+- [Configuration](#configuration)
+- [Security](#security)
+- [OCI Hooks Support](#oci-hooks-support)
+- [CRI-O Usage Transfer](#cri-o-usage-transfer)
+- [Communication](#communication)
+- [Awesome CRI-O](#awesome-cri-o)
+- [Getting started](#getting-started)
+  - [Installing CRI-O](#installing-cri-o)
+  - [Running Kubernetes with CRI-O](#running-kubernetes-with-cri-o)
+    - [The HTTP status API](#the-http-status-api)
+    - [Metrics](#metrics)
+    - [Tracing](#tracing)
+    - [Container Runtime Interface special cases](#container-runtime-interface-special-cases)
+    - [Debugging tips](#debugging-tips)
+- [Adopters](#adopters)
+- [Weekly Meeting](#weekly-meeting)
+- [Governance](#governance)
+- [License Scan](#license-scan)
+<!-- /toc -->
+
 ## Compatibility matrix: CRI-O ⬄ Kubernetes
 
 CRI-O follows the Kubernetes release cycles with respect to its minor versions
