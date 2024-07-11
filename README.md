@@ -199,8 +199,8 @@ guide](install.md#build-and-install-cri-o-from-source).
 We also provide a way in building
 [static binaries of `CRI-O`](install.md#static-builds) via nix as part of the
 [cri-o/packaging repository](https://github.com/cri-o/packaging).
-Those binaries are available for every successfully built commit on our
-[Google Cloud Storage Bucket][bucket].
+Those binaries are available on a [scheduled nightly job](https://github.com/cri-o/packaging/actions/workflows/schedule.yml)
+for the latest successfully built commit on our [Google Cloud Storage Bucket][bucket].
 This means that the latest commit can be installed via our convenience script:
 
 [bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
@@ -226,7 +226,7 @@ curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -a 
 It is also possible to select a specific git SHA or tag by:
 
 ```shell
-curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -t v1.21.0
+curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -t v1.30.0
 ```
 <!-- markdownlint-enable MD013 -->
 
