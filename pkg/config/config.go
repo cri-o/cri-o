@@ -434,7 +434,7 @@ type RuntimeConfig struct {
 	LogSizeMax int64 `toml:"log_size_max"`
 
 	// NoSyncLog if enabled will disable fsync on log rotation and container exit.
-	// This can improve performance but may result in date loss on hard system crashes.
+	// This can improve performance but may result in data loss on hard system crashes.
 	NoSyncLog bool `toml:"no_sync_log"`
 
 	// CtrStopTimeout specifies the time to wait before to generate an
