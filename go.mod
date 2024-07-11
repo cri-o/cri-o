@@ -20,7 +20,7 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.5.1
-	github.com/containers/common v0.59.1
+	github.com/containers/common v0.59.2
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.3
 	github.com/containers/image/v5 v5.31.1
@@ -31,7 +31,7 @@ require (
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.21
 	github.com/cri-o/ocicni v0.4.2
-	github.com/cyphar/filepath-securejoin v0.2.5
+	github.com/cyphar/filepath-securejoin v0.3.0
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.7.0
@@ -69,9 +69,9 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.28.0
 	go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/trace v1.28.0
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.27.0
 	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.21.0
+	golang.org/x/sys v0.22.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
 	k8s.io/api v0.31.0-alpha.3
@@ -82,9 +82,9 @@ require (
 	k8s.io/kubelet v0.31.0-alpha.3
 	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
 	sigs.k8s.io/release-sdk v0.12.1
-	sigs.k8s.io/release-utils v0.8.2
+	sigs.k8s.io/release-utils v0.8.3
 	sigs.k8s.io/yaml v1.4.0
-	tags.cncf.io/container-device-interface v0.7.2
+	tags.cncf.io/container-device-interface v0.8.0
 )
 
 require (
@@ -213,11 +213,11 @@ require (
 	go.opentelemetry.io/otel/log v0.3.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.3.1 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
 	golang.org/x/exp v0.0.0-20240506185415-9bf2ced13842 // indirect
 	golang.org/x/mod v0.17.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
+	golang.org/x/term v0.22.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
@@ -233,6 +233,6 @@ require (
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
-	tags.cncf.io/container-device-interface/specs-go v0.7.0 // indirect
+	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 	zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739 // indirect
 )
