@@ -182,21 +182,6 @@ complete -r -c crio -n '__fish_crio_no_subcommand' -a 'config' -d 'Outputs a com
 by CRI-O. This allows you to save you current configuration setup and then load
 it later with **--config**. Global options will modify the output.'
 complete -c crio -n '__fish_seen_subcommand_from config' -f -l default -d 'Output the default configuration (without taking into account any configuration options).'
-complete -c crio -n '__fish_seen_subcommand_from config' -f -l migrate-defaults -s m -r -d 'Migrate the default config from a specified version.
-
-    The migrate-defaults command has been deprecated and will be removed in the future.
-
-    To run a config migration, just select the input config via the global
-    \'--config,-c\' command line argument, for example:
-    ```
-    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.17
-    ```
-    The migration will print converted configuration options to stderr and will
-    output the resulting configuration to stdout.
-    Please note that the migration will overwrite any fields that have changed
-    defaults between versions. To save a custom configuration change, it should
-    be in a drop-in configuration file instead.
-    Possible values: "1.17"'
 complete -c crio -n '__fish_seen_subcommand_from man' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'man' -d 'Generate the man page documentation.'
 complete -c crio -n '__fish_seen_subcommand_from markdown md' -f -l help -s h -d 'show help'
