@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 11 Jul 2024 08:36:46 UTC for commit [dbed6cc][0]._
+_Generated on Thu, 11 Jul 2024 10:18:42 UTC for commit [ff415de][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/dbed6cc94b4b8833dafb41071bfbb09c3570fded
+[0]: https://github.com/cri-o/cri-o/commit/ff415de7fcf67df86ea98a3e33764440b946de3a
 
 ## Outdated Dependencies
 
@@ -710,7 +710,7 @@ _Generated on Thu, 11 Jul 2024 08:36:46 UTC for commit [dbed6cc][0]._
 | github.com/ysmood/goob                                                                  | v0.4.0                                |                                     | false  | true             |
 | github.com/ysmood/got                                                                   | v0.34.1                               | v0.40.0                             | false  | true             |
 | github.com/ysmood/gson                                                                  | v0.7.3                                |                                     | false  | true             |
-| github.com/ysmood/leakless                                                              | v0.8.0                                |                                     | false  | true             |
+| github.com/ysmood/leakless                                                              | v0.8.0                                | v0.9.0                              | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.4                              | false  | true             |
 | github.com/zalando/go-keyring                                                           | v0.2.3                                | v0.2.5                              | false  | true             |
 | github.com/zeebo/assert                                                                 | v1.3.0                                | v1.3.1                              | false  | true             |
