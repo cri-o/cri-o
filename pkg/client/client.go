@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -9,13 +10,25 @@ import (
 	"syscall"
 	"time"
 
-	json "github.com/json-iterator/go"
-
 	"github.com/cri-o/cri-o/pkg/types"
-	"github.com/cri-o/cri-o/server"
 )
 
 const (
+	// ConfigEndpoint is the endpoint for the config retrieval.
+	ConfigEndpoint = "/config"
+
+	// ContainersEndpoint is the endpoint for the container information retrieval.
+	ContainersEndpoint = "/containers"
+
+	// InfoEndpoint is the endpoint for the daemon information retrieval.
+	InfoEndpoint = "/info"
+
+	// PauseEndpoint is the endpoint for pausing containers.
+	PauseEndpoint = "/pause"
+
+	// UnpauseEndpoint is the endpoint for unpausing containers.
+	UnpauseEndpoint = "/unpause"
+
 	maxUnixSocketPathSize = len(syscall.RawSockaddrUnix{}.Path)
 )
 
@@ -71,11 +84,10 @@ func (c *crioClientImpl) getRequest(path string) (*http.Request, error) {
 	return req, nil
 }
 
-// DaemonInfo return cri-o daemon info from the cri-o
-// info endpoint.
+// DaemonInfo return CRI-O daemon info from the CRI-O info endpoint.
 func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 	info := types.CrioInfo{}
-	req, err := c.getRequest(server.InspectInfoEndpoint)
+	req, err := c.getRequest(InfoEndpoint)
 	if err != nil {
 		return info, err
 	}
@@ -88,10 +100,9 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 	return info, err
 }
 
-// ContainerInfo returns container info by querying
-// the cri-o container endpoint.
+// ContainerInfo returns container info by querying the CRI-O container endpoint.
 func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) {
-	req, err := c.getRequest(server.InspectContainersEndpoint + "/" + id)
+	req, err := c.getRequest(ContainersEndpoint + "/" + id)
 	if err != nil {
 		return nil, err
 	}
@@ -107,9 +118,9 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 	return &cInfo, nil
 }
 
-// ConfigInfo returns current config as TOML string.
+// ConfigInfo returns current in-memory config as TOML string.
 func (c *crioClientImpl) ConfigInfo() (string, error) {
-	req, err := c.getRequest(server.InspectConfigEndpoint)
+	req, err := c.getRequest(ConfigEndpoint)
 	if err != nil {
 		return "", err
 	}

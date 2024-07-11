@@ -16,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/pkg/client"
 	"github.com/cri-o/cri-o/pkg/types"
 )
 
@@ -118,19 +119,11 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 	}, nil
 }
 
-const (
-	InspectConfigEndpoint     = "/config"
-	InspectContainersEndpoint = "/containers"
-	InspectInfoEndpoint       = "/info"
-	InspectPauseEndpoint      = "/pause"
-	InspectUnpauseEndpoint    = "/unpause"
-)
-
 // GetExtendInterfaceMux returns the mux used to serve extend interface requests.
 func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux := chi.NewMux()
 
-	mux.Get(InspectConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(client.ConfigEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		b, err := s.config.ToBytes()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -143,7 +136,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 	}))
 
-	mux.Get(InspectInfoEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(client.InfoEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ci := s.getInfo()
 		js, err := json.Marshal(ci)
 		if err != nil {
@@ -156,7 +149,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 	}))
 
-	mux.Get(InspectContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(client.ContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.TODO()
 		containerID := chi.URLParam(req, "id")
 		ci, err := s.getContainerInfo(ctx, containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
@@ -184,7 +177,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 	}))
 
-	mux.Get(InspectPauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(client.PauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
 		ctr := s.GetContainer(ctx, containerID)
@@ -214,7 +207,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		}
 	}))
 
-	mux.Get(InspectUnpauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.Get(client.UnpauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
 		ctr := s.GetContainer(ctx, containerID)

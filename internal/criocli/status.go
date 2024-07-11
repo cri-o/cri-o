@@ -6,7 +6,7 @@ import (
 
 	"github.com/urfave/cli/v2"
 
-	"github.com/cri-o/cri-o/internal/client"
+	"github.com/cri-o/cri-o/pkg/client"
 )
 
 const (
