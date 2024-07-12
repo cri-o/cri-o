@@ -11,6 +11,9 @@ const (
 	// CgroupRW specifies mounting v2 cgroups as an rw filesystem.
 	Cgroup2RWAnnotation = "io.kubernetes.cri-o.cgroup2-mount-hierarchy-rw"
 
+	// Cgroup2NSPrivilegedAnnotation allows mounting a cgroup namespace for privileged containers.
+	Cgroup2NSPrivilegedAnnotation = "io.kubernetes.cri-o.cgroup2-ns-privileged"
+
 	// UnifiedCgroupAnnotation specifies the unified configuration for cgroup v2.
 	UnifiedCgroupAnnotation = "io.kubernetes.cri-o.UnifiedCgroup"
 

@@ -309,6 +309,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
+	cgroup2NSPrivileged := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2NSPrivilegedAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
@@ -561,7 +562,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	// When running on cgroupv2, automatically add a cgroup namespace for not privileged containers.
-	if !ctr.Privileged() && node.CgroupIsV2() {
+	if (!ctr.Privileged() || cgroup2NSPrivileged) && node.CgroupIsV2() {
 		if err := specgen.AddOrReplaceLinuxNamespace(string(rspec.CgroupNamespace), ""); err != nil {
 			return nil, err
 		}
