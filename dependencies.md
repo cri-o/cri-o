@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 11 Jul 2024 19:43:43 UTC for commit [9c5b835][0]._
+_Generated on Fri, 12 Jul 2024 06:46:43 UTC for commit [4d81b78][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9c5b835084cd8a5837d305a463ff037fad59c41c
+[0]: https://github.com/cri-o/cri-o/commit/4d81b7861bf9cf942c68d43486160bb8d9cd39f8
 
 ## Outdated Dependencies
 
@@ -612,7 +612,7 @@ _Generated on Thu, 11 Jul 2024 19:43:43 UTC for commit [9c5b835][0]._
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240611101534-dedd929c1c22  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.5.3                              | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.5.4                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                |                                     | false  | true             |
@@ -738,7 +738,7 @@ _Generated on Thu, 11 Jul 2024 19:43:43 UTC for commit [9c5b835][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.28.0                               |                                     | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.28.0                               |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.3.1                                |                                     | false  | true             |
-| go.step.sm/crypto                                                                       | v0.44.2                               | v0.49.0                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.44.2                               | v0.50.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                |                                     | false  | true             |
@@ -756,7 +756,7 @@ _Generated on Thu, 11 Jul 2024 19:43:43 UTC for commit [9c5b835][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.22.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240711145802-ac0359c6555a  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2    | v0.0.0-20240711212422-9d76c3d580ba  | false  | true             |
 | golang.org/x/term                                                                       | v0.22.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                |                                     | false  | true             |
