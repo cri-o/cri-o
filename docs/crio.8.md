@@ -453,22 +453,6 @@ it later with **--config**. Global options will modify the output.
 
 **--default**: Output the default configuration (without taking into account any configuration options).
 
-**--migrate-defaults, -m**="": Migrate the default config from a specified version.
-
-    The migrate-defaults command has been deprecated and will be removed in the future.
-
-    To run a config migration, just select the input config via the global
-    '--config,-c' command line argument, for example:
-    ```
-    crio -c /etc/crio/crio.conf.d/00-default.conf config -m 1.17
-    ```
-    The migration will print converted configuration options to stderr and will
-    output the resulting configuration to stdout.
-    Please note that the migration will overwrite any fields that have changed
-    defaults between versions. To save a custom configuration change, it should
-    be in a drop-in configuration file instead.
-    Possible values: "1.17" (default: "1.17")
-
 ## man
 
 Generate the man page documentation.
