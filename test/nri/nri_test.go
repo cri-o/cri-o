@@ -214,7 +214,7 @@ func TestEnvironmentInjection(stdT *testing.T) {
 	stdout, _, exitCode := t.execShellScript(ctr, "set -e; echo $TEST_VARIABLE")
 	expected := "TEST_VALUE\n"
 
-	require.Equal(t, exitCode, int32(0), "exit code 0")
+	require.Equal(t, int32(0), exitCode, "exit code 0")
 	require.Equal(t, expected, string(stdout), "test output")
 }
 
@@ -257,8 +257,8 @@ func TestAnnotationInjection(stdT *testing.T) {
 	pod, ctr := t.runContainer()
 	require.NotNil(t, t.plugins[0].WaitEvent(PostCreateContainerEvent(pod, ctr), eventTimeout), "container post-creation event")
 
-	require.True(t, annotated != nil, "received post-create event")
-	require.True(t, annotated.GetAnnotations()[testKey] == testValue, "annotation updated")
+	require.NotNil(t, annotated, "received post-create event")
+	require.Equal(t, annotated.GetAnnotations()[testKey], testValue, "annotation updated")
 }
 
 func TestDeviceInjection(stdT *testing.T) {
@@ -300,7 +300,7 @@ func TestDeviceInjection(stdT *testing.T) {
 	stdout, _, exitCode := t.execShellScript(ctr, "set -e; stat -c %F-%a-%u:%g-%t:%T /dev/pie")
 	expected := "character special file-664-11:22-1f:29\n"
 
-	require.Equal(t, exitCode, int32(0), "exit code 0")
+	require.Equal(t, int32(0), exitCode, "exit code 0")
 	require.Equal(t, expected, string(stdout), "test output")
 }
 
@@ -364,7 +364,7 @@ func testXxxsetAdjustment(stdT *testing.T, adjust func() *api.ContainerAdjustmen
 
 	stdout, _, exitCode := t.execShellScript(ctr, testScript)
 	t.Logf("*** got stdout %s, exitCode %d", stdout, exitCode)
-	require.Equal(t, exitCode, int32(0), "exit code 0")
+	require.Equal(t, int32(0), exitCode, "exit code 0")
 	require.Equal(t, expectedResult, string(stdout), "test output")
 }
 
@@ -455,13 +455,13 @@ func testXxxsetAdjustmentUpdate(stdT *testing.T, adjust func() *api.ContainerAdj
 
 	stdout, _, exitCode := t.execShellScript(ctr, testScript)
 	t.Logf("*** got stdout %s, exitCode %d", stdout, exitCode)
-	require.Equal(t, exitCode, int32(0), "exit code 0")
+	require.Equal(t, int32(0), exitCode, "exit code 0")
 	require.Equal(t, expectedAdjustResult, string(stdout), "test output")
 
 	t.runContainer()
 	stdout, _, exitCode = t.execShellScript(ctr, testScript)
 	t.Logf("*** got stdout %s, exitCode %d", stdout, exitCode)
-	require.Equal(t, exitCode, int32(0), "exit code 0")
+	require.Equal(t, int32(0), exitCode, "exit code 0")
 	require.Equal(t, expectedUpdateResult, string(stdout), "test output")
 }
 

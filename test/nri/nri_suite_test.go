@@ -123,7 +123,7 @@ func (t *nriTest) StartPlugins(waitSync bool) []*event {
 			continue
 		}
 		e := p.WaitEvent(PluginSyncedEvent, pluginSyncTimeout)
-		require.True(t, e != nil, "test %s plugin #%d (%s) startup", t.namespace, i, p.Name())
+		require.NotNil(t, e, "test %s plugin #%d (%s) startup", t.namespace, i, p.Name())
 		events = append(events, e)
 	}
 

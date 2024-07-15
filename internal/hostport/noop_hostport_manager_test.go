@@ -1,19 +1,19 @@
 package hostport
 
 import (
-	"testing"
-
-	"github.com/stretchr/testify/assert"
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
 )
 
-// To make CodeCov happy.
-func TestNoopHostportManager(t *testing.T) {
-	manager := NewNoopHostportManager()
-	assert.NotNil(t, manager)
+var _ = t.Describe("NoopHostportManager", func() {
+	It("should succeed", func() {
+		manager := NewNoopHostportManager()
+		Expect(manager).NotTo(BeNil())
 
-	err := manager.Add("id", nil, "")
-	assert.NoError(t, err)
+		err := manager.Add("id", nil, "")
+		Expect(err).NotTo(HaveOccurred())
 
-	err = manager.Remove("id", nil)
-	assert.NoError(t, err)
-}
+		err = manager.Remove("id", nil)
+		Expect(err).NotTo(HaveOccurred())
+	})
+})
