@@ -310,8 +310,9 @@ It is possible to build a statically linked binary of CRI-O by using the
 officially provided [nix](https://nixos.org/nix) package and the derivation of
 it [within this repository](../nix). The builds are completely reproducible and
 will create a `x86_64`/`amd64` or `aarch64`/`arm64`, `ppc64le` or `s390x`
-stripped ELF binary for [glibc](https://www.gnu.org/software/libc). These
-binaries are integration tested as well and support the following features:
+stripped ELF binary for [glibc](https://www.gnu.org/software/libc) or [musl
+libc (for `s390x`)](https://www.musl-libc.org/). These binaries are integration tested
+(for `amd64` and `arm64`) as well and support the following features:
 
 - apparmor
 - btrfs
