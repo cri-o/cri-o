@@ -44,7 +44,7 @@ ssh_user: "{{ lookup('env','USER') }}"
 ssh_location: "{{ lookup('env','HOME') }}/.ssh/id_rsa"
 
 # variables for testing with the kata-containers runtime
-kata_version: "3.1.3"
+kata_version: "3.6.0"
 
 kata_skip_files:
   - "apparmor.bats"
@@ -57,7 +57,6 @@ kata_skip_files:
   - "ctr_seccomp.bats"  # see https://github.com/kata-containers/tests/issues/4587
   - "ctr_userns.bats"
   - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
-  - "hooks.bats"        # hook test is being dropped while we wait for https://github.com/kata-containers/kata-containers/issues/9523
   - "infra_ctr_cpuset.bats"
   - "imagefsinfo.bats"  # image and container filesystems is not in kata at the moment
   - "inspect.bats"
@@ -89,6 +88,7 @@ kata_int_test_env:
     PRIVILEGED_WITHOUT_HOST_DEVICES: true
     RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
     PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
+    CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
 
 kata_skip_cgroups_tests:
   - 'test "pids limit"'

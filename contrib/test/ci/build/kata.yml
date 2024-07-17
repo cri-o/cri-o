@@ -61,6 +61,14 @@
   block:
     - name: Get and extract kata tarball from upstream release
       unarchive:
-        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-x86_64.tar.xz"
+        src: "https://github.com/kata-containers/kata-containers/releases/download/{{ kata_version }}/kata-static-{{ kata_version }}-amd64.tar.xz"
         dest: "/"
         remote_src: yes
+
+- name: Set debugging logs
+  block:
+    - name: Edit Kata Containers config to enable debug log level
+      replace:
+        path: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+        regexp: '^#enable_debug = true'
+        replace: 'enable_debug = true'
