@@ -609,7 +609,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	log.Debugf(ctx, "RuntimeVM.StopContainer() start")
 	defer log.Debugf(ctx, "RuntimeVM.StopContainer() end")
 
-	if err := c.ShouldBeStopped(); err != nil {
+	if err := r.shouldBeStopped(ctx, c); err != nil {
 		if errors.Is(err, ErrContainerStopped) {
 			err = nil
 		}
@@ -667,6 +667,27 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 	}
 
 	c.state.Finished = time.Now()
+	return nil
+}
+
+// shouldBeStopped checks whether the container's state permits
+// stopping. It determines if stopping the container makes sense
+// based on its current state. A container cannot be stopped if
+// it is already stopped or paused. If the container is paused,
+// the function attempts to unpause it and update its status.
+func (r *runtimeVM) shouldBeStopped(ctx context.Context, c *Container) error {
+	switch c.State().Status {
+	case ContainerStateStopped:
+		return ErrContainerStopped
+	case ContainerStatePaused:
+		log.Warnf(ctx, "Cannot stop paused container %s", c.ID())
+		if err := r.UnpauseContainer(ctx, c); err != nil {
+			return fmt.Errorf("failed to stop container %s: %w", c.Name(), err)
+		}
+		if err := r.UpdateContainerStatus(ctx, c); err != nil {
+			return fmt.Errorf("failed to update container status %s: %w", c.Name(), err)
+		}
+	}
 	return nil
 }
 

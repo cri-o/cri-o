@@ -589,20 +589,6 @@ func (c *Container) verifyPid() (string, error) {
 	return state, nil
 }
 
-// ShouldBeStopped checks whether the container state is in a place
-// where attempting to stop it makes sense
-// a container is not stoppable if it's paused or stopped
-// if it's paused, that's an error, and is reported as such.
-func (c *Container) ShouldBeStopped() error {
-	switch c.State().Status {
-	case ContainerStateStopped: // no-op
-		return ErrContainerStopped
-	case ContainerStatePaused:
-		return errors.New("cannot stop paused container")
-	}
-	return nil
-}
-
 // Spoofed returns whether this container is spoofed.
 // A container should be spoofed when it doesn't have to exist in the container runtime,
 // but does need to exist in the storage. The main use of this is when an infra container

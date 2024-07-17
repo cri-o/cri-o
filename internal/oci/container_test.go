@@ -428,42 +428,6 @@ var _ = t.Describe("Container", func() {
 			Expect(err).To(HaveOccurred())
 		})
 	})
-	t.Describe("ShouldBeStopped", func() {
-		It("should fail to stop if already stopped", func() {
-			// Given
-			state := &oci.ContainerState{}
-			state.Status = oci.ContainerStateStopped
-			sut.SetState(state)
-			// When
-			err := sut.ShouldBeStopped()
-
-			// Then
-			Expect(err).To(Equal(oci.ErrContainerStopped))
-		})
-		It("should fail to stop if paused", func() {
-			// Given
-			state := &oci.ContainerState{}
-			state.Status = oci.ContainerStatePaused
-			sut.SetState(state)
-			// When
-			err := sut.ShouldBeStopped()
-
-			// Then
-			Expect(err).NotTo(Equal(oci.ErrContainerStopped))
-			Expect(err).To(HaveOccurred())
-		})
-		It("should succeed to stop if started", func() {
-			// Given
-			state := &oci.ContainerState{}
-			state.Status = oci.ContainerStateRunning
-			sut.SetState(state)
-			// When
-			err := sut.ShouldBeStopped()
-
-			// Then
-			Expect(err).ToNot(HaveOccurred())
-		})
-	})
 	t.Describe("Living", func() {
 		It("should be false if pid uninitialized", func() {
 			// Given
