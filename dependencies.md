@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Jul 2024 08:26:08 UTC for commit [043cae7][0]._
+_Generated on Wed, 17 Jul 2024 14:48:00 UTC for commit [6188dad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/043cae7b7dcd44240fc0bfc76348f5ff0058a47a
+[0]: https://github.com/cri-o/cri-o/commit/6188dad79577ddfc1d1303c9eb0c68cf5fbc3a84
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Wed, 17 Jul 2024 08:26:08 UTC for commit [043cae7][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717063806-65f2bfb8c49f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717114715-b7051890af22 | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -201,8 +201,8 @@ _Generated on Wed, 17 Jul 2024 08:26:08 UTC for commit [043cae7][0]._
 | github.com/VividCortex/ewma                                                             | v1.2.0                                       |                                     | false  | true             |
 | github.com/acarl005/stripansi                                                           | v0.0.0-20180116102854-5a71ef0e047d           |                                     | false  | true             |
 | github.com/agnivade/levenshtein                                                         | v1.1.1                                       |                                     | false  | true             |
-| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9           | v0.0.0-20240709174752-de018ef3dd14  | false  | true             |
-| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19           | v0.0.0-20240709174752-de018ef3dd14  | false  | true             |
+| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9           | v0.0.0-20240717142941-38ed00367aa6  | false  | true             |
+| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19           | v0.0.0-20240717142941-38ed00367aa6  | false  | true             |
 | github.com/ajstarks/svgo                                                                | v0.0.0-20211024235047-1546f124cd8b           |                                     | false  | true             |
 | github.com/akavel/rsrc                                                                  | v0.10.2                                      |                                     | false  | true             |
 | github.com/alecthomas/kingpin/v2                                                        | v2.4.0                                       |                                     | false  | true             |
@@ -499,7 +499,7 @@ _Generated on Wed, 17 Jul 2024 08:26:08 UTC for commit [043cae7][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717063806-65f2bfb8c49f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717114715-b7051890af22  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
