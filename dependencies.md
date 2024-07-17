@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Jul 2024 14:48:00 UTC for commit [6188dad][0]._
+_Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6188dad79577ddfc1d1303c9eb0c68cf5fbc3a84
+[0]: https://github.com/cri-o/cri-o/commit/7347ea64dbaa78fb1c7c84b3aada7a53e4ba0d76
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Wed, 17 Jul 2024 14:48:00 UTC for commit [6188dad][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717114715-b7051890af22 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717174351-e5d528476190 | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -499,7 +499,7 @@ _Generated on Wed, 17 Jul 2024 14:48:00 UTC for commit [6188dad][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717114715-b7051890af22  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717174351-e5d528476190  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -760,7 +760,7 @@ _Generated on Wed, 17 Jul 2024 14:48:00 UTC for commit [6188dad][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                                      |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                       |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.22.0                                      |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2           | v0.0.0-20240716191941-fb0bb5c6d018  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2           | v0.0.0-20240717144616-d2ee678ccaf8  | false  | true             |
 | golang.org/x/term                                                                       | v0.22.0                                      |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                                      |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                       |                                     | false  | true             |
