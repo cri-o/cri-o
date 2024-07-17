@@ -35,6 +35,9 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 				networkCondition,
 			},
 		},
+		Features: &types.RuntimeFeatures{
+			SupplementalGroupsPolicy: true,
+		},
 	}
 
 	for name, runtime := range s.config.Runtimes {
