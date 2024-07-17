@@ -833,13 +833,6 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 		return nil
 	}
 
-	if err := c.ShouldBeStopped(); err != nil {
-		if errors.Is(err, ErrContainerStopped) {
-			err = nil
-		}
-		return err
-	}
-
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
 		c.state.Finished = time.Now()
@@ -877,6 +870,19 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt)
 
 	c.opLock.Lock()
+	defer func() {
+		// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
+		// Ref: https://github.com/kubernetes/kubernetes/issues/124743
+		c.KillExecPIDs()
+		c.state.Finished = time.Now()
+		c.opLock.Unlock()
+		c.SetAsDoneStopping()
+	}()
+	if c.state.Status == ContainerStatePaused {
+		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
+			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
+		}
+	}
 
 	// Begin the actual kill.
 	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
@@ -884,8 +890,6 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
-			c.opLock.Unlock()
-			c.SetAsDoneStopping()
 			return
 		}
 	}
@@ -901,9 +905,12 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 				close(done)
 				return
 			}
-
-			// The PID is still active and belongs to the container, continue to wait.
-			time.Sleep(stopProcessWatchSleep)
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(stopProcessWatchSleep):
+				// Continue watching
+			}
 		}
 	}()
 
@@ -925,8 +932,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 	// Do not start the stuck process reminder immediately.
 	blockedTimer.Stop()
 
-	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
-	kwait.BackoffUntil(func() {
+	for {
 		select {
 		case newTimeout := <-c.stopTimeoutChan:
 			// If a new timeout comes in, interrupt the old one, and start a new one.
@@ -939,30 +945,28 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 
 		case <-time.After(time.Until(targetTime)):
 			log.Warnf(ctx, "Stopping container %s with stop signal timed out. Killing...", c.ID())
-
-			if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
-				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
-			}
-
-			if err := c.Living(); err != nil {
-				stop()
-			}
-
-			// Reschedule the timer so that the periodic reminder can continue.
-			blockedTimer.Reset(stopProcessBlockedInterval)
+			goto killContainer
 
 		case <-done:
 			stop()
+			return
+		case <-ctx.Done():
+			return
 		}
+	}
+killContainer:
+	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
+	kwait.BackoffUntil(func() {
+		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
+			log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+		}
+
+		if err := c.Living(); err != nil {
+			stop()
+		}
+		// Reschedule the timer so that the periodic reminder can continue.
+		blockedTimer.Reset(stopProcessBlockedInterval)
 	}, bm, true, ctx.Done())
-
-	// Kill the exec PIDs after the main container to avoid pod lifecycle regressions:
-	// Ref: https://github.com/kubernetes/kubernetes/issues/124743
-	c.KillExecPIDs()
-
-	c.state.Finished = time.Now()
-	c.opLock.Unlock()
-	c.SetAsDoneStopping()
 }
 
 // DeleteContainer deletes a container.
