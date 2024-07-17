@@ -1557,7 +1557,7 @@ k8s.io/client-go/util/flowcontrol
 k8s.io/client-go/util/keyutil
 k8s.io/client-go/util/watchlist
 k8s.io/client-go/util/workqueue
-# k8s.io/cri-api v0.31.0-alpha.3
+# k8s.io/cri-api v0.31.0-beta.0.0.20240716205706-865479a3e1b3
 ## explicit; go 1.22.0
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
