@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
+_Generated on Thu, 18 Jul 2024 13:44:14 UTC for commit [a54658a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7347ea64dbaa78fb1c7c84b3aada7a53e4ba0d76
+[0]: https://github.com/cri-o/cri-o/commit/a54658a647d3baf2ddae5f739930ed73a86ba314
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containerd/containerd                       | v1.7.19                            | v1.7.20                            | true   | true             |
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717174351-e5d528476190 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240717205640-6aff5f300a98 | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -261,7 +262,7 @@ _Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 | github.com/blendle/zapdriver                                                            | v1.3.1                                       |                                     | false  | true             |
 | github.com/boombuler/barcode                                                            | v1.0.1                                       | v1.0.2                              | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                       |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.62.0                                      | v3.74.1                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.62.0                                      | v3.75.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                       | v0.10.0                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251           | v0.1.3                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                       |                                     | false  | true             |
@@ -295,7 +296,7 @@ _Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 | github.com/containerd/cgroups                                                           | v1.1.0                                       |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                        | v3.0.3                                       |                                     | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                       | v1.0.4                              | false  | true             |
-| github.com/containerd/containerd                                                        | v1.7.19                                      |                                     | true   | true             |
+| github.com/containerd/containerd                                                        | v1.7.19                                      | v1.7.20                             | true   | true             |
 | github.com/containerd/containerd/api                                                    | v1.7.19                                      |                                     | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                       | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                                      |                                     | false  | true             |
@@ -499,7 +500,7 @@ _Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717174351-e5d528476190  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240717205640-6aff5f300a98  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -522,7 +523,7 @@ _Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                                      | v1.2.29                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                       |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243           | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491           | v0.0.0-20240716204705-2c157251acbc  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20231026200631-000cd05d5491           | v0.0.0-20240717230530-a3e99432bb46  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                       | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                       |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158          | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -760,7 +761,7 @@ _Generated on Wed, 17 Jul 2024 19:22:12 UTC for commit [7347ea6][0]._
 | golang.org/x/oauth2                                                                     | v0.21.0                                      |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.7.0                                       |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.22.0                                      |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2           | v0.0.0-20240717144616-d2ee678ccaf8  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240228155512-f48c80bd79b2           | v0.0.0-20240717194752-0b706e19b701  | false  | true             |
 | golang.org/x/term                                                                       | v0.22.0                                      |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.16.0                                      |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                       |                                     | false  | true             |
