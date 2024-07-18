@@ -3,7 +3,8 @@
 }:
 with pkgs; buildGo122Module {
   name = "cri-o";
-  src = ./..;
+  # Use Pure to avoid exuding the .git directory
+  src = nix-gitignore.gitignoreSourcePure [ ../.gitignore ] ./..;
   vendorHash = null;
   doCheck = false;
   enableParallelBuilding = true;
