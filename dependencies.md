@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 18 Jul 2024 22:31:28 UTC for commit [8b820df][0]._
+_Generated on Fri, 19 Jul 2024 08:59:26 UTC for commit [6cc20ab][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8b820dff177a4dafd46496cac50a4abcb6ed9854
+[0]: https://github.com/cri-o/cri-o/commit/6cc20abf0f8019f0d1c6610a200e24b0df7909e4
 
 ## Outdated Dependencies
 
@@ -11,7 +11,8 @@ _Generated on Thu, 18 Jul 2024 22:31:28 UTC for commit [8b820df][0]._
 | github.com/containerd/containerd                       | v1.7.19                            | v1.7.20                            | true   | true             |
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.2                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240718210341-fc4357f6425f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240719054111-d0dc67bb96c3 | true   | true             |
+| github.com/moby/sys/mountinfo                          | v0.7.1                             | v0.7.2                             | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -500,7 +501,7 @@ _Generated on Thu, 18 Jul 2024 22:31:28 UTC for commit [8b820df][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240718210341-fc4357f6425f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240719054111-d0dc67bb96c3  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -558,7 +559,7 @@ _Generated on Thu, 18 Jul 2024 22:31:28 UTC for commit [8b820df][0]._
 | github.com/moby/docker-image-spec                                                       | v1.3.1                                       |                                     | false  | true             |
 | github.com/moby/locker                                                                  | v1.0.1                                       |                                     | false  | true             |
 | github.com/moby/spdystream                                                              | v0.4.0                                       |                                     | false  | true             |
-| github.com/moby/sys/mountinfo                                                           | v0.7.1                                       | v0.7.2                              | false  | true             |
+| github.com/moby/sys/mountinfo                                                           | v0.7.1                                       | v0.7.2                              | true   | true             |
 | github.com/moby/sys/sequential                                                          | v0.5.0                                       | v0.6.0                              | false  | true             |
 | github.com/moby/sys/signal                                                              | v0.7.0                                       | v0.7.1                              | false  | true             |
 | github.com/moby/sys/symlink                                                             | v0.2.0                                       | v0.3.0                              | false  | true             |
@@ -617,7 +618,7 @@ _Generated on Thu, 18 Jul 2024 22:31:28 UTC for commit [8b820df][0]._
 | github.com/prometheus/procfs                                                            | v0.15.1                                      |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf           | v0.0.0-20240611101534-dedd929c1c22  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475           |                                     | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.5.1                                       | v9.5.4                              | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.5.1                                       | v9.6.0                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0           | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.7                                       |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                       |                                     | false  | true             |
