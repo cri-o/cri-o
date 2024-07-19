@@ -26,6 +26,7 @@ import (
 	"github.com/containers/storage"
 	"github.com/containers/storage/pkg/reexec"
 	json "github.com/json-iterator/go"
+	"github.com/moby/sys/mountinfo"
 	digest "github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
@@ -56,6 +57,7 @@ type ImageResult struct {
 	OCIConfig           *specs.Image
 	Annotations         map[string]string
 	Pinned              bool // pinned image to prevent it from garbage collection
+	MountPoint          string
 }
 
 type indexInfo struct {
@@ -309,6 +311,30 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 			break
 		}
 	}
+
+	// Try to retrieve the mountpoint
+	mountPoint := ""
+	if layer, err := svc.store.Layer(image.TopLayer); err == nil {
+		mountPoint = layer.MountPoint
+	} else {
+		logrus.Errorf("Unable to get image (%s) top layer (%s): %v", image.ID, image.TopLayer, err)
+	}
+	// Check if the mount actually exists
+	if mountPoint != "" {
+		infos, err := mountinfo.GetMounts(mountinfo.SingleEntryFilter(mountPoint))
+		if err != nil {
+			logrus.Warnf("Unable to get mount info for path %s: %v", mountPoint, err)
+			mountPoint = ""
+		}
+		if len(infos) == 0 {
+			logrus.Warnf("Unable to find mount path %s for image %s, assuming image is no longer mounted", mountPoint, image.ID)
+			if _, err := svc.store.UnmountImage(image.ID, true); err != nil {
+				logrus.Warnf("Unable to unmount image %s: %v", image.ID, err)
+			}
+			mountPoint = ""
+		}
+	}
+
 	return ImageResult{
 		ID:                  storageImageIDFromImage(image),
 		SomeNameOfThisImage: someName,
@@ -323,6 +349,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		OCIConfig:           cacheItem.config,
 		Annotations:         cacheItem.annotations,
 		Pinned:              imagePinned,
+		MountPoint:          mountPoint,
 	}, nil
 }
 
@@ -465,8 +492,7 @@ func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, i
 	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
-//nolint
-func init() {
+func init() { //nolint
 	reexec.Register("crio-pull-image", pullImageChild)
 }
 
