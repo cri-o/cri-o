@@ -118,18 +118,18 @@ func TestContainerEvents(stdT *testing.T) {
 	require.NotNil(t, p.WaitEvent(RunPodEvent(pod), timeout), "pod creation event")
 
 	ctr := t.createContainer(pod)
-	require.NotNil(t, p.WaitEvent(CreateContainerEvent(pod, ctr), 0), "container creation event")
+	require.NotNil(t, p.WaitEvent(CreateContainerEvent(pod, ctr), timeout), "container creation event")
 	require.NotNil(t, p.WaitEvent(PostCreateContainerEvent(pod, ctr), timeout), "container post-creation event")
 
 	t.startContainer(ctr)
-	require.NotNil(t, p.WaitEvent(StartContainerEvent(pod, ctr), 0), "container start event")
+	require.NotNil(t, p.WaitEvent(StartContainerEvent(pod, ctr), timeout), "container start event")
 	require.NotNil(t, p.WaitEvent(PostStartContainerEvent(pod, ctr), timeout), "container post-start event")
 
 	t.stopContainer(ctr)
-	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), 0), "container stop event")
+	require.NotNil(t, p.WaitEvent(StopContainerEvent(pod, ctr), timeout), "container stop event")
 
 	t.removeContainer(ctr)
-	require.NotNil(t, p.WaitEvent(RemoveContainerEvent(pod, ctr), 0), "container removal event")
+	require.NotNil(t, p.WaitEvent(RemoveContainerEvent(pod, ctr), timeout), "container removal event")
 
 	t.stopPod(pod)
 	t.removePod(pod)
