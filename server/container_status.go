@@ -66,6 +66,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 			RecursiveReadOnly: cv.RecursiveReadOnly,
 			Propagation:       cv.Propagation,
 			SelinuxRelabel:    cv.SelinuxRelabel,
+			Image:             cv.Image,
 		})
 	}
 	resp.Status.Mounts = mounts
