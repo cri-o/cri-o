@@ -172,7 +172,6 @@ func main() {
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
 		})
-		info.LogVersion()
 
 		level, err := logrus.ParseLevel(config.LogLevel)
 		if err != nil {
@@ -217,6 +216,8 @@ func main() {
 	}
 
 	app.Action = func(c *cli.Context) error {
+		info.LogVersion()
+
 		ctx, cancel := context.WithCancel(context.Background())
 
 		cpuProfilePath := c.String("profile-cpu")
