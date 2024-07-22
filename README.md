@@ -196,59 +196,6 @@ up a PR and add it to the list.
 To install `CRI-O`, you can follow our [installation guide](install.md).
 Alternatively, if you'd rather build `CRI-O` from source, checkout our [setup
 guide](install.md#build-and-install-cri-o-from-source).
-We also provide a way in building
-[static binaries of `CRI-O`](install.md#static-builds) via nix as part of the
-[cri-o/packaging repository](https://github.com/cri-o/packaging).
-Those binaries are available on a [scheduled nightly job](https://github.com/cri-o/packaging/actions/workflows/schedule.yml)
-for the latest successfully built commit on our [Google Cloud Storage Bucket][bucket].
-This means that the latest commit can be installed via our convenience script:
-
-[bucket]: https://console.cloud.google.com/storage/browser/cri-o/artifacts
-
-```console
-> curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash
-```
-
-The script automatically verifies the uploaded sigstore signatures as well, if
-the local system has [`cosign`](https://github.com/sigstore/cosign) available in
-its `$PATH`. The same applies to the [SPDX](https://spdx.org) based bill of
-materials (SBOM), which gets automatically verified if the
-[bom](https://sigs.k8s.io/bom) tool is in `$PATH`.
-
-Besides `amd64`, we also support the `arm64`, `ppc64le` and `s390x` bit
-architectures. This can be selected via the script, too:
-
-<!-- markdownlint-disable MD013 -->
-```shell
-curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -a arm64
-```
-
-It is also possible to select a specific git SHA or tag by:
-
-```shell
-curl https://raw.githubusercontent.com/cri-o/packaging/main/get | bash -s -- -t v1.30.0
-```
-<!-- markdownlint-enable MD013 -->
-
-The above script resolves to the download URL of the static binary bundle
-tarball matching the format:
-
-```text
-https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz
-```
-
-Where `$ARCH` can be `amd64`,`arm64`,`ppc64le` or `s390x` and `$REV`
-can be any git SHA or tag.
-Please be aware that using the latest `main` SHA might cause a race, because
-the CI has not finished publishing the artifacts yet or failed.
-
-We also provide a Software Bill of Materials (SBOM) in the [SPDX
-format](https://spdx.org) for each bundle. The SBOM is available at the same URL
-like the bundle itself, but suffixed with `.spdx`:
-
-```text
-https://storage.googleapis.com/cri-o/artifacts/cri-o.$ARCH.$REV.tar.gz.spdx
-```
 
 ### Running Kubernetes with CRI-O
 
