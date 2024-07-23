@@ -1990,6 +1990,7 @@ message HostAlias {
 // HostIP represents a single IP address allocated to the host.
 message HostIP {
   // IP is the IP address assigned to the host
+  // +required
   optional string ip = 1;
 }
 
@@ -2633,6 +2634,11 @@ message NodeRuntimeHandlerFeatures {
   // +featureGate=RecursiveReadOnlyMounts
   // +optional
   optional bool recursiveReadOnlyMounts = 1;
+
+  // UserNamespaces is set to true if the runtime handler supports UserNamespaces, including for volumes.
+  // +featureGate=UserNamespacesSupport
+  // +optional
+  optional bool userNamespaces = 2;
 }
 
 // A node selector represents the union of the results of one or more label queries
@@ -2793,6 +2799,7 @@ message NodeStatus {
 
   // The available runtime handlers.
   // +featureGate=RecursiveReadOnlyMounts
+  // +featureGate=UserNamespacesSupport
   // +optional
   // +listType=atomic
   repeated NodeRuntimeHandler runtimeHandlers = 12;
@@ -3415,8 +3422,6 @@ message PersistentVolumeStatus {
 
   // lastPhaseTransitionTime is the time the phase transitioned from one to another
   // and automatically resets to current time everytime a volume phase transitions.
-  // This is a beta field and requires the PersistentVolumeLastPhaseTransitionTime feature to be enabled (enabled by default).
-  // +featureGate=PersistentVolumeLastPhaseTransitionTime
   // +optional
   optional .k8s.io.apimachinery.pkg.apis.meta.v1.Time lastPhaseTransitionTime = 4;
 }
@@ -3704,6 +3709,7 @@ message PodExecOptions {
 // PodIP represents a single IP address allocated to the pod.
 message PodIP {
   // IP is the IP address assigned to the pod
+  // +required
   optional string ip = 1;
 }
 
