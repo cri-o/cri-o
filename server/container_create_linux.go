@@ -1075,10 +1075,12 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			return nil, nil, errors.New("mount.ContainerPath is empty")
 		}
 		if m.Image != nil && m.Image.Image != "" {
-			m.HostPath, err = s.mountImage(ctx, m.Image.Image, mountLabel)
+			mountPoint, imageID, err := s.mountImage(ctx, m.Image.Image, mountLabel)
 			if err != nil {
 				return nil, nil, fmt.Errorf("mount image: %w", err)
 			}
+			m.Image.Image = imageID // Set the ID for container status later on
+			m.HostPath = mountPoint // Adjust the host path to use the mount point
 		}
 		if m.HostPath == "" {
 			return nil, nil, errors.New("mount.HostPath is empty")
@@ -1199,6 +1201,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			RecursiveReadOnly: m.RecursiveReadOnly,
 			Propagation:       m.Propagation,
 			SelinuxRelabel:    m.SelinuxRelabel,
+			Image:             m.Image,
 		})
 
 		uidMappings := getOCIMappings(m.UidMappings)
@@ -1234,12 +1237,12 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	return volumes, ociMounts, nil
 }
 
-// mountImage mounts the provided imageRef using the mountLabel and returns the hostPath on success.
-func (s *Server) mountImage(ctx context.Context, imageRef, mountLabel string) (hostPath string, err error) {
+// mountImage mounts the provided imageRef using the mountLabel and returns the hostPath as well as imageID on success.
+func (s *Server) mountImage(ctx context.Context, imageRef, mountLabel string) (hostPath, imageID string, err error) {
 	log.Debugf(ctx, "Image ref to mount: %s", imageRef)
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: imageRef})
 	if err != nil {
-		return "", fmt.Errorf("get storage image status: %w", err)
+		return "", "", fmt.Errorf("get storage image status: %w", err)
 	}
 
 	id := status.ID.IDStringForOutOfProcessConsumptionOnly()
@@ -1248,11 +1251,11 @@ func (s *Server) mountImage(ctx context.Context, imageRef, mountLabel string) (h
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
 	mountPoint, err := s.Store().MountImage(id, options, mountLabel)
 	if err != nil {
-		return "", fmt.Errorf("mount storage: %w", err)
+		return "", "", fmt.Errorf("mount storage: %w", err)
 	}
 
 	log.Infof(ctx, "Image mounted to: %s", mountPoint)
-	return mountPoint, nil
+	return mountPoint, id, nil
 }
 
 func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {

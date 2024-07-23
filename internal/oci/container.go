@@ -96,6 +96,7 @@ type ContainerVolume struct {
 	RecursiveReadOnly bool                   `json:"recursive_read_only"`
 	Propagation       types.MountPropagation `json:"propagation"`
 	SelinuxRelabel    bool                   `json:"selinux_relabel"`
+	Image             *types.ImageSpec       `json:"image,omitempty"` // A possible image for OCI volume mounts
 }
 
 // ContainerState represents the status of a container.

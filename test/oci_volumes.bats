@@ -40,6 +40,11 @@ function teardown() {
 	# Image removal should be blocked
 	run ! crictl rmi $IMAGE
 
+	# The kubelet garbage collection expects the image ID set in the container status mount
+	IMAGE_ID=$(crictl inspecti quay.io/crio/artifact:v1 | jq -e .status.id)
+	IMAGE_MOUNT_ID=$(crictl inspect "$CTR_ID" | jq -e '.status.mounts[0].image.image')
+	[[ "$IMAGE_ID" == "$IMAGE_MOUNT_ID" ]]
+
 	# Remove the container
 	crictl rm -f "$CTR_ID"
 
