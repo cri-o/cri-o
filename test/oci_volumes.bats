@@ -4,6 +4,7 @@
 load helpers
 
 function setup() {
+	requires_crictl "1.31"
 	setup_test
 }
 
