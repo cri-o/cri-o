@@ -107,7 +107,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b # v4.1.4
-      - uses: crate-ci/typos@320b5781474d4470a36b7f0626b131e99850e9d2 # v1.23.2
+      - uses: crate-ci/typos@3ddcf00482aad5eb418a6cd1955ea2125d0785c1 # v1.23.3
         with:
           config: .typos.toml
 
