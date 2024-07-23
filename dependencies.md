@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 23 Jul 2024 12:46:19 UTC for commit [99c12f5][0]._
+_Generated on Tue, 23 Jul 2024 15:23:25 UTC for commit [1c04ca9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/99c12f5dee38fedb045c726e027b5c8a5e196b3b
+[0]: https://github.com/cri-o/cri-o/commit/1c04ca9768e535cf22017da6e6cee620bb3a6431
 
 ## Outdated Dependencies
 
@@ -288,7 +288,7 @@ _Generated on Tue, 23 Jul 2024 12:46:19 UTC for commit [99c12f5][0]._
 | github.com/client9/misspell                                                             | v0.3.4                                       |                                     | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.7                                       | v1.3.9                              | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe           |                                     | false  | true             |
-| github.com/cncf/xds/go                                                                  | v0.0.0-20240423153145-555b57ec207b           |                                     | false  | true             |
+| github.com/cncf/xds/go                                                                  | v0.0.0-20240423153145-555b57ec207b           | v0.0.0-20240723142845-024c85f92f20  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                       |                                     | false  | true             |
 | github.com/codahale/rfc6979                                                             | v0.0.0-20141003034818-6a90f24967eb           |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                                   | v0.0.0-20210622060536-734e95fb86be           |                                     | false  | true             |
