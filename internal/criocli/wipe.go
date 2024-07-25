@@ -64,6 +64,11 @@ func crioWipe(c *cli.Context) error {
 	// Note: this is only needed if the node rebooted.
 	// If there wasn't time to sync, we should clear the storage directory
 	if shouldWipeContainers && lib.ShutdownWasUnclean(config) {
+		logrus.Infof(
+			"File %s not found. Wiping storage directory %s because of suspected unclean shutdown",
+			config.CleanShutdownFile,
+			store.GraphRoot(),
+		)
 		return lib.HandleUncleanShutdown(config, store)
 	}
 
