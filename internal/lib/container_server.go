@@ -811,7 +811,7 @@ func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error
 		logrus.Infof("Failed to wipe storage: %v", err)
 	}
 	// Unmount storage or else we will fail with -EBUSY.
-	if _, err := store.Shutdown(false); err != nil {
+	if _, err := store.Shutdown(true); err != nil {
 		return fmt.Errorf("failed to shutdown storage: %w", err)
 	}
 	// Completely remove storage, whatever is left (possibly orphaned layers).
