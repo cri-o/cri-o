@@ -105,16 +105,23 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	}
 
 	if config.InternalRepair && ShutdownWasUnclean(config) {
+		graphRoot := store.GraphRoot()
+		log.Warnf(ctx, "Checking storage directory %s for errors because of unclean shutdown", graphRoot)
+
+		wipeStorage := false
 		report, err := store.Check(checkQuick())
-		if err != nil {
-			err = HandleUncleanShutdown(config, store)
-			if err != nil {
-				return nil, err
+		if err == nil && checkReportHasErrors(report) {
+			log.Warnf(ctx, "Attempting to repair storage directory %s because of unclean shutdown", graphRoot)
+			if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
+				wipeStorage = true
 			}
+		} else if err != nil {
+			// Storage check has failed with irrecoverable errors.
+			wipeStorage = true
 		}
-		if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
-			err = HandleUncleanShutdown(config, store)
-			if err != nil {
+		if wipeStorage {
+			log.Warnf(ctx, "Wiping storage directory %s because of unclean shutdown", graphRoot)
+			if err := HandleUncleanShutdown(config, store); err != nil {
 				return nil, err
 			}
 		}
@@ -853,4 +860,16 @@ func checkQuick() *cstorage.CheckOptions {
 		ImageData:      true,
 		ContainerData:  true,
 	}
+}
+
+// checkReportHasErrors checks if the report from a completed storage check includes
+// any recoverable errors that storage repair could fix.
+func checkReportHasErrors(report cstorage.CheckReport) bool {
+	// The `storage.Check()` returns a report object and an error,
+	// where errors are most likely irrecoverable and should be
+	// handled as such; the report, on the contrary, can contain
+	// errors that the `storage.Repair()` could potentially fix.
+	return len(report.Layers) > 0 || len(report.ROLayers) > 0 ||
+		len(report.Images) > 0 || len(report.ROImages) > 0 ||
+		len(report.Containers) > 0
 }
