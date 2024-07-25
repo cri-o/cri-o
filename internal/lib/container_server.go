@@ -12,6 +12,7 @@ import (
 	"github.com/containers/common/pkg/hooks"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/ioutils"
+	cmount "github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/truncindex"
 	json "github.com/json-iterator/go"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
@@ -810,10 +811,29 @@ func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error
 	if err := store.Wipe(); err != nil {
 		logrus.Infof("Failed to wipe storage: %v", err)
 	}
+
 	// Unmount storage or else we will fail with -EBUSY.
 	if _, err := store.Shutdown(true); err != nil {
-		return fmt.Errorf("failed to shutdown storage: %w", err)
+		// CRI-O and Podman are often used together on the same node,
+		// so the storage directory is shared between the two.
+		//
+		// Since a container started by Podman can be running, we will
+		// try to detect this and return an error rather than proceed
+		// with a storage wipe.
+		if errors.Is(err, cstorage.ErrLayerUsedByContainer) {
+			return fmt.Errorf("failed to shutdown storage: %w", err)
+		}
+		logrus.Warnf("Failed to shutdown storage: %v", err)
+
+		// At this point, storage is most likely corrupted
+		// beyond repair, as such, remove any potentially
+		// orphaned mounts that might still be there, and
+		// prepare to completely remove the storage directory.
+		if err := cmount.RecursiveUnmount(store.GraphRoot()); err != nil {
+			logrus.Warnf("Failed to unmount storage: %v", err)
+		}
 	}
+
 	// Completely remove storage, whatever is left (possibly orphaned layers).
 	if err := os.RemoveAll(store.GraphRoot()); err != nil {
 		return fmt.Errorf("failed to remove storage directory: %w", err)
