@@ -105,8 +105,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	}
 
 	if config.InternalRepair && ShutdownWasUnclean(config) {
-		checkOptions := cstorage.CheckEverything()
-		report, err := store.Check(checkOptions)
+		report, err := store.Check(checkQuick())
 		if err != nil {
 			err = HandleUncleanShutdown(config, store)
 			if err != nil {
@@ -823,4 +822,31 @@ func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error
 		return fmt.Errorf("failed to remove storage directory: %w", err)
 	}
 	return nil
+}
+
+// checkQuick returns custom storage check options with only checks known not to be
+// resource-intensive enabled. Where known I/O and CPU-bound checks, such as the
+// integrity and contents checks, are disabled.
+func checkQuick() *cstorage.CheckOptions {
+	// An alternative to `storage.CheckEverything()` and `storage.CheckMost()`
+	// helper functions that turn off the expensive layers integrity verification,
+	// which relies on calculating checksum for the content of the image. This is
+	// both I/O and CPU intensive and, depending on the size of images, number of
+	// layers, and number of files within each layer, can significantly impact the
+	// node performance while the check is running. Additionally, turn off the
+	// content check, which is also considered expensive.
+	//
+	// When the check runs, it can hold up CRI-O, eventually resulting in the node
+	// being marked as "NotReady" by the kubelet, which is undesirable.
+	//
+	// Turning off the integrity check has the side effect of preventing CRI-O from
+	// detecting whether a file is missing from the image or its content has changed.
+	return &cstorage.CheckOptions{
+		LayerDigests:   false, // Disabled for being I/O and CPU intensive.
+		LayerMountable: true,
+		LayerContents:  false, // Also disabled by `storage.CheckMost()`.
+		LayerData:      true,
+		ImageData:      true,
+		ContainerData:  true,
+	}
 }
