@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
+_Generated on Thu, 25 Jul 2024 12:24:15 UTC for commit [662ce83][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0a950f49a6fa6c75e128241a506ac440ed687c46
+[0]: https://github.com/cri-o/cri-o/commit/662ce8364e42277a0b0f375f7c4ed8a219db4b15
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
 | github.com/containernetworking/cni                     | v1.1.2                             | v1.2.3                             | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.3.0                             | v0.3.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240725032904-4e003a212541 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240725113652-abb0a2659aaf | true   | true             |
 | github.com/moby/sys/mountinfo                          | v0.7.1                             | v0.7.2                             | true   | true             |
 | github.com/urfave/cli/v2                               | v2.27.2                            | v2.27.3                            | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -366,7 +366,7 @@ _Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5         |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                       |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.4.0                                       | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a           | v0.0.0-20240724175742-5ecc17879429  | false  | true             |
+| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a           | v0.0.0-20240725082028-24b50190c200  | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                                      | v3.12.1                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                                      | v1.13.2                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                                      |                                     | false  | true             |
@@ -503,7 +503,7 @@ _Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240725032904-4e003a212541  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240725113652-abb0a2659aaf  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -565,7 +565,7 @@ _Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
 | github.com/moby/sys/sequential                                                          | v0.5.0                                       | v0.6.0                              | false  | true             |
 | github.com/moby/sys/signal                                                              | v0.7.0                                       | v0.7.1                              | false  | true             |
 | github.com/moby/sys/symlink                                                             | v0.2.0                                       | v0.3.0                              | false  | true             |
-| github.com/moby/sys/user                                                                | v0.1.0                                       |                                     | false  | true             |
+| github.com/moby/sys/user                                                                | v0.1.0                                       | v0.2.0                              | false  | true             |
 | github.com/moby/term                                                                    | v0.5.0                                       |                                     | false  | true             |
 | github.com/modern-go/concurrent                                                         | v0.0.0-20180306012644-bacd9c7ef1dd           |                                     | false  | true             |
 | github.com/modern-go/reflect2                                                           | v1.0.2                                       |                                     | false  | true             |
@@ -620,7 +620,7 @@ _Generated on Thu, 25 Jul 2024 07:15:14 UTC for commit [0a950f4][0]._
 | github.com/prometheus/procfs                                                            | v0.15.1                                      |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf           | v0.0.0-20240611101534-dedd929c1c22  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475           |                                     | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.5.1                                       | v9.6.0                              | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.5.1                                       | v9.6.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0           | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.7                                       |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                       |                                     | false  | true             |
