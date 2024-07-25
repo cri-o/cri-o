@@ -112,10 +112,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 				return nil, err
 			}
 		}
-		options := cstorage.RepairOptions{
-			RemoveContainers: true,
-		}
-		if errs := store.Repair(report, &options); len(errs) > 0 {
+		if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
 			err = HandleUncleanShutdown(config, store)
 			if err != nil {
 				return nil, err
