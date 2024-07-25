@@ -791,17 +791,17 @@ func ShutdownWasUnclean(config *libconfig.Config) bool {
 }
 
 func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error {
-	logrus.Infof("File %s not found. Wiping storage directory %s because of suspected dirty shutdown", config.CleanShutdownFile, store.GraphRoot())
-	// If we do not do this, we may leak other resources that are not directly in the graphroot.
-	// Erroring here should not be fatal though, it's a best effort cleanup
+	// If we do not do this, we may leak other resources that are not directly
+	// in the graphroot. Erroring here should not be fatal though, it's a best
+	// effort cleanup.
 	if err := store.Wipe(); err != nil {
-		logrus.Infof("Failed to wipe storage cleanly: %v", err)
+		logrus.Infof("Failed to wipe storage: %v", err)
 	}
-	// unmount storage or else we will fail with EBUSY
+	// Unmount storage or else we will fail with -EBUSY.
 	if _, err := store.Shutdown(false); err != nil {
-		return fmt.Errorf("failed to shutdown storage before wiping: %w", err)
+		return fmt.Errorf("failed to shutdown storage: %w", err)
 	}
-	// totally remove storage, whatever is left (possibly orphaned layers)
+	// Completely remove storage, whatever is left (possibly orphaned layers).
 	if err := os.RemoveAll(store.GraphRoot()); err != nil {
 		return fmt.Errorf("failed to remove storage directory: %w", err)
 	}
