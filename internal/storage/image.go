@@ -316,8 +316,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	mountPoint := ""
 	if layer, err := svc.store.Layer(image.TopLayer); err == nil {
 		mountPoint = layer.MountPoint
-	} else {
-		logrus.Errorf("Unable to get image (%s) top layer (%s): %v", image.ID, image.TopLayer, err)
 	}
 	// Check if the mount actually exists
 	if mountPoint != "" {
