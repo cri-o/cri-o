@@ -384,17 +384,6 @@ var _ = t.Describe("Config", func() {
 			Expect(err).To(HaveOccurred())
 		})
 
-		It("should fail wrong max log size", func() {
-			// Given
-			sut.LogSizeMax = 1
-
-			// When
-			err := sut.Validate(false)
-
-			// Then
-			Expect(err).To(HaveOccurred())
-		})
-
 		It("should succeed without defaultRuntime set", func() {
 			// Given
 			sut.DefaultRuntime = ""

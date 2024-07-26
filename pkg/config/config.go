@@ -53,7 +53,6 @@ import (
 const (
 	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
 	defaultContainerMinMemory  = 12 * 1024 * 1024 // 12 MiB
-	OCIBufSize                 = 8192
 	RuntimeTypeVM              = "vm"
 	RuntimeTypePod             = "pod"
 	defaultCtrStopTimeout      = 30 // seconds
@@ -109,10 +108,6 @@ const (
 	// DefaultPidsLimit is the default value for maximum number of processes
 	// allowed inside a container.
 	DefaultPidsLimit = -1
-
-	// DefaultLogSizeMax is the default value for the maximum log size
-	// allowed for a container. Negative values mean that no limit is imposed.
-	DefaultLogSizeMax = -1
 )
 
 const (
@@ -426,12 +421,6 @@ type RuntimeConfig struct {
 	// PidsLimit is the number of processes each container is restricted to
 	// by the cgroup process number controller.
 	PidsLimit int64 `toml:"pids_limit"`
-
-	// LogSizeMax is the maximum number of bytes after which the log file
-	// will be truncated. It can be expressed as a human-friendly string
-	// that is parsed to bytes.
-	// Negative values indicate that the log file won't be truncated.
-	LogSizeMax int64 `toml:"log_size_max"`
 
 	// CtrStopTimeout specifies the time to wait before to generate an
 	// error because the container state is still tagged as "running".
@@ -897,7 +886,6 @@ func DefaultConfig() (*Config, error) {
 			ContainerAttachSocketDir:    conmonconfig.ContainerAttachSocketDir,
 			MinimumMappableUID:          -1,
 			MinimumMappableGID:          -1,
-			LogSizeMax:                  DefaultLogSizeMax,
 			CtrStopTimeout:              defaultCtrStopTimeout,
 			DefaultCapabilities:         capabilities.Default(),
 			LogLevel:                    "info",
@@ -1092,10 +1080,6 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err != nil {
 			return fmt.Errorf("invalid timezone: %s", c.Timezone)
 		}
-	}
-
-	if c.LogSizeMax >= 0 && c.LogSizeMax < OCIBufSize {
-		return fmt.Errorf("log size max should be negative or >= %d", OCIBufSize)
 	}
 
 	// We need to ensure the container termination will be properly waited

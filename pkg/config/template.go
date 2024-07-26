@@ -346,11 +346,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PidsLimit, c.PidsLimit),
 		},
 		{
-			templateString: templateStringCrioRuntimeLogSizeMax,
-			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.LogSizeMax, c.LogSizeMax),
-		},
-		{
 			templateString: templateStringCrioRuntimeLogToJournald,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.LogToJournald, c.LogToJournald),
@@ -1064,14 +1059,6 @@ const templateStringCrioRuntimeDefaultMountsFile = `# Path to the file specifyin
 const templateStringCrioRuntimePidsLimit = `# Maximum number of processes allowed in a container.
 # This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead.
 {{ $.Comment }}pids_limit = {{ .PidsLimit }}
-
-`
-
-const templateStringCrioRuntimeLogSizeMax = `# Maximum sized allowed for the container log file. Negative numbers indicate
-# that no size limit is imposed. If it is positive, it must be >= 8192 to
-# match/exceed conmon's read buffer. The file is truncated and re-opened so the
-# limit is never exceeded. This option is deprecated. The Kubelet flag '--container-log-max-size' should be used instead.
-{{ $.Comment }}log_size_max = {{ .LogSizeMax }}
 
 `
 

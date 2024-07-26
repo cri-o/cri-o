@@ -75,7 +75,6 @@ crio
 [--log-format]=[value]
 [--log-journald]
 [--log-level|-l]=[value]
-[--log-size-max]=[value]
 [--log]=[value]
 [--metrics-cert]=[value]
 [--metrics-collectors]=[value]
@@ -327,8 +326,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--log-journald**: Log to systemd journal (journald) in addition to kubernetes log file.
 
 **--log-level, -l**="": Log messages above specified level: trace, debug, info, warn, error, fatal or panic. (default: "info")
-
-**--log-size-max**="": Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer. This option is deprecated. The Kubelet flag '--container-log-max-size' should be used instead. (default: -1)
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
