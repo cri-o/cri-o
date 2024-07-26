@@ -470,7 +470,7 @@ function ping_pod_from_pod() {
     fi
 
     ip=$(pod_ip -6 "$1")
-    crictl exec --sync "$2" ping6 -W 1 -c 2 "$ip"
+    crictl exec --sync "$2" ping6 -v -W 3 -c 2 "$ip"
 }
 
 function is_rhel_7() {
