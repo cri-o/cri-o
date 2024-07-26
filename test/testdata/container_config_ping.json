@@ -70,6 +70,7 @@
 			},
 			"capabilities": {
 				"add_capabilities": [
+                    "net_raw",
 					"setuid",
 					"setgid"
 				],
