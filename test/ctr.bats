@@ -1330,7 +1330,7 @@ function create_test_rro_mounts() {
 		# This can't work with the kata shim, where the commands to the runtime
 		# are sent through a gRPC socket - there is no commandline "kill" command
 		# to intercept.
-		skip Not testable with kata
+		skip "Not testable with kata"
 	fi
 	FAKE_RUNTIME_BINARY_PATH="$TESTDIR"/fake
 	FAKE_RUNTIME_ATTEMPTS_LOG="$TESTDIR"/fake.log
