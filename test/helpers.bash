@@ -536,6 +536,7 @@ function is_cgroup_v2() {
 # as needed.
 function create_new_default_runtime() {
     local NAME="$1"
+    export CONTAINER_DEFAULT_RUNTIME=$NAME
     export DEFAULT_RUNTIME_NAME=$NAME
     export CRIO_NEW_RUNTIME_CONFIG="$CRIO_CONFIG_DIR/01-$NAME.conf"
     local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
