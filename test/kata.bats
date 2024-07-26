@@ -15,6 +15,9 @@ function teardown() {
 }
 
 @test "kata: crio config should have the default runtime set to kata" {
+	if [[ $RUNTIME_TYPE != vm ]]; then
+		skip "Not running with kata"
+	fi
 	start_crio
 
 	# make sure we're using kata as the default runtime
