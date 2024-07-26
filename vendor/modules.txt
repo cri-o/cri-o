@@ -150,7 +150,7 @@ github.com/containerd/cgroups/v3/cgroup1/stats
 # github.com/containerd/console v1.0.3
 ## explicit; go 1.13
 github.com/containerd/console
-# github.com/containerd/containerd v1.7.19
+# github.com/containerd/containerd v1.7.20
 ## explicit; go 1.21
 github.com/containerd/containerd/cio
 github.com/containerd/containerd/defaults
@@ -417,7 +417,7 @@ github.com/cri-o/ocicni/pkg/ocicni
 # github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f
 ## explicit
 github.com/cyberphone/json-canonicalization/go/src/webpki.org/jsoncanonicalizer
-# github.com/cyphar/filepath-securejoin v0.3.0
+# github.com/cyphar/filepath-securejoin v0.3.1
 ## explicit; go 1.20
 github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
@@ -772,8 +772,8 @@ github.com/moby/docker-image-spec/specs-go/v1
 ## explicit; go 1.13
 github.com/moby/spdystream
 github.com/moby/spdystream/spdy
-# github.com/moby/sys/mountinfo v0.7.1
-## explicit; go 1.16
+# github.com/moby/sys/mountinfo v0.7.2
+## explicit; go 1.17
 github.com/moby/sys/mountinfo
 # github.com/moby/sys/sequential v0.5.0
 ## explicit; go 1.17
@@ -974,7 +974,7 @@ github.com/uptrace/opentelemetry-go-extra/otellogrus
 # github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.1
 ## explicit; go 1.22
 github.com/uptrace/opentelemetry-go-extra/otelutil
-# github.com/urfave/cli/v2 v2.27.2
+# github.com/urfave/cli/v2 v2.27.3
 ## explicit; go 1.18
 github.com/urfave/cli/v2
 # github.com/vbatts/tar-split v0.11.5
@@ -1001,8 +1001,8 @@ github.com/x448/float16
 # github.com/xanzy/ssh-agent v0.3.3
 ## explicit; go 1.16
 github.com/xanzy/ssh-agent
-# github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913
-## explicit; go 1.15.0
+# github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1
+## explicit; go 1.15
 github.com/xrash/smetrics
 # go.mongodb.org/mongo-driver v1.14.0
 ## explicit; go 1.18
