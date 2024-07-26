@@ -62,7 +62,7 @@ CRI-O reads its storage defaults from the containers-storage.conf(5) file locate
   Whether CRI-O should wipe containers after a reboot and images after an upgrade when the server starts.
   If set to false, one must run `crio wipe` to wipe the containers and images in these situations.
 
-**internal_repair**=false
+**internal_repair**=true
   InternalRepair is whether CRI-O should check if the container and image storage was corrupted after a sudden restart.
   If it was, CRI-O also attempts to repair the storage.
 
