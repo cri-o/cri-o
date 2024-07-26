@@ -5665,6 +5665,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ip
       type:
         scalar: string
+      default: ""
 - name: io.k8s.api.core.v1.HostPathVolumeSource
   map:
     fields:
@@ -6116,6 +6117,9 @@ var schemaYAML = typed.YAMLObject(`types:
   map:
     fields:
     - name: recursiveReadOnlyMounts
+      type:
+        scalar: boolean
+    - name: userNamespaces
       type:
         scalar: boolean
 - name: io.k8s.api.core.v1.NodeSelector
@@ -6770,6 +6774,7 @@ var schemaYAML = typed.YAMLObject(`types:
     - name: ip
       type:
         scalar: string
+      default: ""
 - name: io.k8s.api.core.v1.PodOS
   map:
     fields:
