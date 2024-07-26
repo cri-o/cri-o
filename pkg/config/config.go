@@ -106,10 +106,6 @@ const (
 )
 
 const (
-	// DefaultPidsLimit is the default value for maximum number of processes
-	// allowed inside a container.
-	DefaultPidsLimit = -1
-
 	// DefaultLogSizeMax is the default value for the maximum log size
 	// allowed for a container. Negative values mean that no limit is imposed.
 	DefaultLogSizeMax = -1
@@ -422,10 +418,6 @@ type RuntimeConfig struct {
 	// Workloads defines a list of workloads types that are have grouped settings
 	// that will be applied to containers.
 	Workloads Workloads `toml:"workloads"`
-
-	// PidsLimit is the number of processes each container is restricted to
-	// by the cgroup process number controller.
-	PidsLimit int64 `toml:"pids_limit"`
 
 	// LogSizeMax is the maximum number of bytes after which the log file
 	// will be truncated. It can be expressed as a human-friendly string
@@ -892,7 +884,6 @@ func DefaultConfig() (*Config, error) {
 			IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
 			RdtConfigFile:               rdt.DefaultRdtConfigFile,
 			CgroupManagerName:           cgroupManager.Name(),
-			PidsLimit:                   DefaultPidsLimit,
 			ContainerExitsDir:           containerExitsDir,
 			ContainerAttachSocketDir:    conmonconfig.ContainerAttachSocketDir,
 			MinimumMappableUID:          -1,

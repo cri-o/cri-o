@@ -1064,7 +1064,7 @@ var _ = t.Describe("Config", func() {
 					[crio]
 					storage_driver = "overlay2"
 					[crio.runtime]
-					pids_limit = 2048`,
+					log_to_journald = true`,
 				), 0),
 			).To(Succeed())
 
@@ -1076,7 +1076,7 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Storage).To(Equal("overlay2"))
 			Expect(sut.Runtimes).To(HaveLen(1))
 			Expect(sut.Runtimes).To(HaveKey("runc"))
-			Expect(sut.PidsLimit).To(BeEquivalentTo(2048))
+			Expect(sut.LogToJournald).To(BeTrue())
 		})
 
 		It("should inherit storage_options from storage.conf and remove duplicates", func() {

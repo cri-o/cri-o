@@ -233,10 +233,6 @@ the container runtime configuration.
 
     2) `/usr/share/containers/mounts.conf`: This is the default file read for mounts. If you want CRI-O to read from a different, specific mounts file, you can change the default_mounts_file. Note, if this is done, CRI-O will only add mounts it finds in this file.
 
-**pids_limit**=-1
-  Maximum number of processes allowed in a container.
-  This option is deprecated. The Kubelet flag `--pod-pids-limit` should be used instead.
-
 **log_filter**=""
   Filter the log messages by the provided regular expression. This option supports live configuration reload. For example 'request:.*' filters all gRPC requests.
 

@@ -213,9 +213,6 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("default-ulimits") {
 		config.DefaultUlimits = StringSliceTrySplit(ctx, "default-ulimits")
 	}
-	if ctx.IsSet("pids-limit") {
-		config.PidsLimit = ctx.Int64("pids-limit")
-	}
 	if ctx.IsSet("log-size-max") {
 		config.LogSizeMax = ctx.Int64("log-size-max")
 	}
@@ -698,12 +695,6 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "cgroup manager (cgroupfs or systemd).",
 			Value:   defConf.CgroupManagerName,
 			EnvVars: []string{"CONTAINER_CGROUP_MANAGER"},
-		},
-		&cli.Int64Flag{
-			Name:    "pids-limit",
-			Value:   libconfig.DefaultPidsLimit,
-			Usage:   "Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead.",
-			EnvVars: []string{"CONTAINER_PIDS_LIMIT"},
 		},
 		&cli.Int64Flag{
 			Name:    "log-size-max",
