@@ -145,7 +145,9 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", strconv.FormatInt(r.config.LogSizeMax, 10))
 	}
-	if r.config.NoSyncLog {
+	if r.handler.NoSyncLog {
+		log.Warnf(ctx, "NoSyncLog is enabled for %s (%s), this can lead to lost log data",
+			c.ID(), c.name)
 		args = append(args, "--no-sync-log")
 	}
 	if r.config.LogToJournald {

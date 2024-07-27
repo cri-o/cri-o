@@ -89,7 +89,6 @@ h
 --minimum-mappable-uid
 --namespaces-dir
 --no-pivot
---no-sync-log
 --nri-disable-connections
 --nri-listen
 --nri-plugin-config-dir

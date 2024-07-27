@@ -250,9 +250,6 @@ the container runtime configuration.
 **log_to_journald**=false
   Whether container output should be logged to journald in addition to the kubernetes log file.
 
-**no_sync_log**=false
-  If set to true, CRI-O will not sync the log files on log rotation or container exit.
-
 **container_exits_dir**="/var/run/crio/exits"
   Path to directory in which container exit files are written to by conmon.
 
@@ -366,6 +363,10 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.
+
+**no_sync_log**=false
+  If set to true, the runtime will not sync the log file on rotate or container exit. This option is only valid for the 'oci' 
+  runtime type. Setting this option to true can cause data loss, e.g. when a machine crash happens.
 
 ### CRIO.RUNTIME.WORKLOADS TABLE
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.

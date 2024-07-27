@@ -356,11 +356,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.LogToJournald, c.LogToJournald),
 		},
 		{
-			templateString: templateStringCrioRuntimeNoSyncLog,
-			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.NoSyncLog, c.NoSyncLog),
-		},
-		{
 			templateString: templateStringCrioRuntimeContainerExitsDir,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ContainerExitsDir, c.ContainerExitsDir),
@@ -1085,11 +1080,6 @@ const templateStringCrioRuntimeLogToJournald = `# Whether container output shoul
 
 `
 
-const templateStringCrioRuntimeNoSyncLog = `# no_sync_log if enabled will disable syncing the log file on rotate or container exit.
-{{ $.Comment }}no_sync_log = {{ .NoSyncLog }}
-
-`
-
 const templateStringCrioRuntimeContainerExitsDir = `# Path to directory in which container exit files are written to by conmon.
 {{ $.Comment }}container_exits_dir = "{{ .ContainerExitsDir }}"
 
@@ -1248,6 +1238,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # privileged_without_host_devices = false
 # allowed_annotations = []
 # platform_runtime_paths = { "os/arch" = "/path/to/binary" }
+# no_sync_log = false
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1294,6 +1285,9 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # - container_min_memory (optional, string): The minimum memory that must be set for a container.
 #   This value can be used to override the currently set global value for a specific runtime. If not set,
 #   a global default value of "12 MiB" will be used.
+# - no_sync_log (optional, bool): If set to true, the runtime will not sync the log file on rotate or container exit.
+#   This option is only valid for the 'oci' runtime type. Setting this option to true can cause data loss, e.g.
+#   when a machine crash happens.
 #
 # Using the seccomp notifier feature:
 #
