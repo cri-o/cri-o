@@ -1558,6 +1558,9 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 
 // Validate checks if the whole runtime is valid.
 func (r *RuntimeHandler) Validate(name string) error {
+	if err := r.ValidateRuntimeType(name); err != nil {
+		return err
+	}
 	if err := r.ValidateRuntimePath(name); err != nil {
 		return err
 	}
@@ -1567,7 +1570,7 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
-	return r.ValidateRuntimeType(name)
+	return nil
 }
 
 func (r *RuntimeHandler) ValidateRuntimeVMBinaryPattern() bool {
