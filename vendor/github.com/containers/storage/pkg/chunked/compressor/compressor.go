@@ -7,7 +7,6 @@ package compressor
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"io"
 
 	"github.com/containers/storage/pkg/chunked/internal"
@@ -369,34 +368,14 @@ func writeZstdChunkedStream(destFile io.Writer, outMetadata map[string]string, r
 			}
 		}
 
-		typ, err := internal.GetType(hdr.Typeflag)
+		mainEntry, err := internal.NewFileMetadata(hdr)
 		if err != nil {
 			return err
 		}
-		xattrs := make(map[string]string)
-		for k, v := range hdr.Xattrs {
-			xattrs[k] = base64.StdEncoding.EncodeToString([]byte(v))
-		}
-		entries := []internal.FileMetadata{
-			{
-				Type:       typ,
-				Name:       hdr.Name,
-				Linkname:   hdr.Linkname,
-				Mode:       hdr.Mode,
-				Size:       hdr.Size,
-				UID:        hdr.Uid,
-				GID:        hdr.Gid,
-				ModTime:    &hdr.ModTime,
-				AccessTime: &hdr.AccessTime,
-				ChangeTime: &hdr.ChangeTime,
-				Devmajor:   hdr.Devmajor,
-				Devminor:   hdr.Devminor,
-				Xattrs:     xattrs,
-				Digest:     checksum,
-				Offset:     startOffset,
-				EndOffset:  lastOffset,
-			},
-		}
+		mainEntry.Digest = checksum
+		mainEntry.Offset = startOffset
+		mainEntry.EndOffset = lastOffset
+		entries := []internal.FileMetadata{mainEntry}
 		for i := 1; i < len(chunks); i++ {
 			entries = append(entries, internal.FileMetadata{
 				Type:        internal.TypeChunk,

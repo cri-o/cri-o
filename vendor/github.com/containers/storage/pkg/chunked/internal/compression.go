@@ -5,25 +5,57 @@ package internal
 // larger software like the graph drivers.
 
 import (
-	"archive/tar"
 	"bytes"
+	"encoding/base64"
 	"encoding/binary"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
+	"github.com/containers/storage/pkg/archive"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
+	"github.com/vbatts/tar-split/archive/tar"
 )
 
+// TOC is short for Table of Contents and is used by the zstd:chunked
+// file format to effectively add an overall index into the contents
+// of a tarball; it also includes file metadata.
 type TOC struct {
-	Version        int            `json:"version"`
-	Entries        []FileMetadata `json:"entries"`
-	TarSplitDigest digest.Digest  `json:"tarSplitDigest,omitempty"`
+	// Version is currently expected to be 1
+	Version int `json:"version"`
+	// Entries is the list of file metadata in this TOC.
+	// The ordering in this array currently defaults to being the same
+	// as that of the tar stream; however, this should not be relied on.
+	Entries []FileMetadata `json:"entries"`
+	// TarSplitDigest is the checksum of the "tar-split" data which
+	// is included as a distinct skippable zstd frame before the TOC.
+	TarSplitDigest digest.Digest `json:"tarSplitDigest,omitempty"`
 }
 
+// FileMetadata is an entry in the TOC that includes both generic file metadata
+// that duplicates what can found in the tar header (and should match), but
+// also special/custom content (see below).
+//
+// Regular files may optionally be represented as a sequence of “chunks”,
+// which may be ChunkTypeData or ChunkTypeZeros (and ChunkTypeData boundaries
+// are heuristically determined to increase chance of chunk matching / reuse
+// similar to rsync). In that case, the regular file is represented
+// as an initial TypeReg entry (with all metadata for the file as a whole)
+// immediately followed by zero or more TypeChunk entries (containing only Type,
+// Name and Chunk* fields); if there is at least one TypeChunk entry, the Chunk*
+// fields are relevant in all of these entries, including the initial
+// TypeReg one.
+//
+// Note that the metadata here, when fetched by a zstd:chunked aware client,
+// is used instead of that in the tar stream.  The contents of the tar stream
+// are not used in this scenario.
 type FileMetadata struct {
+	// If you add any fields, update ensureFileMetadataMatches as well!
+
+	// The metadata below largely duplicates that in the tar headers.
 	Type       string            `json:"type"`
 	Name       string            `json:"name"`
 	Linkname   string            `json:"linkName,omitempty"`
@@ -37,9 +69,11 @@ type FileMetadata struct {
 	Devmajor   int64             `json:"devMajor,omitempty"`
 	Devminor   int64             `json:"devMinor,omitempty"`
 	Xattrs     map[string]string `json:"xattrs,omitempty"`
-	Digest     string            `json:"digest,omitempty"`
-	Offset     int64             `json:"offset,omitempty"`
-	EndOffset  int64             `json:"endOffset,omitempty"`
+	// Digest is a hexadecimal sha256 checksum of the file contents; it
+	// is empty for empty files
+	Digest    string `json:"digest,omitempty"`
+	Offset    int64  `json:"offset,omitempty"`
+	EndOffset int64  `json:"endOffset,omitempty"`
 
 	ChunkSize   int64  `json:"chunkSize,omitempty"`
 	ChunkOffset int64  `json:"chunkOffset,omitempty"`
@@ -53,19 +87,23 @@ const (
 )
 
 const (
+	// The following types correspond to regular types of entries that can
+	// appear in a tar archive.
 	TypeReg     = "reg"
-	TypeChunk   = "chunk"
 	TypeLink    = "hardlink"
 	TypeChar    = "char"
 	TypeBlock   = "block"
 	TypeDir     = "dir"
 	TypeFifo    = "fifo"
 	TypeSymlink = "symlink"
+	// TypeChunk is special; in zstd:chunked not only are files individually
+	// compressed and indexable, there is a "rolling checksum" used to compute
+	// "chunks" of individual file contents, that are also added to the TOC
+	TypeChunk = "chunk"
 )
 
 var TarTypes = map[byte]string{
 	tar.TypeReg:     TypeReg,
-	tar.TypeRegA:    TypeReg,
 	tar.TypeLink:    TypeLink,
 	tar.TypeChar:    TypeChar,
 	tar.TypeBlock:   TypeBlock,
@@ -83,11 +121,23 @@ func GetType(t byte) (string, error) {
 }
 
 const (
+	// ManifestChecksumKey is a hexadecimal sha256 digest of the compressed manifest digest.
 	ManifestChecksumKey = "io.github.containers.zstd-chunked.manifest-checksum"
-	ManifestInfoKey     = "io.github.containers.zstd-chunked.manifest-position"
-	TarSplitInfoKey     = "io.github.containers.zstd-chunked.tarsplit-position"
+	// ManifestInfoKey is an annotation that signals the start of the TOC (manifest)
+	// contents which are embedded as a skippable zstd frame.  It has a format of
+	// four decimal integers separated by `:` as follows:
+	// <offset>:<length>:<uncompressed length>:<type>
+	// The <type> is ManifestTypeCRFS which should have the value `1`.
+	ManifestInfoKey = "io.github.containers.zstd-chunked.manifest-position"
+	// TarSplitInfoKey is an annotation that signals the start of the "tar-split" metadata
+	// contents which are embedded as a skippable zstd frame.  It has a format of
+	// three decimal integers separated by `:` as follows:
+	// <offset>:<length>:<uncompressed length>
+	TarSplitInfoKey = "io.github.containers.zstd-chunked.tarsplit-position"
 
-	TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum" // Deprecated: Use the TOC.TarSplitDigest field instead, this annotation is no longer read nor written.
+	// TarSplitChecksumKey is no longer used and is replaced by the TOC.TarSplitDigest field instead.
+	// The value is retained here as a constant as a historical reference for older zstd:chunked images.
+	// TarSplitChecksumKey = "io.github.containers.zstd-chunked.tarsplit-checksum"
 
 	// ManifestTypeCRFS is a manifest file compatible with the CRFS TOC file.
 	ManifestTypeCRFS = 1
@@ -231,4 +281,44 @@ func footerDataToBlob(footer ZstdChunkedFooterData) []byte {
 	copy(manifestDataLE[8*7:], ZstdChunkedFrameMagic)
 
 	return manifestDataLE
+}
+
+// timeIfNotZero returns a pointer to the time.Time if it is not zero, otherwise it returns nil.
+func timeIfNotZero(t *time.Time) *time.Time {
+	if t == nil || t.IsZero() {
+		return nil
+	}
+	return t
+}
+
+// NewFileMetadata creates a basic FileMetadata entry for hdr.
+// The caller must set DigestOffset/EndOffset, and the Chunk* values, separately.
+func NewFileMetadata(hdr *tar.Header) (FileMetadata, error) {
+	typ, err := GetType(hdr.Typeflag)
+	if err != nil {
+		return FileMetadata{}, err
+	}
+	xattrs := make(map[string]string)
+	for k, v := range hdr.PAXRecords {
+		xattrKey, ok := strings.CutPrefix(k, archive.PaxSchilyXattr)
+		if !ok {
+			continue
+		}
+		xattrs[xattrKey] = base64.StdEncoding.EncodeToString([]byte(v))
+	}
+	return FileMetadata{
+		Type:       typ,
+		Name:       hdr.Name,
+		Linkname:   hdr.Linkname,
+		Mode:       hdr.Mode,
+		Size:       hdr.Size,
+		UID:        hdr.Uid,
+		GID:        hdr.Gid,
+		ModTime:    timeIfNotZero(&hdr.ModTime),
+		AccessTime: timeIfNotZero(&hdr.AccessTime),
+		ChangeTime: timeIfNotZero(&hdr.ChangeTime),
+		Devmajor:   hdr.Devmajor,
+		Devminor:   hdr.Devminor,
+		Xattrs:     xattrs,
+	}, nil
 }
