@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
+_Generated on Mon, 29 Jul 2024 18:35:59 UTC for commit [4fe6ffe][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5b5ab055d757f38142435885deca997b5c62a316
+[0]: https://github.com/cri-o/cri-o/commit/4fe6ffecc1910ea37a15c32b7f2d32c94621f004
 
 ## Outdated Dependencies
 
@@ -15,7 +15,7 @@ _Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240729012226-4fbf9d67a5e8 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.19.0                            | v2.19.1                            | true   | true             |
-| github.com/onsi/gomega                                 | v1.33.1                            | v1.34.0                            | true   | true             |
+| github.com/onsi/gomega                                 | v1.33.1                            | v1.34.1                            | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/client-go                                       | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -588,7 +588,7 @@ _Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                       |                                     | false  | true             |
 | github.com/onsi/ginkgo                                                                  | v1.16.4                                      | v1.16.5                             | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.19.0                                      | v2.19.1                             | true   | true             |
-| github.com/onsi/gomega                                                                  | v1.33.1                                      | v1.34.0                             | true   | true             |
+| github.com/onsi/gomega                                                                  | v1.33.1                                      | v1.34.1                             | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.63.0                                      | v0.67.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                       |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                       |                                     | true   | true             |
@@ -781,7 +781,7 @@ _Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240725223205-93522f1f2a9f  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240725223205-93522f1f2a9f  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.65.0                                      |                                     | true   | true             |
-| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                       | v1.5.0                              | false  | true             |
+| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                       | v1.5.1                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                                      |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                       | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c           |                                     | false  | true             |
@@ -818,7 +818,7 @@ _Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                      | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                      |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                       |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                      | v1.55.5                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                      | v1.55.6                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                       | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                       | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                       |                                     | false  | true             |
