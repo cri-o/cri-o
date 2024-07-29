@@ -12,7 +12,7 @@ run:
     # needs devmapper headers installed
     - exclude_graphdriver_devicemapper
   concurrency: 6
-  deadline: 10m
+  timeout: 10m
 linters:
   disable-all: true
   enable:
@@ -64,6 +64,7 @@ linters:
     - nosprintfhostport
     - perfsprint
     - prealloc
+    - promlinter
     - protogetter
     - reassign
     - revive
@@ -115,7 +116,6 @@ linters:
     # - nonamedreturns
     # - paralleltest
     # - predeclared
-    # - promlinter
     # - tagliatelle
     # - testpackage
     # - thelper
