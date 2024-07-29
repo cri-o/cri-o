@@ -44,7 +44,7 @@ var VersionCommand = &cli.Command{
 			res = j
 
 		}
-		fmt.Println(res)
+		fmt.Print(res)
 		return nil
 	},
 }
