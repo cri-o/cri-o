@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 29 Jul 2024 07:00:24 UTC for commit [e328c14][0]._
+_Generated on Mon, 29 Jul 2024 09:39:31 UTC for commit [5b5ab05][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e328c14b92eed6c050d2a531995e25d638ad4304
+[0]: https://github.com/cri-o/cri-o/commit/5b5ab055d757f38142435885deca997b5c62a316
 
 ## Outdated Dependencies
 
@@ -781,7 +781,7 @@ _Generated on Mon, 29 Jul 2024 07:00:24 UTC for commit [e328c14][0]._
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240725223205-93522f1f2a9f  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240725223205-93522f1f2a9f  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.65.0                                      |                                     | true   | true             |
-| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                       | v1.4.0                              | false  | true             |
+| google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                       | v1.5.0                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                                      |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                       | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c           |                                     | false  | true             |
