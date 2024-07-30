@@ -44,14 +44,14 @@ var _ = t.Describe("ContainerStop", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It("should fail with invalid container id", func() {
+		It("should succeed with not existing container ID", func() {
 			// Given
 			// When
 			_, err := sut.StopContainer(context.Background(),
 				&types.StopContainerRequest{ContainerId: "id"})
 
 			// Then
-			Expect(err).To(HaveOccurred())
+			Expect(err).NotTo(HaveOccurred())
 		})
 	})
 })

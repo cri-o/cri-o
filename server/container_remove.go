@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/containers/storage"
+	"github.com/containers/storage/pkg/truncindex"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -26,6 +27,12 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	// save container description to print
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
+		// The RemoveContainer RPC is idempotent, and must not return an error
+		// if the container has already been removed. Ref:
+		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L74-L75
+		if errors.Is(err, truncindex.ErrNotExist) {
+			return &types.RemoveContainerResponse{}, nil
+		}
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 

@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	storagetypes "github.com/containers/storage"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/storage"
 )
 
 // RemoveImage removes the image.
@@ -29,31 +31,36 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 }
 
 func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr error) {
-	var deleted bool
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	// FIXME: The CRI API definition says
-	//      This call is idempotent, and must not return an error if the image has
-	//      already been removed.
-	// and this code doesn’t seem to conform to that.
-
-	// Actually Kubelet is only ever calling this with full image IDs.
-	// So we don't really need to accept ID prefixes nor short names;
-	// or is there another user?!
-
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
-		return s.StorageImageServer().DeleteImage(s.config.SystemContext, *id)
+		if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
+			if errors.Is(err, storagetypes.ErrImageUnknown) {
+				// The RemoveImage RPC is idempotent, and must not return an
+				// error if the image has already been removed. Ref:
+				// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
+				return nil
+			}
+
+			return fmt.Errorf("delete image: %w", err)
+		}
+		return nil
 	}
 
+	var (
+		deleted   bool
+		statusErr error
+	)
 	potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {
 		return err
 	}
 	for _, name := range potentialMatches {
-		status, err := s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
-		if err != nil {
-			log.Errorf(ctx, "Error getting image status %s: %v", name, err)
+		var status *storage.ImageResult
+		status, statusErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+		if statusErr != nil {
+			log.Errorf(ctx, "Error getting image status %s: %v", name, statusErr)
 			continue
 		}
 		if status.MountPoint != "" {
@@ -82,5 +89,13 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	if !deleted && untagErr != nil {
 		return untagErr
 	}
+
+	if errors.Is(statusErr, storagetypes.ErrNotAnImage) {
+		// The RemoveImage RPC is idempotent, and must not return an
+		// error if the image has already been removed. Ref:
+		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
+		return nil
+	}
+
 	return nil
 }
