@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 29 Jul 2024 18:35:59 UTC for commit [4fe6ffe][0]._
+_Generated on Tue, 30 Jul 2024 07:00:29 UTC for commit [a1874e1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4fe6ffecc1910ea37a15c32b7f2d32c94621f004
+[0]: https://github.com/cri-o/cri-o/commit/a1874e189990bb1214eb80fab5b26a22d20a1495
 
 ## Outdated Dependencies
 
@@ -139,7 +139,7 @@ _Generated on Mon, 29 Jul 2024 18:35:59 UTC for commit [4fe6ffe][0]._
 | cloud.google.com/go/servicemanagement                                                   | v1.8.0                                       | v1.9.12                             | false  | true             |
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                       | v1.8.10                             | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.5                                       | v1.7.11                             | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.58.0                                      | v1.64.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.58.0                                      | v1.65.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.22.0                                      | v1.24.0                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.39.1                                      | v1.43.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.4                                      | v1.10.10                            | false  | true             |
@@ -236,7 +236,7 @@ _Generated on Mon, 29 Jul 2024 18:35:59 UTC for commit [4fe6ffe][0]._
 | github.com/apache/thrift                                                                | v0.16.0                                      | v0.20.0                             | false  | true             |
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5           |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2           |                                     | false  | true             |
-| github.com/aws/aws-sdk-go                                                               | v1.51.6                                      | v1.55.3                             | false  | true             |
+| github.com/aws/aws-sdk-go                                                               | v1.51.6                                      | v1.55.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                                      | v1.30.3                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                       | v1.6.3                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                                      | v1.27.27                            | false  | true             |
@@ -748,7 +748,7 @@ _Generated on Mon, 29 Jul 2024 18:35:59 UTC for commit [4fe6ffe][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.28.0                                      |                                     | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.28.0                                      |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.3.1                                       |                                     | false  | true             |
-| go.step.sm/crypto                                                                       | v0.44.2                                      | v0.50.0                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.44.2                                      | v0.51.1                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                       | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                       |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                       |                                     | false  | true             |
