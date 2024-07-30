@@ -1,13 +1,16 @@
+//go:build unix
+
 package dump
 
 import (
 	"bufio"
+	"encoding/base64"
 	"fmt"
 	"io"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"time"
-	"unicode"
 
 	"github.com/containers/storage/pkg/chunked/internal"
 	"golang.org/x/sys/unix"
@@ -20,20 +23,26 @@ const (
 	ESCAPE_LONE_DASH
 )
 
-func escaped(val string, escape int) string {
+func escaped(val []byte, escape int) string {
 	noescapeSpace := escape&NOESCAPE_SPACE != 0
 	escapeEqual := escape&ESCAPE_EQUAL != 0
 	escapeLoneDash := escape&ESCAPE_LONE_DASH != 0
 
-	length := len(val)
-
-	if escapeLoneDash && val == "-" {
+	if escapeLoneDash && len(val) == 1 && val[0] == '-' {
 		return fmt.Sprintf("\\x%.2x", val[0])
 	}
 
+	// This is intended to match the C isprint API with LC_CTYPE=C
+	isprint := func(c byte) bool {
+		return c >= 32 && c < 127
+	}
+	// This is intended to match the C isgraph API with LC_CTYPE=C
+	isgraph := func(c byte) bool {
+		return c > 32 && c < 127
+	}
+
 	var result string
-	for i := 0; i < length; i++ {
-		c := val[i]
+	for _, c := range []byte(val) {
 		hexEscape := false
 		var special string
 
@@ -50,9 +59,9 @@ func escaped(val string, escape int) string {
 			hexEscape = escapeEqual
 		default:
 			if noescapeSpace {
-				hexEscape = !unicode.IsPrint(rune(c))
+				hexEscape = !isprint(c)
 			} else {
-				hexEscape = !unicode.IsPrint(rune(c)) || unicode.IsSpace(rune(c))
+				hexEscape = !isgraph(c)
 			}
 		}
 
@@ -67,8 +76,8 @@ func escaped(val string, escape int) string {
 	return result
 }
 
-func escapedOptional(val string, escape int) string {
-	if val == "" {
+func escapedOptional(val []byte, escape int) string {
+	if len(val) == 0 {
 		return "-"
 	}
 	return escaped(val, escape)
@@ -104,10 +113,31 @@ func sanitizeName(name string) string {
 	return path
 }
 
-func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
+func dumpNode(out io.Writer, added map[string]*internal.FileMetadata, links map[string]int, verityDigests map[string]string, entry *internal.FileMetadata) error {
 	path := sanitizeName(entry.Name)
 
-	if _, err := fmt.Fprint(out, escaped(path, ESCAPE_STANDARD)); err != nil {
+	parent := filepath.Dir(path)
+	if _, found := added[parent]; !found && path != "/" {
+		parentEntry := &internal.FileMetadata{
+			Name: parent,
+			Type: internal.TypeDir,
+			Mode: 0o755,
+		}
+		if err := dumpNode(out, added, links, verityDigests, parentEntry); err != nil {
+			return err
+		}
+
+	}
+	if e, found := added[path]; found {
+		// if the entry was already added, make sure it has the same data
+		if !reflect.DeepEqual(*e, *entry) {
+			return fmt.Errorf("entry %q already added with different data", path)
+		}
+		return nil
+	}
+	added[path] = entry
+
+	if _, err := fmt.Fprint(out, escaped([]byte(path), ESCAPE_STANDARD)); err != nil {
 		return err
 	}
 
@@ -151,7 +181,7 @@ func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]stri
 		}
 	}
 
-	if _, err := fmt.Fprintf(out, escapedOptional(payload, ESCAPE_LONE_DASH)); err != nil {
+	if _, err := fmt.Fprint(out, escapedOptional([]byte(payload), ESCAPE_LONE_DASH)); err != nil {
 		return err
 	}
 
@@ -165,14 +195,18 @@ func dumpNode(out io.Writer, links map[string]int, verityDigests map[string]stri
 		return err
 	}
 	digest := verityDigests[payload]
-	if _, err := fmt.Fprintf(out, escapedOptional(digest, ESCAPE_LONE_DASH)); err != nil {
+	if _, err := fmt.Fprint(out, escapedOptional([]byte(digest), ESCAPE_LONE_DASH)); err != nil {
 		return err
 	}
 
-	for k, v := range entry.Xattrs {
-		name := escaped(k, ESCAPE_EQUAL)
-		value := escaped(v, ESCAPE_EQUAL)
+	for k, vEncoded := range entry.Xattrs {
+		v, err := base64.StdEncoding.DecodeString(vEncoded)
+		if err != nil {
+			return fmt.Errorf("decode xattr %q: %w", k, err)
+		}
+		name := escaped([]byte(k), ESCAPE_EQUAL)
 
+		value := escaped(v, ESCAPE_EQUAL)
 		if _, err := fmt.Fprintf(out, " %s=%s", name, value); err != nil {
 			return err
 		}
@@ -201,6 +235,7 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 		}()
 
 		links := make(map[string]int)
+		added := make(map[string]*internal.FileMetadata)
 		for _, e := range toc.Entries {
 			if e.Linkname == "" {
 				continue
@@ -211,14 +246,14 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 			links[e.Linkname] = links[e.Linkname] + 1
 		}
 
-		if len(toc.Entries) == 0 || (sanitizeName(toc.Entries[0].Name) != "/") {
+		if len(toc.Entries) == 0 {
 			root := &internal.FileMetadata{
 				Name: "/",
 				Type: internal.TypeDir,
 				Mode: 0o755,
 			}
 
-			if err := dumpNode(w, links, verityDigests, root); err != nil {
+			if err := dumpNode(w, added, links, verityDigests, root); err != nil {
 				pipeW.CloseWithError(err)
 				closed = true
 				return
@@ -229,7 +264,7 @@ func GenerateDump(tocI interface{}, verityDigests map[string]string) (io.Reader,
 			if e.Type == internal.TypeChunk {
 				continue
 			}
-			if err := dumpNode(w, links, verityDigests, &e); err != nil {
+			if err := dumpNode(w, added, links, verityDigests, &e); err != nil {
 				pipeW.CloseWithError(err)
 				closed = true
 				return
