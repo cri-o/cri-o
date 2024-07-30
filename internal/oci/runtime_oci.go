@@ -894,20 +894,24 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 
 	done := make(chan struct{})
 	go func() {
+		statusCheckTicker := time.NewTicker(stopProcessWatchSleep)
+		defer statusCheckTicker.Stop()
 		for {
-			if err := c.Living(); err != nil {
-				// The initial container process either doesn't exist, or isn't ours.
-				if !errors.Is(err, ErrNotFound) {
-					log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
-				}
-				close(done)
-				return
-			}
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(stopProcessWatchSleep):
-				// Continue watching
+			case <-statusCheckTicker.C:
+				// Periodically check if the container is still running.
+				// This avoids busy-waiting and reduces resource usage while
+				// ensuring timely detection of container termination.
+				if err := c.Living(); err != nil {
+					// The initial container process either doesn't exist, or isn't ours.
+					if !errors.Is(err, ErrNotFound) {
+						log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
+					}
+					close(done)
+					return
+				}
 			}
 		}
 	}()
@@ -956,11 +960,15 @@ killContainer:
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
 		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
-			log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+			if !errors.Is(err, ErrNotFound) {
+				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+			}
+			log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), err)
 		}
 
 		if err := c.Living(); err != nil {
 			stop()
+			return
 		}
 		// Reschedule the timer so that the periodic reminder can continue.
 		blockedTimer.Reset(stopProcessBlockedInterval)
@@ -1402,6 +1410,18 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 
 	err := cmd.Run()
 	if err != nil {
+		stdErrStr := stderr.String()
+		switch {
+		// crun, for most of the commands.
+		case strings.Contains(stdErrStr, "no such process"):
+			fallthrough //nolint:gocritic
+		// runc, for most of the commands.
+		case strings.Contains(stdErrStr, "container not running"):
+			fallthrough //nolint:gocritic
+		// runc, on a rare occasion.
+		case strings.Contains(stdErrStr, "invalid process"):
+			err = ErrNotFound
+		}
 		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", r.handler.RuntimePath, strings.Join(runtimeArgs, " "), stderr.String(), stdout.String(), err)
 	}
 
