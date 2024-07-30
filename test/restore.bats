@@ -119,8 +119,7 @@ function teardown() {
 
 	start_crio
 
-	run -1 crictl stop "$ctr_id"
-	[[ "${output}" == *"not found"* ]]
+	crictl stop "$ctr_id"
 }
 
 @test "crio restore with bad state and pod removed" {
