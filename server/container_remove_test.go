@@ -50,6 +50,16 @@ var _ = t.Describe("ContainerRemove", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It("should succeed if container is not found", func() {
+			// Given
+			// When
+			_, err := sut.RemoveContainer(context.Background(),
+				&types.RemoveContainerRequest{ContainerId: "id"})
+
+			// Then
+			Expect(err).NotTo(HaveOccurred())
+		})
+
 		It("should fail on container remove error", func() {
 			// Given
 			// When

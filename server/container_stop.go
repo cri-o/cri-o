@@ -1,8 +1,10 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 
+	"github.com/containers/storage/pkg/truncindex"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -20,6 +22,12 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
+		// The StopContainer RPC is idempotent, and must not return an error if
+		// the container has already been stopped. Ref:
+		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L67-L68
+		if errors.Is(err, truncindex.ErrNotExist) {
+			return &types.StopContainerResponse{}, nil
+		}
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
