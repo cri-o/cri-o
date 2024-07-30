@@ -410,7 +410,7 @@ func (l *local) syncPlugin(ctx context.Context, syncFn nri.SyncCB) error {
 
 	log.Infof(ctx, "Synchronizing NRI (plugin) with current runtime state")
 
-	pods := podSandboxesToNRI(domains.listPodSandboxes())
+	pods := podSandboxesToNRI(domains.listPodSandboxes(ctx))
 	containers := containersToNRI(domains.listContainers())
 
 	for _, ctr := range containers {
