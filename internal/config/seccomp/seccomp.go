@@ -42,7 +42,7 @@ func DefaultProfile() *seccomp.Seccomp {
 		}{
 			{"clone", 1, 23},
 			{"clone3", 1, 24},
-			{"unshare", 1, 363},
+			{"unshare", 1, 358},
 		}
 
 		prof := seccomp.DefaultProfile()
@@ -84,26 +84,46 @@ func DefaultProfile() *seccomp.Seccomp {
 			flagsIndex = 1
 		}
 
-		prof.Syscalls = append(prof.Syscalls, &seccomp.Syscall{
-			Names: []string{
-				"clone",
-			},
-			Action: seccomp.ActAllow,
-			Args: []*seccomp.Arg{
-				{
-					Index:    flagsIndex,
-					Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
-					ValueTwo: 0,
-					Op:       seccomp.OpMaskedEqual,
-				},
-			},
-		},
+		prof.Syscalls = append(prof.Syscalls,
 			&seccomp.Syscall{
-				Names: []string{
-					"clone",
+				Name:   "clone",
+				Action: seccomp.ActAllow,
+				Args: []*seccomp.Arg{
+					{
+						Index:    flagsIndex,
+						Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
+						ValueTwo: 0,
+						Op:       seccomp.OpMaskedEqual,
+					},
 				},
+			},
+			&seccomp.Syscall{
+				Name:   "clone",
 				Action: seccomp.ActErrno,
 				Errno:  "EPERM",
+				Args: []*seccomp.Arg{
+					{Index: flagsIndex, Value: unix.CLONE_NEWNS, ValueTwo: unix.CLONE_NEWNS, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWUTS, ValueTwo: unix.CLONE_NEWUTS, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWIPC, ValueTwo: unix.CLONE_NEWIPC, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWUSER, ValueTwo: unix.CLONE_NEWUSER, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWPID, ValueTwo: unix.CLONE_NEWPID, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWNET, ValueTwo: unix.CLONE_NEWNET, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWCGROUP, ValueTwo: unix.CLONE_NEWCGROUP, Op: seccomp.OpMaskedEqual},
+				},
+				Excludes: seccomp.Filter{
+					Caps: []string{"CAP_SYS_ADMIN"},
+				},
+			},
+			// Because seccomp currently can't compare the data inside struct and the flags in clone3 are hidden in a struct,
+			// seccomp can't block clone3 based on its flags. To force it to use only clone, we make clone3 return ENOSYS,
+			// so that glibc can fall back to clone in the same way as https://github.com/moby/moby/pull/42681.
+			&seccomp.Syscall{
+				Name:   "clone3",
+				Action: seccomp.ActErrno,
+				Errno:  "ENOSYS",
+				Excludes: seccomp.Filter{
+					Caps: []string{"CAP_SYS_ADMIN"},
+				},
 			})
 		defaultProfile = prof
 	})
