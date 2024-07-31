@@ -103,7 +103,27 @@ function teardown() {
 
 	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
-	crictl exec --sync "$ctr_id" /usr/bin/make -C / clone-ns
-	run crictl exec --sync "$ctr_id" /clone-ns
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
+	run crictl exec --sync "$ctr_id" /usr/bin/clone-ns
 	[[ "$output" =~ "Operation not permitted" ]]
 }
+
+# 10. test running with ctr runtime/default allow clone without namespace flags
+@test "ctr seccomp profiles runtime/default allows clone not creating namespaces" {
+	unset CONTAINER_SECCOMP_PROFILE
+	restart_crio
+
+	jq --arg TESTDATA "$TESTDATA" '.linux.security_context.seccomp.profile_type = 0 |
+          .mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-without-ns.c /
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-without-ns.c -o /usr/bin/clone-without-ns
+	run crictl exec --sync "$ctr_id" /usr/bin/clone-without-ns
+	[[ "$output" =~ "Operation not permitted" ]]
+}
+
