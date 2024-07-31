@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 30 Jul 2024 21:11:08 UTC for commit [96019ab][0]._
+_Generated on Wed, 31 Jul 2024 11:40:59 UTC for commit [5256b10][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/96019ab31be3458bdcb6dfd00a11b05dde7832fc
+[0]: https://github.com/cri-o/cri-o/commit/5256b10e6712fec6acf41acf47db7574850a15c5
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240730203005-c8a160d14a34 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240731104111-230aefc0dac5 | true   | true             |
 | github.com/onsi/gomega                                 | v1.34.0                            | v1.34.1                            | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
 | k8s.io/apimachinery                                    | v0.31.0-alpha.3                    | v0.31.0-beta.0                     | true   | true             |
@@ -217,7 +217,7 @@ _Generated on Tue, 30 Jul 2024 21:11:08 UTC for commit [96019ab][0]._
 | github.com/alibabacloud-go/darabonba-openapi                                            | v0.2.1                                       |                                     | false  | true             |
 | github.com/alibabacloud-go/debug                                                        | v1.0.0                                       |                                     | false  | true             |
 | github.com/alibabacloud-go/endpoint-util                                                | v1.1.1                                       |                                     | false  | true             |
-| github.com/alibabacloud-go/openapi-util                                                 | v0.1.0                                       |                                     | false  | true             |
+| github.com/alibabacloud-go/openapi-util                                                 | v0.1.0                                       | v0.1.1                              | false  | true             |
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                       | v1.2.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.5                                       |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.3                                       |                                     | false  | true             |
@@ -262,7 +262,7 @@ _Generated on Tue, 30 Jul 2024 21:11:08 UTC for commit [96019ab][0]._
 | github.com/blendle/zapdriver                                                            | v1.3.1                                       |                                     | false  | true             |
 | github.com/boombuler/barcode                                                            | v1.0.1                                       | v1.0.2                              | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                       |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.62.0                                      | v3.75.1                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.62.0                                      | v3.76.1                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                       | v0.10.0                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251           | v0.1.3                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                       |                                     | false  | true             |
@@ -499,7 +499,7 @@ _Generated on Tue, 30 Jul 2024 21:11:08 UTC for commit [96019ab][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240730203005-c8a160d14a34  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240731104111-230aefc0dac5  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -809,7 +809,7 @@ _Generated on Tue, 30 Jul 2024 21:11:08 UTC for commit [96019ab][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                      | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                      |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                       |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                      | v1.55.6                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                      | v1.55.7                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                       | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                       | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                       |                                     | false  | true             |
