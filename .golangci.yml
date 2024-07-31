@@ -46,6 +46,8 @@ linters:
     - gofumpt
     - goheader
     - goimports
+    - gomoddirectives
+    - gomodguard
     - goprintffuncname
     - gosimple
     - gosmopolitan
@@ -60,6 +62,7 @@ linters:
     - misspell
     - musttag
     - nakedret
+    - noctx
     - nolintlint
     - nosprintfhostport
     - perfsprint
@@ -84,6 +87,7 @@ linters:
     - unparam
     - unused
     - usestdlibvars
+    - wastedassign
     - whitespace
     - zerologlint
     # - containedctx
@@ -99,8 +103,6 @@ linters:
     # - gochecknoglobals
     # - gocognit
     # - godox
-    # - gomoddirectives
-    # - gomodguard
     # - gosec
     # - inamedparam
     # - interfacebloat
@@ -112,7 +114,6 @@ linters:
     # - nilerr
     # - nilnil
     # - nlreturn
-    # - noctx
     # - nonamedreturns
     # - paralleltest
     # - predeclared
@@ -120,7 +121,6 @@ linters:
     # - testpackage
     # - thelper
     # - varnamelen
-    # - wastedassign
     # - wrapcheck
     # - wsl
 linters-settings:
