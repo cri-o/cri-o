@@ -125,7 +125,16 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		),
 		Path: "/metrics",
 	}
-	resp, err := http.Get(metricsEndpoint.String())
+	metricsReq, err := http.NewRequestWithContext(req.Context(), http.MethodGet, metricsEndpoint.String(), http.NoBody)
+	if err != nil {
+		logrus.Errorf(
+			"Unable to create metrics request %s: %v",
+			metricsEndpoint.String(), err,
+		)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	resp, err := http.DefaultClient.Do(metricsReq)
 	if err != nil {
 		logrus.Errorf(
 			"Unable to retrieve metrics from %s: %v",

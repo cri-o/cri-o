@@ -552,13 +552,11 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 		}
 		d, err := b64.StdEncoding.DecodeString(parts[1])
 		// if the value is not specified in base64, then use its raw value.
-		v := ""
 		if err == nil {
-			v = string(d)
+			c.spec.Config.Linux.Resources.Unified[parts[0]] = string(d)
 		} else {
-			v = parts[1]
+			c.spec.Config.Linux.Resources.Unified[parts[0]] = parts[1]
 		}
-		c.spec.Config.Linux.Resources.Unified[parts[0]] = v
 	}
 
 	return nil

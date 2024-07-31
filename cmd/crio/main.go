@@ -429,9 +429,7 @@ func main() {
 		go func() {
 			defer close(serverCloseCh)
 			if err := m.Serve(); err != nil {
-				if graceful && strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
-					err = nil
-				} else {
+				if !graceful || !strings.Contains(strings.ToLower(err.Error()), "use of closed network connection") {
 					logrus.Errorf("Failed to serve grpc request: %v", err)
 				}
 			}

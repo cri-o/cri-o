@@ -21,9 +21,9 @@ const (
 
 // CrioClient is an interface to get information from crio daemon endpoint.
 type CrioClient interface {
-	DaemonInfo() (types.CrioInfo, error)
-	ContainerInfo(string) (*types.ContainerInfo, error)
-	ConfigInfo() (string, error)
+	DaemonInfo(context.Context) (types.CrioInfo, error)
+	ContainerInfo(context.Context, string) (*types.ContainerInfo, error)
+	ConfigInfo(context.Context) (string, error)
 }
 
 type crioClientImpl struct {
@@ -58,8 +58,8 @@ func New(crioSocketPath string) (CrioClient, error) {
 	}, nil
 }
 
-func (c *crioClientImpl) getRequest(path string) (*http.Request, error) {
-	req, err := http.NewRequest(http.MethodGet, path, http.NoBody)
+func (c *crioClientImpl) getRequest(ctx context.Context, path string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -73,9 +73,9 @@ func (c *crioClientImpl) getRequest(path string) (*http.Request, error) {
 
 // DaemonInfo return cri-o daemon info from the cri-o
 // info endpoint.
-func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
+func (c *crioClientImpl) DaemonInfo(ctx context.Context) (types.CrioInfo, error) {
 	info := types.CrioInfo{}
-	req, err := c.getRequest(server.InspectInfoEndpoint)
+	req, err := c.getRequest(ctx, server.InspectInfoEndpoint)
 	if err != nil {
 		return info, err
 	}
@@ -90,8 +90,8 @@ func (c *crioClientImpl) DaemonInfo() (types.CrioInfo, error) {
 
 // ContainerInfo returns container info by querying
 // the cri-o container endpoint.
-func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) {
-	req, err := c.getRequest(server.InspectContainersEndpoint + "/" + id)
+func (c *crioClientImpl) ContainerInfo(ctx context.Context, id string) (*types.ContainerInfo, error) {
+	req, err := c.getRequest(ctx, server.InspectContainersEndpoint+"/"+id)
 	if err != nil {
 		return nil, err
 	}
@@ -108,8 +108,8 @@ func (c *crioClientImpl) ContainerInfo(id string) (*types.ContainerInfo, error) 
 }
 
 // ConfigInfo returns current config as TOML string.
-func (c *crioClientImpl) ConfigInfo() (string, error) {
-	req, err := c.getRequest(server.InspectConfigEndpoint)
+func (c *crioClientImpl) ConfigInfo(ctx context.Context) (string, error) {
+	req, err := c.getRequest(ctx, server.InspectConfigEndpoint)
 	if err != nil {
 		return "", err
 	}

@@ -57,7 +57,7 @@ func configSubCommand(c *cli.Context) error {
 		return err
 	}
 
-	info, err := crioClient.ConfigInfo()
+	info, err := crioClient.ConfigInfo(c.Context)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func containers(c *cli.Context) error {
 		return fmt.Errorf("the argument --%s cannot be empty", idArg)
 	}
 
-	info, err := crioClient.ContainerInfo(c.String(idArg))
+	info, err := crioClient.ContainerInfo(c.Context, c.String(idArg))
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func info(c *cli.Context) error {
 		return err
 	}
 
-	info, err := crioClient.DaemonInfo()
+	info, err := crioClient.DaemonInfo(c.Context)
 	if err != nil {
 		return err
 	}

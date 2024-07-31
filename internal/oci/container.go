@@ -136,11 +136,9 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		imageIDString = imageID.IDStringForOutOfProcessConsumptionOnly()
 	}
 
-	externalImageRef := ""
+	externalImageRef := imageIDString
 	if someRepoDigest != "" {
 		externalImageRef = someRepoDigest
-	} else {
-		externalImageRef = imageIDString
 	}
 
 	c := &Container{

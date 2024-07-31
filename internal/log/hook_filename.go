@@ -83,8 +83,7 @@ func (f *FileNameHook) findCaller() (file, function string, line int) {
 // on the calling goroutine's stack. The argument skip is the number of stack
 // frames to ascend, with 0 identifying the caller of Caller.
 func caller(skip int) (pc uintptr, file string, line int) {
-	ok := false
-	pc, file, line, ok = runtime.Caller(skip)
+	pc, file, line, ok := runtime.Caller(skip)
 	if !ok {
 		return 0, "", 0
 	}
