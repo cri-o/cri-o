@@ -103,7 +103,7 @@ function teardown() {
 
 	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
-	crictl exec --sync "$ctr_id" /usr/bin/make -C / clone-ns
-	run crictl exec --sync "$ctr_id" /clone-ns
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
+	run crictl exec --sync "$ctr_id" /usr/bin/clone-ns
 	[[ "$output" =~ "Operation not permitted" ]]
 }
