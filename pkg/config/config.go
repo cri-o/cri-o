@@ -1567,10 +1567,7 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeConfigPath(name); err != nil {
 		return err
 	}
-	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
-		return err
-	}
-	return nil
+	return r.ValidateRuntimeAllowedAnnotations()
 }
 
 func (r *RuntimeHandler) ValidateRuntimeVMBinaryPattern() bool {
