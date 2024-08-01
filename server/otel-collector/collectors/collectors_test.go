@@ -53,11 +53,12 @@ var _ = t.Describe("Collectors", func() {
 				collectors.ContainersOOMCountTotal,
 				collectors.ContainersSeccompNotifierCountTotal,
 				collectors.ResourcesStalledAtStage,
+				collectors.StorageConfigurationType,
 			} {
 				Expect(all.Contains(collector)).To(BeTrue())
 			}
 
-			Expect(all).To(HaveLen(16))
+			Expect(all).To(HaveLen(17))
 		})
 	})
 

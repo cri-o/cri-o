@@ -31,3 +31,15 @@ function teardown() {
 	image_output=$(jq -e '.status.imageFilesystems[0]' <<< "$output")
 	[ "$container_output" != "$image_output" ]
 }
+
+# This is the only test we have for integration tests
+# Integration tests overwrite locations for graphroot
+@test "testing metrics for container_storage with graphroot different from default" {
+
+	HOST="127.0.0.1"
+	PORT=$(free_port)
+
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
+	metric_type=$(curl -sf "http://${HOST}:${PORT}/metrics" | grep container_storage | awk '{print $2}')
+	[ "$metric_type" == 2 ]
+}

@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/storage"
 	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -83,6 +84,7 @@ type Metrics struct {
 	metricContainersOOMCountTotal             *prometheus.CounterVec
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 	metricResourcesStalledAtStage             *prometheus.CounterVec
+	metricContainerStorageType                *prometheus.GaugeVec
 }
 
 var instance *Metrics
@@ -238,6 +240,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Resource creation stage pod or container is stalled at.",
 			},
 			[]string{"stage"},
+		),
+		metricContainerStorageType: prometheus.NewGaugeVec(
+			prometheus.GaugeOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.StorageConfigurationType.String(),
+				Help:      "Type of container storage CRI-O is configured with. 0 is default. 1 is split filesystem. 2 is separate filesystem.",
+			},
+			[]string{"storage_configuration"},
 		),
 	}
 	return Instance()
@@ -401,6 +411,31 @@ func (m *Metrics) MetricResourcesStalledAtStage(stage string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricStorageContainerType(imageStore, graphRoot string) {
+	c, err := m.metricContainerStorageType.GetMetricWithLabelValues("container_storage")
+	if err != nil {
+		logrus.Warnf("Unable to write container storage metric: %v", err)
+	}
+	determineStorageType := func(imageStore, graphRoot string) float64 {
+		defaultOpts, err := storage.DefaultStoreOptions()
+		if err != nil {
+			logrus.Warnf("Unable to get default container storage: %v", err)
+		}
+
+		if graphRoot == defaultOpts.GraphRoot {
+			if imageStore == "" {
+				return 0 // default case
+			} else {
+				return 1 // split filesystem
+			}
+		}
+		// separate filesystem
+		return 2
+	}
+
+	c.Set(determineStorageType(imageStore, graphRoot))
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
@@ -420,6 +455,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.OperationsTotal:                     m.metricOperationsTotal,
 		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
+		collectors.StorageConfigurationType:            m.metricContainerStorageType,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())

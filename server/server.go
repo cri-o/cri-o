@@ -562,6 +562,10 @@ func New(
 		return nil, err
 	}
 
+	// Set container storage metrics.
+	// These metrics only need to be stored once so we are computing them on startup.
+	metrics.Instance().MetricStorageContainerType(s.getInfo().StorageImage, s.getInfo().StorageRoot)
+
 	return s, nil
 }
 

@@ -63,6 +63,9 @@ const (
 
 	// ResourcesStalledAtStage is the key for the resources stalled at different stages in container and pod creation.
 	ResourcesStalledAtStage Collector = crioPrefix + "resources_stalled_at_stage"
+
+	// StorageConfigurationType is the key for the type of storage CRI-O is configured with.
+	StorageConfigurationType Collector = crioPrefix + "storage_configuration_type"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -101,6 +104,7 @@ func All() Collectors {
 		ContainersOOMCountTotal.Stripped(),
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
+		StorageConfigurationType.Stripped(),
 	}
 }
 
