@@ -60,6 +60,7 @@ func (c *CNIManager) pollFunc() (bool, error) {
 	// to do it as the relevant context is equivalent: the same list of pods is
 	// valid and stable because new pods can't be created until the plugin is
 	// announced as ready
+	logrus.Errorf("GARBAGE COLLECT called on poll")
 	if err := c.doGC(context.Background()); err != nil {
 		logrus.Warnf("Garbage collect stale network resources during plugin startup failed: %v", err)
 	}
@@ -119,6 +120,7 @@ func (c *CNIManager) GC(ctx context.Context, validPodList PodNetworkLister) erro
 		// so defer until it is (see pollFunc)
 		return nil
 	}
+	logrus.Errorf("GARBAGE COLLECT called directly")
 	return c.doGC(ctx)
 }
 
@@ -131,6 +133,10 @@ func (c *CNIManager) doGC(ctx context.Context) error {
 		return err
 	}
 	// give a GC call 30s
+	// temp log
+	logrus.Errorf("GARBAGE COLLECT called with valid pods %#v", validPods)
+	defer logrus.Errorf("GARBAGE COLLECT call done")
+	// end temp log
 	stopCtx, stopCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer stopCancel()
 	return c.plugin.GC(stopCtx, validPods)

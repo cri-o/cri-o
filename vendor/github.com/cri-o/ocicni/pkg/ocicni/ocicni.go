@@ -884,7 +884,9 @@ func (network *cniNetwork) getNetworkStatus(ctx context.Context, cni *libcni.CNI
 }
 
 func (network *cniNetwork) gcNetwork(ctx context.Context, cni *libcni.CNIConfig, gcArgs *libcni.GCArgs) error {
-	return cni.GCNetworkList(ctx, network.config, gcArgs)
+	//return cni.GCNetworkList(ctx, network.config, gcArgs)
+	logrus.Errorf("GARBAGE COLLECT inhibited")
+	return nil
 }
 
 func buildCNIRuntimeConf(podNetwork *PodNetwork, ifName string, runtimeConfig *RuntimeConfig) (*libcni.RuntimeConf, error) {
