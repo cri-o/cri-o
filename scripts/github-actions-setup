@@ -146,7 +146,7 @@ install_ginkgo() {
     for i in $GOPATH "$(go env GOCACHE)"; do
         sudo chown -R "$(id -u):$(id -g)" "$i"
     done
-    go install github.com/onsi/ginkgo/ginkgo@latest
+    go install github.com/onsi/ginkgo/v2/ginkgo@latest
     sudo -E cp "$GOPATH/bin/ginkgo" /usr/bin
     ginkgo version
 }

@@ -19,6 +19,11 @@ function teardown() {
 	critest \
 		--runtime-endpoint "unix://${CRIO_SOCKET}" \
 		--image-endpoint "unix://${CRIO_SOCKET}" \
+		--parallel="$(nproc)" \
+		--ginkgo.randomize-all \
+		--ginkgo.timeout 5m \
+		--ginkgo.trace \
+		--ginkgo.vv \
 		--ginkgo.flake-attempts 3 >&3
 
 	if [[ $RUNTIME_TYPE == pod ]]; then
