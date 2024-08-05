@@ -25,19 +25,19 @@ jobs:
       - run: bin/crio version
       - run: make bin/crio.cross.linux.amd64
       - run: bin/crio.cross.linux.amd64 version
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: build
           path: |
             bin/crio
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: docs
           path: |
             docs/crio.8
             docs/crio.conf.5
             docs/crio.conf.d.5
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: config
           path: crio.conf
@@ -109,7 +109,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix
       - run: result/bin/crio version
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: build-static-amd64
           path: |
@@ -130,7 +130,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix/default-arm64.nix
       - run: file result/bin/crio | grep aarch64
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: build-static-arm64
           path: |
@@ -151,7 +151,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix/default-ppc64le.nix
       - run: file result/bin/crio | grep PowerPC
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: build-static-ppc64le
           path: |
@@ -172,7 +172,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix/default-s390x.nix
       - run: file result/bin/crio | grep S/390
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: build-static-s390x
           path: |
@@ -290,7 +290,7 @@ jobs:
       - name: Run unit tests rootless
         if: ${{ matrix.run.type == 'rootless' }}
         run: make testunit
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: unit-${{ matrix.run.arch }}-${{ matrix.run.type }}
           path: build/coverage
@@ -333,7 +333,7 @@ jobs:
       - run: make release-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: release-notes
           path: build/release-notes
@@ -355,7 +355,7 @@ jobs:
       - run: make dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+      - uses: actions/upload-artifact@89ef406dd8d7e03cfd12d9e0a4a378f454709029 # v4.3.5
         with:
           name: dependencies
           path: build/dependencies
