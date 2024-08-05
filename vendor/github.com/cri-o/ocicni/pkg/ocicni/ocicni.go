@@ -792,6 +792,7 @@ func (plugin *cniNetworkPlugin) GC(ctx context.Context, validPods []*PodNetwork)
 		args := &libcni.GCArgs{
 			ValidAttachments: validAttachments[netname],
 		}
+		logrus.Errorf("GARBAGE COLLECT for network %s", netname)
 		err := network.gcNetwork(ctx, plugin.cniConfig, args)
 		if err != nil {
 			logrus.Warnf("Error while GCing network %s: %v", netname, err)
