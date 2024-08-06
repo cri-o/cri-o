@@ -2,6 +2,7 @@ package config
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -41,6 +42,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/config/ulimits"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
@@ -707,14 +709,17 @@ func (t *tomlConfig) fromConfig(c *Config) {
 	t.Crio.NRI.Config = c.NRI
 }
 
+const configLogPrefix = "Updating config from "
+
 // UpdateFromFile populates the Config from the TOML-encoded file at the given
 // path and "remembers" that we should reload this file's contents when we
 // receive a SIGHUP.
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
-func (c *Config) UpdateFromFile(path string) error {
-	if err := c.UpdateFromDropInFile(path); err != nil {
-		return err
+func (c *Config) UpdateFromFile(ctx context.Context, path string) error {
+	log.Infof(ctx, configLogPrefix+"single file: %s", path)
+	if err := c.UpdateFromDropInFile(ctx, path); err != nil {
+		return fmt.Errorf("update config from drop-in file: %w", err)
 	}
 	c.singleConfigPath = path
 	return nil
@@ -725,7 +730,8 @@ func (c *Config) UpdateFromFile(path string) error {
 // of the drop-in files which are used to supplement it.
 // Returns errors encountered when reading or parsing the files, or nil
 // otherwise.
-func (c *Config) UpdateFromDropInFile(path string) error {
+func (c *Config) UpdateFromDropInFile(ctx context.Context, path string) error {
+	log.Infof(ctx, configLogPrefix+"drop-in file: %s", path)
 	// keeps the storage options from storage.conf and merge it to crio config
 	var storageOpts []string
 	storageOpts = append(storageOpts, c.StorageOptions...)
@@ -785,7 +791,8 @@ func removeDupStorageOpts(storageOpts []string) []string {
 
 // UpdateFromPath recursively iterates the provided path and updates the
 // configuration for it.
-func (c *Config) UpdateFromPath(path string) error {
+func (c *Config) UpdateFromPath(ctx context.Context, path string) error {
+	log.Infof(ctx, configLogPrefix+"path: %s", path)
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil
 	}
@@ -797,9 +804,9 @@ func (c *Config) UpdateFromPath(path string) error {
 			if info.IsDir() {
 				return nil
 			}
-			return c.UpdateFromDropInFile(p)
+			return c.UpdateFromDropInFile(ctx, p)
 		}); err != nil {
-		return err
+		return fmt.Errorf("walk path: %w", err)
 	}
 	c.dropInConfigDir = path
 	return nil

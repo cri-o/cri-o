@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"path"
@@ -1069,7 +1070,7 @@ var _ = t.Describe("Config", func() {
 			).To(Succeed())
 
 			// When
-			err := sut.UpdateFromFile(f)
+			err := sut.UpdateFromFile(context.Background(), f)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -1102,7 +1103,7 @@ var _ = t.Describe("Config", func() {
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.StorageOptions = tc.opts
-				err := defaultcfg.UpdateFromFile(f)
+				err := defaultcfg.UpdateFromFile(context.Background(), f)
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
@@ -1132,7 +1133,7 @@ var _ = t.Describe("Config", func() {
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Root = tc.graphRoot
-				err := defaultcfg.UpdateFromFile(f)
+				err := defaultcfg.UpdateFromFile(context.Background(), f)
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
@@ -1162,7 +1163,7 @@ var _ = t.Describe("Config", func() {
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.RunRoot = tc.runRoot
-				err := defaultcfg.UpdateFromFile(f)
+				err := defaultcfg.UpdateFromFile(context.Background(), f)
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
@@ -1192,7 +1193,7 @@ var _ = t.Describe("Config", func() {
 				// When
 				defaultcfg := defaultConfig()
 				defaultcfg.Storage = tc.storageDriver
-				err := defaultcfg.UpdateFromFile(f)
+				err := defaultcfg.UpdateFromFile(context.Background(), f)
 
 				// Then
 				Expect(err).ToNot(HaveOccurred())
@@ -1208,7 +1209,7 @@ var _ = t.Describe("Config", func() {
 			).To(Succeed())
 
 			// When
-			err := sut.UpdateFromFile(f)
+			err := sut.UpdateFromFile(context.Background(), f)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -1227,7 +1228,7 @@ var _ = t.Describe("Config", func() {
 			).To(Succeed())
 
 			// When
-			err := sut.UpdateFromFile(f)
+			err := sut.UpdateFromFile(context.Background(), f)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -1239,7 +1240,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail when file does not exist", func() {
 			// Given
 			// When
-			err := sut.UpdateFromFile("/invalid/file")
+			err := sut.UpdateFromFile(context.Background(), "/invalid/file")
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -1248,7 +1249,7 @@ var _ = t.Describe("Config", func() {
 		It("should fail when toml decode fails", func() {
 			// Given
 			// When
-			err := sut.UpdateFromFile("config.go")
+			err := sut.UpdateFromFile(context.Background(), "config.go")
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -1320,7 +1321,7 @@ var _ = t.Describe("Config", func() {
 			)).To(Succeed())
 
 			// When
-			err := sut.UpdateFromPath(configDir)
+			err := sut.UpdateFromPath(context.Background(), configDir)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -1337,7 +1338,7 @@ var _ = t.Describe("Config", func() {
 			)).To(Succeed())
 
 			// When
-			err := sut.UpdateFromPath(configDir)
+			err := sut.UpdateFromPath(context.Background(), configDir)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -1346,7 +1347,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with not existing path", func() {
 			// Given
 			// When
-			err := sut.UpdateFromPath("not-existing")
+			err := sut.UpdateFromPath(context.Background(), "not-existing")
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())

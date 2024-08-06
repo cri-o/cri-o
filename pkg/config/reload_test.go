@@ -1,6 +1,7 @@
 package config_test
 
 import (
+	"context"
 	"os"
 	"strings"
 
@@ -19,7 +20,7 @@ var _ = t.Describe("Config", func() {
 		modifyDefaultConfig := func(old, new string) {
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(Succeed())
-			Expect(sut.UpdateFromFile(filePath)).To(Succeed())
+			Expect(sut.UpdateFromFile(context.Background(), filePath)).To(Succeed())
 
 			read, err := os.ReadFile(filePath)
 			Expect(err).ToNot(HaveOccurred())
@@ -33,10 +34,10 @@ var _ = t.Describe("Config", func() {
 			// Given
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(Succeed())
-			Expect(sut.UpdateFromFile(filePath)).To(Succeed())
+			Expect(sut.UpdateFromFile(context.Background(), filePath)).To(Succeed())
 
 			// When
-			err := sut.Reload()
+			err := sut.Reload(context.Background())
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -50,7 +51,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload()
+			err := sut.Reload(context.Background())
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -64,7 +65,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload()
+			err := sut.Reload(context.Background())
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -78,7 +79,7 @@ var _ = t.Describe("Config", func() {
 			)
 
 			// When
-			err := sut.Reload()
+			err := sut.Reload(context.Background())
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())

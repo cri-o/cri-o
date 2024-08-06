@@ -575,7 +575,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 		for {
 			// Block until the signal is received
 			<-ch
-			if err := s.config.Reload(); err != nil {
+			if err := s.config.Reload(ctx); err != nil {
 				logrus.Errorf("Unable to reload configuration: %v", err)
 				continue
 			}
