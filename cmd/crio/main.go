@@ -149,11 +149,12 @@ func main() {
 
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands, []*cli.Command{
+		criocli.CheckCommand,
 		criocli.ConfigCommand,
 		criocli.PublishCommand,
+		criocli.StatusCommand,
 		criocli.VersionCommand,
 		criocli.WipeCommand,
-		criocli.StatusCommand,
 	}...)
 
 	app.Before = func(c *cli.Context) (err error) {

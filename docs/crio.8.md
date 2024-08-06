@@ -462,6 +462,38 @@ Generate the markdown documentation.
 
 Shows a list of commands or help for one command
 
+## check
+
+Check CRI-O storage directory for errors.
+
+This command can also repair damaged containers, images and layers.
+
+By default, the data integrity of the storage directory is verified,
+which can be an I/O and CPU-intensive operation. The --quick option
+can be used to reduce the number of checks run.
+
+When using the --repair option, especially with the --force option,
+CRI-O and any currently running containers should be stopped if
+possible to ensure no concurrent access to the storage directory
+occurs.
+
+The --wipe option can be used to automatically attempt to remove
+containers and images on a repair failure. This option, combined
+with the --force option, can be used to entirely remove the storage
+directory content in case of irrecoverable errors. This should be
+used as a last resort, and similarly to the --repair option, it's
+best if CRI-O and any currently running containers are stopped.
+
+**--age, -a**="": Maximum allowed age for unreferenced layers (default: "24h")
+
+**--force, -f**: Remove damaged containers
+
+**--quick, -q**: Perform only quick checks
+
+**--repair, -r**: Remove damaged images and layers
+
+**--wipe, -w**: Wipe storage directory on repair failure
+
 ## config
 
 Outputs a commented version of the configuration file that could be used
@@ -486,20 +518,6 @@ it later with **--config**. Global options will modify the output.
     be in a drop-in configuration file instead.
     Possible values: "1.17" (default: "1.17")
 
-## version
-
-display detailed version information
-
-**--json, -j**: print JSON instead of text
-
-**--verbose, -v**: print verbose information (for example all golang dependencies)
-
-## wipe
-
-wipe CRI-O's container and image storage
-
-**--force, -f**: force wipe by skipping the version check
-
 ## status
 
 Display status information
@@ -519,6 +537,20 @@ Display detailed information about the provided container ID.
 ### info, i
 
 Retrieve generic information about CRI-O, such as the cgroup and storage driver.
+
+## version
+
+display detailed version information
+
+**--json, -j**: print JSON instead of text
+
+**--verbose, -v**: print verbose information (for example all golang dependencies)
+
+## wipe
+
+wipe CRI-O's container and image storage
+
+**--force, -f**: force wipe by skipping the version check
 
 ## help, h
 

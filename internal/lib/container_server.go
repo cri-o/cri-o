@@ -110,7 +110,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 
 		wipeStorage := false
 		report, err := store.Check(checkQuick())
-		if err == nil && checkReportHasErrors(report) {
+		if err == nil && CheckReportHasErrors(report) {
 			log.Warnf(ctx, "Attempting to repair storage directory %s because of unclean shutdown", graphRoot)
 			if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
 				wipeStorage = true
@@ -867,9 +867,9 @@ func checkQuick() *cstorage.CheckOptions {
 	}
 }
 
-// checkReportHasErrors checks if the report from a completed storage check includes
+// CheckReportHasErrors checks if the report from a completed storage check includes
 // any recoverable errors that storage repair could fix.
-func checkReportHasErrors(report cstorage.CheckReport) bool {
+func CheckReportHasErrors(report cstorage.CheckReport) bool {
 	// The `storage.Check()` returns a report object and an error,
 	// where errors are most likely irrecoverable and should be
 	// handled as such; the report, on the contrary, can contain

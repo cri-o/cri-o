@@ -7,10 +7,11 @@ completion
 man
 markdown
 md
+check
 config
+status
 version
 wipe
-status
 help
 h
 --absent-mount-sources-to-reject
