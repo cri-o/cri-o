@@ -7,6 +7,7 @@ import (
 	"github.com/containers/common/pkg/apparmor"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/urfave/cli/v2"
 
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -34,9 +35,9 @@ var _ = t.Describe("Config", func() {
 			filePath := t.MustTempFile("config")
 			Expect(sut.ToFile(filePath)).To(Succeed())
 			Expect(sut.UpdateFromFile(filePath)).To(Succeed())
-
+			ctx := cli.Context{}
 			// When
-			err := sut.Reload()
+			err := sut.Reload(&ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -48,9 +49,10 @@ var _ = t.Describe("Config", func() {
 				`log_level = "info"`,
 				`log_level = "invalid"`,
 			)
+			ctx := cli.Context{}
 
 			// When
-			err := sut.Reload()
+			err := sut.Reload(&ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -62,9 +64,9 @@ var _ = t.Describe("Config", func() {
 				`pause_image_auth_file = ""`,
 				`pause_image_auth_file = "`+invalidPath+`"`,
 			)
-
+			ctx := cli.Context{}
 			// When
-			err := sut.Reload()
+			err := sut.Reload(&ctx)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -76,9 +78,9 @@ var _ = t.Describe("Config", func() {
 				`seccomp_profile = ""`,
 				`seccomp_profile = "`+invalidPath+`"`,
 			)
-
+			ctx := cli.Context{}
 			// When
-			err := sut.Reload()
+			err := sut.Reload(&ctx)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
