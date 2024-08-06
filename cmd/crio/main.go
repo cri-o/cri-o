@@ -151,11 +151,12 @@ func main() {
 
 	app.Commands = criocli.DefaultCommands
 	app.Commands = append(app.Commands,
+		criocli.CheckCommand,
 		criocli.ConfigCommand,
 		criocli.PublishCommand,
+		criocli.StatusCommand,
 		criocli.VersionCommand,
 		criocli.WipeCommand,
-		criocli.StatusCommand,
 	)
 
 	slices.SortFunc(app.Commands, func(a, b *cli.Command) int {
