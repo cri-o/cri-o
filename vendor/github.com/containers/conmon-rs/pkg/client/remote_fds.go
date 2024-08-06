@@ -111,7 +111,7 @@ func (r *RemoteFDs) Send(fds ...int) ([]RemoteFD, error) {
 	}
 
 	slots := make([]RemoteFD, 0, numFDs)
-	for i := 0; i < numFDs; i++ {
+	for i := range numFDs {
 		slots = append(slots, RemoteFD(binary.LittleEndian.Uint64(buf[i*uint64Bytes:])))
 	}
 

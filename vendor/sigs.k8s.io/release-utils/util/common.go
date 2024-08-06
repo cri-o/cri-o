@@ -488,6 +488,19 @@ func Exists(path string) bool {
 	return true
 }
 
+// IsDir returns true if the path is a directory.
+func IsDir(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	if info.IsDir() {
+		return true
+	}
+	return false
+}
+
 // WrapText wraps a text.
 func WrapText(originalText string, lineSize int) (wrappedText string) {
 	words := strings.Fields(strings.TrimSpace(originalText))

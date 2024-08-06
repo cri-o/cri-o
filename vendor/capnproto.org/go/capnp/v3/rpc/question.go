@@ -15,8 +15,6 @@ type question struct {
 	c  *Conn
 	id questionID
 
-	bootstrapPromise capnp.Resolver[capnp.Client]
-
 	p       *capnp.Promise
 	release capnp.ReleaseFunc // written before resolving p
 
@@ -53,11 +51,11 @@ func (flags questionFlags) Contains(flag questionFlags) bool {
 func (c *lockedConn) newQuestion(method capnp.Method) *question {
 	q := &question{
 		c:             (*Conn)(c),
-		id:            questionID(c.lk.questionID.next()),
+		id:            c.lk.questionID.next(),
 		release:       func() {},
 		finishMsgSend: make(chan struct{}),
 	}
-	q.p = capnp.NewPromise(method, q) // TODO(someday): customize error message for bootstrap
+	q.p = capnp.NewPromise(method, q, nil) // TODO(someday): customize error message for bootstrap
 	c.setAnswerQuestion(q.p.Answer(), q)
 	if int(q.id) == len(c.lk.questions) {
 		c.lk.questions = append(c.lk.questions, q)
@@ -127,12 +125,7 @@ func (q *question) handleCancel(ctx context.Context) {
 				q.c.er.ReportError(rpcerr.Annotate(err, "send finish"))
 			}
 			close(q.finishMsgSend)
-
 			q.p.Reject(rejectErr)
-			if q.bootstrapPromise != nil {
-				q.bootstrapPromise.Fulfill(q.p.Answer().Client())
-				q.p.ReleaseClients()
-			}
 		})
 	})
 }
@@ -163,7 +156,7 @@ func (q *question) PipelineSend(ctx context.Context, transform []capnp.PipelineO
 				})
 				q2.p.Reject(rpcerr.WrapFailed("send message", err))
 				syncutil.With(&q.c.lk, func() {
-					q.c.lk.questionID.remove(uint32(q2.id))
+					q.c.lk.questionID.remove(q2.id)
 				})
 				return
 			}
@@ -278,14 +271,8 @@ func (q *question) mark(xform []capnp.PipelineOp) {
 }
 
 func (q *question) Reject(err error) {
-	if q != nil {
-		if q.bootstrapPromise != nil {
-			q.bootstrapPromise.Fulfill(capnp.ErrorClient(err))
-		}
-
-		if q.p != nil {
-			q.p.Reject(err)
-		}
+	if q != nil && q.p != nil {
+		q.p.Reject(err)
 	}
 }
 

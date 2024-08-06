@@ -269,21 +269,21 @@ func isZeroFilled(b []byte) bool {
 //
 // Equality is defined to be:
 //
-//	- Two structs are equal iff all of their fields are equal.  If one
-//	  struct has more fields than the other, the extra fields must all be
-//		zero.
-//	- Two lists are equal iff they have the same length and their
-//	  corresponding elements are equal.  If one list is a list of
-//	  primitives and the other is a list of structs, then the list of
-//	  primitives is treated as if it was a list of structs with the
-//	  element value as the sole field.
-//	- Two interfaces are equal iff they point to a capability created by
-//	  the same call to NewClient or they are referring to the same
-//	  capability table index in the same message.  The latter is
-//	  significant when the message's capability table has not been
-//	  populated.
-//	- Two null pointers are equal.
-//	- All other combinations of things are not equal.
+//   - Two structs are equal iff all of their fields are equal.  If one
+//     struct has more fields than the other, the extra fields must all be
+//     zero.
+//   - Two lists are equal iff they have the same length and their
+//     corresponding elements are equal.  If one list is a list of
+//     primitives and the other is a list of structs, then the list of
+//     primitives is treated as if it was a list of structs with the
+//     element value as the sole field.
+//   - Two interfaces are equal iff they point to a capability created by
+//     the same call to NewClient or they are referring to the same
+//     capability table index in the same message.  The latter is
+//     significant when the message's capability table has not been
+//     populated.
+//   - Two null pointers are equal.
+//   - All other combinations of things are not equal.
 func Equal(p1, p2 Ptr) (bool, error) {
 	if !p1.IsValid() && !p2.IsValid() {
 		return true, nil
@@ -376,8 +376,8 @@ func Equal(p1, p2 Ptr) (bool, error) {
 			if i1.Capability() == i2.Capability() {
 				return true, nil
 			}
-			ntab := len(i1.Message().CapTable)
-			if int64(i1.Capability()) >= int64(ntab) || int64(i2.Capability()) >= int64(ntab) {
+
+			if !i1.Message().CapTable().Contains(i1) || !i1.Message().CapTable().Contains(i2) {
 				return false, nil
 			}
 		}

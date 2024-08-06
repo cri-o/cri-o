@@ -1,4 +1,4 @@
-# capnproto.org/go/capnp/v3 v3.0.0-alpha.25
+# capnproto.org/go/capnp/v3 v3.0.1-alpha.2
 ## explicit; go 1.19
 capnproto.org/go/capnp/v3
 capnproto.org/go/capnp/v3/encoding/text
@@ -19,6 +19,11 @@ capnproto.org/go/capnp/v3/rpc/transport
 capnproto.org/go/capnp/v3/schemas
 capnproto.org/go/capnp/v3/server
 capnproto.org/go/capnp/v3/std/capnp/rpc
+capnproto.org/go/capnp/v3/util
+capnproto.org/go/capnp/v3/util/deferred
+capnproto.org/go/capnp/v3/util/maybe
+capnproto.org/go/capnp/v3/util/rc
+capnproto.org/go/capnp/v3/util/sync/mutex
 # dario.cat/mergo v1.0.0
 ## explicit; go 1.13
 dario.cat/mergo
@@ -140,6 +145,9 @@ github.com/cloudflare/circl/math/mlsbset
 github.com/cloudflare/circl/sign
 github.com/cloudflare/circl/sign/ed25519
 github.com/cloudflare/circl/sign/ed448
+# github.com/colega/zeropool v0.0.0-20230505084239-6fb4a4f75381
+## explicit; go 1.20
+github.com/colega/zeropool
 # github.com/containerd/cgroups v1.1.0
 ## explicit; go 1.17
 github.com/containerd/cgroups/stats/v1
@@ -257,7 +265,7 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.6.3
+# github.com/containers/conmon-rs v0.6.5
 ## explicit; go 1.22
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
@@ -818,7 +826,7 @@ github.com/onsi/ginkgo/v2/internal/parallel_support
 github.com/onsi/ginkgo/v2/internal/testingtproxy
 github.com/onsi/ginkgo/v2/reporters
 github.com/onsi/ginkgo/v2/types
-# github.com/onsi/gomega v1.34.0
+# github.com/onsi/gomega v1.34.1
 ## explicit; go 1.20
 github.com/onsi/gomega
 github.com/onsi/gomega/format
@@ -1113,12 +1121,12 @@ golang.org/x/crypto/ssh
 golang.org/x/crypto/ssh/agent
 golang.org/x/crypto/ssh/internal/bcrypt_pbkdf
 golang.org/x/crypto/ssh/knownhosts
-# golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
+# golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 ## explicit; go 1.20
 golang.org/x/exp/constraints
 golang.org/x/exp/maps
 golang.org/x/exp/slices
-# golang.org/x/mod v0.18.0
+# golang.org/x/mod v0.19.0
 ## explicit; go 1.18
 golang.org/x/mod/semver
 # golang.org/x/net v0.27.0
@@ -1140,11 +1148,11 @@ golang.org/x/net/websocket
 ## explicit; go 1.18
 golang.org/x/oauth2
 golang.org/x/oauth2/internal
-# golang.org/x/sync v0.7.0
+# golang.org/x/sync v0.8.0
 ## explicit; go 1.18
 golang.org/x/sync/errgroup
 golang.org/x/sync/semaphore
-# golang.org/x/sys v0.22.0
+# golang.org/x/sys v0.23.0
 ## explicit; go 1.18
 golang.org/x/sys/cpu
 golang.org/x/sys/execabs
@@ -1180,7 +1188,7 @@ golang.org/x/text/unicode/norm
 # golang.org/x/time v0.5.0
 ## explicit; go 1.18
 golang.org/x/time/rate
-# golang.org/x/tools v0.22.0
+# golang.org/x/tools v0.23.0
 ## explicit; go 1.19
 golang.org/x/tools/cover
 golang.org/x/tools/go/ast/inspector
@@ -1601,7 +1609,7 @@ sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal
 sigs.k8s.io/release-sdk/regex
-# sigs.k8s.io/release-utils v0.8.3
+# sigs.k8s.io/release-utils v0.8.4
 ## explicit; go 1.21
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env
@@ -1627,6 +1635,3 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
-# zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739
-## explicit; go 1.19
-zenhack.net/go/util

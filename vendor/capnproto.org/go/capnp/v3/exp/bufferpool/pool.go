@@ -3,6 +3,8 @@ package bufferpool
 
 import (
 	"sync"
+
+	"github.com/colega/zeropool"
 )
 
 const (
@@ -90,20 +92,20 @@ func (p *Pool) init() {
 				// still maximizing reuse of buffers allocated by Get.
 				// Note that we cannot simply use n.buckets[idx].New,
 				// as this would side-step pooling.
-				p.buckets[i].New = p.buckets[idx].Get
+				p.buckets[i] = zeropool.New(p.buckets[idx].Get)
 			} else {
-				p.buckets[i].New = newAllocFunc(i)
+				p.buckets[i] = zeropool.New(newAllocFunc(i))
 			}
 		}
 	})
 }
 
-type bucketSlice []sync.Pool
+type bucketSlice []zeropool.Pool[[]byte]
 
 func (bs bucketSlice) Get(size int) []byte {
 	for i := range bs {
 		if 1<<i >= size {
-			return bs[i].Get().([]byte)
+			return bs[i].Get()
 		}
 	}
 
@@ -119,8 +121,8 @@ func (bs bucketSlice) Put(buf []byte) {
 	}
 }
 
-func newAllocFunc(i int) func() any {
-	return func() any {
+func newAllocFunc(i int) func() []byte {
+	return func() []byte {
 		return make([]byte, 1<<i)
 	}
 }

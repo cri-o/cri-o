@@ -77,9 +77,9 @@ func (r *Request) Future() *Future {
 
 // Release resources associated with the request. In particular:
 //
-// * Release the arguments if they have not yet been released.
-// * If the request has been sent, wait for the result and release
-//   the results.
+//   - Release the arguments if they have not yet been released.
+//   - If the request has been sent, wait for the result and release
+//     the results.
 func (r *Request) Release() {
 	r.releaseArgs()
 	rel := r.releaseResponse
@@ -91,12 +91,9 @@ func (r *Request) Release() {
 }
 
 func (r *Request) releaseArgs() {
-	if r.args.IsValid() {
-		return
+	if !r.args.IsValid() {
+		msg := r.args.Message()
+		r.args = Struct{}
+		msg.Release()
 	}
-	msg := r.args.Message()
-	r.args = Struct{}
-	arena := msg.Arena
-	msg.Reset(nil)
-	arena.Release()
 }

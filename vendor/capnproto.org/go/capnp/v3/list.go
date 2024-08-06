@@ -1081,10 +1081,10 @@ func (s StructList[T]) Set(i int, v T) error {
 // A list of some Cap'n Proto capability type T.
 type CapList[T ~ClientKind] PointerList
 
-func (c CapList[T]) At(i int) (T, error) {
+func (c CapList[T]) At(i int) (res T, err error) {
 	ptr, err := PointerList(c).At(i)
 	if err != nil {
-		return T{}, err
+		return res, err
 	}
 	return T(ptr.Interface().Client()), nil
 }
@@ -1092,7 +1092,7 @@ func (c CapList[T]) At(i int) (T, error) {
 func (c CapList[T]) Set(i int, v T) error {
 	pl := PointerList(c)
 	seg := pl.Segment()
-	capId := seg.Message().AddCap(Client(v))
+	capId := seg.Message().CapTable().Add(Client(v))
 	return pl.Set(i, NewInterface(seg, capId).ToPtr())
 }
 
