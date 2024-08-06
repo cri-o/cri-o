@@ -19,11 +19,35 @@ var (
 )
 
 type errReporter struct {
-	ErrorReporter
+	Logger Logger
+}
+
+func (er errReporter) Debug(msg string, args ...any) {
+	if er.Logger != nil {
+		er.Logger.Debug(msg, args...)
+	}
+}
+
+func (er errReporter) Info(msg string, args ...any) {
+	if er.Logger != nil {
+		er.Logger.Info(msg, args...)
+	}
+}
+
+func (er errReporter) Warn(msg string, args ...any) {
+	if er.Logger != nil {
+		er.Logger.Warn(msg, args...)
+	}
+}
+
+func (er errReporter) Error(msg string, args ...any) {
+	if er.Logger != nil {
+		er.Logger.Error(msg, args...)
+	}
 }
 
 func (er errReporter) ReportError(err error) {
-	if er.ErrorReporter != nil && err != nil {
-		er.ErrorReporter.ReportError(err)
+	if err != nil {
+		er.Error(err.Error())
 	}
 }

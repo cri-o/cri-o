@@ -16,7 +16,7 @@ type importID uint32
 // impent is an entry in the import table.  All fields are protected by
 // Conn.mu.
 type impent struct {
-	wc *capnp.WeakClient
+	wc capnp.WeakClient
 
 	// wireRefs is the number of times that the importID has appeared in
 	// messages received from the remote vat.  Used to populate the
@@ -29,22 +29,27 @@ type impent struct {
 	// 1) An import given to application code.
 	// 2) A new reference to the import is received over the wire, while
 	//    the application concurrently closes the import.
-	//    importClient.Close is called, but the receive has the lock
+	//    importClient.Shutdown is called, but the receive has the lock
 	//    first.
 	// 3) Conn.addImport attempts to return a weak client reference, but
 	//    can't because it has been closed.  It creates a new client
 	//    with a new importClient.
-	// 4) importClient.Close attempts to remove the import from the import
+	// 4) importClient.Shutdown attempts to remove the import from the import
 	//    table.  This is the critical step: it needs to be informed that
 	//    it should not do this because another client has been created.
 	//    No release message should be sent.
 	//
 	// The generation counter solves this by amending steps 3 and 4.  When
 	// a new importClient is created, generation is incremented.
-	// When importClient.Close is called, then it must check that the
+	// When importClient.Shutdown is called, then it must check that the
 	// importClient's generation matches the entry's generation before
 	// removing the entry from the table and sending a release message.
 	generation uint64
+
+	// If resolver is non-nil, then this is a promise (received as
+	// CapDescriptor_Which_senderPromise), and when a resolve message
+	// arrives we should use this to fulfill the promise locally.
+	resolver capnp.Resolver[capnp.Client]
 }
 
 // addImport returns a client that represents the given import,
@@ -52,7 +57,7 @@ type impent struct {
 // This is separate from the reference counting that capnp.Client does.
 //
 // The caller must be holding onto c.mu.
-func (c *lockedConn) addImport(id importID) capnp.Client {
+func (c *lockedConn) addImport(id importID, isPromise bool) capnp.Client {
 	if ent := c.lk.imports[id]; ent != nil {
 		ent.wireRefs++
 		client, ok := ent.wc.AddRef()
@@ -67,13 +72,23 @@ func (c *lockedConn) addImport(id importID) capnp.Client {
 		}
 		return client
 	}
-	client := capnp.NewClient(&importClient{
+	hook := &importClient{
 		c:  (*Conn)(c),
 		id: id,
-	})
+	}
+	var (
+		client   capnp.Client
+		resolver capnp.Resolver[capnp.Client]
+	)
+	if isPromise {
+		client, resolver = capnp.NewPromisedClient(hook)
+	} else {
+		client = capnp.NewClient(hook)
+	}
 	c.lk.imports[id] = &impent{
 		wc:       client.WeakRef(),
 		wireRefs: 1,
+		resolver: resolver,
 	}
 	return client
 }
@@ -111,7 +126,7 @@ func (ic *importClient) Send(ctx context.Context, s capnp.Send) (*capnp.Answer, 
 				})
 				q.p.Reject(rpcerr.WrapFailed("send message", err))
 				syncutil.With(&ic.c.lk, func() {
-					ic.c.lk.questionID.remove(uint32(q.id))
+					ic.c.lk.questionID.remove(q.id)
 				})
 				return
 			}

@@ -17,48 +17,18 @@ This package provides:
 
 Support for Level 3 RPC is [planned](https://github.com/capnproto/go-capnproto2/issues/160).
 
-[godoc]: http://pkg.go.dev/capnproto.org/go/capnp/v3
-## Installation
+## Getting Started
 
-#### To interact with pre-compiled schemas
+Read the ["Getting Started" guide](docs/Getting-Started.md#remote-calls-using-interfaces)
+for a high-level introduction to the package API and workflow.
 
-Ensure that Go modules are enabled, then run the following command:
-```
-$ go get capnproto.org/go/capnp/v3
-```
-
-#### To compile Cap'n Proto schema files to Go
-
-Two additional steps are needed to compile `.capnp` files to Go:
-
-1. [Install the Cap'n Proto tools](https://capnproto.org/install.html).
-2. Install the Go language bindings by running:
-  ```bash
-  go install capnproto.org/go/capnp/v3/capnpc-go@latest  # install go compiler plugin
-  GO111MODULE=off go get -u capnproto.org/go/capnp/v3/  # install go-capnproto to $GOPATH
-  ```
-
-To learn how to compile a simple schema, [click here](docs/Getting-Started.md#compiling-schema-files).
-
-This package has been tested with version `0.8.0` of the `capnp` tool.
-
-## Documentation
-
-### Getting Started
-
-Read the ["Getting Started" guide][getting-started] for a high-level introduction to the package API and workflow.
-A minimal working RPC example can be found
-[here](docs/Getting-Started.md#remote-calls-using-interfaces).
-
-Browse rest of the [Wiki](https://github.com/capnproto/go-capnproto2/wiki) for in depth explanations of concepts, migration guides, and tutorials.
-
-### Help and Support
+## Help and Support
 
 You can find us on Matrix:   [Go Cap'n Proto](https://matrix.to/#/!pLcnVUHHRZrUPscloW:matrix.org?via=matrix.org)
 
-### API Reference
+## API Reference
 
-Available on [GoDoc](http://pkg.go.dev/capnproto.org/go/capnp/v3).
+Available on [pkg.go.dev][godoc]
 
 ## API Compatibility
 
@@ -74,11 +44,11 @@ An exception to this rule is currently in place for the `pogs` package, which is
 
 Note also we may merge breaking changes to the `main` branch without notice.  Users are encouraged to pin their dependencies to a major version, e.g. using the semver-aware features of `go get`.
 
-[gocompat]: https://golang.org/doc/go1compat
 ## License
 
 MIT - see [LICENSE][] file
 
+[godoc]: http://pkg.go.dev/capnproto.org/go/capnp/v3
+[gocompat]: https://golang.org/doc/go1compat
 [LICENSE]: https://github.com/capnproto/go-capnproto2/blob/master/LICENSE
-
 [getting-started]: docs/Getting-Started.md
