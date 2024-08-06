@@ -14,12 +14,12 @@ import (
 //
 // An AnswerQueue can be in one of three states:
 //
-//	1) Queueing.  Incoming method calls will be added to the queue.
-//	2) Draining, entered by calling Fulfill or Reject.  Queued method
-//	   calls will be delivered in sequence, and new incoming method calls
-//	   will block until the AnswerQueue enters the Drained state.
-//	3) Drained, entered once all queued methods have been delivered.
-//	   Incoming methods are passthrough.
+//  1. Queueing.  Incoming method calls will be added to the queue.
+//  2. Draining, entered by calling Fulfill or Reject.  Queued method
+//     calls will be delivered in sequence, and new incoming method calls
+//     will block until the AnswerQueue enters the Drained state.
+//  3. Drained, entered once all queued methods have been delivered.
+//     Incoming methods are passthrough.
 type AnswerQueue struct {
 	method   Method
 	draining chan struct{} // closed while exiting queueing state
@@ -154,8 +154,9 @@ func (qc queueCaller) PipelineRecv(ctx context.Context, transform []PipelineOp, 
 func (qc queueCaller) PipelineSend(ctx context.Context, transform []PipelineOp, s Send) (*Answer, ReleaseFunc) {
 	ret := new(StructReturner)
 	r := Recv{
-		Method:   s.Method,
-		Returner: ret,
+		Method:      s.Method,
+		Returner:    ret,
+		ReleaseArgs: func() {},
 	}
 	if s.PlaceArgs != nil {
 		var err error
@@ -167,12 +168,9 @@ func (qc queueCaller) PipelineSend(ctx context.Context, transform []PipelineOp, 
 		if err = s.PlaceArgs(r.Args); err != nil {
 			return ErrorAnswer(s.Method, err), func() {}
 		}
-		r.ReleaseArgs = func() {
-			r.Args.Message().Reset(nil)
-		}
-	} else {
-		r.ReleaseArgs = func() {}
+		r.ReleaseArgs = r.Args.Message().Release
 	}
+
 	pcall := qc.PipelineRecv(ctx, transform, r)
 	return ret.Answer(s.Method, pcall)
 }
@@ -258,7 +256,7 @@ func (sr *StructReturner) ReleaseResults() {
 		return
 	}
 	if err != nil && msg != nil {
-		msg.Reset(nil)
+		msg.Release()
 	}
 }
 
@@ -280,11 +278,11 @@ func (sr *StructReturner) Answer(m Method, pcall PipelineCaller) (*Answer, Relea
 			sr.result = Struct{}
 			sr.mu.Unlock()
 			if msg != nil {
-				msg.Reset(nil)
+				msg.Release()
 			}
 		}
 	}
-	sr.p = NewPromise(m, pcall)
+	sr.p = NewPromise(m, pcall, nil)
 	ans := sr.p.Answer()
 	return ans, func() {
 		<-ans.Done()
@@ -294,7 +292,7 @@ func (sr *StructReturner) Answer(m Method, pcall PipelineCaller) (*Answer, Relea
 		sr.mu.Unlock()
 		sr.p.ReleaseClients()
 		if msg != nil {
-			msg.Reset(nil)
+			msg.Release()
 		}
 	}
 }

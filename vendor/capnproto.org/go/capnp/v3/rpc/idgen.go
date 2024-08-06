@@ -3,15 +3,15 @@ package rpc
 // idgen returns a sequence of monotonically increasing IDs with
 // support for replacement.  The zero value is a generator that
 // starts at zero.
-type idgen struct {
+type idgen[T ~uint32] struct {
 	i    uint32
 	free uintSet
 }
 
-func (gen *idgen) next() uint32 {
+func (gen *idgen[T]) next() T {
 	if first, ok := gen.free.min(); ok {
 		gen.free.remove(first)
-		return uint32(first)
+		return T(first)
 	}
 	i := gen.i
 	if i == ^uint32(0) {
@@ -22,10 +22,10 @@ func (gen *idgen) next() uint32 {
 		panic("overflow ID")
 	}
 	gen.i++
-	return i
+	return T(i)
 }
 
-func (gen *idgen) remove(i uint32) {
+func (gen *idgen[T]) remove(i T) {
 	gen.free.add(uint(i))
 }
 

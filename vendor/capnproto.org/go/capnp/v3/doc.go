@@ -11,8 +11,10 @@ capnpc-go provides the compiler backend for capnp.
 
 	# First, install capnpc-go to $PATH.
 	go install capnproto.org/go/capnp/v3/capnpc-go
+	# Then, check out the go-capnp source code:
+	git clone https://github.com/capnproto/go-capnp /desired/path/to/go-capnp
 	# Then, generate Go files.
-	capnp compile -I$GOPATH/src/capnproto.org/go/capnp/v3/std -ogo *.capnp
+	capnp compile -I /desired/path/to/go-capnp/std -ogo *.capnp
 
 capnpc-go requires two annotations for all files: package and import.
 package is needed to know what package to place at the head of the

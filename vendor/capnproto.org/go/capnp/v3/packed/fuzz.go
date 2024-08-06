@@ -11,7 +11,6 @@ import (
 	"bufio"
 	"bytes"
 	"io"
-	"io/ioutil"
 )
 
 func Fuzz(data []byte) int {
@@ -26,7 +25,7 @@ func Fuzz(data []byte) int {
 	// Read
 	{
 		r := NewReader(bufio.NewReader(bytes.NewReader(data)))
-		if unpacked, err := ioutil.ReadAll(r); err == nil {
+		if unpacked, err := io.ReadAll(r); err == nil {
 			checkRepack(unpacked)
 			result = 1
 		}

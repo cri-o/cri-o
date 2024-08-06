@@ -13,7 +13,6 @@ import (
 	"compress/zlib"
 	"errors"
 	"io"
-	"io/ioutil"
 	"strings"
 	"sync"
 
@@ -111,7 +110,7 @@ func (r *record) read() ([]byte, error) {
 			return
 		}
 		p := packed.NewReader(bufio.NewReader(z))
-		r.data, r.err = ioutil.ReadAll(p)
+		r.data, r.err = io.ReadAll(p)
 		if err != nil {
 			r.data = nil
 			return

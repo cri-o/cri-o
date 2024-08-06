@@ -5,9 +5,11 @@ import (
 	"errors"
 
 	"capnproto.org/go/capnp/v3"
+	"capnproto.org/go/capnp/v3/exc"
 	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/internal/syncutil"
 	rpccp "capnproto.org/go/capnp/v3/std/capnp/rpc"
+	"capnproto.org/go/capnp/v3/util/deferred"
 )
 
 // An exportID is an index into the exports table.
@@ -15,8 +17,11 @@ type exportID uint32
 
 // expent is an entry in a Conn's export table.
 type expent struct {
-	client   capnp.Client
+	snapshot capnp.ClientSnapshot
 	wireRefs uint32
+
+	// Should be called when removing this entry from the exports table:
+	cancel context.CancelFunc
 }
 
 // A key for use in a client's Metadata, whose value is the export
@@ -53,65 +58,56 @@ func (c *lockedConn) findExport(id exportID) *expent {
 
 // releaseExport decreases the number of wire references to an export
 // by a given number.  If the export's reference count reaches zero,
-// then releaseExport will pop export from the table and return the
-// export's client.  The caller must be holding onto c.mu, and the
-// caller is responsible for releasing the client once the caller is no
-// longer holding onto c.mu.
-func (c *lockedConn) releaseExport(id exportID, count uint32) (capnp.Client, error) {
+// then releaseExport will pop export from the table and schedule further
+// cleanup (such as releasing snaphost) via dq.
+func (c *lockedConn) releaseExport(dq *deferred.Queue, id exportID, count uint32) error {
 	ent := c.findExport(id)
 	if ent == nil {
-		return capnp.Client{}, rpcerr.Failed(errors.New("unknown export ID " + str.Utod(id)))
+		return rpcerr.Failed(errors.New("unknown export ID " + str.Utod(id)))
 	}
 	switch {
 	case count == ent.wireRefs:
-		client := ent.client
+		defer ent.cancel()
+		snapshot := ent.snapshot
 		c.lk.exports[id] = nil
-		c.lk.exportID.remove(uint32(id))
-		metadata := client.State().Metadata
-		syncutil.With(metadata, func() {
-			c.clearExportID(metadata)
-		})
-		return client, nil
+		c.lk.exportID.remove(id)
+		metadata := snapshot.Metadata()
+		if metadata != nil {
+			syncutil.With(metadata, func() {
+				c.clearExportID(metadata)
+			})
+		}
+		dq.Defer(snapshot.Release)
+		return nil
 	case count > ent.wireRefs:
-		return capnp.Client{}, rpcerr.Failed(errors.New("export ID " + str.Utod(id) + " released too many references"))
+		return rpcerr.Failed(errors.New("export ID " + str.Utod(id) + " released too many references"))
 	default:
 		ent.wireRefs -= count
-		return capnp.Client{}, nil
+		return nil
 	}
 }
 
-func (c *lockedConn) releaseExportRefs(rl *releaseList, refs map[exportID]uint32) error {
-	n := len(refs)
+func (c *lockedConn) releaseExportRefs(dq *deferred.Queue, refs map[exportID]uint32) error {
 	var firstErr error
 	for id, count := range refs {
-		client, err := c.releaseExport(id, count)
-		if err != nil {
-			if firstErr == nil {
-				firstErr = err
-			}
-			n--
-			continue
+		err := c.releaseExport(dq, id, count)
+		if err != nil && firstErr == nil {
+			firstErr = err
 		}
-		if (client == capnp.Client{}) {
-			n--
-			continue
-		}
-		rl.Add(client.Release)
-		n--
 	}
 	return firstErr
 }
 
 // sendCap writes a capability descriptor, returning an export ID if
-// this vat is hosting the capability.
-func (c *lockedConn) sendCap(d rpccp.CapDescriptor, client capnp.Client) (_ exportID, isExport bool, _ error) {
-	if !client.IsValid() {
+// this vat is hosting the capability. Steals the snapshot.
+func (c *lockedConn) sendCap(d rpccp.CapDescriptor, snapshot capnp.ClientSnapshot) (_ exportID, isExport bool, _ error) {
+	if !snapshot.IsValid() {
 		d.SetNone()
 		return 0, false, nil
 	}
 
-	state := client.State()
-	bv := state.Brand.Value
+	defer snapshot.Release()
+	bv := snapshot.Brand().Value
 	if ic, ok := bv.(*importClient); ok {
 		if ic.c == (*Conn)(c) {
 			if ent := c.lk.imports[ic.id]; ent != nil && ent.generation == ic.generation {
@@ -148,33 +144,109 @@ func (c *lockedConn) sendCap(d rpccp.CapDescriptor, client capnp.Client) (_ expo
 		}
 	}
 
-	// TODO(someday): Check for unresolved client for senderPromise.
-
-	// Default to sender-hosted (export).
-	state.Metadata.Lock()
-	defer state.Metadata.Unlock()
-	id, ok := c.findExportID(state.Metadata)
+	// Default to export.
+	metadata := snapshot.Metadata()
+	metadata.Lock()
+	defer metadata.Unlock()
+	id, ok := c.findExportID(metadata)
+	var ee *expent
 	if ok {
-		ent := c.lk.exports[id]
-		ent.wireRefs++
-		d.SetSenderHosted(uint32(id))
-		return id, true, nil
-	}
-
-	// Not already present; allocate an export id for it:
-	ee := &expent{
-		client:   client.AddRef(),
-		wireRefs: 1,
-	}
-	id = exportID(c.lk.exportID.next())
-	if int64(id) == int64(len(c.lk.exports)) {
-		c.lk.exports = append(c.lk.exports, ee)
+		ee = c.lk.exports[id]
+		ee.wireRefs++
 	} else {
-		c.lk.exports[id] = ee
+		// Not already present; allocate an export id for it:
+		ee = &expent{
+			snapshot: snapshot.AddRef(),
+			wireRefs: 1,
+			cancel:   func() {},
+		}
+		id = c.lk.exportID.next()
+		if int64(id) == int64(len(c.lk.exports)) {
+			c.lk.exports = append(c.lk.exports, ee)
+		} else {
+			c.lk.exports[id] = ee
+		}
+		c.setExportID(metadata, id)
 	}
-	c.setExportID(state.Metadata, id)
-	d.SetSenderHosted(uint32(id))
+	if ee.snapshot.IsPromise() {
+		c.sendSenderPromise(id, d)
+	} else {
+		d.SetSenderHosted(uint32(id))
+	}
 	return id, true, nil
+}
+
+// sendSenderPromise is a helper for sendCap that handles the senderPromise case.
+func (c *lockedConn) sendSenderPromise(id exportID, d rpccp.CapDescriptor) {
+	// Send a promise, wait for the resolution asynchronously, then send
+	// a resolve message:
+	ee := c.lk.exports[id]
+	d.SetSenderPromise(uint32(id))
+	ctx, cancel := context.WithCancel(c.bgctx)
+	ee.cancel = cancel
+	waitRef := ee.snapshot.AddRef()
+	go func() {
+		defer cancel()
+		defer waitRef.Release()
+		// Logically we don't hold the lock anymore; it's held by the
+		// goroutine that spawned this one. So cast back to an unlocked
+		// Conn before trying to use it again:
+		unlockedConn := (*Conn)(c)
+
+		waitErr := waitRef.Resolve1(ctx)
+		unlockedConn.withLocked(func(c *lockedConn) {
+			if len(c.lk.exports) <= int(id) || c.lk.exports[id] != ee {
+				// Export was removed from the table at some point;
+				// remote peer is uninterested in the resolution, so
+				// drop the reference and we're done
+				return
+			}
+
+			sendRef := waitRef.AddRef()
+			var (
+				resolvedID exportID
+				isExport   bool
+			)
+			c.sendMessage(c.bgctx, func(m rpccp.Message) error {
+				res, err := m.NewResolve()
+				if err != nil {
+					return err
+				}
+				res.SetPromiseId(uint32(id))
+				if waitErr != nil {
+					ex, err := res.NewException()
+					if err != nil {
+						return err
+					}
+					return ex.MarshalError(waitErr)
+				}
+				desc, err := res.NewCap()
+				if err != nil {
+					return err
+				}
+				resolvedID, isExport, err = c.sendCap(desc, sendRef)
+				return err
+			}, func(err error) {
+				sendRef.Release()
+				if err != nil && isExport {
+					dq := &deferred.Queue{}
+					defer dq.Run()
+					// release 1 ref of the thing it resolved to.
+					err := withLockedConn1(
+						unlockedConn,
+						func(c *lockedConn) error {
+							return c.releaseExport(dq, resolvedID, 1)
+						},
+					)
+					if err != nil {
+						c.er.ReportError(
+							exc.WrapError("releasing export due to failure to send resolve", err),
+						)
+					}
+				}
+			})
+		})
+	}()
 }
 
 // fillPayloadCapTable adds descriptors of payload's message's
@@ -184,27 +256,26 @@ func (c *lockedConn) fillPayloadCapTable(payload rpccp.Payload) (map[exportID]ui
 	if !payload.IsValid() {
 		return nil, nil
 	}
-	clients := payload.Message().CapTable
-	if len(clients) == 0 {
+	clients := payload.Message().CapTable()
+	if clients.Len() == 0 {
 		return nil, nil
 	}
-	list, err := payload.NewCapTable(int32(len(clients)))
+	list, err := payload.NewCapTable(int32(clients.Len()))
 	if err != nil {
 		return nil, rpcerr.WrapFailed("payload capability table", err)
 	}
 	var refs map[exportID]uint32
-	for i, client := range clients {
-		id, isExport, err := c.sendCap(list.At(i), client)
+	for i := 0; i < clients.Len(); i++ {
+		id, isExport, err := c.sendCap(list.At(i), clients.At(i).Snapshot())
 		if err != nil {
 			return nil, rpcerr.WrapFailed("Serializing capability", err)
 		}
-		if !isExport {
-			continue
+		if isExport {
+			if refs == nil {
+				refs = make(map[exportID]uint32, clients.Len()-i)
+			}
+			refs[id]++
 		}
-		if refs == nil {
-			refs = make(map[exportID]uint32, len(clients)-i)
-		}
-		refs[id]++
 	}
 	return refs, nil
 }
@@ -227,7 +298,7 @@ func (e embargo) String() string {
 //
 // The caller must be holding onto c.mu.
 func (c *lockedConn) embargo(client capnp.Client) (embargoID, capnp.Client) {
-	id := embargoID(c.lk.embargoID.next())
+	id := c.lk.embargoID.next()
 	e := newEmbargo(client)
 	if int64(id) == int64(len(c.lk.embargoes)) {
 		c.lk.embargoes = append(c.lk.embargoes, e)
@@ -248,7 +319,7 @@ func (c *lockedConn) findEmbargo(id embargoID) *embargo {
 
 func newEmbargo(client capnp.Client) *embargo {
 	msg, seg := capnp.NewSingleSegmentMessage(nil)
-	capID := msg.AddCap(client)
+	capID := msg.CapTable().Add(client)
 	iface := capnp.NewInterface(seg, capID)
 	return &embargo{
 		result: iface.ToPtr(),
@@ -285,9 +356,8 @@ func (e *embargo) Shutdown() {
 // senderLoopback holds the salient information for a sender-loopback
 // Disembargo message.
 type senderLoopback struct {
-	id        embargoID
-	question  questionID
-	transform []capnp.PipelineOp
+	id     embargoID
+	target parsedMessageTarget
 }
 
 func (sl *senderLoopback) buildDisembargo(msg rpccp.Message) error {
@@ -295,23 +365,30 @@ func (sl *senderLoopback) buildDisembargo(msg rpccp.Message) error {
 	if err != nil {
 		return rpcerr.WrapFailed("build disembargo", err)
 	}
+	d.Context().SetSenderLoopback(uint32(sl.id))
 	tgt, err := d.NewTarget()
 	if err != nil {
 		return rpcerr.WrapFailed("build disembargo", err)
 	}
-	pa, err := tgt.NewPromisedAnswer()
-	if err != nil {
-		return rpcerr.WrapFailed("build disembargo", err)
-	}
-	oplist, err := pa.NewTransform(int32(len(sl.transform)))
-	if err != nil {
-		return rpcerr.WrapFailed("build disembargo", err)
-	}
+	switch sl.target.which {
+	case rpccp.MessageTarget_Which_promisedAnswer:
+		pa, err := tgt.NewPromisedAnswer()
+		if err != nil {
+			return rpcerr.WrapFailed("build disembargo", err)
+		}
+		oplist, err := pa.NewTransform(int32(len(sl.target.transform)))
+		if err != nil {
+			return rpcerr.WrapFailed("build disembargo", err)
+		}
 
-	d.Context().SetSenderLoopback(uint32(sl.id))
-	pa.SetQuestionId(uint32(sl.question))
-	for i, op := range sl.transform {
-		oplist.At(i).SetGetPointerField(op.Field)
+		pa.SetQuestionId(uint32(sl.target.promisedAnswer))
+		for i, op := range sl.target.transform {
+			oplist.At(i).SetGetPointerField(op.Field)
+		}
+	case rpccp.MessageTarget_Which_importedCap:
+		tgt.SetImportedCap(uint32(sl.target.importedCap))
+	default:
+		return errors.New("unknown variant for MessageTarget: " + str.Utod(sl.target.which))
 	}
 	return nil
 }

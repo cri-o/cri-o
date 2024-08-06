@@ -1,7 +1,6 @@
 package capnp
 
 import (
-	"bufio"
 	"encoding/binary"
 	"errors"
 	"io"
@@ -9,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"capnproto.org/go/capnp/v3/exc"
-	"capnproto.org/go/capnp/v3/exp/bufferpool"
 	"capnproto.org/go/capnp/v3/internal/str"
 	"capnproto.org/go/capnp/v3/packed"
 )
@@ -32,23 +30,12 @@ const maxDepth = ^uint(0)
 type Message struct {
 	// rlimit must be first so that it is 64-bit aligned.
 	// See sync/atomic docs.
-	rlimit     uint64
+	rlimit     atomic.Uint64
 	rlimitInit sync.Once
 
 	Arena Arena
 
-	// If not nil, the original buffer from which this message was decoded.
-	// This mostly for the benefit of returning buffers to pools and such.
-	originalBuffer []byte
-
-	// CapTable is the indexed list of the clients referenced in the
-	// message.  Capability pointers inside the message will use this table
-	// to map pointers to Clients.  The table is usually populated by the
-	// RPC system.
-	//
-	// See https://capnproto.org/encoding.html#capabilities-interfaces for
-	// more details on the capability table.
-	CapTable []Client
+	capTable CapTable
 
 	// TraverseLimit limits how many total bytes of data are allowed to be
 	// traversed while reading.  Traversal is counted when a Struct or
@@ -100,19 +87,38 @@ func NewMultiSegmentMessage(b [][]byte) (msg *Message, first *Segment) {
 	return msg, first
 }
 
+// Release is syntactic sugar for Message.Reset(nil).  See
+// docstring for Reset for an important warning.
+func (m *Message) Release() {
+	m.Reset(nil)
+}
+
 // Reset the message to use a different arena, allowing it
 // to be reused. This invalidates any existing pointers in
-// the Message, and releases all clients in the cap table,
-// so use with caution.
+// the Message, releases all clients in the cap table, and
+// releases the current Arena, so use with caution.
 func (m *Message) Reset(arena Arena) (first *Segment, err error) {
-	for _, c := range m.CapTable {
-		c.Release()
+	m.capTable.Reset()
+	for k := range m.segs {
+		// Optimization: keep the first segment so that the re-used
+		// Message does not have to allocate a new one.
+		if k == 0 && m.segs[k] == &m.firstSeg {
+			continue
+		}
+		delete(m.segs, k)
+	}
+
+	if m.Arena != nil {
+		m.Arena.Release()
 	}
 
 	*m = Message{
 		Arena:         arena,
 		TraverseLimit: m.TraverseLimit,
 		DepthLimit:    m.DepthLimit,
+		capTable:      m.capTable,
+		segs:          m.segs,
+		firstSeg:      Segment{msg: m},
 	}
 
 	if arena != nil {
@@ -152,26 +158,25 @@ func (m *Message) Reset(arena Arena) (first *Segment, err error) {
 
 func (m *Message) initReadLimit() {
 	if m.TraverseLimit == 0 {
-		atomic.StoreUint64(&m.rlimit, defaultTraverseLimit)
+		m.rlimit.Store(defaultTraverseLimit)
 		return
 	}
-	atomic.StoreUint64(&m.rlimit, m.TraverseLimit)
+	m.rlimit.Store(m.TraverseLimit)
 }
 
 // canRead reports whether the amount of bytes can be stored safely.
-func (m *Message) canRead(sz Size) bool {
+func (m *Message) canRead(sz Size) (ok bool) {
 	m.rlimitInit.Do(m.initReadLimit)
 	for {
-		curr := atomic.LoadUint64(&m.rlimit)
-		ok := curr >= uint64(sz)
+		curr := m.rlimit.Load()
+
 		var new uint64
-		if ok {
+		if ok = curr >= uint64(sz); ok {
 			new = curr - uint64(sz)
-		} else {
-			new = 0
 		}
-		if atomic.CompareAndSwapUint64(&m.rlimit, curr, new) {
-			return ok
+
+		if m.rlimit.CompareAndSwap(curr, new) {
+			return
 		}
 	}
 }
@@ -179,13 +184,13 @@ func (m *Message) canRead(sz Size) bool {
 // ResetReadLimit sets the number of bytes allowed to be read from this message.
 func (m *Message) ResetReadLimit(limit uint64) {
 	m.rlimitInit.Do(func() {})
-	atomic.StoreUint64(&m.rlimit, limit)
+	m.rlimit.Store(limit)
 }
 
 // Unread increases the read limit by sz.
 func (m *Message) Unread(sz Size) {
 	m.rlimitInit.Do(m.initReadLimit)
-	atomic.AddUint64(&m.rlimit, uint64(sz))
+	m.rlimit.Add(uint64(sz))
 }
 
 // Root returns the pointer to the message's root object.
@@ -213,13 +218,14 @@ func (m *Message) SetRoot(p Ptr) error {
 	return nil
 }
 
-// AddCap appends a capability to the message's capability table and
-// returns its ID.  It "steals" c's reference: the Message will release
-// the client when calling Reset.
-func (m *Message) AddCap(c Client) CapabilityID {
-	n := CapabilityID(len(m.CapTable))
-	m.CapTable = append(m.CapTable, c)
-	return n
+// CapTable is the indexed list of the clients referenced in the
+// message. Capability pointers inside the message will use this
+// table to map pointers to Clients.   The table is populated by
+// the RPC system.
+//
+// https://capnproto.org/encoding.html#capabilities-interfaces
+func (m *Message) CapTable() *CapTable {
+	return &m.capTable
 }
 
 // Compute the total size of the message in bytes, when serialized as
@@ -264,10 +270,10 @@ func (m *Message) Segment(id SegmentID) (*Segment, error) {
 // segment returns the segment with the given ID, with no bounds
 // checking.  The caller must be holding m.mu.
 func (m *Message) segment(id SegmentID) (*Segment, error) {
-	if m.segs == nil && id == 0 && m.firstSeg.msg != nil {
+	if m.segs == nil && id == 0 && m.firstSeg.msg != nil && m.firstSeg.data != nil {
 		return &m.firstSeg, nil
 	}
-	if s := m.segs[id]; s != nil {
+	if s := m.segs[id]; s != nil && s.data != nil {
 		return s, nil
 	}
 	if len(m.segs) == maxInt {
@@ -317,340 +323,33 @@ func (m *Message) allocSegment(sz Size) (*Segment, error) {
 	if sz > maxAllocSize() {
 		return nil, errors.New("allocation: too large")
 	}
+
 	m.mu.Lock()
+	defer m.mu.Unlock()
+
 	if len(m.segs) == maxInt {
-		m.mu.Unlock()
 		return nil, errors.New("allocation: number of loaded segments exceeds int")
 	}
+
+	// Transition from sole segment to segment map?
 	if m.segs == nil && m.firstSeg.msg != nil {
-		// Transition from sole segment to segment map.
 		m.segs = make(map[SegmentID]*Segment)
 		m.segs[0] = &m.firstSeg
 	}
+
 	id, data, err := m.Arena.Allocate(sz, m.segs)
 	if err != nil {
-		m.mu.Unlock()
 		return nil, exc.WrapError("allocation", err)
 	}
+
 	seg := m.setSegment(id, data)
-	m.mu.Unlock()
 	return seg, nil
-}
-
-// alloc allocates sz zero-filled bytes.  It prefers using s, but may
-// use a different segment in the same message if there's not sufficient
-// capacity.
-func alloc(s *Segment, sz Size) (*Segment, address, error) {
-	if sz > maxAllocSize() {
-		return nil, 0, errors.New("allocation: too large")
-	}
-	sz = sz.padToWord()
-
-	if !hasCapacity(s.data, sz) {
-		var err error
-		s, err = s.msg.allocSegment(sz)
-		if err != nil {
-			return nil, 0, err
-		}
-	}
-
-	addr := address(len(s.data))
-	end, ok := addr.addSize(sz)
-	if !ok {
-		return nil, 0, errors.New("allocation: address overflow")
-	}
-	space := s.data[len(s.data):end]
-	s.data = s.data[:end]
-	for i := range space {
-		space[i] = 0
-	}
-	return s, addr, nil
 }
 
 func (m *Message) WriteTo(w io.Writer) (int64, error) {
 	wc := &writeCounter{Writer: w}
 	err := NewEncoder(wc).Encode(m)
 	return wc.N, err
-}
-
-type writeCounter struct {
-	N int64
-	io.Writer
-}
-
-func (wc *writeCounter) Write(b []byte) (n int, err error) {
-	n, err = wc.Writer.Write(b)
-	wc.N += int64(n)
-	return
-}
-
-// A Decoder represents a framer that deserializes a particular Cap'n
-// Proto input stream.
-type Decoder struct {
-	r io.Reader
-
-	wordbuf [wordSize]byte
-	hdrbuf  []byte
-
-	bufferPool *bufferpool.Pool
-
-	reuse bool
-	buf   []byte
-	msg   Message
-	arena roSingleSegment
-
-	// Maximum number of bytes that can be read per call to Decode.
-	// If not set, a reasonable default is used.
-	MaxMessageSize uint64
-}
-
-// NewDecoder creates a new Cap'n Proto framer that reads from r.
-// The returned decoder will only read as much data as necessary to
-// decode the message.
-func NewDecoder(r io.Reader) *Decoder {
-	return &Decoder{r: r}
-}
-
-// NewPackedDecoder creates a new Cap'n Proto framer that reads from a
-// packed stream r.  The returned decoder may read more data than
-// necessary from r.
-func NewPackedDecoder(r io.Reader) *Decoder {
-	return NewDecoder(packed.NewReader(bufio.NewReader(r)))
-}
-
-// Decode reads a message from the decoder stream.  The error is io.EOF
-// only if no bytes were read.
-func (d *Decoder) Decode() (*Message, error) {
-	maxSize := d.MaxMessageSize
-	if maxSize == 0 {
-		maxSize = defaultDecodeLimit
-	} else if maxSize < uint64(len(d.wordbuf)) {
-		return nil, errors.New("decode: max message size is smaller than header size")
-	}
-
-	// Read first word (number of segments and first segment size).
-	// For single-segment messages, this will be sufficient.
-	if _, err := io.ReadFull(d.r, d.wordbuf[:]); err == io.EOF {
-		return nil, io.EOF
-	} else if err != nil {
-		return nil, exc.WrapError("decode: read header", err)
-	}
-	maxSeg := SegmentID(binary.LittleEndian.Uint32(d.wordbuf[:]))
-	if maxSeg > maxStreamSegments {
-		return nil, errSegIDTooLarge(maxSeg)
-	}
-
-	// Read the rest of the header if more than one segment.
-	var hdr streamHeader
-	if maxSeg == 0 {
-		hdr = streamHeader{d.wordbuf[:]}
-	} else {
-		hdrSize := streamHeaderSize(maxSeg)
-		if hdrSize > maxSize || hdrSize > uint64(maxInt) {
-			return nil, errors.New("decode: message too large")
-		}
-		d.hdrbuf = resizeSlice(d.hdrbuf, int(hdrSize))
-		copy(d.hdrbuf, d.wordbuf[:])
-		if _, err := io.ReadFull(d.r, d.hdrbuf[len(d.wordbuf):]); err != nil {
-			return nil, exc.WrapError("decode: read header", err)
-		}
-		hdr = streamHeader{d.hdrbuf}
-	}
-	total, err := hdr.totalSize()
-	if err != nil {
-		return nil, exc.WrapError("decode", err)
-	}
-	// TODO(someday): if total size is greater than can fit in one buffer,
-	// attempt to allocate buffer per segment.
-	if total > maxSize-uint64(len(hdr.b)) || total > uint64(maxInt) {
-		return nil, errors.New("decode: message too large")
-	}
-
-	// Read segments.
-	if !d.reuse {
-		var buf []byte
-		if d.bufferPool == nil {
-			buf = make([]byte, int(total))
-		} else {
-			buf = d.bufferPool.Get(int(total))
-		}
-		if _, err := io.ReadFull(d.r, buf); err != nil {
-			return nil, exc.WrapError("decode: read segments", err)
-		}
-		arena, err := demuxArena(hdr, buf)
-		if err != nil {
-			return nil, exc.WrapError("decode", err)
-		}
-		return &Message{
-			Arena:          arena,
-			originalBuffer: buf,
-		}, nil
-	}
-	d.buf = resizeSlice(d.buf, int(total))
-	if _, err := io.ReadFull(d.r, d.buf); err != nil {
-		return nil, exc.WrapError("decode: read segments", err)
-	}
-	var arena Arena
-	if maxSeg == 0 {
-		d.arena = d.buf[:len(d.buf):len(d.buf)]
-		arena = &d.arena
-	} else {
-		var err error
-		arena, err = demuxArena(hdr, d.buf)
-		if err != nil {
-			return nil, exc.WrapError("decode", err)
-		}
-	}
-	d.msg.Reset(arena)
-	return &d.msg, nil
-}
-
-type errSegIDTooLarge SegmentID
-
-func (err errSegIDTooLarge) Error() string {
-	id := str.Utod(err)
-	max := str.Itod(maxStreamSegments)
-	return "decode: segment id" + id + "exceeds max segment count (max=" + max + ")"
-}
-
-func resizeSlice(b []byte, size int) []byte {
-	if cap(b) < size {
-		return make([]byte, size)
-	}
-	return b[:size]
-}
-
-// ReuseBuffer causes the decoder to reuse its buffer on subsequent decodes.
-// The decoder may return messages that cannot handle allocations.
-func (d *Decoder) ReuseBuffer() {
-	d.reuse = true
-}
-
-// SetBufferPool registers a buffer pool to allocate message space from, rather
-// than directly allocating buffers with make(). This can help reduce pressure
-// on the garbage collector; pass messages to d.ReleaseMessage() when done with
-// them.
-func (d *Decoder) SetBufferPool(p *bufferpool.Pool) {
-	d.bufferPool = p
-}
-
-func (d *Decoder) ReleaseMessage(m *Message) {
-	if d.bufferPool == nil {
-		return
-	}
-	d.bufferPool.Put(m.originalBuffer)
-}
-
-// Unmarshal reads an unpacked serialized stream into a message.  No
-// copying is performed, so the objects in the returned message read
-// directly from data.
-func Unmarshal(data []byte) (*Message, error) {
-	if len(data) == 0 {
-		return nil, io.EOF
-	}
-	if len(data) < int(wordSize) {
-		return nil, errors.New("unmarshal: short header section")
-	}
-	maxSeg := SegmentID(binary.LittleEndian.Uint32(data))
-	hdrSize := streamHeaderSize(maxSeg)
-	if uint64(len(data)) < hdrSize {
-		return nil, errors.New("unmarshal: short header section")
-	}
-	hdr := streamHeader{data[:hdrSize]}
-	data = data[hdrSize:]
-	if total, err := hdr.totalSize(); err != nil {
-		return nil, exc.WrapError("unmarshal", err)
-	} else if total > uint64(len(data)) {
-		return nil, errors.New("unmarshal: short data section")
-	}
-	arena, err := demuxArena(hdr, data)
-	if err != nil {
-		return nil, exc.WrapError("unmarshal", err)
-	}
-	return &Message{Arena: arena}, nil
-}
-
-// UnmarshalPacked reads a packed serialized stream into a message.
-func UnmarshalPacked(data []byte) (*Message, error) {
-	if len(data) == 0 {
-		return nil, io.EOF
-	}
-	data, err := packed.Unpack(nil, data)
-	if err != nil {
-		return nil, exc.WrapError("unmarshal", err)
-	}
-	return Unmarshal(data)
-}
-
-// MustUnmarshalRoot reads an unpacked serialized stream and returns
-// its root pointer.  If there is any error, it panics.
-func MustUnmarshalRoot(data []byte) Ptr {
-	msg, err := Unmarshal(data)
-	if err != nil {
-		panic(err)
-	}
-	p, err := msg.Root()
-	if err != nil {
-		panic(err)
-	}
-	return p
-}
-
-// An Encoder represents a framer for serializing a particular Cap'n
-// Proto stream.
-type Encoder struct {
-	w      io.Writer
-	hdrbuf []byte
-	bufs   [][]byte
-}
-
-// NewEncoder creates a new Cap'n Proto framer that writes to w.
-func NewEncoder(w io.Writer) *Encoder {
-	return &Encoder{w: w}
-}
-
-// NewPackedEncoder creates a new Cap'n Proto framer that writes to a
-// packed stream w.
-func NewPackedEncoder(w io.Writer) *Encoder {
-	return NewEncoder(&packed.Writer{Writer: w})
-}
-
-// Encode writes a message to the encoder stream.
-func (e *Encoder) Encode(m *Message) error {
-	nsegs := m.NumSegments()
-	if nsegs == 0 {
-		return errors.New("encode: message has no segments")
-	}
-	e.bufs = append(e.bufs[:0], nil) // first element is placeholder for header
-	maxSeg := SegmentID(nsegs - 1)
-	hdrSize := streamHeaderSize(maxSeg)
-	if hdrSize > uint64(maxInt) {
-		return errors.New("encode: header size overflows int")
-	}
-	e.hdrbuf = resizeSlice(e.hdrbuf, int(hdrSize))
-	e.hdrbuf = appendUint32(e.hdrbuf[:0], uint32(maxSeg))
-	for i := int64(0); i < nsegs; i++ {
-		s, err := m.Segment(SegmentID(i))
-		if err != nil {
-			return exc.WrapError("encode", err)
-		}
-		n := len(s.data)
-		if int64(n) > int64(maxSegmentSize) {
-			return errors.New("encode: segment " + str.Itod(i) + " too large")
-		}
-		e.hdrbuf = appendUint32(e.hdrbuf, uint32(Size(n)/wordSize))
-		e.bufs = append(e.bufs, s.data)
-	}
-	if len(e.hdrbuf)%int(wordSize) != 0 {
-		e.hdrbuf = appendUint32(e.hdrbuf, 0)
-	}
-	e.bufs[0] = e.hdrbuf
-
-	if err := e.write(e.bufs); err != nil {
-		return exc.WrapError("encode", err)
-	}
-
-	return nil
 }
 
 // Marshal concatenates the segments in the message into a single byte
@@ -725,77 +424,43 @@ func (m *Message) MarshalPacked() ([]byte, error) {
 	return buf, nil
 }
 
-// streamHeaderSize returns the size of the header, given the lower 32
-// bits of the first word of the header (the number of segments minus
-// one).
-func streamHeaderSize(maxSeg SegmentID) uint64 {
-	return ((uint64(maxSeg)+2)*4 + 7) &^ 7
+type writeCounter struct {
+	N int64
+	io.Writer
 }
 
-// appendUint32 appends a uint32 to a byte slice and returns the
-// new slice.
-func appendUint32(b []byte, v uint32) []byte {
-	b = append(b, 0, 0, 0, 0)
-	binary.LittleEndian.PutUint32(b[len(b)-4:], v)
-	return b
+func (wc *writeCounter) Write(b []byte) (n int, err error) {
+	n, err = wc.Writer.Write(b)
+	wc.N += int64(n)
+	return
 }
 
-// streamHeader holds the framing words at the beginning of a serialized
-// Cap'n Proto message.
-type streamHeader struct {
-	b []byte
-}
+// alloc allocates sz zero-filled bytes.  It prefers using s, but may
+// use a different segment in the same message if there's not sufficient
+// capacity.
+func alloc(s *Segment, sz Size) (*Segment, address, error) {
+	if sz > maxAllocSize() {
+		return nil, 0, errors.New("allocation: too large")
+	}
+	sz = sz.padToWord()
 
-// maxSegment returns the number of segments in the message minus one.
-func (h streamHeader) maxSegment() SegmentID {
-	return SegmentID(binary.LittleEndian.Uint32(h.b))
-}
+	if !hasCapacity(s.data, sz) {
+		var err error
+		s, err = s.msg.allocSegment(sz)
+		if err != nil {
+			return nil, 0, errors.New("allocSegment failed: " + err.Error())
+		}
+	}
 
-// segmentSize returns the size of segment i, returning an error if the
-// segment overflows maxSegmentSize.
-func (h streamHeader) segmentSize(i SegmentID) (Size, error) {
-	s := binary.LittleEndian.Uint32(h.b[4+i*4:])
-	sz, ok := wordSize.times(int32(s))
+	addr := address(len(s.data))
+	end, ok := addr.addSize(sz)
 	if !ok {
-		return 0, errors.New("segment " + str.Utod(i) + ": overflow size")
+		return nil, 0, errors.New("allocation: address overflow")
 	}
-	return sz, nil
-}
-
-// totalSize returns the sum of all the segment sizes.  The sum will
-// be in the range [0, 0xfffffff800000000].
-func (h streamHeader) totalSize() (uint64, error) {
-	var sum uint64
-	for i := uint64(0); i <= uint64(h.maxSegment()); i++ {
-		x, err := h.segmentSize(SegmentID(i))
-		if err != nil {
-			return sum, err
-		}
-		sum += uint64(x)
+	space := s.data[len(s.data):end]
+	s.data = s.data[:end]
+	for i := range space {
+		space[i] = 0
 	}
-	return sum, nil
+	return s, addr, nil
 }
-
-func hasCapacity(b []byte, sz Size) bool {
-	return sz <= Size(cap(b)-len(b))
-}
-
-// demuxArena slices b into a multi-segment arena.  It assumes that
-// len(data) >= hdr.totalSize().
-func demuxArena(hdr streamHeader, data []byte) (Arena, error) {
-	maxSeg := hdr.maxSegment()
-	if int64(maxSeg) > int64(maxInt-1) {
-		return nil, errors.New("number of segments overflows int")
-	}
-	segs := make([][]byte, int(maxSeg+1))
-	for i := range segs {
-		sz, err := hdr.segmentSize(SegmentID(i))
-		if err != nil {
-			return nil, err
-		}
-		segs[i], data = data[:sz:sz], data[sz:]
-	}
-	return MultiSegment(segs), nil
-}
-
-const maxInt = int(^uint(0) >> 1)

@@ -15,6 +15,8 @@ type SegmentID uint32
 // It is part of a Message, which can contain other segments that
 // reference each other.
 type Segment struct {
+	// msg associated with this segment. A Message instance m maintains the
+	// invariant that that all m.segs[].msg == m.
 	msg  *Message
 	id   SegmentID
 	data []byte
@@ -376,7 +378,7 @@ func (s *Segment) writePtr(off address, src Ptr, forceCopy bool) error {
 	case interfacePtrType:
 		i := src.Interface()
 		if src.seg.msg != s.msg {
-			c := s.msg.AddCap(i.Client().AddRef())
+			c := s.msg.CapTable().Add(i.Client().AddRef())
 			i = NewInterface(s, c)
 		}
 		s.writeRawPointer(off, i.value(off))

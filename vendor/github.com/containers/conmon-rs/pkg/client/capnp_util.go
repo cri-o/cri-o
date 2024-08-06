@@ -68,7 +68,7 @@ func remoteFDSliceToUInt64List(src []RemoteFD, newFunc func(int32) (capnp.UInt64
 	if err != nil {
 		return err
 	}
-	for i := 0; i < len(src); i++ {
+	for i := range src {
 		list.Set(i, uint64(src[i]))
 	}
 

@@ -27,6 +27,9 @@ func (e wrappedError) Unwrap() error {
 }
 
 func WrapError(prefix string, err error) error {
+	if err == nil {
+		return nil
+	}
 	return wrappedError{
 		prefix: prefix,
 		base:   err,

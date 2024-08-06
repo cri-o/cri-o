@@ -398,7 +398,7 @@ func (c *ConmonClient) waitUntilServerUp() (err error) {
 		defer span.End()
 	}
 
-	for i := 0; i < 100; i++ {
+	for range 100 {
 		ctx, cancel := defaultContext()
 
 		_, err = c.Version(ctx, &VersionConfig{})
@@ -887,8 +887,10 @@ func (c *ConmonClient) ExecSyncContainer(ctx context.Context, cfg *ExecSyncConfi
 
 	execContainerResult := &ExecContainerResult{
 		ExitCode: resp.ExitCode(),
-		Stdout:   stdout,
-		Stderr:   stderr,
+		// Copy content of both slices as the `capnp.ReleaseFunc` will
+		// zero them when the deferred call to `free()` takes place.
+		Stdout:   append(stdout[:0:0], stdout...),
+		Stderr:   append(stderr[:0:0], stderr...),
 		TimedOut: resp.TimedOut(),
 	}
 
@@ -950,7 +952,7 @@ func (c *ConmonClient) Shutdown() error {
 		waitInterval = 100 * time.Millisecond
 		waitCount    = 100
 	)
-	for i := 0; i < waitCount; i++ {
+	for range waitCount {
 		if err := syscall.Kill(pid, 0); errors.Is(err, syscall.ESRCH) {
 			return nil
 		}
@@ -1229,7 +1231,7 @@ func (c *ConmonClient) CreateNamespaces(
 	}
 
 	namespacesResponse := []*NamespacesResponse{}
-	for i := 0; i < namespaces.Len(); i++ {
+	for i := range namespaces.Len() {
 		namespace := namespaces.At(i)
 
 		var typ Namespace
