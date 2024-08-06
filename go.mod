@@ -75,15 +75,15 @@ require (
 	golang.org/x/sys v0.22.0
 	google.golang.org/grpc v1.65.0
 	google.golang.org/protobuf v1.34.2
-	k8s.io/api v0.31.0-alpha.3
-	k8s.io/apimachinery v0.31.0-alpha.3
-	k8s.io/client-go v0.31.0-alpha.3
-	k8s.io/cri-api v0.31.0-beta.0.0.20240716205706-865479a3e1b3
+	k8s.io/api v0.32.0-alpha.0
+	k8s.io/apimachinery v0.32.0-alpha.0
+	k8s.io/client-go v0.32.0-alpha.0
+	k8s.io/cri-api v0.32.0-alpha.0
 	k8s.io/klog/v2 v2.130.1
-	k8s.io/kubelet v0.31.0-alpha.3
-	k8s.io/utils v0.0.0-20240502163921-fe8a2dddb1d0
+	k8s.io/kubelet v0.32.0-alpha.0
+	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
 	sigs.k8s.io/release-sdk v0.12.1
-	sigs.k8s.io/release-utils v0.8.3
+	sigs.k8s.io/release-utils v0.8.4
 	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.8.0
 )
@@ -208,7 +208,7 @@ require (
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
 	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.28.0 // indirect
 	go.opentelemetry.io/otel/log v0.3.0 // indirect
 	go.opentelemetry.io/otel/metric v1.28.0 // indirect
@@ -228,7 +228,7 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiserver v0.31.0-alpha.3 // indirect
+	k8s.io/apiserver v0.32.0-alpha.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
