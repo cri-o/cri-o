@@ -61,7 +61,7 @@ function expect_log_failure() {
 	reload_crio
 
 	# then
-	expect_log_failure "unable to decode configuration"
+	wait_for_log "unable to decode configuration"
 }
 
 @test "reload config should succeed with 'pause_image'" {

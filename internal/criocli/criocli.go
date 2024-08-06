@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
+	"github.com/cri-o/cri-o/internal/log"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/otel-collector/collectors"
 )
@@ -44,16 +45,20 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	// Don't parse the config if the user explicitly set it to "".
 	path := ctx.String("config")
 	if path != "" {
-		if err := config.UpdateFromFile(path); err != nil {
-			if ctx.IsSet("config") || !os.IsNotExist(err) {
-				return err
+		if err := config.UpdateFromFile(ctx.Context, path); err != nil {
+			isNotExistErr := errors.Is(err, os.ErrNotExist)
+			if isNotExistErr {
+				log.Infof(ctx.Context, "Skipping not-existing config file %q", path)
+			}
+			if ctx.IsSet("config") || !isNotExistErr {
+				return fmt.Errorf("update config from file: %w", err)
 			}
 		}
 	}
 
 	// Parse the drop-in configuration files for config override
-	if err := config.UpdateFromPath(ctx.String("config-dir")); err != nil {
-		return err
+	if err := config.UpdateFromPath(ctx.Context, ctx.String("config-dir")); err != nil {
+		return fmt.Errorf("update config from path: %w", err)
 	}
 	// If "config-dir" is specified, config.UpdateFromPath() will set config.singleConfigPath as
 	// the last config file in "config-dir".

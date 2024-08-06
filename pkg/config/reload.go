@@ -1,6 +1,7 @@
 package config
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -18,8 +19,8 @@ import (
 
 // Reload reloads the configuration for the single crio.conf and the drop-in
 // configuration directory.
-func (c *Config) Reload() error {
-	logrus.Infof("Reloading configuration")
+func (c *Config) Reload(ctx context.Context) error {
+	log.Infof(ctx, "Reloading configuration")
 
 	// Reload the config
 	newConfig, err := DefaultConfig()
@@ -28,21 +29,19 @@ func (c *Config) Reload() error {
 	}
 
 	if _, err := os.Stat(c.singleConfigPath); !os.IsNotExist(err) {
-		logrus.Infof("Updating config from file %s", c.singleConfigPath)
-		if err := newConfig.UpdateFromFile(c.singleConfigPath); err != nil {
-			return err
+		if err := newConfig.UpdateFromFile(ctx, c.singleConfigPath); err != nil {
+			return fmt.Errorf("update config from single file: %w", err)
 		}
 	} else {
-		logrus.Infof("Skipping not-existing config file %q", c.singleConfigPath)
+		log.Infof(ctx, "Skipping not-existing config file %q", c.singleConfigPath)
 	}
 
 	if _, err := os.Stat(c.dropInConfigDir); !os.IsNotExist(err) {
-		logrus.Infof("Updating config from path %s", c.dropInConfigDir)
-		if err := newConfig.UpdateFromPath(c.dropInConfigDir); err != nil {
-			return err
+		if err := newConfig.UpdateFromPath(ctx, c.dropInConfigDir); err != nil {
+			return fmt.Errorf("update config from path: %w", err)
 		}
 	} else {
-		logrus.Infof("Skipping not-existing config path %q", c.dropInConfigDir)
+		log.Infof(ctx, "Skipping not-existing config path %q", c.dropInConfigDir)
 	}
 
 	// Reload all available options

@@ -57,7 +57,7 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 		for s := range sig {
 			log.WithFields(ctx, logrus.Fields{
 				"signal": s,
-			}).Debug("received signal")
+			}).Debug("Received signal")
 			switch s {
 			case unix.SIGUSR1:
 				writeCrioGoroutineStacks()
@@ -163,15 +163,15 @@ func main() {
 	})
 
 	app.Before = func(c *cli.Context) (err error) {
-		config, err := criocli.GetAndMergeConfigFromContext(c)
-		if err != nil {
-			return err
-		}
-
 		logrus.SetFormatter(&logrus.TextFormatter{
 			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
 			FullTimestamp:   true,
 		})
+
+		config, err := criocli.GetAndMergeConfigFromContext(c)
+		if err != nil {
+			return fmt.Errorf("get and merge config from context: %w", err)
+		}
 
 		level, err := logrus.ParseLevel(config.LogLevel)
 		if err != nil {
