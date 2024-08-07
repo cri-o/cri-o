@@ -1662,6 +1662,7 @@ func (r *RuntimeHandler) ValidateNoSyncLog() error {
 	// no_sync_log can only be used with the 'oci' runtime type.
 	// This means that the runtime type must be set to 'oci' or left empty
 	if r.RuntimeType == DefaultRuntimeType || r.RuntimeType == "" {
+		logrus.Warn("NoSyncLog is enabled. This can lead to lost log data")
 		return nil
 	}
 	return fmt.Errorf("no_sync_log is only allowed with runtime type 'oci', runtime type is '%s'", r.RuntimeType)
