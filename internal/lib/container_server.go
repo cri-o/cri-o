@@ -121,7 +121,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		}
 		if wipeStorage {
 			log.Warnf(ctx, "Wiping storage directory %s because of unclean shutdown", graphRoot)
-			if err := HandleUncleanShutdown(config, store); err != nil {
+			// This will fail if there are any containers currently running.
+			if err := RemoveStorageDirectory(config, store, false); err != nil {
 				return nil, err
 			}
 		}
@@ -798,7 +799,7 @@ func ShutdownWasUnclean(config *libconfig.Config) bool {
 	return true
 }
 
-func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error {
+func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, force bool) error {
 	// If we do not do this, we may leak other resources that are not directly
 	// in the graphroot. Erroring here should not be fatal though, it's a best
 	// effort cleanup.
@@ -814,7 +815,11 @@ func HandleUncleanShutdown(config *libconfig.Config, store cstorage.Store) error
 		// Since a container started by Podman can be running, we will
 		// try to detect this and return an error rather than proceed
 		// with a storage wipe.
-		if errors.Is(err, cstorage.ErrLayerUsedByContainer) {
+		//
+		// The storage directory removal can also be forced, which will
+		// then delete everything irregardless of whether there are any
+		// containers running at the moment.
+		if !force && errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 			return fmt.Errorf("failed to shutdown storage: %w", err)
 		}
 		logrus.Warnf("Failed to shutdown storage: %v", err)

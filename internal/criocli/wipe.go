@@ -68,7 +68,8 @@ func crioWipe(c *cli.Context) error {
 			config.CleanShutdownFile,
 			store.GraphRoot(),
 		)
-		return lib.HandleUncleanShutdown(config, store)
+		// This will fail if there are any containers currently running.
+		return lib.RemoveStorageDirectory(config, store, false)
 	}
 
 	// If crio is configured to wipe internally (and `--force` wasn't set)
