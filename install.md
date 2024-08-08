@@ -12,6 +12,10 @@ It is assumed you are running a Linux machine.
 
 <!-- toc -->
 - [Install packaged versions of CRI-O](#install-packaged-versions-of-cri-o)
+- [Install CRI-O on Flatcar with Sysexts](#install-cri-o-on-flatcar-with-sysexts)
+  - [Prerequisites](#prerequisites)
+  - [Installation Steps](#installation-steps)
+  - [Additional Notes](#additional-notes)
 - [Build and install CRI-O from source](#build-and-install-cri-o-from-source)
   - [Runtime dependencies](#runtime-dependencies)
   - [Build and Run Dependencies](#build-and-run-dependencies)
@@ -49,7 +53,107 @@ of three minor releases. CRI-O also attempts to package generically for Debian
 
 If there's a version or operating system that is missing, please [open an issue](https://github.com/cri-o/cri-o/issues/new).
 
-For more information, please follow the instructions in the [CRI-O packaging repository.](https://github.com/cri-o/packaging/blob/main/README.md).
+For more information, please follow the instructions in the [CRI-O packaging repository](https://github.com/cri-o/packaging/blob/main/README.md).
+
+## Install CRI-O on Flatcar with Sysexts
+
+Installing CRI-O on Flatcar Container Linux with support for systemd extensions (sysexts),
+enabling a supported installation method for environments that utilize Flatcar.
+
+### Prerequisites
+
+- Flatcar Container Linux installed on your machine. [(Flatcar Installation guide)](https://www.flatcar.org/docs/latest/installing/)
+- Systemd extensions (sysexts) enabled on Flatcar Container Linux.
+[(Enable Sysext in Flatcar)](https://www.flatcar.org/docs/latest/provisioning/sysext/)
+- `curl` or `wget` for downloading files.
+- `tar` for extracting the CRI-O binaries.
+- `sed` for editing files in-place.
+- Sufficient privileges (using sudo if necessary).
+
+Please make sure you have Flatcar Container Linux installed and sysexts enabled before
+proceeding with the installation of CRI-O.
+
+### Installation Steps
+
+To install CRI-O on Flatcar Container Linux with sysexts, follow these steps:
+
+- Step 1: Download the installation script:
+
+  Sample extension script for installing CRI-O using sysext is [here](
+  https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh).
+
+  - Using curl:
+
+    ```bash
+    curl -L \
+    https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh \
+    -o create_crio_sysext.sh
+    ```
+
+  - Using wget:
+
+    ```bash
+    wget \
+    https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh \
+    -O create_crio_sysext.sh
+    ```
+
+Make the script executable.
+
+```bash
+chmod +x create_crio_sysext.sh
+```
+
+- Step 2: Run the installation script:
+
+  Execute the script with the required arguments:
+
+  - The version of CRI-O you wish to install. [(Find a specific version of
+  CRI-O here)](https://github.com/cri-o/cri-o/releases)
+  - The name you wish to give to the sysext image.
+  - Optionally, set the `ARCH` environment variable if you need a specific architecture.
+
+  ```bash
+  ./create_crio_sysext.sh VERSION SYSEXTNAME
+  ```
+
+  Example:
+
+  ```bash
+  ./create_crio_sysext.sh 1.28.4 crio-sysext
+  ```
+
+- Step 3: Deploy the system extension:
+  - Once the script completes, you will have a `.raw` sysext image file named as
+  per your `SYSEXTNAME` argument.
+  - To deploy the system extension, move the `.raw` file to the
+  `/var/lib/extensions` directory on your Flatcar Container Linux system and
+  enable it with the `systemctl` command.
+
+  ```bash
+  sudo mv SYSEXTNAME.raw /var/lib/extensions/
+  sudo systemctl enable extensions-SYSEXTNAME.slice
+  sudo systemctl start extensions-SYSEXTNAME.slice
+  ```
+
+- Step 4: Verify the installation:
+  - Verify that the CRI-O service is running correctly.
+
+    ```bash
+    systemctl status crio
+    ```
+
+  - Ensure that the CRI-O binaries are correctly placed and that the system
+  recognizes the new systemd sysext image.
+
+### Additional Notes
+
+- The script will create a temporary directory for its operations, which
+will be cleaned up after the sysext image is created.
+
+- All files within the sysext image will be owned by root.The guide assumes
+the default architecture is `x86-64`. For ARM64 systems, pass `ARCH=arm64`
+as an environment variable when running the script.
 
 ## Build and install CRI-O from source
 
