@@ -223,3 +223,36 @@ EOF
 		[[ $(cat "$CTR_CGROUP"/container/"$cgroup_file") == "-1" ]]
 	fi
 }
+
+@test "cgroupv2 privileged container should have host cgroupns" {
+	if ! is_cgroup_v2; then
+		skip "node must be configured with cgroupv2 for this test"
+	fi
+	start_crio
+
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$TESTDATA"/sandbox_config.json)
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /proc/1/cgroup")
+	[[ $output == *"pod_123-456.slice"* ]]
+}
+
+@test "cgroupv2 privileged container with io.kubernetes.cri-o.cgroup2-ns-privileged should not have host cgroupns" {
+	if ! is_cgroup_v2; then
+		skip "node must be configured with cgroupv2 for this test"
+	fi
+	start_crio
+
+	jq '      .annotations."io.kubernetes.cri-o.cgroup2-ns-privileged" = "true"' \
+		"$TESTDATA"/sandbox_config.json > "$sboxconfig"
+
+	jq '	  .linux.security_context.privileged = true' \
+		"$TESTDATA"/container_sleep.json > "$newconfig"
+
+	ctr_id=$(crictl run "$newconfig" "$sboxconfig")
+
+	output=$(crictl exec --sync "$ctr_id" sh -c "cat /proc/1/cgroup")
+	[[ $output == "0::/" ]]
+}
