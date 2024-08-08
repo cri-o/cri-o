@@ -226,10 +226,10 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			continue
 		}
 		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
+		if err := s.Store().DeleteContainer(sbID); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			log.Warnf(ctx, "Unable to delete container %s: %v", sbID, err)
+		}
 		for _, n := range names[sbID] {
-			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
-				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
-			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, oci.InfraContainerName) {
 				s.ReleaseContainerName(ctx, n)
@@ -243,10 +243,10 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			if v.PodID != sbID {
 				continue
 			}
+			if err := s.Store().DeleteContainer(k); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+				log.Warnf(ctx, "Unable to delete container %s: %v", k, err)
+			}
 			for _, n := range names[k] {
-				if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
-					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
-				}
 				// Release the container name for future use
 				s.ReleaseContainerName(ctx, n)
 			}
@@ -270,10 +270,10 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			continue
 		}
 		log.Warnf(ctx, "Could not restore container %s: %v", containerID, err)
+		if err := s.Store().DeleteContainer(containerID); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			log.Warnf(ctx, "Unable to delete container %s: %v", containerID, err)
+		}
 		for _, n := range names[containerID] {
-			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
-				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
-			}
 			// Release the container name
 			s.ReleaseContainerName(ctx, n)
 		}
