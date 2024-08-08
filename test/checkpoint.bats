@@ -143,3 +143,52 @@ function teardown() {
 	[[ "$container_name" == "restored-sleep-container" ]]
 	[[ "$pod_name" == "restoresandbox2" ]]
 }
+
+@test "checkpoint and try to restore one container with an open TCP connection and expected failure" {
+	# This test needs to fail during restore to see if the log file is saved at a location
+	# the user can access it.
+	# This test is starting a container and creates an established TCP connections.
+	# Currently
+	if [[ "$CONTAINER_DEFAULT_RUNTIME" == "crun" ]]; then
+		skip "This test only works with runc"
+	fi
+	CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	# Add Kubernetes like annotations
+	START_CONTAINER_JSON_1=$(mktemp)
+	jq '
+		.command = [ "/bin/nc" ]
+		|	.args = [ "-l", "-p", "80", "--chat" ] ' \
+		"$TESTDATA"/container_sleep.json > "$START_CONTAINER_JSON_1"
+	ctr_id=$(crictl create "$pod_id" "$START_CONTAINER_JSON_1" "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	ip=$(pod_ip -4 "$ctr_id")
+	cat < "/dev/tcp/$ip/80" &
+	if [ -e /etc/criu/runc.conf ]; then
+		# let's create a configuration file and save the existing one
+		CRIU_BACKUP=$(mktemp)
+		mv /etc/criu/runc.conf "$CRIU_BACKUP"
+	fi
+	if [ ! -d /etc/criu ]; then
+		mkdir /etc/criu
+	fi
+	echo "tcp-established" > /etc/criu/runc.conf
+	crictl checkpoint --export="$TESTDIR"/cp.tar "$ctr_id"
+	if [ -n "$CRIU_BACKUP" ]; then
+		mv "$CRIU_BACKUP" /etc/criu/runc.conf
+	fi
+	crictl rm -f "$ctr_id"
+	crictl rmp -f "$pod_id"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	# Replace original container with checkpoint image
+	RESTORE_JSON=$(mktemp)
+	jq ".image.image=\"$TESTDIR/cp.tar\"" "$TESTDATA"/container_sleep.json > "$RESTORE_JSON"
+	ctr_id=$(crictl create "$pod_id" "$RESTORE_JSON" "$TESTDATA"/sandbox_config.json)
+	rm -f "$RESTORE_JSON"
+	run crictl start "$ctr_id"
+	[ "$status" -eq 1 ]
+	log_file=$(echo "$output" | grep -o -E "/.*/restore.*log" | head -1)
+	# Check if the log file actually exists
+	[ -e "$log_file" ]
+	rm -f "$log_file"
+}
