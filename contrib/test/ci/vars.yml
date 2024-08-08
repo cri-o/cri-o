@@ -76,16 +76,14 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-    CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
-    CONTAINER_RUNTIME: "containerd-shim-kata-v2"
-    CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
-    RUNTIME_NAME: "containerd-shim-kata-v2"
+    CONTAINER_DEFAULT_RUNTIME: "kata"
     RUNTIME_ROOT: "/run/vc"
     RUNTIME_TYPE: "vm"
+    RUNTIME_BINARY_PATH: "/opt/kata/bin/containerd-shim-kata-v2"
     TESTFLAGS: "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
       | map('basename') | difference(kata_skip_files) | join(' ') }}"
     JOBS: "1"  # TODO: add support to parallelization in kata (causes failures in the integration tests)
-    PRIVILEGED_WITHOUT_HOST_DEVICES: true
+    PRIVILEGED_WITHOUT_HOST_DEVICES: "true"
     RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
     PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
     CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
@@ -127,7 +125,6 @@ kata_skip_ctr_tests:
   - 'test "annotations passed through"'
   - 'test "ctr with default_env set in configuration"'
   - 'test "ctr with absent mount that should be rejected"'
-  - 'test "ctr stop loop kill retry attempts"'
   - 'test "ctr that mounts container storage as read-only option but not recursively"'
   - 'test "ctr that mounts container storage as recursively read-only"'
   - 'test "ctr that fails to mount container storage as recursively read-only without readonly option"'
@@ -146,11 +143,7 @@ kata_skip_image_tests:
   - 'test "image pull and list by manifest list tag"'
   - 'test "image pull and list by manifest list and individual digest"'
   - 'test "image pull and list by individual and manifest list digest"'
-  - 'test "run container with memory_limit_in_bytes -1"'
-  - 'test "run container with memory_limit_in_bytes 12.5MiB"'
   - 'test "run container with container_min_memory 17.5MiB"'
-  - 'test "run container with container_min_memory 5.5MiB"'
-  - 'test "run container with empty container_min_memory"'
 kata_skip_namespaces_tests:
   - 'test "pid namespace mode target test"'
 kata_skip_network_tests:

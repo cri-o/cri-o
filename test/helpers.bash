@@ -215,6 +215,18 @@ function check_images() {
 	"REDIS_IMAGEREF=" + .repoDigests[0]' <<<"$json")"
 }
 
+function check_runtime_class() {
+    NAME_TO_CHECK=$CONTAINER_DEFAULT_RUNTIME
+    if [ -n "$DEFAULT_RUNTIME_NAME" ]; then
+        NAME_TO_CHECK=$DEFAULT_RUNTIME_NAME
+    fi
+
+    output="$($CRIO_BINARY_PATH status --socket="${CRIO_SOCKET}" config 2>/dev/null | grep default_runtime)"
+	echo $output
+	[[ "$output" == *"default_runtime = \"$NAME_TO_CHECK\""* ]]
+
+}
+
 function start_crio_no_setup() {
     "$CRIO_BINARY_PATH" \
         --default-mounts-file "$TESTDIR/containers/mounts.conf" \
@@ -224,6 +236,8 @@ function start_crio_no_setup() {
         &>"$CRIO_LOG" &
     CRIO_PID=$!
     wait_until_reachable
+
+    check_runtime_class
 }
 
 # Start crio.
@@ -513,16 +527,40 @@ function is_cgroup_v2() {
     test "$(stat -f -c%T /sys/fs/cgroup)" = "cgroup2fs"
 }
 
-function create_runtime_with_allowed_annotation() {
+# This function can be used to create a new runtime class and make it the default
+# This is a shared use case for some of our integration tests, and it needs
+# to take into account all possible runtime parameters to keep compatible with
+# all supported runtimes.
+# The path to the created config file is saved under the environment variable
+# CRIO_NEW_RUNTIME_CONFIG. The caller can use it to modify the configuration
+# as needed.
+function create_new_default_runtime() {
     local NAME="$1"
-    local ANNOTATION="$2"
-    cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
+    CONTAINER_DEFAULT_RUNTIME=$NAME
+    export DEFAULT_RUNTIME_NAME=$NAME
+    export CRIO_NEW_RUNTIME_CONFIG="$CRIO_CONFIG_DIR/01-$NAME.conf"
+    local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
+    cat <<EOF >"$CRIO_NEW_RUNTIME_CONFIG"
 [crio.runtime]
 default_runtime = "$NAME"
 [crio.runtime.runtimes.$NAME]
 runtime_path = "$RUNTIME_BINARY_PATH"
 runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
+privileged_without_host_devices = $PRIVILEGED
+EOF
+    if [ -n "$RUNTIME_CONFIG_PATH" ]; then
+        cat <<EOF >>"$CRIO_NEW_RUNTIME_CONFIG"
+runtime_config_path = "$RUNTIME_CONFIG_PATH"
+EOF
+    fi
+}
+
+function create_runtime_with_allowed_annotation() {
+    local NAME="$1"
+    local ANNOTATION="$2"
+    create_new_default_runtime "$NAME"
+    cat <<EOF >>"$CRIO_NEW_RUNTIME_CONFIG"
 allowed_annotations = ["$ANNOTATION"]
 EOF
 }
