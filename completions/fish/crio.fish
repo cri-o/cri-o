@@ -114,7 +114,6 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l log-filter -r -d 'Filter t
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-format -r -d 'Set the format used by logs: \'text\' or \'json\'.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-journald -d 'Log to systemd journal (journald) in addition to kubernetes log file.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l log-level -s l -r -d 'Log messages above specified level: trace, debug, info, warn, error, fatal or panic.'
-complete -c crio -n '__fish_crio_no_subcommand' -f -l log-size-max -r -d 'Maximum log size in bytes for a container. If it is positive, it must be >= 8192 to match/exceed conmon read buffer. This option is deprecated. The Kubelet flag \'--container-log-max-size\' should be used instead.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-cert -r -d 'Certificate for the secure metrics endpoint.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-collectors -r -d 'Enabled metrics collectors.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l metrics-host -r -d 'Host for the metrics endpoint.'

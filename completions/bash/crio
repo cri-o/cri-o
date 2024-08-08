@@ -78,7 +78,6 @@ h
 --log-format
 --log-journald
 --log-level
---log-size-max
 --metrics-cert
 --metrics-collectors
 --metrics-host

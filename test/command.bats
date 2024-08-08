@@ -35,22 +35,3 @@ load helpers
 	run ! "$CRIO_BINARY_PATH" --metrics-port 18446744073709551616 --enable-metrics
 	[[ "$output" == *"value out of range"* ]]
 }
-
-@test "invalid log max" {
-	run ! "$CRIO_BINARY_PATH" --log-size-max foo
-	[[ "$output" == *'invalid value "foo" for flag'* ]]
-}
-
-@test "log max boundary testing" {
-	# log size max is special zero value
-	run ! "$CRIO_BINARY_PATH" --log-size-max 0
-	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
-
-	# log size max is less than 8192 and more than 0
-	run ! "$CRIO_BINARY_PATH" --log-size-max 8191
-	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
-
-	# log size max is out of the range of 64-bit signed integers
-	run ! "$CRIO_BINARY_PATH" --log-size-max 18446744073709551616
-	[[ "$output" == *"value out of range"* ]]
-}
