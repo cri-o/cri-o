@@ -21,15 +21,15 @@ function teardown() {
 	# given
 	setup_crio
 
-	printf "[crio.runtime]\npids_limit = 1234\n" > "$CRIO_CONFIG_DIR"/00-default
-	printf "[crio.runtime]\npids_limit = 5678\n" > "$CRIO_CONFIG_DIR"/01-overwrite
+	printf "[crio.runtime]\nlog_to_journald = false\n" > "$CRIO_CONFIG_DIR"/00-default
+	printf "[crio.runtime]\nlog_to_journald = true\n" > "$CRIO_CONFIG_DIR"/01-overwrite
 
 	# when
 	start_crio_no_setup
 	output=$("${CRIO_BINARY_PATH}" status --socket="${CRIO_SOCKET}" config)
 
 	# then
-	[[ "$output" == *"pids_limit = 5678"* ]]
+	[[ "$output" == *"log_to_journald = true"* ]]
 }
 
 @test "config dir should fail with invalid option" {

@@ -96,7 +96,6 @@ crio
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
-[--pids-limit]=[value]
 [--pinned-images]=[value]
 [--pinns-path]=[value]
 [--profile-cpu]=[value]
@@ -367,8 +366,6 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pause-image**="": Image which contains the pause executable. (default: "registry.k8s.io/pause:3.9")
 
 **--pause-image-auth-file**="": Path to a config file containing credentials for --pause-image.
-
-**--pids-limit**="": Maximum number of processes allowed in a container. This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead. (default: -1)
 
 **--pinned-images**="": A list of images that will be excluded from the kubelet's garbage collection.
 

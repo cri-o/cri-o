@@ -790,11 +790,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
-	// Set up pids limit if pids cgroup is mounted
-	if node.CgroupHasPid() {
-		specgen.SetLinuxResourcesPidsLimit(s.config.PidsLimit)
-	}
-
 	// by default, the root path is an empty string. set it now.
 	specgen.SetRootPath(mountPoint)
 

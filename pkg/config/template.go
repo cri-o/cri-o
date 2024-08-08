@@ -341,11 +341,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.DefaultMountsFile, c.DefaultMountsFile),
 		},
 		{
-			templateString: templateStringCrioRuntimePidsLimit,
-			group:          crioRuntimeConfig,
-			isDefaultValue: simpleEqual(dc.PidsLimit, c.PidsLimit),
-		},
-		{
 			templateString: templateStringCrioRuntimeLogSizeMax,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.LogSizeMax, c.LogSizeMax),
@@ -1058,12 +1053,6 @@ const templateStringCrioRuntimeDefaultMountsFile = `# Path to the file specifyin
 #      only add mounts it finds in this file.
 #
 {{ $.Comment }}default_mounts_file = "{{ .DefaultMountsFile }}"
-
-`
-
-const templateStringCrioRuntimePidsLimit = `# Maximum number of processes allowed in a container.
-# This option is deprecated. The Kubelet flag '--pod-pids-limit' should be used instead.
-{{ $.Comment }}pids_limit = {{ .PidsLimit }}
 
 `
 
