@@ -860,8 +860,8 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 		return []*types.ContainerStatus{}, err
 	}
 
-	containerStatuses := []*types.ContainerStatus{}
-	for _, cc := range containers.GetContainers() {
+	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+	for i, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id}
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
@@ -870,7 +870,7 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 		if err != nil {
 			return []*types.ContainerStatus{}, err
 		}
-		containerStatuses = append(containerStatuses, resp.GetStatus())
+		containerStatuses[i] = resp.GetStatus()
 	}
 
 	return containerStatuses, nil
@@ -883,8 +883,8 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 		return []*types.ContainerStatus{}, err
 	}
 
-	containerStatuses := []*types.ContainerStatus{}
-	for _, cc := range containers.GetContainers() {
+	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+	for i, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id, Verbose: false}
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
@@ -893,7 +893,7 @@ func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxI
 		if err != nil {
 			return []*types.ContainerStatus{}, err
 		}
-		containerStatuses = append(containerStatuses, resp.GetStatus())
+		containerStatuses[i] = resp.GetStatus()
 	}
 
 	return containerStatuses, nil
