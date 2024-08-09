@@ -540,7 +540,7 @@ var _ = t.Describe("Runtime", func() {
 				info, err = sut.CreatePodSandbox(&types.SystemContext{},
 					"podName", "podID", pauseImage, "",
 					"containerName", "metadataName",
-					"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
+					"uid", "namespace", 0, nil, []string{"mountLabel"}, false, nil,
 				)
 			})
 
@@ -676,7 +676,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", pauseImage, "",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false, nil,
 			)
 
 			// Then
@@ -698,7 +698,7 @@ var _ = t.Describe("Runtime", func() {
 			_, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", pauseImage, "",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false, nil,
 			)
 
 			// Then
@@ -802,7 +802,7 @@ var _ = t.Describe("Runtime", func() {
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", pauseImage, "",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false, nil,
 			)
 		})
 
@@ -821,7 +821,7 @@ var _ = t.Describe("Runtime", func() {
 			info, err = sut.CreatePodSandbox(&types.SystemContext{},
 				"podName", "podID", pauseImage, "/var/non-default/credentials.json",
 				"containerName", "metadataName",
-				"uid", "namespace", 0, nil, []string{"mountLabel"}, false,
+				"uid", "namespace", 0, nil, []string{"mountLabel"}, false, nil,
 			)
 		})
 

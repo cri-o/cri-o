@@ -96,6 +96,7 @@ type imageService struct {
 	ctx                  context.Context
 	config               *config.Config
 	regexForPinnedImages []*regexp.Regexp
+	imageRemovalLock     sync.Map
 }
 
 // ImageBeingPulled map[string]bool to keep track of the images haven't done pulling.
@@ -156,6 +157,15 @@ type ImageServer interface {
 
 	// UpdatePinnedImagesList updates pinned and pause images list in imageService.
 	UpdatePinnedImagesList(imageList []string)
+
+	// ImageRemovalLock returns the removal lock for the specified image storage reference.
+	ImageRemovalLock(id StorageImageID) *sync.RWMutex
+}
+
+// ImageRemovalLock returns the removal lock for the specified image storage reference.
+func (svc *imageService) ImageRemovalLock(id StorageImageID) *sync.RWMutex {
+	value, _ := svc.imageRemovalLock.LoadOrStore(id, &sync.RWMutex{})
+	return value.(*sync.RWMutex) // nolint:errcheck,forcetypeassert // type matches line above
 }
 
 func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
@@ -751,6 +761,14 @@ func (svc *imageService) DeleteImage(systemContext *types.SystemContext, id Stor
 	if err != nil {
 		return err
 	}
+
+	// Avoid removing images which are currently used for container creation
+	imageRemovalLock := svc.ImageRemovalLock(id)
+	imageRemovalLock.Lock()
+	defer imageRemovalLock.Unlock()
+
+	// Cleanup memory when the image got removed
+	defer svc.imageRemovalLock.Delete(id)
 
 	return ref.DeleteImage(svc.ctx, systemContext)
 }
