@@ -64,86 +64,165 @@ jobs:
       fail-fast: false
       matrix:
         run:
-          - name: critest / conmon
+          - name: critest / conmon / runc / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: oci
             critest: 1
             userns: 0
             jobs: 1
             timeout: 10
-          - name: critest / conmon
+
+          - name: critest / conmon / runc / arm64
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: oci
             critest: 1
             userns: 0
             timeout: 10
-          - name: critest / conmon-rs
+
+          - name: critest / conmon / crun / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon / crun / arm64
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            timeout: 10
+
+          - name: critest / conmon-rs / runc / amd64
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: pod
             critest: 1
             userns: 0
             jobs: 1
             timeout: 10
-          - name: critest / conmon-rs
+
+          - name: critest / conmon-rs / runc / arm64
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: pod
             critest: 1
             userns: 0
             jobs: 1
             timeout: 10
-          - name: integration / conmon
+
+          - name: critest / conmon-rs / crun / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon-rs / crun / arm64
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: crun
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: integration / conmon / runc / amd64
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 0
             jobs: 2
             timeout: 120
-          - name: integration / conmon
+
+          - name: integration / conmon / runc / arm64
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 0
             jobs: 2
             timeout: 120
-          - name: integration / conmon-rs
+
+          - name: integration / conmon / crun / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
+          - name: integration / conmon / crun / arm64
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
+          - name: integration / conmon-rs / runc / amd64
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: pod
             critest: 0
             userns: 1
             jobs: 2
             timeout: 120
-          - name: integration / conmon-rs
+
+          - name: integration / conmon-rs / runc / arm64
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: pod
             critest: 0
             userns: 1
             jobs: 2
             timeout: 120
-          - name: integration / userns
+
+          - name: integration / userns / runc / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 1
             jobs: 2
             timeout: 120
-          - name: integration / userns
+
+          - name: integration / userns / runc / arm64
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 1
             jobs: 2
             timeout: 120
-    name: ${{ matrix.run.name }} / ${{ matrix.run.arch }}
+
+    name: ${{ matrix.run.name }}
     runs-on: ${{ matrix.run.runner }}
     timeout-minutes: ${{ matrix.run.timeout }}
     steps:
@@ -179,7 +258,13 @@ jobs:
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
-      - run: sudo -E test/test_runner.sh
+      - name: Switch to crun instead of runc
+        if: ${{ matrix.run.defaultRuntime == 'crun' }}
+        run: |
+          sudo ln -sf $(command -v crun) $(command -v runc)
+          runc --version
+      - name: Run the test suite
+        run: sudo -E test/test_runner.sh
         env:
           JOBS: ${{ matrix.run.jobs }}
           RUN_CRITEST: ${{ matrix.run.critest }}

@@ -145,6 +145,7 @@ func (c *Config) injectNotifier(
 	for i, syscall := range profile.Syscalls {
 		if isActionToOverride(syscall.Action) {
 			profile.Syscalls[i].Action = specs.ActNotify
+			profile.Syscalls[i].ErrnoRet = nil
 		}
 	}
 

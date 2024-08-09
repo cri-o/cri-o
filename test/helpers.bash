@@ -742,3 +742,7 @@ function annotations_equal() {
 function remove_random_storage_layer() {
     find "$TESTDIR"/crio/overlay -maxdepth 1 | grep '.*/[a-f0-9\-]\{64\}.*' | head -1 | xargs rm -Rf
 }
+
+function is_using_crun() {
+    runtime --version | grep -q crun
+}
