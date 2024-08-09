@@ -112,12 +112,15 @@ kata_skip_config_migrate_tests:
   - 'test "config migrate should succeed with 1.17 config"'
 kata_skip_reload_config:
   - 'test "reload config should remove pinned images when an empty list is provided"'
+kata_skip_crio_check_tests:
+  - 'test "storage directory check should wipe everything on repair errors"'
 kata_skip_crio_wipe_tests:
   - 'test "clear neither when remove persist"'
   - "test \"don't clear containers on a forced restart of crio\""
   - "test \"don't clear containers if clean shutdown supported file not present\""
   - "test \"internal_wipe don't clear containers on a forced restart of crio\""
   - 'test "internal_wipe eventually cleans network on forced restart of crio if network is slow to come up"'
+  - 'test "recover from badly corrupted storage directory"'
 kata_skip_ctr_tests:
   - 'test "ctr logging"'
   - 'test "ctr journald logging"'
