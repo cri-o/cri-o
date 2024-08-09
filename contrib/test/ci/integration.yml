@@ -55,6 +55,7 @@
       loop: "{{ ['cgroups.bats'] | product(kata_skip_cgroups_tests) \
         + ['command.bats'] | product(kata_skip_command_tests) \
         + ['reload_config.bats'] | product(kata_skip_reload_config) \
+        + ['crio-check.bats'] | product(kata_skip_crio_check_tests) \
         + ['crio-wipe.bats'] | product(kata_skip_crio_wipe_tests) \
         + ['ctr.bats'] | product(kata_skip_ctr_tests) \
         + ['devices.bats'] | product(kata_skip_devices_tests) \

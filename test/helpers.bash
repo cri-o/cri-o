@@ -738,3 +738,7 @@ function annotations_equal() {
     received_contains_expected=$?
     [[ $expected_contains_received -eq 0 ]] && [[ $received_contains_expected -eq 0 ]]
 }
+
+function remove_random_storage_layer() {
+    find "$TESTDIR"/crio/overlay -maxdepth 1 | grep '.*/[a-f0-9\-]\{64\}.*' | head -1 | xargs rm -Rf
+}

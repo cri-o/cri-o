@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/containers/storage/pkg/unshare"
 	. "github.com/onsi/ginkgo/v2"
@@ -389,6 +390,98 @@ var _ = t.Describe("Utils", func() {
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
+		})
+	})
+
+	t.Describe("ParseDuration", func() {
+		It("should succeed with duration value with unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("5s")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(5 * time.Second))
+		})
+
+		It("should succeed with duration value without unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("5")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(5 * time.Second))
+		})
+
+		It("should succeed with negative duration value with unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("-5s")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(5 * time.Second))
+		})
+
+		It("should succeed with negative duration value without unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("-5")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(5 * time.Second))
+		})
+
+		It("should succeed with zero as duration value without unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("0")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(time.Duration(0)))
+		})
+
+		It("should succeed with floating point duration with unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("1.234s")
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(duration).To(Equal(time.Duration(1.234 * float64(time.Second))))
+		})
+
+		It("should fail with invalid floating point duration without unit", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("1.234")
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(duration).To(Equal(time.Duration(0)))
+		})
+
+		It("should fail with invalid duration", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("test")
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(duration).To(Equal(time.Duration(0)))
+		})
+
+		It("should fail with empty duration", func() {
+			// Given
+			// When
+			duration, err := utils.ParseDuration("")
+
+			// Then
+			Expect(err).To(HaveOccurred())
+			Expect(duration).To(Equal(time.Duration(0)))
 		})
 	})
 })

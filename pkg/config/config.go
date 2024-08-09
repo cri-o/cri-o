@@ -876,7 +876,7 @@ func DefaultConfig() (*Config, error) {
 			VersionFile:       CrioVersionPathTmp,
 			CleanShutdownFile: CrioCleanShutdownFile,
 			InternalWipe:      true,
-			InternalRepair:    false,
+			InternalRepair:    true,
 		},
 		APIConfig: APIConfig{
 			Listen:             CrioSocketPath,
