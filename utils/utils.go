@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime/pprof"
 	"strconv"
+	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
 	securejoin "github.com/cyphar/filepath-securejoin"
@@ -439,4 +440,33 @@ func HandleResizing(resize <-chan remotecommand.TerminalSize, resizeFunc func(si
 			resizeFunc(size)
 		}
 	}()
+}
+
+// ParseDuration parses a string that can contain either a human-readable duration
+// notation such as "24h" or "5m30s", so a duration with unit, or a string-encoded
+// integer value that denotes the number of seconds and returns a corresponding
+// `time.Duration` type. Parsing a floating point value encoded as string without
+// a duration unit is not supported.
+//
+// An assumption is made that the duration value cannot be negative, and as such,
+// any negative value will be converted to a positive duration automatically.
+func ParseDuration(s string) (time.Duration, error) {
+	var t time.Duration
+
+	n, err := strconv.ParseInt(s, 10, 64)
+	if err == nil {
+		t = time.Duration(n) * time.Second
+	} else {
+		t, err = time.ParseDuration(s)
+	}
+	if err != nil {
+		return 0, err
+	}
+
+	// Assume that time does not move backwards.
+	if t < 0 {
+		t = -t
+	}
+
+	return t, nil
 }
