@@ -67,6 +67,16 @@ jobs:
           - name: critest / conmon
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+          - name: critest / conmon
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: crun
             runtimeType: oci
             critest: 1
             userns: 0
@@ -75,6 +85,15 @@ jobs:
           - name: critest / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            timeout: 10
+          - name: critest / conmon
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: crun
             runtimeType: oci
             critest: 1
             userns: 0
@@ -82,6 +101,16 @@ jobs:
           - name: critest / conmon-rs
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+          - name: critest / conmon-rs
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: crun
             runtimeType: pod
             critest: 1
             userns: 0
@@ -90,6 +119,16 @@ jobs:
           - name: critest / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+          - name: critest / conmon-rs
+            arch: arm64
+            runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: crun
             runtimeType: pod
             critest: 1
             userns: 0
@@ -98,6 +137,16 @@ jobs:
           - name: integration / conmon
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+          - name: integration / conmon
+            arch: amd64
+            runner: ubuntu-latest
+            defaultRuntime: crun
             runtimeType: oci
             critest: 0
             userns: 0
@@ -106,6 +155,7 @@ jobs:
           - name: integration / conmon
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 0
@@ -114,6 +164,7 @@ jobs:
           - name: integration / conmon-rs
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: pod
             critest: 0
             userns: 1
@@ -122,6 +173,7 @@ jobs:
           - name: integration / conmon-rs
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: pod
             critest: 0
             userns: 1
@@ -130,6 +182,7 @@ jobs:
           - name: integration / userns
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 1
@@ -138,12 +191,13 @@ jobs:
           - name: integration / userns
             arch: arm64
             runner: actuated-arm64-8cpu-32gb
+            defaultRuntime: runc
             runtimeType: oci
             critest: 0
             userns: 1
             jobs: 2
             timeout: 120
-    name: ${{ matrix.run.name }} / ${{ matrix.run.arch }}
+    name: ${{ matrix.run.name }} / ${{ matrix.run.defaultRuntime }} / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     timeout-minutes: ${{ matrix.run.timeout }}
     steps:
@@ -183,5 +237,6 @@ jobs:
         env:
           JOBS: ${{ matrix.run.jobs }}
           RUN_CRITEST: ${{ matrix.run.critest }}
+          CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
