@@ -4,7 +4,8 @@
 		"attempt": 1
 	},
 	"image": {
-		"image": "quay.io/crio/fedora-crio-ci:latest"
+		"image": "quay.io/crio/fedora-crio-ci:latest",
+		"user_specified_image": "quay.io/crio/fedora-crio-ci:latest"
 	},
 	"command": [
 		"/bin/ls"
@@ -54,7 +55,7 @@
 			"memory_limit_in_bytes": 268435456
 		},
 		"security_context": {
-			"run_as_user":{
+			"run_as_user": {
 				"value": 0
 			},
 			"namespace_options": {
@@ -72,8 +73,7 @@
 					"setuid",
 					"setgid"
 				],
-				"drop_capabilities": [
-				]
+				"drop_capabilities": []
 			}
 		}
 	}
