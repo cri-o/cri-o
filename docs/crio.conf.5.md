@@ -364,6 +364,10 @@ The "crio.runtime.runtimes" table defines a list of OCI compatible runtimes.  Th
 **platform_runtime_paths**={}
   A mapping of platforms to the corresponding runtime executable paths for the runtime handler.
 
+**no_sync_log**=false
+  If set to true, the runtime will not sync the log file on rotate or container exit. This option is only valid for the 'oci'
+  runtime type. Setting this option to true can cause data loss, e.g. when a machine crash happens.
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
 A workload is chosen for a pod based on whether the workload's **activation_annotation** is an annotation on the pod.

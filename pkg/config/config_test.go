@@ -681,6 +681,43 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Runtimes["runc"].AllowedAnnotations).To(ContainElement(crioann.DevicesAnnotation))
 			Expect(sut.Runtimes["runc"].DisallowedAnnotations).NotTo(ContainElement(crioann.DevicesAnnotation))
 		})
+
+		It("should allow no_sync_log for implicit default runtime", func() {
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+			}
+			sut.Runtimes["runc"].NoSyncLog = true
+
+			err := sut.Runtimes["runc"].Validate("runc")
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes["runc"].NoSyncLog).To(BeTrue())
+		})
+
+		It("should allow no_sync_log for the 'oci' runtime", func() {
+			sut.Runtimes["runc"] = &config.RuntimeHandler{
+				RuntimePath: validFilePath,
+				RuntimeType: "oci",
+			}
+			sut.Runtimes["runc"].NoSyncLog = true
+
+			err := sut.Runtimes["runc"].Validate("runc")
+
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes["runc"].NoSyncLog).To(BeTrue())
+		})
+
+		It("should disallow no_sync_log for the 'vm' runtime", func() {
+			sut.Runtimes["kata"] = &config.RuntimeHandler{
+				RuntimePath: "containerd-shim-kata-qemu-v2", RuntimeType: config.RuntimeTypeVM,
+			}
+			sut.Runtimes["kata"].NoSyncLog = true
+
+			err := sut.Runtimes["kata"].ValidateNoSyncLog()
+
+			Expect(err).To(HaveOccurred())
+			Expect(err).To(MatchError("no_sync_log is only allowed with runtime type 'oci', runtime type is 'vm'"))
+		})
 	})
 
 	t.Describe("ValidateConmonPath", func() {

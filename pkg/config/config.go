@@ -250,6 +250,10 @@ type RuntimeHandler struct {
 	// ContainerMinMemory is the minimum memory that must be set for a container.
 	ContainerMinMemory string `toml:"container_min_memory,omitempty"`
 
+	// NoSyncLog if enabled will disable fsync on log rotation and container exit.
+	// This can improve performance but may result in data loss on hard system crashes.
+	NoSyncLog bool `toml:"no_sync_log"`
+
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
 	features runtimeHandlerFeatures
@@ -1574,6 +1578,9 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
+	if err := r.ValidateNoSyncLog(); err != nil {
+		return err
+	}
 	return r.ValidateRuntimeType(name)
 }
 
@@ -1652,6 +1659,20 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 	)
 	r.DisallowedAnnotations = disallowed
 	return nil
+}
+
+// ValidateNoSyncLog checks if the `NoSyncLog` is used with the correct `RuntimeType` ('oci').
+func (r *RuntimeHandler) ValidateNoSyncLog() error {
+	if !r.NoSyncLog {
+		return nil
+	}
+	// no_sync_log can only be used with the 'oci' runtime type.
+	// This means that the runtime type must be set to 'oci' or left empty
+	if r.RuntimeType == DefaultRuntimeType || r.RuntimeType == "" {
+		logrus.Warn("NoSyncLog is enabled. This can lead to lost log data")
+		return nil
+	}
+	return fmt.Errorf("no_sync_log is only allowed with runtime type 'oci', runtime type is '%s'", r.RuntimeType)
 }
 
 // SetContainerMinMemory sets the minimum container memory for a given runtime.
