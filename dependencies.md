@@ -1,13 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 09 Aug 2024 17:42:03 UTC for commit [86a3742][0]._
+_Generated on Fri, 09 Aug 2024 21:56:39 UTC for commit [24f5383][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/86a37420a6053ef6c69785b1667aea00c75ee2c7
+[0]: https://github.com/cri-o/cri-o/commit/24f5383c568b18054c13a3214f966e006a6ff150
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                   VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|----------------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/image/v5                         | v5.32.0                                      | v5.32.1                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                                       | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240809103709-e4c023a9fa1a | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.19.1                                      | v2.20.0                            | true   | true             |
@@ -323,7 +324,7 @@ _Generated on Fri, 09 Aug 2024 17:42:03 UTC for commit [86a3742][0]._
 | github.com/containers/common                                                            | v0.60.0                                      |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                         |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.5                                       |                                     | true   | true             |
-| github.com/containers/image/v5                                                          | v5.32.0                                      |                                     | true   | true             |
+| github.com/containers/image/v5                                                          | v5.32.0                                      | v5.32.1                             | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                       |                                     | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01           |                                     | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.2.0                                       |                                     | true   | true             |
@@ -525,7 +526,7 @@ _Generated on Fri, 09 Aug 2024 17:42:03 UTC for commit [86a3742][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                                      | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                       |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243           | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0           | v0.0.0-20240808174040-28f09341b9ba  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0           | v0.0.0-20240809192347-8380bb9b926a  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                       | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                       |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158          | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -813,7 +814,7 @@ _Generated on Fri, 09 Aug 2024 17:42:03 UTC for commit [86a3742][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                      | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                      |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                       |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                      | v1.57.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                      | v1.58.0                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                       | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                       | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                       |                                     | false  | true             |
