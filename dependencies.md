@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 10 Aug 2024 01:20:19 UTC for commit [abe3fec][0]._
+_Generated on Mon, 12 Aug 2024 10:17:18 UTC for commit [73b6f0d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/abe3fec6c35d45a318a1b91181ea50fee866c5a9
+[0]: https://github.com/cri-o/cri-o/commit/73b6f0dbc6da5c349aacb8393f0b33143325a694
 
 ## Outdated Dependencies
 
@@ -12,6 +12,7 @@ _Generated on Sat, 10 Aug 2024 01:20:19 UTC for commit [abe3fec][0]._
 | github.com/cri-o/ocicni                                | v0.4.2                                       | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240809221135-775f6bdc5cb7 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.19.1                                      | v2.20.0                            | true   | true             |
+| github.com/urfave/cli/v2                               | v2.27.3                                      | v2.27.4                            | true   | true             |
 | golang.org/x/net                                       | v0.27.0                                      | v0.28.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.23.0                                      | v0.24.0                            | true   | true             |
 | k8s.io/api                                             | v0.31.0-alpha.3                              | v0.32.0-alpha.0                    | true   | true             |
@@ -684,7 +685,7 @@ _Generated on Sat, 10 Aug 2024 01:20:19 UTC for commit [abe3fec][0]._
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                                    | v0.3.1                                       |                                     | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otelutil                                      | v0.3.1                                       |                                     | false  | true             |
 | github.com/urfave/cli                                                                   | v1.22.14                                     | v1.22.15                            | false  | true             |
-| github.com/urfave/cli/v2                                                                | v2.27.3                                      |                                     | true   | true             |
+| github.com/urfave/cli/v2                                                                | v2.27.3                                      | v2.27.4                             | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                                      |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                                      |                                     | false  | true             |
 | github.com/vbauerster/mpb/v8                                                            | v8.7.4                                       | v8.7.5                              | false  | true             |
@@ -808,13 +809,13 @@ _Generated on Sat, 10 Aug 2024 01:20:19 UTC for commit [abe3fec][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340           | v0.0.0-20240808142205-8e686545bdb8  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0-alpha.3                              | v0.32.0-alpha.0                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240502163921-fe8a2dddb1d0           | v0.0.0-20240711033017-18e509b52bc8  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e           | v0.0.0-20240808013630-0991b2f920f4  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e           | v0.0.0-20240812053209-cd3311cbab65  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                       | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                                      | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                      | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                      |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                       |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                      | v1.58.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                      | v1.59.1                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                       | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                       | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                       |                                     | false  | true             |
