@@ -12,7 +12,62 @@ var _ = t.Describe("Version", func() {
 	tempFileName := "tempVersionFile"
 	tempVersion := "1.1.1"
 	tempVersion2 := "1.13.1"
-
+	testInfo := Info{
+		Version:         "1.0.0",
+		GitCommit:       "abcdef123456",
+		GitCommitDate:   "2024-08-13T12:34:56Z",
+		GitTreeState:    "clean",
+		BuildDate:       "2024-08-13T12:34:56Z",
+		GoVersion:       "go1.20.5",
+		Compiler:        "gc",
+		Platform:        "linux/amd64",
+		Linkmode:        "external",
+		BuildTags:       []string{"tag1", "tag2"},
+		LDFlags:         "-X main.Version=1.0.0",
+		SeccompEnabled:  true,
+		AppArmorEnabled: false,
+		Dependencies:    []string{"dep1", "dep2"},
+	}
+	testInfoStr := `Version:        1.0.0
+GitCommit:      abcdef123456
+GitCommitDate:  2024-08-13T12:34:56Z
+GitTreeState:   clean
+BuildDate:      2024-08-13T12:34:56Z
+GoVersion:      go1.20.5
+Compiler:       gc
+Platform:       linux/amd64
+Linkmode:       external
+BuildTags:
+  tag1
+  tag2
+LDFlags:          -X main.Version=1.0.0
+SeccompEnabled:   true
+AppArmorEnabled:  false
+Dependencies:
+  dep1
+  dep2`
+	testJSONInfoStr := `{
+  "version": "1.0.0",
+  "gitCommit": "abcdef123456",
+  "gitCommitDate": "2024-08-13T12:34:56Z",
+  "gitTreeState": "clean",
+  "buildDate": "2024-08-13T12:34:56Z",
+  "goVersion": "go1.20.5",
+  "compiler": "gc",
+  "platform": "linux/amd64",
+  "linkmode": "external",
+  "buildTags": [
+    "tag1",
+    "tag2"
+  ],
+  "ldFlags": "-X main.Version=1.0.0",
+  "seccompEnabled": true,
+  "appArmorEnabled": false,
+  "dependencies": [
+    "dep1",
+    "dep2"
+  ]
+}`
 	t.Describe("test setting version", func() {
 		It("should succeed to parse version", func() {
 			_, err := parseVersionConstant("1.1.1", "")
@@ -168,6 +223,17 @@ var _ = t.Describe("Version", func() {
 			upgrade, err := shouldCrioWipe(tempFileName, newVersion)
 			Expect(upgrade).To(BeTrue())
 			Expect(err).To(HaveOccurred())
+		})
+	})
+	t.Describe("test generating string from info", func() {
+		It("should succeed returning a formatted string", func() {
+			infoString := testInfo.String()
+			Expect(infoString).To(Equal(testInfoStr))
+		})
+		It("should succeed returning a JSON document", func() {
+			jsonInfoString, err := testInfo.JSONString()
+			Expect(jsonInfoString).To(Equal(testJSONInfoStr))
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })

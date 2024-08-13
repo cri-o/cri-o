@@ -217,6 +217,7 @@ func (i *Info) String() string {
 		value := v.FieldByName(field.Name)
 
 		valueString := ""
+		isMultiLineValue := false
 		switch field.Type.Kind() {
 		case reflect.Bool:
 			valueString = strconv.FormatBool(value.Bool())
@@ -227,13 +228,19 @@ func (i *Info) String() string {
 				const sep = "\n  "
 				valueString = sep + strings.Join(s, sep)
 			}
+			isMultiLineValue = true
 
 		case reflect.String:
 			valueString = value.String()
 		}
 
 		if strings.TrimSpace(valueString) != "" {
-			fmt.Fprintf(w, "%s:\t%s", field.Name, valueString)
+			fmt.Fprintf(w, "%s:", field.Name)
+			if isMultiLineValue {
+				fmt.Fprint(w, valueString)
+			} else {
+				fmt.Fprintf(w, "\t%s", valueString)
+			}
 			if i+1 < t.NumField() {
 				fmt.Fprintf(w, "\n")
 			}
