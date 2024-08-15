@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
+_Generated on Thu, 15 Aug 2024 03:25:19 UTC for commit [0e6afdc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/4c5cc3806ced632d1f5299a60988bbe134f9f33b
+[0]: https://github.com/cri-o/cri-o/commit/0e6afdc751f3c22a8b6e88ff463959d8a0723138
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | github.com/containers/image/v5                         | v5.32.0                            | v5.32.1                            | true   | true             |
 | github.com/creack/pty                                  | v1.1.21                            | v1.1.23                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240814040047-506977b102c6 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240814204449-ecfbc9515ae5 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.19.1                            | v2.20.0                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.19.1                            | v1.20.0                            | true   | true             |
 | github.com/urfave/cli/v2                               | v2.27.3                            | v2.27.4                            | true   | true             |
@@ -506,7 +506,7 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                       | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                       |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5         | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240814040047-506977b102c6  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20240814204449-ecfbc9515ae5  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51           |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                       | v1.7.0                              | false  | true             |
@@ -755,7 +755,7 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | go.uber.org/multierr                                                                    | v1.11.0                                      |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.27.0                                      |                                     | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                          |                                     | false  | true             |
-| gocloud.dev                                                                             | v0.37.0                                      | v0.38.0                             | false  | true             |
+| gocloud.dev                                                                             | v0.37.0                                      | v0.39.0                             | false  | true             |
 | golang.org/x/crypto                                                                     | v0.25.0                                      | v0.26.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56           | v0.0.0-20240808152545-0cdaa3abc0fa  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867           | v0.19.0                             | false  | true             |
@@ -777,9 +777,9 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | gonum.org/v1/plot                                                                       | v0.10.1                                      | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.172.0                                     | v0.192.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                       |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7           | v0.0.0-20240812133136-8ffd90a71988  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240812133136-8ffd90a71988  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240812133136-8ffd90a71988  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7           | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094           | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.65.0                                      |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                       | v1.5.1                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                                      |                                     | true   | true             |
@@ -798,7 +798,7 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | gopkg.in/yaml.v3                                                                        | v3.0.1                                       |                                     | false  | true             |
 | gotest.tools                                                                            | v2.2.0+incompatible                          |                                     | false  | true             |
 | gotest.tools/v3                                                                         | v3.5.1                                       |                                     | false  | true             |
-| honnef.co/go/tools                                                                      | v0.1.3                                       | v0.5.0                              | false  | true             |
+| honnef.co/go/tools                                                                      | v0.1.3                                       | v0.5.1                              | false  | true             |
 | k8s.io/api                                                                              | v0.31.0-alpha.3                              | v0.31.0                             | true   | true             |
 | k8s.io/apimachinery                                                                     | v0.31.0-alpha.3                              | v0.31.0                             | true   | true             |
 | k8s.io/apiserver                                                                        | v0.31.0-alpha.3                              | v0.31.0                             | false  | true             |
@@ -817,7 +817,7 @@ _Generated on Wed, 14 Aug 2024 18:44:46 UTC for commit [4c5cc38][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                                      | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                                      |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                       |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                                      | v1.59.3                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                                      | v1.59.4                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                       | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                       | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                       |                                     | false  | true             |
