@@ -16,6 +16,10 @@ function teardown() {
 }
 
 @test "checkpoint and restore one container into a new pod (drop infra:true)" {
+	if is_using_crun; then
+		skip "not supported by crun: https://github.com/containers/crun/issues/1207"
+	fi
+
 	CONTAINER_DROP_INFRA_CTR=true CONTAINER_ENABLE_CRIU_SUPPORT=true start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	BIND_MOUNT_FILE=$(mktemp)

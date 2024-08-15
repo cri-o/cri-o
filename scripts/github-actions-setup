@@ -15,6 +15,7 @@ main() {
     install_conmon
     install_conmonrs
     install_critools
+    install_crun
     install_runc
     install_ginkgo
     install_cni_plugins
@@ -115,6 +116,17 @@ install_cni_plugins() {
     sudo tar xf "$TARBALL" -C "$CNI_DIR"
     rm "$TARBALL"
     ls -lah "$CNI_DIR"
+}
+
+install_crun() {
+    git clone https://github.com/containers/crun
+    pushd crun
+    ./autogen.sh
+    ./configure
+    sudo make -j "$(nproc)" install prefix=/usr
+    popd
+    sudo rm -rf crun
+    crun --version
 }
 
 install_runc() {
