@@ -145,6 +145,9 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", strconv.FormatInt(r.config.LogSizeMax, 10))
 	}
+	if r.handler.NoSyncLog {
+		args = append(args, "--no-sync-log")
+	}
 	if r.config.LogToJournald {
 		args = append(args, "--log-path", "journald:")
 	}
