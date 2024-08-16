@@ -1,6 +1,6 @@
 dependencies:
   - name: go
-    version: 1.22
+    version: 1.23
     refPaths:
     - path: .github/workflows/verify.yml
       match: GO_VERSION
@@ -14,11 +14,9 @@ dependencies:
       match: GO_VERSION
     - path: .github/workflows/tag-reconciler.yml
       match: GO_VERSION
-    - path: contrib/test/ci/vars.yml
-      match: golang_version
 
   - name: golangci-lint
-    version: v1.59.1
+    version: v1.60.1
     refPaths:
     - path: .github/workflows/verify.yml
       match: GOLANGCI_LINT_VERSION

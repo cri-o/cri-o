@@ -10,7 +10,7 @@ on:
       - nixpkgs
   pull_request:
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   NIX_VERSION: '2.22.1'
 jobs:
   build:
