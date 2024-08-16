@@ -118,3 +118,19 @@ dependencies:
     refPaths:
       - path: Makefile
         match: MDTOC_VERSION
+
+  - name: pause
+    version: 3.10
+    refPaths:
+      - path: docs/crio.8.md
+        match: "registry.k8s.io/pause:"
+      - path: docs/crio.conf.5.md
+        match: "registry.k8s.io/pause:"
+      - path: internal/storage/image_test.go
+        match: "registry.k8s.io/pause:"
+      - path: pkg/config/config_linux.go
+        match: "registry.k8s.io/pause:"
+      - path: pkg/config/config_unsupported.go
+        match: "registry.k8s.io/pause:"
+      - path: test/common.sh
+        match: "registry.k8s.io/pause:"
