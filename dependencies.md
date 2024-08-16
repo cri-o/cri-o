@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 Aug 2024 09:36:09 UTC for commit [8ebad02][0]._
+_Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8ebad02b8c934a5712faf7e83492074200e2cb10
+[0]: https://github.com/cri-o/cri-o/commit/67290a12649b37b45c3d4de343dbda7668308afb
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240816073950-ba3c484d1261 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240816120159-b3a4cd1a066f | true   | true             |
 
 ## All Dependencies
 
@@ -493,7 +493,7 @@ _Generated on Fri, 16 Aug 2024 09:36:09 UTC for commit [8ebad02][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240816073950-ba3c484d1261  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240816120159-b3a4cd1a066f  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -677,7 +677,7 @@ _Generated on Fri, 16 Aug 2024 09:36:09 UTC for commit [8ebad02][0]._
 | github.com/urfave/cli/v2                                                                | v2.27.4                               |                                     | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                               |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                               |                                     | false  | true             |
-| github.com/vbauerster/mpb/v8                                                            | v8.7.5                                |                                     | false  | true             |
+| github.com/vbauerster/mpb/v8                                                            | v8.7.5                                | v8.8.1                              | false  | true             |
 | github.com/vektah/gqlparser/v2                                                          | v2.4.5                                | v2.5.16                             | false  | true             |
 | github.com/veraison/go-cose                                                             | v1.2.1                                | v1.3.0-alpha.1                      | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                         |                                     | true   | true             |
@@ -804,7 +804,7 @@ _Generated on Fri, 16 Aug 2024 09:36:09 UTC for commit [8ebad02][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.59.6                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.59.7                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
