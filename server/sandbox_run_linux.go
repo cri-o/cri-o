@@ -787,7 +787,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 
 		// Now that we've succeeded in stopping the network, cleanup namespaces
-		log.Infof(ctx, nsCleanupDescription)
+		log.Infof(ctx, "%s", nsCleanupDescription)
 		return nsCleanupFunc()
 	})
 	if result != nil {
