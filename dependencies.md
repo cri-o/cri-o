@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
+_Generated on Mon, 19 Aug 2024 07:13:06 UTC for commit [77d91d4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/67290a12649b37b45c3d4de343dbda7668308afb
+[0]: https://github.com/cri-o/cri-o/commit/77d91d432705c6aeb0a88f869f2dc05122b046d3
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240816120159-b3a4cd1a066f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240818140542-42d48efcc2b7 | true   | true             |
 
 ## All Dependencies
 
@@ -149,7 +149,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.1.0                              | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240807094312-a32ad29eed79  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.10.0                             | false  | true             |
-| dario.cat/mergo                                                                         | v1.0.0                                |                                     | false  | true             |
+| dario.cat/mergo                                                                         | v1.0.0                                | v1.0.1                              | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9    | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
 | filippo.io/edwards25519                                                                 | v1.1.0                                |                                     | false  | true             |
 | gioui.org                                                                               | v0.0.0-20210308172011-57750fc8a0a6    | v0.7.1                              | false  | true             |
@@ -458,7 +458,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | github.com/grpc-ecosystem/go-grpc-middleware                                            | v1.4.0                                |                                     | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                            | v1.2.1-0.20210315223345-82c243799c99  |                                     | false  | true             |
 | github.com/grpc-ecosystem/grpc-gateway                                                  | v1.16.0                               |                                     | false  | true             |
-| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.20.0                               | v2.21.0                             | false  | true             |
+| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.20.0                               | v2.22.0                             | false  | true             |
 | github.com/hashicorp/errwrap                                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                                       | v0.5.2                                |                                     | false  | true             |
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                |                                     | false  | true             |
@@ -473,7 +473,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | github.com/howeyc/gopass                                                                | v0.0.0-20210920133722-c8aef6fb66ef    |                                     | false  | true             |
 | github.com/iancoleman/strcase                                                           | v0.2.0                                | v0.3.0                              | false  | true             |
 | github.com/ianlancetaylor/demangle                                                      | v0.0.0-20240312041847-bd984b5ce465    | v0.0.0-20240805132620-81f5be970eca  | false  | true             |
-| github.com/imdario/mergo                                                                | v0.3.16                               | v1.0.0                              | false  | true             |
+| github.com/imdario/mergo                                                                | v0.3.16                               | v1.0.1                              | false  | true             |
 | github.com/in-toto/in-toto-golang                                                       | v0.9.0                                |                                     | false  | true             |
 | github.com/inconshreveable/mousetrap                                                    | v1.1.0                                |                                     | false  | true             |
 | github.com/intel-go/cpuid                                                               | v0.0.0-20210602155658-5747e5cec0d9    | v0.0.0-20220614022739-219e067757cb  | false  | true             |
@@ -493,7 +493,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240816120159-b3a4cd1a066f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240818140542-42d48efcc2b7  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -607,7 +607,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               |                                     | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240813180355-70a59802d069  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240818123104-a619d35b4548  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.6.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -677,9 +677,9 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | github.com/urfave/cli/v2                                                                | v2.27.4                               |                                     | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                               |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.5                               |                                     | false  | true             |
-| github.com/vbauerster/mpb/v8                                                            | v8.7.5                                | v8.8.1                              | false  | true             |
+| github.com/vbauerster/mpb/v8                                                            | v8.7.5                                | v8.8.2                              | false  | true             |
 | github.com/vektah/gqlparser/v2                                                          | v2.4.5                                | v2.5.16                             | false  | true             |
-| github.com/veraison/go-cose                                                             | v1.2.1                                | v1.3.0-alpha.1                      | false  | true             |
+| github.com/veraison/go-cose                                                             | v1.2.1                                | v1.3.0-rc.1                         | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.2.1-beta.2                         |                                     | true   | true             |
 | github.com/vishvananda/netns                                                            | v0.0.4                                |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.3-0.20240411085455-21202160c2ed | v0.40.2                             | false  | true             |
@@ -759,7 +759,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | golang.org/x/time                                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
 | golang.org/x/tools                                                                      | v0.24.0                               |                                     | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028    | v0.0.0-20240716161551-93cc26a95ae9  | false  | true             |
-| gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.0                             | false  | true             |
+| gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.172.0                              | v0.192.0                            | false  | true             |
@@ -795,7 +795,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240815230951-44b8d154562d  | false  | true             |
 | k8s.io/klog/v2                                                                          | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                              | v0.31.0                               |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240812233141-91dab695df6f  | false  | true             |
+| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240816214639-573285566f34  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    |                                     | true   | true             |
 | knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240815051656-89743d9bbf7c  | false  | true             |
@@ -804,7 +804,7 @@ _Generated on Fri, 16 Aug 2024 14:42:08 UTC for commit [67290a1][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.59.7                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.59.9                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
