@@ -3,9 +3,12 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
+
+	storagetypes "github.com/containers/storage"
+	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
-	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
 // RemoveImage removes the image.
@@ -27,23 +30,27 @@ func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest)
 }
 
 func (s *Server) removeImage(ctx context.Context, imageRef string) error {
-	var deleted bool
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	// FIXME: The CRI API definition says
-	//      This call is idempotent, and must not return an error if the image has
-	//      already been removed.
-	// and this code doesn’t seem to conform to that.
-
-	// Actually Kubelet is only ever calling this with full image IDs.
-	// So we don't really need to accept ID prefixes nor short names;
-	// or is there another user?!
-
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
-		return s.StorageImageServer().DeleteImage(s.config.SystemContext, *id)
+		if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
+			if errors.Is(err, storagetypes.ErrImageUnknown) {
+				// The RemoveImage RPC is idempotent, and must not return an
+				// error if the image has already been removed. Ref:
+				// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
+				return nil
+			}
+
+			return fmt.Errorf("delete image: %w", err)
+		}
+		return nil
 	}
 
+	var (
+		deleted   bool
+		statusErr error
+	)
 	potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {
 		return err
@@ -60,5 +67,13 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) error {
 	if !deleted && err != nil {
 		return err
 	}
+
+	if errors.Is(statusErr, storagetypes.ErrNotAnImage) {
+		// The RemoveImage RPC is idempotent, and must not return an
+		// error if the image has already been removed. Ref:
+		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
+		return nil
+	}
+
 	return nil
 }
