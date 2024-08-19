@@ -224,7 +224,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--default-mounts-file**="": Path to default mounts file.
 
-**--default-runtime**="": Default OCI runtime from the runtimes config. (default: "runc")
+**--default-runtime**="": Default OCI runtime from the runtimes config. (default: "crun")
 
 **--default-sysctls**="": Sysctls to add to the containers.
 
