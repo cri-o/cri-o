@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 19 Aug 2024 07:38:44 UTC for commit [079f92e][0]._
+_Generated on Mon, 19 Aug 2024 15:15:13 UTC for commit [485358b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/079f92e4fc2b640719e204187b8b9fa2ed825443
+[0]: https://github.com/cri-o/cri-o/commit/485358b6ef0b69b0a345b3d4e5c62211477aeb8a
 
 ## Outdated Dependencies
 
@@ -607,7 +607,7 @@ _Generated on Mon, 19 Aug 2024 07:38:44 UTC for commit [079f92e][0]._
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               |                                     | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240818123104-a619d35b4548  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240819134931-0a5c94ea5f2d  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.6.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
