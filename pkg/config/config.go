@@ -946,7 +946,7 @@ func DefaultConfig() (*Config, error) {
 			MetricsCollectors: collectors.All(),
 		},
 		TracingConfig: TracingConfig{
-			TracingEndpoint:               "0.0.0.0:4317",
+			TracingEndpoint:               "127.0.0.1:4317",
 			TracingSamplingRatePerMillion: 0,
 			EnableTracing:                 false,
 		},

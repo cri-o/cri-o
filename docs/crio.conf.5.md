@@ -533,7 +533,7 @@ The certificate key for the secure metrics server.
 **enable_tracing**=false
 Globally enable or disable OpenTelemetry trace data exporting.
 
-**tracing_endpoint**="0.0.0.0:4317"
+**tracing_endpoint**="127.0.0.1:4317"
 Address on which the gRPC trace collector will listen.
 
 **tracing_sampling_rate_per_million**=""

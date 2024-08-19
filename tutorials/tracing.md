@@ -14,7 +14,7 @@ enable_tracing = true
 ```
 
 Traces in CRI-O get exported via the [OpenTelemetry Protocol][otlp] by using an
-[gRPC][grpc] endpoint. This endpoint defaults to `0.0.0.0:4317`, but can be
+[gRPC][grpc] endpoint. This endpoint defaults to `127.0.0.1:4317`, but can be
 configured by using the `--tracing-endpoint` flag or the corresponding TOML
 configuration:
 
@@ -23,7 +23,7 @@ configuration:
 
 ```toml
 [crio.tracing]
-tracing_endpoint = "0.0.0.0:4317"
+tracing_endpoint = "127.0.0.1:4317"
 ```
 
 The final configuration aspect of OpenTelemetry tracing in CRI-O is the
