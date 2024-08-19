@@ -5,6 +5,9 @@ on:
     - cron: '0 0 * * *'
 env:
   GO_VERSION: '1.23'
+permissions: 
+  contents: read
+
 jobs:
   tag-reconciler:
     permissions:
