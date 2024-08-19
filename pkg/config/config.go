@@ -53,17 +53,20 @@ import (
 
 // Defaults if none are specified.
 const (
-	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
-	defaultContainerMinMemory  = 12 * 1024 * 1024 // 12 MiB
-	OCIBufSize                 = 8192
-	RuntimeTypeVM              = "vm"
-	RuntimeTypePod             = "pod"
-	defaultCtrStopTimeout      = 30 // seconds
-	defaultNamespacesDir       = "/var/run"
-	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
-	tasksetBinary              = "taskset"
-	MonitorExecCgroupDefault   = ""
-	MonitorExecCgroupContainer = "container"
+	defaultGRPCMaxMsgSize = 80 * 1024 * 1024
+	// default minimum memory for all other runtimes.
+	defaultContainerMinMemory = 12 * 1024 * 1024 // 12 MiB
+	// minimum memory for crun, the default runtime.
+	defaultContainerMinMemoryCrun = 500 * 1024 // 500 KiB
+	OCIBufSize                    = 8192
+	RuntimeTypeVM                 = "vm"
+	RuntimeTypePod                = "pod"
+	defaultCtrStopTimeout         = 30 // seconds
+	defaultNamespacesDir          = "/var/run"
+	RuntimeTypeVMBinaryPattern    = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
+	tasksetBinary                 = "taskset"
+	MonitorExecCgroupDefault      = ""
+	MonitorExecCgroupContainer    = "container"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -1252,9 +1255,9 @@ func (c *RuntimeConfig) ValidateDefaultRuntime() error {
 		return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
 	}
 
-	// Set the default runtime to "runc" if default_runtime is not set
+	// Set the default runtime to "crun" if default_runtime is not set
 	logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
-	// The default config sets runc and its path in the runtimes map, so check for that
+	// The default config sets crun and its path in the runtimes map, so check for that
 	// first. If it does not exist then we add runc + its path to the runtimes map.
 	if _, ok := c.Runtimes[defaultRuntime]; !ok {
 		c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
@@ -1276,7 +1279,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		ContainerMinMemory: units.BytesSize(defaultContainerMinMemory),
+		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
 		MonitorCgroup:      defaultMonitorCgroup,
 	}
 }
