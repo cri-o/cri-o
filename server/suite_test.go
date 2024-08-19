@@ -240,10 +240,10 @@ func createDummyConfig() {
 	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(Succeed())
 }
 
-func mockRuncInLibConfig() {
+func mockCrunInLibConfig() {
 	echo, err := exec.LookPath("echo")
 	Expect(err).ToNot(HaveOccurred())
-	serverConfig.Runtimes["runc"] = &config.RuntimeHandler{
+	serverConfig.Runtimes["crun"] = &config.RuntimeHandler{
 		RuntimePath: echo,
 	}
 }

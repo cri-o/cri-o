@@ -512,7 +512,33 @@ EOF
 		| .image.image = $image' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
 
-	wait_for_log 'Runtime handler \\"runc\\" container minimum memory set to 12582912 bytes'
+	wait_for_log 'Runtime handler \\"crun\\" container minimum memory set to 12582912 bytes'
 	wait_for_log 'Runtime handler \\"mem\\" container minimum memory set to 12582912 bytes'
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with default crun memory_limit_in_bytes" {
+	if [[ "$CONTAINER_DEFAULT_RUNTIME" != "crun" ]]; then
+		skip "must use crun"
+	fi
+	setup_crio
+
+	# make sure the crun entry is defaulted so we can verify the one crio makes has the correct limit
+	sed -i '/\[crio.runtime.runtimes.crun\]/,/monitor_exec_cgroup = \"\"/d' "$CRIO_CUSTOM_CONFIG"
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = ""
+EOF
+	unset CONTAINER_RUNTIMES
+
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 512000' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	wait_for_log 'Runtime handler \\"crun\\" container minimum memory set to 512000 bytes'
+
 	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }

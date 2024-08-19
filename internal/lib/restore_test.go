@@ -27,9 +27,11 @@ import (
 var _ = t.Describe("ContainerRestore", func() {
 	// Prepare the sut
 	BeforeEach(func() {
+		// setup a config with runc, used for checkpoint/restore tests
+		// as crun doesn't yet support restore.
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfigCheckpoint()
+		mockCrunInLibConfigCheckpoint()
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}

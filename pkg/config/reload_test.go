@@ -345,7 +345,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ReloadRuntimes", func() {
 		var existingRuntimePath string
 		BeforeEach(func() {
-			existingRuntimePath = t.MustTempFile("runc")
+			existingRuntimePath = t.MustTempFile("crun")
 		})
 
 		It("should succeed without any config change", func() {
@@ -378,6 +378,8 @@ var _ = t.Describe("Config", func() {
 			newConfig := &config.Config{}
 			newConfig.Runtimes = make(config.Runtimes)
 			newConfig.Runtimes["new"] = newRuntimeHandler
+			// spoof crun so we don't fail on arm (which doesn't have crun OOTB)
+			newConfig.Runtimes["crun"] = newRuntimeHandler
 
 			// When
 			err := sut.ReloadRuntimes(newConfig)
@@ -389,12 +391,15 @@ var _ = t.Describe("Config", func() {
 
 		It("should change the default runtime", func() {
 			// Given
-			sut.Runtimes["existing"] = &config.RuntimeHandler{
+			newRuntimeHandler := &config.RuntimeHandler{
 				RuntimePath: existingRuntimePath,
 			}
+			sut.Runtimes["existing"] = newRuntimeHandler
 			newConfig := &config.Config{}
 			newConfig.Runtimes = sut.Runtimes
 			newConfig.DefaultRuntime = "existing"
+			// spoof crun so we don't fail on arm (which doesn't have crun OOTB)
+			newConfig.Runtimes["crun"] = newRuntimeHandler
 
 			// When
 			err := sut.ReloadRuntimes(newConfig)
@@ -410,6 +415,8 @@ var _ = t.Describe("Config", func() {
 				RuntimePath: existingRuntimePath,
 			}
 			sut.Runtimes["existing"] = existingRuntime
+			// spoof crun so we don't fail on arm (which doesn't have crun OOTB)
+			sut.Runtimes["crun"] = existingRuntime
 
 			newRuntime := &config.RuntimeHandler{
 				RuntimePath:                  existingRuntimePath,
@@ -418,6 +425,7 @@ var _ = t.Describe("Config", func() {
 			newConfig := &config.Config{}
 			newConfig.Runtimes = make(config.Runtimes)
 			newConfig.Runtimes["existing"] = newRuntime
+			newConfig.Runtimes["crun"] = existingRuntime
 
 			// When
 			err := sut.ReloadRuntimes(newConfig)

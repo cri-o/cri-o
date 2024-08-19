@@ -7,13 +7,13 @@
   become: yes
   blockinfile:
     path: /etc/crio/crio.conf
-    insertbefore: .*crio.runtime.runtimes.runc.*
+    insertbefore: .*crio.runtime.runtimes.crun.*
     backup: yes
     block: |
       [crio.runtime.runtimes.test-handler]
-      runtime_path = "/usr/bin/runc"
+      runtime_path = "/usr/bin/crun"
       runtime_type = "oci"
-      runtime_root = "/run/runc"
+      runtime_root = "/run/crun"
 
 - name: create ssh keys
   shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""

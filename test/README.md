@@ -66,14 +66,14 @@ sudo bats test
 
 #### Runtime selection
 
-Tests on the host will run with `runc` as the default runtime.
+Tests on the host will run with `crun` as the default runtime.
 However you can select other OCI compatible runtimes by setting
 the `RUNTIME` environment variable.
 
-For example, to use [crun](https://github.com/containers/crun) instead of `runc`:
+For example, to use [runc](https://github.com/opencontainers/runc) instead of `crun`:
 
 ```shell
-make CONTAINER_DEFAULT_RUNTIME=crun localintegration
+make CONTAINER_DEFAULT_RUNTIME=runc localintegration
 ```
 
 If you'd like to run the tests with a runtime of a different type, you need to

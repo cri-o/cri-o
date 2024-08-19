@@ -5,8 +5,8 @@ e2e_selinux_enabled: False
 node_e2e_selinux_enabled: False
 manage_ns_lifecycle: True
 
-build_runc: True
-build_crun: False
+build_runc: False
+build_crun: True
 build_kata: False
 cgroupv2: False
 use_conmonrs: "{{ USE_CONMONRS | default(False) | bool }}"

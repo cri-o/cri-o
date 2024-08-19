@@ -18,7 +18,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	BeforeEach(func() {
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfig()
+		mockCrunInLibConfig()
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
@@ -77,7 +77,7 @@ var _ = t.Describe("ContainerCheckpoint with CheckpointRestore set to false", fu
 	BeforeEach(func() {
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfig()
+		mockCrunInLibConfig()
 		serverConfig.SetCheckpointRestore(false)
 		setupSUT()
 	})

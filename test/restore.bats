@@ -77,7 +77,7 @@ function teardown() {
 
 	stop_crio
 
-	# simulate reboot with runc state going away
+	# simulate reboot with $runtime state going away
 	runtime delete -f "$pod_id"
 
 	start_crio
@@ -94,7 +94,7 @@ function teardown() {
 
 	stop_crio
 
-	# simulate reboot with runc state going away
+	# simulate reboot with $runtime state going away
 	runtime delete -f "$pod_id"
 	runtime delete -f "$ctr_id"
 
@@ -113,7 +113,7 @@ function teardown() {
 
 	stop_crio
 
-	# simulate reboot with runc state going away
+	# simulate reboot with $runtime state going away
 	runtime delete -f "$pod_id"
 	runtime delete -f "$ctr_id"
 
@@ -131,7 +131,7 @@ function teardown() {
 
 	stop_crio
 
-	# simulate reboot with runc state going away
+	# simulate reboot with $runtime state going away
 	runtime delete -f "$pod_id"
 
 	start_crio
@@ -154,7 +154,7 @@ function teardown() {
 
 	stop_crio
 
-	# simulate reboot with runc state going away
+	# simulate reboot with $runtime state going away
 	runtime delete -f "$pod_id"
 	runtime delete -f "$ctr_id"
 

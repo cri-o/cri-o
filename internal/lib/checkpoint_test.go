@@ -22,9 +22,11 @@ import (
 var _ = t.Describe("ContainerCheckpoint", func() {
 	// Prepare the sut
 	BeforeEach(func() {
+		// setup a config with runc, used for checkpoint/restore tests
+		// as crun doesn't yet support restore.
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfig()
+		mockCrunInLibConfig()
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
@@ -90,7 +92,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail because runtime failure (/bin/false)", func() {
 			// Given
-			mockRuncToFalseInLibConfig()
+			mockCrunToFalseInLibConfig()
 
 			addContainerAndSandbox()
 			config := &metadata.ContainerConfig{

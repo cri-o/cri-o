@@ -196,22 +196,22 @@ func createDummyConfig() {
 	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(Succeed())
 }
 
-func mockRuncInLibConfig() {
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
+func mockCrunInLibConfig() {
+	config.Runtimes["crun"] = &libconfig.RuntimeHandler{
 		RuntimePath: "/bin/echo",
 	}
 }
 
-func mockRuncInLibConfigCheckpoint() {
+func mockCrunInLibConfigCheckpoint() {
 	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(Succeed())
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
+	config.Runtimes["crun"] = &libconfig.RuntimeHandler{
 		RuntimePath: "/tmp/fake-runtime",
 		MonitorPath: "/bin/true",
 	}
 }
 
-func mockRuncToFalseInLibConfig() {
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
+func mockCrunToFalseInLibConfig() {
+	config.Runtimes["crun"] = &libconfig.RuntimeHandler{
 		RuntimePath: "/bin/false",
 	}
 }

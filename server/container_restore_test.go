@@ -32,7 +32,7 @@ var _ = t.Describe("ContainerRestore", func() {
 		}
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfig()
+		mockCrunInLibConfig()
 		serverConfig.SetCheckpointRestore(true)
 		setupSUT()
 	})
