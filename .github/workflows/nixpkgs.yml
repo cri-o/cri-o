@@ -5,7 +5,7 @@ on:
     - cron: '0 0 * * 0'  # At 00:00 on Sunday
 env:
   NIX_VERSION: '2.22.1'
-permissions: 
+permissions:
   contents: read
 
 jobs:
