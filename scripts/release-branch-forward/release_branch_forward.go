@@ -122,5 +122,10 @@ func run() error {
 		return fmt.Errorf("unable to push to remote branch: %w", err)
 	}
 
+	logrus.Infof("Running GitHub `test` workflow")
+	if err := command.NewWithWorkDir(repo.Dir(), "gh", "workflow", "run", "test", "--ref", latestReleaseBranch).RunSilentSuccess(); err != nil {
+		return fmt.Errorf("unable to run GitHub workflow: %w", err)
+	}
+
 	return nil
 }

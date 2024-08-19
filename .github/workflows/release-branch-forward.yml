@@ -11,6 +11,7 @@ permissions:
 jobs:
   release-branch-forward:
     permissions:
+      actions: write
       contents: write
     if: github.ref == 'refs/heads/main' && github.repository == 'cri-o/cri-o'
     runs-on: ubuntu-latest
