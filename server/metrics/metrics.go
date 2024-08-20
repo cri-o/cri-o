@@ -20,6 +20,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"k8s.io/client-go/util/cert"
 
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/process"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -252,7 +253,7 @@ func Instance() *Metrics {
 }
 
 // Start starts serving the metrics in the background.
-func (m *Metrics) Start(stop chan struct{}) error {
+func (m *Metrics) Start(ctx context.Context, stop chan struct{}) error {
 	if m.config == nil {
 		return errors.New("provided config is nil")
 	}
@@ -263,7 +264,7 @@ func (m *Metrics) Start(stop chan struct{}) error {
 	}
 
 	metricsAddress := net.JoinHostPort(m.config.MetricsHost, strconv.Itoa(m.config.MetricsPort))
-	if err := m.startEndpoint(stop, "tcp", metricsAddress, me); err != nil {
+	if err := m.startEndpoint(ctx, stop, "tcp", metricsAddress, me); err != nil {
 		return fmt.Errorf("create metrics endpoint on %s: %w", metricsAddress, err)
 	}
 
@@ -273,7 +274,7 @@ func (m *Metrics) Start(stop chan struct{}) error {
 			return fmt.Errorf("removing unused socket %s: %w", metricsSocket, err)
 		}
 
-		if err := m.startEndpoint(stop, "unix", m.config.MetricsSocket, me); err != nil {
+		if err := m.startEndpoint(ctx, stop, "unix", m.config.MetricsSocket, me); err != nil {
 			return fmt.Errorf("creating metrics endpoint socket: %w", err)
 		}
 		return nil
@@ -437,7 +438,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 }
 
 func (m *Metrics) startEndpoint(
-	stop chan struct{}, network, address string, me http.Handler,
+	ctx context.Context, stop chan struct{}, network, address string, me http.Handler,
 ) error {
 	l, err := net.Listen(network, address)
 	if err != nil {
@@ -452,13 +453,13 @@ func (m *Metrics) startEndpoint(
 		}
 
 		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
-			logrus.Infof("Serving metrics on %s using HTTPS", address)
+			log.Infof(ctx, "Serving metrics on %s using HTTPS", address)
 
 			kpr, reloadErr := newCertReloader(
 				stop, m.config.MetricsCert, m.config.MetricsKey,
 			)
 			if reloadErr != nil {
-				logrus.Fatalf("Creating key pair reloader: %v", reloadErr)
+				log.Fatalf(ctx, "Creating key pair reloader: %v", reloadErr)
 			}
 
 			srv.TLSConfig = &tls.Config{
@@ -468,24 +469,24 @@ func (m *Metrics) startEndpoint(
 
 			go func() {
 				<-stop
-				if err := srv.Shutdown(context.Background()); err != nil {
-					logrus.Errorf("Error on metrics server shutdown: %v", err)
+				if err := srv.Shutdown(ctx); err != nil {
+					log.Errorf(ctx, "Error on metrics server shutdown: %v", err)
 				}
 			}()
 			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
 		} else {
-			logrus.Infof("Serving metrics on %s using HTTP", address)
+			log.Infof(ctx, "Serving metrics on %s using HTTP", address)
 			go func() {
 				<-stop
-				if err := srv.Shutdown(context.Background()); err != nil {
-					logrus.Errorf("Error on metrics server shutdown: %v", err)
+				if err := srv.Shutdown(ctx); err != nil {
+					log.Errorf(ctx, "Error on metrics server shutdown: %v", err)
 				}
 			}()
 			err = srv.Serve(l)
 		}
 
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logrus.Errorf("Failed to serve metrics endpoint %v: %v", l, err)
+			log.Errorf(ctx, "Failed to serve metrics endpoint %v: %v", l, err)
 		}
 	}()
 

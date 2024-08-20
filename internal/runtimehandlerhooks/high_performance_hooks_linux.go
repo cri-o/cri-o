@@ -124,14 +124,14 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	}
 
 	// disable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
-		if err := h.setCPULoadBalancing(c, podManager, containerManagers, false, sharedCPUsRequested); err != nil {
+	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
+		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, false, sharedCPUsRequested); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
 
 	// disable the IRQ smp load balancing for the container CPUs
-	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
+	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 		if err := setIRQLoadBalancing(ctx, c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
@@ -139,7 +139,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	}
 
 	// disable the CFS quota for the container CPUs
-	if shouldCPUQuotaBeDisabled(s.Annotations()) {
+	if shouldCPUQuotaBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
 		if err := setCPUQuota(podManager, containerManagers); err != nil {
 			return fmt.Errorf("set CPU CFS quota: %w", err)
@@ -184,19 +184,19 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 	}
 
 	// enable the IRQ smp balancing for the container CPUs
-	if shouldIRQLoadBalancingBeDisabled(s.Annotations()) {
+	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
 		if err := setIRQLoadBalancing(ctx, c, true, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
 
 	// disable the CPU load balancing for the container CPUs
-	if shouldCPULoadBalancingBeDisabled(s.Annotations()) {
+	if shouldCPULoadBalancingBeDisabled(ctx, s.Annotations()) {
 		podManager, containerManagers, err := libctrManagersForPodAndContainerCgroup(c, s.CgroupParent())
 		if err != nil {
 			return err
 		}
-		if err := h.setCPULoadBalancing(c, podManager, containerManagers, true, requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())); err != nil {
+		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
 	}
@@ -233,27 +233,27 @@ func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *
 	return h.PostStop(ctx, c, s)
 }
 
-func shouldCPULoadBalancingBeDisabled(annotations fields.Set) bool {
+func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
 	if annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue {
-		log.Warnf(context.TODO(), "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
 	}
 
 	return annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue ||
 		annotations[crioannotations.CPULoadBalancingAnnotation] == annotationDisable
 }
 
-func shouldCPUQuotaBeDisabled(annotations fields.Set) bool {
+func shouldCPUQuotaBeDisabled(ctx context.Context, annotations fields.Set) bool {
 	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
-		log.Warnf(context.TODO(), "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
 	}
 
 	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
 		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
 }
 
-func shouldIRQLoadBalancingBeDisabled(annotations fields.Set) bool {
+func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
 	if annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue {
-		log.Warnf(context.TODO(), "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancingAnnotation))
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancingAnnotation))
 	}
 
 	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
@@ -286,9 +286,9 @@ func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 // Since CRI-O is the owner of the container cgroup, it must set this value for
 // the container. Some other entity (kubelet, external service) must ensure this is the case for all
 // other cgroups that intersect (at minimum: all parent cgroups of this cgroup).
-func (h *HighPerformanceHooks) setCPULoadBalancing(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) error {
+func (h *HighPerformanceHooks) setCPULoadBalancing(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) error {
 	if node.CgroupIsV2() {
-		return h.setCPULoadBalancingV2(c, podManager, containerManagers, enable, sharedCPUsRequested)
+		return h.setCPULoadBalancingV2(ctx, c, podManager, containerManagers, enable, sharedCPUsRequested)
 	}
 	if !enable {
 		if err := disableCPULoadBalancingV1(containerManagers); err != nil {
@@ -322,7 +322,7 @@ type desiredManagerCPUSetState struct {
 // Thus, this implementation assumes a certain amount of ownership CRI-O takes over this field. This ownership may not apply in the future.
 // Another note on cgroup ownership: currently, CRI-O overwrites cpuset.cpus, which is a field managed by systemd.
 // To avoid systemd clobbering this value, a libcontainer cgroup manager object is created, and through it CRI-O will use dbus to make changes to the cgroup.
-func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) (retErr error) {
+func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) (retErr error) {
 	cpusString := c.Spec().Linux.Resources.CPU.Cpus
 	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
@@ -410,7 +410,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(c *oci.Container, podManage
 	defer func() {
 		if retErr != nil {
 			if err = h.addOrRemoveCpusetFromManagers(managers, enable); err != nil {
-				log.Errorf(context.Background(), "Failed to revert cpuset values: %v", err)
+				log.Errorf(ctx, "Failed to revert cpuset values: %v", err)
 			}
 		}
 	}()
@@ -970,7 +970,7 @@ func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec
 		return false
 	}
 	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
-		log.Warnf(context.TODO(), "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
+		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
 	}
 
 	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
