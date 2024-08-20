@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 20 Aug 2024 06:53:32 UTC for commit [b1dfcc8][0]._
+_Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b1dfcc80c6ad03226ba8024b72f4117258aac86d
+[0]: https://github.com/cri-o/cri-o/commit/20c06a19cb395445620c31730c0f1a0a1922eaae
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240819212910-40d385d4010a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240820070756-aeb6f54979ce | true   | true             |
 
 ## All Dependencies
 
@@ -493,7 +493,7 @@ _Generated on Tue, 20 Aug 2024 06:53:32 UTC for commit [b1dfcc8][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240819212910-40d385d4010a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240820070756-aeb6f54979ce  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
