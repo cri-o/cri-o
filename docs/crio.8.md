@@ -374,7 +374,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.
 
-**--profile**: Enable pprof remote profiler on localhost:6060.
+**--profile**: Enable pprof remote profiler on 127.0.0.1:6060.
 
 **--profile-cpu**="": Write a pprof CPU profile to the provided path.
 
