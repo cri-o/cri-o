@@ -90,7 +90,7 @@ dependencies:
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.8.0
+    version: 3.9.0
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
