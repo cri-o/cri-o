@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
+_Generated on Tue, 20 Aug 2024 16:56:41 UTC for commit [8e5474f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/20c06a19cb395445620c31730c0f1a0a1922eaae
+[0]: https://github.com/cri-o/cri-o/commit/8e5474f7bfdfc74a02f6f2a7bdb933c12ab4f6e7
 
 ## Outdated Dependencies
 
@@ -10,6 +10,7 @@ _Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240820070756-aeb6f54979ce | true   | true             |
+| github.com/prometheus/client_golang                    | v1.20.0                            | v1.20.1                            | true   | true             |
 
 ## All Dependencies
 
@@ -195,8 +196,8 @@ _Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 | github.com/VividCortex/ewma                                                             | v1.2.0                                |                                     | false  | true             |
 | github.com/acarl005/stripansi                                                           | v0.0.0-20180116102854-5a71ef0e047d    |                                     | false  | true             |
 | github.com/agnivade/levenshtein                                                         | v1.1.1                                |                                     | false  | true             |
-| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9    | v0.0.0-20240814155529-0478e0c25be8  | false  | true             |
-| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19    | v0.0.0-20240814155529-0478e0c25be8  | false  | true             |
+| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9    | v0.0.0-20240820134305-55491d041044  | false  | true             |
+| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19    | v0.0.0-20240820134305-55491d041044  | false  | true             |
 | github.com/ajstarks/svgo                                                                | v0.0.0-20211024235047-1546f124cd8b    |                                     | false  | true             |
 | github.com/akavel/rsrc                                                                  | v0.10.2                               |                                     | false  | true             |
 | github.com/alecthomas/kingpin/v2                                                        | v2.4.0                                |                                     | false  | true             |
@@ -277,7 +278,7 @@ _Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 | github.com/cilium/ebpf                                                                  | v0.11.0                               | v0.16.0                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                |                                     | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.7                                | v1.3.9                              | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.7                                | v1.4.0                              | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe    |                                     | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20240423153145-555b57ec207b    | v0.0.0-20240723142845-024c85f92f20  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                |                                     | false  | true             |
@@ -603,11 +604,11 @@ _Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 | github.com/poy/onpar                                                                    | v1.1.2                                |                                     | false  | true             |
 | github.com/pquerna/cachecontrol                                                         | v0.1.0                                | v0.2.0                              | false  | true             |
 | github.com/proglottis/gpgme                                                             | v0.1.3                                |                                     | false  | true             |
-| github.com/prometheus/client_golang                                                     | v1.20.0                               |                                     | true   | true             |
+| github.com/prometheus/client_golang                                                     | v1.20.0                               | v1.20.1                             | true   | true             |
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               |                                     | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240819134931-0a5c94ea5f2d  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240820135758-21b1d9897dc7  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.6.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -762,11 +763,11 @@ _Generated on Tue, 20 Aug 2024 09:20:27 UTC for commit [20c06a1][0]._
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.172.0                              | v0.192.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.172.0                              | v0.193.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094    | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094    | v0.0.0-20240814211410-ddb44dafa142  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240820151423-278611b39280  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240701130421-f6361c86f094    | v0.0.0-20240820151423-278611b39280  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240701130421-f6361c86f094    | v0.0.0-20240820151423-278611b39280  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.65.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.5.1                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                               |                                     | true   | true             |
