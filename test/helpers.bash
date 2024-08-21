@@ -191,6 +191,13 @@ function setup_crio() {
     # make sure we don't run with nodev, or else mounting a readonly rootfs will fail: https://github.com/cri-o/cri-o/issues/1929#issuecomment-474240498
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CONFIG"
     sed -r -e 's/nodev(,)?//g' -i "$CRIO_CUSTOM_CONFIG"
+    # setup kata runtime (if enabled)
+    if [ "$TEST_WITH_KATA" == "true" ]; then
+        # Use create_new_default_runtime(), assuming all environment variables
+        # are properly set for kata.
+        echo "Creating runtime config for kata"
+        create_new_default_runtime "kata"
+    fi
     prepare_network_conf
 }
 
@@ -523,9 +530,15 @@ function is_cgroup_v2() {
 # as needed.
 function create_new_default_runtime() {
     local NAME="$1"
+    local PREFIX="01"
+    if [ "$NAME" == "kata" ]; then
+        # make sure the kata runtime definition is first, so that it is overridden
+        # by custom runtime classes needed by some tests
+        PREFIX="00"
+    fi
     unset CONTAINER_DEFAULT_RUNTIME
     unset CONTAINER_RUNTIMES
-    export CRIO_NEW_RUNTIME_CONFIG="$CRIO_CONFIG_DIR/01-$NAME.conf"
+    export CRIO_NEW_RUNTIME_CONFIG="$CRIO_CONFIG_DIR/$PREFIX-$NAME.conf"
     local PRIVILEGED=${PRIVILEGED_WITHOUT_HOST_DEVICES:-false}
     cat <<EOF >"$CRIO_NEW_RUNTIME_CONFIG"
 [crio.runtime]

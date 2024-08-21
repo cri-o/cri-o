@@ -75,7 +75,7 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-  CONTAINER_DEFAULT_RUNTIME: "kata"
+  TEST_WITH_KATA: "true"
   RUNTIME_ROOT: "/run/vc"
   RUNTIME_TYPE: "vm"
   RUNTIME_BINARY_PATH: "/opt/kata/bin/containerd-shim-kata-v2"
