@@ -1319,15 +1319,6 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 		versionString := strings.ReplaceAll(strings.TrimSpace(string(versionOutput)), "\n", ", ")
 		logrus.Infof("Using runtime handler %s", versionString)
 
-		memoryBytes, err := handler.SetContainerMinMemory()
-		if err != nil {
-			logrus.Errorf(
-				"Unable to set minimum container memory for runtime handler %q: %v; default value of %q will be used",
-				name, err, units.BytesSize(float64(memoryBytes)),
-			)
-		}
-		logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memoryBytes)
-
 		// If this returns an error, we just ignore it and assume the features sub-command is
 		// not supported by the runtime.
 		output, err := cmdrunner.CombinedOutput(handler.RuntimePath, "features")
@@ -1584,6 +1575,10 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
+	if err := r.ValidateContainerMinMemory(name); err != nil {
+		logrus.Errorf("Unable to set minimum container memory for runtime handler %q: %v", name, err)
+	}
+
 	return r.ValidateNoSyncLog()
 }
 
@@ -1678,22 +1673,22 @@ func (r *RuntimeHandler) ValidateNoSyncLog() error {
 	return fmt.Errorf("no_sync_log is only allowed with runtime type 'oci', runtime type is '%s'", r.RuntimeType)
 }
 
-// SetContainerMinMemory sets the minimum container memory for a given runtime.
+// ValidateContainerMinMemory sets the minimum container memory for a given runtime.
 // assigns defaultContainerMinMemory if no container_min_memory provided.
-func (r *RuntimeHandler) SetContainerMinMemory() (int64, error) {
+func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 	if r.ContainerMinMemory == "" {
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
 	}
 
-	memoryBytes, err := units.RAMInBytes(r.ContainerMinMemory)
+	memorySize, err := units.RAMInBytes(r.ContainerMinMemory)
 	if err != nil {
-		err = fmt.Errorf("unable to set runtime memory to %q: %w", r.ContainerMinMemory, err)
+		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %q instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
 		// Fallback to default value if something is wrong with the configured value.
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
-		return int64(defaultContainerMinMemory), err
+		return err
 	}
-
-	return memoryBytes, nil
+	logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memorySize)
+	return nil
 }
 
 // LoadRuntimeFeatures loads features for a given runtime handler using the "features"
