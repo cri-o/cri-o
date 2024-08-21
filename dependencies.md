@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
+_Generated on Wed, 21 Aug 2024 07:06:12 UTC for commit [92e20d3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ec0d4ee8f6f75a3c57d3235ee7d990716d32d292
+[0]: https://github.com/cri-o/cri-o/commit/92e20d3ea637de48c8ebe4db7bca11e8d3d3f084
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
 | github.com/containers/common                           | v0.60.1                            | v0.60.2                            | true   | true             |
 | github.com/containers/image/v5                         | v5.32.1                            | v5.32.2                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240820070756-aeb6f54979ce | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240820211229-e0bff7ed1431 | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.0                            | v1.20.1                            | true   | true             |
 
 ## All Dependencies
@@ -211,7 +211,7 @@ _Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
 | github.com/alibabacloud-go/cr-20160607                                                  | v1.0.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/cr-20181201                                                  | v1.0.10                               |                                     | false  | true             |
 | github.com/alibabacloud-go/darabonba-openapi                                            | v0.2.1                                |                                     | false  | true             |
-| github.com/alibabacloud-go/debug                                                        | v1.0.0                                |                                     | false  | true             |
+| github.com/alibabacloud-go/debug                                                        | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/alibabacloud-go/endpoint-util                                                | v1.1.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/openapi-util                                                 | v0.1.0                                | v0.1.1                              | false  | true             |
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                | v1.2.2                              | false  | true             |
@@ -233,7 +233,7 @@ _Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.28                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.28                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.0                               | v1.16.12                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.11                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.12                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.4                                | v1.3.16                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.4                                | v2.6.16                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                | v1.8.1                              | false  | true             |
@@ -245,7 +245,7 @@ _Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.6                               | v1.11.18                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.3                               | v1.17.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.30.0                               | v1.35.4                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.59.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.60.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.20.3                               | v1.22.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.26.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.30.4                             | false  | true             |
@@ -496,7 +496,7 @@ _Generated on Tue, 20 Aug 2024 19:25:48 UTC for commit [ec0d4ee][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240820070756-aeb6f54979ce  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240820211229-e0bff7ed1431  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
