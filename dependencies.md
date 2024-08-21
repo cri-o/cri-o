@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 21 Aug 2024 07:14:06 UTC for commit [9f9bf39][0]._
+_Generated on Wed, 21 Aug 2024 14:57:06 UTC for commit [79b48c9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9f9bf39f9ce79ace516291337fd23dd67749e294
+[0]: https://github.com/cri-o/cri-o/commit/79b48c94c8f72e2a1a2ad19a7feb0e5b5c71e29a
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Wed, 21 Aug 2024 07:14:06 UTC for commit [9f9bf39][0]._
 | github.com/containers/common                           | v0.60.1                            | v0.60.2                            | true   | true             |
 | github.com/containers/image/v5                         | v5.32.1                            | v5.32.2                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240820211229-e0bff7ed1431 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240821085223-f071c8cadac1 | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.0                            | v1.20.1                            | true   | true             |
 
 ## All Dependencies
@@ -496,7 +496,7 @@ _Generated on Wed, 21 Aug 2024 07:14:06 UTC for commit [9f9bf39][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240820211229-e0bff7ed1431  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240821085223-f071c8cadac1  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -610,7 +610,7 @@ _Generated on Wed, 21 Aug 2024 07:14:06 UTC for commit [9f9bf39][0]._
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               |                                     | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240820135758-21b1d9897dc7  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240821140625-e3b15047476d  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.6.1                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -715,7 +715,7 @@ _Generated on Wed, 21 Aug 2024 07:14:06 UTC for commit [9f9bf39][0]._
 | github.com/zmap/zcrypto                                                                 | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20240803002437-3a861682ac77  | false  | true             |
 | github.com/zmap/zlint/v3                                                                | v3.6.0                                | v3.6.3                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                                 | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
-| go.etcd.io/bbolt                                                                        | v1.3.10                               |                                     | false  | true             |
+| go.etcd.io/bbolt                                                                        | v1.3.10                               | v1.3.11                             | false  | true             |
 | go.etcd.io/etcd/api/v3                                                                  | v3.5.14                               | v3.5.15                             | false  | true             |
 | go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.14                               | v3.5.15                             | false  | true             |
 | go.etcd.io/etcd/client/v2                                                               | v2.305.13                             | v2.305.15                           | false  | true             |
