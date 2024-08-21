@@ -40,6 +40,10 @@ var _ = Describe("Utils", func() {
 				input:    Input{cpus: "4", mask: "0000,00003003", set: true},
 				expected: Expected{mask: "00000000,00003013", invMask: "0000ffff,ffffcfec"},
 			}),
+			Entry("set a single bit when a mask was empty", TestData{
+				input:    Input{cpus: "0", mask: "0000,00000000", set: true},
+				expected: Expected{mask: "00000000,00000001", invMask: "0000ffff,fffffffe"},
+			}),
 			Entry("clear a set of bits", TestData{
 				input:    Input{cpus: "4-13", mask: "ffff,ffffffff", set: false},
 				expected: Expected{mask: "0000ffff,ffffc00f", invMask: "00000000,00003ff0"},
@@ -55,6 +59,26 @@ var _ = Describe("Utils", func() {
 			Entry("clear two bits from a short mask", TestData{
 				input:    Input{cpus: "2-3", mask: "ffffff", set: false},
 				expected: Expected{mask: "00fffff3", invMask: "0000000c"},
+			}),
+			Entry("clear a set of bits on a big machine", TestData{
+				input: Input{cpus: "254-258", mask: "ffffffff,ffffffff,ffffffff,fff00fff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffff00", set: false},
+				expected: Expected{mask: "ffffffff,ffffffff,ffffffff,fff00fff,ffffffff,ffffffff,ffffffff,fffffff8,3fffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffff00",
+					invMask: "00000000,00000000,00000000,000ff000,00000000,00000000,00000000,00000007,c0000000,00000000,00000000,00000000,00000000,00000000,00000000,000000ff"},
+			}),
+			Entry("set a set of bits on a big machine", TestData{
+				input: Input{cpus: "254-258,510", mask: "00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,abc00000,00000000,00000000,00000000,00000000,00000000,00000000,00000000", set: true},
+				expected: Expected{mask: "40000000,00000000,00000000,00000000,00000000,00000000,00000000,00000007,ebc00000,00000000,00000000,00000000,00000000,00000000,00000000,00000000",
+					invMask: "bfffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,fffffff8,143fffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff"},
+			}),
+			Entry("clear a set of bits on a big machine with full mask", TestData{
+				input: Input{cpus: "254-258,510", mask: "ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff", set: false},
+				expected: Expected{mask: "bfffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,fffffff8,3fffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff",
+					invMask: "40000000,00000000,00000000,00000000,00000000,00000000,00000000,00000007,c0000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000"},
+			}),
+			Entry("set a set of bits on a big machine with empty mask", TestData{
+				input: Input{cpus: "254-258,510", mask: "00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000", set: true},
+				expected: Expected{mask: "40000000,00000000,00000000,00000000,00000000,00000000,00000000,00000007,c0000000,00000000,00000000,00000000,00000000,00000000,00000000,00000000",
+					invMask: "bfffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,fffffff8,3fffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff,ffffffff"},
 			}),
 		)
 
