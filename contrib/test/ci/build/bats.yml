@@ -1,5 +1,4 @@
 ---
-
 - name: clone bats source repo
   git:
     repo: "https://github.com/bats-core/bats-core.git"

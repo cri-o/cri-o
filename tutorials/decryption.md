@@ -77,9 +77,11 @@ Since we haven't provided `CRI-O` the access to the private key required to decr
 this image you should see a failure like this on your console,
 
 <!-- markdownlint-disable MD013 -->
+
 ```text
 FATA[0010] pulling image failed: rpc error: code = Unknown desc = Error decrypting layer sha256:ecbef970c60906b9d4249b47273113ef008b91ce8046f6ae9d82761b9ffcc3c0: missing private key needed for decryption
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 This is intended behavior and proof that indeed the encrypted images cannot be

@@ -10,8 +10,8 @@ on:
       - update-nixpkgs-*
   pull_request:
 env:
-  GO_VERSION: '1.23'
-  CONMON_BINARY: /usr/local/bin/conmon  # from: scripts/github-actions-setup
+  GO_VERSION: "1.23"
+  CONMON_BINARY: /usr/local/bin/conmon # from: scripts/github-actions-setup
 permissions:
   contents: read
 

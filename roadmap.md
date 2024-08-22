@@ -87,6 +87,7 @@ Some of these features can be seen below:
 ## Known Risks
 
 - Relying on different SIGs for CRI-O features:
+
   - We have a need to discuss our enhancements with different SIGs to get all
     required information and drive the change. This can lead into helpful, but maybe
     not expected input and delay the deliverable.

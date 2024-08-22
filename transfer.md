@@ -64,13 +64,13 @@ For many troubleshooting and information collection steps, there may be an
 existing pattern. Following provides equivalent with CRI-O tools for gathering
 information or jumping into containers, for operational use.
 
-| Existing Step    | CRI-O (and friends)                          |
-|:----------------:|:--------------------------------------------:|
-| `docker exec`    | [`crictl exec`][crictl]                      |
-| `docker inspect` | `podman inspect`                             |
-| `docker logs`    | `podman logs`                                |
-| `docker ps`      | [`crictl ps`][crictl] or [`runc list`][runc] |
-| `docker stats`   | `podman stats`                               |
+|  Existing Step   |             CRI-O (and friends)              |
+| :--------------: | :------------------------------------------: |
+|  `docker exec`   |           [`crictl exec`][crictl]            |
+| `docker inspect` |               `podman inspect`               |
+|  `docker logs`   |                `podman logs`                 |
+|   `docker ps`    | [`crictl ps`][crictl] or [`runc list`][runc] |
+|  `docker stats`  |                `podman stats`                |
 
 [crictl]: https://github.com/kubernetes-sigs/cri-tools/blob/master/docs/crictl.md
 [runc]: https://github.com/opencontainers/runc/blob/main/man/runc-list.8.md

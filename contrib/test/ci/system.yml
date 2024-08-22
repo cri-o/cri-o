@@ -31,9 +31,9 @@
   lineinfile:
     dest: /etc/hosts
     line: |
-        # Added by Ansible from system.yml
-        {{ ansible_default_ipv4.address }} {{ ansible_nodename }}
-    insertafter: 'EOF'
+      # Added by Ansible from system.yml
+      {{ ansible_default_ipv4.address }} {{ ansible_nodename }}
+    insertafter: "EOF"
     regexp: '{{ ansible_default_ipv4.address }}\s+{{ ansible_nodename }}'
     state: present
 

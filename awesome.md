@@ -8,6 +8,7 @@ and collects useful resources about CRI-O.
 <!-- markdownlint-disable-file MD039 MD051 -->
 
 <!-- toc -->
+
 - [Resources](#resources)
   - [Articles](#articles)
   - [Community](#community)
@@ -15,7 +16,7 @@ and collects useful resources about CRI-O.
   - [Videos](#videos)
   - [Tutorials](#tutorials)
   - [Websites](#websites)
-<!-- /toc -->
+  <!-- /toc -->
 
 ## Resources
 

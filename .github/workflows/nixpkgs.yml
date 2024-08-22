@@ -2,9 +2,9 @@ name: nixpkgs
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * 0'  # At 00:00 on Sunday
+    - cron: "0 0 * * 0" # At 00:00 on Sunday
 env:
-  NIX_VERSION: '2.24.3'
+  NIX_VERSION: "2.24.3"
 permissions:
   contents: read
 
@@ -32,7 +32,7 @@ jobs:
         if: ${{ steps.create_pr.outputs.create_pr == 'true' }}
         with:
           commit-message: Update nixpkgs
-          title: 'Update nixpkgs'
+          title: "Update nixpkgs"
           body: Update nixpkgs to the latest HEAD commit.
           labels: kind/ci, release-note-none, ok-to-test
           branch: nixpkgs

@@ -1,5 +1,4 @@
 ---
-
 - name: clone conmon source repo
   git:
     repo: "https://github.com/containers/conmon.git"
@@ -20,4 +19,4 @@
     target: "install"
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
     params:
-        PREFIX: "/" # install conmon to the PATH so it can be downloaded to the test directory as needed
+      PREFIX: "/" # install conmon to the PATH so it can be downloaded to the test directory as needed

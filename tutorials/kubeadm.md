@@ -12,10 +12,12 @@ install the cluster. The value of `--pod-network-cidr` depends on which
 CNI plugin you choose.
 
 <!-- markdownlint-disable MD013 -->
-| CNI Plugin              | CIDR          | Notes                                                                                                                                         |
-| ----------------------- | ------------- | --------------                                                                                                                                |
+
+| CNI Plugin              | CIDR          | Notes                                                                                                                                             |
+| ----------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Bridge plugin (default) | 10.85.0.0/16  | The default bridge plugin is defined [here](/contrib/cni/10-crio-bridge.conflist). This is only suitable when your cluster has a **single node**. |
-| Flannel                 | 10.244.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                       |
+| Flannel                 | 10.244.0.0/16 | This is a good choice for clusters with multiple nodes.                                                                                           |
+
 <!-- markdownlint-enable MD013 -->
 
 For example, to use the script below with the **bridge** plugin, run `export CIDR=10.85.0.0/16`.

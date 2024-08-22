@@ -2,72 +2,72 @@ dependencies:
   - name: go
     version: 1.23
     refPaths:
-    - path: .github/workflows/verify.yml
-      match: GO_VERSION
-    - path: .github/workflows/integration.yml
-      match: GO_VERSION
-    - path: .github/workflows/test.yml
-      match: GO_VERSION
-    - path: .github/workflows/release-branch-forward.yml
-      match: GO_VERSION
-    - path: .github/workflows/patch-release.yml
-      match: GO_VERSION
-    - path: .github/workflows/tag-reconciler.yml
-      match: GO_VERSION
+      - path: .github/workflows/verify.yml
+        match: GO_VERSION
+      - path: .github/workflows/integration.yml
+        match: GO_VERSION
+      - path: .github/workflows/test.yml
+        match: GO_VERSION
+      - path: .github/workflows/release-branch-forward.yml
+        match: GO_VERSION
+      - path: .github/workflows/patch-release.yml
+        match: GO_VERSION
+      - path: .github/workflows/tag-reconciler.yml
+        match: GO_VERSION
 
   - name: golangci-lint
     version: v1.60.1
     refPaths:
-    - path: .github/workflows/verify.yml
-      match: GOLANGCI_LINT_VERSION
-    - path: Makefile
-      match: GOLANGCI_LINT_VERSION
+      - path: .github/workflows/verify.yml
+        match: GOLANGCI_LINT_VERSION
+      - path: Makefile
+        match: GOLANGCI_LINT_VERSION
 
   - name: shellcheck
     version: v0.10.0
     refPaths:
-    - path: Makefile
-      match: SHELLCHECK_VERSION
+      - path: Makefile
+        match: SHELLCHECK_VERSION
 
   - name: cni-plugins
     version: v1.5.1
     refPaths:
-    - path: scripts/versions
-      match: cni-plugins
-    - path: contrib/test/ci/build/plugins.yml
-      match: version
+      - path: scripts/versions
+        match: cni-plugins
+      - path: contrib/test/ci/build/plugins.yml
+        match: version
 
   - name: conmon
     version: v2.1.12
     refPaths:
-    - path: scripts/versions
-      match: conmon
+      - path: scripts/versions
+        match: conmon
 
   - name: cri-tools
     version: master
     refPaths:
-    - path: contrib/test/ci/vars.yml
-      match: cri_tools_git_version
+      - path: contrib/test/ci/vars.yml
+        match: cri_tools_git_version
 
   - name: buildah
     version: v1.34.0
     refPaths:
-    - path: scripts/versions
-      match: buildah
+      - path: scripts/versions
+        match: buildah
 
   - name: runc
     version: main
     refPaths:
-    - path: scripts/versions
-      match: runc
+      - path: scripts/versions
+        match: runc
 
   - name: bats
     version: v1.11.0
     refPaths:
-    - path: scripts/versions
-      match: bats
-    - path: contrib/test/ci/build/bats.yml
-      match: version
+      - path: scripts/versions
+        match: bats
+      - path: contrib/test/ci/build/bats.yml
+        match: version
 
   - name: zeitgeist
     version: 0.5.3

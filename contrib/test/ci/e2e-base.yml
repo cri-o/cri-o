@@ -10,10 +10,10 @@
     insertbefore: .*crio.runtime.runtimes.runc.*
     backup: yes
     block: |
-        [crio.runtime.runtimes.test-handler]
-        runtime_path = "/usr/bin/runc"
-        runtime_type = "oci"
-        runtime_root = "/run/runc"
+      [crio.runtime.runtimes.test-handler]
+      runtime_path = "/usr/bin/runc"
+      runtime_type = "oci"
+      runtime_root = "/run/runc"
 
 - name: create ssh keys
   shell: ssh-keygen -b 2048 -t rsa -f "{{ ssh_location }}" -q -N ""
@@ -39,8 +39,8 @@
   lineinfile:
     dest: /usr/local/bin/createcluster.sh
     line: |
-        # Added by Ansible from e2e.yml
-        export FEATURE_GATES="EventedPLEG=true"
+      # Added by Ansible from e2e.yml
+      export FEATURE_GATES="EventedPLEG=true"
     regexp: "^export FEATURE_GATES="
     state: present
   when: "evented_pleg_fg | default(False) | bool"
@@ -50,8 +50,8 @@
   lineinfile:
     dest: /usr/local/bin/createcluster.sh
     line: |
-        # Added by Ansible from e2e.yml
-        export {{ item }}={{ ansible_default_ipv4.address }}
+      # Added by Ansible from e2e.yml
+      export {{ item }}={{ ansible_default_ipv4.address }}
     regexp: "^export {{ item }}="
     state: present
   with_items:
@@ -72,7 +72,7 @@
   become: yes
   ansible.builtin.shell:
     cmd: /usr/bin/kubectl get nodes -o jsonpath='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}' | grep 'Ready=True'
-  environment: '{{ e2e_test_env }}'
+  environment: "{{ e2e_test_env }}"
   register: kube_poll
   until: kube_poll.rc == 0
   retries: 100

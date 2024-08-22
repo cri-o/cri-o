@@ -1,5 +1,4 @@
 ---
-
 - name: include base e2e setup
   include_tasks: "e2e-base.yml"
 
@@ -30,21 +29,21 @@
       - "[sig-network] KubeProxy should update metric for tracking accepted packets destined for localhost nodeports"
   set_fact:
     e2e_shell_cmd: >
-        DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
-            "{{ ansible_env.GOPATH }}"/bin/kubetest
-            --provider=local
-            --test
-            --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
-                        --ginkgo.noColor
-                        --report-dir={{ artifacts }}"
-            &> {{ artifacts }}/e2e.log
+      DBUS_SESSION_BUS_ADDRESS="unix:path=/var/run/dbus/system_bus_socket" KUBE_CONTAINER_RUNTIME="remote" GINKGO_TOLERATE_FLAKES="y" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y KUBE_SSH_USER="{{ ssh_user }}" LOCAL_SSH_KEY="{{ ssh_location }}"
+          "{{ ansible_env.GOPATH }}"/bin/kubetest
+          --provider=local
+          --test
+          --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                      --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
+                      --ginkgo.noColor
+                      --report-dir={{ artifacts }}"
+          &> {{ artifacts }}/e2e.log
 
 - name: run e2e tests
   shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
   args:
     chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-  async: '{{ 60 * 60 * 4 }}'  # seconds
+  async: "{{ 60 * 60 * 4 }}" # seconds
   poll: 60
 
 - name: stop customcluster

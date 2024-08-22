@@ -1,71 +1,66 @@
 {
-	"metadata": {
-		"name": "podsandbox1-redis"
-	},
-	"image": {
-		"image": "quay.io/crio/fedora-crio-ci:latest"
-	},
-	"args": [
-		"docker-entrypoint.sh",
-		"redis-server"
-	],
-	"working_dir": "/data",
-	"envs": [
-		{
-			"key": "PATH",
-			"value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-		},
-		{
-			"key": "TERM",
-			"value": "xterm"
-		},
-		{
-			"key": "GLIBC_TUNABLES",
-			"value": "glibc.pthread.rseq=0"
-		},
-		{
-			"key": "REDIS_VERSION",
-			"value": "6.0.18"
-		},
-		{
-			"key": "REDIS_DOWNLOAD_URL",
-			"value": "http://download.redis.io/releases/redis-6.0.18.tar.gz"
-		},
-		{
-			"key": "REDIS_DOWNLOAD_SHA1",
-			"value": "d7b4f2a97fcab96727284092b0a4aa854af47d570803fa0e7a0345359743836e"
-		}
-	],
-	"labels": {
-		"tier": "backend"
-	},
-	"annotations": {
-		"pod": "podsandbox1"
-	},
-	"log_path": "",
-	"stdin": false,
-	"stdin_once": false,
-	"tty": false,
-	"linux": {
-		"resources": {
-			"memory_limit_in_bytes": 209715200,
-			"cpu_period": 10000,
-			"cpu_quota": 20000,
-			"cpu_shares": 512,
-			"oom_score_adj": 30,
-			"cpuset_cpus": "0",
-			"cpuset_mems": "0"
-		},
-		"security_context": {
-			"namespace_options": {
-				"pid": 1
-			},
-			"readonly_rootfs": false,
-			"capabilities": {
-				"add_capabilities": [
-					"sys_admin"
-				]
-			}
-		}
-	}
+  "metadata": {
+    "name": "podsandbox1-redis"
+  },
+  "image": {
+    "image": "quay.io/crio/fedora-crio-ci:latest"
+  },
+  "args": ["docker-entrypoint.sh", "redis-server"],
+  "working_dir": "/data",
+  "envs": [
+    {
+      "key": "PATH",
+      "value": "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    {
+      "key": "TERM",
+      "value": "xterm"
+    },
+    {
+      "key": "GLIBC_TUNABLES",
+      "value": "glibc.pthread.rseq=0"
+    },
+    {
+      "key": "REDIS_VERSION",
+      "value": "6.0.18"
+    },
+    {
+      "key": "REDIS_DOWNLOAD_URL",
+      "value": "http://download.redis.io/releases/redis-6.0.18.tar.gz"
+    },
+    {
+      "key": "REDIS_DOWNLOAD_SHA1",
+      "value": "d7b4f2a97fcab96727284092b0a4aa854af47d570803fa0e7a0345359743836e"
+    }
+  ],
+  "labels": {
+    "tier": "backend"
+  },
+  "annotations": {
+    "pod": "podsandbox1"
+  },
+  "log_path": "",
+  "stdin": false,
+  "stdin_once": false,
+  "tty": false,
+  "linux": {
+    "resources": {
+      "memory_limit_in_bytes": 209715200,
+      "cpu_period": 10000,
+      "cpu_quota": 20000,
+      "cpu_shares": 512,
+      "oom_score_adj": 30,
+      "cpuset_cpus": "0",
+      "cpuset_mems": "0"
+    },
+    "security_context": {
+      "namespace_options": {
+        "pid": 1
+      },
+      "readonly_rootfs": false,
+      "capabilities": {
+        "add_capabilities": ["sys_admin"]
+      }
+    }
+  }
 }

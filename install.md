@@ -1,7 +1,6 @@
-<!-- markdownlint-disable-next-line MD041 -->
-![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
-
 # CRI-O Installation Instructions
+
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 
 This guide will walk you through the installation of [CRI-O](https://github.com/cri-o/cri-o),
 an Open Container Initiative-based implementation of the
@@ -11,6 +10,7 @@ It is assumed you are running a Linux machine.
 ## Table of Contents
 
 <!-- toc -->
+
 - [Install packaged versions of CRI-O](#install-packaged-versions-of-cri-o)
 - [Install CRI-O on Flatcar with Sysexts](#install-cri-o-on-flatcar-with-sysexts)
   - [Prerequisites](#prerequisites)
@@ -43,7 +43,7 @@ It is assumed you are running a Linux machine.
   - [Fedora 31 or later](#fedora-31-or-later)
   - [Other yum based operating systems](#other-yum-based-operating-systems)
   - [APT based operating systems](#apt-based-operating-systems)
-<!-- /toc -->
+  <!-- /toc -->
 
 ## Install packaged versions of CRI-O
 
@@ -64,7 +64,7 @@ enabling a supported installation method for environments that utilize Flatcar.
 
 - Flatcar Container Linux installed on your machine. [(Flatcar Installation guide)](https://www.flatcar.org/docs/latest/installing/)
 - Systemd extensions (sysexts) enabled on Flatcar Container Linux.
-[(Enable Sysext in Flatcar)](https://www.flatcar.org/docs/latest/provisioning/sysext/)
+  [(Enable Sysext in Flatcar)](https://www.flatcar.org/docs/latest/provisioning/sysext/)
 - `curl` or `wget` for downloading files.
 - `tar` for extracting the CRI-O binaries.
 - `sed` for editing files in-place.
@@ -79,8 +79,7 @@ To install CRI-O on Flatcar Container Linux with sysexts, follow these steps:
 
 - Step 1: Download the installation script:
 
-  Sample extension script for installing CRI-O using sysext is [here](
-  https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh).
+  Sample extension script for installing CRI-O using sysext is [here](https://github.com/flatcar/sysext-bakery/blob/main/create_crio_sysext.sh).
 
   - Using curl:
 
@@ -109,7 +108,7 @@ chmod +x create_crio_sysext.sh
   Execute the script with the required arguments:
 
   - The version of CRI-O you wish to install. [(Find a specific version of
-  CRI-O here)](https://github.com/cri-o/cri-o/releases)
+    CRI-O here)](https://github.com/cri-o/cri-o/releases)
   - The name you wish to give to the sysext image.
   - Optionally, set the `ARCH` environment variable if you need a specific architecture.
 
@@ -124,11 +123,12 @@ chmod +x create_crio_sysext.sh
   ```
 
 - Step 3: Deploy the system extension:
+
   - Once the script completes, you will have a `.raw` sysext image file named as
-  per your `SYSEXTNAME` argument.
+    per your `SYSEXTNAME` argument.
   - To deploy the system extension, move the `.raw` file to the
-  `/var/lib/extensions` directory on your Flatcar Container Linux system and
-  enable it with the `systemctl` command.
+    `/var/lib/extensions` directory on your Flatcar Container Linux system and
+    enable it with the `systemctl` command.
 
   ```bash
   sudo mv SYSEXTNAME.raw /var/lib/extensions/
@@ -137,6 +137,7 @@ chmod +x create_crio_sysext.sh
   ```
 
 - Step 4: Verify the installation:
+
   - Verify that the CRI-O service is running correctly.
 
     ```bash
@@ -144,16 +145,16 @@ chmod +x create_crio_sysext.sh
     ```
 
   - Ensure that the CRI-O binaries are correctly placed and that the system
-  recognizes the new systemd sysext image.
+    recognizes the new systemd sysext image.
 
 ### Additional Notes
 
 - The script will create a temporary directory for its operations, which
-will be cleaned up after the sysext image is created.
+  will be cleaned up after the sysext image is created.
 
 - All files within the sysext image will be owned by root.The guide assumes
-the default architecture is `x86-64`. For ARM64 systems, pass `ARCH=arm64`
-as an environment variable when running the script.
+  the default architecture is `x86-64`. For ARM64 systems, pass `ARCH=arm64`
+  as an environment variable when running the script.
 
 ## Build and install CRI-O from source
 
@@ -363,7 +364,7 @@ sudo make install
 An [Ansible Role](https://github.com/alvistack/ansible-role-cri_o) is also
 available to automate the above steps:
 
-``` bash
+```bash
 sudo su -
 mkdir -p ~/.ansible/roles
 cd ~/.ansible/roles
@@ -393,6 +394,7 @@ make BUILDTAGS='seccomp apparmor'
 which uses the following buildtags.
 
 <!-- markdownlint-disable MD013 -->
+
 | Build Tag                    | Feature                                     | Dependency |
 | ---------------------------- | ------------------------------------------- | ---------- |
 | containers_image_openpgp     | use native golang pgp instead of cgo        |            |
@@ -400,12 +402,13 @@ which uses the following buildtags.
 
 `CRI-O` also uses [containers/storage](https://github.com/containers/storage) for managing container storage.
 
-| Build Tag                        | Feature                                         | Dependency   |
-| -------------------------------- | ----------------------------------------------- | ------------ |
-| exclude_graphdriver_btrfs        | exclude btrfs as a storage option               |              |
-| btrfs_noversion                  | for building btrfs version < 3.16.1             | btrfs        |
-| exclude_graphdriver_overlay      | exclude overlay as a storage option             |              |
-| ostree                           | build storage using ostree                      | ostree       |
+| Build Tag                   | Feature                             | Dependency |
+| --------------------------- | ----------------------------------- | ---------- |
+| exclude_graphdriver_btrfs   | exclude btrfs as a storage option   |            |
+| btrfs_noversion             | for building btrfs version < 3.16.1 | btrfs      |
+| exclude_graphdriver_overlay | exclude overlay as a storage option |            |
+| ostree                      | build storage using ostree          | ostree     |
+
 <!-- markdownlint-enable MD013 -->
 
 ### Static builds
@@ -496,9 +499,10 @@ sudo make install.config
 ### Validate registries in registries.conf
 
 Edit `/etc/containers/registries.conf` and verify that the registries option has
-valid values in it.  For example:
+valid values in it. For example:
 
 <!-- markdownlint-disable MD013 -->
+
 ```conf
 [registries.search]
 registries = ['registry.access.redhat.com', 'registry.fedoraproject.org', 'quay.io', 'docker.io']
@@ -509,6 +513,7 @@ registries = []
 [registries.block]
 registries = []
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 For more information about this file see [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md).
@@ -568,7 +573,7 @@ sudo make install.systemd
 
 And let systemd take care of running CRI-O:
 
-``` bash
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable crio
 sudo systemctl start crio
@@ -584,6 +589,7 @@ sudo systemctl start crio
 ## Updating CRI-O
 
 <!-- markdownlint-disable MD024 -->
+
 ### openSUSE
 
 ```shell

@@ -8,7 +8,7 @@ As a rule of thumb, code should be tested thoroughly with unit tests.
 Integration tests on the other hand are meant to test a specific feature end
 to end.
 
-Integration tests are written in *bash* using the
+Integration tests are written in _bash_ using the
 [bats](https://github.com/bats-core/bats-core) framework.
 
 ## Running integration tests

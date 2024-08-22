@@ -1,9 +1,11 @@
 <!-- markdownlint-disable-next-line MD041 -->
+
 ![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 
 # CRI-O - OCI-based implementation of Kubernetes Container Runtime Interface
 
 <!-- markdownlint-disable-next-line MD042 -->
+
 [![Stable Status](https://img.shields.io/badge/status-stable-brightgreen.svg)](#)
 [![codecov](https://codecov.io/gh/cri-o/cri-o/branch/main/graph/badge.svg)](https://codecov.io/gh/cri-o/cri-o)
 [![Packages](https://img.shields.io/badge/deb%2frpm-packages-blue.svg)](https://github.com/cri-o/packaging)
@@ -19,6 +21,7 @@
 <a href="https://actuated.dev/"><img alt="Arm CI sponsored by Actuated" src="https://docs.actuated.dev/images/actuated-badge.png" height="20px"></img></a>
 
 <!-- toc -->
+
 - [Compatibility matrix: CRI-O ⬄ Kubernetes](#compatibility-matrix-cri-o--kubernetes)
 - [What is the scope of this project?](#what-is-the-scope-of-this-project)
 - [What is not in the scope of this project?](#what-is-not-in-the-scope-of-this-project)
@@ -68,10 +71,12 @@ For more information visit the [Kubernetes Version Skew
 Policy](https://kubernetes.io/releases/version-skew-policy/).
 
 <!-- markdownlint-disable MD013 -->
+
 | CRI-O                           | Kubernetes                      | Maintenance status                                                    |
 | ------------------------------- | ------------------------------- | --------------------------------------------------------------------- |
 | `main` branch                   | `master` branch                 | Features from the main Kubernetes repository are actively implemented |
 | `release-1.x` branch (`v1.x.y`) | `release-1.x` branch (`v1.x.z`) | Maintenance is manual, only bugfixes will be backported.              |
+
 <!-- markdownlint-enable MD013 -->
 
 The release notes for CRI-O are hand-crafted and can be continuously retrieved
@@ -151,13 +156,16 @@ Examples of commandline tools to interact with CRI-O
 and [Podman](https://github.com/containers/podman).
 
 ## Configuration
+
 <!-- markdownlint-disable MD013 -->
+
 | File                                                                                                     | Description                           |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------- |
 | [crio.conf(5)](/docs/crio.conf.5.md)                                                                     | CRI-O Configuration file              |
 | [policy.json(5)](https://github.com/containers/image/blob/main/docs/containers-policy.json.5.md)         | Signature Verification Policy File(s) |
 | [registries.conf(5)](https://github.com/containers/image/blob/main/docs/containers-registries.conf.5.md) | Registries Configuration file         |
 | [storage.conf(5)](https://github.com/containers/storage/blob/main/docs/containers-storage.conf.5.md)     | Storage Configuration file            |
+
 <!-- markdownlint-enable MD013 -->
 
 ## Security
@@ -242,6 +250,7 @@ $ sudo curl -v --unix-socket /var/run/crio/crio.sock http://localhost/info | jq
 The following API entry points are currently supported:
 
 <!-- markdownlint-disable MD013 -->
+
 | Path              | Content-Type       | Description                                                                        |
 | ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
 | `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
@@ -249,6 +258,7 @@ The following API entry points are currently supported:
 | `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
 | `/pause/:id`      | `application/json` | Pause a running container.                                                         |
 | `/unpause/:id`    | `application/json` | Unpause a paused container.                                                        |
+
 <!-- markdownlint-enable MD013 -->
 
 The subcommand `crio status` can be used to access the API with a dedicated command

@@ -3,9 +3,10 @@
   set_fact:
     supports_python3: true
     cacheable: true
-  when: (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int >= 8) or
-        (ansible_distribution == 'CentOS' and ansible_distribution_major_version|int >= 8) or
-        (ansible_distribution == 'Fedora' and ansible_distribution_major_version|int >= 30)
+  when:
+    (ansible_distribution == 'RedHat' and ansible_distribution_major_version|int >= 8) or
+    (ansible_distribution == 'CentOS' and ansible_distribution_major_version|int >= 8) or
+    (ansible_distribution == 'Fedora' and ansible_distribution_major_version|int >= 30)
 
 - name: Make sure we have all required packages
   become: yes
@@ -100,13 +101,13 @@
     name: "{{ item }}"
     state: present
   with_items:
-   - python-boto
+    - python-boto
   when: (supports_python3 is not defined or not supports_python3) and ansible_distribution in ['RedHat', 'CentOS']
 
 - name: Update all packages
   become: yes
   package:
-    name: '*'
+    name: "*"
     state: latest
   when: supports_python3 is not defined or not supports_python3
 

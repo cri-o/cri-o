@@ -14,7 +14,7 @@ results may vary.
 
 This section will walk you through installing the following components:
 
-* crictl - The CRI client for testing.
+- crictl - The CRI client for testing.
 
 ### Get crictl
 
@@ -112,7 +112,7 @@ while capturing the container ID:
 CONTAINER_ID=$(sudo crictl create $POD_ID test/testdata/container_redis.json test/testdata/sandbox_config.json)
 ```
 
-The `crictl create` command  will take a few seconds to return because the Redis
+The `crictl create` command will take a few seconds to return because the Redis
 container needs to be pulled.
 
 Start the Redis container:
@@ -147,9 +147,11 @@ Info: # Redacted
 Fetch the Pod IP (can also be obtained via the `inspectp` output above):
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 POD_IP=$(sudo crictl inspectp --output go-template --template '{{.status.network.ip}}' $POD_ID)
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 Verify the Redis server is responding to `MONITOR` commands:

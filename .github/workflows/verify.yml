@@ -10,7 +10,7 @@ on:
       - update-nixpkgs-*
   pull_request:
 env:
-  GO_VERSION: '1.23'
+  GO_VERSION: "1.23"
   GOLANGCI_LINT_VERSION: v1.60.1
 permissions:
   contents: read
@@ -18,8 +18,8 @@ permissions:
 jobs:
   lint:
     permissions:
-      contents: read  # for actions/checkout to fetch code
-      pull-requests: read  # for golangci/golangci-lint-action to fetch pull requests
+      contents: read # for actions/checkout to fetch code
+      pull-requests: read # for golangci/golangci-lint-action to fetch pull requests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -115,3 +115,12 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - run: make verify-mdtoc
+
+  prettier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: creyD/prettier_action@31355f8eef017f8aeba2e0bc09d8502b13dbbad1 # v4.3
+        with:
+          dry: true
+          prettier_options: --write .

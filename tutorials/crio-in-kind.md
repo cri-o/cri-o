@@ -17,6 +17,7 @@ We need `kind` sources to build the
 [`base image`](https://kind.sigs.k8s.io/docs/design/base-image/):
 
 <!-- markdownlint-disable MD013 -->
+
 ```sh
 $ git clone git@github.com:kubernetes-sigs/kind.git
 $ cd kind/images/base
@@ -25,6 +26,7 @@ $ make quick
 docker buildx build  --load --progress=auto -t gcr.io/k8s-staging-kind/base:v20240508-19df3db3 --pull --build-arg GO_VERSION=1.21.6  .
 ### ... some output here
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 The image `gcr.io/k8s-staging-kind/base:v20240508-19df3db3` is our
@@ -37,12 +39,14 @@ We'll use it for
 Before start building `node image`, we need kubernetes sources at `$GOPATH`.
 
 <!-- markdownlint-disable MD013 -->
+
 ```sh
 $ mkdir -p "$GOPATH"/src/k8s.io/kubernetes
 $ K8S_VERSION=v1.30.0
 $ git clone --depth 1 --branch ${K8S_VERSION} https://github.com/kubernetes/kubernetes.git "$GOPATH"/src/k8s.io/kubernetes
 # some output
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 Now let's build the `node image`:
@@ -85,6 +89,7 @@ Image "kindest/node:latest" build completed.
 Now let's build our image with CRI-O on top of `kindest/node:latest`:
 
 <!-- markdownlint-disable MD013 -->
+
 ```dockerfile
 FROM kindest/node:latest
 
@@ -105,9 +110,11 @@ RUN echo "Installing Packages ..." \
     && systemctl disable containerd \
     && systemctl enable crio
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 <!-- markdownlint-disable MD013 -->
+
 Next let's build image with
 [`prerelease:v1.30`](https://github.com/cri-o/packaging/blob/main/README.md#prereleases) CRI-O version:
 
@@ -116,6 +123,7 @@ $ CRIO_VERSION=v1.30
 $ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
 # some output
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ---
@@ -125,6 +133,7 @@ $ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VER
 In case you're using `buildx` the error like below might happen:
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 $ docker build --build-arg CRIO_VERSION=$CRIO_VERSION -t kindnode/crio:$CRIO_VERSION .
 [+] Building 1.4s (2/2) FINISHED                                           docker-container:kind-builder
@@ -143,6 +152,7 @@ Dockerfile:1
 --------------------
 ERROR: failed to solve: kindest/node:latest: failed to resolve source metadata for docker.io/kindest/node:latest: docker.io/kindest/node:latest: not found
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 Check if you're using `buildx`:
@@ -167,22 +177,22 @@ With the built `node image,` we can create the kind cluster:
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
-- role: control-plane
-  kubeadmConfigPatches:
-  - |
-    kind: InitConfiguration
-    nodeRegistration:
-      criSocket: unix:///var/run/crio/crio.sock
-  - |
-    kind: JoinConfiguration
-    nodeRegistration:
-      criSocket: unix:///var/run/crio/crio.sock
-- role: worker
-  kubeadmConfigPatches:
-  - |
-    kind: JoinConfiguration
-    nodeRegistration:
-      criSocket: unix:///var/run/crio/crio.sock
+  - role: control-plane
+    kubeadmConfigPatches:
+      - |
+        kind: InitConfiguration
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
+  - role: worker
+    kubeadmConfigPatches:
+      - |
+        kind: JoinConfiguration
+        nodeRegistration:
+          criSocket: unix:///var/run/crio/crio.sock
 ```
 
 ## Create kind cluster
@@ -190,6 +200,7 @@ nodes:
 Let's create a cluster:
 
 <!-- markdownlint-disable MD013 -->
+
 ```sh
 $ kind create cluster --image kindnode/crio:$CRIO_VERSION --config ./kind-crio.yaml
 Creating cluster "kind" ...
@@ -207,6 +218,7 @@ kubectl cluster-info --context kind-kind
 
 Have a question, bug, or feature request? Let us know! https://kind.sigs.k8s.io/#community 🙂
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 ## Deploy example workload
@@ -228,9 +240,9 @@ metadata:
     service: httpbin
 spec:
   ports:
-  - name: http
-    port: 8000
-    targetPort: 8080
+    - name: http
+      port: 8000
+      targetPort: 8080
   selector:
     app: httpbin
 ---
@@ -252,23 +264,23 @@ spec:
     spec:
       serviceAccountName: httpbin
       containers:
-      - image: docker.io/kong/httpbin
-        imagePullPolicy: IfNotPresent
-        name: httpbin
-        # Same as found in Dockerfile's CMD but using an unprivileged port
-        command:
-        - gunicorn
-        - -b
-        - 0.0.0.0:8080
-        - httpbin:app
-        - -k
-        - gevent
-        env:
-        # Tells pipenv to use a writable directory instead of $HOME
-        - name: WORKON_HOME
-          value: /tmp
-        ports:
-        - containerPort: 8080
+        - image: docker.io/kong/httpbin
+          imagePullPolicy: IfNotPresent
+          name: httpbin
+          # Same as found in Dockerfile's CMD but using an unprivileged port
+          command:
+            - gunicorn
+            - -b
+            - 0.0.0.0:8080
+            - httpbin:app
+            - -k
+            - gevent
+          env:
+            # Tells pipenv to use a writable directory instead of $HOME
+            - name: WORKON_HOME
+              value: /tmp
+          ports:
+            - containerPort: 8080
 ```
 
 Use `port-forward`:
