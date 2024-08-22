@@ -401,11 +401,11 @@ test-binaries: test/copyimg/copyimg test/checkseccomp/checkseccomp test/checkcri
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)
 
-docs/%.5: docs/%.5.md  ${GO_MD2MAN}
+docs/%.5: docs/%.5.md ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 
-docs/%.8: docs/%.8.md  ${GO_MD2MAN}
+docs/%.8: docs/%.8.md ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
 		(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@)
 

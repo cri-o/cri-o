@@ -70,5 +70,5 @@
     - name: Edit Kata Containers config to enable debug log level
       replace:
         path: "/opt/kata/share/defaults/kata-containers/configuration.toml"
-        regexp: '^#enable_debug = true'
-        replace: 'enable_debug = true'
+        regexp: "^#enable_debug = true"
+        replace: "enable_debug = true"

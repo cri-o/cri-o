@@ -16,23 +16,26 @@ and e2e tests are run against it.
 ## Usage
 
 <!-- markdownlint-disable MD013 -->
+
 ```shell
 ./create-ignition-config.sh -d CRIO_DIR -i IGNITION_OUT_DIR -b GCS_BUCKET_NAME [ -s GCS_SA_PATH ] [ -e EXTRA_CONFIG_PATH ] [ -h ]
 ```
+
 <!-- markdownlint-enable MD013 -->
 
 1. Required options:
 
-    a. `-d CRIO_DIR`: path to cri-o source
+   a. `-d CRIO_DIR`: path to cri-o source
 
-    b. `-i IGNITION_OUT_DIR`: output directory for generated ignition config
+   b. `-i IGNITION_OUT_DIR`: output directory for generated ignition config
 
-    c. `-b GCS_BUCKET_NAME`: valid GCS bucket name with upload permissions and
-    [public read access set up](https://cloud.google.com/storage/docs/access-control/making-data-public)
+   c. `-b GCS_BUCKET_NAME`: valid GCS bucket name with upload permissions and
+   [public read access set up](https://cloud.google.com/storage/docs/access-control/making-data-public)
+
 2. Optional flags:
 
-    a. `-s GCS_SA_PATH`: (optional) path to GCP service account file,
-    if unused `gcloud` command should have auth correctly setup.
+   a. `-s GCS_SA_PATH`: (optional) path to GCP service account file,
+   if unused `gcloud` command should have auth correctly setup.
 
-    b. `-e EXTRA_CONFIG_PATH`: (optional) path to directory containing
-    additional set of cri-o config files.
+   b. `-e EXTRA_CONFIG_PATH`: (optional) path to directory containing
+   additional set of cri-o config files.

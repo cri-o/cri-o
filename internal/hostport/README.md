@@ -1,7 +1,6 @@
-<!-- markdownlint-disable-next-line MD041 -->
-![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
-
 # Host Port Manager
+
+![CRI-O logo](https://github.com/cri-o/cri-o/blob/main/logo/crio-logo.svg?raw=true)
 
 The Host Port Managers maps ports from the Host to the specified Container Port.
 It can also specify the Host IP that should be mapped to the container IP.

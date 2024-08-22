@@ -57,8 +57,8 @@
 - name: set RestartPolicy in systemd unit appropriate for tests
   lineinfile:
     path: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/contrib/systemd/crio.service"
-    regexp: '^Restart='
-    line: 'Restart=no'
+    regexp: "^Restart="
+    line: "Restart=no"
 
 - name: install cri-o
   make:

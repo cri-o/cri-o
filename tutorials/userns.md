@@ -78,7 +78,7 @@ kind: Pod
 metadata:
   name: mypod
   annotations:
-      io.kubernetes.cri-o.userns-mode: "auto"
+    io.kubernetes.cri-o.userns-mode: "auto"
 ```
 
 In this case, upon pod creation, the pod will have a user namespace automatically

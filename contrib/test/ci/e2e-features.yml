@@ -1,5 +1,4 @@
 ---
-
 - name: include base e2e setup
   include_tasks: "e2e-base.yml"
 
@@ -11,16 +10,16 @@
       - "[Serial]"
   set_fact:
     e2e_shell_cmd: >
-        KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y
-            "{{ ansible_env.GOPATH }}"/bin/kubetest
-            --provider=local
-            --test
-            --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
-                        --ginkgo.noColor
-                        --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:(Seccomp|ScopeSelectors|PodPriority|Ingress|ComprehensiveNamespaceDraining|Networking-IPv4|TokenRequestProjection)\]
-                        --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
-                        --report-dir={{ artifacts }}"
-            &> {{ artifacts }}/e2e.log
+      KUBE_CONTAINER_RUNTIME="remote" GINKGO_PARALLEL_NODES=6 GINKGO_PARALLEL=y
+          "{{ ansible_env.GOPATH }}"/bin/kubetest
+          --provider=local
+          --test
+          --test_args="-host=https://{{ ansible_default_ipv4.address }}:6443
+                      --ginkgo.noColor
+                      --ginkgo.focus=\[NodeFeature:.*\]|\[Feature:(Seccomp|ScopeSelectors|PodPriority|Ingress|ComprehensiveNamespaceDraining|Networking-IPv4|TokenRequestProjection)\]
+                      --ginkgo.skip={{ skip_tests | join('|') | replace(' ', '\\s') | regex_replace('([][)(])', '\\\\\1') }}
+                      --report-dir={{ artifacts }}"
+          &> {{ artifacts }}/e2e.log
   # Fix vim syntax highlighting: "
 
 - block:
@@ -28,7 +27,7 @@
       shell: "{{ e2e_shell_cmd | regex_replace('\\s+', ' ') }}"
       args:
         chdir: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes"
-      async: '{{ 60 * 60 * 4 }}'  # seconds
+      async: "{{ 60 * 60 * 4 }}" # seconds
       poll: 60
 
 - name: stop customcluster

@@ -1,5 +1,4 @@
 ---
-
 # When False, disable SELinux on the system during specific tests
 integration_selinux_enabled: True
 e2e_selinux_enabled: False
@@ -10,33 +9,33 @@ build_runc: True
 build_crun: False
 build_kata: False
 cgroupv2: False
-use_conmonrs: '{{ USE_CONMONRS | default(False) | bool }}'
-evented_pleg_fg: '{{ EVENTED_PLEG | default(False) | bool }}'
+use_conmonrs: "{{ USE_CONMONRS | default(False) | bool }}"
+evented_pleg_fg: "{{ EVENTED_PLEG | default(False) | bool }}"
 
 critest_mirror_repo: quay.io/crio
 cri_tools_git_version: master
 
 # For results.yml Paths use rsync 'source' conventions
-artifacts: "/tmp/artifacts"  # Base-directory for collection
+artifacts: "/tmp/artifacts" # Base-directory for collection
 crio_integration_filepath: "{{ artifacts }}/testout.txt"
 crio_integration_userns_filepath: "{{ artifacts }}/testout_userns.txt"
 crio_node_e2e_filepath: "{{ artifacts }}/junit_01.xml"
 result_dest_basedir: '{{ lookup("env","WORKSPACE") |
-                         default(playbook_dir, True) }}/artifacts'
+  default(playbook_dir, True) }}/artifacts'
 # Environment variables to set when executing e2e tests
 e2e_test_env:
-    KUBECONFIG: /var/run/kubernetes/admin.kubeconfig
+  KUBECONFIG: /var/run/kubernetes/admin.kubeconfig
 
 # Environment variables to set when executing integration tests
 int_test_env:
-    CGROUP_MANAGER: "systemd"
-    STORAGE_OPTIONS: >
-        --storage-driver=overlay
+  CGROUP_MANAGER: "systemd"
+  STORAGE_OPTIONS: >
+    --storage-driver=overlay
 
 # Environment variables to set when executing integration tests with crun (mixed with int_test_env)
 crun_test_env:
-    CONTAINER_DEFAULT_RUNTIME: "crun"
-    CONTAINER_RUNTIMES: "crun::/run/crun:oci"
+  CONTAINER_DEFAULT_RUNTIME: "crun"
+  CONTAINER_RUNTIMES: "crun::/run/crun:oci"
 
 # for ssh ID generation
 ssh_user: "{{ lookup('env','USER') }}"
@@ -49,23 +48,23 @@ kata_skip_files:
   - "apparmor.bats"
   - "cdi.bats"
   - "checkpoint.bats"
-  - "conmonrs.bats"     # no use of conmon in runtimeVM implementation
+  - "conmonrs.bats" # no use of conmon in runtimeVM implementation
   - "cpu_load_balancing.bats"
   - "critest.bats"
   - "ctr_pause_unpause.bats"
-  - "ctr_seccomp.bats"  # see https://github.com/kata-containers/tests/issues/4587
+  - "ctr_seccomp.bats" # see https://github.com/kata-containers/tests/issues/4587
   - "ctr_userns.bats"
-  - "drop_infra.bats"   # infra ctr is not dropped on purpose with kata
+  - "drop_infra.bats" # infra ctr is not dropped on purpose with kata
   - "infra_ctr_cpuset.bats"
-  - "imagefsinfo.bats"  # image and container filesystems is not in kata at the moment
+  - "imagefsinfo.bats" # image and container filesystems is not in kata at the moment
   - "inspect.bats"
   - "metrics.bats"
   - "network_ping.bats"
   - "nri.bats"
   - "policy.bats"
-  - "restore.bats"      # restore operations are failing with Kata
+  - "restore.bats" # restore operations are failing with Kata
   - "seccomp_notifier.bats"
-  - "selinux.bats"      # SELinux disabled with kata for now (see https://github.com/kata-containers/tests/issues/4248)
+  - "selinux.bats" # SELinux disabled with kata for now (see https://github.com/kata-containers/tests/issues/4248)
   - "shm_size.bats"
   - "timeout.bats"
   - "umask_annotation.bats"
@@ -75,19 +74,20 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-    CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
-    CONTAINER_RUNTIME: "containerd-shim-kata-v2"
-    CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
-    RUNTIME_NAME: "containerd-shim-kata-v2"
-    RUNTIME_ROOT: "/run/vc"
-    RUNTIME_TYPE: "vm"
-    TESTFLAGS: "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
-      | map('basename') | difference(kata_skip_files) | join(' ') }}"
-    JOBS: "1"  # TODO: add support to parallelization in kata (causes failures in the integration tests)
-    PRIVILEGED_WITHOUT_HOST_DEVICES: true
-    RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
-    PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
-    CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
+  CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
+  CONTAINER_RUNTIME: "containerd-shim-kata-v2"
+  CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
+  RUNTIME_NAME: "containerd-shim-kata-v2"
+  RUNTIME_ROOT: "/run/vc"
+  RUNTIME_TYPE: "vm"
+  TESTFLAGS:
+    "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
+    | map('basename') | difference(kata_skip_files) | join(' ') }}"
+  JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
+  PRIVILEGED_WITHOUT_HOST_DEVICES: true
+  RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
+  PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
+  CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
 
 kata_skip_cgroups_tests:
   - 'test "pids limit"'
@@ -104,9 +104,9 @@ kata_skip_crio_check_tests:
   - 'test "storage directory check should wipe everything on repair errors"'
 kata_skip_crio_wipe_tests:
   - 'test "clear neither when remove persist"'
-  - "test \"don't clear containers on a forced restart of crio\""
-  - "test \"don't clear containers if clean shutdown supported file not present\""
-  - "test \"internal_wipe don't clear containers on a forced restart of crio\""
+  - 'test "don''t clear containers on a forced restart of crio"'
+  - 'test "don''t clear containers if clean shutdown supported file not present"'
+  - 'test "internal_wipe don''t clear containers on a forced restart of crio"'
   - 'test "internal_wipe eventually cleans network on forced restart of crio if network is slow to come up"'
   - 'test "recover from badly corrupted storage directory"'
 kata_skip_ctr_tests:

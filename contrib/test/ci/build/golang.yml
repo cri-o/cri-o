@@ -1,5 +1,4 @@
 ---
-
 - name: ensure Golang dir is empty first
   file:
     path: /usr/local/go
@@ -38,9 +37,9 @@
   lineinfile:
     dest: "{{ ansible_user_dir }}/.profile"
     line: |
-        # Added by Ansible from golang.yml
-        PATH={{ ansible_env.PATH }}:{{ ansible_env.GOPATH }}/bin:/usr/local/go/bin
-    regexp: '^PATH='
+      # Added by Ansible from golang.yml
+      PATH={{ ansible_env.PATH }}:{{ ansible_env.GOPATH }}/bin:/usr/local/go/bin
+    regexp: "^PATH="
     state: present
 
 - name: set up directories

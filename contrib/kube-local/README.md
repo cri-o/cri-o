@@ -1,6 +1,7 @@
 # Welcome to kube-local documentation page
 
 <!-- toc -->
+
 - [About](#about)
 - [Demos](#demos)
   - [Demo 1 - Auto-install in quiet mode and execute kubectl commands](#demo-1---auto-install-in-quiet-mode-and-execute-kubectl-commands)
@@ -29,7 +30,7 @@
   - [Container Orchestration](#container-orchestration)
   - [Container Network](#container-network)
   - [Additional info for the cluster](#additional-info-for-the-cluster)
-<!-- /toc -->
+  <!-- /toc -->
 
 ## About
 

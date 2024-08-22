@@ -1,5 +1,4 @@
 ---
-
 - name: Make testing output verbose so it can be converted to xunit
   lineinfile:
     dest: "{{ ansible_env.GOPATH }}/src/k8s.io/kubernetes/hack/make-rules/test.sh"
@@ -43,14 +42,14 @@
   block:
     - name: configure integration test suite for kata
       set_fact:
-        int_test_env: '{{ int_test_env | combine(kata_int_test_env) }}'
+        int_test_env: "{{ int_test_env | combine(kata_int_test_env) }}"
         userns_int_test_skip: True
 
     - name: skip tests not working in kata
       lineinfile:
         dest: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/{{ item.0 }}"
         insertafter: "{{ item.1 }}"
-        line: "skip \"{{ item.1  | regex_replace('\"', \"'\") }} not working in kata\""
+        line: 'skip "{{ item.1  | regex_replace(''"'', "''") }} not working in kata"'
         state: present
       loop: "{{ ['cgroups.bats'] | product(kata_skip_cgroups_tests) \
         + ['command.bats'] | product(kata_skip_command_tests) \
@@ -80,7 +79,7 @@
         executable: /bin/bash
         chdir: "{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o"
       vars:
-        ansible_async_dir: '/tmp/artifacts/async'
-      environment: '{{ int_test_env }}'  # from vars.yml and main.yml
-      async: '{{ int_test_timeout | default(90 * 60) }}'  # seconds
+        ansible_async_dir: "/tmp/artifacts/async"
+      environment: "{{ int_test_env }}" # from vars.yml and main.yml
+      async: "{{ int_test_timeout | default(90 * 60) }}" # seconds
       poll: 30

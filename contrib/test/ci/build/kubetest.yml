@@ -1,5 +1,4 @@
 ---
-
 - name: clone test-infra source repo
   git:
     repo: "https://github.com/kubernetes/test-infra.git"

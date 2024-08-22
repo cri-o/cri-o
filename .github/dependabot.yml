@@ -1,32 +1,32 @@
 version: 2
 updates:
-- package-ecosystem: gomod
-  directory: "/"
-  schedule:
-    interval: daily
-  labels:
-    - "release-note-none"
-  open-pull-requests-limit: 10
-  groups:
-    kubernetes:
-      patterns:
-        - "k8s.io/*"
-        - "sigs.k8s.io/*"
-    gomod:
-      update-types:
-        - "major"
-        - "minor"
-        - "patch"
-- package-ecosystem: "github-actions"
-  directory: "/"
-  schedule:
-   interval: daily
-  open-pull-requests-limit: 10
-  labels:
-   - "release-note-none"
-  groups:
-    actions:
-      update-types:
-        - "major"
-        - "minor"
-        - "patch"
+  - package-ecosystem: gomod
+    directory: "/"
+    schedule:
+      interval: daily
+    labels:
+      - "release-note-none"
+    open-pull-requests-limit: 10
+    groups:
+      kubernetes:
+        patterns:
+          - "k8s.io/*"
+          - "sigs.k8s.io/*"
+      gomod:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: daily
+    open-pull-requests-limit: 10
+    labels:
+      - "release-note-none"
+    groups:
+      actions:
+        update-types:
+          - "major"
+          - "minor"
+          - "patch"

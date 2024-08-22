@@ -10,8 +10,8 @@ on:
       - nixpkgs
   pull_request:
 env:
-  GO_VERSION: '1.23'
-  NIX_VERSION: '2.24.3'
+  GO_VERSION: "1.23"
+  NIX_VERSION: "2.24.3"
 permissions:
   contents: read
 jobs:
@@ -120,7 +120,7 @@ jobs:
       - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
         with:
           name: cri-o-static
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
           pushFilter: cri-o
       - run: nix-build nix/default-${{ matrix.run.go-arch }}.nix
       - run: file result/bin/crio | grep ${{ matrix.run.os-arch }}

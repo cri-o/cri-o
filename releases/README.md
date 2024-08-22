@@ -1,4 +1,4 @@
-# `releases` ##
+# `releases`
 
 ```shell
 git tag vX.Y.Z <commit>
