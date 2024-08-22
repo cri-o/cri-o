@@ -11,7 +11,7 @@ on:
   pull_request:
 env:
   GO_VERSION: '1.23'
-  NIX_VERSION: '2.22.1'
+  NIX_VERSION: '2.24.3'
 permissions:
   contents: read
 jobs:
@@ -97,7 +97,20 @@ jobs:
       - run: |
           sudo -E make check-nri-bats-tests GOSUMDB=
 
-  build-static-amd64:
+  build-static:
+    strategy:
+      fail-fast: false
+      matrix:
+        run:
+          - go-arch: amd64
+            os-arch: x86-64
+          - go-arch: arm64
+            os-arch: aarch64
+          - go-arch: ppc64le
+            os-arch: PowerPC
+          - go-arch: s390x
+            os-arch: S/390
+    name: build static / ${{ matrix.run.go-arch }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -109,74 +122,11 @@ jobs:
           name: cri-o-static
           authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
           pushFilter: cri-o
-      - run: nix-build nix
-      - run: result/bin/crio version
+      - run: nix-build nix/default-${{ matrix.run.go-arch }}.nix
+      - run: file result/bin/crio | grep ${{ matrix.run.os-arch }}
       - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
         with:
-          name: build-static-amd64
-          path: |
-            result/bin/crio
-            result/bin/pinns
-
-  build-static-arm64:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
-      - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
-        with:
-          name: cri-o-static
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          pushFilter: cri-o
-      - run: nix-build nix/default-arm64.nix
-      - run: file result/bin/crio | grep aarch64
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: build-static-arm64
-          path: |
-            result/bin/crio
-            result/bin/pinns
-
-  build-static-ppc64le:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
-      - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
-        with:
-          name: cri-o-static
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          pushFilter: cri-o
-      - run: nix-build nix/default-ppc64le.nix
-      - run: file result/bin/crio | grep PowerPC
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: build-static-ppc64le
-          path: |
-            result/bin/crio
-            result/bin/pinns
-
-  build-static-s390x:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-      - uses: cachix/install-nix-action@ba0dd844c9180cbf77aa72a116d6fbc515d0e87b # v27
-        with:
-          install_url: https://releases.nixos.org/nix/nix-${{ env.NIX_VERSION }}/install
-      - uses: cachix/cachix-action@ad2ddac53f961de1989924296a1f236fcfbaa4fc # v15
-        with:
-          name: cri-o-static
-          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
-          pushFilter: cri-o
-      - run: nix-build nix/default-s390x.nix
-      - run: file result/bin/crio | grep S/390
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
-        with:
-          name: build-static-s390x
+          name: build-static-${{ matrix.run.go-arch }}
           path: |
             result/bin/crio
             result/bin/pinns
@@ -185,10 +135,7 @@ jobs:
     if: github.ref == 'refs/heads/main' || contains(github.ref, 'refs/heads/release') || contains(github.ref, 'refs/tags')
     runs-on: ubuntu-latest
     needs:
-      - build-static-amd64
-      - build-static-arm64
-      - build-static-ppc64le
-      - build-static-s390x
+      - build-static
     steps:
       - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
         with:

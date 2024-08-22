@@ -4,7 +4,7 @@ TRIMPATH ?= -trimpath
 GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
-NIX_IMAGE ?= nixos/nix:2.3.16
+NIX_IMAGE ?= nixos/nix:2.24.3
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -181,7 +181,6 @@ build-static:
 		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
 	mkdir -p bin
 	cp -r result/bin bin/static
-
 
 crio.conf: bin/crio
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
