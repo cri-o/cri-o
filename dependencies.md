@@ -1,15 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 21 Aug 2024 17:28:26 UTC for commit [dc4c5e4][0]._
+_Generated on Thu, 22 Aug 2024 10:53:16 UTC for commit [a268c3a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/dc4c5e43aa10d094d0c16ba699b31e3c22101545
+[0]: https://github.com/cri-o/cri-o/commit/a268c3a38cab88bfb32ed9b3431c5d58cd65fdf7
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240821155010-09a13da8ece6 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240821214856-3fd108b09a22 | true   | true             |
+| github.com/onsi/ginkgo/v2                              | v2.20.0                            | v2.20.1                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20240711033017-18e509b52bc8 | v0.0.0-20240821151609-f90d01438635 | true   | true             |
 
 ## All Dependencies
@@ -59,7 +60,7 @@ _Generated on Wed, 21 Aug 2024 17:28:26 UTC for commit [dc4c5e4][0]._
 | cloud.google.com/go/dataproc                                                            | v1.12.0                               |                                     | false  | true             |
 | cloud.google.com/go/dataproc/v2                                                         | v2.4.0                                | v2.6.0                              | false  | true             |
 | cloud.google.com/go/dataqna                                                             | v0.8.5                                | v0.9.0                              | false  | true             |
-| cloud.google.com/go/datastore                                                           | v1.15.0                               | v1.17.1                             | false  | true             |
+| cloud.google.com/go/datastore                                                           | v1.15.0                               | v1.18.0                             | false  | true             |
 | cloud.google.com/go/datastream                                                          | v1.10.4                               | v1.11.0                             | false  | true             |
 | cloud.google.com/go/deploy                                                              | v1.17.1                               | v1.22.0                             | false  | true             |
 | cloud.google.com/go/dialogflow                                                          | v1.49.0                               | v1.57.0                             | false  | true             |
@@ -494,7 +495,7 @@ _Generated on Wed, 21 Aug 2024 17:28:26 UTC for commit [dc4c5e4][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240821155010-09a13da8ece6  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240821214856-3fd108b09a22  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -517,7 +518,7 @@ _Generated on Wed, 21 Aug 2024 17:28:26 UTC for commit [dc4c5e4][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20240819180303-9b08fa52ca51  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20240821192522-4bf6e2f5a9a4  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -575,7 +576,7 @@ _Generated on Wed, 21 Aug 2024 17:28:26 UTC for commit [dc4c5e4][0]._
 | github.com/oklog/ulid                                                                   | v1.3.1                                |                                     | false  | true             |
 | github.com/oleiade/reflections                                                          | v1.0.1                                |                                     | false  | true             |
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                |                                     | false  | true             |
-| github.com/onsi/ginkgo/v2                                                               | v2.20.0                               |                                     | true   | true             |
+| github.com/onsi/ginkgo/v2                                                               | v2.20.0                               | v2.20.1                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.34.1                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.67.1                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
