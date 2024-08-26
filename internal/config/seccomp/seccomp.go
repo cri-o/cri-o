@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sync"
 
 	"github.com/containers/common/pkg/seccomp"
@@ -45,24 +46,8 @@ func DefaultProfile() *seccomp.Seccomp {
 		}
 
 		prof := seccomp.DefaultProfile()
-		// We know the default profile at compile time
-		// though a vendor change may update it.
-		// Panic on error and have CI catch errors on vendor bumps,
-		// to avoid combing through.
 		for _, remove := range removeSyscalls {
-			if prof.Syscalls[remove.ParentStructIndex].Names[remove.Index] != remove.Name {
-				for i, name := range prof.Syscalls[remove.ParentStructIndex].Names {
-					if name == remove.Name {
-						_, file, _, _ := runtime.Caller(1)
-						logrus.Errorf("Change the Index for %q in %s to %d", remove.Name, file, i)
-						break
-					}
-				}
-				logrus.Fatalf(
-					"Default seccomp profile updated and syscall moved. Found unexpected syscall: %q",
-					prof.Syscalls[remove.ParentStructIndex].Names[remove.Index],
-				)
-			}
+			validateSyscallIndex(prof, remove.Name, remove.ParentStructIndex, remove.Index)
 			removeStringFromSlice(prof.Syscalls[remove.ParentStructIndex].Names, remove.Index)
 		}
 
@@ -128,6 +113,29 @@ func DefaultProfile() *seccomp.Seccomp {
 	})
 
 	return defaultProfile
+}
+
+// validateSyscallIndex checks if the syscall's index matches the default profile's index.
+// We know the default profile at compile time, though a vendor change may update it.
+// Panic on error and have CI catch errors on vendor bumps to avoid combing through.
+func validateSyscallIndex(prof *seccomp.Seccomp, name string, parentStructIndex, index int) {
+	if prof.Syscalls[parentStructIndex].Names[index] == name {
+		return
+	}
+
+	var msg string
+	i := slices.Index(prof.Syscalls[parentStructIndex].Names, name)
+	if i == -1 {
+		msg = fmt.Sprintf("Change the ParentStructIndex for %q", name)
+	} else {
+		msg = fmt.Sprintf("Change the Index for %q to %d", name, i)
+	}
+	logrus.Fatalf(
+		`The default internal seccomp policy has been changed, and CRI-O can't adjust some risky syscalls.
+You are likely seeing this error because "github.com/containers/common/pkg/seccomp" was updated.
+Please contact the developers or change "DefaultProfile()" in "internal/config/seccomp/seccomp.go"
+to match the updated policy as per the following hint: %s`, msg,
+	)
 }
 
 func removeStringFromSlice(s []string, i int) []string {
