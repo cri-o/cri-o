@@ -163,7 +163,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--additional-devices**="": Devices to add to the containers.
 
-**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation. (default: "/dev/fuse")
+**--allowed-devices**="": Devices a user is allowed to specify with the "io.kubernetes.cri-o.Devices" allowed annotation. (default: "/dev/fuse", "/dev/net/tun")
 
 **--apparmor-profile**="": Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation. (default: "crio-default")
 
