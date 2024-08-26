@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 26 Aug 2024 07:18:57 UTC for commit [ec40d96][0]._
+_Generated on Mon, 26 Aug 2024 14:37:45 UTC for commit [3e98339][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ec40d9694a17e02489b5fd73989d311d4949fb98
+[0]: https://github.com/cri-o/cri-o/commit/3e98339662f60fa8707a2f3bd98e8962914feaa3
 
 ## Outdated Dependencies
 
@@ -222,7 +222,7 @@ _Generated on Mon, 26 Aug 2024 07:18:57 UTC for commit [ec40d96][0]._
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.3                                |                                     | false  | true             |
-| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.7                              | false  | true             |
+| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.8                              | false  | true             |
 | github.com/andybalholm/brotli                                                           | v1.1.0                                |                                     | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be    |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                |                                     | false  | true             |
@@ -692,7 +692,7 @@ _Generated on Mon, 26 Aug 2024 07:18:57 UTC for commit [ec40d96][0]._
 | github.com/vishvananda/netns                                                            | v0.0.4                                |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.3-0.20240411085455-21202160c2ed | v0.40.2                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.107.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.108.0                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                |                                     | false  | true             |
