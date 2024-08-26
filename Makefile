@@ -433,6 +433,13 @@ verify-mdtoc: ${MDTOC}
 	git grep --name-only '<!-- toc -->' | grep -v Makefile | xargs ${MDTOC} -i -m=5
 	./hack/tree_status.sh
 
+prettier:
+	$(CONTAINER_RUNTIME) run -it -v ${PWD}:/w -w /w --entrypoint bash node:latest -c \
+		'npm install -g prettier && prettier -w .'
+
+verify-prettier: prettier
+	./hack/tree_status.sh
+
 install: install.bin install.man install.completions install.systemd install.config
 
 install.bin-nobuild:
@@ -546,4 +553,6 @@ metrics-exporter: bin/metrics-exporter
 	release \
 	tag-reconciler \
 	check-log-lines \
-	verify-dependencies
+	verify-dependencies \
+	verify-prettier \
+	prettier
