@@ -241,7 +241,7 @@ func main() {
 
 		if c.Bool("profile") {
 			profilePort := c.Int("profile-port")
-			profileEndpoint := fmt.Sprintf("localhost:%v", profilePort)
+			profileEndpoint := fmt.Sprintf("127.0.0.1:%d", profilePort)
 			go func() {
 				logrus.Debugf("Starting profiling server on %v", profileEndpoint)
 				if err := http.ListenAndServe(profileEndpoint, nil); err != nil {

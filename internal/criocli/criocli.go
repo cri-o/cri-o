@@ -808,7 +808,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:    "profile",
-			Usage:   "Enable pprof remote profiler on localhost:6060.",
+			Usage:   "Enable pprof remote profiler on 127.0.0.1:6060.",
 			EnvVars: []string{"CONTAINER_PROFILE"},
 		},
 		&cli.StringFlag{
