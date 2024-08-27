@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 27 Aug 2024 02:33:30 UTC for commit [c940a11][0]._
+_Generated on Tue, 27 Aug 2024 09:54:35 UTC for commit [44b7644][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c940a11495c28f0f1cfeeeb461c805796944c2af
+[0]: https://github.com/cri-o/cri-o/commit/44b7644ebe7decac3b4f40d5565d40507de75d76
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Tue, 27 Aug 2024 02:33:30 UTC for commit [c940a11][0]._
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                                            | v1.7.20                            | v1.7.21                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240823215101-6b0272d6bfa5 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240827072355-f24983b3cf6a | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.1                            | v1.20.2                            | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.2.1-beta.2                      | v1.3.0                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.53.0                            | v0.54.0                            | true   | true             |
@@ -329,7 +329,7 @@ _Generated on Tue, 27 Aug 2024 02:33:30 UTC for commit [c940a11][0]._
 | github.com/containers/ocicrypt                                                          | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.5                              | false  | true             |
 | github.com/containers/storage                                                           | v1.55.0                               |                                     | true   | true             |
-| github.com/coreos/go-iptables                                                           | v0.7.0                                |                                     | false  | true             |
+| github.com/coreos/go-iptables                                                           | v0.7.0                                | v0.8.0                              | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                   |                                     | false  | true             |
 | github.com/coreos/go-oidc/v3                                                            | v3.10.0                               | v3.11.0                             | false  | true             |
 | github.com/coreos/go-semver                                                             | v0.3.1                                |                                     | false  | true             |
@@ -457,7 +457,7 @@ _Generated on Tue, 27 Aug 2024 02:33:30 UTC for commit [c940a11][0]._
 | github.com/google/trillian                                                              | v1.6.0                                |                                     | false  | true             |
 | github.com/google/uuid                                                                  | v1.6.0                                |                                     | true   | true             |
 | github.com/google/wire                                                                  | v0.6.0                                |                                     | false  | true             |
-| github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                |                                     | false  | true             |
+| github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                | v0.3.3                              | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.12.3                               | v2.13.0                             | false  | true             |
 | github.com/googleapis/go-type-adapters                                                  | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/googleapis/google-cloud-go-testing                                           | v0.0.0-20200911160855-bcd43fbb19e8    | v0.0.0-20210719221736-1c9a4c676720  | false  | true             |
@@ -502,7 +502,7 @@ _Generated on Tue, 27 Aug 2024 02:33:30 UTC for commit [c940a11][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240823215101-6b0272d6bfa5  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240827072355-f24983b3cf6a  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
