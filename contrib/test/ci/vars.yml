@@ -134,11 +134,6 @@ kata_skip_ctr_tests:
   - 'test "ctr that fails to mount container storage as recursively read-only without private propagation"'
 kata_skip_devices_tests:
   - 'test "additional devices permissions"'
-  - 'test "annotation devices support"'
-  - 'test "annotation should override configured additional_devices"'
-  - 'test "annotation should not be processed if not allowed in allowed_devices"'
-  - 'test "annotation should configure multiple devices"'
-  - 'test "annotation should fail if one device is invalid"'
 kata_skip_image_tests:
   - 'test "container status when created by image list canonical reference"'
   - 'test "image pull with signature"'
@@ -160,15 +155,6 @@ kata_skip_pod_tests:
   - 'test "restart crio and still get pod status"'
   - 'test "systemd cgroup_parent correctly set"'
   - 'test "kubernetes pod terminationGracePeriod passthru"'
-  - 'test "disable crypto.fips_enabled when FIPS_DISABLE is set"'
-kata_skip_seccomp_oci_artifacts_tests:
-  - 'test "seccomp OCI artifact with pod annotation"'
-  - 'test "seccomp OCI artifact with container annotation"'
-  - 'test "seccomp OCI artifact with image annotation without suffix"'
-  - 'test "seccomp OCI artifact with image annotation for pod"'
-  - 'test "seccomp OCI artifact with image annotation for container"'
-  - 'test "seccomp OCI artifact with image annotation and profile set to unconfined"'
-  - 'test "seccomp OCI artifact with missing artifact"'
 
 runc_git_version: main
 # TODO: revert when https://github.com/containers/crun/issues/1514 is fixed
