@@ -231,6 +231,9 @@ jobs:
         run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
+      - name: spoof crun on arm64
+        if: ${{ matrix.run.arch == "arm64" }}
+        run: cp $(which runc) /usr/bin/crun
       - name: Run unit tests as root
         if: ${{ matrix.run.type == 'root' }}
         run: |
