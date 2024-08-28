@@ -3,6 +3,7 @@ package server
 import (
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -1069,18 +1070,24 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	if err != nil {
 		return nil, nil, err
 	}
+
+	imageVolumesPath, err := s.ensureImageVolumesPath(ctx, mounts)
+	if err != nil {
+		return nil, nil, fmt.Errorf("ensure image volumes path: %w", err)
+	}
+
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
 			return nil, nil, errors.New("mount.ContainerPath is empty")
 		}
 		if m.Image != nil && m.Image.Image != "" {
-			mountPoint, imageID, err := s.mountImage(ctx, m.Image.Image, mountLabel)
+			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m)
 			if err != nil {
 				return nil, nil, fmt.Errorf("mount image: %w", err)
 			}
-			m.Image.Image = imageID // Set the ID for container status later on
-			m.HostPath = mountPoint // Adjust the host path to use the mount point
+			volumes = append(volumes, *volume)
+			continue
 		}
 		if m.HostPath == "" {
 			return nil, nil, errors.New("mount.HostPath is empty")
@@ -1237,25 +1244,92 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	return volumes, ociMounts, nil
 }
 
-// mountImage mounts the provided imageRef using the mountLabel and returns the hostPath as well as imageID on success.
-func (s *Server) mountImage(ctx context.Context, imageRef, mountLabel string) (hostPath, imageID string, err error) {
-	log.Debugf(ctx, "Image ref to mount: %s", imageRef)
-	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: imageRef})
-	if err != nil {
-		return "", "", fmt.Errorf("get storage image status: %w", err)
+// mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
+func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount) (*oci.ContainerVolume, error) {
+	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
+		return nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
 
-	id := status.ID.IDStringForOutOfProcessConsumptionOnly()
-	log.Debugf(ctx, "Image ID to mount: %v", id)
+	log.Debugf(ctx, "Image ref to mount: %s", m.Image.Image)
+	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: m.Image.Image})
+	if err != nil {
+		return nil, fmt.Errorf("get storage image status: %w", err)
+	}
+
+	if status == nil {
+		// Should not happen because the kubelet ensures the image.
+		return nil, fmt.Errorf("image %q does not exist locally", m.Image.Image)
+	}
+
+	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
+	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
-	mountPoint, err := s.Store().MountImage(id, options, mountLabel)
+	mountPoint, err := s.Store().MountImage(imageID, options, "")
 	if err != nil {
-		return "", "", fmt.Errorf("mount storage: %w", err)
+		return nil, fmt.Errorf("mount storage: %w", err)
+	}
+	log.Infof(ctx, "Image mounted to: %s", mountPoint)
+
+	const overlay = "overlay"
+	specgen.AddMount(rspec.Mount{
+		Type:        overlay,
+		Source:      overlay,
+		Destination: m.ContainerPath,
+		Options: []string{
+			"lowerdir=" + mountPoint + ":" + imageVolumesPath,
+		},
+		UIDMappings: getOCIMappings(m.UidMappings),
+		GIDMappings: getOCIMappings(m.GidMappings),
+	})
+	log.Debugf(ctx, "Added overlay mount from %s to %s", mountPoint, imageVolumesPath)
+
+	return &oci.ContainerVolume{
+		ContainerPath:     m.ContainerPath,
+		HostPath:          mountPoint,
+		Readonly:          m.Readonly,
+		RecursiveReadOnly: m.RecursiveReadOnly,
+		Propagation:       m.Propagation,
+		SelinuxRelabel:    m.SelinuxRelabel,
+		Image:             &types.ImageSpec{Image: imageID},
+	}, nil
+}
+
+func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (string, error) {
+	// Check if we need to anything at all
+	noop := true
+	for _, m := range mounts {
+		if m.Image != nil && m.Image.Image != "" {
+			noop = false
+			break
+		}
 	}
 
-	log.Infof(ctx, "Image mounted to: %s", mountPoint)
-	return mountPoint, id, nil
+	if noop {
+		return "", nil
+	}
+
+	imageVolumesPath := filepath.Join(filepath.Dir(s.Config().ContainerExitsDir), "image-volumes")
+	log.Debugf(ctx, "Using image volumes path: %s", imageVolumesPath)
+
+	if err := os.MkdirAll(imageVolumesPath, 0o700); err != nil {
+		return "", fmt.Errorf("create image volumes path: %w", err)
+	}
+
+	f, err := os.Open(imageVolumesPath)
+	if err != nil {
+		return "", fmt.Errorf("open image volumes path %s: %w", imageVolumesPath, err)
+	}
+
+	_, readErr := f.ReadDir(1)
+	if readErr != nil && !errors.Is(readErr, io.EOF) {
+		return "", fmt.Errorf("unable to read dir names of image volumes path %s: %w", imageVolumesPath, err)
+	}
+	if readErr == nil {
+		return "", fmt.Errorf("image volumes path %s is not empty", imageVolumesPath)
+	}
+
+	return imageVolumesPath, nil
 }
 
 func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {

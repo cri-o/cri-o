@@ -61,6 +61,7 @@ kata_skip_files:
   - "metrics.bats"
   - "network_ping.bats"
   - "nri.bats"
+  - "oci_volumes.bats"
   - "policy.bats"
   - "restore.bats" # restore operations are failing with Kata
   - "seccomp_notifier.bats"

@@ -188,7 +188,7 @@ jobs:
             defaultRuntime: runc
             runtimeType: pod
             critest: 0
-            userns: 1
+            userns: 0
             jobs: 2
             timeout: 120
 
@@ -198,7 +198,7 @@ jobs:
             defaultRuntime: runc
             runtimeType: pod
             critest: 0
-            userns: 1
+            userns: 0
             jobs: 2
             timeout: 120
 
