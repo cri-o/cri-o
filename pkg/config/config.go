@@ -890,7 +890,7 @@ func DefaultConfig() (*Config, error) {
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
 		},
 		RuntimeConfig: RuntimeConfig{
-			AllowedDevices:     []string{"/dev/fuse"},
+			AllowedDevices:     []string{"/dev/fuse", "/dev/net/tun"},
 			DecryptionKeysPath: "/etc/crio/keys/",
 			DefaultRuntime:     defaultRuntime,
 			Runtimes: Runtimes{
