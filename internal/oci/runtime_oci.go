@@ -965,8 +965,9 @@ killContainer:
 		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
 			if !errors.Is(err, ErrNotFound) {
 				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
+			} else {
+				log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), err)
 			}
-			log.Debugf(ctx, "Error while killing container %s: %v", c.ID(), err)
 		}
 
 		if err := c.Living(); err != nil {
@@ -995,6 +996,9 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 	}
 
 	_, err := r.runtimeCmd("delete", "--force", c.ID())
+	if errors.Is(err, ErrNotFound) {
+		return nil
+	}
 	return err
 }
 
