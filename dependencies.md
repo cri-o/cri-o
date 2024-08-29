@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 29 Aug 2024 13:35:26 UTC for commit [509ef79][0]._
+_Generated on Thu, 29 Aug 2024 16:36:59 UTC for commit [a5e3268][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/509ef79343d6871c2a959e81ca5bf0006ed35110
+[0]: https://github.com/cri-o/cri-o/commit/a5e32683f4b6c439157a8cf82ec94a9dbe449d72
 
 ## Outdated Dependencies
 
@@ -444,7 +444,7 @@ _Generated on Thu, 29 Aug 2024 13:35:26 UTC for commit [509ef79][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240727154555-813a5fbdbec8    | v0.0.0-20240827171923-fa2c70bbbfe5  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240727154555-813a5fbdbec8    | v0.0.0-20240829160300-da1f7e9f2b25  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                | v0.1.8                              | false  | true             |
@@ -581,7 +581,7 @@ _Generated on Thu, 29 Aug 2024 13:35:26 UTC for commit [509ef79][0]._
 | github.com/olekukonko/tablewriter                                                       | v0.0.5                                |                                     | false  | true             |
 | github.com/onsi/ginkgo/v2                                                               | v2.20.1                               | v2.20.2                             | true   | true             |
 | github.com/onsi/gomega                                                                  | v1.34.1                               | v1.34.2                             | true   | true             |
-| github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.67.1                             | false  | true             |
+| github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.68.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
 | github.com/opencontainers/runc                                                          | v1.1.13                               |                                     | true   | true             |
@@ -758,7 +758,7 @@ _Generated on Thu, 29 Aug 2024 13:35:26 UTC for commit [509ef79][0]._
 | golang.org/x/oauth2                                                                     | v0.22.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                       | v0.8.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.24.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240828202201-a797f331ea97  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240829154258-f29ab539cc98  | false  | true             |
 | golang.org/x/term                                                                       | v0.23.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                       | v0.17.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
