@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 29 Aug 2024 09:48:40 UTC for commit [8e873c9][0]._
+_Generated on Thu, 29 Aug 2024 13:35:26 UTC for commit [509ef79][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8e873c91ad25068ab9a6aec2fac4c8db93bb6f6f
+[0]: https://github.com/cri-o/cri-o/commit/509ef79343d6871c2a959e81ca5bf0006ed35110
 
 ## Outdated Dependencies
 
@@ -619,7 +619,7 @@ _Generated on Thu, 29 Aug 2024 09:48:40 UTC for commit [8e873c9][0]._
 | github.com/rivo/uniseg                                                                  | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                |                                     | false  | true             |
 | github.com/rogpeppe/go-internal                                                         | v1.12.0                               |                                     | false  | true             |
-| github.com/rs/cors                                                                      | v1.10.1                               | v1.11.0                             | false  | true             |
+| github.com/rs/cors                                                                      | v1.10.1                               | v1.11.1                             | false  | true             |
 | github.com/russross/blackfriday                                                         | v1.6.0                                |                                     | false  | true             |
 | github.com/russross/blackfriday/v2                                                      | v2.1.0                                |                                     | false  | true             |
 | github.com/ruudk/golang-pdf417                                                          | v0.0.0-20201230142125-a7e3863a1245    |                                     | false  | true             |
