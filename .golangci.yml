@@ -30,7 +30,6 @@ linters:
     - errcheck
     - errchkjson
     - errorlint
-    - exportloopref
     - fatcontext
     - forcetypeassert
     - gci
