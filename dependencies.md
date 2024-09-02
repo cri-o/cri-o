@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 02 Sep 2024 07:39:16 UTC for commit [167c056][0]._
+_Generated on Mon, 02 Sep 2024 15:00:39 UTC for commit [6362bf0][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/167c0567f248e02548bbcba94e9a6687aa7ee828
+[0]: https://github.com/cri-o/cri-o/commit/6362bf0561e3a5290bc58f58a5287a5f1455b0dd
 
 ## Outdated Dependencies
 
@@ -828,6 +828,6 @@ _Generated on Mon, 02 Sep 2024 07:39:16 UTC for commit [167c056][0]._
 | sigs.k8s.io/release-utils                                                               | v0.8.4                                |                                     | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                |                                     | true   | true             |
-| software.sslmate.com/src/go-pkcs12                                                      | v0.4.0                                |                                     | false  | true             |
+| software.sslmate.com/src/go-pkcs12                                                      | v0.4.0                                | v0.5.0                              | false  | true             |
 | tags.cncf.io/container-device-interface                                                 | v0.8.0                                |                                     | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                                        | v0.8.0                                |                                     | false  | true             |
