@@ -27,19 +27,19 @@ jobs:
       - run: bin/crio version
       - run: make bin/crio.cross.linux.amd64
       - run: bin/crio.cross.linux.amd64 version
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: build
           path: |
             bin/crio
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: docs
           path: |
             docs/crio.8
             docs/crio.conf.5
             docs/crio.conf.d.5
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: config
           path: crio.conf
@@ -124,7 +124,7 @@ jobs:
           pushFilter: cri-o
       - run: nix-build nix/default-${{ matrix.run.go-arch }}.nix
       - run: file result/bin/crio | grep ${{ matrix.run.os-arch }}
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: build-static-${{ matrix.run.go-arch }}
           path: |
@@ -239,7 +239,7 @@ jobs:
       - name: Run unit tests rootless
         if: ${{ matrix.run.type == 'rootless' }}
         run: make testunit
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: unit-${{ matrix.run.arch }}-${{ matrix.run.type }}
           path: build/coverage
@@ -282,7 +282,7 @@ jobs:
       - run: make release-notes
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: release-notes
           path: build/release-notes
@@ -304,7 +304,7 @@ jobs:
       - run: make dependencies
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a # v4.3.6
+      - uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874 # v4.4.0
         with:
           name: dependencies
           path: build/dependencies
