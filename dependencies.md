@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
+_Generated on Tue, 03 Sep 2024 17:56:38 UTC for commit [3e7c697][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ac5d6d2706022aeb9af6d361e366d3b154325d8b
+[0]: https://github.com/cri-o/cri-o/commit/3e7c69799476b37f2622f796f7da98822588d9b3
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240903125046-057612f18f49 | true   | true             |
-| github.com/opencontainers/runc                         | v1.1.13                            | v1.1.14                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20240711033017-18e509b52bc8 | v0.0.0-20240902221715-702e33fdd3c3 | true   | true             |
 
 ## All Dependencies
@@ -442,7 +441,7 @@ _Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20240829160300-da1f7e9f2b25  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20240903155634-a8630aee4ab9  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                | v0.1.8                              | false  | true             |
@@ -488,7 +487,7 @@ _Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
 | github.com/jmhodges/clock                                                               | v1.2.0                                |                                     | false  | true             |
 | github.com/jmoiron/sqlx                                                                 | v1.3.5                                | v1.4.0                              | false  | true             |
 | github.com/jonboulle/clockwork                                                          | v0.2.2                                | v0.4.0                              | false  | true             |
-| github.com/josephspurrier/goversioninfo                                                 | v1.4.0                                |                                     | false  | true             |
+| github.com/josephspurrier/goversioninfo                                                 | v1.4.0                                | v1.4.1                              | false  | true             |
 | github.com/josharian/intern                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
@@ -582,7 +581,7 @@ _Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
 | github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.68.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.1.13                               | v1.1.14                             | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.1.14                               |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                               |                                     | true   | true             |
@@ -799,7 +798,7 @@ _Generated on Tue, 03 Sep 2024 14:56:43 UTC for commit [ac5d6d2][0]._
 | k8s.io/gengo/v2                                                                         | v2.0.0-20240228010128-51d4e06bde70    | v2.0.0-20240903080316-fb7743ff00a0  | false  | true             |
 | k8s.io/klog/v2                                                                          | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                              | v0.31.0                               |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240827152857-f7e401e7b4c2  | false  | true             |
+| k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240903163716-9e1beecbcb38  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               |                                     | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240902221715-702e33fdd3c3  | true   | true             |
 | knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240815051656-89743d9bbf7c  | false  | true             |
