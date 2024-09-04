@@ -109,6 +109,17 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	return sb, nil
 }
 
+func (s *Sandbox) SetName(name string) {
+	s.name = name
+}
+
+func (s *Sandbox) SetId(id string) {
+	if s.criSandbox == nil {
+		s.criSandbox = &types.PodSandbox{}
+	}
+	s.criSandbox.Id = id
+}
+
 func (s *Sandbox) CRISandbox() *types.PodSandbox {
 	// If a protobuf message gets mutated mid-request, then the proto library panics.
 	// We would like to avoid deep copies when possible to avoid excessive garbage
@@ -501,4 +512,85 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 	}
 
 	return cState.Status == oci.ContainerStateRunning
+}
+
+func (s *Sandbox) SetResolvPath(resolvPath string) {
+	s.resolvPath = resolvPath
+}
+
+func (sb *Sandbox) SetNamespace(namespace string) {
+	sb.namespace = namespace
+}
+
+func (sb *Sandbox) SetKubeName(kubeName string) {
+	sb.kubeName = kubeName
+}
+
+func (sb *Sandbox) SetLogDir(logDir string) {
+	sb.logDir = logDir
+}
+
+func (sb *Sandbox) SetProcessLabel(processLabel string) {
+	sb.processLabel = processLabel
+}
+
+func (sb *Sandbox) SetMountLabel(mountLabel string) {
+	sb.mountLabel = mountLabel
+}
+
+func (sb *Sandbox) SetShmPath(shmPath string) {
+	sb.shmPath = shmPath
+}
+
+func (sb *Sandbox) SetCgroupParent(cgroupParent string) {
+	sb.cgroupParent = cgroupParent
+}
+
+func (sb *Sandbox) SetPrivileged(privileged bool) {
+	sb.privileged = privileged
+}
+
+func (sb *Sandbox) SetRuntimeHandler(runtimeHandler string) {
+	sb.runtimeHandler = runtimeHandler
+}
+
+func (sb *Sandbox) SetHostname(hostname string) {
+	sb.hostname = hostname
+}
+
+func (sb *Sandbox) SetPortMappings(portMappings []*hostport.PortMapping) {
+	sb.portMappings = portMappings
+}
+
+func (sb *Sandbox) SetHostNetwork(hostNetwork bool) {
+	sb.hostNetwork = hostNetwork
+}
+
+func (sb *Sandbox) SetUsernsMode(usernsMode string) {
+	sb.usernsMode = usernsMode
+}
+
+func (sb *Sandbox) SetPodLinuxOverhead(overhead *types.LinuxContainerResources) {
+	sb.podLinuxOverhead = overhead
+}
+
+func (sb *Sandbox) SetPodLinuxResources(resources *types.LinuxContainerResources) {
+	sb.podLinuxResources = resources
+}
+
+func (sb *Sandbox) SetCriSandbox(createdAt time.Time, labels, annotations map[string]string, metadata *types.PodSandboxMetadata) error {
+	if sb.criSandbox == nil {
+		return errors.New("cri sandbox not initialized")
+	}
+	sb.criSandbox = &types.PodSandbox{
+		CreatedAt:   createdAt.UnixNano(),
+		Labels:      labels,
+		Annotations: annotations,
+		Metadata:    metadata,
+	}
+	return nil
+}
+
+func (sb *Sandbox) SetContainers() {
+	sb.containers = oci.NewMemoryStore()
 }
