@@ -250,59 +250,59 @@ func (sb *sandboxBuilder) SetNamespace(namespace string) {
 }
 
 func (sb *sandboxBuilder) SetKubeName(kubeName string) {
-	sb.SetKubeName(kubeName)
+	sb.sandbox.SetKubeName(kubeName)
 }
 
 func (sb *sandboxBuilder) SetLogDir(logDir string) {
-	sb.SetLogDir(logDir)
+	sb.sandbox.SetLogDir(logDir)
 }
 
 func (sb *sandboxBuilder) SetProcessLabel(processLabel string) {
-	sb.SetProcessLabel(processLabel)
+	sb.sandbox.SetProcessLabel(processLabel)
 }
 
 func (sb *sandboxBuilder) SetMountLabel(mountLabel string) {
-	sb.SetMountLabel(mountLabel)
+	sb.sandbox.SetMountLabel(mountLabel)
 }
 
 func (sb *sandboxBuilder) SetShmPath(shmPath string) {
-	sb.SetShmPath(shmPath)
+	sb.sandbox.SetShmPath(shmPath)
 }
 
 func (sb *sandboxBuilder) SetCgroupParent(cgroupParent string) {
-	sb.SetCgroupParent(cgroupParent)
+	sb.sandbox.SetCgroupParent(cgroupParent)
 }
 
 func (sb *sandboxBuilder) SetPrivileged(privileged bool) {
-	sb.SetPrivileged(privileged)
+	sb.sandbox.SetPrivileged(privileged)
 }
 
 func (sb *sandboxBuilder) SetRuntimeHandler(runtimeHandler string) {
-	sb.SetRuntimeHandler(runtimeHandler)
+	sb.sandbox.SetRuntimeHandler(runtimeHandler)
 }
 
 func (sb *sandboxBuilder) SetHostname(hostname string) {
-	sb.SetHostname(hostname)
+	sb.sandbox.SetHostname(hostname)
 }
 
 func (sb *sandboxBuilder) SetPortMappings(portMappings []*hostport.PortMapping) {
-	sb.SetPortMappings(portMappings)
+	sb.sandbox.SetPortMappings(portMappings)
 }
 
 func (sb *sandboxBuilder) SetHostNetwork(hostNetwork bool) {
-	sb.SetHostNetwork(hostNetwork)
+	sb.sandbox.SetHostNetwork(hostNetwork)
 }
 
 func (sb *sandboxBuilder) SetUsernsMode(usernsMode string) {
-	sb.SetUsernsMode(usernsMode)
+	sb.sandbox.SetUsernsMode(usernsMode)
 }
 
 func (sb *sandboxBuilder) SetPodLinuxOverhead(overhead *types.LinuxContainerResources) {
-	sb.SetPodLinuxOverhead(overhead)
+	sb.sandbox.SetPodLinuxOverhead(overhead)
 }
 
 func (sb *sandboxBuilder) SetPodLinuxResources(resources *types.LinuxContainerResources) {
-	sb.SetPodLinuxResources(resources)
+	sb.sandbox.SetPodLinuxResources(resources)
 }
 
 func (sb *sandboxBuilder) SetCriSandbox(createdAt time.Time, labels, annotations map[string]string, metadata *types.PodSandboxMetadata) error {
