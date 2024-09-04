@@ -23,7 +23,6 @@ function teardown() {
 # SecurityProfile_Unconfined = 1
 # SecurityProfile_Localhost = 2
 
-# 1. test running with ctr unconfined
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp profiles unconfined" {
 	jq '	  .linux.security_context.seccomp.profile_type = 1' \
@@ -34,7 +33,6 @@ function teardown() {
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
 
-# 2. test running with ctr runtime/default
 # test that we cannot run with a syscall blocked by the default seccomp profile
 @test "ctr seccomp profiles runtime/default" {
 	jq '	  .linux.security_context.seccomp.profile_type = 0' \
@@ -45,7 +43,6 @@ function teardown() {
 	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
-# 4. test running with ctr wrong profile name
 @test "ctr seccomp profiles wrong profile name" {
 	jq '	  .linux.security_context.seccomp.profile_type = 2 | .linux.security_context.seccomp.localhost_ref = "wontwork"' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
@@ -55,7 +52,6 @@ function teardown() {
 	[[ "$output" =~ "wontwork" ]]
 }
 
-# 5. test running with ctr localhost/profile_name
 @test "ctr seccomp profiles localhost profile name" {
 	jq '	  .linux.security_context.seccomp.profile_type = 2 | .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/seccomp_profile1.json"' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR"/seccomp.json
@@ -65,7 +61,6 @@ function teardown() {
 	run ! crictl exec --sync "$ctr_id" chmod 777 .
 }
 
-# 7. test running with ctr unconfined if seccomp_override_empty is false
 # test that we can run with a syscall which would be otherwise blocked
 @test "ctr seccomp overrides unconfined profile with runtime/default when overridden" {
 	export CONTAINER_SECCOMP_PROFILE="$TESTDIR"/seccomp_profile1.json
@@ -77,8 +72,7 @@ function teardown() {
 	crictl exec --sync "$ctr_id" chmod 777 .
 }
 
-# 8. test running with ctr runtime/default don't allow unshare
-@test "ctr seccomp profiles runtime/default block unshare" {
+@test "ctr seccomp profiles runtime/default blocks unshare" {
 	unset CONTAINER_SECCOMP_PROFILE
 	restart_crio
 
@@ -87,4 +81,58 @@ function teardown() {
 
 	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 	run ! crictl exec --sync "$ctr_id" /bin/sh -c "unshare"
+}
+
+@test "ctr seccomp profiles runtime/default blocks clone creating namespaces" {
+	unset CONTAINER_SECCOMP_PROFILE
+	restart_crio
+
+	jq --arg TESTDATA "$TESTDATA" '.linux.security_context.seccomp.profile_type = 0 |
+          .mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
+	run crictl exec --sync "$ctr_id" /usr/bin/clone-ns with_flags
+	[[ "$output" =~ Operation\ not\ permitted.* ]]
+}
+
+@test "ctr seccomp profiles runtime/default allows clone not creating namespaces" {
+	unset CONTAINER_SECCOMP_PROFILE
+	restart_crio
+
+	jq --arg TESTDATA "$TESTDATA" '.linux.security_context.seccomp.profile_type = 0 |
+          .mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
+	crictl exec --sync "$ctr_id" /usr/bin/clone-ns without_flags
+}
+
+@test "ctr seccomp profiles runtime/default with SYS_ADMIN capability allows clone creating namespaces" {
+	unset CONTAINER_SECCOMP_PROFILE
+	export CONTAINER_ADD_INHERITABLE_CAPABILITIES=true
+	restart_crio
+
+	jq --arg TESTDATA "$TESTDATA" '.linux.security_context.seccomp.profile_type = 0 |
+	        .linux.security_context.capabilities.add_capabilities = ["SYS_ADMIN"] |
+          .mounts = [{
+            host_path: $TESTDATA,
+            container_path: "/testdata",
+          }]' \
+		"$TESTDATA/container_sleep.json" > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	crictl exec --sync "$ctr_id" /usr/bin/cp /testdata/clone-ns.c /
+	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
+	crictl exec --sync "$ctr_id" /usr/bin/clone-ns with_flags
 }

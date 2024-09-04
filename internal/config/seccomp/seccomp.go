@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 	"sync"
 
 	"github.com/containers/common/pkg/seccomp"
@@ -17,6 +18,7 @@ import (
 	json "github.com/json-iterator/go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"github.com/sirupsen/logrus"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"
@@ -29,48 +31,112 @@ var (
 )
 
 // DefaultProfile is used to allow mutations from the DefaultProfile from the seccomp library.
-// Specifically, it is used to filter `unshare` from the default profile, as it is a risky syscall for unprivileged containers
-// to have access to.
+// Specifically, it is used to filter syscalls which can create namespaces from the default
+// profile, as it is risky for unprivileged containers to have access to create Linux
+// namespaces.
 func DefaultProfile() *seccomp.Seccomp {
 	defaultProfileOnce.Do(func() {
-		const (
-			unshareName              = "unshare"
-			unshareParentStructIndex = 1
-			unshareIndex             = 358
-		)
-		prof := seccomp.DefaultProfile()
-		// We know the default profile at compile time
-		// though a vendor change may update it.
-		// Panic on error and have CI catch errors on vendor bumps,
-		// to avoid combing through.
-		if prof.Syscalls[unshareParentStructIndex].Names[unshareIndex] != unshareName {
-			for i, name := range prof.Syscalls[unshareParentStructIndex].Names {
-				if name == unshareName {
-					_, file, _, _ := runtime.Caller(1)
-					logrus.Errorf("Change the `unshareIndex` variable in %s to %d", file, i)
-					break
-				}
-			}
-			logrus.Fatalf(
-				"Default seccomp profile updated and unshare syscall moved. Found unexpected syscall: %q",
-				prof.Syscalls[unshareParentStructIndex].Names[unshareIndex],
-			)
+		removeSyscalls := []struct {
+			Name              string
+			ParentStructIndex int
+			Index             int
+		}{
+			{"clone", 1, 23},
+			{"clone3", 1, 24},
+			{"unshare", 1, 358},
 		}
-		removeStringFromSlice(prof.Syscalls[unshareParentStructIndex].Names, unshareIndex)
+
+		prof := seccomp.DefaultProfile()
+		for _, remove := range removeSyscalls {
+			validateSyscallIndex(prof, remove.Name, remove.ParentStructIndex, remove.Index)
+			removeStringFromSlice(prof.Syscalls[remove.ParentStructIndex].Names, remove.Index)
+		}
 
 		prof.Syscalls = append(prof.Syscalls, &seccomp.Syscall{
 			Names: []string{
-				unshareName,
+				"clone",
+				"clone3",
+				"unshare",
 			},
 			Action: seccomp.ActAllow,
 			Includes: seccomp.Filter{
 				Caps: []string{"CAP_SYS_ADMIN"},
 			},
 		})
+
+		var flagsIndex uint = 0
+		if runtime.GOARCH == "s390" || runtime.GOARCH == "s390x" {
+			flagsIndex = 1
+		}
+
+		prof.Syscalls = append(prof.Syscalls,
+			&seccomp.Syscall{
+				Name:   "clone",
+				Action: seccomp.ActAllow,
+				Args: []*seccomp.Arg{
+					{
+						Index:    flagsIndex,
+						Value:    unix.CLONE_NEWNS | unix.CLONE_NEWUTS | unix.CLONE_NEWIPC | unix.CLONE_NEWUSER | unix.CLONE_NEWPID | unix.CLONE_NEWNET | unix.CLONE_NEWCGROUP,
+						ValueTwo: 0,
+						Op:       seccomp.OpMaskedEqual,
+					},
+				},
+			},
+			&seccomp.Syscall{
+				Name:   "clone",
+				Action: seccomp.ActErrno,
+				Errno:  "EPERM",
+				Args: []*seccomp.Arg{
+					{Index: flagsIndex, Value: unix.CLONE_NEWNS, ValueTwo: unix.CLONE_NEWNS, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWUTS, ValueTwo: unix.CLONE_NEWUTS, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWIPC, ValueTwo: unix.CLONE_NEWIPC, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWUSER, ValueTwo: unix.CLONE_NEWUSER, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWPID, ValueTwo: unix.CLONE_NEWPID, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWNET, ValueTwo: unix.CLONE_NEWNET, Op: seccomp.OpMaskedEqual},
+					{Index: flagsIndex, Value: unix.CLONE_NEWCGROUP, ValueTwo: unix.CLONE_NEWCGROUP, Op: seccomp.OpMaskedEqual},
+				},
+				Excludes: seccomp.Filter{
+					Caps: []string{"CAP_SYS_ADMIN"},
+				},
+			},
+			// Because seccomp currently can't compare the data inside struct and the flags in clone3 are hidden in a struct,
+			// seccomp can't block clone3 based on its flags. To force it to use only clone, we make clone3 return ENOSYS,
+			// so that glibc can fall back to clone in the same way as https://github.com/moby/moby/pull/42681.
+			&seccomp.Syscall{
+				Name:   "clone3",
+				Action: seccomp.ActErrno,
+				Errno:  "ENOSYS",
+				Excludes: seccomp.Filter{
+					Caps: []string{"CAP_SYS_ADMIN"},
+				},
+			})
 		defaultProfile = prof
 	})
 
 	return defaultProfile
+}
+
+// validateSyscallIndex checks if the syscall's index matches the default profile's index.
+// We know the default profile at compile time, though a vendor change may update it.
+// Panic on error and have CI catch errors on vendor bumps to avoid combing through.
+func validateSyscallIndex(prof *seccomp.Seccomp, name string, parentStructIndex, index int) {
+	if prof.Syscalls[parentStructIndex].Names[index] == name {
+		return
+	}
+
+	var msg string
+	i := slices.Index(prof.Syscalls[parentStructIndex].Names, name)
+	if i == -1 {
+		msg = fmt.Sprintf("Change the ParentStructIndex for %q", name)
+	} else {
+		msg = fmt.Sprintf("Change the Index for %q to %d", name, i)
+	}
+	logrus.Fatalf(
+		`The default internal seccomp policy has been changed, and CRI-O can't adjust some risky syscalls.
+You are likely seeing this error because "github.com/containers/common/pkg/seccomp" was updated.
+Please contact the developers or change "DefaultProfile()" in "internal/config/seccomp/seccomp.go"
+to match the updated policy as per the following hint: %s`, msg,
+	)
 }
 
 func removeStringFromSlice(s []string, i int) []string {
