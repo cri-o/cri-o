@@ -3,6 +3,7 @@
 load helpers
 
 @test "crio commands" {
+	unset CONTAINER_DEFAULT_RUNTIME
 	${CRIO_BINARY_PATH} -c /dev/null config > /dev/null
 	run ! "${CRIO_BINARY_PATH}" badoption
 }
@@ -42,6 +43,7 @@ load helpers
 }
 
 @test "log max boundary testing" {
+	unset CONTAINER_DEFAULT_RUNTIME
 	# log size max is special zero value
 	run ! "$CRIO_BINARY_PATH" --log-size-max 0
 	[[ "$output" == *"log size max should be negative or >= 8192"* ]]
