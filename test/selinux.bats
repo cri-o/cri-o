@@ -37,8 +37,9 @@ function teardown() {
 	mkdir "$VOLUME"
 	touch "$FILE"
 
+	setup_crio
 	create_runtime_with_allowed_annotation "selinux" "io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"
-	start_crio
+	start_crio_no_setup
 
 	jq '	  .linux.security_context.selinux_options = {"level": "s0:c200,c100"}
 		|  .annotations["io.kubernetes.cri-o.TrySkipVolumeSELinuxLabel"] = "true"' \

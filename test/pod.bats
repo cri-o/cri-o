@@ -210,9 +210,9 @@ EOF
 	if [ ! -d "/proc/sys/crypto" ]; then
 		skip "The directory /proc/sys/crypto does not exist on this host."
 	fi
+	setup_crio
 	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.DisableFIPS
-
-	start_crio
+	start_crio_no_setup
 
 	jq '   .labels["FIPS_DISABLE"] = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sboxconfig.json

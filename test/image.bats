@@ -310,6 +310,8 @@ function teardown() {
 	if [ -z "$CRUN_WASM_BINARY" ] || [[ "$RUNTIME_TYPE" == "vm" ]]; then
 		skip "crun-wasm not installed or runtime type is VM"
 	fi
+	setup_crio
+
 	cat << EOF > "$CRIO_CONFIG_DIR/99-crun-wasm.conf"
 [crio.runtime]
 default_runtime = "crun-wasm"
@@ -319,7 +321,10 @@ runtime_path = "/usr/bin/crun"
 
 platform_runtime_paths = {"wasi/wasm32" = "/usr/bin/crun-wasm", "abc/def" = "/usr/bin/acme"}
 EOF
-	start_crio
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
+
+	start_crio_no_setup
 
 	jq '.metadata.name = "podsandbox-wasm"
 		|.image.image = "quay.io/crio/hello-wasm:latest"

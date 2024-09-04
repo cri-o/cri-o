@@ -11,8 +11,9 @@ function teardown() {
 }
 
 @test "check umask is changed" {
+	setup_crio
 	create_runtime_with_allowed_annotation "umask" "io.kubernetes.cri-o.umask"
-	start_crio
+	start_crio_no_setup
 	# Run base container to ensure it creates at all
 	pod_id=$(crictl runp <(jq '.annotations."io.kubernetes.cri-o.umask" = "077"' "$TESTDATA"/sandbox_config.json))
 
