@@ -390,3 +390,32 @@ function teardown() {
 	output=$(crictl exec --sync "$ctr_id" ls -ld /etc)
 	[[ "$output" == *"test test"* ]]
 }
+
+@test "verify RunAsGroup in container" {
+	start_crio
+
+	jq '
+    .linux.security_context.run_as_user = { value: 1000 }
+    | .linux.security_context.run_as_group = { value: 1001 }
+  ' "$TESTDATA"/sandbox_config.json > "$TESTDIR/modified_sandbox_config.json"
+
+	jq '
+    .linux.security_context.run_as_user = { value: 1000 }
+    | .linux.security_context.run_as_group = { value: 1002 }
+  ' "$TESTDATA"/container_sleep.json > "$TESTDIR/modified_container_sleep_config"
+
+	# Create a new pod using the modified sandbox configuration
+	pod_id=$(crictl runp "$TESTDIR/modified_sandbox_config.json")
+
+	# Create a new container within the pod using the modified container configuration
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/modified_container_sleep_config" "$TESTDIR/modified_sandbox_config.json")
+	crictl start "$ctr_id"
+
+	# Verify that the gid is present in the /etc/group file
+	exec_output=$(crictl exec "$ctr_id" cat /etc/group)
+	echo "$exec_output" | grep "x:1002" || fail "RunAsGroup ID 1002 not found in /etc/group"
+
+	# Clean up the pod and container
+	crictl stop "$ctr_id"
+	crictl stopp "$pod_id"
+}

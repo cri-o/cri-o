@@ -179,6 +179,11 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
+			// groupPath should be empty because an updated /etc/group file isn't created.
+			groupPath, err := utils.GenerateGroup(gid, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).To(BeEmpty())
+
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "root")
 			Expect(err).ToNot(HaveOccurred())
@@ -198,6 +203,11 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
+			// groupPath should be empty because an updated /etc/group file isn't created.
+			groupPath, err := utils.GenerateGroup(gid, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).To(BeEmpty())
+
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon")
 			Expect(err).ToNot(HaveOccurred())
@@ -216,6 +226,11 @@ var _ = t.Describe("Utils", func() {
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
+
+			// groupPath should be empty because an updated /etc/group file isn't created.
+			groupPath, err := utils.GenerateGroup(gid, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "25")
@@ -242,6 +257,16 @@ var _ = t.Describe("Utils", func() {
 			Expect(newuid).To(Equal(uid))
 			Expect(newgid).To(Equal(gid))
 			Expect(newaddgids).To(Equal(addgids))
+		})
+
+		It("should succeed with gid that doesn't exist in /etc/group", func() {
+			dir := createEtcFiles()
+			defer os.RemoveAll(dir)
+
+			// groupPath should not be empty because an updated /etc/group file is created.
+			groupPath, err := utils.GenerateGroup(6000, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).ToNot(BeEmpty())
 		})
 
 		It("should fail with username that desn't exist in /etc/passwd", func() {
@@ -281,6 +306,11 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
 
+			// groupPath should be empty because an updated /etc/group file isn't created.
+			groupPath, err := utils.GenerateGroup(gid, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).To(BeEmpty())
+
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "2:22")
 			Expect(err).ToNot(HaveOccurred())
@@ -299,6 +329,11 @@ var _ = t.Describe("Utils", func() {
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).To(BeEmpty())
+
+			// groupPath should not be empty because an updated /etc/group file is created.
+			groupPath, err := utils.GenerateGroup(6000, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).ToNot(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "daemon:250")
@@ -319,6 +354,11 @@ var _ = t.Describe("Utils", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).ToNot(BeEmpty())
 
+			// groupPath should not be empty because an updated /etc/group file is created.
+			groupPath, err := utils.GenerateGroup(6000, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).ToNot(BeEmpty())
+
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:250")
 			Expect(err).ToNot(HaveOccurred())
@@ -337,6 +377,11 @@ var _ = t.Describe("Utils", func() {
 			passwdFile, err := utils.GeneratePasswd("", uid, gid, "", dir, dir)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(passwdFile).ToNot(BeEmpty())
+
+			// groupPath should be empty because an updated /etc/group file isn't created.
+			groupPath, err := utils.GenerateGroup(gid, dir, dir)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(groupPath).To(BeEmpty())
 
 			// Double check that the uid, gid, and additional gids didn't change.
 			newuid, newgid, newaddgids, err := utils.GetUserInfo(dir, "300:mail")
