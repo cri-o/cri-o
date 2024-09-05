@@ -53,17 +53,20 @@ import (
 
 // Defaults if none are specified.
 const (
-	defaultGRPCMaxMsgSize      = 80 * 1024 * 1024
-	defaultContainerMinMemory  = 12 * 1024 * 1024 // 12 MiB
-	OCIBufSize                 = 8192
-	RuntimeTypeVM              = "vm"
-	RuntimeTypePod             = "pod"
-	defaultCtrStopTimeout      = 30 // seconds
-	defaultNamespacesDir       = "/var/run"
-	RuntimeTypeVMBinaryPattern = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
-	tasksetBinary              = "taskset"
-	MonitorExecCgroupDefault   = ""
-	MonitorExecCgroupContainer = "container"
+	defaultGRPCMaxMsgSize = 80 * 1024 * 1024
+	// default minimum memory for all other runtimes.
+	defaultContainerMinMemory = 12 * 1024 * 1024 // 12 MiB
+	// minimum memory for crun, the default runtime.
+	defaultContainerMinMemoryCrun = 500 * 1024 // 500 KiB
+	OCIBufSize                    = 8192
+	RuntimeTypeVM                 = "vm"
+	RuntimeTypePod                = "pod"
+	defaultCtrStopTimeout         = 30 // seconds
+	defaultNamespacesDir          = "/var/run"
+	RuntimeTypeVMBinaryPattern    = "containerd-shim-([a-zA-Z0-9\\-\\+])+-v2"
+	tasksetBinary                 = "taskset"
+	MonitorExecCgroupDefault      = ""
+	MonitorExecCgroupContainer    = "container"
 )
 
 // Config represents the entire set of configuration values that can be set for
@@ -1252,9 +1255,9 @@ func (c *RuntimeConfig) ValidateDefaultRuntime() error {
 		return fmt.Errorf("default_runtime set to %q, but no runtime entry table [crio.runtime.runtimes.%s] was found", c.DefaultRuntime, c.DefaultRuntime)
 	}
 
-	// Set the default runtime to "runc" if default_runtime is not set
+	// Set the default runtime to "crun" if default_runtime is not set
 	logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
-	// The default config sets runc and its path in the runtimes map, so check for that
+	// The default config sets crun and its path in the runtimes map, so check for that
 	// first. If it does not exist then we add runc + its path to the runtimes map.
 	if _, ok := c.Runtimes[defaultRuntime]; !ok {
 		c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
@@ -1276,7 +1279,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 		MonitorEnv: []string{
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
-		ContainerMinMemory: units.BytesSize(defaultContainerMinMemory),
+		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
 		MonitorCgroup:      defaultMonitorCgroup,
 	}
 }
@@ -1315,15 +1318,6 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 
 		versionString := strings.ReplaceAll(strings.TrimSpace(string(versionOutput)), "\n", ", ")
 		logrus.Infof("Using runtime handler %s", versionString)
-
-		memoryBytes, err := handler.SetContainerMinMemory()
-		if err != nil {
-			logrus.Errorf(
-				"Unable to set minimum container memory for runtime handler %q: %v; default value of %q will be used",
-				name, err, units.BytesSize(float64(memoryBytes)),
-			)
-		}
-		logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memoryBytes)
 
 		// If this returns an error, we just ignore it and assume the features sub-command is
 		// not supported by the runtime.
@@ -1581,6 +1575,10 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
+	if err := r.ValidateContainerMinMemory(name); err != nil {
+		logrus.Errorf("Unable to set minimum container memory for runtime handler %q: %v", name, err)
+	}
+
 	return r.ValidateNoSyncLog()
 }
 
@@ -1675,22 +1673,22 @@ func (r *RuntimeHandler) ValidateNoSyncLog() error {
 	return fmt.Errorf("no_sync_log is only allowed with runtime type 'oci', runtime type is '%s'", r.RuntimeType)
 }
 
-// SetContainerMinMemory sets the minimum container memory for a given runtime.
+// ValidateContainerMinMemory sets the minimum container memory for a given runtime.
 // assigns defaultContainerMinMemory if no container_min_memory provided.
-func (r *RuntimeHandler) SetContainerMinMemory() (int64, error) {
+func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 	if r.ContainerMinMemory == "" {
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
 	}
 
-	memoryBytes, err := units.RAMInBytes(r.ContainerMinMemory)
+	memorySize, err := units.RAMInBytes(r.ContainerMinMemory)
 	if err != nil {
-		err = fmt.Errorf("unable to set runtime memory to %q: %w", r.ContainerMinMemory, err)
+		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %q instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
 		// Fallback to default value if something is wrong with the configured value.
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
-		return int64(defaultContainerMinMemory), err
+		return err
 	}
-
-	return memoryBytes, nil
+	logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memorySize)
+	return nil
 }
 
 // LoadRuntimeFeatures loads features for a given runtime handler using the "features"

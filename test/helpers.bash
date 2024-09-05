@@ -516,6 +516,8 @@ function is_cgroup_v2() {
 function create_runtime_with_allowed_annotation() {
     local NAME="$1"
     local ANNOTATION="$2"
+    unset CONTAINER_DEFAULT_RUNTIME
+    unset CONTAINER_RUNTIMES
     cat <<EOF >"$CRIO_CONFIG_DIR/01-$NAME.conf"
 [crio.runtime]
 default_runtime = "$NAME"

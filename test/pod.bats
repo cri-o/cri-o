@@ -11,6 +11,19 @@ function teardown() {
 	cleanup_test
 }
 
+function setup_runtime_with_min_memory() {
+	local mem="$1"
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = "mem"
+[crio.runtime.runtimes.mem]
+runtime_path = "$RUNTIME_BINARY_PATH"
+container_min_memory = "$mem"
+EOF
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
+}
+
 # PR#59
 @test "pod release name on remove" {
 	start_crio
@@ -197,9 +210,9 @@ function teardown() {
 	if [ ! -d "/proc/sys/crypto" ]; then
 		skip "The directory /proc/sys/crypto does not exist on this host."
 	fi
+	setup_crio
 	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.DisableFIPS
-
-	start_crio
+	start_crio_no_setup
 
 	jq '   .labels["FIPS_DISABLE"] = "true"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sboxconfig.json
@@ -418,4 +431,95 @@ function teardown() {
 	# Clean up the pod and container
 	crictl stop "$ctr_id"
 	crictl stopp "$pod_id"
+}
+
+@test "run container with memory_limit_in_bytes -1" {
+	setup_crio
+	setup_runtime_with_min_memory ""
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = -1' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run ! crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with memory_limit_in_bytes 12.5MiB" {
+	setup_crio
+	setup_runtime_with_min_memory "7.5MiB"
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 12582912' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with container_min_memory 17.5MiB" {
+	setup_crio
+	setup_runtime_with_min_memory "17.5MiB"
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 12582912' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	run ! crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with container_min_memory 5.5MiB" {
+	setup_crio
+	setup_runtime_with_min_memory "5.5MiB"
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with empty container_min_memory" {
+	setup_crio
+	setup_runtime_with_min_memory ""
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	wait_for_log 'Runtime handler \\"mem\\" container minimum memory set to 12582912 bytes'
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
+}
+
+@test "run container with default crun memory_limit_in_bytes" {
+	if [[ "$CONTAINER_DEFAULT_RUNTIME" != "crun" ]]; then
+		skip "must use crun"
+	fi
+	setup_crio
+
+	# make sure the crun entry is defaulted so we can verify the one crio makes has the correct limit
+	sed -i '/\[crio.runtime.runtimes.crun\]/,/monitor_exec_cgroup = \"\"/d' "$CRIO_CUSTOM_CONFIG"
+	cat << EOF > "$CRIO_CONFIG_DIR/99-mem.conf"
+[crio.runtime]
+default_runtime = ""
+EOF
+	unset CONTAINER_RUNTIMES
+	unset CONTAINER_DEFAULT_RUNTIME
+
+	start_crio_no_setup
+
+	jq --arg image "$IMAGE" '.metadata.name = "memory"
+		| .command = ["/bin/sh", "-c", "sleep 600"]
+		| .linux.resources.memory_limit_in_bytes = 512000' \
+		"$TESTDATA"/container_config.json > "$TESTDIR"/memory.json
+
+	wait_for_log 'Runtime handler \\"crun\\" container minimum memory set to 512000 bytes'
+
+	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }

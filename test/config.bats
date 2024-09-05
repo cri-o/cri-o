@@ -56,12 +56,12 @@ function teardown() {
 	# when
 	unset CONTAINER_RUNTIMES
 	unset CONTAINER_DEFAULT_RUNTIME
-	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun-default.conf -d "" config 2>&1)
+	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-runc-default.conf -d "" config 2>&1)
 
 	# then
-	[[ "$RES" == *"default_runtime = \"crun\""* ]]
-	[[ "$RES" == *"crio.runtime.runtimes.runc"* ]]
+	[[ "$RES" == *"default_runtime = \"runc\""* ]]
 	[[ "$RES" == *"crio.runtime.runtimes.crun"* ]]
+	[[ "$RES" == *"crio.runtime.runtimes.runc"* ]]
 }
 
 @test "runc not existing when default_runtime changed should succeed" {
@@ -87,10 +87,10 @@ EOF
 @test "retain default runtime should succeed" {
 	unset CONTAINER_DEFAULT_RUNTIME
 	# when
-	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-crun.conf -d "" config 2>&1)
+	RES=$("$CRIO_BINARY_PATH" -c "$TESTDATA"/50-runc.conf -d "" config 2>&1)
 
 	# then
-	[[ "$RES" != *"default_runtime = \"crun\""* ]]
+	[[ "$RES" != *"default_runtime = \"runc\""* ]]
 	[[ "$RES" == *"crio.runtime.runtimes.runc"* ]]
 	[[ "$RES" == *"crio.runtime.runtimes.crun"* ]]
 }

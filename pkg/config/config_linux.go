@@ -14,9 +14,9 @@ import (
 
 // Defaults if none are specified.
 const (
-	defaultRuntime       = "runc"
+	defaultRuntime       = "crun"
 	DefaultRuntimeType   = "oci"
-	DefaultRuntimeRoot   = "/run/runc"
+	DefaultRuntimeRoot   = "/run/crun"
 	defaultMonitorCgroup = "system.slice"
 	// ImageVolumesBind option is for using bind mounted volumes.
 	ImageVolumesBind ImageVolumesType = "bind"

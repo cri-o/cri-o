@@ -26,8 +26,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation without suffix" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_ANNOTATION'"' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
@@ -43,8 +44,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation for pod" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
@@ -60,8 +62,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation for container" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION'"' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
@@ -92,8 +95,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation and profile set to unconfined" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"
         | .linux.security_context.seccomp.profile_type = 1' \
@@ -110,8 +114,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation but set runtime default profile with higher priority" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"
         | .linux.security_context.seccomp.profile_type = 0' \
@@ -128,8 +133,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with image annotation but set localhost profile with higher priority" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	sed -e 's/"chmod",//' -e 's/"fchmod",//' -e 's/"fchmodat",//g' \
 		"$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/profile.json
@@ -150,8 +156,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with pod annotation" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.annotations += { "'$POD_ANNOTATION'": "'$ARTIFACT_IMAGE'" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
@@ -166,8 +173,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with container annotation" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.annotations += { "'$ANNOTATION'/'$CONTAINER_NAME'": "'$ARTIFACT_IMAGE'" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
@@ -182,8 +190,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with bogus annotation" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.annotations += { "'$ANNOTATION'/container2": "'$ARTIFACT_IMAGE'" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json
@@ -198,8 +207,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 
 @test "seccomp OCI artifact with missing artifact" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
-	start_crio
+	start_crio_no_setup
 
 	jq '.annotations += { "'$POD_ANNOTATION'": "wrong" }' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox.json

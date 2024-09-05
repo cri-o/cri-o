@@ -307,10 +307,10 @@ function check_conmon_fields() {
 	if test -n "$CONTAINER_UID_MAPPINGS"; then
 		skip "userNS enabled"
 	fi
+	setup_crio
 	create_workload_with_allowed_annotation "io.kubernetes.cri-o.Devices"
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
-
-	CONTAINER_ALLOWED_DEVICES="/dev/null" start_crio
+	CONTAINER_ALLOWED_DEVICES="/dev/null" start_crio_no_setup
 
 	jq --arg act "$activation" \
 		'   .annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"

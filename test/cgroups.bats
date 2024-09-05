@@ -27,6 +27,8 @@ runtime_root = "$RUNTIME_ROOT"
 runtime_type = "$RUNTIME_TYPE"
 monitor_cgroup = "$MONITOR_CGROUP"
 EOF
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
 }
 
 @test "pids limit" {
@@ -99,9 +101,9 @@ EOF
 		skip "not supported for conmon"
 	fi
 
+	setup_crio
 	configure_monitor_cgroup_for_conmonrs "customcrioconmon.slice"
-
-	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=true start_crio
+	CONTAINER_CGROUP_MANAGER="systemd" CONTAINER_DROP_INFRA_CTR=true start_crio_no_setup
 
 	jq '	  .linux.cgroup_parent = "Burstablecriotest123.slice"' \
 		"$TESTDATA"/sandbox_config.json > "$TESTDIR"/sandbox_config_slice.json

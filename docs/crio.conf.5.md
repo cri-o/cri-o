@@ -113,7 +113,7 @@ Maximum grpc receive message size. If not set or <= 0, then CRI-O will default t
 
 The `crio.runtime` table contains settings pertaining to the OCI runtime used and options for how to set up and manage the OCI runtime.
 
-**default_runtime**="runc"
+**default_runtime**="crun"
 The _name_ of the OCI runtime to be used as the default. This option supports live configuration reload.
 
 **default_ulimits**=[]

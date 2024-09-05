@@ -17,9 +17,10 @@ function teardown() {
 
 @test "seccomp notifier with runtime/default" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
 	PORT=$(free_port)
-	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio_no_setup
 
 	# Run with runtime/default
 	jq '.linux.security_context.seccomp.profile_type = 0' \
@@ -49,9 +50,10 @@ function teardown() {
 
 @test "seccomp notifier with runtime/default but not stop" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
 	PORT=$(free_port)
-	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio
+	CONTAINER_ENABLE_METRICS=true CONTAINER_METRICS_PORT=$PORT start_crio_no_setup
 
 	# Run with runtime/default
 	jq '.linux.security_context.seccomp.profile_type = 0' \
@@ -76,8 +78,9 @@ function teardown() {
 
 @test "seccomp notifier with custom profile" {
 	# Run with enabled feature set
+	setup_crio
 	create_runtime_with_allowed_annotation seccomp io.kubernetes.cri-o.seccompNotifierAction
-	start_crio
+	start_crio_no_setup
 
 	# Run with custom profile
 	sed -e 's/"chmod",//' -e 's/"fchmod",//' -e 's/"fchmodat",//g' \

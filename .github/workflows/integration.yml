@@ -258,11 +258,11 @@ jobs:
             test/nri/nri.test
       - run: scripts/github-actions-packages
       - run: scripts/github-actions-setup
-      - name: Switch to crun instead of runc
-        if: ${{ matrix.run.defaultRuntime == 'crun' }}
+      - name: Switch to runc instead of crun
+        if: ${{ matrix.run.defaultRuntime == 'runc' }}
         run: |
-          sudo ln -sf $(command -v crun) $(command -v runc)
-          runc --version
+          sudo ln -sf $(command -v runc) $(command -v crun)
+          crun --version
       - name: Run the test suite
         run: sudo -E test/test_runner.sh
         env:
@@ -270,3 +270,4 @@ jobs:
           RUN_CRITEST: ${{ matrix.run.critest }}
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
+          CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}

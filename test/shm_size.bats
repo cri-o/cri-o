@@ -11,8 +11,9 @@ function teardown() {
 }
 
 @test "check /dev/shm is changed" {
+	setup_crio
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
-	start_crio
+	start_crio_no_setup
 	# Run base container to ensure it creates at all
 	pod_id=$(crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "16Mi"' "$TESTDATA"/sandbox_config.json))
 
@@ -28,8 +29,9 @@ function teardown() {
 }
 
 @test "check /dev/shm fails with incorrect values" {
+	setup_crio
 	create_runtime_with_allowed_annotation "shmsize" "io.kubernetes.cri-o.ShmSize"
-	start_crio
+	start_crio_no_setup
 	# Ensure pod fails if /dev/shm size is negative
 	run ! crictl runp <(jq '.annotations."io.kubernetes.cri-o.ShmSize" = "-1"' "$TESTDATA"/sandbox_config.json)
 

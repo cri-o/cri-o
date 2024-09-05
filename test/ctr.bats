@@ -1265,8 +1265,9 @@ function create_test_rro_mounts() {
 	if [[ $RUNTIME_TYPE == vm ]]; then
 		skip "not applicable to vm runtime type"
 	fi
+	setup_crio
 	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.LinkLogs
-	start_crio
+	start_crio_no_setup
 
 	# Create directories created by the kubelet needed for log linking to work
 	pod_uid=$(head -c 32 /proc/sys/kernel/random/uuid)
@@ -1346,6 +1347,7 @@ set -eo pipefail
 exec $RUNTIME_BINARY_PATH "\$@"
 EOF
 
+	setup_crio
 	cat << EOF > "$CRIO_CONFIG_DIR"/99-fake-runtime.conf
 [crio.runtime]
 default_runtime = "fake"
@@ -1354,7 +1356,10 @@ runtime_path = "$FAKE_RUNTIME_BINARY_PATH"
 EOF
 	chmod 755 "$FAKE_RUNTIME_BINARY_PATH"
 
-	start_crio
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
+
+	start_crio_no_setup
 
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
