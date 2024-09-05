@@ -326,8 +326,16 @@ EOF
 
 	start_crio_no_setup
 
+	# these two variables are used by this test
+	json=$(crictl images -o json)
+	eval "$(jq -r '.images[] |
+        select(.repoTags[0] == "quay.io/crio/hello-wasm:latest") |
+        "WASM_IMAGEID=" + .id + "\n" +
+        "WASM_IMAGEDIGEST=" + .repoDigests[0] + "\n" +
+	"REDIS_IMAGEREF=" + .repoDigests[0]' <<< "$json")"
+
 	jq '.metadata.name = "podsandbox-wasm"
-		|.image.image = "quay.io/crio/hello-wasm:latest"
+		| .image.image = "'"$WASM_IMAGEID"'" | .image.user_specified_image = "'"$WASM_IMAGEDIGEST"'"
 		| del(.command, .args, .linux.resources)' \
 		"$TESTDATA"/container_config.json > "$TESTDIR/wasm.json"
 
