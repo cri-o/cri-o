@@ -236,11 +236,16 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, fmt.Errorf("get context for namespace: %w", err)
 	}
 
-	userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+	if systemCtx.SignaturePolicyPath != "" {
+		// This will likely fail in a container restore case.
+		// This is okay; in part because container restores are an alpha feature,
+		// and it is meaningless to try to verify an image that isn't even an image
+		// (like a checkpointed file is).
+		userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+		if userSpecifiedImage == "" {
+			return nil, errors.New("user specified image not specified, cannot verify image signature")
+		}
 
-	// Skip this check on a restore, as it's from a file not from a registry so there's no notion of a registry,
-	// and thus no notion of a named reference.
-	if userSpecifiedImage != "" || !ctr.Restore() {
 		var userImageRef references.RegistryImageReference
 
 		userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
