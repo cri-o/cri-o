@@ -1,4 +1,7 @@
 ---
+- name: ensure setup tasks are done
+  include_tasks: "setup.yml"
+
 - name: build and install cri-o
   include_tasks: "build/cri-o.yml"
 
