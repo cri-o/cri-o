@@ -28,7 +28,7 @@ jobs:
             echo "create_pr=true" >> "$GITHUB_OUTPUT"
           fi
       - name: Create PR if required
-        uses: peter-evans/create-pull-request@4320041ed380b20e97d388d56a7fb4f9b8c20e79 # v7.0.0
+        uses: peter-evans/create-pull-request@8867c4aba1b742c39f8d0ba35429c2dfa4b6cb20 # v7.0.1
         if: ${{ steps.create_pr.outputs.create_pr == 'true' }}
         with:
           commit-message: Update nixpkgs
