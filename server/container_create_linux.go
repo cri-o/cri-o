@@ -238,24 +238,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
 
-	if userSpecifiedImage == "" {
-		// Attempt to check if the image is a checkpoint OCI image
-		if _, err := s.checkIfCheckpointOCIImage(ctx, userRequestedImage); err != nil {
-			return nil, fmt.Errorf("failed to check if this is a checkpoint image: %w", err)
-		} else { // Fallback to ensure that userSpecifiedImage is valid
-			userSpecifiedImage = imageName.StringForOutOfProcessConsumptionOnly()
+	// Skip this check on a restore, as it's from a file not from a registry so there's no notion of a registry,
+	// and thus no notion of a named reference.
+	if userSpecifiedImage != "" || !ctr.Restore() {
+		var userImageRef references.RegistryImageReference
+
+		userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get userImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
-	}
 
-	var userImageRef references.RegistryImageReference
-
-	userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get userImageRef from user specified image %q: %w", userSpecifiedImage, err)
-	}
-
-	if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imgResult.Digest); err != nil {
-		return nil, err
+		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imgResult.Digest); err != nil {
+			return nil, err
+		}
 	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
