@@ -190,6 +190,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
+	// userRequestedImage is the way to locate the image.
+	// When called by Kubelet, it is either the ImageRef as returned by PullImage
+	// (for us, always a RegistryImageReference using a repo@digest), or an ImageID as returned by ImageStatus (a full StorageImageID).
+	// We accept other inputs, like short names and digest prefixes, because previous CRI-O versions did, just to be conservative against breakage.
 	userRequestedImage, err := ctr.UserRequestedImage()
 	if err != nil {
 		return nil, err
@@ -237,23 +241,27 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	if systemCtx.SignaturePolicyPath != "" {
+		// userSpecifiedImage is the input user provided in a Pod spec,
+		// and captures the intent of the user; from that,
+		// the signature policy is used to determine the relevant roots of trust and other requirements.
+		userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+
 		// This will likely fail in a container restore case.
 		// This is okay; in part because container restores are an alpha feature,
 		// and it is meaningless to try to verify an image that isn't even an image
 		// (like a checkpointed file is).
-		userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
 		if userSpecifiedImage == "" {
 			return nil, errors.New("user specified image not specified, cannot verify image signature")
 		}
 
-		var userImageRef references.RegistryImageReference
+		var userSpecifiedImageRef references.RegistryImageReference
 
-		userImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+		userSpecifiedImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get userImageRef from user specified image %q: %w", userSpecifiedImage, err)
+			return nil, fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
 
-		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imageID); err != nil {
+		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, imageID); err != nil {
 			return nil, err
 		}
 	}
