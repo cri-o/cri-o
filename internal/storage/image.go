@@ -615,9 +615,10 @@ type pullImageArgs struct {
 }
 
 type pullImageOutputItem struct {
-	Progress          *types.ProgressProperties `json:",omitempty"`
-	Result            string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
-	CanonicalImageRef reference.Canonical       `json:",omitempty"`
+	Progress *types.ProgressProperties `json:",omitempty"`
+	Result   string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
+	Name     string                    `json:",omitempty"`
+	Digest   digest.Digest             `json:",omitempty"`
 }
 
 func pullImageChild() {
@@ -662,7 +663,8 @@ func pullImageChild() {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
-	output <- pullImageOutputItem{Result: transports.ImageName(destRef), CanonicalImageRef: canonicalRef}
+
+	output <- pullImageOutputItem{Result: transports.ImageName(destRef), Name: canonicalRef.Name(), Digest: canonicalRef.Digest()}
 
 	close(output)
 	<-outputWritten
@@ -756,9 +758,15 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 				break
 			}
 
-			if item.CanonicalImageRef != nil {
-				canonicalRef = item.CanonicalImageRef
+			named, err := reference.ParseNamed(item.Name)
+			if err != nil {
+				break
 			}
+			canonicalRef, err = reference.WithDigest(named, item.Digest)
+			if err != nil {
+				break
+			}
+
 			if item.Progress != nil && progress != nil {
 				progress <- *item.Progress
 			}
