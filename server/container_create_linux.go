@@ -253,7 +253,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			return nil, fmt.Errorf("unable to get userImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
 
-		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imgResult.Digest); err != nil {
+		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userImageRef, imageID); err != nil {
 			return nil, err
 		}
 	}

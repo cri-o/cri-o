@@ -183,8 +183,8 @@ type ImageServer interface {
 	// - ctx: The context for controlling the function's execution
 	// - systemContext: server's system context for the given namespace
 	// - imageName: A RegistryImageReference that identifies the container image
-	// - localManifestDigest: The digest of the local image
-	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, localManifestDigest digest.Digest) error
+	// - imageID: A StorageImageID of the image
+	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error
 }
 
 func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
@@ -474,7 +474,7 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 	return &result, nil
 }
 
-func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, localManifestDigest digest.Digest) error {
+func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
 		return fmt.Errorf("get default policy: %w", err)
@@ -491,7 +491,7 @@ func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContex
 		}
 	}()
 
-	if err := svc.checkSignature(ctx, systemContext, policyContext, imageName, localManifestDigest); err != nil {
+	if err := svc.checkSignature(ctx, systemContext, policyContext, imageName, imageID); err != nil {
 		return fmt.Errorf("checking signature of %q: %w", imageName, err)
 	}
 
@@ -500,23 +500,19 @@ func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContex
 	return nil
 }
 
-func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageName RegistryImageReference, localManifestDigest digest.Digest) error {
+func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageName RegistryImageReference, imageID StorageImageID) error {
 	userIdentityRef, err := docker.NewReference(imageName.Raw())
 	if err != nil {
 		return fmt.Errorf("creating docker:// reference for %q: %w", imageName.Raw().String(), err)
 	}
 
-	storeNamedReference, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), localManifestDigest)
+	storageRef, err := imageID.imageRef(svc)
 	if err != nil {
-		return fmt.Errorf("creating a digested storage reference for %q + %q: %w", imageName.Raw().String(), localManifestDigest, err)
+		return fmt.Errorf("creating containers-storage: reference for %v: %w", storageRef, err)
 	}
-	storageRefWithoutID, err := istorage.Transport.NewStoreReference(svc.store, storeNamedReference, "")
-	if err != nil {
-		return fmt.Errorf("creating containers-storage: reference for %v: %w", storageRefWithoutID, err)
-	}
-	log.Debugf(ctx, "Created storageRefWithoutID = %q", transports.ImageName(storageRefWithoutID))
+	log.Debugf(ctx, "Created storageRef = %q", transports.ImageName(storageRef))
 
-	storageSource, err := storageRefWithoutID.NewImageSource(ctx, sys)
+	storageSource, err := storageRef.NewImageSource(ctx, sys)
 	if err != nil {
 		return fmt.Errorf("creating image source for local store image: %w", err)
 	}

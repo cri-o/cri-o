@@ -15,7 +15,6 @@ import (
 	storage0 "github.com/cri-o/cri-o/internal/storage"
 	references "github.com/cri-o/cri-o/internal/storage/references"
 	gomock "github.com/golang/mock/gomock"
-	digest "github.com/opencontainers/go-digest"
 )
 
 // MockImageServer is a mock of ImageServer interface.
@@ -129,7 +128,7 @@ func (mr *MockImageServerMockRecorder) ImageStatusByName(arg0, arg1 interface{})
 }
 
 // IsRunningImageAllowed mocks base method.
-func (m *MockImageServer) IsRunningImageAllowed(arg0 context.Context, arg1 *types.SystemContext, arg2 references.RegistryImageReference, arg3 digest.Digest) error {
+func (m *MockImageServer) IsRunningImageAllowed(arg0 context.Context, arg1 *types.SystemContext, arg2 references.RegistryImageReference, arg3 storage0.StorageImageID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsRunningImageAllowed", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
