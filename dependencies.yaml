@@ -111,6 +111,12 @@ dependencies:
       - path: Makefile
         match: GO_MOD_OUTDATED_VERSION
 
+  - name: govulncheck
+    version: v1.1.1
+    refPaths:
+      - path: hack/govulncheck.sh
+        match: GOVULNCHECK_VERSION
+
   - name: gosec
     version: 2.15.0
     refPaths:
