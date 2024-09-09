@@ -1,19 +1,21 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
+_Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9c9c4118abc6692d89f926cd9e3a36457b864f16
+[0]: https://github.com/cri-o/cri-o/commit/ac758bb6183ef69cd47c663eb916953217a97fb3
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/go-criu/v7               | v7.1.0                             | v7.2.0                             | true   | true             |
+| github.com/containerd/containerd                       | v1.7.21                            | v1.7.22                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240909093752-f31839af632e | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240909200710-6f8897249b2c | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.2                            | v1.20.3                            | true   | true             |
 | golang.org/x/net                                       | v0.28.0                            | v0.29.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.24.0                            | v0.25.0                            | true   | true             |
+| google.golang.org/grpc                                 | v1.66.0                            | v1.66.1                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20240711033017-18e509b52bc8 | v0.0.0-20240902221715-702e33fdd3c3 | true   | true             |
 
 ## All Dependencies
@@ -112,7 +114,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | cloud.google.com/go/policytroubleshooter                                                | v1.10.3                               | v1.11.0                             | false  | true             |
 | cloud.google.com/go/privatecatalog                                                      | v0.9.5                                | v0.10.0                             | false  | true             |
 | cloud.google.com/go/profiler                                                            | v0.4.0                                | v0.4.1                              | false  | true             |
-| cloud.google.com/go/pubsub                                                              | v1.37.0                               | v1.42.0                             | false  | true             |
+| cloud.google.com/go/pubsub                                                              | v1.37.0                               | v1.43.0                             | false  | true             |
 | cloud.google.com/go/pubsublite                                                          | v1.8.1                                | v1.8.2                              | false  | true             |
 | cloud.google.com/go/recaptchaenterprise                                                 | v1.3.1                                |                                     | false  | true             |
 | cloud.google.com/go/recaptchaenterprise/v2                                              | v2.11.0                               | v2.17.0                             | false  | true             |
@@ -151,7 +153,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.5                                | v1.10.0                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.5                                | v1.7.0                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.13.0                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.8.0                              | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.9.0                              | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240906074133-82eb438dd565  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.10.0                             | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                | v1.0.1                              | false  | true             |
@@ -252,7 +254,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.26.7                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.30.7                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.20.4                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240905205714-e112906c5a2b  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240909191326-0ee4ec5d16bf  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -295,7 +297,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | github.com/containerd/cgroups                                                           | v1.1.0                                |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                        | v3.0.3                                |                                     | false  | true             |
 | github.com/containerd/console                                                           | v1.0.3                                | v1.0.4                              | false  | true             |
-| github.com/containerd/containerd                                                        | v1.7.21                               |                                     | true   | true             |
+| github.com/containerd/containerd                                                        | v1.7.21                               | v1.7.22                             | true   | true             |
 | github.com/containerd/containerd/api                                                    | v1.7.19                               |                                     | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                | v0.4.3                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                               |                                     | false  | true             |
@@ -498,7 +500,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240909093752-f31839af632e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240909200710-6f8897249b2c  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -774,7 +776,7 @@ _Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 | google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240903143218-8af14fe29dc1  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20240903143218-8af14fe29dc1  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20240903143218-8af14fe29dc1  | false  | true             |
-| google.golang.org/grpc                                                                  | v1.66.0                               |                                     | true   | true             |
+| google.golang.org/grpc                                                                  | v1.66.0                               | v1.66.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.5.1                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                               |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                | v2.4.0                              | false  | true             |
