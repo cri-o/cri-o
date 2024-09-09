@@ -232,7 +232,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	if systemCtx.SignaturePolicyPath != "" {
-		return "", fmt.Errorf("namespaced signature policy defined for pods in namespace %s; signature validation is not supported for container restore", sb.Metadata().Namespace)
+		return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().Namespace)
 	}
 
 	stopMutex := sb.StopMutex()

@@ -3,6 +3,7 @@
 load helpers
 
 function setup() {
+	unset SIGNATURE_POLICY
 	if [[ $RUNTIME_TYPE == pod ]]; then
 		skip "not yet supported by conmonrs"
 	fi
