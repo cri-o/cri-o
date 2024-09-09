@@ -51,6 +51,10 @@ function teardown() {
 	# Assuming the two containers can't have exactly same memory usage
 	echo "checking $ctr1_mem != $ctr2_mem"
 	[ "$ctr1_mem" != "$ctr2_mem" ]
+
+	# Test if the label filtering works
+	[ "$(crictl stats | wc -l)" == 3 ]
+	[ "$(crictl stats --label tier=backend | wc -l)" == 2 ]
 }
 
 @test "pod stats" {
