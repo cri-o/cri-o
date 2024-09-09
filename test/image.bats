@@ -26,7 +26,7 @@ function teardown() {
 @test "run container in pod with image ID" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
-	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+	jq '.image.image = "'"$REDIS_IMAGEID"'" | .image.user_specified_image = "'"$REDIS_IMAGEDIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 	ctr_id=$(crictl create --no-pull "$pod_id" "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
@@ -35,7 +35,7 @@ function teardown() {
 @test "container status when created by image ID" {
 	start_crio
 
-	jq '.image.image = "'"$REDIS_IMAGEID"'"' \
+	jq '.image.image = "'"$REDIS_IMAGEID"'" | .image.user_specified_image = "'"$REDIS_IMAGEDIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 	ctr_id=$(crictl run --no-pull "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
 
@@ -75,7 +75,7 @@ function teardown() {
 
 	crictl pull "$IMAGE_LIST_DIGEST"
 
-	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'"' \
+	jq '.image.image = "'"$IMAGE_LIST_DIGEST"'" | .image.user_specified_image = "'"$IMAGE_LIST_DIGEST"'"' \
 		"$TESTDATA"/container_config.json > "$TESTDIR"/ctr.json
 
 	ctr_id=$(crictl run "$TESTDIR"/ctr.json "$TESTDATA"/sandbox_config.json)
@@ -326,8 +326,16 @@ EOF
 
 	start_crio_no_setup
 
+	# these two variables are used by this test
+	json=$(crictl images -o json)
+	eval "$(jq -r '.images[] |
+        select(.repoTags[0] == "quay.io/crio/hello-wasm:latest") |
+        "WASM_IMAGEID=" + .id + "\n" +
+        "WASM_IMAGEDIGEST=" + .repoDigests[0] + "\n" +
+	"REDIS_IMAGEREF=" + .repoDigests[0]' <<< "$json")"
+
 	jq '.metadata.name = "podsandbox-wasm"
-		|.image.image = "quay.io/crio/hello-wasm:latest"
+		| .image.image = "'"$WASM_IMAGEID"'" | .image.user_specified_image = "'"$WASM_IMAGEDIGEST"'"
 		| del(.command, .args, .linux.resources)' \
 		"$TESTDATA"/container_config.json > "$TESTDIR/wasm.json"
 

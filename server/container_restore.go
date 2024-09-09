@@ -226,6 +226,15 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
 	}
 
+	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+	if err != nil {
+		return "", fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	if systemCtx.SignaturePolicyPath != "" {
+		return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().Namespace)
+	}
+
 	stopMutex := sb.StopMutex()
 	stopMutex.RLock()
 	defer stopMutex.RUnlock()

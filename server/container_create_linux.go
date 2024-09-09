@@ -38,6 +38,7 @@ import (
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -189,10 +190,15 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		}
 	}
 
+	// userRequestedImage is the way to locate the image.
+	// When called by Kubelet, it is either the ImageRef as returned by PullImage
+	// (for us, always a RegistryImageReference using a repo@digest), or an ImageID as returned by ImageStatus (a full StorageImageID).
+	// We accept other inputs, like short names and digest prefixes, because previous CRI-O versions did, just to be conservative against breakage.
 	userRequestedImage, err := ctr.UserRequestedImage()
 	if err != nil {
 		return nil, err
 	}
+
 	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
 	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
@@ -227,6 +233,37 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
+	}
+
+	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+	if err != nil {
+		return nil, fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	if systemCtx.SignaturePolicyPath != "" {
+		// userSpecifiedImage is the input user provided in a Pod spec,
+		// and captures the intent of the user; from that,
+		// the signature policy is used to determine the relevant roots of trust and other requirements.
+		userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
+
+		// This will likely fail in a container restore case.
+		// This is okay; in part because container restores are an alpha feature,
+		// and it is meaningless to try to verify an image that isn't even an image
+		// (like a checkpointed file is).
+		if userSpecifiedImage == "" {
+			return nil, errors.New("user specified image not specified, cannot verify image signature")
+		}
+
+		var userSpecifiedImageRef references.RegistryImageReference
+
+		userSpecifiedImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
+		}
+
+		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, imageID); err != nil {
+			return nil, err
+		}
 	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())

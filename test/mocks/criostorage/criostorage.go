@@ -8,6 +8,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -126,6 +127,20 @@ func (mr *MockImageServerMockRecorder) ImageStatusByName(arg0, arg1 interface{})
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageStatusByName", reflect.TypeOf((*MockImageServer)(nil).ImageStatusByName), arg0, arg1)
 }
 
+// IsRunningImageAllowed mocks base method.
+func (m *MockImageServer) IsRunningImageAllowed(arg0 context.Context, arg1 *types.SystemContext, arg2 references.RegistryImageReference, arg3 storage0.StorageImageID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsRunningImageAllowed", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IsRunningImageAllowed indicates an expected call of IsRunningImageAllowed.
+func (mr *MockImageServerMockRecorder) IsRunningImageAllowed(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRunningImageAllowed", reflect.TypeOf((*MockImageServer)(nil).IsRunningImageAllowed), arg0, arg1, arg2, arg3)
+}
+
 // ListImages mocks base method.
 func (m *MockImageServer) ListImages(arg0 *types.SystemContext) ([]storage0.ImageResult, error) {
 	m.ctrl.T.Helper()
@@ -157,12 +172,13 @@ func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 interface{}) *gom
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, error) {
+func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret1, _ := ret[1].(reference.Canonical)
+	ret2, _ := ret[2].(error)
+	return ret0, ret1, ret2
 }
 
 // PullImage indicates an expected call of PullImage.

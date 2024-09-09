@@ -4,7 +4,8 @@
     "attempt": 1
   },
   "image": {
-    "image": "quay.io/crio/fedora-crio-ci:latest"
+    "image": "quay.io/crio/fedora-crio-ci:latest",
+    "user_specified_image": "quay.io/crio/fedora-crio-ci:latest"
   },
   "command": ["/bin/ls"],
   "args": [],

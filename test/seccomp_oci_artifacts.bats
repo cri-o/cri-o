@@ -30,7 +30,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_ANNOTATION'"' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_ANNOTATION
@@ -48,7 +49,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_POD_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
@@ -66,7 +68,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION'"' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_CONTAINER_ANNOTATION
@@ -81,7 +84,8 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 @test "seccomp OCI artifact with image annotation but not allowed annotation on runtime config" {
 	start_crio
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_POD_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
@@ -99,8 +103,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"
-        | .linux.security_context.seccomp.profile_type = 1' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_POD_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE
+		| .linux.security_context.seccomp.profile_type = 1' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
@@ -118,8 +123,9 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	create_runtime_with_allowed_annotation seccomp $ANNOTATION
 	start_crio_no_setup
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"
-        | .linux.security_context.seccomp.profile_type = 0' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_POD_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE
+		| .linux.security_context.seccomp.profile_type = 0' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION
@@ -140,9 +146,10 @@ TEST_SYSCALL=OCI_ARTIFACT_TEST
 	sed -e 's/"chmod",//' -e 's/"fchmod",//' -e 's/"fchmodat",//g' \
 		"$CONTAINER_SECCOMP_PROFILE" > "$TESTDIR"/profile.json
 
-	jq '.image.image = "'$ARTIFACT_IMAGE_WITH_POD_ANNOTATION'"
-        | .linux.security_context.seccomp.profile_type = 2
-        | .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/profile.json"' \
+	jq --arg IMAGE "$ARTIFACT_IMAGE_WITH_POD_ANNOTATION" \
+		'.image.image = $IMAGE | .image.user_specified_image = $IMAGE
+		| .linux.security_context.seccomp.profile_type = 2
+		| .linux.security_context.seccomp.localhost_ref = "'"$TESTDIR"'/profile.json"' \
 		"$TESTDATA/container_config.json" > "$TESTDIR/container.json"
 
 	crictl pull $ARTIFACT_IMAGE_WITH_POD_ANNOTATION

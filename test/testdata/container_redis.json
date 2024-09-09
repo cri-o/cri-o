@@ -3,7 +3,8 @@
     "name": "podsandbox1-redis"
   },
   "image": {
-    "image": "quay.io/crio/fedora-crio-ci:latest"
+    "image": "quay.io/crio/fedora-crio-ci:latest",
+    "user_specified_image": "quay.io/crio/fedora-crio-ci:latest"
   },
   "args": ["docker-entrypoint.sh", "redis-server"],
   "working_dir": "/data",

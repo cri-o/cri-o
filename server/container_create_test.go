@@ -124,8 +124,8 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container is stopped", func() {
-			ctx := context.TODO()
 			// Given
+			ctx := context.TODO()
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
 
@@ -143,8 +143,8 @@ var _ = t.Describe("ContainerCreate", func() {
 		})
 
 		It("should fail when container checkpoint archive is empty", func() {
-			ctx := context.TODO()
 			// Given
+			ctx := context.TODO()
 			addContainerAndSandbox()
 			testSandbox.SetStopped(ctx, false)
 

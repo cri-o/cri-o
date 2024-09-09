@@ -766,7 +766,7 @@ var _ = t.Describe("Runtime", func() {
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", ""),
-				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImageRef, expectedCopyOptions).Return(pulledRef, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImageRef, expectedCopyOptions).Return(pulledRef, nil, nil),
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
