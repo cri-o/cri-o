@@ -231,14 +231,22 @@ jobs:
         run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
-      - name: spoof crun on arm64
-        if: ${{ matrix.run.arch == "arm64" }}
-        run: cp $(which runc) /usr/bin/crun
+      - name: Download crun on arm64 # Required for checkpoint restore (criu) tests.
+        if: ${{ matrix.run.arch == 'arm64' }}
+        run: |
+          sudo curl -sSfL --retry 5 --retry-delay 3 \
+            -o $CRUN_PATH \
+            https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-$CRUN_VERSION-linux-arm64
+          sudo chmod +x $CRUN_PATH
+          crun --version
+        env:
+          CRUN_VERSION: 1.16.1
+          CRUN_PATH: /usr/bin/crun
       - name: Run unit tests as root
         if: ${{ matrix.run.type == 'root' }}
         run: |
           sudo PATH="$PATH" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" make testunit
-          sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)"
+          sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)" || true
       - name: Run unit tests rootless
         if: ${{ matrix.run.type == 'rootless' }}
         run: make testunit

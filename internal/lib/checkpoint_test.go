@@ -24,7 +24,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	BeforeEach(func() {
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfig()
+		mockRuntimeInLibConfig()
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
@@ -90,7 +90,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 	t.Describe("ContainerCheckpoint", func() {
 		It("should fail because runtime failure (/bin/false)", func() {
 			// Given
-			mockRuncToFalseInLibConfig()
+			mockRuntimeToFalseInLibConfig()
 
 			addContainerAndSandbox()
 			config := &metadata.ContainerConfig{
@@ -254,7 +254,7 @@ var _ = t.Describe("ContainerCheckpoint", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(Equal(`not able to read config for container "containerID": template configuration at config.json not found`))
+			Expect(err.Error()).To(ContainSubstring(`not able to read config for container "containerID"`))
 		})
 	})
 })

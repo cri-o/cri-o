@@ -3,6 +3,7 @@ package lib_test
 import (
 	"context"
 	"os"
+	"os/exec"
 	"testing"
 	"time"
 
@@ -196,22 +197,28 @@ func createDummyConfig() {
 	Expect(os.WriteFile("config.json", []byte(`{"linux":{},"process":{}}`), 0o644)).To(Succeed())
 }
 
-func mockRuncInLibConfig() {
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
-		RuntimePath: "/bin/echo",
+func mockRuntimeInLibConfig() {
+	echo, err := exec.LookPath("echo")
+	Expect(err).NotTo(HaveOccurred())
+	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
+		RuntimePath: echo,
 	}
 }
 
-func mockRuncInLibConfigCheckpoint() {
+func mockRuntimeInLibConfigCheckpoint() {
+	trueCMD, err := exec.LookPath("true")
+	Expect(err).NotTo(HaveOccurred())
 	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(Succeed())
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
+	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
 		RuntimePath: "/tmp/fake-runtime",
-		MonitorPath: "/bin/true",
+		MonitorPath: trueCMD,
 	}
 }
 
-func mockRuncToFalseInLibConfig() {
-	config.Runtimes["runc"] = &libconfig.RuntimeHandler{
-		RuntimePath: "/bin/false",
+func mockRuntimeToFalseInLibConfig() {
+	falseCMD, err := exec.LookPath("false")
+	Expect(err).NotTo(HaveOccurred())
+	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
+		RuntimePath: falseCMD,
 	}
 }

@@ -17,7 +17,7 @@ var _ = t.Describe("ContainerRemove", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		mockRuncInLibConfig()
+		mockRuntimeInLibConfig()
 		setupSUT()
 	})
 

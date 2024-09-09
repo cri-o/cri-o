@@ -28,7 +28,7 @@ const (
 	// If not, crio wipe will clear the storage directory.
 	CrioCleanShutdownFile = "/var/db/crio/clean.shutdown"
 
-	defaultRuntime       = "ocijail"
+	DefaultRuntime       = "ocijail"
 	DefaultRuntimeType   = "oci"
 	DefaultRuntimeRoot   = "/var/run/ocijail"
 	defaultMonitorCgroup = ""

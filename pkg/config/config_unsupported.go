@@ -8,7 +8,7 @@ import "github.com/cri-o/cri-o/utils/errdefs"
 // Defaults if none are specified
 // This uses the Linux values, just to have something that compiles. They don’t even pass unit tests.
 const (
-	defaultRuntime       = "invalid defaultRuntime"
+	DefaultRuntime       = "invalid DefaultRuntime"
 	DefaultRuntimeType   = "invalid DefaultRuntimeType"
 	DefaultRuntimeRoot   = "invalid DefaultRuntimeRoot"
 	defaultMonitorCgroup = "invalid defaultMonitorCgroup"
