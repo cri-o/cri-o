@@ -14,7 +14,7 @@ import (
 
 // Defaults if none are specified.
 const (
-	defaultRuntime       = "crun"
+	DefaultRuntime       = "crun"
 	DefaultRuntimeType   = "oci"
 	DefaultRuntimeRoot   = "/run/crun"
 	defaultMonitorCgroup = "system.slice"

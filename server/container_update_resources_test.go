@@ -18,7 +18,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 		// Prepare the sut
 		BeforeEach(func() {
 			beforeEach()
-			mockRuncInLibConfig()
+			mockRuntimeInLibConfig()
 			setupSUT()
 		})
 		It("should succeed", func() {
@@ -124,7 +124,7 @@ var _ = t.Describe("UpdateContainerResources", func() {
 		BeforeEach(func() {
 			beforeEach()
 			serverConfig.NRI.Enabled = true
-			mockRuncInLibConfig()
+			mockRuntimeInLibConfig()
 			setupSUT()
 		})
 		It("should succeed", func() {

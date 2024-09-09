@@ -895,9 +895,9 @@ func DefaultConfig() (*Config, error) {
 		RuntimeConfig: RuntimeConfig{
 			AllowedDevices:     []string{"/dev/fuse", "/dev/net/tun"},
 			DecryptionKeysPath: "/etc/crio/keys/",
-			DefaultRuntime:     defaultRuntime,
+			DefaultRuntime:     DefaultRuntime,
 			Runtimes: Runtimes{
-				defaultRuntime: defaultRuntimeHandler(),
+				DefaultRuntime: defaultRuntimeHandler(),
 			},
 			SELinux:                     selinuxEnabled(),
 			ApparmorProfile:             apparmor.DefaultProfile,
@@ -1256,14 +1256,14 @@ func (c *RuntimeConfig) ValidateDefaultRuntime() error {
 	}
 
 	// Set the default runtime to "crun" if default_runtime is not set
-	logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", defaultRuntime)
+	logrus.Debugf("Defaulting to %q as the runtime since default_runtime is not set", DefaultRuntime)
 	// The default config sets crun and its path in the runtimes map, so check for that
 	// first. If it does not exist then we add runc + its path to the runtimes map.
-	if _, ok := c.Runtimes[defaultRuntime]; !ok {
-		c.Runtimes[defaultRuntime] = defaultRuntimeHandler()
+	if _, ok := c.Runtimes[DefaultRuntime]; !ok {
+		c.Runtimes[DefaultRuntime] = defaultRuntimeHandler()
 	}
 	// Set the DefaultRuntime to runc so we don't fail further along in the code
-	c.DefaultRuntime = defaultRuntime
+	c.DefaultRuntime = DefaultRuntime
 
 	return nil
 }

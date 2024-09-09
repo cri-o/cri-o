@@ -22,7 +22,7 @@ var _ = t.Describe("Inspect", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		mockRuncInLibConfig()
+		mockRuntimeInLibConfig()
 		setupSUT()
 
 		recorder = httptest.NewRecorder()

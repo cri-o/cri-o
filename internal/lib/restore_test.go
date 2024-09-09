@@ -29,7 +29,7 @@ var _ = t.Describe("ContainerRestore", func() {
 	BeforeEach(func() {
 		beforeEach()
 		createDummyConfig()
-		mockRuncInLibConfigCheckpoint()
+		mockRuntimeInLibConfigCheckpoint()
 		if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 			Skip("Check CRIU: " + err.Error())
 		}
@@ -104,7 +104,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(Equal(`failed to restore container containerID: a complete checkpoint for this container cannot be found, cannot restore: stat checkpoint/inventory.img: no such file or directory`))
+			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
 		})
 	})
 	t.Describe("ContainerRestore", func() {
@@ -228,7 +228,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID: failed to`))
+			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
 		})
 	})
 	t.Describe("ContainerRestore from OCI images", func() {
@@ -326,7 +326,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(res).To(Equal(""))
-			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID: failed to`))
+			Expect(err.Error()).To(ContainSubstring(`failed to restore container containerID`))
 		})
 	})
 })
