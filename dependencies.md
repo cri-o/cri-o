@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 09 Sep 2024 14:29:01 UTC for commit [1193430][0]._
+_Generated on Mon, 09 Sep 2024 18:48:20 UTC for commit [9c9c411][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/11934304d11256189df8e316e195af6650a472aa
+[0]: https://github.com/cri-o/cri-o/commit/9c9c4118abc6692d89f926cd9e3a36457b864f16
 
 ## Outdated Dependencies
 
@@ -185,7 +185,7 @@ _Generated on Mon, 09 Sep 2024 14:29:01 UTC for commit [1193430][0]._
 | github.com/DATA-DOG/go-sqlmock                                                          | v1.5.2                                |                                     | false  | true             |
 | github.com/JohnCGriffin/overflow                                                        | v0.0.0-20211019200055-46fa312c352c    |                                     | false  | true             |
 | github.com/Masterminds/semver/v3                                                        | v3.2.1                                | v3.3.0                              | false  | true             |
-| github.com/Microsoft/cosesign1go                                                        | v1.1.0                                |                                     | false  | true             |
+| github.com/Microsoft/cosesign1go                                                        | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/Microsoft/didx509go                                                          | v0.0.2                                | v0.0.3                              | false  | true             |
 | github.com/Microsoft/go-winio                                                           | v0.6.2                                |                                     | true   | true             |
 | github.com/Microsoft/hcsshim                                                            | v0.12.5                               | v0.12.6                             | false  | true             |
@@ -453,7 +453,7 @@ _Generated on Mon, 09 Sep 2024 14:29:01 UTC for commit [1193430][0]._
 | github.com/google/trillian                                                              | v1.6.0                                | v1.6.1                              | false  | true             |
 | github.com/google/uuid                                                                  | v1.6.0                                |                                     | true   | true             |
 | github.com/google/wire                                                                  | v0.6.0                                |                                     | false  | true             |
-| github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                | v0.3.3                              | false  | true             |
+| github.com/googleapis/enterprise-certificate-proxy                                      | v0.3.2                                | v0.3.4                              | false  | true             |
 | github.com/googleapis/gax-go/v2                                                         | v2.12.3                               | v2.13.0                             | false  | true             |
 | github.com/googleapis/go-type-adapters                                                  | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/googleapis/google-cloud-go-testing                                           | v0.0.0-20200911160855-bcd43fbb19e8    | v0.0.0-20210719221736-1c9a4c676720  | false  | true             |
@@ -751,10 +751,10 @@ _Generated on Mon, 09 Sep 2024 14:29:01 UTC for commit [1193430][0]._
 | goa.design/goa                                                                          | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                             | v0.37.0                               | v0.39.0                             | false  | true             |
 | golang.org/x/crypto                                                                     | v0.26.0                               | v0.27.0                             | false  | true             |
-| golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56    | v0.0.0-20240904232852-e7e105dedf7e  | false  | true             |
+| golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56    | v0.0.0-20240909161429-701f63a606c0  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.20.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20240905004112-7c4916698cc9  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20240909163608-642950227fb3  | false  | true             |
 | golang.org/x/mod                                                                        | v0.20.0                               | v0.21.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.28.0                               | v0.29.0                             | true   | true             |
 | golang.org/x/oauth2                                                                     | v0.22.0                               | v0.23.0                             | false  | true             |
@@ -764,7 +764,7 @@ _Generated on Mon, 09 Sep 2024 14:29:01 UTC for commit [1193430][0]._
 | golang.org/x/term                                                                       | v0.23.0                               | v0.24.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.17.0                               | v0.18.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
-| golang.org/x/tools                                                                      | v0.24.0                               |                                     | false  | true             |
+| golang.org/x/tools                                                                      | v0.24.0                               | v0.25.0                             | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
