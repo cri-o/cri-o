@@ -145,8 +145,11 @@ type ImageServer interface {
 	// - options: Pointer to ImageCopyOptions, which contains various options for the image copy process
 	//
 	// Returns:
-	// - types.ImageReference: The reference to the pulled image
-	// - reference.Canonical: A canonical reference to the image, typically including the digest
+	// - A reference used to write the image to the local storage.
+	//   WARNING: By the time this function returns, it can refer to a different image than the one that was pulled.
+	// - A name@digest value referring to exactly the pulled image (the reference might become dangling if the image
+	//   is removed, but it will not ever match a different image). The value is suitable for PullImageResponse.ImageRef
+	//   and for ContainerConfig.Image.Image.
 	// - error: An error object if pulling the image fails, otherwise nil
 	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error)
 
@@ -176,10 +179,10 @@ type ImageServer interface {
 	//
 	// Arguments:
 	// - ctx: The context for controlling the function's execution
-	// - systemContext: server's system context for the given namespace
-	// - imageName: A RegistryImageReference that identifies the container image
+	// - systemContext: server's system context for the given namespace, notably it might have a customized SignaturePolicyPath.
+	// - userSpecifiedImage: a RegistryImageReference that expresses users’ _intended_ image.
 	// - imageID: A StorageImageID of the image
-	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error
+	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error
 }
 
 func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
@@ -466,7 +469,7 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 	return &result, nil
 }
 
-func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error {
+func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
 		return fmt.Errorf("get default policy: %w", err)
@@ -483,19 +486,19 @@ func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContex
 		}
 	}()
 
-	if err := svc.checkSignature(ctx, systemContext, policyContext, imageName, imageID); err != nil {
-		return fmt.Errorf("checking signature of %q: %w", imageName, err)
+	if err := svc.checkSignature(ctx, systemContext, policyContext, userSpecifiedImage, imageID); err != nil {
+		return fmt.Errorf("checking signature of %q: %w", userSpecifiedImage, err)
 	}
 
-	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", imageName, systemContext.SignaturePolicyPath)
+	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", userSpecifiedImage, systemContext.SignaturePolicyPath)
 
 	return nil
 }
 
-func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageName RegistryImageReference, imageID StorageImageID) error {
-	userIdentityRef, err := docker.NewReference(imageName.Raw())
+func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
+	userSpecifiedImageRef, err := docker.NewReference(userSpecifiedImage.Raw())
 	if err != nil {
-		return fmt.Errorf("creating docker:// reference for %q: %w", imageName.Raw().String(), err)
+		return fmt.Errorf("creating docker:// reference for %q: %w", userSpecifiedImage.Raw().String(), err)
 	}
 
 	// imageID is authoritative, but it may be a deduplicated image with several manifests,
@@ -540,7 +543,7 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 		unparsedInstance = cimage.UnparsedInstance(storageSource, &instanceDigest)
 	}
 
-	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userIdentityRef)
+	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userSpecifiedImageRef)
 
 	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
 	if err != nil {
