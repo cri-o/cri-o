@@ -498,6 +498,15 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 		return fmt.Errorf("creating docker:// reference for %q: %w", imageName.Raw().String(), err)
 	}
 
+	// imageID is authoritative, but it may be a deduplicated image with several manifests,
+	// and only one of them might be signed with the signatures required by policy.
+	//
+	// Here we could, possibly:
+	// - if userSpecifiedImage is a repo@digest, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (to use certainly the right digest)
+	// - if userSpecifiedImage is a repo:tag, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (assuming some future c/storage that can map repo:tag to the right digest)
+	// Failing that (e.g. if a subsequent pull moved the tag, or if the image was untagged), try with the raw imageID.
 	storageRef, err := imageID.imageRef(svc)
 	if err != nil {
 		return fmt.Errorf("creating containers-storage: reference for %v: %w", storageRef, err)
