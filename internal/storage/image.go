@@ -599,10 +599,9 @@ type pullImageArgs struct {
 }
 
 type pullImageOutputItem struct {
-	Progress *types.ProgressProperties `json:",omitempty"`
-	Result   string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
-	Name     string                    `json:",omitempty"`
-	Digest   digest.Digest             `json:",omitempty"`
+	Progress     *types.ProgressProperties `json:",omitempty"`
+	Result       string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
+	CanonicalRef string                    `json:",omitempty"` // If not "", in the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly(), and always contains a digest.
 }
 
 func pullImageChild() {
@@ -648,12 +647,7 @@ func pullImageChild() {
 		os.Exit(1)
 	}
 
-	rawCanonical, ok := canonicalRef.Raw().(reference.Canonical)
-	if !ok {
-		fmt.Fprintf(os.Stderr, "Returned reference %v is not canonical", canonicalRef.Raw().String())
-		os.Exit(1)
-	}
-	output <- pullImageOutputItem{Result: transports.ImageName(destRef), Name: rawCanonical.Name(), Digest: rawCanonical.Digest()}
+	output <- pullImageOutputItem{Result: transports.ImageName(destRef), CanonicalRef: canonicalRef.StringForOutOfProcessConsumptionOnly()}
 
 	close(output)
 	<-outputWritten
@@ -747,15 +741,10 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 				break
 			}
 
-			named, err := reference.ParseNamed(item.Name)
+			cr, err := references.ParseRegistryImageReferenceFromOutOfProcessData(item.CanonicalRef)
 			if err != nil {
 				break
 			}
-			namedDigested, err := reference.WithDigest(named, item.Digest)
-			if err != nil {
-				break
-			}
-			cr := references.RegistryImageReferenceFromRaw(namedDigested)
 			canonicalRef = &cr
 
 			if item.Progress != nil && progress != nil {
