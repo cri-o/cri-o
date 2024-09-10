@@ -57,5 +57,6 @@ func defaultConfig() *config.Config {
 	c, err := config.DefaultConfig()
 	Expect(err).ToNot(HaveOccurred())
 	Expect(c).NotTo(BeNil())
+	t.EnsureRuntimeDeps()
 	return c
 }

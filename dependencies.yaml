@@ -136,9 +136,3 @@ dependencies:
         match: "registry.k8s.io/pause:"
       - path: test/common.sh
         match: "registry.k8s.io/pause:"
-
-  - name: crun
-    version: 1.16.1
-    refPaths:
-      - path: .github/workflows/test.yml
-        match: CRUN_VERSION
