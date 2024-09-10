@@ -577,23 +577,6 @@ func (svc *imageLookupService) remoteImageReference(imageName RegistryImageRefer
 	return alltransports.ParseImageName(svc.DefaultTransport + imageName.StringForOutOfProcessConsumptionOnly())
 }
 
-// prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image.
-func (svc *imageLookupService) prepareReference(inputSystemContext *types.SystemContext, imageName RegistryImageReference) (*types.SystemContext, types.ImageReference, error) {
-	srcRef, err := svc.remoteImageReference(imageName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sc := types.SystemContext{}
-	if inputSystemContext != nil {
-		sc = *inputSystemContext // A shallow copy
-	}
-	if secure := svc.isSecureIndex(imageName.Registry()); !secure {
-		sc.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-	}
-	return &sc, srcRef, nil
-}
-
 type pullImageArgs struct {
 	Lookup       *imageLookupService
 	ImageName    string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
@@ -805,10 +788,18 @@ func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageR
 //
 // It returns a c/storage ImageReference for the destination.
 func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
-	srcSystemContext, srcRef, err := lookup.prepareReference(options.SourceCtx, imageName)
+	srcRef, err := lookup.remoteImageReference(imageName)
 	if err != nil {
 		return nil, nil, err
 	}
+	srcSystemContext := types.SystemContext{}
+	if options.SourceCtx != nil {
+		srcSystemContext = *options.SourceCtx // A shallow copy
+	}
+	if secure := lookup.isSecureIndex(imageName.Registry()); !secure {
+		srcSystemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+	}
+
 	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
 	if err != nil {
 		return nil, nil, err
@@ -824,7 +815,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	}
 
 	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
-		SourceCtx:        srcSystemContext,
+		SourceCtx:        &srcSystemContext,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
 		ProgressInterval: options.ProgressInterval,
