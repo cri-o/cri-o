@@ -270,7 +270,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.ContainerType, annotations.ContainerTypeSandbox)
 	g.AddAnnotation(annotations.SandboxID, sbox.ID())
 	g.AddAnnotation(annotations.UserRequestedImage, s.config.PauseImage)
-	g.AddAnnotation(annotations.ImageName, s.config.PauseImage)
+	g.AddAnnotation(annotations.SomeNameOfTheImage, s.config.PauseImage)
 	g.AddAnnotation(annotations.ContainerName, containerName)
 	g.AddAnnotation(annotations.ContainerID, sbox.ID())
 	g.AddAnnotation(annotations.PrivilegedRuntime, fmt.Sprintf("%v", privileged))
