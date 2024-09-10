@@ -128,7 +128,7 @@ var _ = t.Describe("Container", func() {
 			err = sut.SpecAddAnnotations(context.Background(), sb, volumes, mountPoint, configStopSignal, &imageResult, false, "foo", "")
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(sut.Spec().Config.Annotations[annotations.Image]).To(Equal(image))
+			Expect(sut.Spec().Config.Annotations[annotations.UserRequestedImage]).To(Equal(image))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
