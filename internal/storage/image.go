@@ -60,7 +60,6 @@ type ImageResult struct {
 	RepoDigests         []string
 	Size                *uint64
 	Digest              digest.Digest
-	ConfigDigest        digest.Digest
 	User                string
 	PreviousName        string
 	Labels              map[string]string
@@ -81,11 +80,10 @@ type indexInfo struct {
 // Every field in imageCacheItem are fixed properties of an "image", which in this
 // context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
-	config       *specs.Image
-	size         *uint64
-	configDigest digest.Digest
-	info         *types.ImageInspectInfo
-	annotations  map[string]string
+	config      *specs.Image
+	size        *uint64
+	info        *types.ImageInspectInfo
+	annotations map[string]string
 }
 
 type imageCache map[string]imageCacheItem
@@ -139,9 +137,6 @@ type ImageServer interface {
 	// ImageStatusByName returns status of an image tagged with name.
 	ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error)
 
-	// PrepareImage returns an Image where the config digest can be grabbed
-	// for further analysis. Call Close() on the resulting image.
-	PrepareImage(systemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
 	//
 	// Arguments:
@@ -268,7 +263,6 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, err
 	}
 	defer imageFull.Close()
-	configDigest := imageFull.ConfigInfo().Digest
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -298,11 +292,10 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}
 
 	return imageCacheItem{
-		config:       imageConfig,
-		size:         size,
-		configDigest: configDigest,
-		info:         info,
-		annotations:  ociManifest.Annotations,
+		config:      imageConfig,
+		size:        size,
+		info:        info,
+		annotations: ociManifest.Annotations,
 	}, nil
 }
 
@@ -369,7 +362,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		RepoDigests:         repoDigestStrings,
 		Size:                cacheItem.size,
 		Digest:              imageDigest,
-		ConfigDigest:        cacheItem.configDigest,
 		User:                cacheItem.config.Config.User,
 		PreviousName:        previousName,
 		Labels:              cacheItem.info.Labels,
@@ -600,15 +592,6 @@ func (svc *imageLookupService) prepareReference(inputSystemContext *types.System
 		sc.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
 	return &sc, srcRef, nil
-}
-
-func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error) {
-	systemContext, srcRef, err := svc.lookup.prepareReference(inputSystemContext, imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	return srcRef.NewImage(svc.ctx, systemContext)
 }
 
 type pullImageArgs struct {

@@ -162,21 +162,6 @@ func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), systemContext)
 }
 
-// PrepareImage mocks base method.
-func (m *MockImageServer) PrepareImage(systemContext *types.SystemContext, imageName references.RegistryImageReference) (types.ImageCloser, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareImage", systemContext, imageName)
-	ret0, _ := ret[0].(types.ImageCloser)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PrepareImage indicates an expected call of PrepareImage.
-func (mr *MockImageServerMockRecorder) PrepareImage(systemContext, imageName any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareImage", reflect.TypeOf((*MockImageServer)(nil).PrepareImage), systemContext, imageName)
-}
-
 // PullImage mocks base method.
 func (m *MockImageServer) PullImage(ctx context.Context, imageName references.RegistryImageReference, options *storage0.ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
 	m.ctrl.T.Helper()
