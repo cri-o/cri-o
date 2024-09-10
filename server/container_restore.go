@@ -75,6 +75,23 @@ func (s *Server) CRImportCheckpoint(
 
 	var restoreArchivePath string
 	if restoreStorageImageID != nil {
+		sb, err := s.getPodSandboxFromRequest(ctx, sbID) // Note that we might call getPodSandboxFromRequest with a different sbID later. Is that necessary?
+		if err != nil {
+			if errors.Is(err, sandbox.ErrIDEmpty) {
+				return "", err
+			}
+			return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
+		}
+		systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
+		if err != nil {
+			return "", fmt.Errorf("get context for namespace: %w", err)
+		}
+		// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
+		// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
+		if systemCtx.SignaturePolicyPath != "" {
+			return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().Namespace)
+		}
+
 		log.Debugf(ctx, "Restoring from oci image %s", inputImage)
 
 		// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
@@ -224,17 +241,6 @@ func (s *Server) CRImportCheckpoint(
 			return "", err
 		}
 		return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
-	}
-
-	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
-	if err != nil {
-		return "", fmt.Errorf("get context for namespace: %w", err)
-	}
-
-	// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
-	// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
-	if systemCtx.SignaturePolicyPath != "" {
-		return "", fmt.Errorf("namespaced signature policy %s defined for pods in namespace %s; signature validation is not supported for container restore", systemCtx.SignaturePolicyPath, sb.Metadata().Namespace)
 	}
 
 	stopMutex := sb.StopMutex()
