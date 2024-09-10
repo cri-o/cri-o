@@ -151,7 +151,7 @@ type ImageServer interface {
 	//   is removed, but it will not ever match a different image). The value is suitable for PullImageResponse.ImageRef
 	//   and for ContainerConfig.Image.Image.
 	// - error: An error object if pulling the image fails, otherwise nil
-	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error)
+	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, RegistryImageReference, error)
 
 	// DeleteImage deletes a storage image (impacting all its tags)
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
@@ -648,7 +648,12 @@ func pullImageChild() {
 		os.Exit(1)
 	}
 
-	output <- pullImageOutputItem{Result: transports.ImageName(destRef), Name: canonicalRef.Name(), Digest: canonicalRef.Digest()}
+	rawCanonical, ok := canonicalRef.Raw().(reference.Canonical)
+	if !ok {
+		fmt.Fprintf(os.Stderr, "Returned reference %v is not canonical", canonicalRef.Raw().String())
+		os.Exit(1)
+	}
+	output <- pullImageOutputItem{Result: transports.ImageName(destRef), Name: rawCanonical.Name(), Digest: rawCanonical.Digest()}
 
 	close(output)
 	<-outputWritten
@@ -675,26 +680,26 @@ func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOu
 	}
 }
 
-func (svc *imageService) pullImageParent(ctx context.Context, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (svc *imageService) pullImageParent(ctx context.Context, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, RegistryImageReference, error) {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
 	cmd := reexec.CommandContext(ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
+		return nil, RegistryImageReference{}, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
+		return nil, RegistryImageReference{}, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
+		return nil, RegistryImageReference{}, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
 	stdinArguments := pullImageArgs{
@@ -714,19 +719,19 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 
 	stdinArguments.Options.Progress = nil
 	if err := cmd.Start(); err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return nil, nil, fmt.Errorf("%w: %w", waitErr, err)
+			return nil, RegistryImageReference{}, fmt.Errorf("%w: %w", waitErr, err)
 		}
-		return nil, nil, fmt.Errorf("json encode to pipe failed: %w", err)
+		return nil, RegistryImageReference{}, fmt.Errorf("json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 
 	resultChan := make(chan string)
-	var canonicalRef reference.Canonical
+	var canonicalRef *RegistryImageReference
 	go func() {
 		defer func() {
 			close(resultChan) // Future reads, if any, will get "".
@@ -746,10 +751,12 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 			if err != nil {
 				break
 			}
-			canonicalRef, err = reference.WithDigest(named, item.Digest)
+			namedDigested, err := reference.WithDigest(named, item.Digest)
 			if err != nil {
 				break
 			}
+			cr := references.RegistryImageReferenceFromRaw(namedDigested)
+			canonicalRef = &cr
 
 			if item.Progress != nil && progress != nil {
 				progress <- *item.Progress
@@ -766,28 +773,28 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
-			return nil, nil, fmt.Errorf("pull image: %s", string(errOutput))
+			return nil, RegistryImageReference{}, fmt.Errorf("pull image: %s", string(errOutput))
 		}
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 
 	if result == "" {
-		return nil, nil, errors.New("pull child finished successfully but didn’t send a result")
+		return nil, RegistryImageReference{}, errors.New("pull child finished successfully but didn’t send a result")
 	}
 
 	destRef, err := alltransports.ParseImageName(result)
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 
 	if canonicalRef == nil {
-		return nil, nil, errors.New("canonical image reference cannot be nil")
+		return nil, RegistryImageReference{}, errors.New("canonical image reference cannot be nil")
 	}
 
-	return destRef, canonicalRef, nil
+	return destRef, *canonicalRef, nil
 }
 
-func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, RegistryImageReference, error) {
 	if options.CgroupPull.UseNewCgroup {
 		return svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
 	} else {
@@ -798,11 +805,12 @@ func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageR
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
 // NOTE: That means this code can run in a separate process, and it should not access any CRI-O global state.
 //
-// It returns a c/storage ImageReference for the destination.
-func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+// It returns a c/storage ImageReference for the destination, and
+// a name@digest value referring to exactly the pulled image.
+func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, RegistryImageReference, error) {
 	srcRef, err := lookup.remoteImageReference(imageName)
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 	srcSystemContext := types.SystemContext{}
 	if options.SourceCtx != nil {
@@ -814,16 +822,16 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 
 	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 
 	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
@@ -834,15 +842,15 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		Progress:         options.Progress,
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, RegistryImageReference{}, err
 	}
 
 	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), digest.FromBytes(manifestBytes))
 	if err != nil {
-		return nil, nil, fmt.Errorf("create canonical reference: %w", err)
+		return nil, RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 	}
 
-	return destRef, canonicalRef, err
+	return destRef, references.RegistryImageReferenceFromRaw(canonicalRef), nil
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
