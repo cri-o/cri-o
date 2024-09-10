@@ -110,12 +110,12 @@ func newRuntimeVM(handler *config.RuntimeHandler, exitsPath string) RuntimeImpl 
 func addVolumeMountsToCreateRequest(ctx context.Context, request *task.CreateTaskRequest, c *Container) error {
 	// To make the kata agent pull the image{"volume_type":"image_guest_pull","source":"quay.io/kata-containers/confidential-containers:unsigned","fs_type":"overlayfs","image_pull":{"metadata":{}}}
 
-	imageSource := c.Spec().Annotations[annotations.ImageName]
-	log.Infof(ctx, "Adding mount info to pull image %s", imageSource)
+	someNameOfTheImageSource := c.Spec().Annotations[annotations.SomeNameOfTheImage]
+	log.Infof(ctx, "Adding mount info to pull image %s", someNameOfTheImageSource)
 
 	volume := &katavolume.KataVirtualVolume{
 		VolumeType: katavolume.KataVirtualVolumeImageGuestPullType,
-		Source:     imageSource,
+		Source:     someNameOfTheImageSource,
 		FSType:     "overlay_fs",
 		ImagePull:  &katavolume.ImagePullVolume{Metadata: c.Spec().Annotations},
 	}

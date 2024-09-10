@@ -214,11 +214,11 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	}
 
 	c.spec.AddAnnotation(annotations.UserRequestedImage, userRequestedImage)
-	imageName := ""
+	someNameOfThisImage := ""
 	if imageResult.SomeNameOfThisImage != nil {
-		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
+		someNameOfThisImage = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
 	}
-	c.spec.AddAnnotation(annotations.ImageName, imageName)
+	c.spec.AddAnnotation(annotations.SomeNameOfTheImage, someNameOfThisImage)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())

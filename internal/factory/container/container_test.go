@@ -89,11 +89,11 @@ var _ = t.Describe("Container", func() {
 			volumes := []oci.ContainerVolume{}
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("8a788232037eaf17794408ff3df6b922a1aedf9ef8de36afdae3ed0b0381907b")
 			Expect(err).ToNot(HaveOccurred())
-			imageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
+			someNameOfThisImage, err := references.ParseRegistryImageReferenceFromOutOfProcessData("example.com/repo/image:tag")
 			Expect(err).ToNot(HaveOccurred())
 			imageResult := storage.ImageResult{
 				ID:                  imageID,
-				SomeNameOfThisImage: &imageName,
+				SomeNameOfThisImage: &someNameOfThisImage,
 			}
 			mountPoint := "test"
 			configStopSignal := "test"
@@ -129,7 +129,7 @@ var _ = t.Describe("Container", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(sut.Spec().Config.Annotations[annotations.UserRequestedImage]).To(Equal(image))
-			Expect(sut.Spec().Config.Annotations[annotations.ImageName]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
+			Expect(sut.Spec().Config.Annotations[annotations.SomeNameOfTheImage]).To(Equal(imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.ImageRef]).To(Equal(imageResult.ID.IDStringForOutOfProcessConsumptionOnly()))
 			Expect(sut.Spec().Config.Annotations[annotations.Name]).To(Equal(sut.Name()))
 			Expect(sut.Spec().Config.Annotations[annotations.ContainerID]).To(Equal(sut.ID()))

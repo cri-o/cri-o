@@ -434,13 +434,13 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		userRequestedImage = ""
 	}
 
-	var imgName *references.RegistryImageReference
-	if s, ok := m.Annotations[annotations.ImageName]; ok && s != "" {
+	var someNameOfTheImage *references.RegistryImageReference
+	if s, ok := m.Annotations[annotations.SomeNameOfTheImage]; ok && s != "" {
 		name, err := references.ParseRegistryImageReferenceFromOutOfProcessData(s)
 		if err != nil {
-			return fmt.Errorf("invalid %s annotation %q: %w", annotations.ImageName, s, err)
+			return fmt.Errorf("invalid %s annotation %q: %w", annotations.SomeNameOfTheImage, s, err)
 		}
-		imgName = &name
+		someNameOfTheImage = &name
 	}
 
 	var imageID *storage.StorageImageID
@@ -467,7 +467,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 		return err
 	}
 
-	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, imgName, imageID, "", &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
+	ctr, err := oci.NewContainer(id, name, containerPath, m.Annotations[annotations.LogPath], labels, m.Annotations, kubeAnnotations, userRequestedImage, someNameOfTheImage, imageID, "", &metadata, sb.ID(), tty, stdin, stdinOnce, sb.RuntimeHandler(), containerDir, created, m.Annotations["org.opencontainers.image.stopSignal"])
 	if err != nil {
 		return err
 	}
