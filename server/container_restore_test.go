@@ -586,6 +586,7 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI archive", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
+			addContainerAndSandbox()
 			size := uint64(100)
 			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/checkpoint-image:tag1")
 			Expect(err).ToNot(HaveOccurred())
@@ -622,7 +623,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox.ID(),
 				"",
 			)
 
