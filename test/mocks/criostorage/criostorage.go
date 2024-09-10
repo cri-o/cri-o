@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -162,11 +161,11 @@ func (mr *MockImageServerMockRecorder) ListImages(arg0 any) *gomock.Call {
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, references.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
 	ret0, _ := ret[0].(types.ImageReference)
-	ret1, _ := ret[1].(reference.Canonical)
+	ret1, _ := ret[1].(references.RegistryImageReference)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }

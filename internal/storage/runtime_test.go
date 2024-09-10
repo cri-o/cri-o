@@ -756,15 +756,15 @@ var _ = t.Describe("Runtime", func() {
 		var info storage.ContainerInfo
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
-			pauseImageRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/pauseimagename:latest")
+			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImage.Raw(), "")
 			Expect(err).ToNot(HaveOccurred())
-			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImageRef.Raw(), "")
+			pauseImageCanonical, err := references.ParseRegistryImageReferenceFromOutOfProcessData("pauseimagename@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", ""),
-				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImageRef, expectedCopyOptions).Return(pulledRef, nil, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImage, expectedCopyOptions).Return(pulledRef, pauseImageCanonical, nil),
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
