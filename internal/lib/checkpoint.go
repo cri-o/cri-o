@@ -201,8 +201,8 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 		rootFSImageRef = id.IDStringForOutOfProcessConsumptionOnly()
 	}
 	rootFSImageName := ""
-	if imageName := ctr.ImageName(); imageName != nil {
-		rootFSImageName = imageName.StringForOutOfProcessConsumptionOnly()
+	if someNameOfTheImage := ctr.SomeNameOfTheImage(); someNameOfTheImage != nil {
+		rootFSImageName = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
