@@ -73,7 +73,8 @@ type Container interface {
 	// DisableFips returns whether the container should disable fips mode
 	DisableFips() bool
 
-	// UserRequestedImage returns the image specified in the container spec, or an error
+	// UserRequestedImage returns the image specified in the container spec and used to look up the image when creating the container, or an error.
+	// The value might evaluate to a different image (or to a different kind of reference!) at any future time.
 	UserRequestedImage() (string, error)
 
 	// ReadOnly returns whether the rootfs should be readonly
@@ -212,7 +213,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 		}
 	}
 
-	c.spec.AddAnnotation(annotations.Image, userRequestedImage)
+	c.spec.AddAnnotation(annotations.UserRequestedImage, userRequestedImage)
 	imageName := ""
 	if imageResult.SomeNameOfThisImage != nil {
 		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
@@ -465,7 +466,8 @@ func (c *container) DisableFips() bool {
 	return false
 }
 
-// UserRequestedImage returns the image specified in the container spec, or an error.
+// UserRequestedImage returns the image specified in the container spec and used to look up the image when creating the container, or an error.
+// The value might evaluate to a different image (or to a different kind of reference!) at any future time.
 func (c *container) UserRequestedImage() (string, error) {
 	imageSpec := c.config.Image
 	if imageSpec == nil {
