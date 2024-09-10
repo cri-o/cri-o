@@ -234,6 +234,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
+	// == Image lookup done.
+	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
+	// resolve to a different image.
 
 	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
 	if err != nil {
