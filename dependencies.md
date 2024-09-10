@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
+_Generated on Tue, 10 Sep 2024 16:05:16 UTC for commit [f06ee49][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ac758bb6183ef69cd47c663eb916953217a97fb3
+[0]: https://github.com/cri-o/cri-o/commit/f06ee4983acc3486dcfa21c6a25e5294b6dfd149
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 | github.com/checkpoint-restore/go-criu/v7               | v7.1.0                             | v7.2.0                             | true   | true             |
 | github.com/containerd/containerd                       | v1.7.21                            | v1.7.22                            | true   | true             |
 | github.com/cri-o/ocicni                                | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240909200710-6f8897249b2c | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240910034640-3f541aff4af1 | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.2                            | v1.20.3                            | true   | true             |
 | golang.org/x/net                                       | v0.28.0                            | v0.29.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.24.0                            | v0.25.0                            | true   | true             |
@@ -262,7 +262,7 @@ _Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 | github.com/blendle/zapdriver                                                            | v1.3.1                                |                                     | false  | true             |
 | github.com/boombuler/barcode                                                            | v1.0.1                                | v1.0.2                              | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.80.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.81.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                | v0.13.1                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251    | v0.1.3                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                |                                     | false  | true             |
@@ -447,7 +447,7 @@ _Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20240903155634-a8630aee4ab9  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20240910150728-a0b0bb1d4134  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                | v0.1.8                              | false  | true             |
@@ -500,7 +500,7 @@ _Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240909200710-6f8897249b2c  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240910034640-3f541aff4af1  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -744,7 +744,7 @@ _Generated on Mon, 09 Sep 2024 22:28:17 UTC for commit [ac758bb][0]._
 | go.opentelemetry.io/otel/sdk                                                            | v1.29.0                               |                                     | true   | true             |
 | go.opentelemetry.io/otel/trace                                                          | v1.29.0                               |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                          | v1.3.1                                |                                     | false  | true             |
-| go.step.sm/crypto                                                                       | v0.44.2                               | v0.51.2                             | false  | true             |
+| go.step.sm/crypto                                                                       | v0.44.2                               | v0.52.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                |                                     | false  | true             |
 | go.uber.org/mock                                                                        | v0.4.0                                |                                     | false  | true             |
