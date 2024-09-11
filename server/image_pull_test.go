@@ -34,7 +34,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
-					Return(nil, canonicalImageCandidate, nil),
+					Return(canonicalImageCandidate, nil),
 			)
 
 			// When
@@ -71,7 +71,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
-					Return(nil, storage.RegistryImageReference{}, t.TestError),
+					Return(storage.RegistryImageReference{}, t.TestError),
 			)
 
 			// When

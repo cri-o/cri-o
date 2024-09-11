@@ -3,7 +3,6 @@ package storage_test
 import (
 	"context"
 
-	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
 	. "github.com/onsi/ginkgo/v2"
@@ -756,15 +755,13 @@ var _ = t.Describe("Runtime", func() {
 		var info storage.ContainerInfo
 
 		mockCreatePodSandboxExpectingCopyOptions := func(expectedCopyOptions *storage.ImageCopyOptions) {
-			pulledRef, err := istorage.Transport.NewStoreReference(storeMock, pauseImage.Raw(), "")
-			Expect(err).ToNot(HaveOccurred())
 			pauseImageCanonical, err := references.ParseRegistryImageReferenceFromOutOfProcessData("pauseimagename@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
 			Expect(err).ToNot(HaveOccurred())
 			mockutils.InOrder(
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockResolveReference(storeMock, storageTransportMock,
 					"docker.io/library/pauseimagename:latest", "", ""),
-				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImage, expectedCopyOptions).Return(pulledRef, pauseImageCanonical, nil),
+				imageServerMock.EXPECT().PullImage(gomock.Any(), pauseImage, expectedCopyOptions).Return(pauseImageCanonical, nil),
 				imageServerMock.EXPECT().GetStore().Return(storeMock),
 				mockResolveReference(storeMock, storageTransportMock,
 					"pauseimagename@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "", imageID.IDStringForOutOfProcessConsumptionOnly()),
