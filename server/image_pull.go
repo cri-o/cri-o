@@ -213,7 +213,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
 
-	_, repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
