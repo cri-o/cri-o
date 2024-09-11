@@ -788,10 +788,6 @@ function create_test_rro_mounts() {
 }
 
 @test "ctr create with non-existent command [tty]" {
-	if is_using_crun; then
-		skip "not supported by crun: https://github.com/containers/crun/issues/1524"
-	fi
-
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 
