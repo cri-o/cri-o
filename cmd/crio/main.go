@@ -165,7 +165,7 @@ func main() {
 
 	app.Before = func(c *cli.Context) (err error) {
 		logrus.SetFormatter(&logrus.TextFormatter{
-			TimestampFormat: "2006-01-02 15:04:05.000000000Z07:00",
+			TimestampFormat: time.RFC3339Nano,
 			FullTimestamp:   true,
 		})
 
