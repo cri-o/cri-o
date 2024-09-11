@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 11 Sep 2024 09:46:53 UTC for commit [a39ff65][0]._
+_Generated on Wed, 11 Sep 2024 14:36:14 UTC for commit [e2c43bf][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a39ff6592ef08ab00256c5153298ef19b6179f72
+[0]: https://github.com/cri-o/cri-o/commit/e2c43bf3f67b599a3aab483fa966203b86b92c7c
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Wed, 11 Sep 2024 09:46:53 UTC for commit [a39ff65][0]._
 | github.com/containerd/containerd                                | v1.7.21                            | v1.7.22                            | true   | true             |
 | github.com/containers/conmon-rs                                 | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                         | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime          | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240911010011-d0968032f75a | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime          | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240911124222-f6cfc33314b1 | true   | true             |
 | github.com/prometheus/client_golang                             | v1.20.2                            | v1.20.3                            | true   | true             |
 | go.opentelemetry.io/otel                                        | v1.29.0                            | v1.30.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -505,7 +505,7 @@ _Generated on Wed, 11 Sep 2024 09:46:53 UTC for commit [a39ff65][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240911010011-d0968032f75a  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240911124222-f6cfc33314b1  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -528,7 +528,7 @@ _Generated on Wed, 11 Sep 2024 09:46:53 UTC for commit [a39ff65][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20240910180532-412e95906361  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20240911140901-990ad076b7e1  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
