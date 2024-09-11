@@ -3,6 +3,7 @@ package framework
 import (
 	"errors"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/onsi/ginkgo/v2"
@@ -89,6 +90,23 @@ func (t *TestFramework) MustTempFile(pattern string) string {
 
 	t.tempFiles = append(t.tempFiles, path.Name())
 	return path.Name()
+}
+
+// EnsureRuntimeDeps creates a directory which contains faked runtime
+// dependencies for the tests.
+func (t *TestFramework) EnsureRuntimeDeps() string {
+	dir := t.MustTempDir("crio-testunig-default-runtime-")
+	for dep, content := range map[string]string{
+		"crun":    "",
+		"conmon":  "#!/bin/sh\necho 'conmon version 2.1.12'",
+		"nsenter": "",
+	} {
+		runtimeDep := filepath.Join(dir, dep)
+		gomega.Expect(os.WriteFile(runtimeDep, []byte(content), 0o755)).
+			NotTo(gomega.HaveOccurred())
+	}
+	ginkgo.GinkgoTB().Setenv("PATH", dir)
+	return dir
 }
 
 // RunFrameworkSpecs is a convenience wrapper for running tests.

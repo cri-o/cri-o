@@ -231,17 +231,6 @@ jobs:
         run: |
           make mockgen -j $(nproc)
           hack/tree_status.sh
-      - name: Download crun on arm64 # Required for checkpoint restore (criu) tests.
-        if: ${{ matrix.run.arch == 'arm64' }}
-        run: |
-          sudo curl -sSfL --retry 5 --retry-delay 3 \
-            -o $CRUN_PATH \
-            https://github.com/containers/crun/releases/download/$CRUN_VERSION/crun-$CRUN_VERSION-linux-arm64
-          sudo chmod +x $CRUN_PATH
-          crun --version
-        env:
-          CRUN_VERSION: 1.16.1
-          CRUN_PATH: /usr/bin/crun
       - name: Run unit tests as root
         if: ${{ matrix.run.type == 'root' }}
         run: |

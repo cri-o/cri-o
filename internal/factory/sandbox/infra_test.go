@@ -153,8 +153,7 @@ var _ = Describe("Sandbox", func() {
 		It("should fail if shm size is <= 0", func() {
 			// When
 			shmSize = int64(-1)
-			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).ToNot(HaveOccurred())
+			dir := t.MustTempDir("shmsetup-test-")
 
 			// When
 			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
@@ -167,8 +166,7 @@ var _ = Describe("Sandbox", func() {
 		It("should fail if mount label is empty", func() {
 			// When
 			mountLabel = ""
-			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).ToNot(HaveOccurred())
+			dir := t.MustTempDir("shmsetup-test-")
 
 			// When
 			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
@@ -180,10 +178,9 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail if dir already exists", func() {
 			// Given
-			dir, err := os.MkdirTemp("/tmp", "shmsetup-test")
-			Expect(err).ToNot(HaveOccurred())
+			dir := t.MustTempDir("shmsetup-test-")
 			shmPath := filepath.Join(dir, "shm")
-			err = os.Mkdir(shmPath, 0o700)
+			err := os.Mkdir(shmPath, 0o700)
 			Expect(err).ToNot(HaveOccurred())
 
 			// When

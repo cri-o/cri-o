@@ -3,6 +3,7 @@ package config_test
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
@@ -345,7 +346,7 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ReloadRuntimes", func() {
 		var existingRuntimePath string
 		BeforeEach(func() {
-			existingRuntimePath = t.MustTempFile("runc")
+			existingRuntimePath = filepath.Join(t.EnsureRuntimeDeps(), config.DefaultRuntime)
 		})
 
 		It("should succeed without any config change", func() {

@@ -121,7 +121,7 @@ Dependencies:
 			Expect(string(versionBytes)).To(Equal(string(versionConstantJSON)))
 		})
 		It("should create dir for version file", func() {
-			filename := "/tmp/crio/temp-testing-file"
+			filename := t.MustTempFile("temp-testing-file-")
 			err := writeVersionFile(filename, "", tempVersion)
 			Expect(err).ToNot(HaveOccurred())
 

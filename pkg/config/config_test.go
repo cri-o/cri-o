@@ -526,11 +526,11 @@ var _ = t.Describe("Config", func() {
 		})
 		It("should inherit from .ConmonEnv", func() {
 			// Given
-			sut.ConmonEnv = []string{"PATH=/usr/bin"}
+			sut.ConmonEnv = []string{"PATH=/foo/bar/baz"}
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, false)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -542,7 +542,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, false)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
