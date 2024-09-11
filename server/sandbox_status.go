@@ -41,7 +41,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	var containerStatuses []*types.ContainerStatus
 	var timestamp int64
 	if s.config.EnablePodEvents {
-		timestamp = time.Now().Unix()
+		timestamp = time.Now().UnixNano()
 		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.PodSandboxId)
 		if err != nil {
 			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.PodSandboxId, err)
