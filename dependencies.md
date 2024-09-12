@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
+_Generated on Thu, 12 Sep 2024 16:43:37 UTC for commit [c91660f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b7cc915f86ae072c8f32dbe66272d29207698fb7
+[0]: https://github.com/cri-o/cri-o/commit/c91660fbb0da424dc6c27ac9bdfa611beba839b9
 
 ## Outdated Dependencies
 
@@ -28,6 +28,7 @@ _Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
 | k8s.io/cri-api                                                              | v0.31.0                            | v0.31.1                            | true   | true             |
 | k8s.io/kubelet                                                              | v0.31.0                            | v0.31.1                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20240711033017-18e509b52bc8 | v0.0.0-20240902221715-702e33fdd3c3 | true   | true             |
+| sigs.k8s.io/release-utils                                                   | v0.8.4                             | v0.8.5                             | true   | true             |
 
 ## All Dependencies
 
@@ -232,7 +233,7 @@ _Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.3                                |                                     | false  | true             |
-| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.9                              | false  | true             |
+| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.10                             | false  | true             |
 | github.com/andybalholm/brotli                                                           | v1.1.0                                |                                     | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be    |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                |                                     | false  | true             |
@@ -818,7 +819,7 @@ _Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240903163716-9e1beecbcb38  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.1                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240902221715-702e33fdd3c3  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240910170930-fdbc0b5adde7  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240912132815-3002873b449c  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
@@ -828,7 +829,7 @@ _Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                               | v1.33.0                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                               | v1.33.1                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                               | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                | v1.1.0                              | false  | true             |
@@ -840,7 +841,7 @@ _Generated on Thu, 12 Sep 2024 07:24:53 UTC for commit [b7cc915][0]._
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.30.3                               |                                     | false  | true             |
 | sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.12.1                               |                                     | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.8.4                                |                                     | true   | true             |
+| sigs.k8s.io/release-utils                                                               | v0.8.4                                | v0.8.5                              | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                |                                     | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.4.0                                | v0.5.0                              | false  | true             |
