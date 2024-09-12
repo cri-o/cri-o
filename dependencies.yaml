@@ -16,6 +16,8 @@ dependencies:
         match: GO_VERSION
       - path: nix/derivation.nix
         match: buildGo123Module
+      - path: go.mod
+        match: go
 
   - name: golangci-lint
     version: v1.62.2
