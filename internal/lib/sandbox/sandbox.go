@@ -76,42 +76,6 @@ const DefaultShmSize = 64 * 1024 * 1024
 // ErrIDEmpty is the error returned when the id of the sandbox is empty.
 var ErrIDEmpty = errors.New("PodSandboxId should not be empty")
 
-// New creates and populates a new pod sandbox
-// New sandboxes have no containers, no infra container, and no network namespaces associated with them
-// An infra container must be attached before the sandbox is added to the state.
-func New(id, namespace, name, kubeName, logDir string, labels, annotations map[string]string, processLabel, mountLabel string, metadata *types.PodSandboxMetadata, shmPath, cgroupParent string, privileged bool, runtimeHandler, resolvPath, hostname string, portMappings []*hostport.PortMapping, hostNetwork bool, createdAt time.Time, usernsMode string, overhead, resources *types.LinuxContainerResources) (*Sandbox, error) {
-	sb := new(Sandbox)
-
-	sb.criSandbox = &types.PodSandbox{
-		Id:          id,
-		CreatedAt:   createdAt.UnixNano(),
-		Labels:      labels,
-		Annotations: annotations,
-		Metadata:    metadata,
-	}
-	sb.namespace = namespace
-	sb.name = name
-	sb.createdAt = createdAt
-	sb.kubeName = kubeName
-	sb.logDir = logDir
-	sb.containers = memorystore.New[*oci.Container]()
-	sb.processLabel = processLabel
-	sb.mountLabel = mountLabel
-	sb.shmPath = shmPath
-	sb.cgroupParent = cgroupParent
-	sb.privileged = privileged
-	sb.runtimeHandler = runtimeHandler
-	sb.resolvPath = resolvPath
-	sb.hostname = hostname
-	sb.portMappings = portMappings
-	sb.hostNetwork = hostNetwork
-	sb.usernsMode = usernsMode
-	sb.podLinuxOverhead = overhead
-	sb.podLinuxResources = resources
-
-	return sb, nil
-}
-
 func (s *Sandbox) CRISandbox() *types.PodSandbox {
 	// If a protobuf message gets mutated mid-request, then the proto library panics.
 	// We would like to avoid deep copies when possible to avoid excessive garbage

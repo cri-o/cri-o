@@ -19,6 +19,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
@@ -156,10 +157,18 @@ var beforeEach = func() {
 	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
 	// Initialize test container and sandbox
-	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
+
+	sbox := sandbox.NewBuilder()
+	sbox.SetID("sandboxID")
+	sbox.SetLogDir("test")
+	sbox.SetCreatedAt(time.Now())
+	err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	Expect(err).ToNot(HaveOccurred())
+	sbox.SetPrivileged(false)
+	sbox.SetPortMappings([]*hostport.PortMapping{})
+	sbox.SetHostNetwork(false)
+	sbox.SetContainers(memorystore.New[*oci.Container]())
+	testSandbox, err = sbox.GetSandbox()
 	Expect(err).ToNot(HaveOccurred())
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",

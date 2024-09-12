@@ -717,14 +717,19 @@ var _ = Describe("high_performance_hooks", func() {
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
 
-		sb, err := sandbox.New("", "", "", "", "", nil,
-			map[string]string{
-				crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
-			},
-			"", "", nil, "", "", false,
-			"", "", "", nil, false,
-			time.Now(), "", nil, nil)
+		sbox := sandbox.NewBuilder()
+		createdAt := time.Now()
+		sbox.SetCreatedAt(createdAt)
+		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
+			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+		}, &types.PodSandboxMetadata{})
 		Expect(err).ToNot(HaveOccurred())
+		sbox.SetPrivileged(false)
+		sbox.SetHostNetwork(false)
+		sbox.SetCreatedAt(createdAt)
+		sb, err := sbox.GetSandbox()
+		Expect(err).ToNot(HaveOccurred())
+
 		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
 			h := HighPerformanceHooks{sharedCPUs: "3,4"}
 			err := h.PreCreate(context.TODO(), g, sb, c)

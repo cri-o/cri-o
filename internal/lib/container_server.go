@@ -182,11 +182,17 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Labels, err)
 	}
+
+	sbox := sandbox.NewBuilder()
 	name := m.Annotations[annotations.Name]
 	name, err = c.ReservePodName(id, name)
 	if err != nil {
 		return nil, err
 	}
+
+	sbox.SetName(name)
+	sbox.SetID(id)
+
 	defer func() {
 		if retErr != nil {
 			c.ReleasePodName(name)
@@ -199,6 +205,8 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	processLabel := m.Process.SelinuxLabel
 	mountLabel := m.Linux.MountLabel
+	sbox.SetProcessLabel(processLabel)
+	sbox.SetMountLabel(mountLabel)
 
 	spp := m.Annotations[annotations.SeccompProfilePath]
 
@@ -223,6 +231,10 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err != nil {
 		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
 	}
+	sbox.SetCreatedAt(created)
+	if err := sbox.SetCRISandbox(id, labels, kubeAnnotations, &metadata); err != nil {
+		return nil, err
+	}
 
 	podLinuxOverhead := types.LinuxContainerResources{}
 	if v, found := m.Annotations[annotations.PodLinuxOverhead]; found {
@@ -238,14 +250,27 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		}
 	}
 
-	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[annotations.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
+	sbox.SetLogDir(filepath.Dir(m.Annotations[annotations.LogPath]))
+	sbox.SetContainers(memorystore.New[*oci.Container]())
+	sbox.SetShmPath(m.Annotations[annotations.ShmPath])
+	sbox.SetCgroupParent(m.Annotations[annotations.CgroupParent])
+	sbox.SetPrivileged(privileged)
+	sbox.SetRuntimeHandler(m.Annotations[annotations.RuntimeHandler])
+	sbox.SetResolvPath(m.Annotations[annotations.ResolvPath])
+	sbox.SetHostname(m.Annotations[annotations.HostName])
+	sbox.SetPortMappings(portMappings)
+	sbox.SetHostNetwork(hostNetwork)
+	sbox.SetUsernsMode(m.Annotations[annotations.UsernsModeAnnotation])
+	sbox.SetPodLinuxOverhead(&podLinuxOverhead)
+	sbox.SetPodLinuxResources(&podLinuxResources)
+	sbox.SetHostnamePath(m.Annotations[annotations.HostnamePath])
+	sbox.SetNamespaceOptions(&nsOpts)
+	sbox.SetSeccompProfilePath(spp)
+	sbox.SetCreatedAt(created)
+	sb, err = sbox.GetSandbox()
 	if err != nil {
 		return nil, err
 	}
-	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
-	sb.SetSeccompProfilePath(spp)
-	sb.SetNamespaceOptions(&nsOpts)
-
 	defer func() {
 		if retErr != nil {
 			if err := sb.RemoveManagedNamespaces(); err != nil {

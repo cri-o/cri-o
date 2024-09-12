@@ -19,11 +19,21 @@ var _ = t.Describe("History", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
-			make(map[string]string), make(map[string]string), "", "",
-			&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-			[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
+		createdAt := time.Now()
+		sbox := sandbox.NewBuilder()
+		sbox.SetID("sandboxID")
+		sbox.SetLogDir("test")
+		sbox.SetCreatedAt(createdAt)
+		err := sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
 		Expect(err).ToNot(HaveOccurred())
+		sbox.SetPrivileged(false)
+		sbox.SetPortMappings([]*hostport.PortMapping{})
+		sbox.SetHostNetwork(false)
+		sbox.SetCreatedAt(createdAt)
+
+		otherTestSandbox, err := sbox.GetSandbox()
+		Expect(err).ToNot(HaveOccurred())
+
 		Expect(testSandbox).NotTo(BeNil())
 		sut = memorystore.History[*sandbox.Sandbox]{testSandbox, otherTestSandbox}
 	})
