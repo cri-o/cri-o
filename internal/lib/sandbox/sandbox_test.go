@@ -43,14 +43,32 @@ var _ = t.Describe("Sandbox", func() {
 			hostNetwork := false
 			createdAt := time.Now()
 
-			// When
-			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
-				labels, annotations, processLabel, mountLabel, &metadata,
-				shmPath, cgroupParent, privileged, runtimeHandler,
-				resolvPath, hostname, portMappings, hostNetwork, createdAt, "", nil, nil)
+			sbuilder := sandbox.NewBuilder()
+
+			sbuilder.SetID(id)
+			sbuilder.SetName(name)
+			sbuilder.SetNamespace(namespace)
+			sbuilder.SetKubeName(kubeName)
+			sbuilder.SetLogDir(logDir)
+			sbuilder.SetCriSandbox(sbuilder.ID(), createdAt, labels, annotations, &metadata)
+			sbuilder.SetShmPath(shmPath)
+			sbuilder.SetCgroupParent(cgroupParent)
+			sbuilder.SetPrivileged(privileged)
+			sbuilder.SetRuntimeHandler(runtimeHandler)
+			sbuilder.SetResolvPath(resolvPath)
+			sbuilder.SetHostname(hostname)
+			sbuilder.SetPortMappings(portMappings)
+			sbuilder.SetHostNetwork(hostNetwork)
+			sbuilder.SetUsernsMode("")
+			sbuilder.SetPodLinuxOverhead(nil)
+			sbuilder.SetPodLinuxResources(nil)
+			sbuilder.SetProcessLabel(processLabel)
+			sbuilder.SetMountLabel(mountLabel)
+			sbuilder.SetContainers(oci.NewMemoryStore())
+
+			sandbox := sbuilder.GetSandbox()
 
 			// Then
-			Expect(err).ToNot(HaveOccurred())
 			Expect(sandbox).NotTo(BeNil())
 			Expect(sandbox.ID()).To(Equal(id))
 			Expect(sandbox.Namespace()).To(Equal(namespace))

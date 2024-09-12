@@ -17,7 +17,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/hostport"
-	"github.com/cri-o/cri-o/internal/lib"
+	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -98,10 +98,29 @@ var _ = t.Describe("Container", func() {
 			mountPoint := "test"
 			configStopSignal := "test"
 
-			sb, err := sandbox.New("sandboxID", "", "", "", "test",
-				make(map[string]string), make(map[string]string), "", "",
-				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
+			sbuilder := sandbox.NewBuilder()
+
+			sbuilder.SetID("sandboxID")
+			sbuilder.SetName("")
+			sbuilder.SetNamespace("")
+			sbuilder.SetKubeName("")
+			sbuilder.SetLogDir("test")
+			sbuilder.SetCriSandbox(sbuilder.ID(), currentTime, make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+			sbuilder.SetShmPath("")
+			sbuilder.SetCgroupParent("")
+			sbuilder.SetPrivileged(false)
+			sbuilder.SetRuntimeHandler("")
+			sbuilder.SetResolvPath("")
+			sbuilder.SetHostname("")
+			sbuilder.SetPortMappings([]*hostport.PortMapping{})
+			sbuilder.SetHostNetwork(false)
+			sbuilder.SetUsernsMode("")
+			sbuilder.SetPodLinuxOverhead(nil)
+			sbuilder.SetPodLinuxResources(nil)
+			sbuilder.SetContainers(oci.NewMemoryStore())
+
+			sb := sbuilder.GetSandbox()
+
 			Expect(err).ToNot(HaveOccurred())
 
 			image, err := sut.UserRequestedImage()
@@ -141,7 +160,7 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Config.Annotations[annotations.Stdin]).To(Equal(strconv.FormatBool(sut.Config().Stdin)))
 			Expect(sut.Spec().Config.Annotations[annotations.StdinOnce]).To(Equal(strconv.FormatBool(sut.Config().StdinOnce)))
 			Expect(sut.Spec().Config.Annotations[annotations.ResolvPath]).To(Equal(sb.ResolvPath()))
-			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(lib.ContainerManagerCRIO))
+			Expect(sut.Spec().Config.Annotations[annotations.ContainerManager]).To(Equal(constants.ContainerManagerCRIO))
 			Expect(sut.Spec().Config.Annotations[annotations.MountPoint]).To(Equal(mountPoint))
 			Expect(sut.Spec().Config.Annotations[annotations.SeccompProfilePath]).To(Equal("foo"))
 			Expect(sut.Spec().Config.Annotations[annotations.Created]).ToNot(BeNil())

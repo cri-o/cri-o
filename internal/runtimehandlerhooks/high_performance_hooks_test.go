@@ -717,14 +717,28 @@ var _ = Describe("high_performance_hooks", func() {
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
 
-		sb, err := sandbox.New("", "", "", "", "", nil,
-			map[string]string{
-				crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
-			},
-			"", "", nil, "", "", false,
-			"", "", "", nil, false,
-			time.Now(), "", nil, nil)
-		Expect(err).ToNot(HaveOccurred())
+		sbuilder := sandbox.NewBuilder()
+		sbuilder.SetID("")
+		sbuilder.SetName("")
+		sbuilder.SetNamespace("")
+		sbuilder.SetKubeName("")
+		sbuilder.SetLogDir("")
+		sbuilder.SetCriSandbox(sbuilder.ID(), time.Now(), make(map[string]string), map[string]string{
+			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+		}, &types.PodSandboxMetadata{})
+		sbuilder.SetShmPath("")
+		sbuilder.SetCgroupParent("")
+		sbuilder.SetPrivileged(false)
+		sbuilder.SetRuntimeHandler("")
+		sbuilder.SetResolvPath("")
+		sbuilder.SetHostname("")
+		sbuilder.SetPortMappings(nil)
+		sbuilder.SetHostNetwork(false)
+		sbuilder.SetUsernsMode("")
+		sbuilder.SetPodLinuxOverhead(nil)
+		sbuilder.SetPodLinuxResources(nil)
+		sb := sbuilder.GetSandbox()
+
 		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
 			h := HighPerformanceHooks{sharedCPUs: "3,4"}
 			err := h.PreCreate(context.TODO(), g, sb, c)
