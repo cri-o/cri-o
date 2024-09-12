@@ -1,5 +1,3 @@
-// +build !linux
-
 /*
    Copyright The containerd Authors.
 
@@ -18,18 +16,16 @@
 
 package runc
 
-import (
-	"context"
-	"os"
-	"os/exec"
-)
-
-func (r *Runc) command(context context.Context, args ...string) *exec.Cmd {
-	command := r.Command
-	if command == "" {
-		command = DefaultCommand
-	}
-	cmd := exec.CommandContext(context, command, append(r.args(), args...)...)
-	cmd.Env = os.Environ()
-	return cmd
+// Runc is the client to the runc cli
+type Runc struct {
+	//If command is empty, DefaultCommand is used
+	Command       string
+	Root          string
+	Debug         bool
+	Log           string
+	LogFormat     Format
+	Setpgid       bool
+	Criu          string
+	SystemdCgroup bool
+	Rootless      *bool // nil stands for "auto"
 }
