@@ -11,6 +11,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/oci"
 	. "github.com/cri-o/cri-o/test/framework"
 )
 
@@ -23,6 +24,7 @@ func TestSandbox(t *testing.T) {
 var (
 	t           *TestFramework
 	testSandbox *sandbox.Sandbox
+	builder     sandbox.Builder
 )
 
 var _ = BeforeSuite(func() {
@@ -38,11 +40,30 @@ var _ = AfterSuite(func() {
 
 func beforeEach() {
 	// Setup test vars
-	var err error
-	testSandbox, err = sandbox.New("sandboxID", "", "", "", "",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+	sbuilder := sandbox.NewBuilder()
+	sbuilder.SetID("sandboxID")
+	sbuilder.SetName("")
+	sbuilder.SetNamespace("")
+	sbuilder.SetKubeName("")
+	sbuilder.SetLogDir("test")
+	sbuilder.SetCriSandbox(sbuilder.ID(), time.Now(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	sbuilder.SetShmPath("")
+	sbuilder.SetCgroupParent("")
+	sbuilder.SetPrivileged(false)
+	sbuilder.SetRuntimeHandler("")
+	sbuilder.SetResolvPath("")
+	sbuilder.SetHostname("")
+	sbuilder.SetPortMappings([]*hostport.PortMapping{})
+	sbuilder.SetHostNetwork(false)
+	sbuilder.SetUsernsMode("")
+	sbuilder.SetPodLinuxOverhead(nil)
+	sbuilder.SetPodLinuxResources(nil)
+	sbuilder.SetContainers(oci.NewMemoryStore())
+	sbuilder.SetProcessLabel("")
+	sbuilder.SetMountLabel("")
+
+	testSandbox = sbuilder.GetSandbox()
+
+	builder = sandbox.NewBuilder()
 	Expect(testSandbox).NotTo(BeNil())
 }

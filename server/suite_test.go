@@ -156,11 +156,29 @@ var beforeEach = func() {
 	serverConfig.PluginDirs = []string{emptyDir}
 	serverConfig.HooksDir = []string{emptyDir}
 	// Initialize test container and sandbox
-	testSandbox, err = sandbox.New(sandboxID, "", "", "", ".",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+
+	sbuilder := sandbox.NewBuilder()
+	sbuilder.SetID("sandboxID")
+	sbuilder.SetName("")
+	sbuilder.SetNamespace("")
+	sbuilder.SetKubeName("")
+	sbuilder.SetLogDir("test")
+	sbuilder.SetCriSandbox(sbuilder.ID(), time.Now(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	sbuilder.SetShmPath("")
+	sbuilder.SetCgroupParent("")
+	sbuilder.SetPrivileged(false)
+	sbuilder.SetRuntimeHandler("")
+	sbuilder.SetResolvPath("")
+	sbuilder.SetHostname("")
+	sbuilder.SetPortMappings([]*hostport.PortMapping{})
+	sbuilder.SetHostNetwork(false)
+	sbuilder.SetUsernsMode("")
+	sbuilder.SetPodLinuxOverhead(nil)
+	sbuilder.SetPodLinuxResources(nil)
+	sbuilder.SetContainers(oci.NewMemoryStore())
+	sbuilder.SetMountLabel("")
+	sbuilder.SetProcessLabel("")
+	testSandbox = sbuilder.GetSandbox()
 
 	testContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),
