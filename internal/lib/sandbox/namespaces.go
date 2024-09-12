@@ -7,28 +7,9 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	"github.com/cri-o/cri-o/internal/lib/namespace"
 	"github.com/cri-o/cri-o/internal/oci"
 )
-
-// ManagedNamespace is a structure that holds all the necessary information a caller would
-// need for a sandbox managed namespace
-// Where nsmgr.Namespace does hold similar information, ManagedNamespace exists to allow this library
-// to not return data not necessarily in a Namespace (for instance, when a namespace is not managed
-// by CRI-O, but instead is based off of the infra pid).
-type ManagedNamespace struct {
-	nsPath string
-	nsType nsmgr.NSType
-}
-
-// Type returns the namespace type.
-func (m *ManagedNamespace) Type() nsmgr.NSType {
-	return m.nsType
-}
-
-// Type returns the namespace path.
-func (m *ManagedNamespace) Path() string {
-	return m.nsPath
-}
 
 func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 	// if the namespace structure wasn't initialized, we have nothing to do here
@@ -59,34 +40,22 @@ func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 // NamespacePaths returns all the paths of the namespaces of the sandbox. If a namespace is not
 // managed by the sandbox, the namespace of the infra container will be returned.
 // It returns a slice of ManagedNamespaces.
-func (s *Sandbox) NamespacePaths() []*ManagedNamespace {
+func (s *Sandbox) NamespacePaths() []*namespace.ManagedNamespace {
 	pid := infraPid(s.InfraContainer())
 
-	typesAndPaths := make([]*ManagedNamespace, 0, nsmgr.ManagedNamespacesNum)
+	typesAndPaths := make([]*namespace.ManagedNamespace, 0, nsmgr.ManagedNamespacesNum)
 
 	if ipc := nsPathGivenInfraPid(s.ipcns, nsmgr.IPCNS, pid); ipc != "" {
-		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: nsmgr.IPCNS,
-			nsPath: ipc,
-		})
+		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(ipc, nsmgr.IPCNS))
 	}
 	if net := nsPathGivenInfraPid(s.netns, nsmgr.NETNS, pid); net != "" {
-		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: nsmgr.NETNS,
-			nsPath: net,
-		})
+		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(net, nsmgr.NETNS))
 	}
 	if uts := nsPathGivenInfraPid(s.utsns, nsmgr.UTSNS, pid); uts != "" {
-		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: nsmgr.UTSNS,
-			nsPath: uts,
-		})
+		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(uts, nsmgr.UTSNS))
 	}
 	if user := nsPathGivenInfraPid(s.userns, nsmgr.USERNS, pid); user != "" {
-		typesAndPaths = append(typesAndPaths, &ManagedNamespace{
-			nsType: nsmgr.USERNS,
-			nsPath: user,
-		})
+		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(user, nsmgr.USERNS))
 	}
 	return typesAndPaths
 }

@@ -21,6 +21,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/hostport"
+	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	statsserver "github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
@@ -31,11 +32,6 @@ import (
 	"github.com/cri-o/cri-o/pkg/annotations"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
-
-// ContainerManagerCRIO specifies an annotation value which indicates that the
-// container has been created by CRI-O. Usually used together with the key
-// `io.container.manager`.
-const ContainerManagerCRIO = "cri-o"
 
 // ContainerServer implements the ImageServer.
 type ContainerServer struct {
@@ -389,7 +385,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 
 	// Do not interact with containers of others
-	if manager, ok := m.Annotations[annotations.ContainerManager]; ok && manager != ContainerManagerCRIO {
+	if manager, ok := m.Annotations[annotations.ContainerManager]; ok && manager != constants.ContainerManagerCRIO {
 		return ErrIsNonCrioContainer
 	}
 
