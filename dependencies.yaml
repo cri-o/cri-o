@@ -14,6 +14,8 @@ dependencies:
         match: GO_VERSION
       - path: .github/workflows/tag-reconciler.yml
         match: GO_VERSION
+      - path: nix/derivation.nix
+        match: buildGo123Module
 
   - name: golangci-lint
     version: v1.60.3
