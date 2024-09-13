@@ -204,3 +204,40 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 	[[ "$output" == *"SignatureValidationFailed"* ]]
 }
+
+@test "allow signed image with restrictive policy on container creation7 if already pulled (by tag and ID)" {
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	# Insert "latest" tag into the repoDigests field, and use that as the reference
+	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
+	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$REPO_TAG_DIGEST"'" | .image.user_specified_image = "'"$REPO_TAG_DIGEST"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
+}
+
+@test "deny unsigned image with restrictive policy on container creation7 if already pulled (by tag and ID)" {
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	# Insert "latest" tag into the repoDigests field, and use that as the reference
+	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
+	REPO_TAG_DIGEST=$(crictl inspecti "$UNSIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$REPO_TAG_DIGEST"'" | .image.user_specified_image = "'"$REPO_TAG_DIGEST"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
