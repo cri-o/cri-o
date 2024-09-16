@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 13 Sep 2024 07:16:08 UTC for commit [548e070][0]._
+_Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/548e0706d55fdc3956c3c7a94a26d530f16d5b14
+[0]: https://github.com/cri-o/cri-o/commit/b177b27bd6973b5cf738211a45e776e39877d7f1
 
 ## Outdated Dependencies
 
@@ -12,7 +12,8 @@ _Generated on Fri, 13 Sep 2024 07:16:08 UTC for commit [548e070][0]._
 | github.com/containerd/containerd                                            | v1.7.21                            | v1.7.22                            | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240912224759-e937cb1ded8e | true   | true             |
+| github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.2                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240914194328-dfcb41b5cc78 | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.3                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.54.0                            | v0.55.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -349,7 +350,7 @@ _Generated on Fri, 13 Sep 2024 07:16:08 UTC for commit [548e070][0]._
 | github.com/creack/pty                                                                   | v1.1.23                               |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.2                                | v0.4.3                              | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231217050601-ba74d44ecf5f    |                                     | false  | true             |
-| github.com/cyphar/filepath-securejoin                                                   | v0.3.1                                |                                     | true   | true             |
+| github.com/cyphar/filepath-securejoin                                                   | v0.3.1                                | v0.3.2                              | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c    |                                     | false  | true             |
 | github.com/d2g/dhcp4client                                                              | v1.0.0                                |                                     | false  | true             |
 | github.com/d2g/dhcp4server                                                              | v0.0.0-20181031114812-7d4a0a7f59a5    |                                     | false  | true             |
@@ -512,7 +513,7 @@ _Generated on Fri, 13 Sep 2024 07:16:08 UTC for commit [548e070][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240912224759-e937cb1ded8e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240914194328-dfcb41b5cc78  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -774,7 +775,7 @@ _Generated on Fri, 13 Sep 2024 07:16:08 UTC for commit [548e070][0]._
 | golang.org/x/oauth2                                                                     | v0.22.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.8.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.24.0                               | v0.25.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240912191618-22fe4a1e7b9c  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240913163558-c4c42c540963  | false  | true             |
 | golang.org/x/term                                                                       | v0.23.0                               | v0.24.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.17.0                               | v0.18.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
