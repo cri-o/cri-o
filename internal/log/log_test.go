@@ -12,8 +12,6 @@ import (
 
 // The actual test suite.
 var _ = t.Describe("Log", func() {
-	var ctx context.Context
-
 	const (
 		msg  = "Hello world"
 		id   = "some-id"
@@ -23,12 +21,12 @@ var _ = t.Describe("Log", func() {
 	idEntry := "id=" + id
 	nameEntry := "name=" + name
 
-	BeforeEach(func() {
-		ctx = context.WithValue(
+	ctx := func() context.Context {
+		return context.WithValue(
 			context.WithValue(context.Background(), log.ID{}, id),
 			log.Name{}, name,
 		)
-	})
+	}
 
 	t.Describe("Debugf", func() {
 		BeforeEach(func() { beforeEach(logrus.DebugLevel) })
@@ -36,7 +34,7 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to debug log", func() {
 			// Given
 			// When
-			log.Debugf(ctx, msg)
+			log.Debugf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
@@ -74,7 +72,7 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to info log", func() {
 			// Given
 			// When
-			log.Infof(ctx, msg)
+			log.Infof(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
@@ -85,7 +83,7 @@ var _ = t.Describe("Log", func() {
 		It("should not debug log", func() {
 			// Given
 			// When
-			log.Debugf(ctx, msg)
+			log.Debugf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(BeEmpty())
@@ -98,7 +96,7 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to warn log", func() {
 			// Given
 			// When
-			log.Warnf(ctx, msg)
+			log.Warnf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
@@ -109,7 +107,7 @@ var _ = t.Describe("Log", func() {
 		It("should not info log", func() {
 			// Given
 			// When
-			log.Infof(ctx, msg)
+			log.Infof(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(BeEmpty())
@@ -122,7 +120,7 @@ var _ = t.Describe("Log", func() {
 		It("should succeed to error log", func() {
 			// Given
 			// When
-			log.Errorf(ctx, msg)
+			log.Errorf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(ContainSubstring(msg))
@@ -133,7 +131,7 @@ var _ = t.Describe("Log", func() {
 		It("should not warn log", func() {
 			// Given
 			// When
-			log.Warnf(ctx, msg)
+			log.Warnf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(BeEmpty())
@@ -146,7 +144,7 @@ var _ = t.Describe("Log", func() {
 		It("should not error log", func() {
 			// Given
 			// When
-			log.Errorf(ctx, msg)
+			log.Errorf(ctx(), msg)
 
 			// Then
 			Expect(buf.String()).To(BeEmpty())
