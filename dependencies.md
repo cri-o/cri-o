@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
+_Generated on Tue, 17 Sep 2024 10:07:49 UTC for commit [c7319f5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b177b27bd6973b5cf738211a45e776e39877d7f1
+[0]: https://github.com/cri-o/cri-o/commit/c7319f5804674f0d2999499d15a3ca94c9c35d30
 
 ## Outdated Dependencies
 
@@ -13,8 +13,8 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240914194328-dfcb41b5cc78 | true   | true             |
-| github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.3                            | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240916131218-03cd02a00643 | true   | true             |
+| github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.4                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.54.0                            | v0.55.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.29.0                            | v1.30.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -247,10 +247,10 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.55.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.30.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                | v1.6.4                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.33                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.34                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.32                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.0                               | v1.16.13                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.18                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.19                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.4                                | v1.3.17                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.4                                | v2.6.17                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                | v1.8.1                              | false  | true             |
@@ -346,7 +346,7 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | github.com/coreos/go-semver                                                             | v0.3.1                                |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                                        | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man                                                           | v1.0.10                               |                                     | true   | true             |
-| github.com/cpuguy83/go-md2man/v2                                                        | v2.0.4                                |                                     | false  | true             |
+| github.com/cpuguy83/go-md2man/v2                                                        | v2.0.4                                | v2.0.5                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.23                               |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.2                                | v0.4.3                              | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231217050601-ba74d44ecf5f    |                                     | false  | true             |
@@ -513,7 +513,7 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240914194328-dfcb41b5cc78  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240916131218-03cd02a00643  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -625,7 +625,7 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | github.com/poy/onpar                                                                    | v1.1.2                                |                                     | false  | true             |
 | github.com/pquerna/cachecontrol                                                         | v0.1.0                                | v0.2.0                              | false  | true             |
 | github.com/proglottis/gpgme                                                             | v0.1.3                                |                                     | false  | true             |
-| github.com/prometheus/client_golang                                                     | v1.20.2                               | v1.20.3                             | true   | true             |
+| github.com/prometheus/client_golang                                                     | v1.20.2                               | v1.20.4                             | true   | true             |
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               | v0.59.1                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
@@ -775,7 +775,7 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | golang.org/x/oauth2                                                                     | v0.22.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.8.0                                |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.24.0                               | v0.25.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240913163558-c4c42c540963  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20240916140951-1b7b43a8aaf2  | false  | true             |
 | golang.org/x/term                                                                       | v0.23.0                               | v0.24.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.17.0                               | v0.18.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                | v0.6.0                              | false  | true             |
@@ -820,13 +820,13 @@ _Generated on Mon, 16 Sep 2024 08:34:16 UTC for commit [b177b27][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20240903163716-9e1beecbcb38  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.1                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240902221715-702e33fdd3c3  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240912132815-3002873b449c  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20240917091217-aaab500c26c4  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.60.1                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.61.0                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
