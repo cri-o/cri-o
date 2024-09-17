@@ -38,7 +38,7 @@ func StreamInterceptor() grpc.StreamServerInterceptor {
 	) error {
 		newCtx := AddRequestNameAndID(stream.Context(), info.FullMethod)
 		newStream := NewServerStream(stream)
-		newStream.NewContext = newCtx
+		newStream.NewContext = newCtx //nolint:fatcontext // the added context is intended here
 
 		err := handler(srv, newStream)
 		if err != nil {

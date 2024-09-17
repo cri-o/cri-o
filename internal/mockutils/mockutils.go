@@ -15,7 +15,7 @@ type MockSequence struct {
 func InOrder(calls ...interface{}) MockSequence {
 	var first, last *gomock.Call
 	// This implementation does a few more assignments and checks than strictly necessary, but it is O(N) and reasonably easy to read, so, whatever.
-	for i := range len(calls) {
+	for i := range calls {
 		var elem MockSequence
 		switch e := calls[i].(type) {
 		case MockSequence:

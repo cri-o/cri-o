@@ -161,14 +161,13 @@ var _ = t.Describe("ResourceStore", func() {
 		})
 	})
 	Context("Stages", func() {
-		var ctx context.Context
+		ctx := context.Background()
 		BeforeEach(func() {
 			sut = resourcestore.New()
 			cleaner = resourcestore.NewResourceCleaner()
 			e = &entry{
 				id: testID,
 			}
-			ctx = context.Background()
 		})
 		AfterEach(func() {
 			sut.Close()

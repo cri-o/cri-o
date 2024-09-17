@@ -32,7 +32,7 @@ var _ = t.Describe("Runtime", func() {
 	// The system under test
 	var sut storage.RuntimeServer
 
-	var ctx context.Context
+	ctx := context.TODO()
 
 	// Prepare the system under test and register a test name and key before
 	// each test
@@ -45,8 +45,6 @@ var _ = t.Describe("Runtime", func() {
 
 		sut = storage.GetRuntimeService(context.Background(), imageServerMock, storageTransportMock)
 		Expect(sut).NotTo(BeNil())
-
-		ctx = context.TODO()
 	})
 	AfterEach(func() {
 		mockCtrl.Finish()
