@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
+_Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/61abdd5b5c099232911a4ed3e3171715ae038216
+[0]: https://github.com/cri-o/cri-o/commit/a6805d84948c2394591fe1b652c19299cf2c9151
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240917202124-28d430ec428b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240918193652-1597f8ba00db | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.4                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.54.0                            | v0.55.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -56,7 +56,7 @@ _Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 | cloud.google.com/go/baremetalsolution                                                   | v1.2.4                                | v1.3.1                              | false  | true             |
 | cloud.google.com/go/batch                                                               | v1.8.2                                | v1.11.0                             | false  | true             |
 | cloud.google.com/go/beyondcorp                                                          | v1.0.4                                | v1.1.1                              | false  | true             |
-| cloud.google.com/go/bigquery                                                            | v1.59.1                               | v1.62.0                             | false  | true             |
+| cloud.google.com/go/bigquery                                                            | v1.59.1                               | v1.63.0                             | false  | true             |
 | cloud.google.com/go/billing                                                             | v1.18.3                               | v1.19.1                             | false  | true             |
 | cloud.google.com/go/binaryauthorization                                                 | v1.8.1                                | v1.9.1                              | false  | true             |
 | cloud.google.com/go/certificatemanager                                                  | v1.7.5                                | v1.9.1                              | false  | true             |
@@ -250,7 +250,7 @@ _Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 | github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.27.35                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.33                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.0                               | v1.16.13                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.20                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.21                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.4                                | v1.3.17                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.4                                | v2.6.17                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                | v1.8.1                              | false  | true             |
@@ -262,7 +262,7 @@ _Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.6                               | v1.11.19                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.3                               | v1.17.17                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.30.0                               | v1.35.8                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.61.3                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.62.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.20.3                               | v1.22.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.26.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.30.8                             | false  | true             |
@@ -513,7 +513,7 @@ _Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240917202124-28d430ec428b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240918193652-1597f8ba00db  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
