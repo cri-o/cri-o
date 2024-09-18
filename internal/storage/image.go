@@ -966,21 +966,9 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 
 	images := make([]RegistryImageReference, len(resolved.PullCandidates))
 	for i := range resolved.PullCandidates {
-		// Strip the tag from ambiguous image references that have a
-		// digest as well (e.g.  `image:tag@sha256:123...`).  Such
-		// image references are supported by docker but, due to their
-		// ambiguity, explicitly not by containers/image.
-		ref := resolved.PullCandidates[i].Value
-		_, isTagged := ref.(reference.NamedTagged)
-		canonical, isDigested := ref.(reference.Canonical)
-		if isTagged && isDigested {
-			canonical, err = reference.WithDigest(reference.TrimNamed(ref), canonical.Digest())
-			if err != nil {
-				return nil, err
-			}
-			ref = canonical
-		}
-		images[i] = references.RegistryImageReferenceFromRaw(ref)
+		// This function will strip the tag if both tag and digest are specified, as it's supported
+		// by Docker (and thus CRI-O by example) but not c/image.
+		images[i] = references.RegistryImageReferenceFromRaw(resolved.PullCandidates[i].Value)
 	}
 
 	return images, nil

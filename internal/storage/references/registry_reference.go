@@ -12,7 +12,7 @@ import (
 //
 // More specifically:
 // - The name always specifies a registry; it is not an alias nor a short name input to a search
-// - The name contains a tag or digest; it does not specify just a repo.
+// - The name contains a tag xor digest; it does not specify just a repo.
 //
 // This is intended to be a value type; if a value exists, it contains a valid reference.
 type RegistryImageReference struct {
@@ -24,8 +24,22 @@ type RegistryImageReference struct {
 // RegistryImageReferenceFromRaw is an internal constructor of a RegistryImageReference.
 //
 // This should only be called from internal/storage.
-// It’s the caller’s responsibility to provide a valid value (!IsNameOnly, and registry-qualified).
+// It will modify the reference if both digest and tag are specified, stripping the tag and leaving the digest.
+// It will also verifies the image is not only a name. If it is only a name, the function errors.
 func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageReference {
+	_, isTagged := rawNamed.(reference.NamedTagged)
+	canonical, isDigested := rawNamed.(reference.Canonical)
+	// Strip the tag from ambiguous image references that have a
+	// digest as well (e.g.  `image:tag@sha256:123...`).  Such
+	// image references are supported by docker but, due to their
+	// ambiguity, explicitly not by containers/image.
+	if isTagged && isDigested {
+		canonical, err := reference.WithDigest(reference.TrimNamed(rawNamed), canonical.Digest())
+		if err != nil {
+			panic("internal error, reference.WithDigest was not passed a digest, which should not be possible")
+		}
+		rawNamed = canonical
+	}
 	// Ideally this would be better encapsulated, e.g. in internal/storage/internal, but
 	// that would require using a type defined with the internal package with a public alias,
 	// and as of 2023-10 mockgen creates code that refers to the internal target of the alias,
@@ -40,6 +54,8 @@ func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageRefere
 //
 // It is only intended for communication with OUT-OF-PROCESS APIs,
 // like registry references provided by CRI by Kubelet.
+// It will modify the reference if both digest and tag are specified, stripping the tag and leaving the digest.
+// It will also verifies the image is not only a name. If it is only a name, the `latest` tag will be added.
 func ParseRegistryImageReferenceFromOutOfProcessData(input string) (RegistryImageReference, error) {
 	// Alternatively, should we provide two parsers, one with docker.io/library and :latest defaulting,
 	// and one only accepting fully-specified reference.Named.String() values?
