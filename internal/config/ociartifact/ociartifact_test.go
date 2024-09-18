@@ -10,11 +10,11 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	ociartifactmock "github.com/cri-o/cri-o/test/mocks/ociartifact"

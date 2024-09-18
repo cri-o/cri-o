@@ -4,9 +4,9 @@ import (
 	"context"
 	"os"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 )
 
 // The actual test suite.

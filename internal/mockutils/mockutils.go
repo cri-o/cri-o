@@ -3,8 +3,8 @@ package mockutils
 import (
 	"fmt"
 
-	"github.com/golang/mock/gomock"
 	"github.com/onsi/ginkgo/v2"
+	"go.uber.org/mock/gomock"
 )
 
 type MockSequence struct {

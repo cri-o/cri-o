@@ -10,10 +10,10 @@ import (
 	"time"
 
 	cstorage "github.com/containers/storage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/kubelet/pkg/cri/streaming"
 

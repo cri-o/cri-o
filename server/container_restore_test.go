@@ -9,11 +9,11 @@ import (
 	criu "github.com/checkpoint-restore/go-criu/v7/utils"
 	"github.com/containers/storage/pkg/archive"
 	"github.com/containers/storage/pkg/unshare"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
+	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubetypes "k8s.io/kubelet/pkg/types"
 

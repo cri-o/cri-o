@@ -99,12 +99,6 @@ dependencies:
       - path: Makefile
         match: SHFMT_VERSION
 
-  - name: mockgen
-    version: 1.6.0
-    refPaths:
-      - path: Makefile
-        match: MOCKGEN_VERSION
-
   - name: go-mod-outdated
     version: 0.9.0
     refPaths:

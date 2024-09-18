@@ -28,7 +28,6 @@ require (
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/storage v1.55.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
-	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.23
 	github.com/cri-o/ocicni v0.4.2
 	github.com/cyphar/filepath-securejoin v0.3.1
@@ -39,7 +38,6 @@ require (
 	github.com/go-logr/logr v1.4.2
 	github.com/godbus/dbus/v5 v5.1.1-0.20230522191255-76236955d466
 	github.com/gogo/protobuf v1.3.2
-	github.com/golang/mock v1.6.0
 	github.com/google/go-cmp v0.6.0
 	github.com/google/renameio v1.0.1
 	github.com/google/uuid v1.6.0
@@ -70,6 +68,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.29.0
 	go.opentelemetry.io/otel/sdk v1.29.0
 	go.opentelemetry.io/otel/trace v1.29.0
+	go.uber.org/mock v0.4.0
 	golang.org/x/net v0.28.0
 	golang.org/x/sync v0.8.0
 	golang.org/x/sys v0.24.0
@@ -187,7 +186,6 @@ require (
 	github.com/prometheus/common v0.55.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.8.0 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect

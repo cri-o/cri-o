@@ -33,7 +33,7 @@ BUILD_PATH := ${PWD}/build
 BUILD_BIN_PATH := ${BUILD_PATH}/bin
 COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
-MOCK_PATH := ${PWD}/test/mocks
+MOCK_PATH := ./test/mocks
 
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
@@ -47,7 +47,6 @@ SOURCE_DATE_EPOCH ?= $(shell date +%s)
 GO_MD2MAN ?= ${BUILD_BIN_PATH}/go-md2man
 GINKGO := ${BUILD_BIN_PATH}/ginkgo
 MOCKGEN := ${BUILD_BIN_PATH}/mockgen
-MOCKGEN_VERSION := 1.6.0
 GOLANGCI_LINT := ${BUILD_BIN_PATH}/golangci-lint
 GOLANGCI_LINT_VERSION := v1.61.0
 GO_MOD_OUTDATED := ${BUILD_BIN_PATH}/go-mod-outdated
@@ -108,11 +107,6 @@ BASE_LDFLAGS = ${SHRINKFLAGS} \
 
 GO_LDFLAGS = -ldflags '${BASE_LDFLAGS} ${EXTRA_LDFLAGS}'
 
-define go_build
-	$(shell cd `pwd` && $(GO_BUILD) -o $(BUILD_BIN_PATH)/$(shell basename $(1)) $(1))
-	@echo > /dev/null
-endef
-
 define curl_to
 	curl -sSfL --retry 5 --retry-delay 3 "$(1)" -o $(2)
 	chmod +x $(2)
@@ -145,10 +139,10 @@ $(BUILD_BIN_PATH):
 	mkdir -p $(BUILD_BIN_PATH)
 
 $(GO_MD2MAN):
-	$(call go_build,./vendor/github.com/cpuguy83/go-md2man)
+	hack/go-install.sh $(BUILD_BIN_PATH) go-md2man github.com/cpuguy83/go-md2man/v2@latest
 
 $(GINKGO):
-	$(call go_build,./vendor/github.com/onsi/ginkgo/v2/ginkgo)
+	hack/go-install.sh $(BUILD_BIN_PATH) ginkgo github.com/onsi/ginkgo/v2/ginkgo@latest
 
 $(RELEASE_NOTES): $(BUILD_BIN_PATH)
 	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes/release/$(RELEASE_NOTES_VERSION)/release-notes-amd64-linux,$(RELEASE_NOTES))
@@ -159,9 +153,8 @@ $(SHFMT): $(BUILD_BIN_PATH)
 $(ZEITGEIST): $(BUILD_BIN_PATH)
 	$(call curl_to,https://storage.googleapis.com/k8s-artifacts-sig-release/kubernetes-sigs/zeitgeist/$(ZEITGEIST_VERSION)/zeitgeist-amd64-linux,$(ZEITGEIST))
 
-$(MOCKGEN): $(BUILD_BIN_PATH)
-	$(call curl_to,https://github.com/golang/mock/releases/download/v$(MOCKGEN_VERSION)/mock_$(MOCKGEN_VERSION)_linux_$(GO_ARCH).tar.gz,$(BUILD_BIN_PATH)/mockgen.tar.gz)
-	tar xf $(BUILD_BIN_PATH)/mockgen.tar.gz --strip-components=1 -C $(BUILD_BIN_PATH)
+$(MOCKGEN):
+	hack/go-install.sh $(BUILD_BIN_PATH) mockgen go.uber.org/mock/mockgen@latest
 
 $(GO_MOD_OUTDATED): $(BUILD_BIN_PATH)
 	$(call curl_to,https://github.com/psampaz/go-mod-outdated/releases/download/v$(GO_MOD_OUTDATED_VERSION)/go-mod-outdated_$(GO_MOD_OUTDATED_VERSION)_Linux_x86_64.tar.gz,$(BUILD_BIN_PATH)/gmo.tar.gz)
@@ -454,6 +447,7 @@ mockgen: ## Regenerate all mocks.
 mockgen: \
 	mock-cmdrunner \
 	mock-containerstorage \
+	mock-containereventserver \
 	mock-criostorage \
 	mock-lib-config \
 	mock-oci \
