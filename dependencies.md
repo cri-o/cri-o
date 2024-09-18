@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Sep 2024 10:22:34 UTC for commit [ae797ea][0]._
+_Generated on Wed, 18 Sep 2024 15:02:05 UTC for commit [61abdd5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ae797ea4c32e178a3c17e87026a8ad28da936c71
+[0]: https://github.com/cri-o/cri-o/commit/61abdd5b5c099232911a4ed3e3171715ae038216
 
 ## Outdated Dependencies
 
@@ -36,7 +36,7 @@ _Generated on Wed, 18 Sep 2024 10:22:34 UTC for commit [ae797ea][0]._
 |                                         MODULE                                          |                VERSION                |             NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------------------|---------------------------------------|-------------------------------------|--------|------------------|
 | capnproto.org/go/capnp/v3                                                               | v3.0.1-alpha.2                        |                                     | false  | true             |
-| cel.dev/expr                                                                            | v0.15.0                               | v0.16.1                             | false  | true             |
+| cel.dev/expr                                                                            | v0.15.0                               | v0.16.2                             | false  | true             |
 | chainguard.dev/go-grpc-kit                                                              | v0.17.2                               | v0.17.6                             | false  | true             |
 | cloud.google.com/go                                                                     | v0.112.1                              | v0.115.1                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.5                                | v1.8.1                              | false  | true             |
@@ -215,8 +215,8 @@ _Generated on Wed, 18 Sep 2024 10:22:34 UTC for commit [ae797ea][0]._
 | github.com/VividCortex/ewma                                                             | v1.2.0                                |                                     | false  | true             |
 | github.com/acarl005/stripansi                                                           | v0.0.0-20180116102854-5a71ef0e047d    |                                     | false  | true             |
 | github.com/agnivade/levenshtein                                                         | v1.1.1                                |                                     | false  | true             |
-| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9    | v0.0.0-20240828115917-88fc45aa28b1  | false  | true             |
-| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19    | v0.0.0-20240828115917-88fc45aa28b1  | false  | true             |
+| github.com/ajstarks/deck                                                                | v0.0.0-20200831202436-30c9fc6549a9    | v0.0.0-20240918141114-8d365813662d  | false  | true             |
+| github.com/ajstarks/deck/generate                                                       | v0.0.0-20210309230005-c3f852c02e19    | v0.0.0-20240918141114-8d365813662d  | false  | true             |
 | github.com/ajstarks/svgo                                                                | v0.0.0-20211024235047-1546f124cd8b    |                                     | false  | true             |
 | github.com/akavel/rsrc                                                                  | v0.10.2                               |                                     | false  | true             |
 | github.com/alecthomas/kingpin/v2                                                        | v2.4.0                                |                                     | false  | true             |
@@ -267,7 +267,7 @@ _Generated on Wed, 18 Sep 2024 10:22:34 UTC for commit [ae797ea][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.26.8                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.30.8                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.20.4                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240910181921-bef5bd9384b7  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20240918142057-e21b7a4e92d1  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
