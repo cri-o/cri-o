@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
+	"slices"
 
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
@@ -16,10 +18,10 @@ import (
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	digest "github.com/opencontainers/go-digest"
 	imgspec "github.com/opencontainers/image-spec/specs-go"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
-	"golang.org/x/exp/slices"
 )
 
 type ociImageDestination struct {
@@ -173,7 +175,7 @@ func (d *ociImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (d *ociImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
-	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+	if !impl.OriginalCandidateMatchesTryReusingBlobOptions(options) {
 		return false, private.ReusedBlob{}, nil
 	}
 	if info.Digest == "" {
@@ -301,7 +303,7 @@ func (d *ociImageDestination) Commit(context.Context, types.UnparsedImage) error
 }
 
 func ensureDirectoryExists(path string) error {
-	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
+	if err := fileutils.Exists(path); err != nil && errors.Is(err, fs.ErrNotExist) {
 		if err := os.MkdirAll(path, 0755); err != nil {
 			return err
 		}
@@ -317,7 +319,7 @@ func ensureParentDirectoryExists(path string) error {
 // indexExists checks whether the index location specified in the OCI reference exists.
 // The implementation is opinionated, since in case of unexpected errors false is returned
 func indexExists(ref ociReference) bool {
-	_, err := os.Stat(ref.indexPath())
+	err := fileutils.Exists(ref.indexPath())
 	if err == nil {
 		return true
 	}
