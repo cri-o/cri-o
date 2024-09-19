@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
+_Generated on Thu, 19 Sep 2024 11:39:53 UTC for commit [a9be399][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a6805d84948c2394591fe1b652c19299cf2c9151
+[0]: https://github.com/cri-o/cri-o/commit/a9be3999c8df7dd26aaabed1ee27180488bad1c0
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240918193652-1597f8ba00db | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240919105036-3d5f48e02ed1 | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.4                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.54.0                            | v0.55.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -345,7 +345,6 @@ _Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 | github.com/coreos/go-oidc/v3                                                            | v3.10.0                               | v3.11.0                             | false  | true             |
 | github.com/coreos/go-semver                                                             | v0.3.1                                |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                                        | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
-| github.com/cpuguy83/go-md2man                                                           | v1.0.10                               |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.4                                | v2.0.5                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.23                               |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                                 | v0.4.2                                | v0.4.3                              | true   | true             |
@@ -443,7 +442,7 @@ _Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 | github.com/golang/freetype                                                              | v0.0.0-20170609003504-e2365dfdc4a0    |                                     | false  | true             |
 | github.com/golang/glog                                                                  | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/golang/groupcache                                                            | v0.0.0-20210331224755-41bb18bfe9da    |                                     | false  | true             |
-| github.com/golang/mock                                                                  | v1.6.0                                |                                     | true   | true             |
+| github.com/golang/mock                                                                  | v1.6.0                                |                                     | false  | true             |
 | github.com/golang/protobuf                                                              | v1.5.4                                |                                     | false  | true             |
 | github.com/golang/snappy                                                                | v0.0.4                                |                                     | false  | true             |
 | github.com/google/btree                                                                 | v1.0.1                                | v1.1.3                              | false  | true             |
@@ -513,7 +512,7 @@ _Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240918193652-1597f8ba00db  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240919105036-3d5f48e02ed1  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -760,7 +759,7 @@ _Generated on Wed, 18 Sep 2024 20:32:59 UTC for commit [a6805d8][0]._
 | go.step.sm/crypto                                                                       | v0.44.2                               | v0.52.0                             | false  | true             |
 | go.uber.org/atomic                                                                      | v1.7.0                                | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                      | v1.3.0                                |                                     | false  | true             |
-| go.uber.org/mock                                                                        | v0.4.0                                |                                     | false  | true             |
+| go.uber.org/mock                                                                        | v0.4.0                                |                                     | true   | true             |
 | go.uber.org/multierr                                                                    | v1.11.0                               |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.27.0                               |                                     | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                   |                                     | false  | true             |
