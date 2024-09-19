@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Sep 2024 11:39:53 UTC for commit [a9be399][0]._
+_Generated on Thu, 19 Sep 2024 15:43:45 UTC for commit [5be0dc9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a9be3999c8df7dd26aaabed1ee27180488bad1c0
+[0]: https://github.com/cri-o/cri-o/commit/5be0dc938c7bbbdfc67aa9426568ec1e822b07f7
 
 ## Outdated Dependencies
 
@@ -13,7 +13,7 @@ _Generated on Thu, 19 Sep 2024 11:39:53 UTC for commit [a9be399][0]._
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.2                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240919105036-3d5f48e02ed1 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20240919132750-cdaaf708a18d | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.4                            | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.54.0                            | v0.55.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.29.0                            | v1.30.0                            | true   | true             |
@@ -512,7 +512,7 @@ _Generated on Thu, 19 Sep 2024 11:39:53 UTC for commit [a9be399][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240919105036-3d5f48e02ed1  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20240919132750-cdaaf708a18d  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -783,7 +783,7 @@ _Generated on Thu, 19 Sep 2024 11:39:53 UTC for commit [a9be399][0]._
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.172.0                              | v0.197.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.172.0                              | v0.198.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20240903143218-8af14fe29dc1  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20240903143218-8af14fe29dc1  | false  | true             |
