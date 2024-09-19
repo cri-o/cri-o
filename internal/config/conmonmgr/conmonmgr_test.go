@@ -3,9 +3,9 @@ package conmonmgr
 import (
 	"errors"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	runnerMock "github.com/cri-o/cri-o/test/mocks/cmdrunner"
 	"github.com/cri-o/cri-o/utils/cmdrunner"

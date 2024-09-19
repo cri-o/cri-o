@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"github.com/sirupsen/logrus"
+	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/seccomp/seccompociartifact"

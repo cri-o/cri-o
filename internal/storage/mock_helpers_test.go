@@ -4,8 +4,8 @@ import (
 	"github.com/containers/image/v5/docker/reference"
 	istorage "github.com/containers/image/v5/storage"
 	cstorage "github.com/containers/storage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/mockutils"
 	containerstoragemock "github.com/cri-o/cri-o/test/mocks/containerstorage"

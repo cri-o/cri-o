@@ -6,9 +6,9 @@ import (
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
 	cs "github.com/containers/storage"
-	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/mock/gomock"
 
 	"github.com/cri-o/cri-o/internal/mockutils"
 	"github.com/cri-o/cri-o/internal/storage"
