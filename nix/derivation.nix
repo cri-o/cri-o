@@ -1,7 +1,8 @@
 { stdenv
 , pkgs
 }:
-with pkgs; buildGo122Module {
+with pkgs; buildGoModule {
+  version = "1.22.7";
   name = "cri-o";
   src = ./..;
   vendorHash = null;
