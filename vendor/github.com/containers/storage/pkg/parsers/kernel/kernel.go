@@ -1,5 +1,4 @@
 //go:build !windows
-// +build !windows
 
 // Package kernel provides helper function to get, parse and compare kernel
 // versions for different platforms.
@@ -8,6 +7,8 @@ package kernel
 import (
 	"errors"
 	"fmt"
+
+	"github.com/sirupsen/logrus"
 )
 
 // VersionInfo holds information about the kernel.
@@ -44,6 +45,19 @@ func CompareKernelVersion(a, b VersionInfo) int {
 	}
 
 	return 0
+}
+
+// CheckKernelVersion checks if current kernel is newer than (or equal to)
+// the given version.
+func CheckKernelVersion(k, major, minor int) bool {
+	if v, err := GetKernelVersion(); err != nil {
+		logrus.Warnf("Error getting kernel version: %s", err)
+	} else {
+		if CompareKernelVersion(*v, VersionInfo{Kernel: k, Major: major, Minor: minor}) < 0 {
+			return false
+		}
+	}
+	return true
 }
 
 // ParseRelease parses a string and creates a VersionInfo based on it.

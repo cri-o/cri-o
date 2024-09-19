@@ -45,23 +45,23 @@ var (
 	regexpGitToken   = regexp.MustCompile(`git:[a-f0-9]{35,40}@github\.com`)
 )
 
-// UserInputError a custom error to handle more user input info
+// UserInputError a custom error to handle more user input info.
 type UserInputError struct {
 	ErrorString string
 	isCtrlC     bool
 }
 
-// Error return the error string
+// Error return the error string.
 func (e UserInputError) Error() string {
 	return e.ErrorString
 }
 
-// IsCtrlC return true if the user has hit Ctrl+C
+// IsCtrlC return true if the user has hit Ctrl+C.
 func (e UserInputError) IsCtrlC() bool {
 	return e.isCtrlC
 }
 
-// NewUserInputError creates a new UserInputError
+// NewUserInputError creates a new UserInputError.
 func NewUserInputError(message string, ctrlC bool) UserInputError {
 	return UserInputError{
 		ErrorString: message,
@@ -488,7 +488,20 @@ func Exists(path string) bool {
 	return true
 }
 
-// WrapText wraps a text
+// IsDir returns true if the path is a directory.
+func IsDir(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+
+	if info.IsDir() {
+		return true
+	}
+	return false
+}
+
+// WrapText wraps a text.
 func WrapText(originalText string, lineSize int) (wrappedText string) {
 	words := strings.Fields(strings.TrimSpace(originalText))
 	wrappedText = words[0]
@@ -507,7 +520,7 @@ func WrapText(originalText string, lineSize int) (wrappedText string) {
 }
 
 // StripControlCharacters takes a slice of bytes and removes control
-// characters and bare line feeds (ported from the original bash anago)
+// characters and bare line feeds (ported from the original bash anago).
 func StripControlCharacters(logData []byte) []byte {
 	return regexpCRLF.ReplaceAllLiteral(
 		regexpCtrlChar.ReplaceAllLiteral(logData, []byte{}), []byte{},
@@ -515,7 +528,7 @@ func StripControlCharacters(logData []byte) []byte {
 }
 
 // StripSensitiveData removes data deemed sensitive or non public
-// from a byte slice (ported from the original bash anago)
+// from a byte slice (ported from the original bash anago).
 func StripSensitiveData(logData []byte) []byte {
 	// Remove OAuth tokens
 	logData = regexpOauthToken.ReplaceAllLiteral(logData, []byte("__SANITIZED__:x-oauth-basic"))
@@ -524,7 +537,7 @@ func StripSensitiveData(logData []byte) []byte {
 	return logData
 }
 
-// CleanLogFile cleans control characters and sensitive data from a file
+// CleanLogFile cleans control characters and sensitive data from a file.
 func CleanLogFile(logPath string) (err error) {
 	logrus.Debugf("Sanitizing logfile %s", logPath)
 

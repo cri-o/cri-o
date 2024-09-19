@@ -20,19 +20,21 @@ func inspect(decorators []decor.Decorator) (dest []decor.Decorator) {
 	return
 }
 
-// AppendDecorators let you inject decorators to the bar's right side.
-func AppendDecorators(decorators ...decor.Decorator) BarOption {
-	decorators = inspect(decorators)
-	return func(s *bState) {
-		s.aDecorators = decorators
-	}
-}
-
 // PrependDecorators let you inject decorators to the bar's left side.
 func PrependDecorators(decorators ...decor.Decorator) BarOption {
 	decorators = inspect(decorators)
 	return func(s *bState) {
-		s.pDecorators = decorators
+		s.populateEwmaDecorators(decorators)
+		s.decorators[0] = decorators
+	}
+}
+
+// AppendDecorators let you inject decorators to the bar's right side.
+func AppendDecorators(decorators ...decor.Decorator) BarOption {
+	decorators = inspect(decorators)
+	return func(s *bState) {
+		s.populateEwmaDecorators(decorators)
+		s.decorators[1] = decorators
 	}
 }
 
@@ -112,6 +114,9 @@ func BarExtender(filler BarFiller, rev bool) BarOption {
 	if filler == nil {
 		return nil
 	}
+	if f, ok := filler.(BarFillerFunc); ok && f == nil {
+		return nil
+	}
 	fn := makeExtenderFunc(filler, rev)
 	return func(s *bState) {
 		s.extender = fn
@@ -120,28 +125,27 @@ func BarExtender(filler BarFiller, rev bool) BarOption {
 
 func makeExtenderFunc(filler BarFiller, rev bool) extenderFunc {
 	buf := new(bytes.Buffer)
-	base := func(rows []io.Reader, stat decor.Statistics) ([]io.Reader, error) {
+	base := func(stat decor.Statistics, rows ...io.Reader) ([]io.Reader, error) {
 		err := filler.Fill(buf, stat)
 		if err != nil {
 			buf.Reset()
 			return rows, err
 		}
 		for {
-			b, err := buf.ReadBytes('\n')
+			line, err := buf.ReadBytes('\n')
 			if err != nil {
+				buf.Reset()
 				break
 			}
-			rows = append(rows, bytes.NewReader(b))
+			rows = append(rows, bytes.NewReader(line))
 		}
-		buf.Reset()
 		return rows, err
 	}
-
 	if !rev {
 		return base
 	}
-	return func(rows []io.Reader, stat decor.Statistics) ([]io.Reader, error) {
-		rows, err := base(rows, stat)
+	return func(stat decor.Statistics, rows ...io.Reader) ([]io.Reader, error) {
+		rows, err := base(stat, rows...)
 		if err != nil {
 			return rows, err
 		}

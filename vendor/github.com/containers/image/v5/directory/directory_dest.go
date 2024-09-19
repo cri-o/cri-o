@@ -15,6 +15,7 @@ import (
 	"github.com/containers/image/v5/internal/putblobdigest"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -193,7 +194,7 @@ func (d *dirImageDestination) PutBlobWithOptions(ctx context.Context, stream io.
 // If the blob has been successfully reused, returns (true, info, nil).
 // If the transport can not reuse the requested blob, TryReusingBlob returns (false, {}, nil); it returns a non-nil error only on an unexpected failure.
 func (d *dirImageDestination) TryReusingBlobWithOptions(ctx context.Context, info types.BlobInfo, options private.TryReusingBlobOptions) (bool, private.ReusedBlob, error) {
-	if !impl.OriginalBlobMatchesRequiredCompression(options) {
+	if !impl.OriginalCandidateMatchesTryReusingBlobOptions(options) {
 		return false, private.ReusedBlob{}, nil
 	}
 	if info.Digest == "" {
@@ -263,7 +264,7 @@ func (d *dirImageDestination) Commit(context.Context, types.UnparsedImage) error
 
 // returns true if path exists
 func pathExists(path string) (bool, error) {
-	_, err := os.Stat(path)
+	err := fileutils.Exists(path)
 	if err == nil {
 		return true, nil
 	}

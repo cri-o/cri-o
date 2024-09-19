@@ -1,6 +1,7 @@
 package md2man
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -13,68 +14,72 @@ import (
 // roffRenderer implements the blackfriday.Renderer interface for creating
 // roff format (manpages) from markdown text
 type roffRenderer struct {
-	extensions   blackfriday.Extensions
 	listCounters []int
 	firstHeader  bool
-	firstDD      bool
 	listDepth    int
 }
 
 const (
-	titleHeader      = ".TH "
-	topLevelHeader   = "\n\n.SH "
-	secondLevelHdr   = "\n.SH "
-	otherHeader      = "\n.SS "
-	crTag            = "\n"
-	emphTag          = "\\fI"
-	emphCloseTag     = "\\fP"
-	strongTag        = "\\fB"
-	strongCloseTag   = "\\fP"
-	breakTag         = "\n.br\n"
-	paraTag          = "\n.PP\n"
-	hruleTag         = "\n.ti 0\n\\l'\\n(.lu'\n"
-	linkTag          = "\n\\[la]"
-	linkCloseTag     = "\\[ra]"
-	codespanTag      = "\\fB"
-	codespanCloseTag = "\\fR"
-	codeTag          = "\n.EX\n"
-	codeCloseTag     = "\n.EE\n"
-	quoteTag         = "\n.PP\n.RS\n"
-	quoteCloseTag    = "\n.RE\n"
-	listTag          = "\n.RS\n"
-	listCloseTag     = "\n.RE\n"
-	dtTag            = "\n.TP\n"
-	dd2Tag           = "\n"
-	tableStart       = "\n.TS\nallbox;\n"
-	tableEnd         = ".TE\n"
-	tableCellStart   = "T{\n"
-	tableCellEnd     = "\nT}\n"
+	titleHeader       = ".TH "
+	topLevelHeader    = "\n\n.SH "
+	secondLevelHdr    = "\n.SH "
+	otherHeader       = "\n.SS "
+	crTag             = "\n"
+	emphTag           = "\\fI"
+	emphCloseTag      = "\\fP"
+	strongTag         = "\\fB"
+	strongCloseTag    = "\\fP"
+	breakTag          = "\n.br\n"
+	paraTag           = "\n.PP\n"
+	hruleTag          = "\n.ti 0\n\\l'\\n(.lu'\n"
+	linkTag           = "\n\\[la]"
+	linkCloseTag      = "\\[ra]"
+	codespanTag       = "\\fB"
+	codespanCloseTag  = "\\fR"
+	codeTag           = "\n.EX\n"
+	codeCloseTag      = ".EE\n" // Do not prepend a newline character since code blocks, by definition, include a newline already (or at least as how blackfriday gives us on).
+	quoteTag          = "\n.PP\n.RS\n"
+	quoteCloseTag     = "\n.RE\n"
+	listTag           = "\n.RS\n"
+	listCloseTag      = ".RE\n"
+	dtTag             = "\n.TP\n"
+	dd2Tag            = "\n"
+	tableStart        = "\n.TS\nallbox;\n"
+	tableEnd          = ".TE\n"
+	tableCellStart    = "T{\n"
+	tableCellEnd      = "\nT}\n"
+	tablePreprocessor = `'\" t`
 )
 
 // NewRoffRenderer creates a new blackfriday Renderer for generating roff documents
 // from markdown
 func NewRoffRenderer() *roffRenderer { // nolint: golint
-	var extensions blackfriday.Extensions
-
-	extensions |= blackfriday.NoIntraEmphasis
-	extensions |= blackfriday.Tables
-	extensions |= blackfriday.FencedCode
-	extensions |= blackfriday.SpaceHeadings
-	extensions |= blackfriday.Footnotes
-	extensions |= blackfriday.Titleblock
-	extensions |= blackfriday.DefinitionLists
-	return &roffRenderer{
-		extensions: extensions,
-	}
+	return &roffRenderer{}
 }
 
 // GetExtensions returns the list of extensions used by this renderer implementation
-func (r *roffRenderer) GetExtensions() blackfriday.Extensions {
-	return r.extensions
+func (*roffRenderer) GetExtensions() blackfriday.Extensions {
+	return blackfriday.NoIntraEmphasis |
+		blackfriday.Tables |
+		blackfriday.FencedCode |
+		blackfriday.SpaceHeadings |
+		blackfriday.Footnotes |
+		blackfriday.Titleblock |
+		blackfriday.DefinitionLists
 }
 
 // RenderHeader handles outputting the header at document start
 func (r *roffRenderer) RenderHeader(w io.Writer, ast *blackfriday.Node) {
+	// We need to walk the tree to check if there are any tables.
+	// If there are, we need to enable the roff table preprocessor.
+	ast.Walk(func(node *blackfriday.Node, entering bool) blackfriday.WalkStatus {
+		if node.Type == blackfriday.Table {
+			out(w, tablePreprocessor+"\n")
+			return blackfriday.Terminate
+		}
+		return blackfriday.GoToNext
+	})
+
 	// disable hyphenation
 	out(w, ".nh\n")
 }
@@ -91,7 +96,23 @@ func (r *roffRenderer) RenderNode(w io.Writer, node *blackfriday.Node, entering 
 
 	switch node.Type {
 	case blackfriday.Text:
-		escapeSpecialChars(w, node.Literal)
+		// Special case: format the NAME section as required for proper whatis parsing.
+		// Refer to the lexgrog(1) and groff_man(7) manual pages for details.
+		if node.Parent != nil &&
+			node.Parent.Type == blackfriday.Paragraph &&
+			node.Parent.Prev != nil &&
+			node.Parent.Prev.Type == blackfriday.Heading &&
+			node.Parent.Prev.FirstChild != nil &&
+			bytes.EqualFold(node.Parent.Prev.FirstChild.Literal, []byte("NAME")) {
+			before, after, found := bytes.Cut(node.Literal, []byte(" - "))
+			escapeSpecialChars(w, before)
+			if found {
+				out(w, ` \- `)
+				escapeSpecialChars(w, after)
+			}
+		} else {
+			escapeSpecialChars(w, node.Literal)
+		}
 	case blackfriday.Softbreak:
 		out(w, crTag)
 	case blackfriday.Hardbreak:
@@ -129,14 +150,25 @@ func (r *roffRenderer) RenderNode(w io.Writer, node *blackfriday.Node, entering 
 	case blackfriday.Document:
 		break
 	case blackfriday.Paragraph:
-		// roff .PP markers break lists
-		if r.listDepth > 0 {
-			return blackfriday.GoToNext
-		}
 		if entering {
-			out(w, paraTag)
+			if r.listDepth > 0 {
+				// roff .PP markers break lists
+				if node.Prev != nil { // continued paragraph
+					if node.Prev.Type == blackfriday.List && node.Prev.ListFlags&blackfriday.ListTypeDefinition == 0 {
+						out(w, ".IP\n")
+					} else {
+						out(w, crTag)
+					}
+				}
+			} else if node.Prev != nil && node.Prev.Type == blackfriday.Heading {
+				out(w, crTag)
+			} else {
+				out(w, paraTag)
+			}
 		} else {
-			out(w, crTag)
+			if node.Next == nil || node.Next.Type != blackfriday.List {
+				out(w, crTag)
+			}
 		}
 	case blackfriday.BlockQuote:
 		if entering {
@@ -199,6 +231,10 @@ func (r *roffRenderer) handleHeading(w io.Writer, node *blackfriday.Node, enteri
 func (r *roffRenderer) handleList(w io.Writer, node *blackfriday.Node, entering bool) {
 	openTag := listTag
 	closeTag := listCloseTag
+	if (entering && r.listDepth == 0) || (!entering && r.listDepth == 1) {
+		openTag = crTag
+		closeTag = ""
+	}
 	if node.ListFlags&blackfriday.ListTypeDefinition != 0 {
 		// tags for definition lists handled within Item node
 		openTag = ""
@@ -227,23 +263,25 @@ func (r *roffRenderer) handleItem(w io.Writer, node *blackfriday.Node, entering 
 		} else if node.ListFlags&blackfriday.ListTypeTerm != 0 {
 			// DT (definition term): line just before DD (see below).
 			out(w, dtTag)
-			r.firstDD = true
 		} else if node.ListFlags&blackfriday.ListTypeDefinition != 0 {
 			// DD (definition description): line that starts with ": ".
 			//
 			// We have to distinguish between the first DD and the
 			// subsequent ones, as there should be no vertical
 			// whitespace between the DT and the first DD.
-			if r.firstDD {
-				r.firstDD = false
-			} else {
-				out(w, dd2Tag)
+			if node.Prev != nil && node.Prev.ListFlags&(blackfriday.ListTypeTerm|blackfriday.ListTypeDefinition) == blackfriday.ListTypeDefinition {
+				if node.Prev.Type == blackfriday.Item &&
+					node.Prev.LastChild != nil &&
+					node.Prev.LastChild.Type == blackfriday.List &&
+					node.Prev.LastChild.ListFlags&blackfriday.ListTypeDefinition == 0 {
+					out(w, ".IP\n")
+				} else {
+					out(w, dd2Tag)
+				}
 			}
 		} else {
 			out(w, ".IP \\(bu 2\n")
 		}
-	} else {
-		out(w, "\n")
 	}
 }
 
@@ -322,6 +360,28 @@ func out(w io.Writer, output string) {
 }
 
 func escapeSpecialChars(w io.Writer, text []byte) {
+	scanner := bufio.NewScanner(bytes.NewReader(text))
+
+	// count the number of lines in the text
+	// we need to know this to avoid adding a newline after the last line
+	n := bytes.Count(text, []byte{'\n'})
+	idx := 0
+
+	for scanner.Scan() {
+		dt := scanner.Bytes()
+		if idx < n {
+			idx++
+			dt = append(dt, '\n')
+		}
+		escapeSpecialCharsLine(w, dt)
+	}
+
+	if err := scanner.Err(); err != nil {
+		panic(err)
+	}
+}
+
+func escapeSpecialCharsLine(w io.Writer, text []byte) {
 	for i := 0; i < len(text); i++ {
 		// escape initial apostrophe or period
 		if len(text) >= 1 && (text[0] == '\'' || text[0] == '.') {

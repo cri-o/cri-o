@@ -53,9 +53,10 @@ type ImageDestinationInternalOnly interface {
 	// PutBlobPartial attempts to create a blob using the data that is already present
 	// at the destination. chunkAccessor is accessed in a non-sequential way to retrieve the missing chunks.
 	// It is available only if SupportsPutBlobPartial().
-	// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
-	// should fall back to PutBlobWithOptions.
-	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (UploadedBlob, error)
+	// Even if SupportsPutBlobPartial() returns true, the call can fail.
+	// If the call fails with ErrFallbackToOrdinaryLayerDownload, the caller can fall back to PutBlobWithOptions.
+	// The fallback _must not_ be done otherwise.
+	PutBlobPartial(ctx context.Context, chunkAccessor BlobChunkAccessor, srcInfo types.BlobInfo, options PutBlobPartialOptions) (UploadedBlob, error)
 
 	// TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
 	// (e.g. if the blob is a filesystem layer, this signifies that the changes it describes need to be applied again when composing a filesystem tree).
@@ -100,6 +101,12 @@ type PutBlobOptions struct {
 	LayerIndex *int // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
 }
 
+// PutBlobPartialOptions are used in PutBlobPartial.
+type PutBlobPartialOptions struct {
+	Cache      blobinfocache.BlobInfoCache2 // Cache to use and/or update.
+	LayerIndex int                          // A zero-based index of the layer within the image (PutBlobPartial is only called with layer-like blobs, not configs)
+}
+
 // TryReusingBlobOptions are used in TryReusingBlobWithOptions.
 type TryReusingBlobOptions struct {
 	Cache blobinfocache.BlobInfoCache2 // Cache to use and/or update.
@@ -112,11 +119,13 @@ type TryReusingBlobOptions struct {
 	// Transports, OTOH, MUST support these fields being zero-valued for types.ImageDestination callers
 	// if they use internal/imagedestination/impl.Compat;
 	// in that case, they will all be consistently zero-valued.
-	RequiredCompression *compression.Algorithm // If set, reuse blobs with a matching algorithm as per implementations in internal/imagedestination/impl.helpers.go
-	OriginalCompression *compression.Algorithm // Must be set if RequiredCompression is set; can be set to nil to indicate “uncompressed” or “unknown”.
-	EmptyLayer          bool                   // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
-	LayerIndex          *int                   // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
-	SrcRef              reference.Named        // A reference to the source image that contains the input blob.
+	EmptyLayer              bool                   // True if the blob is an "empty"/"throwaway" layer, and may not necessarily be physically represented.
+	LayerIndex              *int                   // If the blob is a layer, a zero-based index of the layer within the image; nil otherwise.
+	SrcRef                  reference.Named        // A reference to the source image that contains the input blob.
+	PossibleManifestFormats []string               // A set of possible manifest formats; at least one should support the reused layer blob.
+	RequiredCompression     *compression.Algorithm // If set, reuse blobs with a matching algorithm as per implementations in internal/imagedestination/impl.helpers.go
+	OriginalCompression     *compression.Algorithm // May be nil to indicate “uncompressed” or “unknown”.
+	TOCDigest               digest.Digest          // If specified, the blob can be looked up in the destination also by its TOC digest.
 }
 
 // ReusedBlob is information about a blob reused in a destination.
@@ -126,14 +135,25 @@ type ReusedBlob struct {
 	Size   int64         // Must be provided
 	// The following compression fields should be set when the reuse substitutes
 	// a differently-compressed blob.
+	// They may be set also to change from a base variant to a specific variant of an algorithm.
 	CompressionOperation types.LayerCompression // Compress/Decompress, matching the reused blob; PreserveOriginal if N/A
 	CompressionAlgorithm *compression.Algorithm // Algorithm if compressed, nil if decompressed or N/A
+
+	// Annotations that should be added, for CompressionAlgorithm. Note that they might need to be
+	// added even if the digest doesn’t change (if we found the annotations in a cache).
+	CompressionAnnotations map[string]string
+
+	MatchedByTOCDigest bool // Whether the layer was reused/matched by TOC digest. Used only for UI purposes.
 }
 
 // ImageSourceChunk is a portion of a blob.
 // This API is experimental and can be changed without bumping the major version number.
 type ImageSourceChunk struct {
+	// Offset specifies the starting position of the chunk within the source blob.
 	Offset uint64
+
+	// Length specifies the size of the chunk.  If it is set to math.MaxUint64,
+	// then it refers to all the data from Offset to the end of the blob.
 	Length uint64
 }
 
@@ -144,6 +164,8 @@ type BlobChunkAccessor interface {
 	// The specified chunks must be not overlapping and sorted by their offset.
 	// The readers must be fully consumed, in the order they are returned, before blocking
 	// to read the next chunk.
+	// If the Length for the last chunk is set to math.MaxUint64, then it
+	// fully fetches the remaining data from the offset to the end of the blob.
 	GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []ImageSourceChunk) (chan io.ReadCloser, chan error, error)
 }
 
@@ -161,4 +183,23 @@ type UnparsedImage interface {
 	types.UnparsedImage
 	// UntrustedSignatures is like ImageSource.GetSignaturesWithFormat, but the result is cached; it is OK to call this however often you need.
 	UntrustedSignatures(ctx context.Context) ([]signature.Signature, error)
+}
+
+// ErrFallbackToOrdinaryLayerDownload is a custom error type returned by PutBlobPartial.
+// It suggests to the caller that a fallback mechanism can be used instead of a hard failure;
+// otherwise the caller of PutBlobPartial _must not_ fall back to PutBlob.
+type ErrFallbackToOrdinaryLayerDownload struct {
+	err error
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Error() string {
+	return c.err.Error()
+}
+
+func (c ErrFallbackToOrdinaryLayerDownload) Unwrap() error {
+	return c.err
+}
+
+func NewErrFallbackToOrdinaryLayerDownload(err error) error {
+	return ErrFallbackToOrdinaryLayerDownload{err: err}
 }

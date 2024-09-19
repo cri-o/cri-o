@@ -22,7 +22,6 @@ import (
 	"os/exec"
 )
 
-// IO is the terminal IO interface
 type IO interface {
 	io.Closer
 	Stdin() io.WriteCloser
@@ -31,7 +30,6 @@ type IO interface {
 	Set(*exec.Cmd)
 }
 
-// StartCloser is an interface to handle IO closure after start
 type StartCloser interface {
 	CloseAfterStart() error
 }
@@ -76,12 +74,6 @@ func (p *pipe) Close() error {
 		err = rerr
 	}
 	return err
-}
-
-// NewPipeIO creates pipe pairs to be used with runc. It is not implemented
-// on Windows.
-func NewPipeIO(uid, gid int, opts ...IOOpt) (i IO, err error) {
-	return newPipeIO(uid, gid, opts...)
 }
 
 type pipeIO struct {
@@ -152,12 +144,12 @@ func (i *pipeIO) Set(cmd *exec.Cmd) {
 	}
 }
 
-// NewSTDIO returns I/O setup for standard OS in/out/err usage
 func NewSTDIO() (IO, error) {
 	return &stdio{}, nil
 }
 
-type stdio struct{}
+type stdio struct {
+}
 
 func (s *stdio) Close() error {
 	return nil

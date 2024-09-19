@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
+	"time"
 
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/types"
@@ -22,13 +24,18 @@ func (c *copier) newProgressPool() *mpb.Progress {
 
 // customPartialBlobDecorFunc implements mpb.DecorFunc for the partial blobs retrieval progress bar
 func customPartialBlobDecorFunc(s decor.Statistics) string {
+	current := decor.SizeB1024(s.Current)
+	total := decor.SizeB1024(s.Total)
+	refill := decor.SizeB1024(s.Refill)
 	if s.Total == 0 {
-		pairFmt := "%.1f / %.1f (skipped: %.1f)"
-		return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill))
+		return fmt.Sprintf("%.1f / %.1f (skipped: %.1f)", current, total, refill)
 	}
-	pairFmt := "%.1f / %.1f (skipped: %.1f = %.2f%%)"
+	// If we didn't do a partial fetch then let's not output a distracting ("skipped: 0.0b = 0.00%")
+	if s.Refill == 0 {
+		return fmt.Sprintf("%.1f / %.1f", current, total)
+	}
 	percentage := 100.0 * float64(s.Refill) / float64(s.Total)
-	return fmt.Sprintf(pairFmt, decor.SizeB1024(s.Current), decor.SizeB1024(s.Total), decor.SizeB1024(s.Refill), percentage)
+	return fmt.Sprintf("%.1f / %.1f (skipped: %.1f = %.2f%%)", current, total, refill, percentage)
 }
 
 // progressBar wraps a *mpb.Bar, allowing us to add extra state and methods.
@@ -119,7 +126,7 @@ func (c *copier) printCopyInfo(kind string, info types.BlobInfo) {
 	}
 }
 
-// mark100PercentComplete marks the progres bars as 100% complete;
+// mark100PercentComplete marks the progress bars as 100% complete;
 // it may do so by possibly advancing the current state if it is below the known total.
 func (bar *progressBar) mark100PercentComplete() {
 	if bar.originalSize > 0 {
@@ -150,14 +157,21 @@ type blobChunkAccessorProxy struct {
 // The specified chunks must be not overlapping and sorted by their offset.
 // The readers must be fully consumed, in the order they are returned, before blocking
 // to read the next chunk.
+// If the Length for the last chunk is set to math.MaxUint64, then it
+// fully fetches the remaining data from the offset to the end of the blob.
 func (s *blobChunkAccessorProxy) GetBlobAt(ctx context.Context, info types.BlobInfo, chunks []private.ImageSourceChunk) (chan io.ReadCloser, chan error, error) {
+	start := time.Now()
 	rc, errs, err := s.wrapped.GetBlobAt(ctx, info, chunks)
 	if err == nil {
 		total := int64(0)
 		for _, c := range chunks {
+			// do not update the progress bar if there is a chunk with unknown length.
+			if c.Length == math.MaxUint64 {
+				return rc, errs, err
+			}
 			total += int64(c.Length)
 		}
-		s.bar.IncrInt64(total)
+		s.bar.EwmaIncrInt64(total, time.Since(start))
 	}
 	return rc, errs, err
 }

@@ -27,6 +27,7 @@ import (
 	runtime "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	cioutil "github.com/containerd/containerd/pkg/ioutil"
+	"github.com/containerd/log"
 )
 
 const (
@@ -167,7 +168,7 @@ func redirectLogs(path string, rc io.ReadCloser, w io.Writer, s StreamType, maxL
 		}
 		if err != nil {
 			if err == io.EOF {
-				logrus.Debugf("Getting EOF from stream %q while redirecting to log file %q", s, path)
+				log.L.Tracef("Getting EOF from stream %q while redirecting to log file %q", s, path)
 			} else {
 				logrus.WithError(err).Errorf("An error occurred when redirecting stream %q to log file %q", s, path)
 			}
