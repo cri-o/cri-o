@@ -181,11 +181,17 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Labels, err)
 	}
+
+	sbuilder := sandbox.NewBuilder()
 	name := m.Annotations[annotations.Name]
 	name, err = c.ReservePodName(id, name)
 	if err != nil {
 		return nil, err
 	}
+
+	sbuilder.SetName(name)
+	sbuilder.SetID(id)
+
 	defer func() {
 		if retErr != nil {
 			c.ReleasePodName(name)
@@ -237,14 +243,30 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 		}
 	}
 
-	sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[annotations.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
-	if err != nil {
-		return nil, err
-	}
-	sb.AddHostnamePath(m.Annotations[annotations.HostnamePath])
-	sb.SetSeccompProfilePath(spp)
-	sb.SetNamespaceOptions(&nsOpts)
-
+	//sb, err = sandbox.New(id, m.Annotations[annotations.Namespace], name, m.Annotations[annotations.KubeName], filepath.Dir(m.Annotations[annotations.LogPath]), labels, kubeAnnotations, processLabel, mountLabel, &metadata, m.Annotations[annotations.ShmPath], m.Annotations[annotations.CgroupParent], privileged, m.Annotations[annotations.RuntimeHandler], m.Annotations[annotations.ResolvPath], m.Annotations[annotations.HostName], portMappings, hostNetwork, created, m.Annotations[annotations.UsernsModeAnnotation], &podLinuxOverhead, &podLinuxResources)
+	sbuilder.SetCriSandbox(id, created, labels, kubeAnnotations, &metadata)
+	sbuilder.SetNamespace(m.Annotations[annotations.Namespace])
+	sbuilder.SetKubeName(m.Annotations[annotations.KubeName])
+	sbuilder.SetLogDir(filepath.Dir(m.Annotations[annotations.LogPath]))
+	sbuilder.SetContainers(oci.NewMemoryStore())
+	sbuilder.SetProcessLabel(processLabel)
+	sbuilder.SetMountLabel(mountLabel)
+	sbuilder.SetShmPath(m.Annotations[annotations.ShmPath])
+	sbuilder.SetCgroupParent(m.Annotations[annotations.CgroupParent])
+	sbuilder.SetPrivileged(privileged)
+	sbuilder.SetRuntimeHandler(m.Annotations[annotations.RuntimeHandler])
+	sbuilder.SetResolvPath(m.Annotations[annotations.ResolvPath])
+	sbuilder.SetHostname(m.Annotations[annotations.HostName])
+	sbuilder.SetPortMappings(portMappings)
+	sbuilder.SetHostNetwork(hostNetwork)
+	sbuilder.SetUsernsMode(m.Annotations[annotations.UsernsModeAnnotation])
+	sbuilder.SetPodLinuxOverhead(&podLinuxOverhead)
+	sbuilder.SetPodLinuxResources(&podLinuxResources)
+	sbuilder.SetDNSConfig(sbuilder.Config().DnsConfig)
+	sbuilder.SetHostnamePath(m.Annotations[annotations.HostnamePath])
+	sbuilder.SetNamespaceOptions(&nsOpts)
+	sbuilder.SetSeccompProfilePath(spp)
+	sb = sbuilder.GetSandbox()
 	defer func() {
 		if retErr != nil {
 			if err := sb.RemoveManagedNamespaces(); err != nil {

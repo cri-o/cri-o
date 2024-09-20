@@ -70,6 +70,7 @@ type Builder interface {
 	SetHostnamePath(string)
 	SetNamespaceOptions(*types.NamespaceOption)
 	SetSeccompProfilePath(string)
+	SetID(string)
 }
 
 // builder is the hidden default type behind the Sandbox interface.
@@ -149,13 +150,7 @@ func (b *builder) SetNameAndID() error {
 	}
 
 	id := stringid.GenerateNonCryptoID()
-	if b.sb.criSandbox != nil {
-		b.sb.criSandbox.Id = id
-	} else {
-		b.sb.criSandbox = &types.PodSandbox{
-			Id: id,
-		}
-	}
+	b.SetID(id)
 	b.sb.name = strings.Join([]string{
 		"k8s",
 		b.config.Metadata.Name,
@@ -310,4 +305,14 @@ func (b *builder) SetNamespaceOptions(nsOpts *types.NamespaceOption) {
 // SetSeccompProfilePath sets the seccomp profile path.
 func (b *builder) SetSeccompProfilePath(profilePath string) {
 	b.sb.seccompProfilePath = profilePath
+}
+
+func (b *builder) SetID(id string) {
+	if b.sb.criSandbox != nil {
+		b.sb.criSandbox.Id = id
+	} else {
+		b.sb.criSandbox = &types.PodSandbox{
+			Id: id,
+		}
+	}
 }
