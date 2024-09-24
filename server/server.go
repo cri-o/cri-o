@@ -3,7 +3,6 @@ package server
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
@@ -26,6 +25,7 @@ import (
 	"k8s.io/kubelet/pkg/cri/streaming"
 	kubetypes "k8s.io/kubelet/pkg/types"
 
+	"github.com/cri-o/cri-o/internal/cert"
 	"github.com/cri-o/cri-o/internal/config/seccomp"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
@@ -44,7 +44,6 @@ import (
 )
 
 const (
-	certRefreshInterval            = time.Minute * 5
 	rootlessEnvName                = "_CRIO_ROOTLESS"
 	irqBalanceConfigRestoreDisable = "disable"
 	debounceDuration               = 200 * time.Millisecond
@@ -114,42 +113,6 @@ type pullOperation struct {
 	imageRef storage.RegistryImageReference
 	// err is the error indicating if the pull operation has succeeded or not.
 	err error
-}
-
-type certConfigCache struct {
-	config  *tls.Config
-	expires time.Time
-
-	tlsCert string
-	tlsKey  string
-	tlsCA   string
-}
-
-// GetConfigForClient gets the tlsConfig for the streaming server.
-// This allows the certs to be swapped, without shutting down crio.
-func (cc *certConfigCache) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, error) {
-	if cc.config != nil && time.Now().Before(cc.expires) {
-		return cc.config, nil
-	}
-	config := new(tls.Config)
-	cert, err := tls.LoadX509KeyPair(cc.tlsCert, cc.tlsKey)
-	if err != nil {
-		return nil, err
-	}
-	config.Certificates = []tls.Certificate{cert}
-	if cc.tlsCA != "" {
-		caBytes, err := os.ReadFile(cc.tlsCA)
-		if err != nil {
-			return nil, fmt.Errorf("read TLS CA file: %w", err)
-		}
-		certPool := x509.NewCertPool()
-		certPool.AppendCertsFromPEM(caBytes)
-		config.ClientCAs = certPool
-		config.ClientAuth = tls.RequireAndVerifyClientCert
-	}
-	cc.config = config
-	cc.expires = time.Now().Add(certRefreshInterval)
-	return config, nil
 }
 
 // StopStreamServer stops the stream server.
@@ -493,22 +456,24 @@ func New(
 		streamServerConfig.StreamIdleTimeout = idleTimeout
 	}
 	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
+
+	s.stream.streamServerCloseCh = make(chan struct{})
 	if config.StreamEnableTLS {
-		certCache := &certConfigCache{
-			tlsCert: config.StreamTLSCert,
-			tlsKey:  config.StreamTLSKey,
-			tlsCA:   config.StreamTLSCA,
+		log.Debugf(ctx, "TLS enabled for streaming server")
+		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA)
+		if err != nil {
+			return nil, err
 		}
 		// We add the certs to the config, even thought the config is dynamic, because
-		// the http package method, ServeTLS, checks to make sure there is a cert in the
+		// the http package method, ServeTLS, checks to make sure there is a certificate in the
 		// config or it throws an error.
-		cert, err := tls.LoadX509KeyPair(config.StreamTLSCert, config.StreamTLSKey)
+		certificate, err := tls.LoadX509KeyPair(config.StreamTLSCert, config.StreamTLSKey)
 		if err != nil {
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
 		streamServerConfig.TLSConfig = &tls.Config{
-			GetConfigForClient: certCache.GetConfigForClient,
-			Certificates:       []tls.Certificate{cert},
+			GetConfigForClient: certConf.GetConfigForClient,
+			Certificates:       []tls.Certificate{certificate},
 			MinVersion:         tls.VersionTLS12,
 		}
 		log.Debugf(ctx, "Applying stream server TLS configuration")
@@ -520,7 +485,6 @@ func New(
 		return nil, errors.New("unable to create streaming server")
 	}
 
-	s.stream.streamServerCloseCh = make(chan struct{})
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
 		if err := s.stream.streamServer.Start(true); err != nil && !errors.Is(err, http.ErrServerClosed) {

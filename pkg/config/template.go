@@ -847,21 +847,20 @@ const templateStringCrioAPIStreamIdleTimeout = `# Length of time until open stre
 `
 
 const templateStringCrioAPIStreamTLSCert = `# Path to the x509 certificate file used to serve the encrypted stream. This
-# file can change, and CRI-O will automatically pick up the changes within 5
-# minutes.
+# file can change, and CRI-O will automatically pick up the changes.
 {{ $.Comment }}stream_tls_cert = "{{ .StreamTLSCert }}"
 
 `
 
 const templateStringCrioAPIStreamTLSKey = `# Path to the key file used to serve the encrypted stream. This file can
-# change and CRI-O will automatically pick up the changes within 5 minutes.
+# change and CRI-O will automatically pick up the changes.
 {{ $.Comment }}stream_tls_key = "{{ .StreamTLSKey }}"
 
 `
 
 const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to verify and authenticate client
 # communication with the encrypted stream. This file can change and CRI-O will
-# automatically pick up the changes within 5 minutes.
+# automatically pick up the changes.
 {{ $.Comment }}stream_tls_ca = "{{ .StreamTLSCA }}"
 
 `
