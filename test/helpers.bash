@@ -486,7 +486,28 @@ function reload_crio() {
     kill -HUP "$CRIO_PID"
 }
 
+# wait_for_log <log message> [line to skip]
+#
+# Wait for a given log message in crio log file.
+#
+# If a second parameter is given, the log will be truncated from start to the
+# first occurrence of the second parameter. This allow to catch messages after
+# the given string.
+#
+# The function registers the timestamp of the first occurrence it finds to an
+# environment variable "LAST_TIMESTAMP".
+# This variable can then be used as the second parameter to the function, making
+# sure that we can find repetitions of the same log messages over time.
+#
+# $1 : log message to wait for
+# $2 : previous string that needs to be skipped
+#
 function wait_for_log() {
+    export LAST_TIMESTAMP
+    local LOGFILE="$CRIO_LOG"
+    if [ "$2" != "" ]; then
+        LOGFILE=$(mktemp "$TESTDIR"/wait_for_log_XXXXXX)
+    fi
     CNT=0
     while true; do
         if [[ $CNT -gt 50 ]]; then
@@ -494,7 +515,18 @@ function wait_for_log() {
             exit 1
         fi
 
-        if grep -iq "$1" "$CRIO_LOG"; then
+        if [ "$2" != "" ]; then
+            # create a temp log file containing only the logs after the given string
+            sed -e "1,/$2/d" <"$CRIO_LOG" >"$LOGFILE"
+        fi
+        status=0 # initialize the variable to make shellcheck happy
+        run grep -i -m 1 "$1" "$LOGFILE"
+        if [ "$status" -eq 0 ]; then
+            # register only the time part of the timestamp
+            # this should be a string with no space in it, and that is unique in the log
+            # NOTE: log time format = 2006-01-02T15:04:05.999999999Z
+            TIMESTAMP_REGEXP="[[:digit:]]{4}-[[:digit:]]{2}-[[:digit:]]{2}.[[:digit:]]{2}:[[:digit:]]{2}:[[:digit:]]{2}.[[:digit:]]*."
+            LAST_TIMESTAMP=$(echo "$output" | grep -oE "time=\"$TIMESTAMP_REGEXP" | cut -d" " -f2)
             break
         fi
 

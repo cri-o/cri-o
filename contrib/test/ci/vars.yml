@@ -99,8 +99,6 @@ kata_skip_cgroups_tests:
 kata_skip_command_tests:
   - 'test "crio commands"'
   - 'test "log max boundary testing"'
-kata_skip_reload_config:
-  - 'test "reload config should remove pinned images when an empty list is provided"'
 kata_skip_crio_check_tests:
   - 'test "storage directory check should wipe everything on repair errors"'
 kata_skip_crio_wipe_tests:
