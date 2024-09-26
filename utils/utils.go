@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/containers/podman/v4/pkg/lookup"
 	"github.com/cri-o/cri-o/internal/dbusmgr"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/runc/libcontainer/user"
@@ -247,56 +246,179 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 // GeneratePasswd generates a container specific passwd file,
 // iff uid is not defined in the containers /etc/passwd
 func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir string) (string, error) {
-	// if UID exists inside of container rootfs /etc/passwd then
-	// don't generate passwd
-	if _, err := lookup.GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
-		return "", nil
-	}
-	passwdFile := filepath.Join(rundir, "passwd")
-	originPasswdFile, err := securejoin.SecureJoin(rootfs, "/etc/passwd")
-	if err != nil {
-		return "", fmt.Errorf("unable to follow symlinks to passwd file: %w", err)
-	}
-	var st unix.Stat_t
-	err = unix.Stat(originPasswdFile, &st)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("unable to stat passwd file %s: %w", originPasswdFile, err)
-	}
-	// Check if passwd file is world writable.
-	if st.Mode&0o022 != 0 {
+	if _, err := GetUser(rootfs, strconv.Itoa(int(uid))); err == nil {
 		return "", nil
 	}
 
-	if uid == st.Uid && st.Mode&0o200 != 0 {
+	passwdFilePath, stat, err := secureFilePath(rootfs, "/etc/passwd")
+	if err != nil || stat.Size == 0 {
+		return "", err
+	}
+
+	if checkFilePermissions(&stat, uid, stat.Uid) {
 		return "", nil
 	}
 
-	orig, err := os.ReadFile(originPasswdFile)
-	if err != nil {
-		// If no /etc/passwd in container ignore and return
-		if os.IsNotExist(err) {
-			return "", nil
-		}
-		return "", fmt.Errorf("read passwd file: %w", err)
+	origContent, err := readFileContent(passwdFilePath)
+	if err != nil || origContent == nil {
+		return "", err
 	}
+
 	if username == "" {
 		username = "default"
 	}
 	if homedir == "" {
 		homedir = "/tmp"
 	}
-	pwd := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", orig, username, uid, gid, username, homedir)
-	if err := os.WriteFile(passwdFile, []byte(pwd), os.FileMode(st.Mode)&os.ModePerm); err != nil {
-		return "", fmt.Errorf("failed to create temporary passwd file: %w", err)
-	}
-	if err := os.Chown(passwdFile, int(st.Uid), int(st.Gid)); err != nil {
-		return "", fmt.Errorf("failed to chown temporary passwd file: %w", err)
+
+	pwdContent := fmt.Sprintf("%s%s:x:%d:%d:%s user:%s:/sbin/nologin\n", string(origContent), username, uid, gid, username, homedir)
+	passwdFile := filepath.Join(rundir, "passwd")
+
+	return createAndSecureFile(passwdFile, pwdContent, os.FileMode(stat.Mode), int(stat.Uid), int(stat.Gid))
+}
+
+// GenerateGroup generates a container specific group file,
+// iff gid is not defined in the containers /etc/group
+func GenerateGroup(gid uint32, rootfs, rundir string) (string, error) {
+	if _, err := GetGroup(rootfs, strconv.Itoa(int(gid))); err == nil {
+		return "", nil
 	}
 
-	return passwdFile, nil
+	groupFilePath, stat, err := secureFilePath(rootfs, "/etc/group")
+	if err != nil {
+		return "", err
+	}
+
+	if checkFilePermissions(&stat, gid, stat.Gid) {
+		return "", nil
+	}
+
+	origContent, err := readFileContent(groupFilePath)
+	if err != nil || origContent == nil {
+		return "", err
+	}
+
+	groupContent := fmt.Sprintf("%s%d:x:%d:\n", string(origContent), gid, gid)
+	groupFile := filepath.Join(rundir, "group")
+
+	return createAndSecureFile(groupFile, groupContent, os.FileMode(stat.Mode), int(stat.Uid), int(stat.Gid))
+}
+
+func secureFilePath(rootfs, file string) (string, unix.Stat_t, error) {
+	path, err := securejoin.SecureJoin(rootfs, file)
+	if err != nil {
+		return "", unix.Stat_t{}, fmt.Errorf("unable to follow symlinks to %s file: %w", file, err)
+	}
+
+	var st unix.Stat_t
+	err = unix.Stat(path, &st)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return "", unix.Stat_t{}, nil // File does not exist
+		}
+		return "", unix.Stat_t{}, fmt.Errorf("unable to stat file %s: %w", path, err)
+	}
+	return path, st, nil
+}
+
+// checkFilePermissions checks file permissions to decide whether to skip file modification.
+func checkFilePermissions(stat *unix.Stat_t, id, statID uint32) bool {
+	if stat.Mode&0o022 != 0 {
+		return true
+	}
+
+	// Check if the UID/GID matches and if the file is owner writable.
+	if id == statID && stat.Mode&0o200 != 0 {
+		return true
+	}
+
+	return false
+}
+
+func readFileContent(path string) ([]byte, error) {
+	content, err := os.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil // File does not exist
+		}
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+	return content, nil
+}
+
+func createAndSecureFile(path, content string, mode os.FileMode, uid, gid int) (string, error) {
+	if err := os.WriteFile(path, []byte(content), mode&os.ModePerm); err != nil {
+		return "", fmt.Errorf("failed to create file: %w", err)
+	}
+	if err := os.Chown(path, uid, gid); err != nil {
+		return "", fmt.Errorf("failed to chown file: %w", err)
+	}
+	return path, nil
+}
+
+// GetGroup searches for a group in the container's /etc/group file using the provided
+// container mount path and group identifier (either name or ID). It returns a matching
+// user.Group structure if found. If no matching group is located, it returns
+// ErrNoGroupEntries.
+func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
+	var inputIsName bool
+	gid, err := strconv.Atoi(groupIDorName)
+	if err != nil {
+		inputIsName = true
+	}
+	groupDest, err := securejoin.SecureJoin(containerMount, "/etc/group")
+	if err != nil {
+		return nil, err
+	}
+	groups, err := user.ParseGroupFileFilter(groupDest, func(g user.Group) bool {
+		if inputIsName {
+			return g.Name == groupIDorName
+		}
+		return g.Gid == gid
+	})
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if len(groups) > 0 {
+		return &groups[0], nil
+	}
+	if !inputIsName {
+		return &user.Group{Gid: gid}, user.ErrNoGroupEntries
+	}
+	return nil, user.ErrNoGroupEntries
+}
+
+// GetUser takes a containermount path and user name or ID and returns
+// a matching User structure from /etc/passwd.  If it cannot locate a user
+// with the provided information, an ErrNoPasswdEntries is returned.
+// When the provided user name was an ID, a User structure with Uid
+// set is returned along with ErrNoPasswdEntries.
+func GetUser(containerMount, userIDorName string) (*user.User, error) {
+	var inputIsName bool
+	uid, err := strconv.Atoi(userIDorName)
+	if err != nil {
+		inputIsName = true
+	}
+	passwdDest, err := securejoin.SecureJoin(containerMount, "/etc/passwd")
+	if err != nil {
+		return nil, err
+	}
+	users, err := user.ParsePasswdFileFilter(passwdDest, func(u user.User) bool {
+		if inputIsName {
+			return u.Name == userIDorName
+		}
+		return u.Uid == uid
+	})
+	if err != nil && !os.IsNotExist(err) {
+		return nil, err
+	}
+	if len(users) > 0 {
+		return &users[0], nil
+	}
+	if !inputIsName {
+		return &user.User{Uid: uid}, user.ErrNoPasswdEntries
+	}
+	return nil, user.ErrNoPasswdEntries
 }
 
 // Int32Ptr is a utility function to assign to integer pointer variables
