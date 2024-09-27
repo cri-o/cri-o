@@ -211,9 +211,8 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 // for which disallowed annotations will be filtered. They may be the same.
 // After this function, toFilter will no longer container disallowed annotations.
 func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string, runtimeHandler string) error {
-	// Only one of these Filter* will actually do any filtering, as the runtime DisallowedAnnotations
-	// were scrubbed at the config validation step if there were workload AllowedAnnotations configured.
-	// When runtime level allowed annotations are deprecated, this will be dropped.
+	// Combine the two lists to create one. Both will ultimately end up filtering, and FilterDisallowedAnnotations
+	// will handle duplicates, if any.
 	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
 	// and SpecAddAnnotations is already passed too many arguments
 	allowed, err := s.Runtime().AllowedAnnotations(runtimeHandler)

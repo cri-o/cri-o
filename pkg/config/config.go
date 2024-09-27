@@ -1743,19 +1743,21 @@ func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
-	disallowedMap := make(map[string]struct{})
+	disallowedMap := make(map[string]bool)
 	for _, ann := range annotations.AllAllowedAnnotations {
-		disallowedMap[ann] = struct{}{}
+		disallowedMap[ann] = false
 	}
 	for _, ann := range allowed {
 		if _, ok := disallowedMap[ann]; !ok {
 			return nil, fmt.Errorf("invalid allowed_annotation: %s", ann)
 		}
-		delete(disallowedMap, ann)
+		disallowedMap[ann] = true
 	}
 	disallowed = make([]string, 0, len(disallowedMap))
-	for ann := range disallowedMap {
-		disallowed = append(disallowed, ann)
+	for ann, allowed := range disallowedMap {
+		if !allowed {
+			disallowed = append(disallowed, ann)
+		}
 	}
 	return disallowed, nil
 }
