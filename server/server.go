@@ -583,6 +583,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
 			s.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
+			logrus.Info("Configuration reload completed")
 		}
 	}()
 
