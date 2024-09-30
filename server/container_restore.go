@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/storage/pkg/archive"
@@ -61,6 +62,10 @@ func (s *Server) CRImportCheckpoint(
 	// Ensure that the image to restore the checkpoint from has been provided.
 	if createConfig.Image == nil || createConfig.Image.Image == "" {
 		return "", errors.New(`attribute "image" missing from container definition`)
+	}
+
+	if createConfig.Metadata == nil && createConfig.Metadata.Name == "" {
+		return "", errors.New(`attribute "metadata" missing from container definition`)
 	}
 
 	inputImage := createConfig.Image.Image
@@ -154,69 +159,25 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("failed to read %q: %w", metadata.ConfigDumpFile, err)
 	}
 
-	ctrMetadata := types.ContainerMetadata{}
 	originalAnnotations := make(map[string]string)
-	originalLabels := make(map[string]string)
 
-	if dumpSpec.Annotations[annotations.ContainerManager] == "libpod" {
-		// This is an import from Podman
-		ctrMetadata.Name = config.Name
-		ctrMetadata.Attempt = 0
-	} else {
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Metadata]), &ctrMetadata); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Metadata, err)
+	if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
+	}
+
+	if sandboxUID != "" {
+		if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
+			originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
 		}
-		if createConfig.Metadata != nil && createConfig.Metadata.Name != "" {
-			ctrMetadata.Name = createConfig.Metadata.Name
-		}
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
-		}
+	}
 
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Labels]), &originalLabels); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Labels, err)
-		}
-		if sandboxUID != "" {
-			if _, ok := originalLabels[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalLabels[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-			if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-		}
+	if createAnnotations != nil {
+		// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
+		_, ok1 := createAnnotations["io.kubernetes.container.hash"]
+		_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
 
-		if createLabels != nil {
-			fixupLabels := []string{
-				// Update the container name. It has already been update in metadata.Name.
-				// It also needs to be updated in the container labels.
-				kubetypes.KubernetesContainerNameLabel,
-				// Update pod name in the labels.
-				kubetypes.KubernetesPodNameLabel,
-				// Also update namespace.
-				kubetypes.KubernetesPodNamespaceLabel,
-			}
-
-			for _, annotation := range fixupLabels {
-				_, ok1 := createLabels[annotation]
-				_, ok2 := originalLabels[annotation]
-
-				// If the value is not set in the original container or
-				// if it is not set in the new container, just skip
-				// the step of updating metadata.
-				if ok1 && ok2 {
-					originalLabels[annotation] = createLabels[annotation]
-				}
-			}
-		}
-
-		if createAnnotations != nil {
-			// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
-			_, ok1 := createAnnotations["io.kubernetes.container.hash"]
-			_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
-
-			if ok1 && ok2 {
-				originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
-			}
+		if ok1 && ok2 {
+			originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
 		}
 	}
 
@@ -256,8 +217,8 @@ func (s *Server) CRImportCheckpoint(
 	}
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
-			Name:    ctrMetadata.Name,
-			Attempt: ctrMetadata.Attempt,
+			Name:    createConfig.Metadata.Name,
+			Attempt: createConfig.Metadata.Attempt,
 		},
 		Image: &types.ImageSpec{
 			Image: rootFSImage,
@@ -267,7 +228,9 @@ func (s *Server) CRImportCheckpoint(
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
 		Annotations: originalAnnotations,
-		Labels:      originalLabels,
+		// The labels are nod changed or adapted. They are just taken from the CRI
+		// request without any modification (in contrast to the annotations).
+		Labels: createLabels,
 	}
 
 	if createConfig.Linux != nil {
@@ -304,6 +267,13 @@ func (s *Server) CRImportCheckpoint(
 		"/run/.containerenv": true,
 	}
 
+	// It is necessary to ensure that all bind mounts in the checkpoint archive are defined
+	// in the create container requested coming in via the CRI. If this check would not
+	// be here it would be possible to create a checkpoint archive that mounts some random
+	// file/directory on the host with the user knowing as it will happen without specifying
+	// it in the container definition.
+	missingMount := []string{}
+
 	for _, m := range dumpSpec.Mounts {
 		// Following mounts are ignored as they might point to the
 		// wrong location and if ignored the mounts will correctly
@@ -313,40 +283,38 @@ func (s *Server) CRImportCheckpoint(
 		}
 		mount := &types.Mount{
 			ContainerPath: m.Destination,
-			HostPath:      m.Source,
 		}
 
+		bindMountFound := false
 		for _, createMount := range createMounts {
 			if createMount.ContainerPath == m.Destination {
 				mount.HostPath = createMount.HostPath
+				mount.Readonly = createMount.Readonly
+				mount.RecursiveReadOnly = createMount.RecursiveReadOnly
+				mount.Propagation = createMount.Propagation
+				mount.RecursiveReadOnly = createMount.RecursiveReadOnly
+				bindMountFound = true
 			}
 		}
-
-		for _, opt := range m.Options {
-			switch opt {
-			case "ro":
-				mount.Readonly = true
-			case "rro":
-				mount.RecursiveReadOnly = true
-			case "rprivate":
-				mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
-			case "rshared":
-				mount.Propagation = types.MountPropagation_PROPAGATION_BIDIRECTIONAL
-			case "rslaved":
-				mount.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
-			}
-		}
-
-		// Recursive Read-only (RRO) support requires the mount to be
-		// read-only and the mount propagation set to private.
-		if mount.RecursiveReadOnly {
-			mount.Readonly = true
-			mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
+		if !bindMountFound {
+			missingMount = append(missingMount, m.Destination)
+			// If one mount is missing we can skip over any further code as we have
+			// to abort the restore process anyway. Not using break to get all missing
+			// mountpoints in one error message.
+			continue
 		}
 
 		log.Debugf(ctx, "Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
+	if len(missingMount) > 0 {
+		return "", fmt.Errorf(
+			"restoring %q expects following bind mounts defined (%s)",
+			inputImage,
+			strings.Join(missingMount, ","),
+		)
+	}
+
 	sandboxConfig := &types.PodSandboxConfig{
 		Metadata: &types.PodSandboxMetadata{
 			Name:      sb.Metadata().Name,
