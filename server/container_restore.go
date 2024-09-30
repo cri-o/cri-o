@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/podman/v4/pkg/annotations"
@@ -32,9 +33,14 @@ func (s *Server) CRImportCheckpoint(
 		return "", errors.New(`attribute "image" missing from container definition`)
 	}
 
+	if createConfig.Metadata == nil && createConfig.Metadata.Name == "" {
+		return "", errors.New(`attribute "metadata" missing from container definition`)
+	}
+
 	inputImage := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
+	createLabels := createConfig.Labels
 
 	// First get the container definition from the
 	// tarball to a temporary directory
@@ -89,43 +95,25 @@ func (s *Server) CRImportCheckpoint(
 		ctrID = ""
 	}
 
-	ctrMetadata := types.ContainerMetadata{}
 	originalAnnotations := make(map[string]string)
-	originalLabels := make(map[string]string)
 
-	if dumpSpec.Annotations[annotations.ContainerManager] == "libpod" {
-		// This is an import from Podman
-		ctrMetadata.Name = config.Name
-		ctrMetadata.Attempt = 0
-	} else {
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Metadata]), &ctrMetadata); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Metadata, err)
+	if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
+	}
+
+	if sandboxUID != "" {
+		if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
+			originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
 		}
+	}
 
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
-		}
+	if createAnnotations != nil {
+		// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
+		_, ok1 := createAnnotations["io.kubernetes.container.hash"]
+		_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
 
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Labels]), &originalLabels); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Labels, err)
-		}
-		if sandboxUID != "" {
-			if _, ok := originalLabels[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalLabels[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-			if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-		}
-
-		if createAnnotations != nil {
-			// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
-			_, ok1 := createAnnotations["io.kubernetes.container.hash"]
-			_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
-
-			if ok1 && ok2 {
-				originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
-			}
+		if ok1 && ok2 {
+			originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
 		}
 	}
 
@@ -151,8 +139,8 @@ func (s *Server) CRImportCheckpoint(
 
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
-			Name:    ctrMetadata.Name,
-			Attempt: ctrMetadata.Attempt,
+			Name:    createConfig.Metadata.Name,
+			Attempt: createConfig.Metadata.Attempt,
 		},
 		Image: &types.ImageSpec{Image: config.RootfsImageName},
 		Linux: &types.LinuxContainerConfig{
@@ -160,7 +148,9 @@ func (s *Server) CRImportCheckpoint(
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
 		Annotations: originalAnnotations,
-		Labels:      originalLabels,
+		// The labels are nod changed or adapted. They are just taken from the CRI
+		// request without any modification (in contrast to the annotations).
+		Labels: createLabels,
 	}
 
 	if createConfig.Linux != nil {
@@ -187,6 +177,13 @@ func (s *Server) CRImportCheckpoint(
 		"/run/.containerenv": true,
 	}
 
+	// It is necessary to ensure that all bind mounts in the checkpoint archive are defined
+	// in the create container requested coming in via the CRI. If this check would not
+	// be here it would be possible to create a checkpoint archive that mounts some random
+	// file/directory on the host with the user knowing as it will happen without specifying
+	// it in the container definition.
+	missingMount := []string{}
+
 	for _, m := range dumpSpec.Mounts {
 		// Following mounts are ignored as they might point to the
 		// wrong location and if ignored the mounts will correctly
@@ -196,31 +193,37 @@ func (s *Server) CRImportCheckpoint(
 		}
 		mount := &types.Mount{
 			ContainerPath: m.Destination,
-			HostPath:      m.Source,
 		}
 
+		bindMountFound := false
 		for _, createMount := range createMounts {
 			if createMount.ContainerPath == m.Destination {
 				mount.HostPath = createMount.HostPath
+				mount.Readonly = createMount.Readonly
+				mount.Propagation = createMount.Propagation
+				bindMountFound = true
 			}
 		}
 
-		for _, opt := range m.Options {
-			switch opt {
-			case "ro":
-				mount.Readonly = true
-			case "rprivate":
-				mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
-			case "rshared":
-				mount.Propagation = types.MountPropagation_PROPAGATION_BIDIRECTIONAL
-			case "rslaved":
-				mount.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
-			}
+		if !bindMountFound {
+			missingMount = append(missingMount, m.Destination)
+			// If one mount is missing we can skip over any further code as we have
+			// to abort the restore process anyway. Not using break to get all missing
+			// mountpoints in one error message.
+			continue
 		}
 
 		logrus.Debugf("Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
+	if len(missingMount) > 0 {
+		return "", fmt.Errorf(
+			"restoring %q expects following bind mounts defined (%s)",
+			inputImage,
+			strings.Join(missingMount, ","),
+		)
+	}
+
 	sandboxConfig := &types.PodSandboxConfig{
 		Metadata: &types.PodSandboxMetadata{
 			Name:      sb.Metadata().Name,

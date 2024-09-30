@@ -29,9 +29,16 @@ function teardown() {
 	rmdir "$BIND_MOUNT_DIR"
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	# Replace original container with checkpoint image
-	jq ".image.image=\"$TESTDIR/cp.tar\"" "$TESTDATA"/container_sleep.json > "$TESTDATA"/restore.json
-	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/restore.json "$TESTDATA"/sandbox_config.json)
-	rm -f "$TESTDATA"/restore.json
+	RESTORE_JSON=$(mktemp)
+	RESTORE2_JSON=$(mktemp)
+	jq ".image.image=\"$TESTDIR/cp.tar\"" "$TESTDATA"/container_sleep.json > "$RESTORE_JSON"
+	# This should fail because the bind mounts are not part of the create request
+	run crictl create "$pod_id" "$RESTORE_JSON" "$TESTDATA"/sandbox_config.json
+	[ "$status" -eq 1 ]
+	jq ". +{mounts:[{\"container_path\":\"/etc/issue\",\"host_path\":\"$BIND_MOUNT_FILE\"},{\"container_path\":\"/data\",\"host_path\":\"$BIND_MOUNT_DIR\"}]}" "$RESTORE_JSON" > "$RESTORE2_JSON"
+	ctr_id=$(crictl create "$pod_id" "$RESTORE2_JSON" "$TESTDATA"/sandbox_config.json)
+	rm -f "$RESTORE_JSON"
+	rm -f "$RESTORE2_JSON"
 	rm -f "$TESTDATA"/checkpoint.json
 	crictl start "$ctr_id"
 	rm -f "$BIND_MOUNT_FILE"
