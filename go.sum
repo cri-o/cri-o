@@ -731,8 +731,8 @@ github.com/containernetworking/cni v1.1.2 h1:wtRGZVv7olUHMOqouPpn3cXJWpJgM6+EUl3
 github.com/containernetworking/cni v1.1.2/go.mod h1:sDpYKmGVENF3s6uvMvGgldDWeG8dMxakj/u+i9ht9vw=
 github.com/containernetworking/plugins v1.4.1 h1:+sJRRv8PKhLkXIl6tH1D7RMi+CbbHutDGU+ErLBORWA=
 github.com/containernetworking/plugins v1.4.1/go.mod h1:n6FFGKcaY4o2o5msgu/UImtoC+fpQXM3076VHfHbj60=
-github.com/containers/common v0.57.4 h1:kmfBad92kUjP5X44BPpOwMe+eZQqaKETfS+ASeL0g+g=
-github.com/containers/common v0.57.4/go.mod h1:o3L3CyOI9yr+JC8l4dZgvqTxcjs3qdKmkek00uchgvw=
+github.com/containers/common v0.57.5-0.20241001151712-f77c20871a20 h1:NH+aS1ciH1yRVJZfKWk+TRodO2zIv2Z5XLvoJ78th8o=
+github.com/containers/common v0.57.5-0.20241001151712-f77c20871a20/go.mod h1:o3L3CyOI9yr+JC8l4dZgvqTxcjs3qdKmkek00uchgvw=
 github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6JXHGTUje2ZYobNrkg=
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57 h1:EHiHMe0cOPvBzi20g/f+NzhjhPFTxpyAkpRE4h1ZAzw=
