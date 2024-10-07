@@ -68,6 +68,28 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	assert_log "$RESTRICTIVE_POLICY"
 }
 
+@test "deny signed image with invalid policy (subjectEmail)" {
+	POLICY="$TESTDIR/policy.json"
+	jq '.transports.docker["'"$SIGNED_IMAGE"'"][0].fulcio.subjectEmail = "invalid"' "$RESTRICTIVE_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+
+	run ! crictl pull "$SIGNED_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$POLICY"
+}
+
+@test "deny signed image with invalid policy (oidcIssuer)" {
+	POLICY="$TESTDIR/policy.json"
+	jq '.transports.docker["'"$SIGNED_IMAGE"'"][0].fulcio.oidcIssuer = "invalid"' "$RESTRICTIVE_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+
+	run ! crictl pull "$SIGNED_IMAGE"
+
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+	assert_log "$POLICY"
+}
+
 @test "accept unsigned image with not existing namespace policy" {
 	NEW_SANDBOX_CONFIG="$TESTDIR/config.json"
 	jq '.metadata.namespace = "foo"' "$SANDBOX_CONFIG" > "$NEW_SANDBOX_CONFIG"
@@ -239,5 +261,47 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 
 	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
 
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "deny signed image with restrictive policy on container creation if invalid policy (subjectEmail)" {
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	# Insert "latest" tag into the repoDigests field, and use that as the reference
+	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
+	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
+	stop_crio_no_clean
+
+	POLICY="$TESTDIR/policy.json"
+	jq '.transports.docker["'"$SIGNED_IMAGE"'"][0].fulcio.subjectEmail = "invalid"' "$RESTRICTIVE_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$REPO_TAG_DIGEST"'" | .image.user_specified_image = "'"$REPO_TAG_DIGEST"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "deny signed image with restrictive policy on container creation if invalid policy (oidcIssuer)" {
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	# Insert "latest" tag into the repoDigests field, and use that as the reference
+	# CRI-O should filter out the :latest bit, so it's a valid reference for c/image
+	REPO_TAG_DIGEST=$(crictl inspecti "$SIGNED_IMAGE" | jq -r .status.repoDigests[0] | sed "s|@|:latest@|g")
+	stop_crio_no_clean
+
+	POLICY="$TESTDIR/policy.json"
+	jq '.transports.docker["'"$SIGNED_IMAGE"'"][0].fulcio.oidcIssuer = "invalid"' "$RESTRICTIVE_POLICY" > "$POLICY"
+	SIGNATURE_POLICY="$POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq '.image.image = "'"$REPO_TAG_DIGEST"'" | .image.user_specified_image = "'"$REPO_TAG_DIGEST"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"SignatureValidationFailed"* ]]
 }
