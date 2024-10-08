@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -161,29 +160,13 @@ func (mr *MockImageServerMockRecorder) ListImages(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), arg0)
 }
 
-// PrepareImage mocks base method.
-func (m *MockImageServer) PrepareImage(arg0 *types.SystemContext, arg1 references.RegistryImageReference) (types.ImageCloser, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareImage", arg0, arg1)
-	ret0, _ := ret[0].(types.ImageCloser)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PrepareImage indicates an expected call of PrepareImage.
-func (mr *MockImageServerMockRecorder) PrepareImage(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareImage", reflect.TypeOf((*MockImageServer)(nil).PrepareImage), arg0, arg1)
-}
-
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (m *MockImageServer) PullImage(arg0 context.Context, arg1 references.RegistryImageReference, arg2 *storage0.ImageCopyOptions) (references.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", arg0, arg1, arg2)
-	ret0, _ := ret[0].(types.ImageReference)
-	ret1, _ := ret[1].(reference.Canonical)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(references.RegistryImageReference)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // PullImage indicates an expected call of PullImage.
