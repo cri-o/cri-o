@@ -24,7 +24,7 @@ import (
 const Version = "1.32.0"
 
 // ReleaseMinorVersions are the currently supported minor versions.
-var ReleaseMinorVersions = []string{"1.31", "1.30", "1.29", "1.28"}
+var ReleaseMinorVersions = []string{"1.31", "1.30", "1.29"}
 
 // Variables injected during build-time.
 var (
