@@ -20,7 +20,7 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.1.2
 	github.com/containernetworking/plugins v1.4.1
-	github.com/containers/common v0.57.4
+	github.com/containers/common v0.57.5-0.20241001151712-f77c20871a20
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57
 	github.com/containers/image/v5 v5.29.3-0.20240528085521-f8d6234cf12d
