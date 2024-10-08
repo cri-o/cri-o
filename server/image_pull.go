@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
-	"github.com/containers/image/v5/signature"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -104,18 +103,11 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 
 	if pullOp.err != nil {
-		wrap := func(e error) error { return fmt.Errorf("%w: %w", e, pullOp.err) }
-
 		if errors.Is(pullOp.err, syscall.ECONNREFUSED) {
-			return nil, wrap(crierrors.ErrRegistryUnavailable)
+			return nil, fmt.Errorf("%w: %w", crierrors.ErrRegistryUnavailable, pullOp.err)
 		}
 
-		var policyErr signature.PolicyRequirementError
-		if errors.As(pullOp.err, &policyErr) {
-			return nil, wrap(crierrors.ErrSignatureValidationFailed)
-		}
-
-		return nil, pullOp.err
+		return nil, storage.WrapSignatureCRIErrorIfNeeded(pullOp.err)
 	}
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)

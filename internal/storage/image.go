@@ -543,17 +543,27 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 
 	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
 	if err != nil {
-		var policyErr signature.PolicyRequirementError
-		if errors.As(err, &policyErr) {
-			return fmt.Errorf("%w: %w", crierrors.ErrSignatureValidationFailed, err)
-		}
-		return fmt.Errorf("verifying signatures: %w", err)
+		return fmt.Errorf("verifying signatures: %w", WrapSignatureCRIErrorIfNeeded(err))
 	}
 	if !allowed {
 		panic("Internal inconsistency: IsRunningImageAllowed returned !allowed and no error when checking image signature")
 	}
 
 	return nil
+}
+
+// WrapSignatureCRIErrorIfNeeded wraps the CRI ErrSignatureValidationFailed if
+// the provided err qualifies for that. If not, then it returns err.
+func WrapSignatureCRIErrorIfNeeded(err error) error {
+	var (
+		policyErr    signature.PolicyRequirementError
+		signatureErr signature.InvalidSignatureError
+	)
+	if errors.As(err, &policyErr) || errors.As(err, &signatureErr) {
+		return fmt.Errorf("%w: %w", crierrors.ErrSignatureValidationFailed, err)
+	}
+
+	return err
 }
 
 func imageSize(img types.Image) *uint64 {
