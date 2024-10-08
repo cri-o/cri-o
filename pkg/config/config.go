@@ -159,6 +159,9 @@ type RootConfig struct {
 	// StorageOption is a list of storage driver specific options.
 	StorageOptions []string `toml:"storage_option"`
 
+	// PullOptions is a map of pull options that are passed to the storage driver.
+	pullOptions map[string]string
+
 	// LogDir is the default log directory where all logs will go unless kubelet
 	// tells us to put them somewhere else.
 	LogDir string `toml:"log_dir"`
@@ -192,6 +195,7 @@ func (c *RootConfig) GetStore() (storage.Store, error) {
 		ImageStore:         c.ImageStore,
 		GraphDriverName:    c.Storage,
 		GraphDriverOptions: c.StorageOptions,
+		PullOptions:        c.pullOptions,
 	})
 }
 
@@ -879,6 +883,7 @@ func DefaultConfig() (*Config, error) {
 			ImageStore:        storeOpts.ImageStore,
 			Storage:           storeOpts.GraphDriverName,
 			StorageOptions:    storeOpts.GraphDriverOptions,
+			pullOptions:       storeOpts.PullOptions,
 			LogDir:            "/var/log/crio/pods",
 			VersionFile:       CrioVersionPathTmp,
 			CleanShutdownFile: CrioCleanShutdownFile,
@@ -1075,6 +1080,7 @@ func (c *RootConfig) Validate(onExecution bool) error {
 		c.Root = store.GraphRoot()
 		c.Storage = store.GraphDriverName()
 		c.StorageOptions = store.GraphOptions()
+		c.pullOptions = store.PullOptions()
 	}
 
 	return nil
