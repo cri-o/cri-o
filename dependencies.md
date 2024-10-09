@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
+_Generated on Wed, 09 Oct 2024 16:14:39 UTC for commit [36a0820][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/97b02aad5d83d06e60855bdf71b2e4c8f4e5fb21
+[0]: https://github.com/cri-o/cri-o/commit/36a082042dc01e25575e2d989bc95aee9bd8a008
 
 ## Outdated Dependencies
 
@@ -10,12 +10,11 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.1.0                             | v7.2.0                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.21                            | v1.7.22                            | true   | true             |
-| github.com/containers/common                                                | v0.60.2                            | v0.60.4                            | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241008194043-80196c06ad90 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241009154945-2035d638df68 | true   | true             |
 | github.com/opencontainers/runc                                              | v1.1.14                            | v1.1.15                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.4                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
@@ -43,7 +42,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | capnproto.org/go/capnp/v3                                                               | v3.0.1-alpha.2                        |                                     | false  | true             |
 | cel.dev/expr                                                                            | v0.15.0                               | v0.16.2                             | false  | true             |
 | chainguard.dev/go-grpc-kit                                                              | v0.17.2                               | v0.17.6                             | false  | true             |
-| cloud.google.com/go                                                                     | v0.112.1                              | v0.115.1                            | false  | true             |
+| cloud.google.com/go                                                                     | v0.112.1                              | v0.116.0                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                      | v1.7.5                                | v1.8.1                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                                | v1.8.5                                | v1.9.1                              | false  | true             |
 | cloud.google.com/go/aiplatform                                                          | v1.62.2                               | v1.68.0                             | false  | true             |
@@ -336,7 +335,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.2.3                                |                                     | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.5.1                                |                                     | true   | true             |
-| github.com/containers/common                                                            | v0.60.2                               | v0.60.4                             | true   | true             |
+| github.com/containers/common                                                            | v0.60.4                               |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.5                                | v0.6.6                              | true   | true             |
 | github.com/containers/image/v5                                                          | v5.32.2                               |                                     | true   | true             |
@@ -517,7 +516,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241008194043-80196c06ad90  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241009154945-2035d638df68  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -658,7 +657,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | github.com/shibumi/go-pathspec                                                          | v1.3.0                                |                                     | false  | true             |
 | github.com/shurcooL/sanitized_anchor_name                                               | v1.0.0                                |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                                           | v2.2.4                                | v2.4.1                              | false  | true             |
-| github.com/sigstore/fulcio                                                              | v1.4.5                                | v1.6.4                              | false  | true             |
+| github.com/sigstore/fulcio                                                              | v1.4.5                                | v1.6.5                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                                      | v0.3.0                                | v0.3.2                              | false  | true             |
 | github.com/sigstore/rekor                                                               | v1.3.6                                |                                     | false  | true             |
 | github.com/sigstore/sigstore                                                            | v1.8.4                                | v1.8.9                              | false  | true             |
@@ -824,7 +823,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241009091222-67ed5848f094  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.1                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240921022957-49e7df575cb6  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241009123702-4e357edda7ff  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241009125603-952269c2bd2d  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
@@ -844,7 +843,7 @@ _Generated on Wed, 09 Oct 2024 13:06:48 UTC for commit [97b02aa][0]._
 | rsc.io/quote/v3                                                                         | v3.1.0                                |                                     | false  | true             |
 | rsc.io/sampler                                                                          | v1.3.0                                | v1.99.99                            | false  | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                                 | v0.30.3                               |                                     | false  | true             |
-| sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    | v0.0.0-20241008212023-c46165d29634  | false  | true             |
+| sigs.k8s.io/json                                                                        | v0.0.0-20221116044647-bc3834ca7abd    | v0.0.0-20241009153224-e386a8af8d30  | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.12.1                               |                                     | true   | true             |
 | sigs.k8s.io/release-utils                                                               | v0.8.4                                | v0.8.5                              | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.1                                |                                     | false  | true             |
