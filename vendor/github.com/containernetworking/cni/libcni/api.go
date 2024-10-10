@@ -30,6 +30,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+
 	"github.com/containernetworking/cni/pkg/invoke"
 	"github.com/containernetworking/cni/pkg/types"
 	"github.com/containernetworking/cni/pkg/types/create"
@@ -767,6 +769,7 @@ func (c *CNIConfig) GCNetworkList(ctx context.Context, list *NetworkConfigList, 
 	if list.DisableGC {
 		return nil
 	}
+	logrus.Errorf("GARBAGE COLLECT enabled")
 
 	// First, get the list of cached attachments
 	cachedAttachments, err := c.GetCachedAttachments("")
@@ -804,6 +807,7 @@ func (c *CNIConfig) GCNetworkList(ctx context.Context, list *NetworkConfigList, 
 			Args:           cachedAttachment.CniArgs,
 			CapabilityArgs: cachedAttachment.CapabilityArgs,
 		}
+		logrus.Errorf("GARBAGE COLLECT deleted %s", rt.ContainerID)
 		if err := c.DelNetworkList(ctx, list, &rt); err != nil {
 			errs = append(errs, fmt.Errorf("failed to delete stale attachment %s %s: %w", rt.ContainerID, rt.IfName, err))
 		}
@@ -827,6 +831,7 @@ func (c *CNIConfig) GCNetworkList(ctx context.Context, list *NetworkConfigList, 
 			if err != nil {
 				errs = append(errs, fmt.Errorf("failed to generate configuration to GC plugin %s: %w", plugin.Network.Type, err))
 			}
+			logrus.Errorf("GARBAGE COLLECT gcNetwork %v", *pluginConfig)
 			if err := c.gcNetwork(ctx, pluginConfig); err != nil {
 				errs = append(errs, fmt.Errorf("failed to GC plugin %s: %w", plugin.Network.Type, err))
 			}

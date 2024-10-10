@@ -411,25 +411,32 @@ function is_selinux_enforcing() {
 
 function prepare_network_conf() {
     mkdir -p "$CRIO_CNI_CONFIG"
-    cat >"$CRIO_CNI_CONFIG/10-crio.conf" <<-EOF
+    cat >"$CRIO_CNI_CONFIG/10-crio.conflist" <<-EOF
 {
     "cniVersion": "0.3.1",
     "name": "$CNI_DEFAULT_NETWORK",
-    "type": "$CNI_TYPE",
-    "bridge": "cni0",
-    "isGateway": true,
-    "ipMasq": true,
-    "ipam": {
-        "type": "host-local",
-        "routes": [
-            { "dst": "$POD_IPV4_DEF_ROUTE" },
-            { "dst": "$POD_IPV6_DEF_ROUTE" }
-        ],
-        "ranges": [
-            [{ "subnet": "$POD_IPV4_CIDR" }],
-            [{ "subnet": "$POD_IPV6_CIDR" }]
-        ]
-    }
+    "disableGC": true,
+    "plugins": [
+        {
+            "cniVersion": "0.3.1",
+            "name": "$CNI_DEFAULT_NETWORK",
+            "type": "$CNI_TYPE",
+            "bridge": "cni0",
+            "isGateway": true,
+            "ipMasq": true,
+            "ipam": {
+                "type": "host-local",
+                "routes": [
+                    { "dst": "$POD_IPV4_DEF_ROUTE" },
+                    { "dst": "$POD_IPV6_DEF_ROUTE" }
+                ],
+                "ranges": [
+                    [{ "subnet": "$POD_IPV4_CIDR" }],
+                    [{ "subnet": "$POD_IPV6_CIDR" }]
+                ]
+            }
+        }
+    ]
 }
 EOF
 }
