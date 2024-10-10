@@ -21,9 +21,42 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
 )
+
+// GetRuntimeHandlerForPod returns the runtime handler for the given pod config
+func (s *Server) GetRuntimeHandlerForPod(ctx context.Context, config *types.PodSandboxConfig) (string, *config.RuntimeHandler) {
+	if config == nil {
+		return "", nil
+	}
+	name := strings.Join([]string{
+		"k8s",
+		config.Metadata.Name,
+		config.Metadata.Namespace,
+		config.Metadata.Uid,
+		fmt.Sprintf("%d", config.Metadata.Attempt),
+	}, "_")
+
+	podID, err := s.PodIDForName(name)
+	if err != nil {
+		log.Warnf(ctx, "Failed getting sandbox %s", name)
+		return "", nil
+	}
+	sbox := s.GetSandbox(podID)
+	if sbox == nil {
+		return "", nil
+	}
+
+	if sbox.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sbox.RuntimeHandler()]
+		if ok {
+			return sbox.RuntimeHandler(), r
+		}
+	}
+	return "", nil
+}
 
 // PullImage pulls a image with authentication config.
 func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*types.PullImageResponse, error) {
@@ -47,6 +80,17 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		}
 		if sc.Metadata != nil {
 			pullArgs.namespace = sc.Metadata.Namespace
+		}
+	}
+
+	rhName, rh := s.GetRuntimeHandlerForPod(ctx, req.SandboxConfig)
+	if rh != nil {
+		if rh.RuntimePullImage {
+			// don't pull the image in crio, as it will be done by the runtime
+			log.Debugf(ctx, "Skip image pull for runtime %s - image %s", rhName, image)
+			return &types.PullImageResponse{
+				ImageRef: req.Image.Image,
+			}, nil
 		}
 	}
 

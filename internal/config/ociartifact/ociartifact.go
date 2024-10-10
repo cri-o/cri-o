@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/types"
@@ -75,15 +76,7 @@ const (
 	defaultCacheEntryMaxAge = 3 * 24 * time.Hour // 3 days
 )
 
-// Pull downloads the artifact content by using the provided image name and the specified options.
-func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (*Artifact, error) {
-	log.Infof(ctx, "Pulling OCI artifact from ref: %s", img)
-
-	// Use default pull options
-	if opts == nil {
-		opts = &PullOptions{}
-	}
-
+func (o *OCIArtifact) getSourceFromImageName(ctx context.Context, img string, opts *PullOptions) (types.ImageSource, error) {
 	name, err := o.impl.ParseNormalizedNamed(img)
 	if err != nil {
 		return nil, fmt.Errorf("parse image name: %w", err)
@@ -99,10 +92,36 @@ func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (
 	if err != nil {
 		return nil, fmt.Errorf("build image source: %w", err)
 	}
+	return src, nil
+}
 
+func (o *OCIArtifact) getParsedManifest(ctx context.Context, src types.ImageSource, opts *PullOptions) (manifest.Manifest, error) {
 	manifestBytes, mimeType, err := o.impl.GetManifest(ctx, src, nil)
 	if err != nil {
 		return nil, fmt.Errorf("get manifest: %w", err)
+	}
+
+	if manifest.MIMETypeIsMultiImage(mimeType) {
+		// This is a manifest list. We need to choose a single instance to work with.
+		manifestList, err := manifest.ListFromBlob(manifestBytes, mimeType)
+		if err != nil {
+			return nil, fmt.Errorf("parsing primary manifest as list: %w", err)
+		}
+		instanceDigest, err := manifestList.ChooseInstance(opts.SystemContext)
+		if err != nil {
+			return nil, fmt.Errorf("choosing an image from manifest list: %w", err)
+		}
+
+		unparsedInstance := image.UnparsedInstance(src, &instanceDigest)
+
+		sourcedImage, err := image.FromUnparsedImage(ctx, opts.SystemContext, unparsedInstance)
+		if err != nil {
+			return nil, fmt.Errorf("getting sourced image from unparsed image: %w", err)
+		}
+		manifestBytes, mimeType, err = sourcedImage.Manifest(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("getting manifest bytes from sourced image: %w", err)
+		}
 	}
 
 	parsedManifest, err := o.impl.ManifestFromBlob(manifestBytes, mimeType)
@@ -115,6 +134,48 @@ func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (
 			o.impl.ManifestConfigInfo(parsedManifest).MediaType,
 			opts.EnforceConfigMediaType,
 		)
+	}
+	return parsedManifest, nil
+}
+
+func (o *OCIArtifact) GetManifest(ctx context.Context, img string, opts *PullOptions) (manifest.Manifest, error) {
+	log.Infof(ctx, "Pulling manifest from ref: %s", img)
+
+	// Use default pull options
+	if opts == nil {
+		opts = &PullOptions{}
+	}
+
+	src, err := o.getSourceFromImageName(ctx, img, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedManifest, err := o.getParsedManifest(ctx, src, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	return parsedManifest, nil
+}
+
+// Pull downloads the artifact content by using the provided image name and the specified options.
+func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (*Artifact, error) {
+	log.Infof(ctx, "Pulling OCI artifact from ref: %s", img)
+
+	// Use default pull options
+	if opts == nil {
+		opts = &PullOptions{}
+	}
+
+	src, err := o.getSourceFromImageName(ctx, img, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	parsedManifest, err := o.getParsedManifest(ctx, src, opts)
+	if err != nil {
+		return nil, err
 	}
 
 	layers := o.impl.LayerInfos(parsedManifest)

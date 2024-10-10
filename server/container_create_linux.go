@@ -14,12 +14,14 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
+	"github.com/containers/image/v5/manifest"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
+	"github.com/opencontainers/go-digest"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/net/context"
@@ -27,9 +29,9 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
-	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -126,6 +128,106 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 	}
 }
 
+// this function takes a container config and makes sure its SecurityContext
+// is not nil. If it is, it makes sure to set default values for every field.
+func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
+	if containerConfig.Linux == nil {
+		containerConfig.Linux = &types.LinuxContainerConfig{}
+	}
+	if containerConfig.Linux.SecurityContext == nil {
+		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
+	}
+	if containerConfig.Linux.SecurityContext.NamespaceOptions == nil {
+		containerConfig.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{}
+	}
+	if containerConfig.Linux.SecurityContext.SelinuxOptions == nil {
+		containerConfig.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{}
+	}
+}
+
+// This function returns information from the image, coming from the storage image server.
+// We use "return" with no parameter knowing that values are named, and untouched
+// until the end of the function. So either err is nil and returned values
+// are right, OR err is non-nil and returned values should be considered invalid.
+func (s *Server) getInfoFromImage(userRequestedImage string) (imageName *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	var imgResult *storage.ImageResult
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
+			return
+		}
+	} else {
+		var potentialMatches []references.RegistryImageReference
+		potentialMatches, err = s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		if err != nil {
+			return
+		}
+		var imgResultErr error
+		for _, name := range potentialMatches {
+			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			if imgResultErr == nil {
+				break
+			}
+		}
+		if imgResultErr != nil {
+			err = imgResultErr
+			return
+		}
+	}
+	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if userRequestedImage == "" {
+		err = errors.New("internal error: successfully found an image, but userRequestedImage is empty")
+		return
+	}
+
+	imageName = imgResult.SomeNameOfThisImage
+	imageID = imgResult.ID
+	someRepoDigest = ""
+	if len(imgResult.RepoDigests) > 0 {
+		someRepoDigest = imgResult.RepoDigests[0]
+	}
+	imageAnnotations = imgResult.Annotations
+	return
+}
+
+func (s *Server) getInfoFromArtifact(ctx context.Context, userRequestedImage string) (imageName *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	artifact := ociartifact.New()
+	pullOpts := &ociartifact.PullOptions{}
+
+	var manifest manifest.Manifest
+	manifest, err = artifact.GetManifest(ctx, userRequestedImage, pullOpts)
+	if err != nil {
+		return
+	}
+
+	var name references.RegistryImageReference
+	name, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userRequestedImage)
+	if err != nil {
+		return
+	}
+
+	var diffIDs []digest.Digest
+	var strID string
+	strID, err = manifest.ImageID(diffIDs)
+	if err != nil {
+		return
+	}
+
+	var ID storage.StorageImageID
+	ID, err = storage.ParseStorageImageIDFromOutOfProcessData(strID)
+	if err != nil {
+		return
+	}
+
+	imageName = &name
+	imageID = ID
+	imageAnnotations = manifest.ConfigInfo().Annotations
+	someRepoDigest = manifest.ConfigInfo().Digest.String()
+
+	return
+}
+
 func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Container, sb *sandbox.Sandbox) (cntr *oci.Container, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -148,47 +250,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
-	if containerConfig.Linux == nil {
-		containerConfig.Linux = &types.LinuxContainerConfig{}
-	}
-	if containerConfig.Linux.SecurityContext == nil {
-		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
-	}
+	setContainerConfigSecurityContext(containerConfig)
 	securityContext := containerConfig.Linux.SecurityContext
 
-	// creates a spec Generator with the default spec.
-	specgen := ctr.Spec()
-	specgen.HostSpecific = true
-	specgen.ClearProcessRlimits()
-
-	for _, u := range s.config.Ulimits() {
-		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
-	}
-
-	readOnlyRootfs := ctr.ReadOnly(s.config.ReadOnly)
-	specgen.SetRootReadonly(readOnlyRootfs)
-
-	if s.config.ReadOnly {
-		// tmpcopyup is a runc extension and is not part of the OCI spec.
-		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
-		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
-		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
-		mounts := map[string]string{
-			"/run":     "mode=0755",
-			"/tmp":     "mode=1777",
-			"/var/tmp": "mode=1777",
-		}
-		for target, mode := range mounts {
-			if !isInCRIMounts(target, containerConfig.Mounts) {
-				ctr.SpecAddMount(rspec.Mount{
-					Destination: target,
-					Type:        "tmpfs",
-					Source:      "tmpfs",
-					Options:     append(options, mode),
-				})
-			}
-		}
-	}
+	specgen := s.getSpecGen(ctr, containerConfig)
 
 	// userRequestedImage is the way to locate the image.
 	// When called by Kubelet, it is either the ImageRef as returned by PullImage
@@ -199,40 +264,30 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	isRuntimePullImage := false
+	if sb.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sb.RuntimeHandler()]
+		if ok {
+			isRuntimePullImage = r.RuntimePullImage
+		}
+	}
+
+	var imageName *references.RegistryImageReference
+	var imageID storage.StorageImageID
+	var someRepoDigest string
+	var imageAnnotations map[string]string
+
 	// Get imageName and imageID that are later requested in container status
-	var imgResult *storage.ImageResult
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
-		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+	if isRuntimePullImage {
+		imageName, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromArtifact(ctx, userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		imageName, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromImage(userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
-		var imgResultErr error
-		for _, name := range potentialMatches {
-			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
-			if imgResultErr == nil {
-				break
-			}
-		}
-		if imgResultErr != nil {
-			return nil, imgResultErr
-		}
-	}
-	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
-	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
-	if userRequestedImage == "" {
-		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
-	}
-
-	imageName := imgResult.SomeNameOfThisImage
-	imageID := imgResult.ID
-	someRepoDigest := ""
-	if len(imgResult.RepoDigests) > 0 {
-		someRepoDigest = imgResult.RepoDigests[0]
 	}
 
 	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
@@ -311,9 +366,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
-	if securityContext.NamespaceOptions == nil {
-		securityContext.NamespaceOptions = &types.NamespaceOption{}
-	}
 	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE
 	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE
 	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
@@ -334,9 +386,6 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	skipRelabel := false
 	const superPrivilegedType = "spc_t"
-	if securityContext.SelinuxOptions == nil {
-		securityContext.SelinuxOptions = &types.SELinuxOption{}
-	}
 	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
 		(ctr.SandboxConfig().Linux != nil &&
 			ctr.SandboxConfig().Linux.SecurityContext != nil &&
@@ -357,21 +406,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
-	configuredDevices := s.config.Devices()
-
-	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
-	if err != nil {
-		return nil, err
-	}
-
-	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext); err != nil {
-		return nil, err
-	}
+	s.specSetDevices(ctr, sb)
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
 	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
@@ -396,32 +431,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
-	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(securityContext)
-		if err != nil {
-			return nil, fmt.Errorf("applying apparmor profile to container %s: %w", containerID, err)
-		}
-
-		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, containerID)
-		specgen.SetProcessApparmorProfile(profile)
+	err = s.specSetApparmorProfile(ctx, specgen, ctr, securityContext)
+	if err != nil {
+		return nil, err
 	}
 
-	// Get blockio class
-	if s.Config().BlockIO().Enabled() {
-		if blockioClass, err := blockio.ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations()); blockioClass != "" && err == nil {
-			if s.Config().BlockIO().ReloadRequired() {
-				if err := s.Config().BlockIO().Reload(); err != nil {
-					log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
-				}
-			}
-			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
-				if specgen.Config.Linux.Resources == nil {
-					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
-				}
-				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
-			}
-		}
+	err = s.specSetBlockioClass(specgen, metadata.Name, containerConfig.Annotations, sb.Annotations())
+	if err != nil {
+		log.Warnf(ctx, "Reconfiguring blockio for container %s failed: %v", containerID, err)
 	}
 
 	logPath, err := ctr.LogPath(sb.LogDir())
@@ -438,98 +455,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if linux != nil {
 		resources := linux.Resources
 		if resources != nil {
-			specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
-			specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
-			specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
-
-			memoryLimit := resources.MemoryLimitInBytes
-			if memoryLimit != 0 {
-				containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
-				if err != nil {
-					return nil, err
-				}
-				if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
-					return nil, err
-				}
-				specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
-				if resources.MemorySwapLimitInBytes != 0 {
-					if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
-						return nil, fmt.Errorf(
-							"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
-							ctr.ID(),
-							resources.MemorySwapLimitInBytes,
-							resources.MemoryLimitInBytes,
-						)
-					}
-					memoryLimit = resources.MemorySwapLimitInBytes
-				}
-				// If node doesn't have memory swap, then skip setting
-				// otherwise the container creation fails.
-				if node.CgroupHasMemorySwap() {
-					specgen.SetLinuxResourcesMemorySwap(memoryLimit)
-				}
+			containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
+			if err != nil {
+				return nil, err
 			}
-
-			specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
-			specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
-			specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
-
-			// If the kernel has no support for hugetlb, silently ignore the limits
-			if node.CgroupHasHugetlb() {
-				hugepageLimits := resources.HugepageLimits
-				for _, limit := range hugepageLimits {
-					specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
-				}
-			}
-
-			if node.CgroupIsV2() && len(resources.Unified) != 0 {
-				if specgen.Config.Linux.Resources.Unified == nil {
-					specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
-				}
-				for key, value := range resources.Unified {
-					specgen.Config.Linux.Resources.Unified[key] = value
-				}
+			err = ctr.SpecSetLinuxContainerResources(resources, containerMinMemory)
+			if err != nil {
+				return nil, err
 			}
 		}
 
 		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))
 
-		if ctr.Privileged() {
-			specgen.SetupPrivileged(true)
-		} else {
-			capabilities := securityContext.Capabilities
-			if err := ctr.SpecSetupCapabilities(capabilities, s.config.DefaultCapabilities, s.config.AddInheritableCapabilities); err != nil {
-				return nil, err
-			}
-		}
-
-		if securityContext.NoNewPrivs {
-			const sysAdminCap = "CAP_SYS_ADMIN"
-			for _, cap := range specgen.Config.Process.Capabilities.Bounding {
-				if cap == sysAdminCap {
-					log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
-				}
-			}
-
-			if ctr.Privileged() {
-				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
-			}
-		}
-
-		specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
-
-		if !ctr.Privileged() {
-			if securityContext.MaskedPaths != nil {
-				for _, path := range securityContext.MaskedPaths {
-					specgen.AddLinuxMaskedPaths(path)
-				}
-			}
-
-			if securityContext.ReadonlyPaths != nil {
-				for _, path := range securityContext.ReadonlyPaths {
-					specgen.AddLinuxReadonlyPaths(path)
-				}
-			}
+		err = ctr.SpecSetPrivileges(ctx, securityContext, &s.config)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -538,7 +478,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	var nsTargetCtr *oci.Container
-	if target := containerConfig.Linux.SecurityContext.NamespaceOptions.TargetId; target != "" {
+	if target := securityContext.NamespaceOptions.TargetId; target != "" {
 		nsTargetCtr = s.GetContainer(ctx, target)
 	}
 
@@ -613,7 +553,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	})
 
 	options := []string{"rw"}
-	if readOnlyRootfs {
+	if ctr.ReadOnly(s.config.ReadOnly) {
 		options = []string{"ro"}
 	}
 	if sb.ResolvPath() != "" {
@@ -673,7 +613,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	created := time.Now()
 	seccompRef := types.SecurityProfile_Unconfined.String()
 
-	if err := s.FilterDisallowedAnnotations(sb.Annotations(), imgResult.Annotations, sb.RuntimeHandler()); err != nil {
+	if err := s.FilterDisallowedAnnotations(sb.Annotations(), imageAnnotations, sb.RuntimeHandler()); err != nil {
 		return nil, fmt.Errorf("filter image annotations: %w", err)
 	}
 
@@ -685,7 +625,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			containerID,
 			ctr.Config().Metadata.Name,
 			sb.Annotations(),
-			imgResult.Annotations,
+			imageAnnotations,
 			specgen,
 			securityContext.Seccomp,
 		)
@@ -714,7 +654,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imageName, &imageID, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
 	}
@@ -1504,4 +1444,91 @@ func isSubDirectoryOf(base, target string) bool {
 		base += "/"
 	}
 	return strings.HasPrefix(base, target)
+}
+
+// returns the spec Generator for the container, with some values set
+func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.ContainerConfig) *generate.Generator {
+	specgen := ctr.Spec()
+	specgen.HostSpecific = true
+	specgen.ClearProcessRlimits()
+
+	for _, u := range s.config.Ulimits() {
+		specgen.AddProcessRlimits(u.Name, u.Hard, u.Soft)
+	}
+
+	specgen.SetRootReadonly(ctr.ReadOnly(s.config.ReadOnly))
+
+	if s.config.ReadOnly {
+		// tmpcopyup is a runc extension and is not part of the OCI spec.
+		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
+		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
+		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
+		mounts := map[string]string{
+			"/run":     "mode=0755",
+			"/tmp":     "mode=1777",
+			"/var/tmp": "mode=1777",
+		}
+		for target, mode := range mounts {
+			if !isInCRIMounts(target, containerConfig.Mounts) {
+				ctr.SpecAddMount(rspec.Mount{
+					Destination: target,
+					Type:        "tmpfs",
+					Source:      "tmpfs",
+					Options:     append(options, mode),
+				})
+			}
+		}
+	}
+
+	return specgen
+}
+
+func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.Generator, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext) error {
+	// set this container's apparmor profile if it is set by sandbox
+	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		profile, err := s.Config().AppArmor().Apply(securityContext)
+		if err != nil {
+			return fmt.Errorf("applying apparmor profile to container %s: %w", ctr.ID(), err)
+		}
+
+		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
+		specgen.SetProcessApparmorProfile(profile)
+	}
+	return nil
+}
+
+func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName string, containerAnnotations map[string]string, sandboxAnnotations map[string]string) error {
+	// Get blockio class
+	if s.Config().BlockIO().Enabled() {
+		if blockioClass, err := blockio.ContainerClassFromAnnotations(containerName, containerAnnotations, sandboxAnnotations); blockioClass != "" && err == nil {
+			if s.Config().BlockIO().ReloadRequired() {
+				if err := s.Config().BlockIO().Reload(); err != nil {
+					return err
+				}
+			}
+			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
+				if specgen.Config.Linux.Resources == nil {
+					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
+				}
+				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
+			}
+		}
+	}
+	return nil
+}
+
+func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) error {
+	configuredDevices := s.config.Devices()
+
+	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	if err != nil {
+		return err
+	}
+
+	annotationDevices, err := device.DevicesFromAnnotation(sb.Annotations()[crioann.DevicesAnnotation], s.config.AllowedDevices)
+	if err != nil {
+		return err
+	}
+
+	return ctr.SpecAddDevices(configuredDevices, annotationDevices, privilegedWithoutHostDevices, s.config.DeviceOwnershipFromSecurityContext)
 }

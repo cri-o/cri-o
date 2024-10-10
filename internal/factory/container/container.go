@@ -24,13 +24,16 @@ import (
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils"
@@ -105,7 +108,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, isSystemd bool, seccompRef, platformRuntimePath string) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -122,6 +125,12 @@ type Container interface {
 
 	// SpecSetupCapabilities sets up the container's capabilities
 	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
+
+	// SpecSetPrivileges sets the contaienr's privileges
+	SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, config *config.Config) error
+
+	// SpecSetLinuxContainerResources sets the container resources
+	SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error
 
 	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
 	PidNamespace() nsmgr.Namespace
@@ -164,7 +173,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec.
-func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -214,12 +223,12 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	}
 
 	c.spec.AddAnnotation(annotations.Image, userRequestedImage)
-	imageName := ""
-	if imageResult.SomeNameOfThisImage != nil {
-		imageName = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
+	imageNameStr := ""
+	if imageName != nil {
+		imageNameStr = imageName.StringForOutOfProcessConsumptionOnly()
 	}
-	c.spec.AddAnnotation(annotations.ImageName, imageName)
-	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
+	c.spec.AddAnnotation(annotations.ImageName, imageNameStr)
+	c.spec.AddAnnotation(annotations.ImageRef, imageID.IDStringForOutOfProcessConsumptionOnly())
 	c.spec.AddAnnotation(annotations.Name, c.Name())
 	c.spec.AddAnnotation(annotations.ContainerID, c.ID())
 	c.spec.AddAnnotation(annotations.SandboxID, sb.ID())
@@ -756,4 +765,99 @@ func getOCICapabilitiesList() []string {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 	return caps
+}
+
+func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, config *config.Config) error {
+	specgen := c.Spec()
+	if c.Privileged() {
+		specgen.SetupPrivileged(true)
+	} else {
+		capabilities := securityContext.Capabilities
+		if err := c.SpecSetupCapabilities(capabilities, config.DefaultCapabilities, config.AddInheritableCapabilities); err != nil {
+			return err
+		}
+	}
+
+	if securityContext.NoNewPrivs {
+		const sysAdminCap = "CAP_SYS_ADMIN"
+		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+			if cap == sysAdminCap {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+			}
+		}
+
+		if c.Privileged() {
+			log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+		}
+	}
+
+	specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+
+	if !c.Privileged() {
+		if securityContext.MaskedPaths != nil {
+			for _, path := range securityContext.MaskedPaths {
+				specgen.AddLinuxMaskedPaths(path)
+			}
+		}
+
+		if securityContext.ReadonlyPaths != nil {
+			for _, path := range securityContext.ReadonlyPaths {
+				specgen.AddLinuxReadonlyPaths(path)
+			}
+		}
+	}
+	return nil
+}
+
+func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error {
+	specgen := c.Spec()
+	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
+	specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
+	specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
+
+	memoryLimit := resources.MemoryLimitInBytes
+	if memoryLimit != 0 {
+		if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
+			return err
+		}
+		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+		if resources.MemorySwapLimitInBytes != 0 {
+			if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
+				return fmt.Errorf(
+					"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
+					c.ID(),
+					resources.MemorySwapLimitInBytes,
+					resources.MemoryLimitInBytes,
+				)
+			}
+			memoryLimit = resources.MemorySwapLimitInBytes
+		}
+		// If node doesn't have memory swap, then skip setting
+		// otherwise the container creation fails.
+		if node.CgroupHasMemorySwap() {
+			specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+		}
+	}
+
+	specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
+	specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
+	specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
+
+	// If the kernel has no support for hugetlb, silently ignore the limits
+	if node.CgroupHasHugetlb() {
+		hugepageLimits := resources.HugepageLimits
+		for _, limit := range hugepageLimits {
+			specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+		}
+	}
+
+	if node.CgroupIsV2() && len(resources.Unified) != 0 {
+		if specgen.Config.Linux.Resources.Unified == nil {
+			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+		}
+		for key, value := range resources.Unified {
+			specgen.Config.Linux.Resources.Unified[key] = value
+		}
+	}
+	return nil
 }
