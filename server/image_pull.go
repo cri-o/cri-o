@@ -273,7 +273,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
 	// The progress interval is 1s, but we give it a bit more time just in case
 	// that the connection revives.
-	const timeout = 10 * time.Second
+	const timeout = 60 * time.Second
 	timer := time.AfterFunc(timeout, func() {
 		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", timeout)
 		cancel()
