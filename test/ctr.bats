@@ -1389,6 +1389,16 @@ function create_test_rro_mounts() {
 }
 
 @test "ctr stop loop kill retry attempts" {
+	if [ "$RUNTIME_TYPE" == "vm" ]; then
+		# This test is creating a script that is inserted in-between cri-o and
+		# the actual runtime that must be executed.
+		# The script intercepts the "kill" command, to simulate a failed kill
+		# attempt.
+		# This can't work with the kata shim, where the commands to the runtime
+		# are sent through a gRPC socket - there is no commandline "kill" command
+		# to intercept.
+		skip "Not testable with kata"
+	fi
 	FAKE_RUNTIME_BINARY_PATH="$TESTDIR"/fake
 	FAKE_RUNTIME_ATTEMPTS_LOG="$TESTDIR"/fake.log
 
@@ -1410,12 +1420,12 @@ exec $RUNTIME_BINARY_PATH "\$@"
 EOF
 
 	setup_crio
-	cat << EOF > "$CRIO_CONFIG_DIR"/99-fake-runtime.conf
-[crio.runtime]
-default_runtime = "fake"
-[crio.runtime.runtimes.fake]
+	create_new_default_runtime fake
+	sed -i "/runtime_path/d" "$CRIO_NEW_RUNTIME_CONFIG"
+	cat << EOF >> "$CRIO_NEW_RUNTIME_CONFIG"
 runtime_path = "$FAKE_RUNTIME_BINARY_PATH"
 EOF
+
 	chmod 755 "$FAKE_RUNTIME_BINARY_PATH"
 
 	unset CONTAINER_DEFAULT_RUNTIME
