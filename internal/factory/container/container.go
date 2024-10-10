@@ -26,10 +26,9 @@ import (
 	"github.com/cri-o/cri-o/internal/config/capabilities"
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
-	"github.com/cri-o/cri-o/internal/lib"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
@@ -105,7 +104,7 @@ type Container interface {
 	SpecAddMount(rspec.Mount)
 
 	// SpecAddAnnotations adds annotations to the spec.
-	SpecAddAnnotations(ctx context.Context, sandbox *sandbox.Sandbox, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
+	SpecAddAnnotations(ctx context.Context, sb SandboxIFace, containerVolume []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) error
 
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
@@ -118,7 +117,7 @@ type Container interface {
 	SpecSetProcessArgs(imageOCIConfig *v1.Image) error
 
 	// SpecAddNamespaces sets the container's namespaces.
-	SpecAddNamespaces(*sandbox.Sandbox, *oci.Container, *config.Config) error
+	SpecAddNamespaces(SandboxIFace, *oci.Container, *config.Config) error
 
 	// SpecSetupCapabilities sets up the container's capabilities
 	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
@@ -164,7 +163,7 @@ func (c *container) SpecAddMount(r rspec.Mount) {
 }
 
 // SpecAddAnnotation adds all annotations to the spec.
-func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
+func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, containerVolumes []oci.ContainerVolume, mountPoint, configStopSignal string, imageResult *storage.ImageResult, isSystemd bool, seccompRef, platformRuntimePath string) (err error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	// Copied from k8s.io/kubernetes/pkg/kubelet/kuberuntime/labels.go
@@ -230,7 +229,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	c.spec.AddAnnotation(annotations.Stdin, strconv.FormatBool(c.Config().Stdin))
 	c.spec.AddAnnotation(annotations.StdinOnce, strconv.FormatBool(c.Config().StdinOnce))
 	c.spec.AddAnnotation(annotations.ResolvPath, sb.ResolvPath())
-	c.spec.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
+	c.spec.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	c.spec.AddAnnotation(annotations.MountPoint, mountPoint)
 	c.spec.AddAnnotation(annotations.SeccompProfilePath, seccompRef)
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
