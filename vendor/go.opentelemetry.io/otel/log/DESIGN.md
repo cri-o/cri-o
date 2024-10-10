@@ -105,16 +105,16 @@ is defined as `Record` struct  in [record.go](record.go).
 is accessed using following methods:
 
 ```go
-func (r *Record) Timestamp() time.Time 
-func (r *Record) SetTimestamp(t time.Time) 
+func (r *Record) Timestamp() time.Time
+func (r *Record) SetTimestamp(t time.Time)
 ```
 
 [`ObservedTimestamp`](https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-observedtimestamp)
 is accessed using following methods:
 
 ```go
-func (r *Record) ObservedTimestamp() time.Time 
-func (r *Record) SetObservedTimestamp(t time.Time) 
+func (r *Record) ObservedTimestamp() time.Time
+func (r *Record) SetObservedTimestamp(t time.Time)
 ```
 
 [`SeverityNumber`](https://opentelemetry.io/docs/specs/otel/logs/data-model/#field-severitynumber)
@@ -307,7 +307,7 @@ The API needs to evolve orthogonally to `slog`.
 `slog` is not compliant with the [Logs Bridge API](https://opentelemetry.io/docs/specs/otel/logs/bridge-api/).
 and we cannot expect the Go team to make `slog` compliant with it.
 
-The interoperabilty can be achieved using [a log bridge](https://opentelemetry.io/docs/specs/otel/glossary/#log-appender--bridge).
+The interoperability can be achieved using [a log bridge](https://opentelemetry.io/docs/specs/otel/glossary/#log-appender--bridge).
 
 You can read more about OpenTelemetry Logs design on [opentelemetry.io](https://opentelemetry.io/docs/concepts/signals/logs/).
 
@@ -566,7 +566,7 @@ The `Logger` does not have methods like `Enabled`, `SetSeverity`, etc.
 as the Bridge API needs to follow (be compliant with)
 the [specification](https://opentelemetry.io/docs/specs/otel/logs/bridge-api/)
 
-Moreover, the Bridge API is intendend to be used to implement bridges.
+Moreover, the Bridge API is intended to be used to implement bridges.
 Applications should not use it directly. The applications should use logging packages
 such as [`slog`](https://pkg.go.dev/log/slog),
 [`logrus`](https://pkg.go.dev/github.com/sirupsen/logrus),

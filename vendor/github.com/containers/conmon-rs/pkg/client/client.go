@@ -103,7 +103,7 @@ type Tracing struct {
 	Enabled bool
 
 	// Endpoint is the GRPC tracing endpoint for OLTP.
-	// Defaults to "http://localhost:4317"
+	// Defaults to "http://127.0.0.1:4317"
 	Endpoint string
 
 	// Tracer allows the client to create additional spans if set.
