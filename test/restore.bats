@@ -170,8 +170,7 @@ function teardown() {
 
 	output=$(crictl inspect -o table "$ctr_id")
 	[[ "${output}" == *"CONTAINER_EXITED"* ]]
-	# TODO: may be cri-tool should display Exit Code
-	#[[ "${output}" == *"Exit Code: 255"* ]]
+	[[ "${output}" == *"Exit Code: 137"* ]]
 
 	crictl stopp "$pod_id"
 	crictl rmp "$pod_id"
