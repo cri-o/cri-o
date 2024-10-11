@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 10 Oct 2024 15:01:36 UTC for commit [d7784fb][0]._
+_Generated on Fri, 11 Oct 2024 11:36:47 UTC for commit [f8f4414][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/d7784fb2e3db602a37c5330fc29a51f6f21c3289
+[0]: https://github.com/cri-o/cri-o/commit/f8f44141c3998e897b8643251c6b62a4d1d62f7a
 
 ## Outdated Dependencies
 
@@ -301,7 +301,7 @@ _Generated on Thu, 10 Oct 2024 15:01:36 UTC for commit [d7784fb][0]._
 | github.com/cilium/ebpf                                                                  | v0.11.0                               | v0.16.0                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                |                                     | false  | true             |
-| github.com/cloudflare/circl                                                             | v1.3.7                                | v1.4.0                              | false  | true             |
+| github.com/cloudflare/circl                                                             | v1.3.7                                | v1.5.0                              | false  | true             |
 | github.com/cncf/udpa/go                                                                 | v0.0.0-20220112060539-c52dc94e7fbe    |                                     | false  | true             |
 | github.com/cncf/xds/go                                                                  | v0.0.0-20240423153145-555b57ec207b    | v0.0.0-20240905190251-b4127c9b8d78  | false  | true             |
 | github.com/cockroachdb/apd/v3                                                           | v3.2.1                                |                                     | false  | true             |
@@ -539,7 +539,7 @@ _Generated on Thu, 10 Oct 2024 15:01:36 UTC for commit [d7784fb][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241010133755-37b85fbd386e  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241010192615-6692160cedfa  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -709,7 +709,7 @@ _Generated on Thu, 10 Oct 2024 15:01:36 UTC for commit [d7784fb][0]._
 | github.com/vishvananda/netns                                                            | v0.0.4                                |                                     | false  | true             |
 | github.com/weppos/publicsuffix-go                                                       | v0.30.3-0.20240411085455-21202160c2ed | v0.40.2                             | false  | true             |
 | github.com/x448/float16                                                                 | v0.8.4                                |                                     | false  | true             |
-| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.110.0                            | false  | true             |
+| github.com/xanzy/go-gitlab                                                              | v0.102.0                              | v0.111.0                            | false  | true             |
 | github.com/xanzy/ssh-agent                                                              | v0.3.3                                |                                     | false  | true             |
 | github.com/xdg-go/pbkdf2                                                                | v1.0.0                                |                                     | false  | true             |
 | github.com/xdg-go/scram                                                                 | v1.1.2                                |                                     | false  | true             |
@@ -767,7 +767,7 @@ _Generated on Thu, 10 Oct 2024 15:01:36 UTC for commit [d7784fb][0]._
 | go.uber.org/multierr                                                                    | v1.11.0                               |                                     | false  | true             |
 | go.uber.org/zap                                                                         | v1.27.0                               |                                     | false  | true             |
 | goa.design/goa                                                                          | v2.2.5+incompatible                   |                                     | false  | true             |
-| gocloud.dev                                                                             | v0.37.0                               | v0.39.0                             | false  | true             |
+| gocloud.dev                                                                             | v0.37.0                               | v0.40.0                             | false  | true             |
 | golang.org/x/crypto                                                                     | v0.26.0                               | v0.28.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56    | v0.0.0-20241009180824-f66d83c29e7c  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.21.0                             | false  | true             |
