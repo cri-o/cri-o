@@ -44,7 +44,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	// we need to fill in the container name, as it is not present in the request. Luckily, it is a constant.
-	log.Infof(ctx, "Running pod sandbox: %s%s", translateLabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
+	log.Infof(ctx, "Running pod sandbox: %s%s", oci.LabelsToDescription(sbox.Config().Labels), oci.InfraContainerName)
 
 	kubeName := sbox.Config().Metadata.Name
 	namespace := sbox.Config().Metadata.Namespace

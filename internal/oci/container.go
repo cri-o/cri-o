@@ -480,7 +480,17 @@ func (c *Container) SetStartFailed(err error) {
 
 // Description returns a description for the container.
 func (c *Container) Description() string {
-	return fmt.Sprintf("%s/%s/%s", c.Labels()[kubeletTypes.KubernetesPodNamespaceLabel], c.Labels()[kubeletTypes.KubernetesPodNameLabel], c.Labels()[kubeletTypes.KubernetesContainerNameLabel])
+	return LabelsToDescription(c.Labels())
+}
+
+// LabelsToDescription returns a string description from the provided labels.
+func LabelsToDescription(labels map[string]string) string {
+	return fmt.Sprintf(
+		"%s/%s/%s",
+		labels[kubeletTypes.KubernetesPodNamespaceLabel],
+		labels[kubeletTypes.KubernetesPodNameLabel],
+		labels[kubeletTypes.KubernetesContainerNameLabel],
+	)
 }
 
 // StdinOnce returns whether stdin once is set for the container.

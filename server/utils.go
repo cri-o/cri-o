@@ -16,7 +16,6 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
-	kubeletTypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -77,11 +76,6 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 		}
 	}
 	return envs
-}
-
-// Translate container labels to a description of the container.
-func translateLabelsToDescription(labels map[string]string) string {
-	return fmt.Sprintf("%s/%s/%s", labels[kubeletTypes.KubernetesPodNamespaceLabel], labels[kubeletTypes.KubernetesPodNameLabel], labels[kubeletTypes.KubernetesContainerNameLabel])
 }
 
 // getDecryptionKeys reads the keys from the given directory.
