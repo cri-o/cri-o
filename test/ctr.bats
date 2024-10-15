@@ -1427,8 +1427,8 @@ EOF
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
 
 	crictl start "$ctr_id"
-	crictl stopp "$pod_id"
-	crictl rmp "$pod_id"
+	CRICTL_TIMEOUT=10m crictl stop -t 10 "$ctr_id"
+	crictl rmp -f "$pod_id"
 
 	grep -q "Stopping container ${ctr_id} with stop signal timed out." "$CRIO_LOG"
 

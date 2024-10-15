@@ -472,7 +472,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 	resourceCleaner.Add(ctx, "runSandbox: stopping container "+container.ID(), func() error {
 		// Clean-up steps from RemovePodSandbox
-		if err := s.stopContainer(ctx, container, int64(10)); err != nil {
+		if err := s.stopContainer(ctx, container, stopTimeoutFromContext(ctx)); err != nil {
 			return fmt.Errorf("failed to stop container for removal")
 		}
 

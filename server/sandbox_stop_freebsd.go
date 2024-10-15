@@ -56,7 +56,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 				}
 				c := ctr
 				waitGroup.Go(func() error {
-					if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+					if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
 						return fmt.Errorf("failed to stop container for pod sandbox %s: %v", sb.ID(), err)
 					}
 					if err := s.nri.stopContainer(ctx, sb, c); err != nil {
@@ -76,7 +76,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		}
 	}
 
-	if err := s.stopContainer(ctx, podInfraContainer, int64(10)); err != nil && !errors.Is(err, storage.ErrContainerUnknown) && !errors.Is(err, oci.ErrContainerStopped) {
+	if err := s.stopContainer(ctx, podInfraContainer, stopTimeoutFromContext(ctx)); err != nil && !errors.Is(err, storage.ErrContainerUnknown) && !errors.Is(err, oci.ErrContainerStopped) {
 		return fmt.Errorf("failed to stop infra container for pod sandbox %s: %v", sb.ID(), err)
 	}
 

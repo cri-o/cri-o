@@ -42,6 +42,16 @@ EOF
 	crictl rmp "$pod_id"
 }
 
+@test "pod remove with timeout from context" {
+	start_crio
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	# the sleep command in the container needs to be killed within the deadline
+	# of the context passed down from crictl
+	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	crictl start "$ctr_id"
+	CRICTL_TIMEOUT=5s crictl rmp -f "$pod_id"
+}
+
 @test "pod stop ignores not found sandboxes" {
 	start_crio
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
