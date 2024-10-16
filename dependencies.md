@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
+_Generated on Wed, 16 Oct 2024 12:11:06 UTC for commit [7049bb9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cf62a1599f0f7998bc32df629e31fafa0c9450f8
+[0]: https://github.com/cri-o/cri-o/commit/7049bb9fe281c08308839962ca2f3e20ada77563
 
 ## Outdated Dependencies
 
@@ -15,7 +15,8 @@ _Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241015154017-f13d13c8fa45 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241015182253-69509eff33f7 | true   | true             |
+| github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.27.4                            | v2.27.5                            | true   | true             |
@@ -517,7 +518,7 @@ _Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241015154017-f13d13c8fa45  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241015182253-69509eff33f7  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.7.0                              | false  | true             |
@@ -607,7 +608,7 @@ _Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
 | github.com/opencontainers/runc                                                          | v1.1.15                               |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc  |                                     | true   | true             |
-| github.com/opencontainers/selinux                                                       | v1.11.0                               |                                     | true   | true             |
+| github.com/opencontainers/selinux                                                       | v1.11.0                               | v1.11.1                             | true   | true             |
 | github.com/opentracing/opentracing-go                                                   | v1.2.0                                |                                     | false  | true             |
 | github.com/ostreedev/ostree-go                                                          | v0.0.0-20210805093236-719684c64e4f    |                                     | false  | true             |
 | github.com/pbnjay/memory                                                                | v0.0.0-20210728143218-7b4eea64cf58    |                                     | false  | true             |
@@ -788,11 +789,11 @@ _Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
 | gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
-| google.golang.org/api                                                                   | v0.172.0                              | v0.200.0                            | false  | true             |
+| google.golang.org/api                                                                   | v0.172.0                              | v0.201.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20241007155032-5fefd90f89a9  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20241007155032-5fefd90f89a9  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20241007155032-5fefd90f89a9  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20241015192408-796eee8c2d53  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20241015192408-796eee8c2d53  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20240822170219-fc7c04adadcd    | v0.0.0-20241015192408-796eee8c2d53  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.66.0                               | v1.67.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.3.0                                | v1.5.1                              | false  | true             |
 | google.golang.org/protobuf                                                              | v1.34.2                               | v1.35.1                             | true   | true             |
@@ -824,7 +825,7 @@ _Generated on Tue, 15 Oct 2024 16:09:38 UTC for commit [cf62a15][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241009091222-67ed5848f094  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.1                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240921022957-49e7df575cb6  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241015082832-95b4b97567b5  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241016013434-6eb75e8939ac  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
