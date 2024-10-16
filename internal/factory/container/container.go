@@ -236,6 +236,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb *sandbox.Sandbox,
 	c.spec.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 	// for retrieving the runtime path for a given platform.
 	c.spec.AddAnnotation(annotations.PlatformRuntimePath, platformRuntimePath)
+	c.spec.AddAnnotation("run.oci.systemd.subgroup", "")
 
 	metadataJSON, err := json.Marshal(c.Config().Metadata)
 	if err != nil {
