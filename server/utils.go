@@ -23,6 +23,9 @@ import (
 
 const (
 	maxLabelSize = 4096
+
+	// defaultStopTimeout is the default container stop timeout in seconds.
+	defaultStopTimeout = 10
 )
 
 func validateLabels(labels map[string]string) error {
@@ -216,4 +219,18 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 	allowed = append(allowed, s.config.Workloads.AllowedAnnotations(toFind)...)
 
 	return s.config.Workloads.FilterDisallowedAnnotations(allowed, toFilter)
+}
+
+// stopTimeoutFromContext returns the stop timeout in seconds for the provided
+// context. If the context has no timeout or deadline set, then it will default
+// to 10s.
+func stopTimeoutFromContext(ctx context.Context) int64 {
+	timeout := int64(defaultStopTimeout)
+	deadline, ok := ctx.Deadline()
+	if ok {
+		timeout = time.Until(deadline).Milliseconds() / 1000
+	}
+
+	log.Debugf(ctx, "Using stop timeout: %v", timeout)
+	return timeout
 }

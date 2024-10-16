@@ -53,7 +53,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	if !sb.Stopped() {
-		if err := s.stopContainer(ctx, c, int64(10)); err != nil {
+		if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
 			return fmt.Errorf("failed to stop container for removal %w", err)
 		}
 	}
