@@ -15,7 +15,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
-	"github.com/cri-o/cri-o/internal/lib"
+	"github.com/cri-o/cri-o/internal/lib/constants"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
@@ -280,7 +280,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.NamespaceOptions, string(nsOptsJSON))
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	g.AddAnnotation(annotations.HostNetwork, fmt.Sprintf("%v", hostNetwork))
-	g.AddAnnotation(annotations.ContainerManager, lib.ContainerManagerCRIO)
+	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)

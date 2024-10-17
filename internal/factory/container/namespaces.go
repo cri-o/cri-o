@@ -9,12 +9,12 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
-	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/lib/namespace"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/config"
 )
 
-func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Container, serverConfig *config.Config) error {
+func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container, serverConfig *config.Config) error {
 	// Join the namespace paths for the pod sandbox container.
 	if err := ConfigureGeneratorGivenNamespacePaths(sb.NamespacePaths(), &c.spec); err != nil {
 		return fmt.Errorf("failed to configure namespaces in container create: %w", err)
@@ -68,7 +68,7 @@ func (c *container) SpecAddNamespaces(sb *sandbox.Sandbox, targetCtr *oci.Contai
 
 // ConfigureGeneratorGivenNamespacePaths takes a map of nsType -> nsPath. It configures the generator
 // to add or replace the defaults to these paths.
-func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*sandbox.ManagedNamespace, g *generate.Generator) error {
+func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*namespace.ManagedNamespace, g *generate.Generator) error {
 	typeToSpec := map[nsmgr.NSType]rspec.LinuxNamespaceType{
 		nsmgr.IPCNS:  rspec.IPCNamespace,
 		nsmgr.NETNS:  rspec.NetworkNamespace,
