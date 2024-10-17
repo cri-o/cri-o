@@ -135,8 +135,8 @@ type BlobInfo struct {
 	// CompressionOperation is used in Image.UpdateLayerInfos to instruct
 	// whether the original layer's "compressed or not" should be preserved,
 	// possibly while changing the compression algorithm from one to another,
-	// or if it should be compressed or decompressed.  The field defaults to
-	// preserve the original layer's compressedness.
+	// or if it should be changed to compressed or decompressed.
+	// The field defaults to preserve the original layer's compressedness.
 	// TODO: To remove together with CryptoOperation in re-design to remove
 	// field out of BlobInfo.
 	CompressionOperation LayerCompression
@@ -643,6 +643,7 @@ type SystemContext struct {
 	// if true, a V1 ping attempt isn't done to give users a better error. Default is false.
 	// Note that this field is used mainly to integrate containers/image into projectatomic/docker
 	// in order to not break any existing docker's integration tests.
+	// Deprecated: The V1 container registry detection is no longer performed, so setting this flag has no effect.
 	DockerDisableV1Ping bool
 	// If true, dockerImageDestination.SupportedManifestMIMETypes will omit the Schema1 media types from the supported list
 	DockerDisableDestSchema1MIMETypes bool

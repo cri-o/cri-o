@@ -30,7 +30,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-// A generic command abstraction
+// A generic command abstraction.
 type Command struct {
 	cmds                         []*command
 	stdErrWriters, stdOutWriters []io.Writer
@@ -39,7 +39,7 @@ type Command struct {
 	filter                       *filter
 }
 
-// The internal command representation
+// The internal command representation.
 type command struct {
 	*exec.Cmd
 	pipeWriter *io.PipeWriter
@@ -51,19 +51,19 @@ type filter struct {
 	replaceAll string
 }
 
-// A generic command exit status
+// A generic command exit status.
 type Status struct {
 	waitStatus syscall.WaitStatus
 	*Stream
 }
 
-// Stream combines standard output and error
+// Stream combines standard output and error.
 type Stream struct { //nolint: errname
 	stdOut string
 	stdErr string
 }
 
-// Commands is an abstraction over multiple Command structures
+// Commands is an abstraction over multiple Command structures.
 type Commands []*Command
 
 // New creates a new command from the provided arguments.
@@ -91,7 +91,7 @@ func cmdWithDir(dir, cmd string, args ...string) *exec.Cmd {
 	return c
 }
 
-// Pipe creates a new command where the previous should be piped to
+// Pipe creates a new command where the previous should be piped to.
 func (c *Command) Pipe(cmd string, args ...string) *Command {
 	pipeCmd := cmdWithDir(c.cmds[0].Dir, cmd, args...)
 
@@ -121,7 +121,7 @@ func (c *Command) Verbose() *Command {
 }
 
 // isVerbose returns true if the command is in verbose mode, either set locally
-// or global
+// or global.
 func (c *Command) isVerbose() bool {
 	return GetGlobalVerbose() || c.verbose
 }
@@ -174,7 +174,7 @@ func (c *Command) Filter(regex, replaceAll string) (*Command, error) {
 
 // Run starts the command and waits for it to finish. It returns an error if
 // the command execution was not possible at all, otherwise the Status.
-// This method prints the commands output during execution
+// This method prints the commands output during execution.
 func (c *Command) Run() (res *Status, err error) {
 	return c.run(true)
 }
@@ -199,7 +199,7 @@ func (c *Command) RunSuccess() error {
 	return err
 }
 
-// String returns a string representation of the full command
+// String returns a string representation of the full command.
 func (c *Command) String() string {
 	str := []string{}
 	for _, x := range c.cmds {
@@ -246,7 +246,7 @@ func (c *Command) RunSilentSuccess() error {
 	return err
 }
 
-// run is the internal run method
+// run is the internal run method.
 func (c *Command) run(printOutput bool) (res *Status, err error) {
 	var runErr error
 	stdOutBuffer := &bytes.Buffer{}
@@ -371,17 +371,17 @@ func (c *Command) run(printOutput bool) (res *Status, err error) {
 	return status, runErr
 }
 
-// Success returns if a Status was successful
+// Success returns if a Status was successful.
 func (s *Status) Success() bool {
 	return s.waitStatus.ExitStatus() == 0
 }
 
-// ExitCode returns the exit status of the command status
+// ExitCode returns the exit status of the command status.
 func (s *Status) ExitCode() int {
 	return s.waitStatus.ExitStatus()
 }
 
-// Output returns stdout of the command status
+// Output returns stdout of the command status.
 func (s *Stream) Output() string {
 	return s.stdOut
 }
@@ -392,7 +392,7 @@ func (s *Stream) OutputTrimNL() string {
 	return strings.TrimSpace(s.stdOut)
 }
 
-// Error returns the stderr of the command status
+// Error returns the stderr of the command status.
 func (s *Stream) Error() string {
 	return s.stdErr
 }

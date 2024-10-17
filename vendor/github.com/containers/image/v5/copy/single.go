@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 
@@ -20,11 +22,11 @@ import (
 	compressiontypes "github.com/containers/image/v5/pkg/compression/types"
 	"github.com/containers/image/v5/transports"
 	"github.com/containers/image/v5/types"
+	chunkedToc "github.com/containers/storage/pkg/chunked/toc"
 	digest "github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 	"github.com/vbauerster/mpb/v8"
-	"golang.org/x/exp/slices"
 )
 
 // imageCopier tracks state specific to a single image (possibly an item of a manifest list)
@@ -32,6 +34,7 @@ type imageCopier struct {
 	c                             *copier
 	manifestUpdates               *types.ManifestUpdateOptions
 	src                           *image.SourcedImage
+	manifestConversionPlan        manifestConversionPlan
 	diffIDsAreNeeded              bool
 	cannotModifyManifestReason    string // The reason the manifest cannot be modified, or an empty string if it can
 	canSubstituteBlobs            bool
@@ -135,7 +138,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		c:               c,
 		manifestUpdates: &types.ManifestUpdateOptions{InformationOnly: types.ManifestUpdateInformation{Destination: c.dest}},
 		src:             src,
-		// diffIDsAreNeeded is computed later
+		// manifestConversionPlan and diffIDsAreNeeded are computed later
 		cannotModifyManifestReason:    cannotModifyManifestReason,
 		requireCompressionFormatMatch: opts.requireCompressionFormatMatch,
 	}
@@ -147,6 +150,28 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		ic.compressionFormat = c.options.DestinationCtx.CompressionFormat
 		ic.compressionLevel = c.options.DestinationCtx.CompressionLevel
 	}
+	// HACK: Don’t combine zstd:chunked and encryption.
+	// zstd:chunked can only usefully be consumed using range requests of parts of the layer, which would require the encryption
+	// to support decrypting arbitrary subsets of the stream. That’s plausible but not supported using the encryption API we have.
+	// Also, the chunked metadata is exposed in annotations unencrypted, which reveals the TOC digest = layer identity without
+	// encryption. (That can be determined from the unencrypted config anyway, but, still...)
+	//
+	// Ideally this should query a well-defined property of the compression algorithm (and $somehow determine the right fallback) instead of
+	// hard-coding zstd:chunked / zstd.
+	if ic.c.options.OciEncryptLayers != nil {
+		format := ic.compressionFormat
+		if format == nil {
+			format = defaultCompressionFormat
+		}
+		if format.Name() == compressiontypes.ZstdChunkedAlgorithmName {
+			if ic.requireCompressionFormatMatch {
+				return copySingleImageResult{}, errors.New("explicitly requested to combine zstd:chunked with encryption, which is not beneficial; use plain zstd instead")
+			}
+			logrus.Warnf("Compression using zstd:chunked is not beneficial for encrypted layers, using plain zstd instead")
+			ic.compressionFormat = &compression.Zstd
+		}
+	}
+
 	// Decide whether we can substitute blobs with semantic equivalents:
 	// - Don’t do that if we can’t modify the manifest at all
 	// - Ensure _this_ copy sees exactly the intended data when either processing a signed image or signing it.
@@ -163,10 +188,11 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 
 	destRequiresOciEncryption := (isEncrypted(src) && ic.c.options.OciDecryptConfig == nil) || c.options.OciEncryptLayers != nil
 
-	manifestConversionPlan, err := determineManifestConversion(determineManifestConversionInputs{
+	ic.manifestConversionPlan, err = determineManifestConversion(determineManifestConversionInputs{
 		srcMIMEType:                    ic.src.ManifestMIMEType,
 		destSupportedManifestMIMETypes: ic.c.dest.SupportedManifestMIMETypes(),
 		forceManifestMIMEType:          c.options.ForceManifestMIMEType,
+		requestedCompressionFormat:     ic.compressionFormat,
 		requiresOCIEncryption:          destRequiresOciEncryption,
 		cannotModifyManifestReason:     ic.cannotModifyManifestReason,
 	})
@@ -177,8 +203,8 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	// code that calls copyUpdatedConfigAndManifest, so that other parts of the copy code
 	// (e.g. the UpdatedImageNeedsLayerDiffIDs check just below) can make decisions based
 	// on the expected destination format.
-	if manifestConversionPlan.preferredMIMETypeNeedsConversion {
-		ic.manifestUpdates.ManifestMIMEType = manifestConversionPlan.preferredMIMEType
+	if ic.manifestConversionPlan.preferredMIMETypeNeedsConversion {
+		ic.manifestUpdates.ManifestMIMEType = ic.manifestConversionPlan.preferredMIMEType
 	}
 
 	// If src.UpdatedImageNeedsLayerDiffIDs(ic.manifestUpdates) will be true, it needs to be true by the time we get here.
@@ -189,7 +215,7 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		shouldUpdateSigs := len(sigs) > 0 || len(c.signers) != 0 // TODO: Consider allowing signatures updates only and skipping the image's layers/manifest copy if possible
 		noPendingManifestUpdates := ic.noPendingManifestUpdates()
 
-		logrus.Debugf("Checking if we can skip copying: has signatures=%t, OCI encryption=%t, no manifest updates=%t, compression match required for resuing blobs=%t", shouldUpdateSigs, destRequiresOciEncryption, noPendingManifestUpdates, opts.requireCompressionFormatMatch)
+		logrus.Debugf("Checking if we can skip copying: has signatures=%t, OCI encryption=%t, no manifest updates=%t, compression match required for reusing blobs=%t", shouldUpdateSigs, destRequiresOciEncryption, noPendingManifestUpdates, opts.requireCompressionFormatMatch)
 		if !shouldUpdateSigs && !destRequiresOciEncryption && noPendingManifestUpdates && !ic.requireCompressionFormatMatch {
 			matchedResult, err := ic.compareImageDestinationManifestEqual(ctx, targetInstance)
 			if err != nil {
@@ -217,11 +243,11 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 	manifestBytes, manifestDigest, err := ic.copyUpdatedConfigAndManifest(ctx, targetInstance)
 	wipResult := copySingleImageResult{
 		manifest:         manifestBytes,
-		manifestMIMEType: manifestConversionPlan.preferredMIMEType,
+		manifestMIMEType: ic.manifestConversionPlan.preferredMIMEType,
 		manifestDigest:   manifestDigest,
 	}
 	if err != nil {
-		logrus.Debugf("Writing manifest using preferred type %s failed: %v", manifestConversionPlan.preferredMIMEType, err)
+		logrus.Debugf("Writing manifest using preferred type %s failed: %v", ic.manifestConversionPlan.preferredMIMEType, err)
 		// … if it fails, and the failure is either because the manifest is rejected by the registry, or
 		// because we failed to create a manifest of the specified type because the specific manifest type
 		// doesn't support the type of compression we're trying to use (e.g. docker v2s2 and zstd), we may
@@ -230,13 +256,13 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		var manifestLayerCompressionIncompatibilityError manifest.ManifestLayerCompressionIncompatibilityError
 		isManifestRejected := errors.As(err, &manifestTypeRejectedError)
 		isCompressionIncompatible := errors.As(err, &manifestLayerCompressionIncompatibilityError)
-		if (!isManifestRejected && !isCompressionIncompatible) || len(manifestConversionPlan.otherMIMETypeCandidates) == 0 {
+		if (!isManifestRejected && !isCompressionIncompatible) || len(ic.manifestConversionPlan.otherMIMETypeCandidates) == 0 {
 			// We don’t have other options.
 			// In principle the code below would handle this as well, but the resulting  error message is fairly ugly.
 			// Don’t bother the user with MIME types if we have no choice.
 			return copySingleImageResult{}, err
 		}
-		// If the original MIME type is acceptable, determineManifestConversion always uses it as manifestConversionPlan.preferredMIMEType.
+		// If the original MIME type is acceptable, determineManifestConversion always uses it as ic.manifestConversionPlan.preferredMIMEType.
 		// So if we are here, we will definitely be trying to convert the manifest.
 		// With ic.cannotModifyManifestReason != "", that would just be a string of repeated failures for the same reason,
 		// so let’s bail out early and with a better error message.
@@ -245,8 +271,8 @@ func (c *copier) copySingleImage(ctx context.Context, unparsedImage *image.Unpar
 		}
 
 		// errs is a list of errors when trying various manifest types. Also serves as an "upload succeeded" flag when set to nil.
-		errs := []string{fmt.Sprintf("%s(%v)", manifestConversionPlan.preferredMIMEType, err)}
-		for _, manifestMIMEType := range manifestConversionPlan.otherMIMETypeCandidates {
+		errs := []string{fmt.Sprintf("%s(%v)", ic.manifestConversionPlan.preferredMIMEType, err)}
+		for _, manifestMIMEType := range ic.manifestConversionPlan.otherMIMETypeCandidates {
 			logrus.Debugf("Trying to use manifest type %s…", manifestMIMEType)
 			ic.manifestUpdates.ManifestMIMEType = manifestMIMEType
 			attemptedManifest, attemptedManifestDigest, err := ic.copyUpdatedConfigAndManifest(ctx, targetInstance)
@@ -297,10 +323,7 @@ func checkImageDestinationForCurrentRuntime(ctx context.Context, sys *types.Syst
 		if err != nil {
 			return fmt.Errorf("parsing image configuration: %w", err)
 		}
-		wantedPlatforms, err := platform.WantedPlatforms(sys)
-		if err != nil {
-			return fmt.Errorf("getting current platform information %#v: %w", sys, err)
-		}
+		wantedPlatforms := platform.WantedPlatforms(sys)
 
 		options := newOrderedSet()
 		match := false
@@ -380,7 +403,11 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 
 	compressionAlgos := set.New[string]()
 	for _, srcInfo := range ic.src.LayerInfos() {
-		if c := compressionAlgorithmFromMIMEType(srcInfo); c != nil {
+		_, c, err := compressionEditsFromBlobInfo(srcInfo)
+		if err != nil {
+			return nil, err
+		}
+		if c != nil {
 			compressionAlgos.Add(c.Name())
 		}
 	}
@@ -402,7 +429,6 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 // copyLayers copies layers from ic.src/ic.c.rawSource to dest, using and updating ic.manifestUpdates if necessary and ic.cannotModifyManifestReason == "".
 func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algorithm, error) {
 	srcInfos := ic.src.LayerInfos()
-	numLayers := len(srcInfos)
 	updatedSrcInfos, err := ic.src.LayerInfosForCopy(ctx)
 	if err != nil {
 		return nil, err
@@ -433,7 +459,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	// copyGroup is used to determine if all layers are copied
 	copyGroup := sync.WaitGroup{}
 
-	data := make([]copyLayerData, numLayers)
+	data := make([]copyLayerData, len(srcInfos))
 	copyLayerHelper := func(index int, srcLayer types.BlobInfo, toEncrypt bool, pool *mpb.Progress, srcRef reference.Named) {
 		defer ic.c.concurrentBlobCopiesSemaphore.Release(1)
 		defer copyGroup.Done()
@@ -456,9 +482,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 
 	// Decide which layers to encrypt
 	layersToEncrypt := set.New[int]()
-	var encryptAll bool
 	if ic.c.options.OciEncryptLayers != nil {
-		encryptAll = len(*ic.c.options.OciEncryptLayers) == 0
 		totalLayers := len(srcInfos)
 		for _, l := range *ic.c.options.OciEncryptLayers {
 			switch {
@@ -471,7 +495,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 			}
 		}
 
-		if encryptAll {
+		if len(*ic.c.options.OciEncryptLayers) == 0 { // “encrypt all layers”
 			for i := 0; i < len(srcInfos); i++ {
 				layersToEncrypt.Add(i)
 			}
@@ -486,8 +510,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 		defer copyGroup.Wait()
 
 		for i, srcLayer := range srcInfos {
-			err = ic.c.concurrentBlobCopiesSemaphore.Acquire(ctx, 1)
-			if err != nil {
+			if err := ic.c.concurrentBlobCopiesSemaphore.Acquire(ctx, 1); err != nil {
 				// This can only fail with ctx.Err(), so no need to blame acquiring the semaphore.
 				return fmt.Errorf("copying layer: %w", err)
 			}
@@ -502,8 +525,8 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	}
 
 	compressionAlgos := set.New[string]()
-	destInfos := make([]types.BlobInfo, numLayers)
-	diffIDs := make([]digest.Digest, numLayers)
+	destInfos := make([]types.BlobInfo, len(srcInfos))
+	diffIDs := make([]digest.Digest, len(srcInfos))
 	for i, cld := range data {
 		if cld.err != nil {
 			return nil, cld.err
@@ -636,17 +659,29 @@ type diffIDResult struct {
 	err    error
 }
 
-func compressionAlgorithmFromMIMEType(srcInfo types.BlobInfo) *compressiontypes.Algorithm {
+// compressionEditsFromBlobInfo returns a (CompressionOperation, CompressionAlgorithm) value pair suitable
+// for types.BlobInfo.
+func compressionEditsFromBlobInfo(srcInfo types.BlobInfo) (types.LayerCompression, *compressiontypes.Algorithm, error) {
 	// This MIME type → compression mapping belongs in manifest-specific code in our manifest
 	// package (but we should preferably replace/change UpdatedImage instead of productizing
 	// this workaround).
 	switch srcInfo.MediaType {
 	case manifest.DockerV2Schema2LayerMediaType, imgspecv1.MediaTypeImageLayerGzip:
-		return &compression.Gzip
+		return types.PreserveOriginal, &compression.Gzip, nil
 	case imgspecv1.MediaTypeImageLayerZstd:
-		return &compression.Zstd
+		tocDigest, err := chunkedToc.GetTOCDigest(srcInfo.Annotations)
+		if err != nil {
+			return types.PreserveOriginal, nil, err
+		}
+		if tocDigest != nil {
+			return types.PreserveOriginal, &compression.ZstdChunked, nil
+		}
+		return types.PreserveOriginal, &compression.Zstd, nil
+	case manifest.DockerV2SchemaLayerMediaTypeUncompressed, imgspecv1.MediaTypeImageLayer:
+		return types.Decompress, nil, nil
+	default:
+		return types.PreserveOriginal, nil, nil
 	}
-	return nil
 }
 
 // copyLayer copies a layer with srcInfo (with known Digest and Annotations and possibly known Size) in src to dest, perhaps (de/re/)compressing it,
@@ -660,8 +695,13 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 	// which uses the compression information to compute the updated MediaType values.
 	// (Sadly UpdatedImage() is documented to not update MediaTypes from
 	//  ManifestUpdateOptions.LayerInfos[].MediaType, so we are doing it indirectly.)
-	if srcInfo.CompressionAlgorithm == nil {
-		srcInfo.CompressionAlgorithm = compressionAlgorithmFromMIMEType(srcInfo)
+	if srcInfo.CompressionOperation == types.PreserveOriginal && srcInfo.CompressionAlgorithm == nil {
+		op, algo, err := compressionEditsFromBlobInfo(srcInfo)
+		if err != nil {
+			return types.BlobInfo{}, "", err
+		}
+		srcInfo.CompressionOperation = op
+		srcInfo.CompressionAlgorithm = algo
 	}
 
 	ic.c.printCopyInfo("blob", srcInfo)
@@ -683,27 +723,34 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		canChangeLayerCompression := ic.src.CanChangeLayerCompression(srcInfo.MediaType)
 		logrus.Debugf("Checking if we can reuse blob %s: general substitution = %v, compression for MIME type %q = %v",
 			srcInfo.Digest, ic.canSubstituteBlobs, srcInfo.MediaType, canChangeLayerCompression)
-		canSubstitute := ic.canSubstituteBlobs && ic.src.CanChangeLayerCompression(srcInfo.MediaType)
-		// TODO: at this point we don't know whether or not a blob we end up reusing is compressed using an algorithm
-		// that is acceptable for use on layers in the manifest that we'll be writing later, so if we end up reusing
-		// a blob that's compressed with e.g. zstd, but we're only allowed to write a v2s2 manifest, this will cause
-		// a failure when we eventually try to update the manifest with the digest and MIME type of the reused blob.
-		// Fixing that will probably require passing more information to TryReusingBlob() than the current version of
-		// the ImageDestination interface lets us pass in.
+		canSubstitute := ic.canSubstituteBlobs && canChangeLayerCompression
+
 		var requiredCompression *compressiontypes.Algorithm
-		var originalCompression *compressiontypes.Algorithm
 		if ic.requireCompressionFormatMatch {
 			requiredCompression = ic.compressionFormat
-			originalCompression = srcInfo.CompressionAlgorithm
 		}
+
+		var tocDigest digest.Digest
+
+		// Check if we have a chunked layer in storage that's based on that blob.  These layers are stored by their TOC digest.
+		d, err := chunkedToc.GetTOCDigest(srcInfo.Annotations)
+		if err != nil {
+			return types.BlobInfo{}, "", err
+		}
+		if d != nil {
+			tocDigest = *d
+		}
+
 		reused, reusedBlob, err := ic.c.dest.TryReusingBlobWithOptions(ctx, srcInfo, private.TryReusingBlobOptions{
-			Cache:               ic.c.blobInfoCache,
-			CanSubstitute:       canSubstitute,
-			EmptyLayer:          emptyLayer,
-			LayerIndex:          &layerIndex,
-			SrcRef:              srcRef,
-			RequiredCompression: requiredCompression,
-			OriginalCompression: originalCompression,
+			Cache:                   ic.c.blobInfoCache,
+			CanSubstitute:           canSubstitute,
+			EmptyLayer:              emptyLayer,
+			LayerIndex:              &layerIndex,
+			SrcRef:                  srcRef,
+			PossibleManifestFormats: append([]string{ic.manifestConversionPlan.preferredMIMEType}, ic.manifestConversionPlan.otherMIMETypeCandidates...),
+			RequiredCompression:     requiredCompression,
+			OriginalCompression:     srcInfo.CompressionAlgorithm,
+			TOCDigest:               tocDigest,
 		})
 		if err != nil {
 			return types.BlobInfo{}, "", fmt.Errorf("trying to reuse blob %s at destination: %w", srcInfo.Digest, err)
@@ -711,7 +758,11 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 		if reused {
 			logrus.Debugf("Skipping blob %s (already present):", srcInfo.Digest)
 			if err := func() error { // A scope for defer
-				bar, err := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: reusedBlob.Digest, Size: 0}, "blob", "skipped: already exists")
+				label := "skipped: already exists"
+				if reusedBlob.MatchedByTOCDigest {
+					label = "skipped: already exists (found by TOC)"
+				}
+				bar, err := ic.c.createProgressBar(pool, false, types.BlobInfo{Digest: reusedBlob.Digest, Size: 0}, "blob", label)
 				if err != nil {
 					return err
 				}
@@ -753,7 +804,10 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				wrapped: ic.c.rawSource,
 				bar:     bar,
 			}
-			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, ic.c.blobInfoCache)
+			uploadedBlob, err := ic.c.dest.PutBlobPartial(ctx, &proxy, srcInfo, private.PutBlobPartialOptions{
+				Cache:      ic.c.blobInfoCache,
+				LayerIndex: layerIndex,
+			})
 			if err == nil {
 				if srcInfo.Size != -1 {
 					refill := srcInfo.Size - bar.Current()
@@ -765,11 +819,16 @@ func (ic *imageCopier) copyLayer(ctx context.Context, srcInfo types.BlobInfo, to
 				logrus.Debugf("Retrieved partial blob %v", srcInfo.Digest)
 				return true, updatedBlobInfoFromUpload(srcInfo, uploadedBlob), nil
 			}
-			logrus.Debugf("Failed to retrieve partial blob: %v", err)
-			return false, types.BlobInfo{}, nil
+			// On a "partial content not available" error, ignore it and retrieve the whole layer.
+			var perr private.ErrFallbackToOrdinaryLayerDownload
+			if errors.As(err, &perr) {
+				logrus.Debugf("Failed to retrieve partial blob: %v", err)
+				return false, types.BlobInfo{}, nil
+			}
+			return false, types.BlobInfo{}, err
 		}()
 		if err != nil {
-			return types.BlobInfo{}, "", err
+			return types.BlobInfo{}, "", fmt.Errorf("reading blob %s: %w", srcInfo.Digest, err)
 		}
 		if reused {
 			return blobInfo, cachedDiffID, nil
@@ -832,21 +891,33 @@ func updatedBlobInfoFromReuse(inputInfo types.BlobInfo, reusedBlob private.Reuse
 	// Handling of compression, encryption, and the related MIME types and the like are all the responsibility
 	// of the generic code in this package.
 	res := types.BlobInfo{
-		Digest:               reusedBlob.Digest,
-		Size:                 reusedBlob.Size,
-		URLs:                 nil,                   // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
-		Annotations:          inputInfo.Annotations, // FIXME: This should remove zstd:chunked annotations (but those annotations being left with incorrect values should not break pulls)
-		MediaType:            inputInfo.MediaType,   // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
+		Digest: reusedBlob.Digest,
+		Size:   reusedBlob.Size,
+		URLs:   nil, // This _must_ be cleared if Digest changes; clear it in other cases as well, to preserve previous behavior.
+		// FIXME: This should remove zstd:chunked annotations IF the original was chunked and the new one isn’t
+		// (but those annotations being left with incorrect values should not break pulls).
+		Annotations:          maps.Clone(inputInfo.Annotations),
+		MediaType:            inputInfo.MediaType, // Mostly irrelevant, MediaType is updated based on Compression*/CryptoOperation.
 		CompressionOperation: reusedBlob.CompressionOperation,
 		CompressionAlgorithm: reusedBlob.CompressionAlgorithm,
 		CryptoOperation:      inputInfo.CryptoOperation, // Expected to be unset anyway.
 	}
 	// The transport is only expected to fill CompressionOperation and CompressionAlgorithm
-	// if the blob was substituted; otherwise, fill it in based
+	// if the blob was substituted; otherwise, it is optional, and if not set, fill it in based
 	// on what we know from the srcInfos we were given.
 	if reusedBlob.Digest == inputInfo.Digest {
-		res.CompressionOperation = inputInfo.CompressionOperation
-		res.CompressionAlgorithm = inputInfo.CompressionAlgorithm
+		if res.CompressionOperation == types.PreserveOriginal {
+			res.CompressionOperation = inputInfo.CompressionOperation
+		}
+		if res.CompressionAlgorithm == nil {
+			res.CompressionAlgorithm = inputInfo.CompressionAlgorithm
+		}
+	}
+	if len(reusedBlob.CompressionAnnotations) != 0 {
+		if res.Annotations == nil {
+			res.Annotations = map[string]string{}
+		}
+		maps.Copy(res.Annotations, reusedBlob.CompressionAnnotations)
 	}
 	return res
 }

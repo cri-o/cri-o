@@ -273,7 +273,13 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
 	// The progress interval is 1s, but we give it a bit more time just in case
 	// that the connection revives.
-	const timeout = 10 * time.Second
+	//
+	// FIXME: This is a temporary workaround for the lack of progress
+	// update events when composefs support is enabled.  See then
+	// following containers/image issue:
+	//   https://github.com/containers/image/issues/2585
+	const timeout = 5 * time.Minute
+	log.Warnf(ctx, "Time out for waiting on image pull progress overridden to: %v", timeout)
 	timer := time.AfterFunc(timeout, func() {
 		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", timeout)
 		cancel()
