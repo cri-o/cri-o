@@ -81,6 +81,7 @@ require (
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.31.0
 	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8
+	sigs.k8s.io/knftables v0.0.17
 	sigs.k8s.io/release-sdk v0.12.1
 	sigs.k8s.io/release-utils v0.8.4
 	sigs.k8s.io/yaml v1.4.0

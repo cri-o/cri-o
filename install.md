@@ -162,7 +162,7 @@ chmod +x create_crio_sysext.sh
 
 - runc, crun or any other OCI compatible runtime
 - iproute
-- iptables
+- nftables (or iptables on older systems)
 
 Latest version of `runc` is expected to be installed on the system. It is picked
 up as the default runtime by CRI-O.

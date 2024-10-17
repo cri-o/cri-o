@@ -28,10 +28,10 @@ import (
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
-// newFakeManager creates a new Manager with fake iptables. Note that we need to create
+// newFakeManagerIPTables creates a new Manager with fake iptables. Note that we need to create
 // (and semi-initialize) both ip4tables and ip6tables even for the single-stack tests,
 // because Remove() will try to use both.
-func newFakeManager() *hostportManager {
+func newFakeManagerIPTables() *hostportManagerIPTables {
 	ip4tables := newFakeIPTables()
 	ip4tables.protocol = utiliptables.ProtocolIPv4
 	//nolint:errcheck // can't fail with fake iptables
@@ -42,15 +42,48 @@ func newFakeManager() *hostportManager {
 	//nolint:errcheck // can't fail with fake iptables
 	_, _ = ip6tables.EnsureChain(utiliptables.TableNAT, utiliptables.ChainOutput)
 
-	return &hostportManager{
+	return &hostportManagerIPTables{
 		ip4tables: ip4tables,
 		ip6tables: ip6tables,
 	}
 }
 
-var _ = t.Describe("HostPortManager", func() {
-	It("HostportManagerIPv4", func() {
-		manager := newFakeManager()
+var _ = t.Describe("HostPortManagerIPTables", func() {
+	It("should ensure kube hostport chains", func() {
+		interfaceName := "cbr0"
+
+		fakeIPTables := newFakeIPTables()
+		Expect(ensureKubeHostportChains(fakeIPTables, interfaceName)).To(Succeed())
+
+		_, _, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain("KUBE-HOSTPORTS"))
+		Expect(err).ToNot(HaveOccurred())
+
+		builtinChains := []string{"PREROUTING", "OUTPUT"}
+		hostPortJumpRule := "-m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS"
+
+		for _, chainName := range builtinChains {
+			_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.Chain(chainName))
+			Expect(err).ToNot(HaveOccurred())
+			Expect(len(chain.rules)).To(BeEquivalentTo(1))
+			Expect(chain.rules).To(ContainElement(hostPortJumpRule))
+		}
+
+		masqJumpRule := "-m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ"
+		localhostMasqRule := "-m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE"
+
+		_, chain, err := fakeIPTables.getChain(utiliptables.TableNAT, utiliptables.ChainPostrouting)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(chain.rules)).To(BeEquivalentTo(1))
+		Expect(chain.rules).To(ContainElement(masqJumpRule))
+
+		_, chain, err = fakeIPTables.getChain(utiliptables.TableNAT, crioMasqueradeChain)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(len(chain.rules)).To(BeEquivalentTo(1))
+		Expect(chain.rules).To(ContainElement(localhostMasqRule))
+	})
+
+	It("should support IPv4", func() {
+		manager := newFakeManagerIPTables()
 		testCases := []struct {
 			mapping     *PodPortMapping
 			expectError bool
@@ -58,10 +91,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// open HostPorts 8080/TCP, 8081/UDP and 8083/SCTP
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.2"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -85,10 +117,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// open port 443
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -102,10 +133,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// open same HostPort on different IP
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod5",
-					Namespace:   "ns5",
-					IP:          net.ParseIP("10.1.1.5"),
-					HostNetwork: false,
+					Name:      "pod5",
+					Namespace: "ns5",
+					IP:        net.ParseIP("10.1.1.5"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8888,
@@ -126,10 +156,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// open same HostPort on different
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod6",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.2"),
-					HostNetwork: false,
+					Name:      "pod6",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      9999,
@@ -274,18 +303,17 @@ var _ = t.Describe("HostPortManager", func() {
 		Expect(m).To(HaveLen(4))
 	})
 
-	It("HostportManagerIPv6", func() {
-		manager := newFakeManager()
+	It("should support IPv6", func() {
+		manager := newFakeManagerIPTables()
 		testCases := []struct {
 			mapping     *PodPortMapping
 			expectError bool
 		}{
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::2"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -308,10 +336,9 @@ var _ = t.Describe("HostPortManager", func() {
 			},
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -411,18 +438,17 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 	})
 
-	It("HostportManagerDualStack", func() {
-		manager := newFakeManager()
+	It("should support dual stack", func() {
+		manager := newFakeManagerIPTables()
 		testCases := []struct {
 			mapping     *PodPortMapping
 			expectError bool
 		}{
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("192.168.2.7"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("192.168.2.7"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -453,10 +479,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// but different IP must work
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::3"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::3"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -485,10 +510,9 @@ var _ = t.Describe("HostPortManager", func() {
 			},
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -503,10 +527,9 @@ var _ = t.Describe("HostPortManager", func() {
 			// but using another IP family
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod4",
-					Namespace:   "ns2",
-					IP:          net.ParseIP("192.168.2.2"),
-					HostNetwork: false,
+					Name:      "pod4",
+					Namespace: "ns2",
+					IP:        net.ParseIP("192.168.2.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,

@@ -1069,6 +1069,8 @@ github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 h1:aiPrFdHDCCvigNBCkOWj2lv9Bx5xDp210OANZEoiP0I=
 github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0/go.mod h1:srVwm2N3DC/tWqQ+igZXDrmKlNRN8X/dmJ1wEZrv760=
+github.com/lithammer/dedent v1.1.0 h1:VNzHMVCBNG1j0fh3OrsFRkVUwStdDArbgBWoPAffktY=
+github.com/lithammer/dedent v1.1.0/go.mod h1:jrXYCQtgg0nJiN+StA2KgR7w6CiQNv9Fd/Z9BP0jIOc=
 github.com/lyft/protoc-gen-star v0.6.0/go.mod h1:TGAoBVkt8w7MPG72TrKIu85MIdXwDuzJYeZuUPFPNwA=
 github.com/lyft/protoc-gen-star v0.6.1/go.mod h1:TGAoBVkt8w7MPG72TrKIu85MIdXwDuzJYeZuUPFPNwA=
 github.com/lyft/protoc-gen-star/v2 v2.0.1/go.mod h1:RcCdONR2ScXaYnQC5tUzxzlpA3WVYF7/opLeUgcQs/o=
@@ -2108,6 +2110,8 @@ rsc.io/quote/v3 v3.1.0/go.mod h1:yEA65RcK8LyAZtP9Kv3t0HmxON59tX3rD+tICJqUlj0=
 rsc.io/sampler v1.3.0/go.mod h1:T1hPZKmBbMNahiBKFy5HrXp6adAjACjK9JXDnKaTXpA=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd h1:EDPBXCAspyGV4jQlpZSudPeMmr1bNJefnuqLsRAsHZo=
 sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd/go.mod h1:B8JuhiUyNFVKdsE8h686QcCxMaH6HrOAZj4vswFpcB0=
+sigs.k8s.io/knftables v0.0.17 h1:wGchTyRF/iGTIjd+vRaR1m676HM7jB8soFtyr/148ic=
+sigs.k8s.io/knftables v0.0.17/go.mod h1:f/5ZLKYEUPUhVjUCg6l80ACdL7CIIyeL0DxfgojGRTk=
 sigs.k8s.io/release-sdk v0.12.1 h1:/Q+yWpl33EnFx1b7xh6FnbioWSRUTrVkigL4KZVTrkU=
 sigs.k8s.io/release-sdk v0.12.1/go.mod h1:nnB4tt1g0VXMUCIYzDzPVqNI896OQrWipE6WbyZ6FSk=
 sigs.k8s.io/release-utils v0.8.4 h1:4QVr3UgbyY/d9p74LBhg0njSVQofUsAZqYOzVZBhdBw=
