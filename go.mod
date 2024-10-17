@@ -25,12 +25,12 @@ require (
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/podman/v4 v4.8.2
-	github.com/containers/storage v1.51.0
+	github.com/containers/storage v1.51.1-0.20241015082732-9811eb042117
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.21
 	github.com/cri-o/ocicni v0.4.1
-	github.com/cyphar/filepath-securejoin v0.2.4
+	github.com/cyphar/filepath-securejoin v0.3.1
 	github.com/docker/distribution v2.8.3+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/fsnotify/fsnotify v1.7.0
@@ -58,7 +58,7 @@ require (
 	github.com/seccomp/libseccomp-golang v0.10.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/soheilhy/cmux v0.1.5
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
 	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.2.3
 	github.com/urfave/cli/v2 v2.26.0
@@ -70,7 +70,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.21.0
 	golang.org/x/net v0.19.0
 	golang.org/x/sync v0.5.0
-	golang.org/x/sys v0.17.0
+	golang.org/x/sys v0.21.0
 	google.golang.org/grpc v1.60.1
 	google.golang.org/protobuf v1.32.0
 	k8s.io/api v0.29.0
@@ -182,6 +182,7 @@ require (
 	github.com/moby/spdystream v0.2.0 // indirect
 	github.com/moby/sys/mountinfo v0.7.1 // indirect
 	github.com/moby/sys/sequential v0.5.0 // indirect
+	github.com/moby/sys/user v0.1.0 // indirect
 	github.com/moby/term v0.5.0 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
