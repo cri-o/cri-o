@@ -2,6 +2,8 @@ go 1.22.7
 
 module github.com/cri-o/cri-o
 
+replace github.com/mattn/go-sqlite3 => github.com/mattn/go-sqlite3 v1.14.24
+
 require (
 	github.com/BurntSushi/toml v1.4.0
 	github.com/Microsoft/go-winio v0.6.2
