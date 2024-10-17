@@ -357,7 +357,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/storage v1.55.0
+# github.com/containers/storage v1.55.1-0.20241015045236-02f1845caa18
 ## explicit; go 1.21
 github.com/containers/storage
 github.com/containers/storage/drivers
