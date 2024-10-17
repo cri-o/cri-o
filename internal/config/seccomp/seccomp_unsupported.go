@@ -1,5 +1,5 @@
-//go:build !(linux && cgo)
-// +build !linux !cgo
+//go:build !(seccomp && linux && cgo)
+// +build !seccomp !linux !cgo
 
 package seccomp
 
@@ -12,20 +12,18 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-// Config is the global seccomp configuration type
+// Config is the global seccomp configuration type.
 type Config struct {
 	enabled bool
 }
 
 // Notifier wraps a seccomp notifier instance for a container.
-type Notifier struct {
-}
+type Notifier struct{}
 
 // Notification is a seccomp notification which gets sent to the CRI-O server.
-type Notification struct {
-}
+type Notification struct{}
 
-// New creates a new default seccomp configuration instance
+// New creates a new default seccomp configuration instance.
 func New() *Config {
 	return &Config{
 		enabled: false,
@@ -110,10 +108,11 @@ func (c *Config) IsDisabled() bool {
 	return true
 }
 
-// Profile returns the currently loaded seccomp profile
+// Profile returns the currently loaded seccomp profile.
 func (c *Config) Profile() *seccomp.Seccomp {
 	return nil
 }
+
 func DefaultProfile() *seccomp.Seccomp {
 	return nil
 }

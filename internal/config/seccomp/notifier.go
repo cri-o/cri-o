@@ -1,5 +1,5 @@
-//go:build linux && cgo
-// +build linux,cgo
+//go:build seccomp && linux && cgo
+// +build seccomp,linux,cgo
 
 package seccomp
 
