@@ -191,8 +191,8 @@ github.com/containerd/go-runc
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.6.1
-## explicit; go 1.19
+# github.com/containerd/nri v0.7.0
+## explicit; go 1.21
 github.com/containerd/nri/pkg/adaptation
 github.com/containerd/nri/pkg/api
 github.com/containerd/nri/pkg/log
@@ -208,7 +208,7 @@ github.com/containerd/otelttrpc/internal
 ## explicit; go 1.19
 github.com/containerd/stargz-snapshotter/estargz
 github.com/containerd/stargz-snapshotter/estargz/errorutil
-# github.com/containerd/ttrpc v1.2.5
+# github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287
 ## explicit; go 1.19
 github.com/containerd/ttrpc
 # github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67

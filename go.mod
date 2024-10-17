@@ -14,9 +14,9 @@ require (
 	github.com/containerd/containerd v1.7.21
 	github.com/containerd/containerd/api v1.7.19
 	github.com/containerd/fifo v1.1.0
-	github.com/containerd/nri v0.6.1
+	github.com/containerd/nri v0.7.0
 	github.com/containerd/otelttrpc v0.0.0-20240305015340-ea5083fda723
-	github.com/containerd/ttrpc v1.2.5
+	github.com/containerd/ttrpc v1.2.6-0.20240827082320-b5cd6e4b3287
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.2.3
 	github.com/containernetworking/plugins v1.5.1
