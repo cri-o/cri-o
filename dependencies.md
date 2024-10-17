@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
+_Generated on Thu, 17 Oct 2024 19:30:42 UTC for commit [ebf9616][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/24d68f5755751540fdaba8bfa66e8db33bd1eb74
+[0]: https://github.com/cri-o/cri-o/commit/ebf96166e7eff0fdbf11a44916b5d0f842b7ef67
 
 ## Outdated Dependencies
 
@@ -12,10 +12,11 @@ _Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
 | github.com/containerd/containerd                                            | v1.7.21                            | v1.7.23                            | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.5.1                             | v1.6.0                             | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
+| github.com/containers/storage                                               | v1.55.0                            | v1.55.1                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241015182253-69509eff33f7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241017170059-b00203ba9b23 | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
@@ -345,7 +346,7 @@ _Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/podman/v4                                                         | v4.2.0                                | v4.9.5                              | false  | true             |
-| github.com/containers/storage                                                           | v1.55.0                               |                                     | true   | true             |
+| github.com/containers/storage                                                           | v1.55.0                               | v1.55.1                             | true   | true             |
 | github.com/coreos/go-iptables                                                           | v0.7.0                                | v0.8.0                              | false  | true             |
 | github.com/coreos/go-oidc                                                               | v2.2.1+incompatible                   |                                     | false  | true             |
 | github.com/coreos/go-oidc/v3                                                            | v3.10.0                               | v3.11.0                             | false  | true             |
@@ -374,7 +375,7 @@ _Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
 | github.com/docker/docker                                                                | v27.1.1+incompatible                  | v27.3.1+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.2                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                |                                     | false  | true             |
-| github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    |                                     | false  | true             |
+| github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20241017185736-969db071c880  | false  | true             |
 | github.com/docker/go-metrics                                                            | v0.0.1                                |                                     | false  | true             |
 | github.com/docker/go-units                                                              | v0.5.0                                |                                     | true   | true             |
 | github.com/docker/libtrust                                                              | v0.0.0-20160708172513-aabc10ec26b7    |                                     | false  | true             |
@@ -518,7 +519,7 @@ _Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241015182253-69509eff33f7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241017170059-b00203ba9b23  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -636,7 +637,7 @@ _Generated on Thu, 17 Oct 2024 09:47:59 UTC for commit [24d68f5][0]._
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20240823084532-8e6b51fa9bef  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
-| github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.6.2                              | false  | true             |
+| github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.7.0                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
 | github.com/rivo/uniseg                                                                  | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                            | v1.2.0                                |                                     | false  | true             |
