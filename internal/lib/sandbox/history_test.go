@@ -18,11 +18,27 @@ var _ = t.Describe("History", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		otherTestSandbox, err := sandbox.New("sandboxID", "", "", "", "",
-			make(map[string]string), make(map[string]string), "", "",
-			&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-			[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-		Expect(err).ToNot(HaveOccurred())
+		sbuilder := sandbox.NewBuilder()
+		sbuilder.SetID("sandboxID")
+		sbuilder.SetName("")
+		sbuilder.SetNamespace("")
+		sbuilder.SetKubeName("")
+		sbuilder.SetLogDir("test")
+		sbuilder.SetCriSandbox(sbuilder.ID(), time.Now(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+		sbuilder.SetShmPath("")
+		sbuilder.SetCgroupParent("")
+		sbuilder.SetPrivileged(false)
+		sbuilder.SetRuntimeHandler("")
+		sbuilder.SetResolvPath("")
+		sbuilder.SetHostname("")
+		sbuilder.SetPortMappings([]*hostport.PortMapping{})
+		sbuilder.SetHostNetwork(false)
+		sbuilder.SetUsernsMode("")
+		sbuilder.SetPodLinuxOverhead(nil)
+		sbuilder.SetPodLinuxResources(nil)
+
+		otherTestSandbox := sbuilder.GetSandbox()
+
 		Expect(testSandbox).NotTo(BeNil())
 		sut = &sandbox.History{testSandbox, otherTestSandbox}
 	})
