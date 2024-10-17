@@ -228,18 +228,23 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
 	}
 
-	imageName := imgResult.SomeNameOfThisImage
+	someNameOfTheImage := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
+	// == Image lookup done.
+	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
+	// resolve to a different image.
 
 	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("get context for namespace: %w", err)
 	}
 
+	// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
+	// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
 	if systemCtx.SignaturePolicyPath != "" {
 		// userSpecifiedImage is the input user provided in a Pod spec,
 		// and captures the intent of the user; from that,
@@ -842,7 +847,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, imageName, &imageID, someRepoDigest, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, someNameOfTheImage, &imageID, someRepoDigest, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
 	}
