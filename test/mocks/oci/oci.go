@@ -27,6 +27,7 @@ import (
 type MockRuntimeImpl struct {
 	ctrl     *gomock.Controller
 	recorder *MockRuntimeImplMockRecorder
+	isgomock struct{}
 }
 
 // MockRuntimeImplMockRecorder is the mock recorder for MockRuntimeImpl.

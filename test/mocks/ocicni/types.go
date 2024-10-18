@@ -21,6 +21,7 @@ import (
 type MockCNIPlugin struct {
 	ctrl     *gomock.Controller
 	recorder *MockCNIPluginMockRecorder
+	isgomock struct{}
 }
 
 // MockCNIPluginMockRecorder is the mock recorder for MockCNIPlugin.
@@ -55,33 +56,33 @@ func (mr *MockCNIPluginMockRecorder) GetDefaultNetworkName() *gomock.Call {
 }
 
 // GetPodNetworkStatus mocks base method.
-func (m *MockCNIPlugin) GetPodNetworkStatus(arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (m *MockCNIPlugin) GetPodNetworkStatus(network ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPodNetworkStatus", arg0)
+	ret := m.ctrl.Call(m, "GetPodNetworkStatus", network)
 	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPodNetworkStatus indicates an expected call of GetPodNetworkStatus.
-func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatus(arg0 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatus(network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatus", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatus), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatus", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatus), network)
 }
 
 // GetPodNetworkStatusWithContext mocks base method.
-func (m *MockCNIPlugin) GetPodNetworkStatusWithContext(arg0 context.Context, arg1 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (m *MockCNIPlugin) GetPodNetworkStatusWithContext(ctx context.Context, network ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPodNetworkStatusWithContext", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetPodNetworkStatusWithContext", ctx, network)
 	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetPodNetworkStatusWithContext indicates an expected call of GetPodNetworkStatusWithContext.
-func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatusWithContext(arg0, arg1 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) GetPodNetworkStatusWithContext(ctx, network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatusWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatusWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPodNetworkStatusWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).GetPodNetworkStatusWithContext), ctx, network)
 }
 
 // Name mocks base method.
@@ -99,33 +100,33 @@ func (mr *MockCNIPluginMockRecorder) Name() *gomock.Call {
 }
 
 // SetUpPod mocks base method.
-func (m *MockCNIPlugin) SetUpPod(arg0 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (m *MockCNIPlugin) SetUpPod(network ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetUpPod", arg0)
+	ret := m.ctrl.Call(m, "SetUpPod", network)
 	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SetUpPod indicates an expected call of SetUpPod.
-func (mr *MockCNIPluginMockRecorder) SetUpPod(arg0 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) SetUpPod(network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPod", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPod), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPod", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPod), network)
 }
 
 // SetUpPodWithContext mocks base method.
-func (m *MockCNIPlugin) SetUpPodWithContext(arg0 context.Context, arg1 ocicni.PodNetwork) ([]ocicni.NetResult, error) {
+func (m *MockCNIPlugin) SetUpPodWithContext(ctx context.Context, network ocicni.PodNetwork) ([]ocicni.NetResult, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetUpPodWithContext", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetUpPodWithContext", ctx, network)
 	ret0, _ := ret[0].([]ocicni.NetResult)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SetUpPodWithContext indicates an expected call of SetUpPodWithContext.
-func (mr *MockCNIPluginMockRecorder) SetUpPodWithContext(arg0, arg1 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) SetUpPodWithContext(ctx, network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPodWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUpPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).SetUpPodWithContext), ctx, network)
 }
 
 // Shutdown mocks base method.
@@ -157,29 +158,29 @@ func (mr *MockCNIPluginMockRecorder) Status() *gomock.Call {
 }
 
 // TearDownPod mocks base method.
-func (m *MockCNIPlugin) TearDownPod(arg0 ocicni.PodNetwork) error {
+func (m *MockCNIPlugin) TearDownPod(network ocicni.PodNetwork) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TearDownPod", arg0)
+	ret := m.ctrl.Call(m, "TearDownPod", network)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // TearDownPod indicates an expected call of TearDownPod.
-func (mr *MockCNIPluginMockRecorder) TearDownPod(arg0 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) TearDownPod(network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPod", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPod), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPod", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPod), network)
 }
 
 // TearDownPodWithContext mocks base method.
-func (m *MockCNIPlugin) TearDownPodWithContext(arg0 context.Context, arg1 ocicni.PodNetwork) error {
+func (m *MockCNIPlugin) TearDownPodWithContext(ctx context.Context, network ocicni.PodNetwork) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "TearDownPodWithContext", arg0, arg1)
+	ret := m.ctrl.Call(m, "TearDownPodWithContext", ctx, network)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // TearDownPodWithContext indicates an expected call of TearDownPodWithContext.
-func (mr *MockCNIPluginMockRecorder) TearDownPodWithContext(arg0, arg1 any) *gomock.Call {
+func (mr *MockCNIPluginMockRecorder) TearDownPodWithContext(ctx, network any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPodWithContext), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "TearDownPodWithContext", reflect.TypeOf((*MockCNIPlugin)(nil).TearDownPodWithContext), ctx, network)
 }
