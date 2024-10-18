@@ -50,7 +50,7 @@ type Container struct {
 	dir        string
 	stopSignal string
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
-	imageName             *references.RegistryImageReference
+	someNameOfTheImage    *references.RegistryImageReference
 	imageID               *storage.StorageImageID // nil for infra containers.
 	mountPoint            string
 	seccompProfilePath    string
@@ -121,13 +121,13 @@ type ContainerState struct {
 // NewContainer creates a container object.
 // userRequestedImage is the users' input originally used to find imageID; it might evaluate to a different image (or to a different kind of reference!)
 // at any future time.
-// imageName, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
+// someNameOftheImage, if set, is _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
 // imageID is nil for infra containers.
 // someRepoDigest, if set, is some repo@some digest of the image imageID; it
 // may have NO RELATIONSHIP to the users’ requested image name (and, which
 // should be fixed eventually, may be a repo@digest combination which has never
 // existed on a registry).
-func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, imageName *references.RegistryImageReference, imageID *storage.StorageImageID, someRepoDigest string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
+func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations, annotations map[string]string, userRequestedImage string, someNameOfTheImage *references.RegistryImageReference, imageID *storage.StorageImageID, someRepoDigest string, md *types.ContainerMetadata, sandbox string, terminal, stdin, stdinOnce bool, runtimeHandler, dir string, created time.Time, stopSignal string) (*Container, error) {
 	state := &ContainerState{}
 	state.Created = created
 
@@ -155,22 +155,22 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 			ImageRef: externalImageRef,
 			ImageId:  imageIDString,
 		},
-		name:            name,
-		bundlePath:      bundlePath,
-		logPath:         logPath,
-		terminal:        terminal,
-		stdin:           stdin,
-		stdinOnce:       stdinOnce,
-		runtimeHandler:  runtimeHandler,
-		crioAnnotations: crioAnnotations,
-		imageName:       imageName,
-		imageID:         imageID,
-		dir:             dir,
-		state:           state,
-		stopSignal:      stopSignal,
-		stopTimeoutChan: make(chan int64, 10),
-		stopWatchers:    []chan struct{}{},
-		execPIDs:        map[int]bool{},
+		name:               name,
+		bundlePath:         bundlePath,
+		logPath:            logPath,
+		terminal:           terminal,
+		stdin:              stdin,
+		stdinOnce:          stdinOnce,
+		runtimeHandler:     runtimeHandler,
+		crioAnnotations:    crioAnnotations,
+		someNameOfTheImage: someNameOfTheImage,
+		imageID:            imageID,
+		dir:                dir,
+		state:              state,
+		stopSignal:         stopSignal,
+		stopTimeoutChan:    make(chan int64, 10),
+		stopWatchers:       []chan struct{}{},
+		execPIDs:           map[int]bool{},
 	}
 	return c, nil
 }
@@ -373,10 +373,10 @@ func (c *Container) UserRequestedImage() string {
 	return c.criContainer.Image.Image
 }
 
-// ImageName returns _some_ name of the image imageID, if any;
+// SomeNameOfTheImage returns _some_ name of the image imageID, if any;
 // it may have NO RELATIONSHIP to the users’ requested image name.
-func (c *Container) ImageName() *references.RegistryImageReference {
-	return c.imageName
+func (c *Container) SomeNameOfTheImage() *references.RegistryImageReference {
+	return c.someNameOfTheImage
 }
 
 // ImageID returns the image ID of the container, or nil for infra containers.
