@@ -23,6 +23,7 @@ import (
 type MockImageCloser struct {
 	ctrl     *gomock.Controller
 	recorder *MockImageCloserMockRecorder
+	isgomock struct{}
 }
 
 // MockImageCloserMockRecorder is the mock recorder for MockImageCloser.
@@ -86,17 +87,17 @@ func (mr *MockImageCloserMockRecorder) ConfigInfo() *gomock.Call {
 }
 
 // EmbeddedDockerReferenceConflicts mocks base method.
-func (m *MockImageCloser) EmbeddedDockerReferenceConflicts(arg0 reference.Named) bool {
+func (m *MockImageCloser) EmbeddedDockerReferenceConflicts(ref reference.Named) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "EmbeddedDockerReferenceConflicts", arg0)
+	ret := m.ctrl.Call(m, "EmbeddedDockerReferenceConflicts", ref)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // EmbeddedDockerReferenceConflicts indicates an expected call of EmbeddedDockerReferenceConflicts.
-func (mr *MockImageCloserMockRecorder) EmbeddedDockerReferenceConflicts(arg0 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) EmbeddedDockerReferenceConflicts(ref any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmbeddedDockerReferenceConflicts", reflect.TypeOf((*MockImageCloser)(nil).EmbeddedDockerReferenceConflicts), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "EmbeddedDockerReferenceConflicts", reflect.TypeOf((*MockImageCloser)(nil).EmbeddedDockerReferenceConflicts), ref)
 }
 
 // Inspect mocks base method.
@@ -144,9 +145,9 @@ func (mr *MockImageCloserMockRecorder) LayerInfosForCopy(arg0 any) *gomock.Call 
 }
 
 // Manifest mocks base method.
-func (m *MockImageCloser) Manifest(arg0 context.Context) ([]byte, string, error) {
+func (m *MockImageCloser) Manifest(ctx context.Context) ([]byte, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Manifest", arg0)
+	ret := m.ctrl.Call(m, "Manifest", ctx)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -154,9 +155,9 @@ func (m *MockImageCloser) Manifest(arg0 context.Context) ([]byte, string, error)
 }
 
 // Manifest indicates an expected call of Manifest.
-func (mr *MockImageCloserMockRecorder) Manifest(arg0 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) Manifest(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Manifest", reflect.TypeOf((*MockImageCloser)(nil).Manifest), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Manifest", reflect.TypeOf((*MockImageCloser)(nil).Manifest), ctx)
 }
 
 // OCIConfig mocks base method.
@@ -189,18 +190,18 @@ func (mr *MockImageCloserMockRecorder) Reference() *gomock.Call {
 }
 
 // Signatures mocks base method.
-func (m *MockImageCloser) Signatures(arg0 context.Context) ([][]byte, error) {
+func (m *MockImageCloser) Signatures(ctx context.Context) ([][]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Signatures", arg0)
+	ret := m.ctrl.Call(m, "Signatures", ctx)
 	ret0, _ := ret[0].([][]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Signatures indicates an expected call of Signatures.
-func (mr *MockImageCloserMockRecorder) Signatures(arg0 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) Signatures(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Signatures", reflect.TypeOf((*MockImageCloser)(nil).Signatures), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Signatures", reflect.TypeOf((*MockImageCloser)(nil).Signatures), ctx)
 }
 
 // Size mocks base method.
@@ -219,44 +220,44 @@ func (mr *MockImageCloserMockRecorder) Size() *gomock.Call {
 }
 
 // SupportsEncryption mocks base method.
-func (m *MockImageCloser) SupportsEncryption(arg0 context.Context) bool {
+func (m *MockImageCloser) SupportsEncryption(ctx context.Context) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SupportsEncryption", arg0)
+	ret := m.ctrl.Call(m, "SupportsEncryption", ctx)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // SupportsEncryption indicates an expected call of SupportsEncryption.
-func (mr *MockImageCloserMockRecorder) SupportsEncryption(arg0 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) SupportsEncryption(ctx any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SupportsEncryption", reflect.TypeOf((*MockImageCloser)(nil).SupportsEncryption), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SupportsEncryption", reflect.TypeOf((*MockImageCloser)(nil).SupportsEncryption), ctx)
 }
 
 // UpdatedImage mocks base method.
-func (m *MockImageCloser) UpdatedImage(arg0 context.Context, arg1 types.ManifestUpdateOptions) (types.Image, error) {
+func (m *MockImageCloser) UpdatedImage(ctx context.Context, options types.ManifestUpdateOptions) (types.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatedImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "UpdatedImage", ctx, options)
 	ret0, _ := ret[0].(types.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UpdatedImage indicates an expected call of UpdatedImage.
-func (mr *MockImageCloserMockRecorder) UpdatedImage(arg0, arg1 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) UpdatedImage(ctx, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedImage", reflect.TypeOf((*MockImageCloser)(nil).UpdatedImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedImage", reflect.TypeOf((*MockImageCloser)(nil).UpdatedImage), ctx, options)
 }
 
 // UpdatedImageNeedsLayerDiffIDs mocks base method.
-func (m *MockImageCloser) UpdatedImageNeedsLayerDiffIDs(arg0 types.ManifestUpdateOptions) bool {
+func (m *MockImageCloser) UpdatedImageNeedsLayerDiffIDs(options types.ManifestUpdateOptions) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdatedImageNeedsLayerDiffIDs", arg0)
+	ret := m.ctrl.Call(m, "UpdatedImageNeedsLayerDiffIDs", options)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // UpdatedImageNeedsLayerDiffIDs indicates an expected call of UpdatedImageNeedsLayerDiffIDs.
-func (mr *MockImageCloserMockRecorder) UpdatedImageNeedsLayerDiffIDs(arg0 any) *gomock.Call {
+func (mr *MockImageCloserMockRecorder) UpdatedImageNeedsLayerDiffIDs(options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedImageNeedsLayerDiffIDs", reflect.TypeOf((*MockImageCloser)(nil).UpdatedImageNeedsLayerDiffIDs), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatedImageNeedsLayerDiffIDs", reflect.TypeOf((*MockImageCloser)(nil).UpdatedImageNeedsLayerDiffIDs), options)
 }

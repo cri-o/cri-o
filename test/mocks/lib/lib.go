@@ -21,6 +21,7 @@ import (
 type MockIface struct {
 	ctrl     *gomock.Controller
 	recorder *MockIfaceMockRecorder
+	isgomock struct{}
 }
 
 // MockIfaceMockRecorder is the mock recorder for MockIface.
