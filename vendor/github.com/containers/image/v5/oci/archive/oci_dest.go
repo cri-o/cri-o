@@ -6,13 +6,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/containers/image/v5/internal/blobinfocache"
 	"github.com/containers/image/v5/internal/imagedestination"
 	"github.com/containers/image/v5/internal/imagedestination/impl"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage/pkg/archive"
+	"github.com/containers/storage/pkg/idtools"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/sirupsen/logrus"
 )
@@ -117,10 +117,11 @@ func (d *ociArchiveImageDestination) PutBlobWithOptions(ctx context.Context, str
 // PutBlobPartial attempts to create a blob using the data that is already present
 // at the destination. chunkAccessor is accessed in a non-sequential way to retrieve the missing chunks.
 // It is available only if SupportsPutBlobPartial().
-// Even if SupportsPutBlobPartial() returns true, the call can fail, in which case the caller
-// should fall back to PutBlobWithOptions.
-func (d *ociArchiveImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, cache blobinfocache.BlobInfoCache2) (private.UploadedBlob, error) {
-	return d.unpackedDest.PutBlobPartial(ctx, chunkAccessor, srcInfo, cache)
+// Even if SupportsPutBlobPartial() returns true, the call can fail.
+// If the call fails with ErrFallbackToOrdinaryLayerDownload, the caller can fall back to PutBlobWithOptions.
+// The fallback _must not_ be done otherwise.
+func (d *ociArchiveImageDestination) PutBlobPartial(ctx context.Context, chunkAccessor private.BlobChunkAccessor, srcInfo types.BlobInfo, options private.PutBlobPartialOptions) (private.UploadedBlob, error) {
+	return d.unpackedDest.PutBlobPartial(ctx, chunkAccessor, srcInfo, options)
 }
 
 // TryReusingBlobWithOptions checks whether the transport already contains, or can efficiently reuse, a blob, and if so, applies it to the current destination
@@ -169,10 +170,15 @@ func (d *ociArchiveImageDestination) Commit(ctx context.Context, unparsedTopleve
 // tar converts the directory at src and saves it to dst
 func tarDirectory(src, dst string) error {
 	// input is a stream of bytes from the archive of the directory at path
-	input, err := archive.Tar(src, archive.Uncompressed)
+	input, err := archive.TarWithOptions(src, &archive.TarOptions{
+		Compression: archive.Uncompressed,
+		// Don’t include the data about the user account this code is running under.
+		ChownOpts: &idtools.IDPair{UID: 0, GID: 0},
+	})
 	if err != nil {
 		return fmt.Errorf("retrieving stream of bytes from %q: %w", src, err)
 	}
+	defer input.Close()
 
 	// creates the tar file
 	outFile, err := os.Create(dst)
