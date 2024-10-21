@@ -26,6 +26,7 @@ import (
 type MockStore struct {
 	ctrl     *gomock.Controller
 	recorder *MockStoreMockRecorder
+	isgomock struct{}
 }
 
 // MockStoreMockRecorder is the mock recorder for MockStore.
@@ -46,202 +47,202 @@ func (m *MockStore) EXPECT() *MockStoreMockRecorder {
 }
 
 // AddNames mocks base method.
-func (m *MockStore) AddNames(arg0 string, arg1 []string) error {
+func (m *MockStore) AddNames(id string, names []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddNames", arg0, arg1)
+	ret := m.ctrl.Call(m, "AddNames", id, names)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddNames indicates an expected call of AddNames.
-func (mr *MockStoreMockRecorder) AddNames(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) AddNames(id, names any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNames", reflect.TypeOf((*MockStore)(nil).AddNames), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddNames", reflect.TypeOf((*MockStore)(nil).AddNames), id, names)
 }
 
 // ApplyDiff mocks base method.
-func (m *MockStore) ApplyDiff(arg0 string, arg1 io.Reader) (int64, error) {
+func (m *MockStore) ApplyDiff(to string, diff io.Reader) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyDiff", arg0, arg1)
+	ret := m.ctrl.Call(m, "ApplyDiff", to, diff)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ApplyDiff indicates an expected call of ApplyDiff.
-func (mr *MockStoreMockRecorder) ApplyDiff(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ApplyDiff(to, diff any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiff", reflect.TypeOf((*MockStore)(nil).ApplyDiff), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiff", reflect.TypeOf((*MockStore)(nil).ApplyDiff), to, diff)
 }
 
 // ApplyDiffWithDiffer mocks base method.
-func (m *MockStore) ApplyDiffWithDiffer(arg0 string, arg1 *graphdriver.ApplyDiffWithDifferOpts, arg2 graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
+func (m *MockStore) ApplyDiffWithDiffer(to string, options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyDiffWithDiffer", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "ApplyDiffWithDiffer", to, options, differ)
 	ret0, _ := ret[0].(*graphdriver.DriverWithDifferOutput)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ApplyDiffWithDiffer indicates an expected call of ApplyDiffWithDiffer.
-func (mr *MockStoreMockRecorder) ApplyDiffWithDiffer(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ApplyDiffWithDiffer(to, options, differ any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffWithDiffer", reflect.TypeOf((*MockStore)(nil).ApplyDiffWithDiffer), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyDiffWithDiffer", reflect.TypeOf((*MockStore)(nil).ApplyDiffWithDiffer), to, options, differ)
 }
 
 // ApplyStagedLayer mocks base method.
-func (m *MockStore) ApplyStagedLayer(arg0 storage.ApplyStagedLayerOptions) (*storage.Layer, error) {
+func (m *MockStore) ApplyStagedLayer(args storage.ApplyStagedLayerOptions) (*storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ApplyStagedLayer", arg0)
+	ret := m.ctrl.Call(m, "ApplyStagedLayer", args)
 	ret0, _ := ret[0].(*storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ApplyStagedLayer indicates an expected call of ApplyStagedLayer.
-func (mr *MockStoreMockRecorder) ApplyStagedLayer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ApplyStagedLayer(args any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyStagedLayer", reflect.TypeOf((*MockStore)(nil).ApplyStagedLayer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ApplyStagedLayer", reflect.TypeOf((*MockStore)(nil).ApplyStagedLayer), args)
 }
 
 // Changes mocks base method.
-func (m *MockStore) Changes(arg0, arg1 string) ([]archive.Change, error) {
+func (m *MockStore) Changes(from, to string) ([]archive.Change, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Changes", arg0, arg1)
+	ret := m.ctrl.Call(m, "Changes", from, to)
 	ret0, _ := ret[0].([]archive.Change)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Changes indicates an expected call of Changes.
-func (mr *MockStoreMockRecorder) Changes(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Changes(from, to any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Changes", reflect.TypeOf((*MockStore)(nil).Changes), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Changes", reflect.TypeOf((*MockStore)(nil).Changes), from, to)
 }
 
 // Check mocks base method.
-func (m *MockStore) Check(arg0 *storage.CheckOptions) (storage.CheckReport, error) {
+func (m *MockStore) Check(options *storage.CheckOptions) (storage.CheckReport, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Check", arg0)
+	ret := m.ctrl.Call(m, "Check", options)
 	ret0, _ := ret[0].(storage.CheckReport)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Check indicates an expected call of Check.
-func (mr *MockStoreMockRecorder) Check(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Check(options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockStore)(nil).Check), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Check", reflect.TypeOf((*MockStore)(nil).Check), options)
 }
 
 // CleanupStagedLayer mocks base method.
-func (m *MockStore) CleanupStagedLayer(arg0 *graphdriver.DriverWithDifferOutput) error {
+func (m *MockStore) CleanupStagedLayer(diffOutput *graphdriver.DriverWithDifferOutput) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanupStagedLayer", arg0)
+	ret := m.ctrl.Call(m, "CleanupStagedLayer", diffOutput)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // CleanupStagedLayer indicates an expected call of CleanupStagedLayer.
-func (mr *MockStoreMockRecorder) CleanupStagedLayer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CleanupStagedLayer(diffOutput any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagedLayer", reflect.TypeOf((*MockStore)(nil).CleanupStagedLayer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupStagedLayer", reflect.TypeOf((*MockStore)(nil).CleanupStagedLayer), diffOutput)
 }
 
 // Container mocks base method.
-func (m *MockStore) Container(arg0 string) (*storage.Container, error) {
+func (m *MockStore) Container(id string) (*storage.Container, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Container", arg0)
+	ret := m.ctrl.Call(m, "Container", id)
 	ret0, _ := ret[0].(*storage.Container)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Container indicates an expected call of Container.
-func (mr *MockStoreMockRecorder) Container(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Container(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Container", reflect.TypeOf((*MockStore)(nil).Container), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Container", reflect.TypeOf((*MockStore)(nil).Container), id)
 }
 
 // ContainerBigData mocks base method.
-func (m *MockStore) ContainerBigData(arg0, arg1 string) ([]byte, error) {
+func (m *MockStore) ContainerBigData(id, key string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerBigData", arg0, arg1)
+	ret := m.ctrl.Call(m, "ContainerBigData", id, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerBigData indicates an expected call of ContainerBigData.
-func (mr *MockStoreMockRecorder) ContainerBigData(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerBigData(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigData", reflect.TypeOf((*MockStore)(nil).ContainerBigData), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigData", reflect.TypeOf((*MockStore)(nil).ContainerBigData), id, key)
 }
 
 // ContainerBigDataDigest mocks base method.
-func (m *MockStore) ContainerBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
+func (m *MockStore) ContainerBigDataDigest(id, key string) (digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerBigDataDigest", arg0, arg1)
+	ret := m.ctrl.Call(m, "ContainerBigDataDigest", id, key)
 	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerBigDataDigest indicates an expected call of ContainerBigDataDigest.
-func (mr *MockStoreMockRecorder) ContainerBigDataDigest(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerBigDataDigest(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigDataDigest", reflect.TypeOf((*MockStore)(nil).ContainerBigDataDigest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigDataDigest", reflect.TypeOf((*MockStore)(nil).ContainerBigDataDigest), id, key)
 }
 
 // ContainerBigDataSize mocks base method.
-func (m *MockStore) ContainerBigDataSize(arg0, arg1 string) (int64, error) {
+func (m *MockStore) ContainerBigDataSize(id, key string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerBigDataSize", arg0, arg1)
+	ret := m.ctrl.Call(m, "ContainerBigDataSize", id, key)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerBigDataSize indicates an expected call of ContainerBigDataSize.
-func (mr *MockStoreMockRecorder) ContainerBigDataSize(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerBigDataSize(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigDataSize", reflect.TypeOf((*MockStore)(nil).ContainerBigDataSize), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerBigDataSize", reflect.TypeOf((*MockStore)(nil).ContainerBigDataSize), id, key)
 }
 
 // ContainerByLayer mocks base method.
-func (m *MockStore) ContainerByLayer(arg0 string) (*storage.Container, error) {
+func (m *MockStore) ContainerByLayer(id string) (*storage.Container, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerByLayer", arg0)
+	ret := m.ctrl.Call(m, "ContainerByLayer", id)
 	ret0, _ := ret[0].(*storage.Container)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerByLayer indicates an expected call of ContainerByLayer.
-func (mr *MockStoreMockRecorder) ContainerByLayer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerByLayer(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerByLayer", reflect.TypeOf((*MockStore)(nil).ContainerByLayer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerByLayer", reflect.TypeOf((*MockStore)(nil).ContainerByLayer), id)
 }
 
 // ContainerDirectory mocks base method.
-func (m *MockStore) ContainerDirectory(arg0 string) (string, error) {
+func (m *MockStore) ContainerDirectory(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerDirectory", arg0)
+	ret := m.ctrl.Call(m, "ContainerDirectory", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerDirectory indicates an expected call of ContainerDirectory.
-func (mr *MockStoreMockRecorder) ContainerDirectory(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerDirectory(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerDirectory", reflect.TypeOf((*MockStore)(nil).ContainerDirectory), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerDirectory", reflect.TypeOf((*MockStore)(nil).ContainerDirectory), id)
 }
 
 // ContainerParentOwners mocks base method.
-func (m *MockStore) ContainerParentOwners(arg0 string) ([]int, []int, error) {
+func (m *MockStore) ContainerParentOwners(id string) ([]int, []int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerParentOwners", arg0)
+	ret := m.ctrl.Call(m, "ContainerParentOwners", id)
 	ret0, _ := ret[0].([]int)
 	ret1, _ := ret[1].([]int)
 	ret2, _ := ret[2].(error)
@@ -249,39 +250,39 @@ func (m *MockStore) ContainerParentOwners(arg0 string) ([]int, []int, error) {
 }
 
 // ContainerParentOwners indicates an expected call of ContainerParentOwners.
-func (mr *MockStoreMockRecorder) ContainerParentOwners(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerParentOwners(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerParentOwners", reflect.TypeOf((*MockStore)(nil).ContainerParentOwners), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerParentOwners", reflect.TypeOf((*MockStore)(nil).ContainerParentOwners), id)
 }
 
 // ContainerRunDirectory mocks base method.
-func (m *MockStore) ContainerRunDirectory(arg0 string) (string, error) {
+func (m *MockStore) ContainerRunDirectory(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerRunDirectory", arg0)
+	ret := m.ctrl.Call(m, "ContainerRunDirectory", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerRunDirectory indicates an expected call of ContainerRunDirectory.
-func (mr *MockStoreMockRecorder) ContainerRunDirectory(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerRunDirectory(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerRunDirectory", reflect.TypeOf((*MockStore)(nil).ContainerRunDirectory), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerRunDirectory", reflect.TypeOf((*MockStore)(nil).ContainerRunDirectory), id)
 }
 
 // ContainerSize mocks base method.
-func (m *MockStore) ContainerSize(arg0 string) (int64, error) {
+func (m *MockStore) ContainerSize(id string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ContainerSize", arg0)
+	ret := m.ctrl.Call(m, "ContainerSize", id)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ContainerSize indicates an expected call of ContainerSize.
-func (mr *MockStoreMockRecorder) ContainerSize(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ContainerSize(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerSize", reflect.TypeOf((*MockStore)(nil).ContainerSize), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ContainerSize", reflect.TypeOf((*MockStore)(nil).ContainerSize), id)
 }
 
 // Containers mocks base method.
@@ -300,164 +301,164 @@ func (mr *MockStoreMockRecorder) Containers() *gomock.Call {
 }
 
 // CreateContainer mocks base method.
-func (m *MockStore) CreateContainer(arg0 string, arg1 []string, arg2, arg3, arg4 string, arg5 *storage.ContainerOptions) (*storage.Container, error) {
+func (m *MockStore) CreateContainer(id string, names []string, image, layer, metadata string, options *storage.ContainerOptions) (*storage.Container, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateContainer", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "CreateContainer", id, names, image, layer, metadata, options)
 	ret0, _ := ret[0].(*storage.Container)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateContainer indicates an expected call of CreateContainer.
-func (mr *MockStoreMockRecorder) CreateContainer(arg0, arg1, arg2, arg3, arg4, arg5 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CreateContainer(id, names, image, layer, metadata, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContainer", reflect.TypeOf((*MockStore)(nil).CreateContainer), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateContainer", reflect.TypeOf((*MockStore)(nil).CreateContainer), id, names, image, layer, metadata, options)
 }
 
 // CreateImage mocks base method.
-func (m *MockStore) CreateImage(arg0 string, arg1 []string, arg2, arg3 string, arg4 *storage.ImageOptions) (*storage.Image, error) {
+func (m *MockStore) CreateImage(id string, names []string, layer, metadata string, options *storage.ImageOptions) (*storage.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateImage", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "CreateImage", id, names, layer, metadata, options)
 	ret0, _ := ret[0].(*storage.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateImage indicates an expected call of CreateImage.
-func (mr *MockStoreMockRecorder) CreateImage(arg0, arg1, arg2, arg3, arg4 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CreateImage(id, names, layer, metadata, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImage", reflect.TypeOf((*MockStore)(nil).CreateImage), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateImage", reflect.TypeOf((*MockStore)(nil).CreateImage), id, names, layer, metadata, options)
 }
 
 // CreateLayer mocks base method.
-func (m *MockStore) CreateLayer(arg0, arg1 string, arg2 []string, arg3 string, arg4 bool, arg5 *storage.LayerOptions) (*storage.Layer, error) {
+func (m *MockStore) CreateLayer(id, parent string, names []string, mountLabel string, writeable bool, options *storage.LayerOptions) (*storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateLayer", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret := m.ctrl.Call(m, "CreateLayer", id, parent, names, mountLabel, writeable, options)
 	ret0, _ := ret[0].(*storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateLayer indicates an expected call of CreateLayer.
-func (mr *MockStoreMockRecorder) CreateLayer(arg0, arg1, arg2, arg3, arg4, arg5 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) CreateLayer(id, parent, names, mountLabel, writeable, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLayer", reflect.TypeOf((*MockStore)(nil).CreateLayer), arg0, arg1, arg2, arg3, arg4, arg5)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLayer", reflect.TypeOf((*MockStore)(nil).CreateLayer), id, parent, names, mountLabel, writeable, options)
 }
 
 // Delete mocks base method.
-func (m *MockStore) Delete(arg0 string) error {
+func (m *MockStore) Delete(id string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Delete", arg0)
+	ret := m.ctrl.Call(m, "Delete", id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // Delete indicates an expected call of Delete.
-func (mr *MockStoreMockRecorder) Delete(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Delete(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockStore)(nil).Delete), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockStore)(nil).Delete), id)
 }
 
 // DeleteContainer mocks base method.
-func (m *MockStore) DeleteContainer(arg0 string) error {
+func (m *MockStore) DeleteContainer(id string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteContainer", arg0)
+	ret := m.ctrl.Call(m, "DeleteContainer", id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteContainer indicates an expected call of DeleteContainer.
-func (mr *MockStoreMockRecorder) DeleteContainer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) DeleteContainer(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockStore)(nil).DeleteContainer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContainer", reflect.TypeOf((*MockStore)(nil).DeleteContainer), id)
 }
 
 // DeleteImage mocks base method.
-func (m *MockStore) DeleteImage(arg0 string, arg1 bool) ([]string, error) {
+func (m *MockStore) DeleteImage(id string, commit bool) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "DeleteImage", id, commit)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeleteImage indicates an expected call of DeleteImage.
-func (mr *MockStoreMockRecorder) DeleteImage(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) DeleteImage(id, commit any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockStore)(nil).DeleteImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockStore)(nil).DeleteImage), id, commit)
 }
 
 // DeleteLayer mocks base method.
-func (m *MockStore) DeleteLayer(arg0 string) error {
+func (m *MockStore) DeleteLayer(id string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteLayer", arg0)
+	ret := m.ctrl.Call(m, "DeleteLayer", id)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // DeleteLayer indicates an expected call of DeleteLayer.
-func (mr *MockStoreMockRecorder) DeleteLayer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) DeleteLayer(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLayer", reflect.TypeOf((*MockStore)(nil).DeleteLayer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteLayer", reflect.TypeOf((*MockStore)(nil).DeleteLayer), id)
 }
 
 // Diff mocks base method.
-func (m *MockStore) Diff(arg0, arg1 string, arg2 *storage.DiffOptions) (io.ReadCloser, error) {
+func (m *MockStore) Diff(from, to string, options *storage.DiffOptions) (io.ReadCloser, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Diff", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "Diff", from, to, options)
 	ret0, _ := ret[0].(io.ReadCloser)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Diff indicates an expected call of Diff.
-func (mr *MockStoreMockRecorder) Diff(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Diff(from, to, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Diff", reflect.TypeOf((*MockStore)(nil).Diff), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Diff", reflect.TypeOf((*MockStore)(nil).Diff), from, to, options)
 }
 
 // DiffSize mocks base method.
-func (m *MockStore) DiffSize(arg0, arg1 string) (int64, error) {
+func (m *MockStore) DiffSize(from, to string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DiffSize", arg0, arg1)
+	ret := m.ctrl.Call(m, "DiffSize", from, to)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DiffSize indicates an expected call of DiffSize.
-func (mr *MockStoreMockRecorder) DiffSize(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) DiffSize(from, to any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiffSize", reflect.TypeOf((*MockStore)(nil).DiffSize), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DiffSize", reflect.TypeOf((*MockStore)(nil).DiffSize), from, to)
 }
 
 // DifferTarget mocks base method.
-func (m *MockStore) DifferTarget(arg0 string) (string, error) {
+func (m *MockStore) DifferTarget(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DifferTarget", arg0)
+	ret := m.ctrl.Call(m, "DifferTarget", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DifferTarget indicates an expected call of DifferTarget.
-func (mr *MockStoreMockRecorder) DifferTarget(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) DifferTarget(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DifferTarget", reflect.TypeOf((*MockStore)(nil).DifferTarget), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DifferTarget", reflect.TypeOf((*MockStore)(nil).DifferTarget), id)
 }
 
 // Exists mocks base method.
-func (m *MockStore) Exists(arg0 string) bool {
+func (m *MockStore) Exists(id string) bool {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Exists", arg0)
+	ret := m.ctrl.Call(m, "Exists", id)
 	ret0, _ := ret[0].(bool)
 	return ret0
 }
 
 // Exists indicates an expected call of Exists.
-func (mr *MockStoreMockRecorder) Exists(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Exists(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockStore)(nil).Exists), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Exists", reflect.TypeOf((*MockStore)(nil).Exists), id)
 }
 
 // Free mocks base method.
@@ -473,33 +474,33 @@ func (mr *MockStoreMockRecorder) Free() *gomock.Call {
 }
 
 // FromContainerDirectory mocks base method.
-func (m *MockStore) FromContainerDirectory(arg0, arg1 string) ([]byte, error) {
+func (m *MockStore) FromContainerDirectory(id, file string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromContainerDirectory", arg0, arg1)
+	ret := m.ctrl.Call(m, "FromContainerDirectory", id, file)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FromContainerDirectory indicates an expected call of FromContainerDirectory.
-func (mr *MockStoreMockRecorder) FromContainerDirectory(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) FromContainerDirectory(id, file any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromContainerDirectory", reflect.TypeOf((*MockStore)(nil).FromContainerDirectory), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromContainerDirectory", reflect.TypeOf((*MockStore)(nil).FromContainerDirectory), id, file)
 }
 
 // FromContainerRunDirectory mocks base method.
-func (m *MockStore) FromContainerRunDirectory(arg0, arg1 string) ([]byte, error) {
+func (m *MockStore) FromContainerRunDirectory(id, file string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "FromContainerRunDirectory", arg0, arg1)
+	ret := m.ctrl.Call(m, "FromContainerRunDirectory", id, file)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // FromContainerRunDirectory indicates an expected call of FromContainerRunDirectory.
-func (mr *MockStoreMockRecorder) FromContainerRunDirectory(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) FromContainerRunDirectory(id, file any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromContainerRunDirectory", reflect.TypeOf((*MockStore)(nil).FromContainerRunDirectory), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "FromContainerRunDirectory", reflect.TypeOf((*MockStore)(nil).FromContainerRunDirectory), id, file)
 }
 
 // GIDMap mocks base method.
@@ -603,108 +604,108 @@ func (mr *MockStoreMockRecorder) GraphRoot() *gomock.Call {
 }
 
 // Image mocks base method.
-func (m *MockStore) Image(arg0 string) (*storage.Image, error) {
+func (m *MockStore) Image(id string) (*storage.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Image", arg0)
+	ret := m.ctrl.Call(m, "Image", id)
 	ret0, _ := ret[0].(*storage.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Image indicates an expected call of Image.
-func (mr *MockStoreMockRecorder) Image(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Image(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Image", reflect.TypeOf((*MockStore)(nil).Image), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Image", reflect.TypeOf((*MockStore)(nil).Image), id)
 }
 
 // ImageBigData mocks base method.
-func (m *MockStore) ImageBigData(arg0, arg1 string) ([]byte, error) {
+func (m *MockStore) ImageBigData(id, key string) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageBigData", arg0, arg1)
+	ret := m.ctrl.Call(m, "ImageBigData", id, key)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageBigData indicates an expected call of ImageBigData.
-func (mr *MockStoreMockRecorder) ImageBigData(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageBigData(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigData", reflect.TypeOf((*MockStore)(nil).ImageBigData), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigData", reflect.TypeOf((*MockStore)(nil).ImageBigData), id, key)
 }
 
 // ImageBigDataDigest mocks base method.
-func (m *MockStore) ImageBigDataDigest(arg0, arg1 string) (digest.Digest, error) {
+func (m *MockStore) ImageBigDataDigest(id, key string) (digest.Digest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageBigDataDigest", arg0, arg1)
+	ret := m.ctrl.Call(m, "ImageBigDataDigest", id, key)
 	ret0, _ := ret[0].(digest.Digest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageBigDataDigest indicates an expected call of ImageBigDataDigest.
-func (mr *MockStoreMockRecorder) ImageBigDataDigest(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageBigDataDigest(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigDataDigest", reflect.TypeOf((*MockStore)(nil).ImageBigDataDigest), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigDataDigest", reflect.TypeOf((*MockStore)(nil).ImageBigDataDigest), id, key)
 }
 
 // ImageBigDataSize mocks base method.
-func (m *MockStore) ImageBigDataSize(arg0, arg1 string) (int64, error) {
+func (m *MockStore) ImageBigDataSize(id, key string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageBigDataSize", arg0, arg1)
+	ret := m.ctrl.Call(m, "ImageBigDataSize", id, key)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageBigDataSize indicates an expected call of ImageBigDataSize.
-func (mr *MockStoreMockRecorder) ImageBigDataSize(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageBigDataSize(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigDataSize", reflect.TypeOf((*MockStore)(nil).ImageBigDataSize), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageBigDataSize", reflect.TypeOf((*MockStore)(nil).ImageBigDataSize), id, key)
 }
 
 // ImageDirectory mocks base method.
-func (m *MockStore) ImageDirectory(arg0 string) (string, error) {
+func (m *MockStore) ImageDirectory(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageDirectory", arg0)
+	ret := m.ctrl.Call(m, "ImageDirectory", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageDirectory indicates an expected call of ImageDirectory.
-func (mr *MockStoreMockRecorder) ImageDirectory(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageDirectory(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageDirectory", reflect.TypeOf((*MockStore)(nil).ImageDirectory), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageDirectory", reflect.TypeOf((*MockStore)(nil).ImageDirectory), id)
 }
 
 // ImageRunDirectory mocks base method.
-func (m *MockStore) ImageRunDirectory(arg0 string) (string, error) {
+func (m *MockStore) ImageRunDirectory(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageRunDirectory", arg0)
+	ret := m.ctrl.Call(m, "ImageRunDirectory", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageRunDirectory indicates an expected call of ImageRunDirectory.
-func (mr *MockStoreMockRecorder) ImageRunDirectory(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageRunDirectory(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageRunDirectory", reflect.TypeOf((*MockStore)(nil).ImageRunDirectory), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageRunDirectory", reflect.TypeOf((*MockStore)(nil).ImageRunDirectory), id)
 }
 
 // ImageSize mocks base method.
-func (m *MockStore) ImageSize(arg0 string) (int64, error) {
+func (m *MockStore) ImageSize(id string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImageSize", arg0)
+	ret := m.ctrl.Call(m, "ImageSize", id)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImageSize indicates an expected call of ImageSize.
-func (mr *MockStoreMockRecorder) ImageSize(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImageSize(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageSize", reflect.TypeOf((*MockStore)(nil).ImageSize), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImageSize", reflect.TypeOf((*MockStore)(nil).ImageSize), id)
 }
 
 // ImageStore mocks base method.
@@ -737,69 +738,69 @@ func (mr *MockStoreMockRecorder) Images() *gomock.Call {
 }
 
 // ImagesByDigest mocks base method.
-func (m *MockStore) ImagesByDigest(arg0 digest.Digest) ([]*storage.Image, error) {
+func (m *MockStore) ImagesByDigest(d digest.Digest) ([]*storage.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImagesByDigest", arg0)
+	ret := m.ctrl.Call(m, "ImagesByDigest", d)
 	ret0, _ := ret[0].([]*storage.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImagesByDigest indicates an expected call of ImagesByDigest.
-func (mr *MockStoreMockRecorder) ImagesByDigest(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImagesByDigest(d any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagesByDigest", reflect.TypeOf((*MockStore)(nil).ImagesByDigest), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagesByDigest", reflect.TypeOf((*MockStore)(nil).ImagesByDigest), d)
 }
 
 // ImagesByTopLayer mocks base method.
-func (m *MockStore) ImagesByTopLayer(arg0 string) ([]*storage.Image, error) {
+func (m *MockStore) ImagesByTopLayer(id string) ([]*storage.Image, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ImagesByTopLayer", arg0)
+	ret := m.ctrl.Call(m, "ImagesByTopLayer", id)
 	ret0, _ := ret[0].([]*storage.Image)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ImagesByTopLayer indicates an expected call of ImagesByTopLayer.
-func (mr *MockStoreMockRecorder) ImagesByTopLayer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ImagesByTopLayer(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagesByTopLayer", reflect.TypeOf((*MockStore)(nil).ImagesByTopLayer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImagesByTopLayer", reflect.TypeOf((*MockStore)(nil).ImagesByTopLayer), id)
 }
 
 // Layer mocks base method.
-func (m *MockStore) Layer(arg0 string) (*storage.Layer, error) {
+func (m *MockStore) Layer(id string) (*storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Layer", arg0)
+	ret := m.ctrl.Call(m, "Layer", id)
 	ret0, _ := ret[0].(*storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Layer indicates an expected call of Layer.
-func (mr *MockStoreMockRecorder) Layer(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Layer(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Layer", reflect.TypeOf((*MockStore)(nil).Layer), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Layer", reflect.TypeOf((*MockStore)(nil).Layer), id)
 }
 
 // LayerBigData mocks base method.
-func (m *MockStore) LayerBigData(arg0, arg1 string) (io.ReadCloser, error) {
+func (m *MockStore) LayerBigData(id, key string) (io.ReadCloser, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayerBigData", arg0, arg1)
+	ret := m.ctrl.Call(m, "LayerBigData", id, key)
 	ret0, _ := ret[0].(io.ReadCloser)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayerBigData indicates an expected call of LayerBigData.
-func (mr *MockStoreMockRecorder) LayerBigData(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayerBigData(id, key any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerBigData", reflect.TypeOf((*MockStore)(nil).LayerBigData), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerBigData", reflect.TypeOf((*MockStore)(nil).LayerBigData), id, key)
 }
 
 // LayerParentOwners mocks base method.
-func (m *MockStore) LayerParentOwners(arg0 string) ([]int, []int, error) {
+func (m *MockStore) LayerParentOwners(id string) ([]int, []int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayerParentOwners", arg0)
+	ret := m.ctrl.Call(m, "LayerParentOwners", id)
 	ret0, _ := ret[0].([]int)
 	ret1, _ := ret[1].([]int)
 	ret2, _ := ret[2].(error)
@@ -807,24 +808,24 @@ func (m *MockStore) LayerParentOwners(arg0 string) ([]int, []int, error) {
 }
 
 // LayerParentOwners indicates an expected call of LayerParentOwners.
-func (mr *MockStoreMockRecorder) LayerParentOwners(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayerParentOwners(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerParentOwners", reflect.TypeOf((*MockStore)(nil).LayerParentOwners), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerParentOwners", reflect.TypeOf((*MockStore)(nil).LayerParentOwners), id)
 }
 
 // LayerSize mocks base method.
-func (m *MockStore) LayerSize(arg0 string) (int64, error) {
+func (m *MockStore) LayerSize(id string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayerSize", arg0)
+	ret := m.ctrl.Call(m, "LayerSize", id)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayerSize indicates an expected call of LayerSize.
-func (mr *MockStoreMockRecorder) LayerSize(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayerSize(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerSize", reflect.TypeOf((*MockStore)(nil).LayerSize), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayerSize", reflect.TypeOf((*MockStore)(nil).LayerSize), id)
 }
 
 // Layers mocks base method.
@@ -843,198 +844,198 @@ func (mr *MockStoreMockRecorder) Layers() *gomock.Call {
 }
 
 // LayersByCompressedDigest mocks base method.
-func (m *MockStore) LayersByCompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByCompressedDigest(d digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayersByCompressedDigest", arg0)
+	ret := m.ctrl.Call(m, "LayersByCompressedDigest", d)
 	ret0, _ := ret[0].([]storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayersByCompressedDigest indicates an expected call of LayersByCompressedDigest.
-func (mr *MockStoreMockRecorder) LayersByCompressedDigest(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayersByCompressedDigest(d any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByCompressedDigest", reflect.TypeOf((*MockStore)(nil).LayersByCompressedDigest), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByCompressedDigest", reflect.TypeOf((*MockStore)(nil).LayersByCompressedDigest), d)
 }
 
 // LayersByTOCDigest mocks base method.
-func (m *MockStore) LayersByTOCDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByTOCDigest(d digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayersByTOCDigest", arg0)
+	ret := m.ctrl.Call(m, "LayersByTOCDigest", d)
 	ret0, _ := ret[0].([]storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayersByTOCDigest indicates an expected call of LayersByTOCDigest.
-func (mr *MockStoreMockRecorder) LayersByTOCDigest(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayersByTOCDigest(d any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByTOCDigest", reflect.TypeOf((*MockStore)(nil).LayersByTOCDigest), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByTOCDigest", reflect.TypeOf((*MockStore)(nil).LayersByTOCDigest), d)
 }
 
 // LayersByUncompressedDigest mocks base method.
-func (m *MockStore) LayersByUncompressedDigest(arg0 digest.Digest) ([]storage.Layer, error) {
+func (m *MockStore) LayersByUncompressedDigest(d digest.Digest) ([]storage.Layer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LayersByUncompressedDigest", arg0)
+	ret := m.ctrl.Call(m, "LayersByUncompressedDigest", d)
 	ret0, _ := ret[0].([]storage.Layer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LayersByUncompressedDigest indicates an expected call of LayersByUncompressedDigest.
-func (mr *MockStoreMockRecorder) LayersByUncompressedDigest(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LayersByUncompressedDigest(d any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByUncompressedDigest", reflect.TypeOf((*MockStore)(nil).LayersByUncompressedDigest), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LayersByUncompressedDigest", reflect.TypeOf((*MockStore)(nil).LayersByUncompressedDigest), d)
 }
 
 // ListContainerBigData mocks base method.
-func (m *MockStore) ListContainerBigData(arg0 string) ([]string, error) {
+func (m *MockStore) ListContainerBigData(id string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListContainerBigData", arg0)
+	ret := m.ctrl.Call(m, "ListContainerBigData", id)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListContainerBigData indicates an expected call of ListContainerBigData.
-func (mr *MockStoreMockRecorder) ListContainerBigData(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListContainerBigData(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContainerBigData", reflect.TypeOf((*MockStore)(nil).ListContainerBigData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListContainerBigData", reflect.TypeOf((*MockStore)(nil).ListContainerBigData), id)
 }
 
 // ListImageBigData mocks base method.
-func (m *MockStore) ListImageBigData(arg0 string) ([]string, error) {
+func (m *MockStore) ListImageBigData(id string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListImageBigData", arg0)
+	ret := m.ctrl.Call(m, "ListImageBigData", id)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListImageBigData indicates an expected call of ListImageBigData.
-func (mr *MockStoreMockRecorder) ListImageBigData(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListImageBigData(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImageBigData", reflect.TypeOf((*MockStore)(nil).ListImageBigData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImageBigData", reflect.TypeOf((*MockStore)(nil).ListImageBigData), id)
 }
 
 // ListLayerBigData mocks base method.
-func (m *MockStore) ListLayerBigData(arg0 string) ([]string, error) {
+func (m *MockStore) ListLayerBigData(id string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListLayerBigData", arg0)
+	ret := m.ctrl.Call(m, "ListLayerBigData", id)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // ListLayerBigData indicates an expected call of ListLayerBigData.
-func (mr *MockStoreMockRecorder) ListLayerBigData(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) ListLayerBigData(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLayerBigData", reflect.TypeOf((*MockStore)(nil).ListLayerBigData), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListLayerBigData", reflect.TypeOf((*MockStore)(nil).ListLayerBigData), id)
 }
 
 // Lookup mocks base method.
-func (m *MockStore) Lookup(arg0 string) (string, error) {
+func (m *MockStore) Lookup(name string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Lookup", arg0)
+	ret := m.ctrl.Call(m, "Lookup", name)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Lookup indicates an expected call of Lookup.
-func (mr *MockStoreMockRecorder) Lookup(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Lookup(name any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lookup", reflect.TypeOf((*MockStore)(nil).Lookup), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Lookup", reflect.TypeOf((*MockStore)(nil).Lookup), name)
 }
 
 // LookupAdditionalLayer mocks base method.
-func (m *MockStore) LookupAdditionalLayer(arg0 digest.Digest, arg1 string) (storage.AdditionalLayer, error) {
+func (m *MockStore) LookupAdditionalLayer(tocDigest digest.Digest, imageref string) (storage.AdditionalLayer, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "LookupAdditionalLayer", arg0, arg1)
+	ret := m.ctrl.Call(m, "LookupAdditionalLayer", tocDigest, imageref)
 	ret0, _ := ret[0].(storage.AdditionalLayer)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // LookupAdditionalLayer indicates an expected call of LookupAdditionalLayer.
-func (mr *MockStoreMockRecorder) LookupAdditionalLayer(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) LookupAdditionalLayer(tocDigest, imageref any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupAdditionalLayer", reflect.TypeOf((*MockStore)(nil).LookupAdditionalLayer), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LookupAdditionalLayer", reflect.TypeOf((*MockStore)(nil).LookupAdditionalLayer), tocDigest, imageref)
 }
 
 // Metadata mocks base method.
-func (m *MockStore) Metadata(arg0 string) (string, error) {
+func (m *MockStore) Metadata(id string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Metadata", arg0)
+	ret := m.ctrl.Call(m, "Metadata", id)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Metadata indicates an expected call of Metadata.
-func (mr *MockStoreMockRecorder) Metadata(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Metadata(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*MockStore)(nil).Metadata), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Metadata", reflect.TypeOf((*MockStore)(nil).Metadata), id)
 }
 
 // Mount mocks base method.
-func (m *MockStore) Mount(arg0, arg1 string) (string, error) {
+func (m *MockStore) Mount(id, mountLabel string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Mount", arg0, arg1)
+	ret := m.ctrl.Call(m, "Mount", id, mountLabel)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Mount indicates an expected call of Mount.
-func (mr *MockStoreMockRecorder) Mount(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Mount(id, mountLabel any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockStore)(nil).Mount), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mount", reflect.TypeOf((*MockStore)(nil).Mount), id, mountLabel)
 }
 
 // MountImage mocks base method.
-func (m *MockStore) MountImage(arg0 string, arg1 []string, arg2 string) (string, error) {
+func (m *MockStore) MountImage(id string, mountOptions []string, mountLabel string) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MountImage", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "MountImage", id, mountOptions, mountLabel)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // MountImage indicates an expected call of MountImage.
-func (mr *MockStoreMockRecorder) MountImage(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) MountImage(id, mountOptions, mountLabel any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountImage", reflect.TypeOf((*MockStore)(nil).MountImage), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MountImage", reflect.TypeOf((*MockStore)(nil).MountImage), id, mountOptions, mountLabel)
 }
 
 // Mounted mocks base method.
-func (m *MockStore) Mounted(arg0 string) (int, error) {
+func (m *MockStore) Mounted(id string) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Mounted", arg0)
+	ret := m.ctrl.Call(m, "Mounted", id)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Mounted indicates an expected call of Mounted.
-func (mr *MockStoreMockRecorder) Mounted(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Mounted(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mounted", reflect.TypeOf((*MockStore)(nil).Mounted), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mounted", reflect.TypeOf((*MockStore)(nil).Mounted), id)
 }
 
 // Names mocks base method.
-func (m *MockStore) Names(arg0 string) ([]string, error) {
+func (m *MockStore) Names(id string) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Names", arg0)
+	ret := m.ctrl.Call(m, "Names", id)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Names indicates an expected call of Names.
-func (mr *MockStoreMockRecorder) Names(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Names(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Names", reflect.TypeOf((*MockStore)(nil).Names), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Names", reflect.TypeOf((*MockStore)(nil).Names), id)
 }
 
 // PullOptions mocks base method.
@@ -1052,9 +1053,9 @@ func (mr *MockStoreMockRecorder) PullOptions() *gomock.Call {
 }
 
 // PutLayer mocks base method.
-func (m *MockStore) PutLayer(arg0, arg1 string, arg2 []string, arg3 string, arg4 bool, arg5 *storage.LayerOptions, arg6 io.Reader) (*storage.Layer, int64, error) {
+func (m *MockStore) PutLayer(id, parent string, names []string, mountLabel string, writeable bool, options *storage.LayerOptions, diff io.Reader) (*storage.Layer, int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PutLayer", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret := m.ctrl.Call(m, "PutLayer", id, parent, names, mountLabel, writeable, options, diff)
 	ret0, _ := ret[0].(*storage.Layer)
 	ret1, _ := ret[1].(int64)
 	ret2, _ := ret[2].(error)
@@ -1062,37 +1063,37 @@ func (m *MockStore) PutLayer(arg0, arg1 string, arg2 []string, arg3 string, arg4
 }
 
 // PutLayer indicates an expected call of PutLayer.
-func (mr *MockStoreMockRecorder) PutLayer(arg0, arg1, arg2, arg3, arg4, arg5, arg6 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) PutLayer(id, parent, names, mountLabel, writeable, options, diff any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutLayer", reflect.TypeOf((*MockStore)(nil).PutLayer), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PutLayer", reflect.TypeOf((*MockStore)(nil).PutLayer), id, parent, names, mountLabel, writeable, options, diff)
 }
 
 // RemoveNames mocks base method.
-func (m *MockStore) RemoveNames(arg0 string, arg1 []string) error {
+func (m *MockStore) RemoveNames(id string, names []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RemoveNames", arg0, arg1)
+	ret := m.ctrl.Call(m, "RemoveNames", id, names)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // RemoveNames indicates an expected call of RemoveNames.
-func (mr *MockStoreMockRecorder) RemoveNames(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) RemoveNames(id, names any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNames", reflect.TypeOf((*MockStore)(nil).RemoveNames), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveNames", reflect.TypeOf((*MockStore)(nil).RemoveNames), id, names)
 }
 
 // Repair mocks base method.
-func (m *MockStore) Repair(arg0 storage.CheckReport, arg1 *storage.RepairOptions) []error {
+func (m *MockStore) Repair(report storage.CheckReport, options *storage.RepairOptions) []error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Repair", arg0, arg1)
+	ret := m.ctrl.Call(m, "Repair", report, options)
 	ret0, _ := ret[0].([]error)
 	return ret0
 }
 
 // Repair indicates an expected call of Repair.
-func (mr *MockStoreMockRecorder) Repair(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Repair(report, options any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockStore)(nil).Repair), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Repair", reflect.TypeOf((*MockStore)(nil).Repair), report, options)
 }
 
 // RunRoot mocks base method.
@@ -1110,116 +1111,116 @@ func (mr *MockStoreMockRecorder) RunRoot() *gomock.Call {
 }
 
 // SetContainerBigData mocks base method.
-func (m *MockStore) SetContainerBigData(arg0, arg1 string, arg2 []byte) error {
+func (m *MockStore) SetContainerBigData(id, key string, data []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetContainerBigData", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetContainerBigData", id, key, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetContainerBigData indicates an expected call of SetContainerBigData.
-func (mr *MockStoreMockRecorder) SetContainerBigData(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetContainerBigData(id, key, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerBigData", reflect.TypeOf((*MockStore)(nil).SetContainerBigData), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerBigData", reflect.TypeOf((*MockStore)(nil).SetContainerBigData), id, key, data)
 }
 
 // SetContainerDirectoryFile mocks base method.
-func (m *MockStore) SetContainerDirectoryFile(arg0, arg1 string, arg2 []byte) error {
+func (m *MockStore) SetContainerDirectoryFile(id, file string, data []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetContainerDirectoryFile", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetContainerDirectoryFile", id, file, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetContainerDirectoryFile indicates an expected call of SetContainerDirectoryFile.
-func (mr *MockStoreMockRecorder) SetContainerDirectoryFile(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetContainerDirectoryFile(id, file, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerDirectoryFile", reflect.TypeOf((*MockStore)(nil).SetContainerDirectoryFile), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerDirectoryFile", reflect.TypeOf((*MockStore)(nil).SetContainerDirectoryFile), id, file, data)
 }
 
 // SetContainerRunDirectoryFile mocks base method.
-func (m *MockStore) SetContainerRunDirectoryFile(arg0, arg1 string, arg2 []byte) error {
+func (m *MockStore) SetContainerRunDirectoryFile(id, file string, data []byte) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetContainerRunDirectoryFile", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetContainerRunDirectoryFile", id, file, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetContainerRunDirectoryFile indicates an expected call of SetContainerRunDirectoryFile.
-func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetContainerRunDirectoryFile(id, file, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerRunDirectoryFile", reflect.TypeOf((*MockStore)(nil).SetContainerRunDirectoryFile), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetContainerRunDirectoryFile", reflect.TypeOf((*MockStore)(nil).SetContainerRunDirectoryFile), id, file, data)
 }
 
 // SetImageBigData mocks base method.
-func (m *MockStore) SetImageBigData(arg0, arg1 string, arg2 []byte, arg3 func([]byte) (digest.Digest, error)) error {
+func (m *MockStore) SetImageBigData(id, key string, data []byte, digestManifest func([]byte) (digest.Digest, error)) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetImageBigData", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetImageBigData", id, key, data, digestManifest)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetImageBigData indicates an expected call of SetImageBigData.
-func (mr *MockStoreMockRecorder) SetImageBigData(arg0, arg1, arg2, arg3 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetImageBigData(id, key, data, digestManifest any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetImageBigData", reflect.TypeOf((*MockStore)(nil).SetImageBigData), id, key, data, digestManifest)
 }
 
 // SetLayerBigData mocks base method.
-func (m *MockStore) SetLayerBigData(arg0, arg1 string, arg2 io.Reader) error {
+func (m *MockStore) SetLayerBigData(id, key string, data io.Reader) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetLayerBigData", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "SetLayerBigData", id, key, data)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetLayerBigData indicates an expected call of SetLayerBigData.
-func (mr *MockStoreMockRecorder) SetLayerBigData(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetLayerBigData(id, key, data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLayerBigData", reflect.TypeOf((*MockStore)(nil).SetLayerBigData), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetLayerBigData", reflect.TypeOf((*MockStore)(nil).SetLayerBigData), id, key, data)
 }
 
 // SetMetadata mocks base method.
-func (m *MockStore) SetMetadata(arg0, arg1 string) error {
+func (m *MockStore) SetMetadata(id, metadata string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetMetadata", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetMetadata", id, metadata)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetMetadata indicates an expected call of SetMetadata.
-func (mr *MockStoreMockRecorder) SetMetadata(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetMetadata(id, metadata any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetadata", reflect.TypeOf((*MockStore)(nil).SetMetadata), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetMetadata", reflect.TypeOf((*MockStore)(nil).SetMetadata), id, metadata)
 }
 
 // SetNames mocks base method.
-func (m *MockStore) SetNames(arg0 string, arg1 []string) error {
+func (m *MockStore) SetNames(id string, names []string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetNames", arg0, arg1)
+	ret := m.ctrl.Call(m, "SetNames", id, names)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // SetNames indicates an expected call of SetNames.
-func (mr *MockStoreMockRecorder) SetNames(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) SetNames(id, names any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNames", reflect.TypeOf((*MockStore)(nil).SetNames), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNames", reflect.TypeOf((*MockStore)(nil).SetNames), id, names)
 }
 
 // Shutdown mocks base method.
-func (m *MockStore) Shutdown(arg0 bool) ([]string, error) {
+func (m *MockStore) Shutdown(force bool) ([]string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Shutdown", arg0)
+	ret := m.ctrl.Call(m, "Shutdown", force)
 	ret0, _ := ret[0].([]string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Shutdown indicates an expected call of Shutdown.
-func (mr *MockStoreMockRecorder) Shutdown(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Shutdown(force any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockStore)(nil).Shutdown), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Shutdown", reflect.TypeOf((*MockStore)(nil).Shutdown), force)
 }
 
 // Status mocks base method.
@@ -1266,33 +1267,33 @@ func (mr *MockStoreMockRecorder) UIDMap() *gomock.Call {
 }
 
 // Unmount mocks base method.
-func (m *MockStore) Unmount(arg0 string, arg1 bool) (bool, error) {
+func (m *MockStore) Unmount(id string, force bool) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Unmount", arg0, arg1)
+	ret := m.ctrl.Call(m, "Unmount", id, force)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // Unmount indicates an expected call of Unmount.
-func (mr *MockStoreMockRecorder) Unmount(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) Unmount(id, force any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockStore)(nil).Unmount), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Unmount", reflect.TypeOf((*MockStore)(nil).Unmount), id, force)
 }
 
 // UnmountImage mocks base method.
-func (m *MockStore) UnmountImage(arg0 string, arg1 bool) (bool, error) {
+func (m *MockStore) UnmountImage(id string, force bool) (bool, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnmountImage", arg0, arg1)
+	ret := m.ctrl.Call(m, "UnmountImage", id, force)
 	ret0, _ := ret[0].(bool)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // UnmountImage indicates an expected call of UnmountImage.
-func (mr *MockStoreMockRecorder) UnmountImage(arg0, arg1 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) UnmountImage(id, force any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmountImage", reflect.TypeOf((*MockStore)(nil).UnmountImage), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnmountImage", reflect.TypeOf((*MockStore)(nil).UnmountImage), id, force)
 }
 
 // Version mocks base method.
