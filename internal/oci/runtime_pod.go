@@ -1,6 +1,3 @@
-//go:build !skip_pod_runtime
-// +build !skip_pod_runtime
-
 package oci
 
 import (
