@@ -25,6 +25,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	statsserver "github.com/cri-o/cri-o/internal/lib/stats"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/registrar"
 	"github.com/cri-o/cri-o/internal/storage"
@@ -154,9 +155,9 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		Hooks:                newHooks,
 		stateLock:            &sync.Mutex{},
 		state: &containerServerState{
-			containers:      oci.NewMemoryStore(),
-			infraContainers: oci.NewMemoryStore(),
-			sandboxes:       sandbox.NewMemoryStore(),
+			containers:      memorystore.New[*oci.Container](),
+			infraContainers: memorystore.New[*oci.Container](),
+			sandboxes:       memorystore.New[*sandbox.Sandbox](),
 			processLevels:   make(map[string]int),
 		},
 		config: config,
@@ -597,9 +598,9 @@ func (c *ContainerServer) Shutdown() error {
 }
 
 type containerServerState struct {
-	containers      oci.ContainerStorer
-	infraContainers oci.ContainerStorer
-	sandboxes       sandbox.Storer
+	containers      memorystore.Storer[*oci.Container]
+	infraContainers memorystore.Storer[*oci.Container]
+	sandboxes       memorystore.Storer[*sandbox.Sandbox]
 	// processLevels The number of sandboxes using the same SELinux MCS level. Need to release MCS Level, when count reaches 0
 	processLevels map[string]int
 }

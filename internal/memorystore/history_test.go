@@ -1,4 +1,4 @@
-package sandbox_test
+package memorystore_test
 
 import (
 	"time"
@@ -9,11 +9,12 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 )
 
 // The actual test suite.
 var _ = t.Describe("History", func() {
-	var sut *sandbox.History
+	var sut memorystore.History[*sandbox.Sandbox]
 
 	// Prepare the sut
 	BeforeEach(func() {
@@ -24,7 +25,7 @@ var _ = t.Describe("History", func() {
 			[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
 		Expect(err).ToNot(HaveOccurred())
 		Expect(testSandbox).NotTo(BeNil())
-		sut = &sandbox.History{testSandbox, otherTestSandbox}
+		sut = memorystore.History[*sandbox.Sandbox]{testSandbox, otherTestSandbox}
 	})
 
 	t.Describe("Len", func() {

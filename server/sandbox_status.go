@@ -52,7 +52,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	resp := &types.PodSandboxStatusResponse{
 		Status: &types.PodSandboxStatus{
 			Id:          sandboxID,
-			CreatedAt:   sb.CreatedAt(),
+			CreatedAt:   sb.CreatedAt().UnixNano(),
 			Network:     &types.PodSandboxNetworkStatus{},
 			State:       rStatus,
 			Labels:      sb.Labels(),

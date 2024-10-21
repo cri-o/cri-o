@@ -16,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 )
 
@@ -37,7 +38,8 @@ type Sandbox struct {
 	// Kubernetes pod name (eg, "<name>")
 	kubeName       string
 	logDir         string
-	containers     oci.ContainerStorer
+	containers     memorystore.Storer[*oci.Container]
+	createdAt      time.Time
 	processLabel   string
 	mountLabel     string
 	netns          nsmgr.Namespace
@@ -89,9 +91,10 @@ func New(id, namespace, name, kubeName, logDir string, labels, annotations map[s
 	}
 	sb.namespace = namespace
 	sb.name = name
+	sb.createdAt = createdAt
 	sb.kubeName = kubeName
 	sb.logDir = logDir
-	sb.containers = oci.NewMemoryStore()
+	sb.containers = memorystore.New[*oci.Container]()
 	sb.processLabel = processLabel
 	sb.mountLabel = mountLabel
 	sb.shmPath = shmPath
@@ -122,8 +125,8 @@ func (s *Sandbox) CRISandbox() *types.PodSandbox {
 	return s.criSandbox
 }
 
-func (s *Sandbox) CreatedAt() int64 {
-	return s.criSandbox.CreatedAt
+func (s *Sandbox) CreatedAt() time.Time {
+	return s.createdAt
 }
 
 // SetSeccompProfilePath sets the seccomp profile path.
@@ -213,7 +216,7 @@ func (s *Sandbox) Annotations() map[string]string {
 
 // Containers returns the ContainerStorer that contains information on all
 // of the containers in the sandbox.
-func (s *Sandbox) Containers() oci.ContainerStorer {
+func (s *Sandbox) Containers() memorystore.Storer[*oci.Container] {
 	return s.containers
 }
 
