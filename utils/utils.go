@@ -105,16 +105,25 @@ func WriteGoroutineStacksToFile(path string) error {
 	}
 	defer f.Close()
 
-	// Print goroutines stacks using the same format
-	// as if an unrecoverable panic would occur. The
-	// internal buffer is 64 MiB, which hopefully
-	// will be sufficient.
-	err = pprof.Lookup("goroutine").WriteTo(f, 2)
-	if err != nil {
+	if err := WriteGoroutineStacksTo(f); err != nil {
 		return err
 	}
 
 	return f.Sync()
+}
+
+// WriteGoroutineStacksToFile write goroutine stacks
+// to the specified file.
+func WriteGoroutineStacksTo(f io.Writer) error {
+	// Print goroutines stacks using the same format
+	// as if an unrecoverable panic would occur. The
+	// internal buffer is 64 MiB, which hopefully
+	// will be sufficient.
+	if err := pprof.Lookup("goroutine").WriteTo(f, 2); err != nil {
+		return fmt.Errorf("write goroutines: %w", err)
+	}
+
+	return nil
 }
 
 // GenerateID generates a random unique id.

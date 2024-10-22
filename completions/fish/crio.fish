@@ -2,7 +2,7 @@
 
 function __fish_crio_no_subcommand --description 'Test if there has been any subcommand yet'
     for i in (commandline -opc)
-        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i version wipe help h
+        if contains -- $i check complete completion help h config man markdown md status config c containers container cs s info i goroutines g version wipe help h
             return 1
         end
     end
@@ -221,6 +221,8 @@ complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'containers conta
 complete -c crio -n '__fish_seen_subcommand_from containers container cs s' -f -l id -s i -r -d 'the container ID'
 complete -c crio -n '__fish_seen_subcommand_from info i' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'info i' -d 'Retrieve generic information about CRI-O, such as the cgroup and storage driver.'
+complete -c crio -n '__fish_seen_subcommand_from goroutines g' -f -l help -s h -d 'show help'
+complete -r -c crio -n '__fish_seen_subcommand_from status' -a 'goroutines g' -d 'Display the goroutine stack.'
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l help -s h -d 'show help'
 complete -r -c crio -n '__fish_crio_no_subcommand' -a 'version' -d 'display detailed version information'
 complete -c crio -n '__fish_seen_subcommand_from version' -f -l json -s j -d 'print JSON instead of text'
