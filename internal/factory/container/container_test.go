@@ -98,10 +98,29 @@ var _ = t.Describe("Container", func() {
 			mountPoint := "test"
 			configStopSignal := "test"
 
-			sb, err := sandbox.New("sandboxID", "", "", "", "test",
-				make(map[string]string), make(map[string]string), "", "",
-				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
+			sbuilder := sandbox.NewBuilder()
+
+			sbuilder.SetID("sandboxID")
+			sbuilder.SetName("")
+			sbuilder.SetNamespace("")
+			sbuilder.SetKubeName("")
+			sbuilder.SetLogDir("test")
+			sbuilder.SetCriSandbox(sbuilder.ID(), currentTime, make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+			sbuilder.SetShmPath("")
+			sbuilder.SetCgroupParent("")
+			sbuilder.SetPrivileged(false)
+			sbuilder.SetRuntimeHandler("")
+			sbuilder.SetResolvPath("")
+			sbuilder.SetHostname("")
+			sbuilder.SetPortMappings([]*hostport.PortMapping{})
+			sbuilder.SetHostNetwork(false)
+			sbuilder.SetUsernsMode("")
+			sbuilder.SetPodLinuxOverhead(nil)
+			sbuilder.SetPodLinuxResources(nil)
+			sbuilder.SetContainers(oci.NewMemoryStore())
+
+			sb := sbuilder.GetSandbox()
+
 			Expect(err).ToNot(HaveOccurred())
 
 			image, err := sut.UserRequestedImage()

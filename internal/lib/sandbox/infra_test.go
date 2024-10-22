@@ -8,7 +8,6 @@ import (
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 
-	sboxfactory "github.com/cri-o/cri-o/internal/factory/sandbox"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -48,7 +47,7 @@ var _ = Describe("Sandbox", func() {
 		}
 
 		for _, c := range testCases {
-			err := sboxfactory.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
+			err := libsandbox.ParseDNSOptions(c.Servers, c.Searches, c.Options, c.Path)
 			defer os.Remove(c.Path)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -70,7 +69,7 @@ var _ = Describe("Sandbox", func() {
 
 		It("should succeed with default config", func() {
 			// When
-			_, err := sboxfactory.PauseCommand(cfg, nil)
+			_, err := libsandbox.PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -83,7 +82,7 @@ var _ = Describe("Sandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Entrypoint: entrypoint}}
 
 			// When
-			res, err := sboxfactory.PauseCommand(cfg, image)
+			res, err := libsandbox.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -97,7 +96,7 @@ var _ = Describe("Sandbox", func() {
 			image := &v1.Image{Config: v1.ImageConfig{Cmd: cmd}}
 
 			// When
-			res, err := sboxfactory.PauseCommand(cfg, image)
+			res, err := libsandbox.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -115,7 +114,7 @@ var _ = Describe("Sandbox", func() {
 			}}
 
 			// When
-			res, err := sboxfactory.PauseCommand(cfg, image)
+			res, err := libsandbox.PauseCommand(cfg, image)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -126,7 +125,7 @@ var _ = Describe("Sandbox", func() {
 
 		It("should fail if config is nil", func() {
 			// When
-			res, err := sboxfactory.PauseCommand(nil, nil)
+			res, err := libsandbox.PauseCommand(nil, nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -138,7 +137,7 @@ var _ = Describe("Sandbox", func() {
 			cfg.PauseCommand = ""
 
 			// When
-			res, err := sboxfactory.PauseCommand(cfg, nil)
+			res, err := libsandbox.PauseCommand(cfg, nil)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -156,7 +155,7 @@ var _ = Describe("Sandbox", func() {
 			dir := t.MustTempDir("shmsetup-test-")
 
 			// When
-			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+			res, err := libsandbox.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -169,7 +168,7 @@ var _ = Describe("Sandbox", func() {
 			dir := t.MustTempDir("shmsetup-test-")
 
 			// When
-			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+			res, err := libsandbox.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -184,7 +183,7 @@ var _ = Describe("Sandbox", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			// When
-			res, err := sboxfactory.SetupShm(dir, mountLabel, shmSize)
+			res, err := libsandbox.SetupShm(dir, mountLabel, shmSize)
 
 			// Then
 			Expect(err).To(HaveOccurred())
