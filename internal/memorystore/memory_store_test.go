@@ -1,20 +1,21 @@
-package sandbox_test
+package memorystore_test
 
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 )
 
 // The actual test suite.
 var _ = t.Describe("MemoryStore", func() {
-	var sut sandbox.Storer
+	var sut memorystore.Storer[*sandbox.Sandbox]
 
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
-		sut = sandbox.NewMemoryStore()
+		sut = memorystore.New[*sandbox.Sandbox]()
 		Expect(sut).NotTo(BeNil())
 	})
 
