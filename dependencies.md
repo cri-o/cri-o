@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 22 Oct 2024 15:11:18 UTC for commit [6058c47][0]._
+_Generated on Tue, 22 Oct 2024 18:19:51 UTC for commit [7a5f767][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6058c4789f3160315417a4fdacb60be204a82c73
+[0]: https://github.com/cri-o/cri-o/commit/7a5f76765fc288865b2ea0a2a6e3178d1c379bb1
 
 ## Outdated Dependencies
 
@@ -275,7 +275,7 @@ _Generated on Tue, 22 Oct 2024 15:11:18 UTC for commit [6058c47][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.28.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.32.2                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.22.0                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241009180534-e718692eec62  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241022151244-c3c6ff6feb9f  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
