@@ -519,6 +519,10 @@ Display detailed information about the provided container ID.
 
 Retrieve generic information about CRI-O, such as the cgroup and storage driver.
 
+### goroutines, g
+
+Display the goroutine stack.
+
 ## version
 
 display detailed version information

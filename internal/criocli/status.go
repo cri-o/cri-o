@@ -48,7 +48,16 @@ var StatusCommand = &cli.Command{
 		Aliases: []string{"i"},
 		Name:    "info",
 		Usage:   "Retrieve generic information about CRI-O, such as the cgroup and storage driver.",
+	}, {
+		Action:  goroutines,
+		Aliases: []string{"g"},
+		Name:    "goroutines",
+		Usage:   "Display the goroutine stack.",
 	}},
+}
+
+func crioClient(c *cli.Context) (client.CrioClient, error) {
+	return client.New(c.String(socketArg))
 }
 
 func configSubCommand(c *cli.Context) error {
@@ -135,6 +144,18 @@ func info(c *cli.Context) error {
 	return nil
 }
 
-func crioClient(c *cli.Context) (client.CrioClient, error) {
-	return client.New(c.String(socketArg))
+func goroutines(c *cli.Context) error {
+	crioClient, err := crioClient(c)
+	if err != nil {
+		return err
+	}
+
+	goroutineStack, err := crioClient.GoRoutinesInfo(c.Context)
+	if err != nil {
+		return err
+	}
+
+	fmt.Print(goroutineStack)
+
+	return nil
 }

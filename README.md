@@ -251,13 +251,14 @@ The following API entry points are currently supported:
 
 <!-- markdownlint-disable MD013 -->
 
-| Path              | Content-Type       | Description                                                                        |
-| ----------------- | ------------------ | ---------------------------------------------------------------------------------- |
-| `/info`           | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
-| `/containers/:id` | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
-| `/config`         | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
-| `/pause/:id`      | `application/json` | Pause a running container.                                                         |
-| `/unpause/:id`    | `application/json` | Unpause a paused container.                                                        |
+| Path                | Content-Type       | Description                                                                        |
+| ------------------- | ------------------ | ---------------------------------------------------------------------------------- |
+| `/info`             | `application/json` | General information about the runtime, like `storage_driver` and `storage_root`.   |
+| `/containers/:id`   | `application/json` | Dedicated container information, like `name`, `pid` and `image`.                   |
+| `/config`           | `application/toml` | The complete TOML configuration (defaults to `/etc/crio/crio.conf`) used by CRI-O. |
+| `/pause/:id`        | `application/json` | Pause a running container.                                                         |
+| `/unpause/:id`      | `application/json` | Unpause a paused container.                                                        |
+| `/debug/goroutines` | `text/plain`       | Print the goroutine stacks.                                                        |
 
 <!-- markdownlint-enable MD013 -->
 

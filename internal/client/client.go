@@ -2,14 +2,13 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
 	"net/http"
 	"syscall"
 	"time"
-
-	json "github.com/json-iterator/go"
 
 	"github.com/cri-o/cri-o/pkg/types"
 	"github.com/cri-o/cri-o/server"
@@ -24,6 +23,7 @@ type CrioClient interface {
 	DaemonInfo(context.Context) (types.CrioInfo, error)
 	ContainerInfo(context.Context, string) (*types.ContainerInfo, error)
 	ConfigInfo(context.Context) (string, error)
+	GoRoutinesInfo(context.Context) (string, error)
 }
 
 type crioClientImpl struct {
@@ -58,7 +58,7 @@ func New(crioSocketPath string) (CrioClient, error) {
 	}, nil
 }
 
-func (c *crioClientImpl) getRequest(ctx context.Context, path string) (*http.Request, error) {
+func (c *crioClientImpl) doGetRequest(ctx context.Context, path string) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, path, http.NoBody)
 	if err != nil {
 		return nil, err
@@ -68,40 +68,42 @@ func (c *crioClientImpl) getRequest(ctx context.Context, path string) (*http.Req
 	req.Host = "crio"
 	req.URL.Host = c.crioSocketPath
 	req.URL.Scheme = "http"
-	return req, nil
+
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("do get request: %w", err)
+	}
+
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read body: %w", err)
+	}
+
+	return body, nil
 }
 
 // DaemonInfo return cri-o daemon info from the cri-o
 // info endpoint.
 func (c *crioClientImpl) DaemonInfo(ctx context.Context) (types.CrioInfo, error) {
 	info := types.CrioInfo{}
-	req, err := c.getRequest(ctx, server.InspectInfoEndpoint)
+	body, err := c.doGetRequest(ctx, server.InspectInfoEndpoint)
 	if err != nil {
 		return info, err
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return info, err
-	}
-	defer resp.Body.Close()
-	err = json.NewDecoder(resp.Body).Decode(&info)
+	err = json.Unmarshal(body, &info)
 	return info, err
 }
 
 // ContainerInfo returns container info by querying
 // the cri-o container endpoint.
 func (c *crioClientImpl) ContainerInfo(ctx context.Context, id string) (*types.ContainerInfo, error) {
-	req, err := c.getRequest(ctx, server.InspectContainersEndpoint+"/"+id)
+	body, err := c.doGetRequest(ctx, server.InspectContainersEndpoint+"/"+id)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
 	cInfo := types.ContainerInfo{}
-	if err := json.NewDecoder(resp.Body).Decode(&cInfo); err != nil {
+	if err := json.Unmarshal(body, &cInfo); err != nil {
 		return nil, err
 	}
 	return &cInfo, nil
@@ -109,16 +111,16 @@ func (c *crioClientImpl) ContainerInfo(ctx context.Context, id string) (*types.C
 
 // ConfigInfo returns current config as TOML string.
 func (c *crioClientImpl) ConfigInfo(ctx context.Context) (string, error) {
-	req, err := c.getRequest(ctx, server.InspectConfigEndpoint)
+	body, err := c.doGetRequest(ctx, server.InspectConfigEndpoint)
 	if err != nil {
 		return "", err
 	}
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
+	return string(body), nil
+}
+
+// GoRoutinesInfo returns go routine stack as string.
+func (c *crioClientImpl) GoRoutinesInfo(ctx context.Context) (string, error) {
+	body, err := c.doGetRequest(ctx, server.InspectGoRoutinesEndpoint)
 	if err != nil {
 		return "", err
 	}

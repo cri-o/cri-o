@@ -17,6 +17,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/pkg/types"
+	"github.com/cri-o/cri-o/utils"
 )
 
 func (s *Server) getIDMappingsInfo() types.IDMappings {
@@ -124,6 +125,7 @@ const (
 	InspectInfoEndpoint       = "/info"
 	InspectPauseEndpoint      = "/pause"
 	InspectUnpauseEndpoint    = "/unpause"
+	InspectGoRoutinesEndpoint = "/debug/goroutines"
 )
 
 // GetExtendInterfaceMux returns the mux used to serve extend interface requests.
@@ -241,6 +243,14 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		w.Header().Set("Content-Type", "text/html")
 		if _, err := w.Write([]byte("200 OK")); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
+		}
+	}))
+
+	mux.Get(InspectGoRoutinesEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		if err := utils.WriteGoroutineStacksTo(w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 	}))
 
