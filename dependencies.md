@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 22 Oct 2024 11:30:14 UTC for commit [c7cabff][0]._
+_Generated on Tue, 22 Oct 2024 15:11:18 UTC for commit [6058c47][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c7cabffe1a847847ab6ab66600988e6486262219
+[0]: https://github.com/cri-o/cri-o/commit/6058c4789f3160315417a4fdacb60be204a82c73
 
 ## Outdated Dependencies
 
@@ -16,7 +16,7 @@ _Generated on Tue, 22 Oct 2024 11:30:14 UTC for commit [c7cabff][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241022090033-4c34cfb0abf9 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241022124630-3de6d09a863a | true   | true             |
 | github.com/opencontainers/runc                                              | v1.1.15                            | v1.2.0                             | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
@@ -176,7 +176,7 @@ _Generated on Tue, 22 Oct 2024 11:30:14 UTC for commit [c7cabff][0]._
 | cloud.google.com/go/workflows                                                           | v1.12.4                               | v1.13.1                             | false  | true             |
 | code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.14.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20240906074133-82eb438dd565  | false  | true             |
-| cuelang.org/go                                                                          | v0.8.1                                | v0.10.0                             | false  | true             |
+| cuelang.org/go                                                                          | v0.8.1                                | v0.10.1                             | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.0                                | v1.0.1                              | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9    | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
 | filippo.io/edwards25519                                                                 | v1.1.0                                |                                     | false  | true             |
@@ -520,7 +520,7 @@ _Generated on Tue, 22 Oct 2024 11:30:14 UTC for commit [c7cabff][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241022090033-4c34cfb0abf9  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241022124630-3de6d09a863a  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
