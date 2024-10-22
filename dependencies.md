@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
+_Generated on Tue, 22 Oct 2024 11:30:14 UTC for commit [c7cabff][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bfd3384802cff357c96b14074bd4421518c1ba93
+[0]: https://github.com/cri-o/cri-o/commit/c7cabffe1a847847ab6ab66600988e6486262219
 
 ## Outdated Dependencies
 
@@ -16,7 +16,8 @@ _Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.1                             | v0.3.4                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241021222651-91b874f18ca0 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241022090033-4c34cfb0abf9 | true   | true             |
+| github.com/opencontainers/runc                                              | v1.1.15                            | v1.2.0                             | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
@@ -389,7 +390,7 @@ _Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
 | github.com/emirpasic/gods                                                               | v1.18.1                               |                                     | false  | true             |
 | github.com/envoyproxy/go-control-plane                                                  | v0.12.1-0.20240621013728-1eb8caab5155 | v0.13.1                             | false  | true             |
 | github.com/envoyproxy/protoc-gen-validate                                               | v1.0.4                                | v1.1.0                              | false  | true             |
-| github.com/fatih/color                                                                  | v1.15.0                               | v1.17.0                             | false  | true             |
+| github.com/fatih/color                                                                  | v1.15.0                               | v1.18.0                             | false  | true             |
 | github.com/felixge/httpsnoop                                                            | v1.0.4                                |                                     | false  | true             |
 | github.com/fogleman/gg                                                                  | v1.3.0                                |                                     | false  | true             |
 | github.com/frankban/quicktest                                                           | v1.14.5                               | v1.14.6                             | false  | true             |
@@ -519,7 +520,7 @@ _Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241021222651-91b874f18ca0  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241022090033-4c34cfb0abf9  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -606,7 +607,7 @@ _Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
 | github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.69.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.1.15                               |                                     | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.1.15                               | v1.2.0                              | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                               | v1.11.1                             | true   | true             |
@@ -789,7 +790,7 @@ _Generated on Tue, 22 Oct 2024 08:37:48 UTC for commit [bfd3384][0]._
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | gonum.org/v1/gonum                                                                      | v0.11.0                               | v0.15.1                             | false  | true             |
 | gonum.org/v1/netlib                                                                     | v0.0.0-20190313105609-8cb42192e0e0    | v0.0.0-20230729102104-8b8060e7531f  | false  | true             |
-| gonum.org/v1/plot                                                                       | v0.10.1                               | v0.14.0                             | false  | true             |
+| gonum.org/v1/plot                                                                       | v0.10.1                               | v0.15.0                             | false  | true             |
 | google.golang.org/api                                                                   | v0.172.0                              | v0.201.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
 | google.golang.org/genproto                                                              | v0.0.0-20240311173647-c811ad7063a7    | v0.0.0-20241021214115-324edc3d5d38  | false  | true             |
