@@ -75,7 +75,7 @@ func (s *Server) CRImportCheckpoint(
 
 	var restoreArchivePath string
 	if restoreStorageImageID != nil {
-		sb, err := s.getPodSandboxFromRequest(ctx, sbID) // Note that we might call getPodSandboxFromRequest with a different sbID later. Is that necessary?
+		sb, err := s.getPodSandboxFromRequest(ctx, sbID)
 		if err != nil {
 			if errors.Is(err, sandbox.ErrIDEmpty) {
 				return "", err
@@ -159,14 +159,6 @@ func (s *Server) CRImportCheckpoint(
 	config := new(metadata.ContainerConfig)
 	if _, err := metadata.ReadJSONFile(config, mountPoint, metadata.ConfigDumpFile); err != nil {
 		return "", fmt.Errorf("failed to read %q: %w", metadata.ConfigDumpFile, err)
-	}
-
-	if sbID == "" {
-		// restore into previous sandbox
-		sbID = dumpSpec.Annotations[annotations.SandboxID]
-		ctrID = config.ID
-	} else {
-		ctrID = ""
 	}
 
 	ctrMetadata := types.ContainerMetadata{}
@@ -384,7 +376,7 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("setting container config: %w", err)
 	}
 
-	if err := ctr.SetNameAndID(ctrID); err != nil {
+	if err := ctr.SetNameAndID(""); err != nil {
 		return "", fmt.Errorf("setting container name and ID: %w", err)
 	}
 
