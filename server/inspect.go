@@ -3,9 +3,12 @@ package server
 import (
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"net/http"
 	"net/http/pprof"
+	"os"
+	"runtime/debug"
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/go-chi/chi/v5"
@@ -126,6 +129,7 @@ const (
 	InspectPauseEndpoint      = "/pause"
 	InspectUnpauseEndpoint    = "/unpause"
 	InspectGoRoutinesEndpoint = "/debug/goroutines"
+	InspectHeapEndpoint       = "/debug/heap"
 )
 
 // GetExtendInterfaceMux returns the mux used to serve extend interface requests.
@@ -249,6 +253,28 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux.Get(InspectGoRoutinesEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
 		if err := utils.WriteGoroutineStacksTo(w); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}))
+
+	mux.Get(InspectHeapEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Set("Content-Type", "application/octet-stream")
+
+		f, err := os.CreateTemp("", "cri-o-heap-*.out")
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer os.Remove(f.Name())
+		debug.WriteHeapDump(f.Fd())
+
+		if _, err := f.Seek(0, 0); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if _, err := io.Copy(w, f); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
