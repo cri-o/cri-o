@@ -54,7 +54,7 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 func (s *Server) CRImportCheckpoint(
 	ctx context.Context,
 	createConfig *types.ContainerConfig,
-	sbID, sandboxUID string,
+	sb *sandbox.Sandbox, sandboxUID string,
 ) (ctrID string, retErr error) {
 	var mountPoint string
 
@@ -75,13 +75,6 @@ func (s *Server) CRImportCheckpoint(
 
 	var restoreArchivePath string
 	if restoreStorageImageID != nil {
-		sb, err := s.getPodSandboxFromRequest(ctx, sbID)
-		if err != nil {
-			if errors.Is(err, sandbox.ErrIDEmpty) {
-				return "", err
-			}
-			return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
-		}
 		systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
 		if err != nil {
 			return "", fmt.Errorf("get context for namespace: %w", err)
@@ -225,14 +218,6 @@ func (s *Server) CRImportCheckpoint(
 				originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
 			}
 		}
-	}
-
-	sb, err := s.getPodSandboxFromRequest(ctx, sbID)
-	if err != nil {
-		if errors.Is(err, sandbox.ErrIDEmpty) {
-			return "", err
-		}
-		return "", fmt.Errorf("specified sandbox not found: %s: %w", sbID, err)
 	}
 
 	stopMutex := sb.StopMutex()

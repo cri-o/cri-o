@@ -385,13 +385,21 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
+	if err != nil {
+		if errors.Is(err, sandbox.ErrIDEmpty) {
+			return nil, err
+		}
+		return nil, fmt.Errorf("specified sandbox not found: %s: %w", req.PodSandboxId, err)
+	}
+
 	if checkpointImage {
 		// This might be a checkpoint image. Let's pass
 		// it to the checkpoint code.
 		ctrID, err := s.CRImportCheckpoint(
 			ctx,
 			req.Config,
-			req.PodSandboxId,
+			sb,
 			req.SandboxConfig.Metadata.Uid,
 		)
 		if err != nil {
@@ -402,14 +410,6 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return &types.CreateContainerResponse{
 			ContainerId: ctrID,
 		}, nil
-	}
-
-	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
-	if err != nil {
-		if errors.Is(err, sandbox.ErrIDEmpty) {
-			return nil, err
-		}
-		return nil, fmt.Errorf("specified sandbox not found: %s: %w", req.PodSandboxId, err)
 	}
 
 	stopMutex := sb.StopMutex()
