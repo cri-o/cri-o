@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 24 Oct 2024 12:52:23 UTC for commit [dc13fe8][0]._
+_Generated on Thu, 24 Oct 2024 18:14:11 UTC for commit [f975b72][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/dc13fe86cdc1dfdfaf3c7449b65908431b15fe62
+[0]: https://github.com/cri-o/cri-o/commit/f975b72dc9edcb4725b6b9c58e38fc9ab7e556b6
 
 ## Outdated Dependencies
 
@@ -542,7 +542,7 @@ _Generated on Thu, 24 Oct 2024 12:52:23 UTC for commit [dc13fe8][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241023221324-e5edb7077fc1  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241024173833-6c85b8d0197c  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -633,7 +633,7 @@ _Generated on Thu, 24 Oct 2024 12:52:23 UTC for commit [dc13fe8][0]._
 | github.com/proglottis/gpgme                                                             | v0.1.3                                |                                     | false  | true             |
 | github.com/prometheus/client_golang                                                     | v1.20.2                               | v1.20.5                             | true   | true             |
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
-| github.com/prometheus/common                                                            | v0.55.0                               | v0.60.0                             | false  | true             |
+| github.com/prometheus/common                                                            | v0.55.0                               | v0.60.1                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20241023070637-11f40bd50052  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
@@ -685,7 +685,7 @@ _Generated on Thu, 24 Oct 2024 12:52:23 UTC for commit [dc13fe8][0]._
 | github.com/stretchr/objx                                                                | v0.5.2                                |                                     | false  | true             |
 | github.com/stretchr/testify                                                             | v1.9.0                                |                                     | true   | true             |
 | github.com/subosito/gotenv                                                              | v1.6.0                                |                                     | false  | true             |
-| github.com/sylabs/sif/v2                                                                | v2.18.0                               | v2.19.1                             | false  | true             |
+| github.com/sylabs/sif/v2                                                                | v2.18.0                               | v2.19.2                             | false  | true             |
 | github.com/syndtr/gocapability                                                          | v0.0.0-20200815063812-42c35b437635    |                                     | true   | true             |
 | github.com/syndtr/goleveldb                                                             | v1.0.1-0.20220721030215-126854af5e6d  |                                     | false  | true             |
 | github.com/tchap/go-patricia/v2                                                         | v2.3.1                                |                                     | false  | true             |
@@ -825,7 +825,7 @@ _Generated on Thu, 24 Oct 2024 12:52:23 UTC for commit [dc13fe8][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241009091222-67ed5848f094  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240921022957-49e7df575cb6  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241021150727-76cfa123adf1  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241024133302-6af2bf9747e9  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
