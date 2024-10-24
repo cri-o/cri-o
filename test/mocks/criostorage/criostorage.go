@@ -13,7 +13,6 @@ import (
 	context "context"
 	reflect "reflect"
 
-	reference "github.com/containers/image/v5/docker/reference"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	types0 "github.com/containers/storage/types"
@@ -134,17 +133,17 @@ func (mr *MockImageServerMockRecorder) ImageStatusByName(systemContext, name any
 }
 
 // IsRunningImageAllowed mocks base method.
-func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName references.RegistryImageReference, imageID storage0.StorageImageID) error {
+func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage references.RegistryImageReference, imageID storage0.StorageImageID) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IsRunningImageAllowed", ctx, systemContext, imageName, imageID)
+	ret := m.ctrl.Call(m, "IsRunningImageAllowed", ctx, systemContext, userSpecifiedImage, imageID)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // IsRunningImageAllowed indicates an expected call of IsRunningImageAllowed.
-func (mr *MockImageServerMockRecorder) IsRunningImageAllowed(ctx, systemContext, imageName, imageID any) *gomock.Call {
+func (mr *MockImageServerMockRecorder) IsRunningImageAllowed(ctx, systemContext, userSpecifiedImage, imageID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRunningImageAllowed", reflect.TypeOf((*MockImageServer)(nil).IsRunningImageAllowed), ctx, systemContext, imageName, imageID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsRunningImageAllowed", reflect.TypeOf((*MockImageServer)(nil).IsRunningImageAllowed), ctx, systemContext, userSpecifiedImage, imageID)
 }
 
 // ListImages mocks base method.
@@ -162,29 +161,13 @@ func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Cal
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListImages", reflect.TypeOf((*MockImageServer)(nil).ListImages), systemContext)
 }
 
-// PrepareImage mocks base method.
-func (m *MockImageServer) PrepareImage(systemContext *types.SystemContext, imageName references.RegistryImageReference) (types.ImageCloser, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PrepareImage", systemContext, imageName)
-	ret0, _ := ret[0].(types.ImageCloser)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// PrepareImage indicates an expected call of PrepareImage.
-func (mr *MockImageServerMockRecorder) PrepareImage(systemContext, imageName any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareImage", reflect.TypeOf((*MockImageServer)(nil).PrepareImage), systemContext, imageName)
-}
-
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(ctx context.Context, imageName references.RegistryImageReference, options *storage0.ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (m *MockImageServer) PullImage(ctx context.Context, imageName references.RegistryImageReference, options *storage0.ImageCopyOptions) (references.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", ctx, imageName, options)
-	ret0, _ := ret[0].(types.ImageReference)
-	ret1, _ := ret[1].(reference.Canonical)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret0, _ := ret[0].(references.RegistryImageReference)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // PullImage indicates an expected call of PullImage.

@@ -45,7 +45,7 @@ var _ = t.Describe("Container", func() {
 		Expect(len(sut.Annotations())).To(BeEquivalentTo(1))
 		Expect(len(sut.CrioAnnotations())).To(BeEquivalentTo(1))
 		Expect(sut.UserRequestedImage()).To(Equal("image"))
-		Expect(sut.ImageName().StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/image-name:latest"))
+		Expect(sut.SomeNameOfTheImage().StringForOutOfProcessConsumptionOnly()).To(Equal("docker.io/library/image-name:latest"))
 		Expect(sut.ImageID().IDStringForOutOfProcessConsumptionOnly()).To(Equal("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"))
 		Expect(sut.Sandbox()).To(Equal("sandbox"))
 		Expect(sut.Dir()).To(Equal("dir"))
