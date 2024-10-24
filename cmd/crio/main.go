@@ -219,7 +219,7 @@ func main() {
 	app.Action = func(c *cli.Context) error {
 		info.LogVersion()
 
-		ctx, cancel := context.WithCancel(context.Background())
+		ctx, cancel := context.WithCancel(c.Context)
 
 		cpuProfilePath := c.String("profile-cpu")
 		if cpuProfilePath != "" {

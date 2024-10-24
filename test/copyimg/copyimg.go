@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"os"
 
 	"github.com/containers/image/v5/copy"
@@ -88,7 +87,7 @@ func main() {
 		importFrom := c.String("import-from")
 		exportTo := c.String("export-to")
 
-		ctx := context.Background()
+		ctx := c.Context
 
 		if debug {
 			logrus.SetLevel(logrus.DebugLevel)
