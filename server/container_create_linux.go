@@ -234,12 +234,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
 	}
+	// == Image lookup done.
+	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
+	// resolve to a different image.
 
 	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
 	if err != nil {
 		return nil, fmt.Errorf("get context for namespace: %w", err)
 	}
 
+	// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
+	// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
 	if systemCtx.SignaturePolicyPath != "" {
 		// userSpecifiedImage is the input user provided in a Pod spec,
 		// and captures the intent of the user; from that,

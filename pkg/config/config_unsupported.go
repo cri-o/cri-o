@@ -26,3 +26,7 @@ func selinuxEnabled() bool {
 func checkKernelRROMountSupport() error {
 	return errdefs.ErrNotImplemented
 }
+
+func (c *RuntimeConfig) ValidatePinnsPath(executable string) error {
+	return nil
+}

@@ -60,7 +60,6 @@ type ImageResult struct {
 	RepoDigests         []string
 	Size                *uint64
 	Digest              digest.Digest
-	ConfigDigest        digest.Digest
 	User                string
 	PreviousName        string
 	Labels              map[string]string
@@ -81,11 +80,10 @@ type indexInfo struct {
 // Every field in imageCacheItem are fixed properties of an "image", which in this
 // context is the image.ID stored in c/storage, and thus don't need to be recomputed.
 type imageCacheItem struct {
-	config       *specs.Image
-	size         *uint64
-	configDigest digest.Digest
-	info         *types.ImageInspectInfo
-	annotations  map[string]string
+	config      *specs.Image
+	size        *uint64
+	info        *types.ImageInspectInfo
+	annotations map[string]string
 }
 
 type imageCache map[string]imageCacheItem
@@ -139,9 +137,6 @@ type ImageServer interface {
 	// ImageStatusByName returns status of an image tagged with name.
 	ImageStatusByName(systemContext *types.SystemContext, name RegistryImageReference) (*ImageResult, error)
 
-	// PrepareImage returns an Image where the config digest can be grabbed
-	// for further analysis. Call Close() on the resulting image.
-	PrepareImage(systemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error)
 	// PullImage imports an image from the specified location.
 	//
 	// Arguments:
@@ -150,10 +145,11 @@ type ImageServer interface {
 	// - options: Pointer to ImageCopyOptions, which contains various options for the image copy process
 	//
 	// Returns:
-	// - types.ImageReference: The reference to the pulled image
-	// - reference.Canonical: A canonical reference to the image, typically including the digest
+	// - A name@digest value referring to exactly the pulled image (the reference might become dangling if the image
+	//   is removed, but it will not ever match a different image). The value is suitable for PullImageResponse.ImageRef
+	//   and for ContainerConfig.Image.Image.
 	// - error: An error object if pulling the image fails, otherwise nil
-	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error)
+	PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error)
 
 	// DeleteImage deletes a storage image (impacting all its tags)
 	DeleteImage(systemContext *types.SystemContext, id StorageImageID) error
@@ -181,10 +177,10 @@ type ImageServer interface {
 	//
 	// Arguments:
 	// - ctx: The context for controlling the function's execution
-	// - systemContext: server's system context for the given namespace
-	// - imageName: A RegistryImageReference that identifies the container image
+	// - systemContext: server's system context for the given namespace, notably it might have a customized SignaturePolicyPath.
+	// - userSpecifiedImage: a RegistryImageReference that expresses users’ _intended_ image.
 	// - imageID: A StorageImageID of the image
-	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error
+	IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error
 }
 
 func parseImageNames(image *storage.Image) (someName *RegistryImageReference, tags []reference.NamedTagged, digests []reference.Canonical, err error) {
@@ -268,7 +264,6 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 		return imageCacheItem{}, err
 	}
 	defer imageFull.Close()
-	configDigest := imageFull.ConfigInfo().Digest
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return imageCacheItem{}, err
@@ -298,11 +293,10 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	}
 
 	return imageCacheItem{
-		config:       imageConfig,
-		size:         size,
-		configDigest: configDigest,
-		info:         info,
-		annotations:  ociManifest.Annotations,
+		config:      imageConfig,
+		size:        size,
+		info:        info,
+		annotations: ociManifest.Annotations,
 	}, nil
 }
 
@@ -369,7 +363,6 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		RepoDigests:         repoDigestStrings,
 		Size:                cacheItem.size,
 		Digest:              imageDigest,
-		ConfigDigest:        cacheItem.configDigest,
 		User:                cacheItem.config.Config.User,
 		PreviousName:        previousName,
 		Labels:              cacheItem.info.Labels,
@@ -474,7 +467,7 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 	return &result, nil
 }
 
-func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, imageName RegistryImageReference, imageID StorageImageID) error {
+func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
 	policy, err := signature.DefaultPolicy(systemContext)
 	if err != nil {
 		return fmt.Errorf("get default policy: %w", err)
@@ -491,21 +484,30 @@ func (svc *imageService) IsRunningImageAllowed(ctx context.Context, systemContex
 		}
 	}()
 
-	if err := svc.checkSignature(ctx, systemContext, policyContext, imageName, imageID); err != nil {
-		return fmt.Errorf("checking signature of %q: %w", imageName, err)
+	if err := svc.checkSignature(ctx, systemContext, policyContext, userSpecifiedImage, imageID); err != nil {
+		return fmt.Errorf("checking signature of %q: %w", userSpecifiedImage, err)
 	}
 
-	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", imageName, systemContext.SignaturePolicyPath)
+	log.Debugf(ctx, "Is allowed to run config image %s (policy path: %q)", userSpecifiedImage, systemContext.SignaturePolicyPath)
 
 	return nil
 }
 
-func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, imageName RegistryImageReference, imageID StorageImageID) error {
-	userIdentityRef, err := docker.NewReference(imageName.Raw())
+func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemContext, policyContext *signature.PolicyContext, userSpecifiedImage RegistryImageReference, imageID StorageImageID) error {
+	userSpecifiedImageRef, err := docker.NewReference(userSpecifiedImage.Raw())
 	if err != nil {
-		return fmt.Errorf("creating docker:// reference for %q: %w", imageName.Raw().String(), err)
+		return fmt.Errorf("creating docker:// reference for %q: %w", userSpecifiedImage.Raw().String(), err)
 	}
 
+	// imageID is authoritative, but it may be a deduplicated image with several manifests,
+	// and only one of them might be signed with the signatures required by policy.
+	//
+	// Here we could, possibly:
+	// - if userSpecifiedImage is a repo@digest, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (to use certainly the right digest)
+	// - if userSpecifiedImage is a repo:tag, resolve up that image, CHECK THAT IT MATCHES storageID, and use that
+	//   reference (assuming some future c/storage that can map repo:tag to the right digest)
+	// Failing that (e.g. if a subsequent pull moved the tag, or if the image was untagged), try with the raw imageID.
 	storageRef, err := imageID.imageRef(svc)
 	if err != nil {
 		return fmt.Errorf("creating containers-storage: reference for %v: %w", storageRef, err)
@@ -539,7 +541,7 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 		unparsedInstance = cimage.UnparsedInstance(storageSource, &instanceDigest)
 	}
 
-	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userIdentityRef)
+	mixedUnparsedInstance := cimage.UnparsedInstanceWithReference(unparsedInstance, userSpecifiedImageRef)
 
 	allowed, err := policyContext.IsRunningImageAllowed(ctx, mixedUnparsedInstance)
 	if err != nil {
@@ -585,32 +587,6 @@ func (svc *imageLookupService) remoteImageReference(imageName RegistryImageRefer
 	return alltransports.ParseImageName(svc.DefaultTransport + imageName.StringForOutOfProcessConsumptionOnly())
 }
 
-// prepareReference creates an image reference from an image string and returns an updated types.SystemContext (never nil) for the image.
-func (svc *imageLookupService) prepareReference(inputSystemContext *types.SystemContext, imageName RegistryImageReference) (*types.SystemContext, types.ImageReference, error) {
-	srcRef, err := svc.remoteImageReference(imageName)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	sc := types.SystemContext{}
-	if inputSystemContext != nil {
-		sc = *inputSystemContext // A shallow copy
-	}
-	if secure := svc.isSecureIndex(imageName.Registry()); !secure {
-		sc.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
-	}
-	return &sc, srcRef, nil
-}
-
-func (svc *imageService) PrepareImage(inputSystemContext *types.SystemContext, imageName RegistryImageReference) (types.ImageCloser, error) {
-	systemContext, srcRef, err := svc.lookup.prepareReference(inputSystemContext, imageName)
-	if err != nil {
-		return nil, err
-	}
-
-	return srcRef.NewImage(svc.ctx, systemContext)
-}
-
 type pullImageArgs struct {
 	Lookup       *imageLookupService
 	ImageName    string // In the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly()
@@ -622,9 +598,7 @@ type pullImageArgs struct {
 
 type pullImageOutputItem struct {
 	Progress *types.ProgressProperties `json:",omitempty"`
-	Result   string                    `json:",omitempty"` // If not "", in the format of transport.ImageName()
-	Name     string                    `json:",omitempty"`
-	Digest   digest.Digest             `json:",omitempty"`
+	Result   string                    `json:",omitempty"` // If not "", in the format of RegistryImageReference.StringForOutOfProcessConsumptionOnly(), and always contains a digest.
 }
 
 func pullImageChild() {
@@ -664,13 +638,13 @@ func pullImageChild() {
 	}()
 	args.Options.Progress = progress
 
-	destRef, canonicalRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
+	canonicalRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%v", err)
 		os.Exit(1)
 	}
 
-	output <- pullImageOutputItem{Result: transports.ImageName(destRef), Name: canonicalRef.Name(), Digest: canonicalRef.Digest()}
+	output <- pullImageOutputItem{Result: canonicalRef.StringForOutOfProcessConsumptionOnly()}
 
 	close(output)
 	<-outputWritten
@@ -697,26 +671,26 @@ func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOu
 	}
 }
 
-func (svc *imageService) pullImageParent(ctx context.Context, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (svc *imageService) pullImageParent(ctx context.Context, imageName RegistryImageReference, parentCgroup string, options *ImageCopyOptions) (RegistryImageReference, error) {
 	progress := options.Progress
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
 	cmd := reexec.CommandContext(ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("error getting stderr pipe for image copy process: %w", err)
 	}
 	defer stderr.Close()
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
-		return nil, nil, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("error getting stdin pipe for image copy process: %w", err)
 	}
 
 	stdinArguments := pullImageArgs{
@@ -736,19 +710,18 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 
 	stdinArguments.Options.Progress = nil
 	if err := cmd.Start(); err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
 		if waitErr := cmd.Wait(); waitErr != nil {
-			return nil, nil, fmt.Errorf("%w: %w", waitErr, err)
+			return RegistryImageReference{}, fmt.Errorf("%w: %w", waitErr, err)
 		}
-		return nil, nil, fmt.Errorf("json encode to pipe failed: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("json encode to pipe failed: %w", err)
 	}
 	stdin.Close()
 
 	resultChan := make(chan string)
-	var canonicalRef reference.Canonical
 	go func() {
 		defer func() {
 			close(resultChan) // Future reads, if any, will get "".
@@ -761,15 +734,6 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 		for decoder.More() {
 			var item pullImageOutputItem
 			if err := decoder.Decode(&item); err != nil {
-				break
-			}
-
-			named, err := reference.ParseNamed(item.Name)
-			if err != nil {
-				break
-			}
-			canonicalRef, err = reference.WithDigest(named, item.Digest)
-			if err != nil {
 				break
 			}
 
@@ -788,28 +752,23 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 	errOutput, errReadAll := io.ReadAll(stderr)
 	if err := cmd.Wait(); err != nil {
 		if errReadAll == nil && len(errOutput) > 0 {
-			return nil, nil, fmt.Errorf("pull image: %s", string(errOutput))
+			return RegistryImageReference{}, fmt.Errorf("pull image: %s", string(errOutput))
 		}
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 
 	if result == "" {
-		return nil, nil, errors.New("pull child finished successfully but didn’t send a result")
+		return RegistryImageReference{}, errors.New("pull child finished successfully but didn’t send a result")
 	}
-
-	destRef, err := alltransports.ParseImageName(result)
+	canonicalRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(result)
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 
-	if canonicalRef == nil {
-		return nil, nil, errors.New("canonical image reference cannot be nil")
-	}
-
-	return destRef, canonicalRef, nil
+	return canonicalRef, nil
 }
 
-func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
+func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
 	if options.CgroupPull.UseNewCgroup {
 		return svc.pullImageParent(ctx, imageName, options.CgroupPull.ParentCgroup, options)
 	} else {
@@ -820,43 +779,51 @@ func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageR
 // pullImageImplementation is called in PullImage, both directly and inside pullImageChild.
 // NOTE: That means this code can run in a separate process, and it should not access any CRI-O global state.
 //
-// It returns a c/storage ImageReference for the destination.
-func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (types.ImageReference, reference.Canonical, error) {
-	srcSystemContext, srcRef, err := lookup.prepareReference(options.SourceCtx, imageName)
+// It returns a name@digest value referring to exactly the pulled image.
+func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
+	srcRef, err := lookup.remoteImageReference(imageName)
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
+	srcSystemContext := types.SystemContext{}
+	if options.SourceCtx != nil {
+		srcSystemContext = *options.SourceCtx // A shallow copy
+	}
+	if secure := lookup.isSecureIndex(imageName.Registry()); !secure {
+		srcSystemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
+	}
+
 	destRef, err := istorage.Transport.NewStoreReference(store, imageName.Raw(), "")
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 
 	policy, err := signature.DefaultPolicy(options.SourceCtx)
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 
 	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
-		SourceCtx:        srcSystemContext,
+		SourceCtx:        &srcSystemContext,
 		DestinationCtx:   options.DestinationCtx,
 		OciDecryptConfig: options.OciDecryptConfig,
 		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
 	})
 	if err != nil {
-		return nil, nil, err
+		return RegistryImageReference{}, err
 	}
 
 	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), digest.FromBytes(manifestBytes))
 	if err != nil {
-		return nil, nil, fmt.Errorf("create canonical reference: %w", err)
+		return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 	}
 
-	return destRef, canonicalRef, err
+	return references.RegistryImageReferenceFromRaw(canonicalRef), nil
 }
 
 func (svc *imageService) UntagImage(systemContext *types.SystemContext, name RegistryImageReference) error {
