@@ -259,6 +259,7 @@ The following API entry points are currently supported:
 | `/pause/:id`        | `application/json` | Pause a running container.                                                         |
 | `/unpause/:id`      | `application/json` | Unpause a paused container.                                                        |
 | `/debug/goroutines` | `text/plain`       | Print the goroutine stacks.                                                        |
+| `/debug/heap`       | `text/plain`       | Write the heap dump.                                                               |
 
 <!-- markdownlint-enable MD013 -->
 

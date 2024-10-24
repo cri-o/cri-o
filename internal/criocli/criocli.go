@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/docker/go-units"
 	"github.com/sirupsen/logrus"
@@ -1255,4 +1256,9 @@ func StringSliceTrySplit(ctx *cli.Context, name string) []string {
 	}
 
 	return trimmedValues
+}
+
+// Timestamp returns a string timestamp representation.
+func Timestamp() string {
+	return strings.ReplaceAll(time.Now().Format(time.RFC3339), ":", "")
 }

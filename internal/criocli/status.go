@@ -2,8 +2,10 @@ package criocli
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
+	"github.com/sirupsen/logrus"
 	"github.com/urfave/cli/v2"
 
 	"github.com/cri-o/cri-o/internal/client"
@@ -53,6 +55,19 @@ var StatusCommand = &cli.Command{
 		Aliases: []string{"g"},
 		Name:    "goroutines",
 		Usage:   "Display the goroutine stack.",
+	}, {
+		Action:  heap,
+		Aliases: []string{"hp"},
+		Name:    "heap",
+		Usage:   "Write the heap dump to a temp file and print its location on disk.",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:      "file",
+				Aliases:   []string{"f"},
+				Usage:     "Output file of the heap dump.",
+				TakesFile: true,
+			},
+		},
 	}},
 }
 
@@ -156,6 +171,44 @@ func goroutines(c *cli.Context) error {
 	}
 
 	fmt.Print(goroutineStack)
+
+	return nil
+}
+
+func heap(c *cli.Context) error {
+	crioClient, err := crioClient(c)
+	if err != nil {
+		return err
+	}
+
+	data, err := crioClient.HeapInfo(c.Context)
+	if err != nil {
+		return err
+	}
+
+	outputPath := c.String("file")
+	switch outputPath {
+	case "-":
+		if _, err := os.Stdout.Write(data); err != nil {
+			return fmt.Errorf("write heap dump to stdout: %w", err)
+		}
+
+	case "":
+		outputPath = fmt.Sprintf("crio-heap-%s.out", Timestamp())
+		fallthrough
+
+	default:
+		file, err := os.Create(outputPath)
+		if err != nil {
+			return fmt.Errorf("create output file %s: %w", outputPath, err)
+		}
+
+		if _, err := file.Write(data); err != nil {
+			return fmt.Errorf("write heap dump: %w", err)
+		}
+
+		logrus.Infof("Wrote heap dump to: %s", outputPath)
+	}
 
 	return nil
 }

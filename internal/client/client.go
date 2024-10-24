@@ -24,6 +24,7 @@ type CrioClient interface {
 	ContainerInfo(context.Context, string) (*types.ContainerInfo, error)
 	ConfigInfo(context.Context) (string, error)
 	GoRoutinesInfo(context.Context) (string, error)
+	HeapInfo(context.Context) ([]byte, error)
 }
 
 type crioClientImpl struct {
@@ -125,4 +126,13 @@ func (c *crioClientImpl) GoRoutinesInfo(ctx context.Context) (string, error) {
 		return "", err
 	}
 	return string(body), nil
+}
+
+// HeapInfo writes a heap dump.
+func (c *crioClientImpl) HeapInfo(ctx context.Context) ([]byte, error) {
+	body, err := c.doGetRequest(ctx, server.InspectHeapEndpoint)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }

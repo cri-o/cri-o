@@ -523,6 +523,12 @@ Retrieve generic information about CRI-O, such as the cgroup and storage driver.
 
 Display the goroutine stack.
 
+### heap, hp
+
+Write the heap dump to a temp file and print its location on disk.
+
+**--file, -f**="": Output file of the heap dump.
+
 ## version
 
 display detailed version information
