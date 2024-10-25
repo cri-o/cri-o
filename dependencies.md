@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 24 Oct 2024 18:14:11 UTC for commit [f975b72][0]._
+_Generated on Fri, 25 Oct 2024 06:25:47 UTC for commit [7dd6b16][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f975b72dc9edcb4725b6b9c58e38fc9ab7e556b6
+[0]: https://github.com/cri-o/cri-o/commit/7dd6b16c0b089baea1d6d62ef1131786bd7975a3
 
 ## Outdated Dependencies
 
@@ -12,12 +12,13 @@ _Generated on Thu, 24 Oct 2024 18:14:11 UTC for commit [f975b72][0]._
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.1.0                             | v7.2.0                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.21                            | v1.7.23                            | true   | true             |
 | github.com/containerd/nri                                                   | v0.6.1                             | v0.7.0                             | true   | true             |
+| github.com/containerd/ttrpc                                                 | v1.2.5                             | v1.2.6                             | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.5.1                             | v1.6.0                             | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.5                             | v0.6.6                             | true   | true             |
 | github.com/containers/storage                                               | v1.55.0                            | v1.55.1                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241023193452-41d1178e4a7f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241024192111-a9af46ccd252 | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
@@ -333,7 +334,7 @@ _Generated on Thu, 24 Oct 2024 18:14:11 UTC for commit [f975b72][0]._
 | github.com/containerd/platforms                                                         | v0.2.1                                |                                     | false  | true             |
 | github.com/containerd/protobuild                                                        | v0.3.0                                |                                     | false  | true             |
 | github.com/containerd/stargz-snapshotter/estargz                                        | v0.15.1                               |                                     | false  | true             |
-| github.com/containerd/ttrpc                                                             | v1.2.5                                |                                     | true   | true             |
+| github.com/containerd/ttrpc                                                             | v1.2.5                                | v1.2.6                              | true   | true             |
 | github.com/containerd/typeurl                                                           | v1.0.3-0.20220422153119-7f6e6d160d67  |                                     | true   | true             |
 | github.com/containerd/typeurl/v2                                                        | v2.1.1                                | v2.2.0                              | false  | true             |
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
@@ -519,7 +520,7 @@ _Generated on Thu, 24 Oct 2024 18:14:11 UTC for commit [f975b72][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241023193452-41d1178e4a7f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241024192111-a9af46ccd252  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
