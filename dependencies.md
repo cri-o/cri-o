@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 25 Oct 2024 06:25:47 UTC for commit [7dd6b16][0]._
+_Generated on Fri, 25 Oct 2024 16:01:49 UTC for commit [5198a6e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7dd6b16c0b089baea1d6d62ef1131786bd7975a3
+[0]: https://github.com/cri-o/cri-o/commit/5198a6ee73bc45efce1479cc610f6fd6035178d6
 
 ## Outdated Dependencies
 
@@ -18,7 +18,7 @@ _Generated on Fri, 25 Oct 2024 06:25:47 UTC for commit [7dd6b16][0]._
 | github.com/containers/storage                                               | v1.55.0                            | v1.55.1                            | true   | true             |
 | github.com/cri-o/ocicni                                                     | v0.4.2                             | v0.4.3                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                             | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241024192111-a9af46ccd252 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20241025132750-19ac0b24f104 | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                            | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                            | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                             | v0.3.2                             | true   | true             |
@@ -520,7 +520,7 @@ _Generated on Fri, 25 Oct 2024 06:25:47 UTC for commit [7dd6b16][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241024192111-a9af46ccd252  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241025132750-19ac0b24f104  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -733,7 +733,7 @@ _Generated on Fri, 25 Oct 2024 06:25:47 UTC for commit [7dd6b16][0]._
 | github.com/ysmood/gson                                                                  | v0.7.3                                |                                     | false  | true             |
 | github.com/ysmood/leakless                                                              | v0.8.0                                | v0.9.0                              | false  | true             |
 | github.com/yuin/goldmark                                                                | v1.4.13                               | v1.7.8                              | false  | true             |
-| github.com/zalando/go-keyring                                                           | v0.2.3                                | v0.2.5                              | false  | true             |
+| github.com/zalando/go-keyring                                                           | v0.2.3                                | v0.2.6                              | false  | true             |
 | github.com/zeebo/assert                                                                 | v1.3.0                                | v1.3.1                              | false  | true             |
 | github.com/zeebo/errs                                                                   | v1.3.0                                | v1.4.0                              | false  | true             |
 | github.com/zeebo/xxh3                                                                   | v1.0.2                                |                                     | false  | true             |
