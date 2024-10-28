@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 28 Oct 2024 07:52:46 UTC for commit [3948f04][0]._
+_Generated on Mon, 28 Oct 2024 10:45:34 UTC for commit [1172884][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3948f042bc2da8db27dd95cb2f3f7c3251b4a0b8
+[0]: https://github.com/cri-o/cri-o/commit/1172884e97374d83c337a0afba0d2345369fe00a
 
 ## Outdated Dependencies
 
@@ -243,7 +243,7 @@ _Generated on Mon, 28 Oct 2024 07:52:46 UTC for commit [3948f04][0]._
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.3                                |                                     | false  | true             |
-| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.10                             | false  | true             |
+| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.11                             | false  | true             |
 | github.com/andybalholm/brotli                                                           | v1.1.0                                | v1.1.1                              | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be    |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                |                                     | false  | true             |
