@@ -5,6 +5,7 @@ GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.24.3
+TINYGO ?= tinygo
 
 PROJECT := github.com/cri-o/cri-o
 CRIO_INSTANCE := crio_dev
@@ -559,6 +560,24 @@ prettier: ## Prettify supported files.
 .PHONY: docs-validation
 docs-validation: ## Validate the documentation.
 	$(GO_RUN) -tags "$(BUILDTAGS)" ./test/docs-validation
+
+
+.PHONY: plugin-api
+plugin-api: ## Build the plugin API.
+	hack/go-install.sh $(BUILD_BIN_PATH) protoc-gen-go-plugin github.com/knqyf263/go-plugin/cmd/protoc-gen-go-plugin@latest
+	export PATH="$$PATH:$(BUILD_BIN_PATH)" && protoc \
+		--go-plugin_out=. \
+		--go-plugin_opt=paths=source_relative \
+		pkg/plugin/v1/api.proto
+	sed -i 's;\(//.*protoc.*\)v.*;\1[stripped];g' pkg/plugin/v1/*.pb.go
+
+.PHONY: plugin-example
+plugin-example: ## Build the example plugin binary.
+	$(TINYGO) build -o $(BUILD_BIN_PATH)/plugin.wasm \
+		-scheduler=none \
+		-target=wasi \
+		--no-debug \
+		examples/plugin/main.go
 
 ##@ CI targets:
 

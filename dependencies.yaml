@@ -138,3 +138,9 @@ dependencies:
         match: "registry.k8s.io/pause:"
       - path: test/common.sh
         match: "registry.k8s.io/pause:"
+
+  - name: tinygo
+    version: 0.34.0
+    refPaths:
+      - path: .github/workflows/verify.yml
+        match: tinygo-version

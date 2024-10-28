@@ -45,6 +45,7 @@ require (
 	github.com/intel/goresctrl v0.7.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
+	github.com/knqyf263/go-plugin v0.8.1-0.20240827022226-114c6257e441
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/moby/sys/user v0.3.0
 	github.com/moby/sys/userns v0.1.0
@@ -62,6 +63,7 @@ require (
 	github.com/soheilhy/cmux v0.1.5
 	github.com/stretchr/testify v1.9.0
 	github.com/syndtr/gocapability v0.0.0-20200815063812-42c35b437635
+	github.com/tetratelabs/wazero v1.8.1
 	github.com/uptrace/opentelemetry-go-extra/otellogrus v0.3.1
 	github.com/urfave/cli/v2 v2.27.4
 	github.com/vishvananda/netlink v1.3.0

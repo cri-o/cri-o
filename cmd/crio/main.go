@@ -33,6 +33,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/log/interceptors"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
+	"github.com/cri-o/cri-o/internal/plugins"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
@@ -317,6 +318,11 @@ func main() {
 				logrus.Fatalf("Failed to initialize tracer provider: %v", err)
 			}
 		}
+
+		if err := plugins.Instance().Load(ctx); err != nil {
+			logrus.Fatalf("Unable to load plugins: %v", err)
+		}
+
 		grpcServer := grpc.NewServer(
 			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
 				interceptors.UnaryInterceptor(),

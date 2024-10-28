@@ -1,0 +1,49 @@
+syntax = "proto3";
+package plugin.v1;
+
+option go_package = "github.com/cri-o/cri-o/pkg/plugin/v1";
+
+// go:plugin type=plugin version=1
+service Service {
+  rpc RPC(RPCRequest) returns (RPCResponse) {}
+}
+
+message RPCRequest {
+  enum Type {
+    // Unspecified type (unused for now).
+    TYPE_UNSPECIFIED = 0;
+
+    // The plugin will be executed before the CRI RPC.
+    TYPE_PRE = 1;
+
+    // The plugin will be executed during the CRI RPC.
+    TYPE_INTRA = 2;
+
+    // The plugin will be executed after the CRI RPC.
+    TYPE_POST = 3;
+  }
+
+  // The type of this plugin call.
+  Type type = 1;
+
+  // The RPC method, for example:
+  // /runtime.v1.RuntimeService/Version
+  string method = 2;
+
+  // The encoded JSON bytes, which can be:
+  // - The original CRI request if type is TYPE_PRE
+  // - Any data if type == TYPE_INTRA
+  // - The original CRI response if type is TYPE_POST
+  bytes json = 3;
+
+  // An existing error.
+  string error = 4;
+}
+
+message RPCResponse {
+  // The new modified JSON bytes.
+  bytes json = 1;
+
+  // The new error.
+  string error = 2;
+}

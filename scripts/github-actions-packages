@@ -29,6 +29,7 @@ sudo apt install -y \
     libtool \
     libudev-dev \
     libyajl-dev \
+    protobuf-compiler \
     sed \
     socat \
     uuid-dev

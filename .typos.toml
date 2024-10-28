@@ -1,6 +1,7 @@
 [files]
 extend-exclude = [
     "go.mod",
+    "pkg/plugin/v1/*.go",
     "vendor",
 ]
 ignore-hidden = true

@@ -10,6 +10,8 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
+	"github.com/cri-o/cri-o/internal/plugins"
+	v1 "github.com/cri-o/cri-o/pkg/plugin/v1"
 	"github.com/cri-o/cri-o/server/metrics"
 )
 
@@ -55,14 +57,23 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
-	) (any, error) {
+	) (resp any, err error) {
 		// start values
 		operationStart := time.Now()
 		operation := filepath.Base(info.FullMethod)
 		newCtx, span := opentelemetry.Tracer().Start(AddRequestNameAndID(ctx, info.FullMethod), info.FullMethod)
+
 		log.Debugf(newCtx, "Request: %+v", req)
 
-		resp, err := handler(newCtx, req)
+		// Run the pre RPC plugins
+		req, err = plugins.Instance().Run(newCtx, info.FullMethod, v1.RPCRequest_TYPE_PRE, req, nil)
+		if err != nil {
+			span.End()
+			return nil, err
+		}
+
+		resp, err = handler(newCtx, req)
+
 		// record the operation
 		metrics.Instance().MetricOperationsInc(operation)
 		metrics.Instance().MetricOperationsLatencySet(operation, operationStart)
@@ -74,6 +85,9 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		} else {
 			log.Debugf(newCtx, "Response: %+v", resp)
 		}
+
+		// Run the post RPC plugins
+		resp, err = plugins.Instance().Run(newCtx, info.FullMethod, v1.RPCRequest_TYPE_POST, resp, err)
 
 		span.End()
 		return resp, err

@@ -33,6 +33,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	nriIf "github.com/cri-o/cri-o/internal/nri"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/plugins"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/signals"
@@ -588,6 +589,10 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 				log.Errorf(ctx, "Unable to print current configuration: %v", err)
 			} else {
 				log.Infof(ctx, "Current CRI-O configuration:\n%s", tomlConfig)
+			}
+
+			if err := plugins.Instance().Load(ctx); err != nil {
+				log.Errorf(ctx, "Unable to reload plugins: %v", err)
 			}
 		}
 	}()
