@@ -3,7 +3,6 @@ package storage
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	istorage "github.com/containers/image/v5/storage"
@@ -307,7 +306,10 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		return ContainerInfo{}, err
 	}
 	_, img, err := r.storageTransport.ResolveReference(ref)
-	if err != nil && errors.Is(err, istorage.ErrNoSuchImage) {
+	if err != nil {
+		if !errors.Is(err, istorage.ErrNoSuchImage) {
+			return ContainerInfo{}, err
+		}
 		logrus.Debugf("Couldn't find image %q, retrieving it", pauseImage)
 		sourceCtx := types.SystemContext{}
 		if systemContext != nil {
@@ -316,10 +318,14 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		if imageAuthFile != "" {
 			sourceCtx.AuthFilePath = imageAuthFile
 		}
-		ref, _, err = r.storageImageServer.PullImage(context.Background(), pauseImage, &ImageCopyOptions{
+		pulledRef, err := r.storageImageServer.PullImage(context.Background(), pauseImage, &ImageCopyOptions{
 			SourceCtx:      &sourceCtx,
 			DestinationCtx: systemContext,
 		})
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), pulledRef.Raw(), "")
 		if err != nil {
 			return ContainerInfo{}, err
 		}
@@ -328,12 +334,6 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 			return ContainerInfo{}, err
 		}
 		logrus.Debugf("Successfully pulled image %q", pauseImage)
-	}
-	if err != nil {
-		if errors.Is(err, istorage.ErrNoSuchImage) {
-			return ContainerInfo{}, fmt.Errorf("image %q not present in image store", pauseImage)
-		}
-		return ContainerInfo{}, err
 	}
 
 	// Resolve the image ID.

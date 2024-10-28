@@ -3,10 +3,8 @@ package server_test
 import (
 	"context"
 
-	"github.com/containers/image/v5/docker/reference"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	digest "github.com/opencontainers/go-digest"
 	"go.uber.org/mock/gomock"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -18,7 +16,7 @@ import (
 var _ = t.Describe("ImagePull", func() {
 	imageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
 	Expect(err).ToNot(HaveOccurred())
-	canonicalImageCandidate, err := reference.WithDigest(imageCandidate.Raw(), digest.Digest("sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221"))
+	canonicalImageCandidate, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image@sha256:340d9b015b194dc6e2a13938944e0d016e57b9679963fdeb9ce021daac430221")
 	Expect(err).ToNot(HaveOccurred())
 
 	// Prepare the sut
@@ -36,7 +34,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
-					Return(nil, canonicalImageCandidate, nil),
+					Return(canonicalImageCandidate, nil),
 			)
 
 			// When
@@ -73,7 +71,7 @@ var _ = t.Describe("ImagePull", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
-					Return(nil, nil, t.TestError),
+					Return(storage.RegistryImageReference{}, t.TestError),
 			)
 
 			// When

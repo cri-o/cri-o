@@ -11,7 +11,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/containers/image/v5/docker/reference"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -112,21 +111,21 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
 	return &types.PullImageResponse{
-		ImageRef: pullOp.imageRef,
+		ImageRef: pullOp.imageRef.StringForOutOfProcessConsumptionOnly(),
 	}, nil
 }
 
 // pullImage performs the actual pull operation of PullImage. Used to separate
 // the pull implementation from the pullCache logic in PullImage and improve
 // readability and maintainability.
-func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string, error) {
+func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storage.RegistryImageReference, error) {
 	var err error
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
 	sourceCtx, err := s.contextForNamespace(pullArgs.namespace)
 	if err != nil {
-		return "", fmt.Errorf("get context for namespace: %w", err)
+		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
 	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
@@ -140,34 +139,34 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		if _, err := os.Stat(policyPath); err == nil {
 			sourceCtx.SignaturePolicyPath = policyPath
 		} else if !os.IsNotExist(err) {
-			return "", fmt.Errorf("read policy path %s: %w", policyPath, err)
+			return storage.RegistryImageReference{}, fmt.Errorf("read policy path %s: %w", policyPath, err)
 		}
 	}
 	log.Debugf(ctx, "Using pull policy path for image %s: %s", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
 	if err != nil {
-		return "", err
+		return storage.RegistryImageReference{}, err
 	}
 
 	cgroup := ""
 	if s.config.SeparatePullCgroup != "" {
 		if !s.config.CgroupManager().IsSystemd() {
-			return "", errors.New("--separate-pull-cgroup is supported only with systemd")
+			return storage.RegistryImageReference{}, errors.New("--separate-pull-cgroup is supported only with systemd")
 		}
 		if s.config.SeparatePullCgroup == utils.PodCgroupName {
 			cgroup = pullArgs.sandboxCgroup
 		} else {
 			cgroup = s.config.SeparatePullCgroup
 			if !strings.Contains(cgroup, ".slice") {
-				return "", fmt.Errorf("invalid systemd cgroup %q", cgroup)
+				return storage.RegistryImageReference{}, fmt.Errorf("invalid systemd cgroup %q", cgroup)
 			}
 		}
 	}
 
 	remoteCandidates, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
-		return "", err
+		return storage.RegistryImageReference{}, err
 	}
 	// CandidatesForPotentiallyShortImageName is defined never to return an empty slice on success, so if the loop considers all candidates
 	// and they all fail, this error value should be overwritten by a real failure.
@@ -177,14 +176,11 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (string
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
-
-			if repoDigest != nil {
-				return repoDigest.String(), nil
-			}
+			return repoDigest, nil
 		}
 		lastErr = err
 	}
-	return "", lastErr
+	return storage.RegistryImageReference{}, lastErr
 }
 
 // contextForNamespace takes the provided namespace and returns a modifiable
@@ -204,7 +200,7 @@ func (s *Server) contextForNamespace(namespace string) (imageTypes.SystemContext
 	return ctx, nil
 }
 
-func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (reference.Canonical, error) {
+func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.SystemContext, remoteCandidateName storage.RegistryImageReference, decryptConfig *encconfig.DecryptConfig, cgroup string) (storage.RegistryImageReference, error) {
 	// Collect pull progress metrics
 	progress := make(chan imageTypes.ProgressProperties)
 	defer close(progress)
@@ -217,7 +213,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	pullCtx, cancel := context.WithCancel(ctx)
 	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
 
-	_, repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
@@ -231,11 +227,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	if err != nil {
 		log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
 		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
-		return nil, err
-	}
-
-	if repoDigest == nil {
-		return nil, fmt.Errorf("repoDigest cannot be nil for the successfully pulled image %v", remoteCandidateName)
+		return storage.RegistryImageReference{}, err
 	}
 
 	return repoDigest, nil
