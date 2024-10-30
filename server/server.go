@@ -19,7 +19,6 @@ import (
 	"github.com/containers/storage/pkg/idtools"
 	storageTypes "github.com/containers/storage/types"
 	"github.com/fsnotify/fsnotify"
-	"github.com/sirupsen/logrus"
 	"golang.org/x/sys/unix"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -391,7 +390,7 @@ func New(
 	}
 	config := configIface.GetData()
 
-	useDefaultUmask()
+	useDefaultUmask(ctx)
 
 	config.SystemContext.AuthFilePath = config.GlobalAuthFile
 	config.SystemContext.SignaturePolicyPath = config.SignaturePolicyPath
@@ -540,7 +539,7 @@ func New(
 			return nil, err
 		}
 	} else {
-		logrus.Debug("Metrics are disabled")
+		log.Debugf(ctx, "Metrics are disabled")
 	}
 
 	if err := s.startSeccompNotifierWatcher(ctx); err != nil {
@@ -576,19 +575,19 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			// Block until the signal is received
 			<-ch
 			if err := s.config.Reload(ctx); err != nil {
-				logrus.Errorf("Unable to reload configuration: %v", err)
+				log.Errorf(ctx, "Unable to reload configuration: %v", err)
 				continue
 			}
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
 			s.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
-			logrus.Info("Configuration reload completed")
+			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()
 			if err != nil {
-				logrus.Errorf("Unable to print current configuration: %v", err)
+				log.Errorf(ctx, "Unable to print current configuration: %v", err)
 			} else {
-				logrus.Infof("Current CRI-O configuration:\n%s", tomlConfig)
+				log.Infof(ctx, "Current CRI-O configuration:\n%s", tomlConfig)
 			}
 		}
 	}()
@@ -596,11 +595,11 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 	log.Infof(ctx, "Registered SIGHUP reload watcher")
 }
 
-func useDefaultUmask() {
+func useDefaultUmask(ctx context.Context) {
 	const defaultUmask = 0o022
 	oldUmask := unix.Umask(defaultUmask)
 	if oldUmask != defaultUmask {
-		logrus.Infof(
+		log.Infof(ctx,
 			"Using default umask 0o%#o instead of 0o%#o",
 			defaultUmask, oldUmask,
 		)
