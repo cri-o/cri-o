@@ -1,13 +1,13 @@
 package oci
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"time"
 
 	"github.com/containernetworking/plugins/pkg/ns"
-	"golang.org/x/net/context"
 
 	"github.com/cri-o/cri-o/internal/log"
 )

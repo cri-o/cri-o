@@ -1,12 +1,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	json "github.com/json-iterator/go"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"

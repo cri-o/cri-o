@@ -1,11 +1,11 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/containers/storage"
-	"golang.org/x/net/context"
 	errorUtils "k8s.io/apimachinery/pkg/util/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"

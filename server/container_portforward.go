@@ -1,12 +1,12 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 
 	"github.com/containers/storage/pkg/pools"
-	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"

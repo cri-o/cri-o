@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -13,7 +14,6 @@ import (
 
 	"github.com/docker/go-units"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/net/context"
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 

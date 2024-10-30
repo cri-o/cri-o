@@ -1,11 +1,11 @@
 package resourcestore_test
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"golang.org/x/net/context"
 
 	"github.com/cri-o/cri-o/internal/resourcestore"
 )

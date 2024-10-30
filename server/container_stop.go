@@ -1,11 +1,11 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/containers/storage/pkg/truncindex"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"

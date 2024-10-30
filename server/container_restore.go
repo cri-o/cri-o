@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,7 +10,6 @@ import (
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	"github.com/containers/storage/pkg/archive"
 	spec "github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubetypes "k8s.io/kubelet/pkg/types"
 

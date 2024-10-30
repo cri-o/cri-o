@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"golang.org/x/net/context"
 	errorUtils "k8s.io/apimachinery/pkg/util/errors"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )

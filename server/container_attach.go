@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"io"
 
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/client-go/tools/remotecommand"

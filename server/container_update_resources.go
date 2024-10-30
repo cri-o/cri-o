@@ -1,12 +1,12 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"github.com/gogo/protobuf/proto"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/cpuset"
 

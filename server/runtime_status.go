@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
-	"golang.org/x/net/context"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 

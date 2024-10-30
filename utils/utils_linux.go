@@ -1,13 +1,13 @@
 package utils
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	systemdDbus "github.com/coreos/go-systemd/v22/dbus"
-	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 
 	"github.com/cri-o/cri-o/internal/dbusmgr"
