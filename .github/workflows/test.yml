@@ -203,19 +203,9 @@ jobs:
           - runner: ubuntu-latest
             arch: amd64
             type: rootless
-          - runner: actuated-arm64-4cpu-16gb
-            arch: arm64
-            type: root
     name: unit / ${{ matrix.run.arch }} / ${{ matrix.run.type }}
     runs-on: ${{ matrix.run.runner }}
     steps:
-      - uses: alexellis/arkade-get@d543d47741e9217ba62ff0214444add9a35825f3
-        with:
-          crane: latest
-          print-summary: false
-      - name: Install vmmeter
-        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
-      - uses: self-actuated/vmmeter-action@c7e2162e39294a810cab647cacc215ecd68a44f6
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
