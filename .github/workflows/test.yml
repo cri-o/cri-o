@@ -153,10 +153,10 @@ jobs:
         with:
           name: build-static-s390x
           path: ${{ github.sha }}/s390x
-      - uses: google-github-actions/auth@8254fb75a33b976a221574d287e93919e6a36f70 # v2.1.6
+      - uses: google-github-actions/auth@6fc4af4b145ae7821d527454aa9bd537d1f2dc5f # v2.1.7
         with:
           credentials_json: ${{ secrets.GCS_CRIO_SA }}
-      - uses: google-github-actions/upload-cloud-storage@e485962f2bef914ac9c3bdd571f821f0ba7946c4 # v2.2.0
+      - uses: google-github-actions/upload-cloud-storage@386ab77f37fdf51c0e38b3d229fad286861cc0d0 # v2.2.1
         with:
           path: ${{ github.sha }}
           destination: cri-o/artifacts
