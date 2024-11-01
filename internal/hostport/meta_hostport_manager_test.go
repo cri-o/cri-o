@@ -28,10 +28,10 @@ var _ = t.Describe("MetaHostportManager", func() {
 		ip6tables.protocol = utiliptables.ProtocolIPv6
 
 		manager := metaHostportManager{
-			ipv4HostportManager: &hostportManager{
+			ipv4HostportManager: &hostportManagerIPTables{
 				iptables: iptables,
 			},
-			ipv6HostportManager: &hostportManager{
+			ipv6HostportManager: &hostportManagerIPTables{
 				iptables: ip6tables,
 			},
 		}
@@ -43,8 +43,8 @@ var _ = t.Describe("MetaHostportManager", func() {
 		}
 
 		// Check Iptables-save result after adding hostports
-		checkIPTablesRules(iptables, expectedRulesV4)
-		checkIPTablesRules(ip6tables, expectedRulesV6)
+		checkIPTablesRules(iptables, expectedIPTablesRulesV4)
+		checkIPTablesRules(ip6tables, expectedIPTablesRulesV6)
 
 		// Remove all added hostports
 		for _, tc := range metaTestCases {

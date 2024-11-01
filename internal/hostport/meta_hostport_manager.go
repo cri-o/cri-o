@@ -9,7 +9,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
-	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
@@ -22,17 +21,9 @@ type metaHostportManager struct {
 
 // NewMetaHostportManager creates a new HostPortManager.
 func NewMetaHostportManager(ctx context.Context) HostPortManager {
-	exec := utilexec.New()
-	// Create IPv4 handler
-	iptInterface := utiliptables.New(ctx, exec, utiliptables.ProtocolIPv4)
-	hostportManagerv4 := NewHostportManager(iptInterface)
-	// Create IPv6 handler
-	ip6tInterface := utiliptables.New(ctx, exec, utiliptables.ProtocolIPv6)
-	hostportManagerv6 := NewHostportManager(ip6tInterface)
-
 	h := &metaHostportManager{
-		ipv4HostportManager: hostportManagerv4,
-		ipv6HostportManager: hostportManagerv6,
+		ipv4HostportManager: newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv4),
+		ipv6HostportManager: newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv6),
 	}
 
 	return h
