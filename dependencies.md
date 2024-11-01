@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Nov 2024 10:51:40 UTC for commit [985e68f][0]._
+_Generated on Fri, 01 Nov 2024 14:07:08 UTC for commit [d2f2a33][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/985e68f74a8332229ed52f0e944dd9db9de99216
+[0]: https://github.com/cri-o/cri-o/commit/d2f2a337d04ad81b4695d942bfae58a85e23a81f
 
 ## Outdated Dependencies
 
@@ -159,7 +159,7 @@ _Generated on Fri, 01 Nov 2024 10:51:40 UTC for commit [985e68f][0]._
 | cloud.google.com/go/servicemanagement                                                   | v1.8.0                                | v1.10.2                             | false  | true             |
 | cloud.google.com/go/serviceusage                                                        | v1.6.0                                | v1.9.2                              | false  | true             |
 | cloud.google.com/go/shell                                                               | v1.7.5                                | v1.8.2                              | false  | true             |
-| cloud.google.com/go/spanner                                                             | v1.58.0                               | v1.70.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                             | v1.58.0                               | v1.71.0                             | false  | true             |
 | cloud.google.com/go/speech                                                              | v1.22.0                               | v1.25.2                             | false  | true             |
 | cloud.google.com/go/storage                                                             | v1.39.1                               | v1.46.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                     | v1.10.4                               | v1.11.2                             | false  | true             |
