@@ -12,7 +12,7 @@ type MockSequence struct {
 }
 
 // like gomock.InOrder, but can be nested.
-func InOrder(calls ...interface{}) MockSequence {
+func InOrder(calls ...any) MockSequence {
 	var first, last *gomock.Call
 	// This implementation does a few more assignments and checks than strictly necessary, but it is O(N) and reasonably easy to read, so, whatever.
 	for i := range calls {

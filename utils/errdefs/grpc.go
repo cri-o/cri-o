@@ -62,7 +62,7 @@ func ToGRPC(err error) error {
 
 // ToGRPCf maps the error to grpc error codes, assembling the formatting string
 // and combining it with the target error string.
-func ToGRPCf(err error, format string, args ...interface{}) error {
+func ToGRPCf(err error, format string, args ...any) error {
 	return ToGRPC(fmt.Errorf(format+": %w", append(args, err)...))
 }
 

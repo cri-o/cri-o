@@ -74,7 +74,7 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 }
 
 func (s *Server) createRuntimeInfo() (map[string]string, error) {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"sandboxImage": s.config.ImageConfig.PauseImage,
 	}
 	bytes, err := json.Marshal(config)

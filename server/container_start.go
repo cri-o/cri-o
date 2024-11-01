@@ -111,7 +111,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		log.Warnf(ctx, "NRI post-start failed for container %q: %v", c.ID(), err)
 	}
 
-	log.WithFields(ctx, map[string]interface{}{
+	log.WithFields(ctx, map[string]any{
 		"description": c.Description(),
 		"containerID": c.ID(),
 		"sandboxID":   sandbox.ID(),

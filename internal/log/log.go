@@ -14,27 +14,27 @@ type (
 	Name struct{}
 )
 
-func Debugf(ctx context.Context, format string, args ...interface{}) {
+func Debugf(ctx context.Context, format string, args ...any) {
 	entry(ctx).Debugf(format, args...)
 }
 
-func Infof(ctx context.Context, format string, args ...interface{}) {
+func Infof(ctx context.Context, format string, args ...any) {
 	entry(ctx).Infof(format, args...)
 }
 
-func Warnf(ctx context.Context, format string, args ...interface{}) {
+func Warnf(ctx context.Context, format string, args ...any) {
 	entry(ctx).Warnf(format, args...)
 }
 
-func Errorf(ctx context.Context, format string, args ...interface{}) {
+func Errorf(ctx context.Context, format string, args ...any) {
 	entry(ctx).Errorf(format, args...)
 }
 
-func Fatalf(ctx context.Context, format string, args ...interface{}) {
+func Fatalf(ctx context.Context, format string, args ...any) {
 	entry(ctx).Fatalf(format, args...)
 }
 
-func WithFields(ctx context.Context, fields map[string]interface{}) *logrus.Entry {
+func WithFields(ctx context.Context, fields map[string]any) *logrus.Entry {
 	return entry(ctx).WithFields(fields)
 }
 
