@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
+_Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8190dfe04c587d15d699b1de4fb9aaced1b26a54
+[0]: https://github.com/cri-o/cri-o/commit/258db152f870d8e943f46c5a786af06f43fbaf51
 
 ## Outdated Dependencies
 
@@ -11,6 +11,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/checkpoint-restore/checkpointctl                                 | v1.2.1                               | v1.3.0                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.1.0                               | v7.2.0                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.21                              | v1.7.23                            | true   | true             |
+| github.com/containerd/nri                                                   | v0.7.0                               | v0.8.0                             | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.6-0.20240827082320-b5cd6e4b3287 | v1.2.6                             | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.5.1                               | v1.6.0                             | true   | true             |
 | github.com/containers/conmon-rs                                             | v0.6.5                               | v0.6.6                             | true   | true             |
@@ -19,7 +20,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/fsnotify/fsnotify                                                | v1.7.0                               | v1.8.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                               | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241031155733-a3d594d52668 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241101150431-2efcb442f435 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                              | v1.11.1                            | true   | true             |
@@ -332,7 +333,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/containerd/go-runc                                                           | v1.1.0                                |                                     | false  | true             |
 | github.com/containerd/imgcrypt                                                          | v1.1.8                                | v1.1.11                             | false  | true             |
 | github.com/containerd/log                                                               | v0.1.0                                |                                     | false  | true             |
-| github.com/containerd/nri                                                               | v0.7.0                                |                                     | true   | true             |
+| github.com/containerd/nri                                                               | v0.7.0                                | v0.8.0                              | true   | true             |
 | github.com/containerd/otelttrpc                                                         | v0.0.0-20240305015340-ea5083fda723    |                                     | true   | true             |
 | github.com/containerd/platforms                                                         | v0.2.1                                |                                     | false  | true             |
 | github.com/containerd/protobuild                                                        | v0.3.0                                |                                     | false  | true             |
@@ -470,7 +471,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20241029153458-d1b30febd7db  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20240827171923-fa2c70bbbfe5    | v0.0.0-20241101162523-b92577c0c142  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.7                                | v0.1.8                              | false  | true             |
@@ -488,7 +489,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/grpc-ecosystem/go-grpc-middleware                                            | v1.4.0                                |                                     | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                            | v1.2.1-0.20210315223345-82c243799c99  |                                     | false  | true             |
 | github.com/grpc-ecosystem/grpc-gateway                                                  | v1.16.0                               |                                     | false  | true             |
-| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.22.0                               |                                     | false  | true             |
+| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.22.0                               | v2.23.0                             | false  | true             |
 | github.com/hashicorp/errwrap                                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                                       | v0.5.2                                |                                     | false  | true             |
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                |                                     | false  | true             |
@@ -523,7 +524,7 @@ _Generated on Fri, 01 Nov 2024 15:04:29 UTC for commit [8190dfe][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241031155733-a3d594d52668  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241101150431-2efcb442f435  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
