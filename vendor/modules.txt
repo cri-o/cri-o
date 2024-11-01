@@ -191,7 +191,7 @@ github.com/containerd/go-runc
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.7.0
+# github.com/containerd/nri v0.8.0
 ## explicit; go 1.21
 github.com/containerd/nri/pkg/adaptation
 github.com/containerd/nri/pkg/api
