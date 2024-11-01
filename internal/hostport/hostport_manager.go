@@ -18,10 +18,8 @@ package hostport
 
 import (
 	"bytes"
-	"context"
 	"crypto/sha256"
 	"encoding/base32"
-	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -32,7 +30,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
-	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
@@ -50,19 +47,17 @@ type HostPortManager interface {
 }
 
 type hostportManager struct {
-	ip4tables utiliptables.Interface
-	ip6tables utiliptables.Interface
-	mu        sync.Mutex
+	iptables utiliptables.Interface
+	mu       sync.Mutex
 }
 
 // NewHostportManager creates a new HostPortManager.
-func NewHostportManager(ctx context.Context) HostPortManager {
-	exec := utilexec.New()
-
-	return &hostportManager{
-		ip4tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv4),
-		ip6tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv6),
+func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
+	h := &hostportManager{
+		iptables: iptables,
 	}
+
+	return h
 }
 
 func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err error) {
@@ -81,14 +76,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 		return nil
 	}
 
-	var ipt utiliptables.Interface
-	if isIPv6 {
-		ipt = hm.ip6tables
-	} else {
-		ipt = hm.ip4tables
-	}
-
-	if err := ensureKubeHostportChains(ipt); err != nil {
+	if err := ensureKubeHostportChains(hm.iptables); err != nil {
 		return err
 	}
 
@@ -101,7 +89,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 
 	writeLine(natChains, "*nat")
 
-	existingChains, existingRules, err := getExistingHostportIPTablesRules(ipt)
+	existingChains, existingRules, err := getExistingHostportIPTablesRules(hm.iptables)
 	if err != nil {
 		return err
 	}
@@ -178,7 +166,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 
 	writeLine(natRules, "COMMIT")
 
-	if err := syncIPTables(ipt, append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
+	if err := hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
 		return err
 	}
 
@@ -200,16 +188,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 }
 
 func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (err error) {
-	// Remove may not have the IP information, so we try to clean us much as possible
-	// and warn about the possible errors
-	return errors.Join(
-		hm.removeForFamily(id, podPortMapping, hm.ip4tables),
-		hm.removeForFamily(id, podPortMapping, hm.ip6tables),
-	)
-}
-
-func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMapping, ipt utiliptables.Interface) (err error) {
-	hostportMappings := gatherHostportMappings(podPortMapping, ipt.IsIPv6())
+	hostportMappings := gatherHostportMappings(podPortMapping, hm.iptables.IsIPv6())
 	if len(hostportMappings) == 0 {
 		return nil
 	}
@@ -222,7 +201,7 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 
 	var existingRules []string
 
-	existingChains, existingRules, err = getExistingHostportIPTablesRules(ipt)
+	existingChains, existingRules, err = getExistingHostportIPTablesRules(hm.iptables)
 	if err != nil {
 		return err
 	}
@@ -272,14 +251,14 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 
 	writeLine(natRules, "COMMIT")
 
-	return syncIPTables(ipt, append(natChains.Bytes(), natRules.Bytes()...))
+	return hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...))
 }
 
 // syncIPTables executes iptables-restore with given lines.
-func syncIPTables(ipt utiliptables.Interface, lines []byte) error {
+func (hm *hostportManager) syncIPTables(lines []byte) error {
 	logrus.Infof("Restoring iptables rules: %s", lines)
 
-	err := ipt.RestoreAll(lines, utiliptables.NoFlushTables, utiliptables.RestoreCounters)
+	err := hm.iptables.RestoreAll(lines, utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
 		return fmt.Errorf("failed to execute iptables-restore: %w", err)
 	}

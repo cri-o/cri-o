@@ -29,26 +29,6 @@ import (
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
 
-// newFakeManager creates a new Manager with fake iptables. Note that we need to create
-// (and semi-initialize) both ip4tables and ip6tables even for the single-stack tests,
-// because Remove() will try to use both.
-func newFakeManager() *hostportManager {
-	ip4tables := newFakeIPTables()
-	ip4tables.protocol = utiliptables.ProtocolIPv4
-	//nolint:errcheck // can't fail with fake iptables
-	_, _ = ip4tables.EnsureChain(utiliptables.TableNAT, utiliptables.ChainOutput)
-
-	ip6tables := newFakeIPTables()
-	ip6tables.protocol = utiliptables.ProtocolIPv6
-	//nolint:errcheck // can't fail with fake iptables
-	_, _ = ip6tables.EnsureChain(utiliptables.TableNAT, utiliptables.ChainOutput)
-
-	return &hostportManager{
-		ip4tables: ip4tables,
-		ip6tables: ip6tables,
-	}
-}
-
 type testCase struct {
 	id      string
 	mapping *PodPortMapping
@@ -296,7 +276,11 @@ var _ = t.Describe("HostPortManager", func() {
 	})
 
 	It("should work for IPv4", func() {
-		manager := newFakeManager()
+		iptables := newFakeIPTables()
+		iptables.protocol = utiliptables.ProtocolIPv4
+		manager := &hostportManager{
+			iptables: iptables,
+		}
 
 		// Add Hostports
 		for _, tc := range testCasesV4 {
@@ -305,7 +289,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after adding hostports
-		checkIPTablesRules(manager.ip4tables, expectedRulesV4)
+		checkIPTablesRules(manager.iptables, expectedRulesV4)
 
 		// Remove all added hostports
 		for _, tc := range testCasesV4 {
@@ -314,11 +298,15 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after deleting hostports
-		checkIPTablesRules(manager.ip4tables, nil)
+		checkIPTablesRules(manager.iptables, nil)
 	})
 
 	It("should work for IPv6", func() {
-		manager := newFakeManager()
+		iptables := newFakeIPTables()
+		iptables.protocol = utiliptables.ProtocolIPv6
+		manager := &hostportManager{
+			iptables: iptables,
+		}
 
 		// Add Hostports
 		for _, tc := range testCasesV6 {
@@ -327,7 +315,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after adding hostports
-		checkIPTablesRules(manager.ip6tables, expectedRulesV6)
+		checkIPTablesRules(manager.iptables, expectedRulesV6)
 
 		// Remove all added hostports
 		for _, tc := range testCasesV6 {
@@ -336,39 +324,6 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after deleting hostports
-		checkIPTablesRules(manager.ip6tables, nil)
-	})
-
-	It("should work for dual stack", func() {
-		manager := newFakeManager()
-
-		var testCases []testCase
-		if len(testCasesV4) < len(testCasesV6) {
-			panic("internal error; expected more IPv4 than IPv6 test cases")
-		}
-		for i := range testCasesV4 {
-			testCases = append(testCases, testCasesV4[i])
-			if i < len(testCasesV6) {
-				testCases = append(testCases, testCasesV6[i])
-			}
-		}
-
-		// Add Hostports
-		for _, tc := range testCases {
-			err := manager.Add(tc.id, tc.mapping)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		checkIPTablesRules(manager.ip4tables, expectedRulesV4)
-		checkIPTablesRules(manager.ip6tables, expectedRulesV6)
-
-		// Remove all added hostports
-		for _, tc := range testCases {
-			err := manager.Remove(tc.id, tc.mapping)
-			Expect(err).NotTo(HaveOccurred())
-		}
-
-		checkIPTablesRules(manager.ip4tables, nil)
-		checkIPTablesRules(manager.ip6tables, nil)
+		checkIPTablesRules(manager.iptables, nil)
 	})
 })
