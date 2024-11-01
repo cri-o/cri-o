@@ -21,7 +21,7 @@ import (
 )
 
 // Version is the version of the build.
-const Version = "1.29.9"
+const Version = "1.29.10"
 
 // Variables injected during build-time
 var (
