@@ -11,7 +11,7 @@ func NewNoopHostportManager() HostPortManager {
 	return &noopHostportManager{}
 }
 
-func (mh *noopHostportManager) Add(id string, podPortMapping *PodPortMapping, natInterfaceName string) error {
+func (mh *noopHostportManager) Add(id string, podPortMapping *PodPortMapping) error {
 	logrus.Debug("HostPort Mapping is Disabled in CRI-O")
 	return nil
 }

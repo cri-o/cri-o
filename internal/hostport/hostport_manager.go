@@ -44,8 +44,7 @@ type HostPortManager interface {
 	// Add implements port mappings.
 	// id should be a unique identifier for a pod, e.g. podSandboxID.
 	// podPortMapping is the associated port mapping information for the pod.
-	// natInterfaceName is the interface that localhost uses to talk to the given pod, if known.
-	Add(id string, podPortMapping *PodPortMapping, natInterfaceName string) error
+	Add(id string, podPortMapping *PodPortMapping) error
 	// Remove cleans up matching port mappings
 	// Remove must be able to clean up port mappings without pod IP
 	Remove(id string, podPortMapping *PodPortMapping) error
@@ -66,10 +65,7 @@ func NewHostportManager() HostPortManager {
 	}
 }
 
-func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInterfaceName string) (err error) {
-	if podPortMapping == nil || podPortMapping.HostNetwork {
-		return nil
-	}
+func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err error) {
 	podFullName := getPodFullName(podPortMapping)
 	// IP.To16() returns nil if IP is not a valid IPv4 or IPv6 address
 	if podPortMapping.IP.To16() == nil {
@@ -91,7 +87,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 		ipt = hm.ip4tables
 	}
 
-	if err := ensureKubeHostportChains(ipt, natInterfaceName); err != nil {
+	if err := ensureKubeHostportChains(ipt); err != nil {
 		return err
 	}
 
@@ -197,10 +193,6 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping, natInt
 }
 
 func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (err error) {
-	if podPortMapping == nil || podPortMapping.HostNetwork {
-		return nil
-	}
-
 	var errors []error
 	// Remove may not have the IP information, so we try to clean us much as possible
 	// and warn about the possible errors

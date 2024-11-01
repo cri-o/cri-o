@@ -51,12 +51,11 @@ type PodPortMapping struct {
 	Namespace    string
 	Name         string
 	PortMappings []*PortMapping
-	HostNetwork  bool
 	IP           net.IP
 }
 
 // ensureKubeHostportChains ensures the KUBE-HOSTPORTS chain is setup correctly.
-func ensureKubeHostportChains(iptables utiliptables.Interface, natInterfaceName string) error {
+func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 	logrus.Info("Ensuring kubelet hostport chains")
 	// Ensure kubeHostportChain
 	if _, err := iptables.EnsureChain(utiliptables.TableNAT, kubeHostportsChain); err != nil {
@@ -94,18 +93,6 @@ func ensureKubeHostportChains(iptables utiliptables.Interface, natInterfaceName 
 	}
 	if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
 		return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, crioMasqueradeChain, err)
-	}
-
-	if natInterfaceName != "" && natInterfaceName != "lo" {
-		// Need to SNAT traffic from localhost
-		localhost := "127.0.0.0/8"
-		if iptables.IsIPv6() {
-			localhost = "::1/128"
-		}
-		args = []string{"-m", "comment", "--comment", "SNAT for localhost access to hostports", "-o", natInterfaceName, "-s", localhost, "-j", "MASQUERADE"}
-		if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, crioMasqueradeChain, args...); err != nil {
-			return fmt.Errorf("failed to ensure that %s chain %s jumps to MASQUERADE: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, err)
-		}
 	}
 	return nil
 }

@@ -98,7 +98,6 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				Name:         sbName,
 				PortMappings: sbPortMappings,
 				IP:           ip,
-				HostNetwork:  false,
 			}
 			//nolint:gocritic // using a switch statement is not much different
 			if utilnet.IsIPv6(ip) {
@@ -115,7 +114,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				// found a new IPv4 address, do the portmap
 				foundIPv4 = true
 			}
-			err = s.hostportManager.Add(sbID, mapping, "")
+			err = s.hostportManager.Add(sbID, mapping)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 			}
@@ -174,7 +173,6 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	mapping := &hostport.PodPortMapping{
 		Name:         sb.Name(),
 		PortMappings: sb.PortMappings(),
-		HostNetwork:  false,
 	}
 	// portMapping removal does not need the IP address
 	if err := s.hostportManager.Remove(sb.ID(), mapping); err != nil {
