@@ -77,7 +77,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
@@ -101,7 +101,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 			// Then
@@ -123,7 +123,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 			// Then
@@ -157,7 +157,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 			// Then
@@ -194,7 +194,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
@@ -233,7 +233,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
@@ -278,7 +278,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
@@ -326,7 +326,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
@@ -377,64 +377,12 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
 			// Then
 			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Labels": unexpected end of JSON input`))
-		})
-	})
-	t.Describe("ContainerRestore from archive into new pod", func() {
-		It("should fail with 'PodSandboxId should not be empty'", func() {
-			// Given
-			addContainerAndSandbox()
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-
-			err := os.WriteFile(
-				"spec.dump",
-				[]byte(
-					`{"annotations":{"io.kubernetes.cri-o.Metadata"`+
-						`:"{\"name\":\"container-to-restore\"}",`+
-						`"io.kubernetes.cri-o.Annotations": "{\"name\":\"NAME\"}",`+
-						`"io.kubernetes.cri-o.Labels": "{\"io.kubernetes.container.name\":\"counter\"}"}}`),
-				0o644,
-			)
-			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("spec.dump")
-			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
-			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("config.dump")
-			outFile, err := os.Create("archive.tar")
-			Expect(err).ToNot(HaveOccurred())
-			defer outFile.Close()
-			input, err := archive.TarWithOptions(".", &archive.TarOptions{
-				Compression:      archive.Uncompressed,
-				IncludeSourceDir: true,
-				IncludeFiles:     []string{"spec.dump", "config.dump"},
-			})
-			Expect(err).ToNot(HaveOccurred())
-			defer os.RemoveAll("archive.tar")
-			_, err = io.Copy(outFile, input)
-			Expect(err).ToNot(HaveOccurred())
-			containerConfig := &types.ContainerConfig{
-				Image: &types.ImageSpec{
-					Image: "archive.tar",
-				},
-			}
-			// When
-
-			_, err = sut.CRImportCheckpoint(
-				context.Background(),
-				containerConfig,
-				"",
-				"",
-			)
-
-			// Then
-			Expect(err.Error()).To(Equal(`PodSandboxId should not be empty`))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -574,7 +522,7 @@ var _ = t.Describe("ContainerRestore", func() {
 				_, err = sut.CRImportCheckpoint(
 					context.Background(),
 					containerConfig,
-					"",
+					testSandbox,
 					"new-sandbox-id",
 				)
 
@@ -586,6 +534,7 @@ var _ = t.Describe("ContainerRestore", func() {
 	t.Describe("ContainerRestore from OCI archive", func() {
 		It("should fail because archive does not exist", func() {
 			// Given
+			addContainerAndSandbox()
 			size := uint64(100)
 			checkpointImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("localhost/checkpoint-image:tag1")
 			Expect(err).ToNot(HaveOccurred())
@@ -622,7 +571,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = sut.CRImportCheckpoint(
 				context.Background(),
 				containerConfig,
-				"",
+				testSandbox,
 				"",
 			)
 
