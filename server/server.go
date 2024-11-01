@@ -429,7 +429,7 @@ func New(
 	if config.DisableHostPortMapping {
 		hostportManager = hostport.NewNoopHostportManager()
 	} else {
-		hostportManager = hostport.NewHostportManager(ctx)
+		hostportManager = hostport.NewMetaHostportManager(ctx)
 	}
 
 	idMappings, err := getIDMappings(config)
