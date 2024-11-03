@@ -28,7 +28,7 @@ Copy the respective files to the configuration directory like so:
 sudo cp 10-crio-bridge.conflist /etc/cni/net.d
 ```
 
-By default, we install the dual stack version: [10-crio-bridge.conflist][dual-stack]
+By default, we install the IPv4 only version: [11-crio-ipv4-bridge.conflist][ipv4-only]
 
 However, if you are installing on a node with ipv6 disabled
 (`sysctl net.ipv6.conf.default.disable_ipv6` and
