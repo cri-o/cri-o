@@ -39,11 +39,13 @@ import (
 type HostPortManager interface {
 	// Add implements port mappings.
 	// id should be a unique identifier for a pod, e.g. podSandboxID.
-	// podPortMapping is the associated port mapping information for the pod.
-	Add(id string, podPortMapping *PodPortMapping) error
+	// name is the human-readable name of the pod.
+	// podIP is the IP to add mappings for.
+	// hostportMappings are the associated port mappings for the pod.
+	Add(id, name, podIP string, hostportMappings []*PortMapping) error
 	// Remove cleans up matching port mappings
 	// Remove must be able to clean up port mappings without pod IP
-	Remove(id string, podPortMapping *PodPortMapping) error
+	Remove(id string, hostportMappings []*PortMapping) error
 }
 
 type hostportManager struct {
@@ -60,18 +62,11 @@ func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
 	return h
 }
 
-func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err error) {
-	podFullName := getPodFullName(podPortMapping)
-	// IP.To16() returns nil if IP is not a valid IPv4 or IPv6 address
-	if podPortMapping.IP.To16() == nil {
-		return fmt.Errorf("invalid or missing IP of pod %s", podFullName)
-	}
-
-	podIP := podPortMapping.IP.String()
-	isIPv6 := utilnet.IsIPv6(podPortMapping.IP)
+func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {
+	isIPv6 := hm.iptables.IsIPv6()
 
 	// skip if there is no hostport needed
-	hostportMappings := gatherHostportMappings(podPortMapping, isIPv6)
+	hostportMappings = gatherHostportMappings(hostportMappings, isIPv6)
 	if len(hostportMappings) == 0 {
 		return nil
 	}
@@ -114,12 +109,12 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 		// Prepend the new chains to KUBE-HOSTPORTS and CRIO-HOSTPORTS-MASQ
 		// This avoids any leaking iptables rules that take up the same port
 		writeLine(natRules, "-I", string(kubeHostportsChain),
-			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, name, pm.HostPort),
 			"-m", protocol, "-p", protocol, "--dport", strconv.Itoa(int(pm.HostPort)),
 			"-j", string(hpChain),
 		)
 		writeLine(natRules, "-I", string(crioMasqueradeChain),
-			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, name, pm.HostPort),
 			"-j", string(masqChain),
 		)
 
@@ -127,12 +122,12 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 		hostPortBinding := net.JoinHostPort(podIP, strconv.Itoa(int(pm.ContainerPort)))
 		if pm.HostIP == "" || pm.HostIP == "0.0.0.0" || pm.HostIP == "::" {
 			writeLine(natRules, "-A", string(hpChain),
-				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, name, pm.HostPort),
 				"-m", protocol, "-p", protocol,
 				"-j", "DNAT", "--to-destination="+hostPortBinding)
 		} else {
 			writeLine(natRules, "-A", string(hpChain),
-				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+				"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, name, pm.HostPort),
 				"-m", protocol, "-p", protocol, "-d", pm.HostIP,
 				"-j", "DNAT", "--to-destination="+hostPortBinding)
 		}
@@ -143,7 +138,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 		// and has src=dst=podIP then _someone_ needs to masquerade it, and the
 		// worst case here is just that "-j MASQUERADE" gets called twice.
 		writeLine(natRules, "-A", string(masqChain),
-			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, podFullName, pm.HostPort),
+			"-m", "comment", "--comment", fmt.Sprintf(`"%s hostport %d"`, name, pm.HostPort),
 			"-m", "conntrack", "--ctorigdstport", strconv.Itoa(int(pm.HostPort)),
 			"-m", protocol, "-p", protocol, "--dport", strconv.Itoa(int(pm.ContainerPort)),
 			"-s", podIP, "-d", podIP,
@@ -187,8 +182,8 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 	return nil
 }
 
-func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (err error) {
-	hostportMappings := gatherHostportMappings(podPortMapping, hm.iptables.IsIPv6())
+func (hm *hostportManager) Remove(id string, hostportMappings []*PortMapping) (err error) {
+	hostportMappings = gatherHostportMappings(hostportMappings, hm.iptables.IsIPv6())
 	if len(hostportMappings) == 0 {
 		return nil
 	}
@@ -281,10 +276,10 @@ func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 
 // gatherHostportMappings returns all the PortMappings which has hostport for a pod
 // it filters the PortMappings that use HostIP and doesn't match the IP family specified.
-func gatherHostportMappings(podPortMapping *PodPortMapping, isIPv6 bool) []*PortMapping {
+func gatherHostportMappings(hostportMappings []*PortMapping, isIPv6 bool) []*PortMapping {
 	mappings := []*PortMapping{}
 
-	for _, pm := range podPortMapping.PortMappings {
+	for _, pm := range hostportMappings {
 		if pm.HostPort <= 0 {
 			continue
 		}
@@ -466,12 +461,6 @@ func filterChains(chains map[utiliptables.Chain]string, filterChains []utiliptab
 	for _, chain := range filterChains {
 		delete(chains, chain)
 	}
-}
-
-func getPodFullName(pod *PodPortMapping) string {
-	// Use underscore as the delimiter because it is not allowed in pod name
-	// (DNS subdomain format), while allowed in the container name format.
-	return pod.Name + "_" + pod.Namespace
 }
 
 // Join all words with spaces, terminate with newline and write to buf.

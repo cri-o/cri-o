@@ -38,7 +38,7 @@ var _ = t.Describe("MetaHostportManager", func() {
 
 		// Add Hostports
 		for _, tc := range metaTestCases {
-			err := manager.Add(tc.id, tc.mapping)
+			err := manager.Add(tc.id, tc.name, tc.podIP, tc.portMappings)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -48,7 +48,7 @@ var _ = t.Describe("MetaHostportManager", func() {
 
 		// Remove all added hostports
 		for _, tc := range metaTestCases {
-			err := manager.Remove(tc.id, tc.mapping)
+			err := manager.Remove(tc.id, tc.portMappings)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
