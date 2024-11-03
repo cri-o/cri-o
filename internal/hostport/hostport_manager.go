@@ -27,9 +27,6 @@ import (
 	"sync"
 
 	"github.com/sirupsen/logrus"
-	"github.com/vishvananda/netlink"
-	"golang.org/x/sys/unix"
-	v1 "k8s.io/api/core/v1"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
@@ -62,8 +59,6 @@ func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
 }
 
 func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {
-	isIPv6 := hm.iptables.IsIPv6()
-
 	if err := ensureKubeHostportChains(hm.iptables); err != nil {
 		return err
 	}
@@ -83,17 +78,12 @@ func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortM
 	}
 
 	newChains := []utiliptables.Chain{}
-	conntrackPortsToRemove := []int{}
 
 	for _, pm := range hostportMappings {
 		protocol := strings.ToLower(string(pm.Protocol))
 		hpChain := getHostportChain(kubeHostportChainPrefix, id, pm)
 		masqChain := getHostportChain(crioMasqueradeChainPrefix, id, pm)
 		newChains = append(newChains, hpChain, masqChain)
-
-		if pm.Protocol == v1.ProtocolUDP {
-			conntrackPortsToRemove = append(conntrackPortsToRemove, int(pm.HostPort))
-		}
 
 		// Add new hostport chain
 		writeLine(natChains, utiliptables.MakeChainLine(hpChain))
@@ -154,25 +144,7 @@ func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortM
 
 	writeLine(natRules, "COMMIT")
 
-	if err := hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
-		return err
-	}
-
-	// Remove conntrack entries just after adding the new iptables rules. If the conntrack entry is removed along with
-	// the IP tables rule, it can be the case that the packets received by the node after iptables rule removal will
-	// create a new conntrack entry without any DNAT. That will result in blackhole of the traffic even after correct
-	// iptables rules have been added back.
-	logrus.Infof("Starting to delete udp conntrack entries: %v, isIPv6 - %v", conntrackPortsToRemove, isIPv6)
-	// https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
-	const protocolUDPNumber = 17
-	for _, port := range conntrackPortsToRemove {
-		err = deleteConntrackEntriesForDstPort(uint16(port), protocolUDPNumber, getNetlinkFamily(isIPv6))
-		if err != nil {
-			logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
-		}
-	}
-
-	return nil
+	return hm.syncIPTables(append(natChains.Bytes(), natRules.Bytes()...))
 }
 
 func (hm *hostportManager) Remove(id string, hostportMappings []*PortMapping) (err error) {
@@ -434,12 +406,4 @@ func filterChains(chains map[utiliptables.Chain]string, filterChains []utiliptab
 // Join all words with spaces, terminate with newline and write to buf.
 func writeLine(buf *bytes.Buffer, words ...string) {
 	buf.WriteString(strings.Join(words, " ") + "\n")
-}
-
-func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {
-	if isIPv6 {
-		return unix.AF_INET6
-	}
-
-	return unix.AF_INET
 }
