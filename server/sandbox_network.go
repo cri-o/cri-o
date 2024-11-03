@@ -13,7 +13,6 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	utilnet "k8s.io/utils/net"
 
-	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/server/metrics"
@@ -98,11 +97,6 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 
 		// the pod has host-ports defined
 		if len(sbPortMappings) > 0 {
-			mapping := &hostport.PodPortMapping{
-				Name:         sbName,
-				PortMappings: sbPortMappings,
-				IP:           ip,
-			}
 			//nolint:gocritic // using a switch statement is not much different
 			if utilnet.IsIPv6(ip) {
 				if foundIPv6 {
@@ -119,7 +113,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				foundIPv4 = true
 			}
 
-			err = s.hostportManager.Add(sbID, mapping)
+			err = s.hostportManager.Add(sbID, sbName, ip.String(), sbPortMappings)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 			}
@@ -179,12 +173,8 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	stopCtx, stopCancel := context.WithTimeout(ctx, 1*time.Minute)
 	defer stopCancel()
 
-	mapping := &hostport.PodPortMapping{
-		Name:         sb.Name(),
-		PortMappings: sb.PortMappings(),
-	}
 	// portMapping removal does not need the IP address
-	if err := s.hostportManager.Remove(sb.ID(), mapping); err != nil {
+	if err := s.hostportManager.Remove(sb.ID(), sb.PortMappings()); err != nil {
 		log.Warnf(ctx, "Failed to remove hostport for pod sandbox %s(%s): %v",
 			sb.Name(), sb.ID(), err)
 	}

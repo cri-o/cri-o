@@ -1,6 +1,8 @@
 package hostport
 
-import "github.com/sirupsen/logrus"
+import (
+	"github.com/sirupsen/logrus"
+)
 
 // This interface implements, when hostport mapping is disabled in CRI-O.
 type noopHostportManager struct{}
@@ -12,13 +14,13 @@ func NewNoopHostportManager() HostPortManager {
 	return &noopHostportManager{}
 }
 
-func (mh *noopHostportManager) Add(id string, podPortMapping *PodPortMapping) error {
+func (mh *noopHostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) error {
 	logrus.Debug("HostPort Mapping is Disabled in CRI-O")
 
 	return nil
 }
 
-func (mh *noopHostportManager) Remove(id string, podPortMapping *PodPortMapping) error {
+func (mh *noopHostportManager) Remove(id string, hostportMappings []*PortMapping) error {
 	logrus.Debug("HostPort Mapping is Disabled in CRI-O")
 
 	return nil
