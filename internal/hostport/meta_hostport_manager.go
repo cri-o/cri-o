@@ -35,7 +35,14 @@ func NewMetaHostportManager(ctx context.Context) HostPortManager {
 }
 
 func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) error {
-	if utilnet.IsIPv6String(podIP) {
+	family := utilnet.IPFamilyOfString(podIP)
+
+	hostportMappings = filterHostportMappings(hostportMappings, family)
+	if len(hostportMappings) == 0 {
+		return nil
+	}
+
+	if family == utilnet.IPv6 {
 		return mh.ipv6HostportManager.Add(id, name, podIP, hostportMappings)
 	}
 
@@ -46,14 +53,21 @@ func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping
 	var errstrings []string
 	// Remove may not have the IP information, so we try to clean us much as possible
 	// and warn about the possible errors
-	err := mh.ipv4HostportManager.Remove(id, hostportMappings)
-	if err != nil {
-		errstrings = append(errstrings, err.Error())
+
+	hostportMappingsV4 := filterHostportMappings(hostportMappings, utilnet.IPv4)
+	if len(hostportMappingsV4) > 0 {
+		err := mh.ipv4HostportManager.Remove(id, hostportMappingsV4)
+		if err != nil {
+			errstrings = append(errstrings, err.Error())
+		}
 	}
 
-	err = mh.ipv6HostportManager.Remove(id, hostportMappings)
-	if err != nil {
-		errstrings = append(errstrings, err.Error())
+	hostportMappingsV6 := filterHostportMappings(hostportMappings, utilnet.IPv6)
+	if len(hostportMappingsV6) > 0 {
+		err := mh.ipv6HostportManager.Remove(id, hostportMappingsV6)
+		if err != nil {
+			errstrings = append(errstrings, err.Error())
+		}
 	}
 
 	if len(errstrings) > 0 {
@@ -61,4 +75,23 @@ func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping
 	}
 
 	return nil
+}
+
+// filterHostportMappings returns only the PortMappings that apply to family.
+func filterHostportMappings(hostportMappings []*PortMapping, family utilnet.IPFamily) []*PortMapping {
+	mappings := []*PortMapping{}
+
+	for _, pm := range hostportMappings {
+		if pm.HostPort <= 0 {
+			continue
+		}
+
+		if pm.HostIP != "" && utilnet.IPFamilyOfString(pm.HostIP) != family {
+			continue
+		}
+
+		mappings = append(mappings, pm)
+	}
+
+	return mappings
 }

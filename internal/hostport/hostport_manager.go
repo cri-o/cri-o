@@ -30,7 +30,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
-	utilnet "k8s.io/utils/net"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
@@ -64,12 +63,6 @@ func NewHostportManager(iptables utiliptables.Interface) HostPortManager {
 
 func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) (err error) {
 	isIPv6 := hm.iptables.IsIPv6()
-
-	// skip if there is no hostport needed
-	hostportMappings = gatherHostportMappings(hostportMappings, isIPv6)
-	if len(hostportMappings) == 0 {
-		return nil
-	}
 
 	if err := ensureKubeHostportChains(hm.iptables); err != nil {
 		return err
@@ -183,11 +176,6 @@ func (hm *hostportManager) Add(id, name, podIP string, hostportMappings []*PortM
 }
 
 func (hm *hostportManager) Remove(id string, hostportMappings []*PortMapping) (err error) {
-	hostportMappings = gatherHostportMappings(hostportMappings, hm.iptables.IsIPv6())
-	if len(hostportMappings) == 0 {
-		return nil
-	}
-
 	// Ensure atomicity for iptables operations
 	hm.mu.Lock()
 	defer hm.mu.Unlock()
@@ -272,26 +260,6 @@ func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 	encoded := base32.StdEncoding.EncodeToString(hash[:])
 
 	return utiliptables.Chain(prefix + encoded[:16])
-}
-
-// gatherHostportMappings returns all the PortMappings which has hostport for a pod
-// it filters the PortMappings that use HostIP and doesn't match the IP family specified.
-func gatherHostportMappings(hostportMappings []*PortMapping, isIPv6 bool) []*PortMapping {
-	mappings := []*PortMapping{}
-
-	for _, pm := range hostportMappings {
-		if pm.HostPort <= 0 {
-			continue
-		}
-
-		if pm.HostIP != "" && utilnet.IsIPv6String(pm.HostIP) != isIPv6 {
-			continue
-		}
-
-		mappings = append(mappings, pm)
-	}
-
-	return mappings
 }
 
 // getExistingHostportIPTablesRules retrieves raw data from iptables-save, parse it,
