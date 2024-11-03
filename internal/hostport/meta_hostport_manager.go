@@ -5,6 +5,10 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/sirupsen/logrus"
+	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
+	v1 "k8s.io/api/core/v1"
 	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 
@@ -34,6 +38,11 @@ func NewMetaHostportManager(ctx context.Context) HostPortManager {
 	return h
 }
 
+var netlinkFamily = map[utilnet.IPFamily]netlink.InetFamily{
+	utilnet.IPv4: unix.AF_INET,
+	utilnet.IPv6: unix.AF_INET6,
+}
+
 func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) error {
 	family := utilnet.IPFamilyOfString(podIP)
 
@@ -42,11 +51,40 @@ func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*P
 		return nil
 	}
 
+	var err error
 	if family == utilnet.IPv6 {
-		return mh.ipv6HostportManager.Add(id, name, podIP, hostportMappings)
+		err = mh.ipv6HostportManager.Add(id, name, podIP, hostportMappings)
+	} else {
+		err = mh.ipv4HostportManager.Add(id, name, podIP, hostportMappings)
 	}
 
-	return mh.ipv4HostportManager.Add(id, name, podIP, hostportMappings)
+	if err != nil {
+		return err
+	}
+
+	// Remove conntrack entries just after adding the new iptables rules. If the
+	// conntrack entry is removed along with the IP tables rule, it can be the case
+	// that the packets received by the node after iptables rule removal will create a
+	// new conntrack entry without any DNAT. That will result in blackhole of the
+	// traffic even after correct iptables rules have been added back.
+	conntrackPortsToRemove := []int{}
+
+	for _, pm := range hostportMappings {
+		if pm.Protocol == v1.ProtocolUDP {
+			conntrackPortsToRemove = append(conntrackPortsToRemove, int(pm.HostPort))
+		}
+	}
+
+	logrus.Infof("Deleting UDP conntrack entries for IPv%s: %v", family, conntrackPortsToRemove)
+
+	for _, port := range conntrackPortsToRemove {
+		err = deleteConntrackEntriesForDstPort(uint16(port), unix.IPPROTO_UDP, netlinkFamily[family])
+		if err != nil {
+			logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
+		}
+	}
+
+	return nil
 }
 
 func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping) error {
