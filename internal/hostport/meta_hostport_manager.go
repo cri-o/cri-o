@@ -34,24 +34,24 @@ func NewMetaHostportManager(ctx context.Context) HostPortManager {
 	return h
 }
 
-func (mh *metaHostportManager) Add(id string, podPortMapping *PodPortMapping) error {
-	if utilnet.IsIPv6(podPortMapping.IP) {
-		return mh.ipv6HostportManager.Add(id, podPortMapping)
+func (mh *metaHostportManager) Add(id, name, podIP string, hostportMappings []*PortMapping) error {
+	if utilnet.IsIPv6String(podIP) {
+		return mh.ipv6HostportManager.Add(id, name, podIP, hostportMappings)
 	}
 
-	return mh.ipv4HostportManager.Add(id, podPortMapping)
+	return mh.ipv4HostportManager.Add(id, name, podIP, hostportMappings)
 }
 
-func (mh *metaHostportManager) Remove(id string, podPortMapping *PodPortMapping) error {
+func (mh *metaHostportManager) Remove(id string, hostportMappings []*PortMapping) error {
 	var errstrings []string
 	// Remove may not have the IP information, so we try to clean us much as possible
 	// and warn about the possible errors
-	err := mh.ipv4HostportManager.Remove(id, podPortMapping)
+	err := mh.ipv4HostportManager.Remove(id, hostportMappings)
 	if err != nil {
 		errstrings = append(errstrings, err.Error())
 	}
 
-	err = mh.ipv6HostportManager.Remove(id, podPortMapping)
+	err = mh.ipv6HostportManager.Remove(id, hostportMappings)
 	if err != nil {
 		errstrings = append(errstrings, err.Error())
 	}

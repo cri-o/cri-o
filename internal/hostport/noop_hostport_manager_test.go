@@ -10,7 +10,7 @@ var _ = t.Describe("NoopHostportManager", func() {
 		manager := NewNoopHostportManager()
 		Expect(manager).NotTo(BeNil())
 
-		err := manager.Add("id", nil)
+		err := manager.Add("id", "pod1", "1.2.3.4", nil)
 		Expect(err).NotTo(HaveOccurred())
 
 		err = manager.Remove("id", nil)
