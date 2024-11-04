@@ -47,7 +47,7 @@ func writeCrioGoroutineStacks() {
 	}
 }
 
-func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, sserver *server.Server, hserver *http.Server, signalled *bool) {
+func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc.Server, tp *sdktrace.TracerProvider, streamingServer *server.Server, hserver *http.Server, signalled *bool) {
 	sig := make(chan os.Signal, 2048)
 	signal.Notify(sig, signals.Interrupt, signals.Term, unix.SIGUSR1, unix.SIGUSR2, unix.SIGPIPE, signals.Hup)
 	go func() {
@@ -79,12 +79,12 @@ func catchShutdown(ctx context.Context, cancel context.CancelFunc, gserver *grpc
 			}
 			gserver.GracefulStop()
 			hserver.Shutdown(ctx) //nolint: errcheck
-			if err := sserver.StopStreamServer(); err != nil {
+			if err := streamingServer.StopStreamServer(); err != nil {
 				log.Warnf(ctx, "Error shutting down streaming server: %v", err)
 			}
-			sserver.StopMonitors()
+			streamingServer.StopMonitors()
 			cancel()
-			if err := sserver.Shutdown(ctx); err != nil {
+			if err := streamingServer.Shutdown(ctx); err != nil {
 				log.Warnf(ctx, "Error shutting down main service %v", err)
 			}
 			return
