@@ -1,6 +1,7 @@
 package server
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -14,7 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	json "github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"

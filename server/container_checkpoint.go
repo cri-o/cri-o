@@ -1,10 +1,10 @@
 package server
 
 import (
+	"context"
 	"errors"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"

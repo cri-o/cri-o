@@ -2,6 +2,7 @@ package oci
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -34,7 +35,6 @@ import (
 	katavolume "github.com/kata-containers/kata-containers/src/runtime/virtcontainers/types"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/context"
 	"golang.org/x/sys/unix"
 	anypb "google.golang.org/protobuf/types/known/anypb"
 	"k8s.io/client-go/tools/remotecommand"
