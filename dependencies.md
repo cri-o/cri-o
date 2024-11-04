@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
+_Generated on Mon, 04 Nov 2024 11:08:06 UTC for commit [2de457d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f13fc35506ba812dafcea24724f371caf6e52370
+[0]: https://github.com/cri-o/cri-o/commit/2de457d07b56307963b6105c02beb1f9d191d238
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/fsnotify/fsnotify                                                | v1.7.0                               | v1.8.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                               | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241101150431-2efcb442f435 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241104091006-06d2cc723965 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.1                             | true   | true             |
@@ -34,7 +34,6 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.29.0                              | v1.31.0                            | true   | true             |
 | go.opentelemetry.io/otel/sdk                                                | v1.29.0                              | v1.31.0                            | true   | true             |
 | go.opentelemetry.io/otel/trace                                              | v1.29.0                              | v1.31.0                            | true   | true             |
-| golang.org/x/net                                                            | v0.28.0                              | v0.30.0                            | true   | true             |
 | golang.org/x/sys                                                            | v0.24.0                              | v0.26.0                            | true   | true             |
 | google.golang.org/grpc                                                      | v1.66.0                              | v1.67.1                            | true   | true             |
 | google.golang.org/protobuf                                                  | v1.34.2                              | v1.35.1                            | true   | true             |
@@ -43,7 +42,7 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | k8s.io/client-go                                                            | v0.31.0                              | v0.31.2                            | true   | true             |
 | k8s.io/cri-api                                                              | v0.31.0                              | v0.31.2                            | true   | true             |
 | k8s.io/kubelet                                                              | v0.31.0                              | v0.31.2                            | true   | true             |
-| k8s.io/utils                                                                | v0.0.0-20240711033017-18e509b52bc8   | v0.0.0-20240921022957-49e7df575cb6 | true   | true             |
+| k8s.io/utils                                                                | v0.0.0-20240711033017-18e509b52bc8   | v0.0.0-20241104100929-3ea5e8cea738 | true   | true             |
 | sigs.k8s.io/release-utils                                                   | v0.8.4                               | v0.8.5                             | true   | true             |
 
 ## All Dependencies
@@ -526,7 +525,7 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241101150431-2efcb442f435  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241104091006-06d2cc723965  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -783,7 +782,7 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20241016134751-7ff83004ec2c  | false  | true             |
 | golang.org/x/mod                                                                        | v0.20.0                               | v0.21.0                             | false  | true             |
-| golang.org/x/net                                                                        | v0.28.0                               | v0.30.0                             | true   | true             |
+| golang.org/x/net                                                                        | v0.28.0                               | v0.30.0                             | false  | true             |
 | golang.org/x/oauth2                                                                     | v0.22.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.8.0                                |                                     | false  | true             |
 | golang.org/x/sys                                                                        | v0.24.0                               | v0.26.0                             | true   | true             |
@@ -831,7 +830,7 @@ _Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 | k8s.io/kms                                                                              | v0.31.0                               | v0.31.2                             | false  | true             |
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241009091222-67ed5848f094  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
-| k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20240921022957-49e7df575cb6  | true   | true             |
+| k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20241104100929-3ea5e8cea738  | true   | true             |
 | knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241026180704-25f6002b00f3  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
