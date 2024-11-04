@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
+_Generated on Mon, 04 Nov 2024 08:21:34 UTC for commit [f13fc35][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/258db152f870d8e943f46c5a786af06f43fbaf51
+[0]: https://github.com/cri-o/cri-o/commit/f13fc35506ba812dafcea24724f371caf6e52370
 
 ## Outdated Dependencies
 
@@ -11,6 +11,7 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/checkpoint-restore/checkpointctl                                 | v1.2.1                               | v1.3.0                             | true   | true             |
 | github.com/checkpoint-restore/go-criu/v7                                    | v7.1.0                               | v7.2.0                             | true   | true             |
 | github.com/containerd/containerd                                            | v1.7.21                              | v1.7.23                            | true   | true             |
+| github.com/containerd/containerd/api                                        | v1.7.19                              | v1.8.0                             | true   | true             |
 | github.com/containerd/nri                                                   | v0.7.0                               | v0.8.0                             | true   | true             |
 | github.com/containerd/ttrpc                                                 | v1.2.6-0.20240827082320-b5cd6e4b3287 | v1.2.6                             | true   | true             |
 | github.com/containernetworking/plugins                                      | v1.5.1                               | v1.6.0                             | true   | true             |
@@ -23,6 +24,7 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241101150431-2efcb442f435 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
+| github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.1                             | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                              | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                              | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                               | v0.3.2                             | true   | true             |
@@ -247,7 +249,7 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/alibabacloud-go/tea                                                          | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                    | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                      | v1.1.3                                |                                     | false  | true             |
-| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.3.11                             | false  | true             |
+| github.com/aliyun/credentials-go                                                        | v1.3.1                                | v1.4.0                              | false  | true             |
 | github.com/andybalholm/brotli                                                           | v1.1.0                                | v1.1.1                              | false  | true             |
 | github.com/anmitsu/go-shlex                                                             | v0.0.0-20200514113438-38f4b401e2be    |                                     | false  | true             |
 | github.com/antihax/optional                                                             | v1.0.0                                |                                     | false  | true             |
@@ -324,10 +326,10 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/containerd/cgroups/v3                                                        | v3.0.3                                |                                     | false  | true             |
 | github.com/containerd/console                                                           | v1.0.4                                |                                     | false  | true             |
 | github.com/containerd/containerd                                                        | v1.7.21                               | v1.7.23                             | true   | true             |
-| github.com/containerd/containerd/api                                                    | v1.7.19                               |                                     | true   | true             |
+| github.com/containerd/containerd/api                                                    | v1.7.19                               | v1.8.0                              | true   | true             |
 | github.com/containerd/continuity                                                        | v0.4.2                                | v0.4.4                              | false  | true             |
 | github.com/containerd/cri-containerd                                                    | v1.19.0                               |                                     | false  | true             |
-| github.com/containerd/errdefs                                                           | v0.1.0                                | v0.3.0                              | false  | true             |
+| github.com/containerd/errdefs                                                           | v0.1.0                                | v1.0.0                              | false  | true             |
 | github.com/containerd/fifo                                                              | v1.1.0                                |                                     | true   | true             |
 | github.com/containerd/go-cni                                                            | v1.1.9                                | v1.1.10                             | false  | true             |
 | github.com/containerd/go-runc                                                           | v1.1.0                                |                                     | false  | true             |
@@ -449,7 +451,7 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/goccy/go-json                                                                | v0.10.2                               | v0.10.3                             | false  | true             |
 | github.com/godbus/dbus/v5                                                               | v5.1.1-0.20230522191255-76236955d466  |                                     | true   | true             |
 | github.com/gogo/protobuf                                                                | v1.3.2                                |                                     | true   | true             |
-| github.com/golang-jwt/jwt/v4                                                            | v4.5.0                                |                                     | false  | true             |
+| github.com/golang-jwt/jwt/v4                                                            | v4.5.0                                | v4.5.1                              | false  | true             |
 | github.com/golang-jwt/jwt/v5                                                            | v5.2.1                                |                                     | false  | true             |
 | github.com/golang/freetype                                                              | v0.0.0-20170609003504-e2365dfdc4a0    |                                     | false  | true             |
 | github.com/golang/glog                                                                  | v1.2.1                                | v1.2.2                              | false  | true             |
@@ -611,7 +613,7 @@ _Generated on Fri, 01 Nov 2024 19:53:15 UTC for commit [258db15][0]._
 | github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.70.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.2.0                                |                                     | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.2.0                                | v1.2.1                              | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                               | v1.11.1                             | true   | true             |
