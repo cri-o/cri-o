@@ -31,12 +31,12 @@ import (
 
 	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/log/interceptors"
 	"github.com/cri-o/cri-o/internal/opentelemetry"
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/version"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server"
-	otel_collector "github.com/cri-o/cri-o/server/otel-collector"
 	"github.com/cri-o/cri-o/utils"
 )
 
@@ -319,10 +319,10 @@ func main() {
 		}
 		grpcServer := grpc.NewServer(
 			grpc.UnaryInterceptor(grpc_middleware.ChainUnaryServer(
-				otel_collector.UnaryInterceptor(),
+				interceptors.UnaryInterceptor(),
 			)),
 			grpc.StreamInterceptor(grpc_middleware.ChainStreamServer(
-				otel_collector.StreamInterceptor(),
+				interceptors.StreamInterceptor(),
 			)),
 			grpc.StatsHandler(otelgrpc.NewServerHandler(opts...)),
 			grpc.MaxSendMsgSize(config.GRPCMaxSendMsgSize),

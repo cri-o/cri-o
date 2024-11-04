@@ -24,7 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/process"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 )
 
 // SinceInMicroseconds gets the time since the specified start in microseconds.

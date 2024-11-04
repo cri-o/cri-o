@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 	. "github.com/cri-o/cri-o/test/framework"
 )
 

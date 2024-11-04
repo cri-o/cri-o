@@ -13,7 +13,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
-	"github.com/cri-o/cri-o/server/otel-collector/collectors"
+	"github.com/cri-o/cri-o/server/metrics/collectors"
 )
 
 // DefaultCommands are the flags commands can be added to every binary.
