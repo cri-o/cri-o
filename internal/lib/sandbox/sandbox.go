@@ -174,6 +174,12 @@ func (s *Sandbox) IPs() []string {
 	return s.ips
 }
 
+// GetIPs returns the ip of the sandbox.
+// Wrap the IPs() method to match the NRI interface.
+func (s *Sandbox) GetIPs() []string {
+	return s.IPs()
+}
+
 // ID returns the id of the sandbox.
 func (s *Sandbox) ID() string {
 	return s.criSandbox.Id
