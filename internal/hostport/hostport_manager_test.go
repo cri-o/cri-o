@@ -52,16 +52,14 @@ var _ = t.Describe("HostPortManager", func() {
 	It("HostportManagerIPv4", func() {
 		manager := newFakeManager()
 		testCases := []struct {
-			mapping     *PodPortMapping
-			expectError bool
+			mapping *PodPortMapping
 		}{
 			// open HostPorts 8080/TCP, 8081/UDP and 8083/SCTP
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.2"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -80,15 +78,13 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			// open port 443
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -97,15 +93,13 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			// open same HostPort on different IP
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod5",
-					Namespace:   "ns5",
-					IP:          net.ParseIP("10.1.1.5"),
-					HostNetwork: false,
+					Name:      "pod5",
+					Namespace: "ns5",
+					IP:        net.ParseIP("10.1.1.5"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8888,
@@ -121,15 +115,13 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			// open same HostPort on different
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod6",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("10.1.1.2"),
-					HostNetwork: false,
+					Name:      "pod6",
+					Namespace: "ns1",
+					IP:        net.ParseIP("10.1.1.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      9999,
@@ -143,17 +135,12 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 		}
 
 		// Add Hostports
 		for _, tc := range testCases {
-			err := manager.Add("id", tc.mapping, "cbr0")
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-				continue
-			}
+			err := manager.Add("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -205,7 +192,6 @@ var _ = t.Describe("HostPortManager", func() {
 			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                true,
 			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                            true,
 			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                  true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s 127.0.0.0/8 -j MASQUERADE":                                                            true,
 			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
 			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:80":                                                         true,
 			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
@@ -234,10 +220,8 @@ var _ = t.Describe("HostPortManager", func() {
 
 		// Remove all added hostports
 		for _, tc := range testCases {
-			if !tc.expectError {
-				err := manager.Remove("id", tc.mapping)
-				Expect(err).NotTo(HaveOccurred())
-			}
+			err := manager.Remove("id", tc.mapping)
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		// Check Iptables-save result after deleting hostports
@@ -277,15 +261,13 @@ var _ = t.Describe("HostPortManager", func() {
 	It("HostportManagerIPv6", func() {
 		manager := newFakeManager()
 		testCases := []struct {
-			mapping     *PodPortMapping
-			expectError bool
+			mapping *PodPortMapping
 		}{
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::2"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -304,14 +286,12 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -320,17 +300,12 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 		}
 
 		// Add Hostports
 		for _, tc := range testCases {
-			err := manager.Add("id", tc.mapping, "cbr0")
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-				continue
-			}
+			err := manager.Add("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -366,7 +341,6 @@ var _ = t.Describe("HostPortManager", func() {
 			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                        true,
 			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                    true,
 			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                          true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s ::1/128 -j MASQUERADE":                                                                        true,
 			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
 			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::2]:80":                                                           true,
 			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
@@ -387,10 +361,8 @@ var _ = t.Describe("HostPortManager", func() {
 
 		// Remove all added hostports
 		for _, tc := range testCases {
-			if !tc.expectError {
-				err := manager.Remove("id", tc.mapping)
-				Expect(err).NotTo(HaveOccurred())
-			}
+			err := manager.Remove("id", tc.mapping)
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		// Check Iptables-save result after deleting hostports
@@ -414,15 +386,13 @@ var _ = t.Describe("HostPortManager", func() {
 	It("HostportManagerDualStack", func() {
 		manager := newFakeManager()
 		testCases := []struct {
-			mapping     *PodPortMapping
-			expectError bool
+			mapping *PodPortMapping
 		}{
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("192.168.2.7"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("192.168.2.7"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -447,16 +417,14 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			// same pod and portmappings,
 			// but different IP must work
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod1",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::3"),
-					HostNetwork: false,
+					Name:      "pod1",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::3"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8080,
@@ -481,14 +449,12 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod3",
-					Namespace:   "ns1",
-					IP:          net.ParseIP("2001:beef::4"),
-					HostNetwork: false,
+					Name:      "pod3",
+					Namespace: "ns1",
+					IP:        net.ParseIP("2001:beef::4"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -497,16 +463,14 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 			// port already taken by other pod
 			// but using another IP family
 			{
 				mapping: &PodPortMapping{
-					Name:        "pod4",
-					Namespace:   "ns2",
-					IP:          net.ParseIP("192.168.2.2"),
-					HostNetwork: false,
+					Name:      "pod4",
+					Namespace: "ns2",
+					IP:        net.ParseIP("192.168.2.2"),
 					PortMappings: []*PortMapping{
 						{
 							HostPort:      8443,
@@ -515,17 +479,12 @@ var _ = t.Describe("HostPortManager", func() {
 						},
 					},
 				},
-				expectError: false,
 			},
 		}
 
 		// Add Hostports
 		for _, tc := range testCases {
-			err := manager.Add("id", tc.mapping, "")
-			if tc.expectError {
-				Expect(err).To(HaveOccurred())
-				continue
-			}
+			err := manager.Add("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
 
@@ -566,7 +525,6 @@ var _ = t.Describe("HostPortManager", func() {
 			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                      true,
 			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                  true,
 			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                        true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s ::1/128 -j MASQUERADE":                                                                      true,
 			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 192.168.2.7/32 -d 192.168.2.7/32 -j MASQUERADE":   true,
 			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination 192.168.2.7:80":                                                            true,
 			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 192.168.2.7/32 -d 192.168.2.7/32 -j MASQUERADE":   true,
@@ -588,10 +546,8 @@ var _ = t.Describe("HostPortManager", func() {
 
 		// Remove all added hostports
 		for _, tc := range testCases {
-			if !tc.expectError {
-				err := manager.Remove("id", tc.mapping)
-				Expect(err).NotTo(HaveOccurred())
-			}
+			err := manager.Remove("id", tc.mapping)
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		// Check IPv4 Iptables-save result after deleting hostports
@@ -644,7 +600,6 @@ var _ = t.Describe("HostPortManager", func() {
 			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                       true,
 			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                   true,
 			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                         true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"SNAT for localhost access to hostports\" -o cbr0 -s ::1/128 -j MASQUERADE":                                                                       true,
 			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 9999 -m tcp -p tcp --dport 443 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE": true,
 			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::2]:80":                                                          true,
 			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 9999 -m tcp -p tcp --dport 443 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE": true,
@@ -664,10 +619,8 @@ var _ = t.Describe("HostPortManager", func() {
 
 		// Remove all added hostports
 		for _, tc := range testCases {
-			if !tc.expectError {
-				err := manager.Remove("id", tc.mapping)
-				Expect(err).NotTo(HaveOccurred())
-			}
+			err := manager.Remove("id", tc.mapping)
+			Expect(err).NotTo(HaveOccurred())
 		}
 
 		// Check IPv6 Iptables-save result after deleting hostports
