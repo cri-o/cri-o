@@ -27,7 +27,7 @@ func StatusToExitCode(status int) int {
 	return ((status) & 0xff00) >> 8
 }
 
-func newProp(name string, units interface{}) systemdDbus.Property {
+func newProp(name string, units any) systemdDbus.Property {
 	return systemdDbus.Property{
 		Name:  name,
 		Value: dbus.MakeVariant(units),

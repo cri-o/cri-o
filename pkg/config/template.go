@@ -660,7 +660,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 	return crioTemplateConfig, nil
 }
 
-func simpleEqual(a, b interface{}) bool {
+func simpleEqual(a, b any) bool {
 	return a == b
 }
 

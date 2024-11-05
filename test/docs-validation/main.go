@@ -230,7 +230,7 @@ func stringInSlice(a string, list []string) bool {
 
 func allEntries(c *config.Config) []entry {
 	entries := &[]entry{}
-	recursiveEntries(reflect.ValueOf(*c), entries, map[interface{}]bool{})
+	recursiveEntries(reflect.ValueOf(*c), entries, map[any]bool{})
 	return *entries
 }
 
@@ -241,7 +241,7 @@ type stringer interface {
 func recursiveEntries(
 	v reflect.Value,
 	entries *[]entry,
-	seen map[interface{}]bool,
+	seen map[any]bool,
 ) {
 	for v.Kind() == reflect.Ptr || v.Kind() == reflect.Interface {
 		if v.Kind() == reflect.Ptr {

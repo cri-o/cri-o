@@ -31,7 +31,7 @@ func NewServerStream(stream grpc.ServerStream) *ServerStream {
 
 func StreamInterceptor() grpc.StreamServerInterceptor {
 	return func(
-		srv interface{},
+		srv any,
 		stream grpc.ServerStream,
 		info *grpc.StreamServerInfo,
 		handler grpc.StreamHandler,
@@ -52,10 +52,10 @@ func StreamInterceptor() grpc.StreamServerInterceptor {
 func UnaryInterceptor() grpc.UnaryServerInterceptor {
 	return func(
 		ctx context.Context,
-		req interface{},
+		req any,
 		info *grpc.UnaryServerInfo,
 		handler grpc.UnaryHandler,
-	) (interface{}, error) {
+	) (any, error) {
 		// start values
 		operationStart := time.Now()
 		operation := filepath.Base(info.FullMethod)

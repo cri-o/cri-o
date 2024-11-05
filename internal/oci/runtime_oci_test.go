@@ -78,7 +78,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			gomock.InOrder(
 				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(_ string, _ ...string) interface{} {
+					func(_ string, _ ...string) any {
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 						return exec.Command("/bin/false")
@@ -100,7 +100,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			gomock.InOrder(
 				runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
-					func(_ string, _ ...string) interface{} {
+					func(_ string, _ ...string) any {
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
 						return exec.Command("/bin/true")
@@ -221,12 +221,12 @@ var _ = t.Describe("Oci", func() {
 func containerIgnoreSignalCmdrunnerMock(sleepProcess *exec.Cmd, runner *runnerMock.MockCommandRunner) {
 	gomock.InOrder(
 		runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ string, _ ...string) interface{} {
+			func(_ string, _ ...string) any {
 				return exec.Command("/bin/true")
 			},
 		),
 		runner.EXPECT().Command(gomock.Any(), gomock.Any()).DoAndReturn(
-			func(_ string, _ ...string) interface{} {
+			func(_ string, _ ...string) any {
 				Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 				waitForKillToComplete(sleepProcess)
 				return exec.Command("/bin/true")

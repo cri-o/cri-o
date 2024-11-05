@@ -444,7 +444,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	return nil
 }
 
-func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {
+func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
 	config, err := libconfig.DefaultConfig()
 	if err != nil {
 		return nil, nil, fmt.Errorf("error loading server config: %w", err)
@@ -453,7 +453,7 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]interface{}, error) {
 	// TODO FIXME should be crio wipe flags
 	flags := getCrioFlags(config)
 
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"config": config,
 	}
 	return flags, metadata, nil

@@ -90,7 +90,7 @@ func toPodIPs(ips []string) (result []*types.PodIP) {
 }
 
 func createSandboxInfo(c *oci.Container) (map[string]string, error) {
-	var info interface{}
+	var info any
 	if c.Spoofed() {
 		info = struct {
 			RuntimeSpec spec.Spec `json:"runtimeSpec,omitempty"`
