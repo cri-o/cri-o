@@ -22,10 +22,10 @@ extend-ignore-identifiers-re = []
 extend-ignore-re = [
     "ClosID",
     "stopp",
-    "WRONLY",
-    "Oif",
-    "Pn",
+    "f0ZSIOvlD7vv5lOifRFivd680XjxIATWqwJARJ35QFUl9DiRuhPnDYok8Cj9PT8A",
 ]
 
 [type.sh]
-extend-ignore-re = [ "ba" ]
+extend-ignore-re = [
+    "rpmbuild -ba",
+]
