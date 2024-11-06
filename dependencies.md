@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 05 Nov 2024 17:57:32 UTC for commit [f824d11][0]._
+_Generated on Wed, 06 Nov 2024 08:18:03 UTC for commit [78300ad][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f824d11be12e89ac2c6ca4badca459307a31ebe5
+[0]: https://github.com/cri-o/cri-o/commit/78300adf4194f2b8c4b62802428985fd56cf6c07
 
 ## Outdated Dependencies
 
@@ -280,7 +280,7 @@ _Generated on Tue, 05 Nov 2024 17:57:32 UTC for commit [f824d11][0]._
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.28.3                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.32.3                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.22.0                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241029204838-fb9784500689  | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241106040604-ae6a6dd67c93  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -547,7 +547,7 @@ _Generated on Tue, 05 Nov 2024 17:57:32 UTC for commit [f824d11][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241105154537-46fc4c25ab86  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241105180427-84b15eb911cf  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -779,13 +779,13 @@ _Generated on Tue, 05 Nov 2024 17:57:32 UTC for commit [f824d11][0]._
 | golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56    | v0.0.0-20241009180824-f66d83c29e7c  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.21.0                             | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
-| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20241016134751-7ff83004ec2c  | false  | true             |
+| golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20241105203220-2b9d635e74e5  | false  | true             |
 | golang.org/x/mod                                                                        | v0.20.0                               | v0.21.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.28.0                               | v0.30.0                             | false  | true             |
 | golang.org/x/oauth2                                                                     | v0.22.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.8.0                                |                                     | false  | true             |
 | golang.org/x/sys                                                                        | v0.24.0                               | v0.26.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20241028140143-9c0d19e65ba0  | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20241105203324-bf5a09be8123  | false  | true             |
 | golang.org/x/term                                                                       | v0.23.0                               | v0.25.0                             | false  | true             |
 | golang.org/x/text                                                                       | v0.17.0                               | v0.19.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.5.0                                | v0.7.0                              | false  | true             |
@@ -830,7 +830,7 @@ _Generated on Tue, 05 Nov 2024 17:57:32 UTC for commit [f824d11][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241105132330-32ad38e42d3f  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20241104163129-6fe5fd82f078  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241026180704-25f6002b00f3  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241106013442-0a99635c789e  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
