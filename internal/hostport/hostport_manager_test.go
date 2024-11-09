@@ -24,6 +24,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/util/sets"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
@@ -178,29 +179,7 @@ var testCasesV6 = []testCase{
 	},
 }
 
-var expectedLinesV4 = map[string]bool{
-	`*nat`:                                true,
-	`:KUBE-HOSTPORTS - [0:0]`:             true,
-	`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
-	`:OUTPUT - [0:0]`:                     true,
-	`:PREROUTING - [0:0]`:                 true,
-	`:POSTROUTING - [0:0]`:                true,
-	`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
-	`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
-	`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
-	`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
-	`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
-	`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
-	`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
-	`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
-	`:KUBE-HP-TUKTZ736U5JD5UTK - [0:0]`:   true,
-	`:CRIO-MASQ-TUKTZ736U5JD5UTK - [0:0]`: true,
-	`:KUBE-HP-CAAJ45HDITK7ARGM - [0:0]`:   true,
-	`:CRIO-MASQ-CAAJ45HDITK7ARGM - [0:0]`: true,
-	`:KUBE-HP-WFUNFVXVDLD5ZVXN - [0:0]`:   true,
-	`:CRIO-MASQ-WFUNFVXVDLD5ZVXN - [0:0]`: true,
-	`:KUBE-HP-4MFWH2F2NAOMYD6A - [0:0]`:   true,
-	`:CRIO-MASQ-4MFWH2F2NAOMYD6A - [0:0]`: true,
+var expectedRulesV4 = map[string]bool{
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                               true,
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                   true,
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                               true,
@@ -217,9 +196,6 @@ var expectedLinesV4 = map[string]bool{
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-4MFWH2F2NAOMYD6A":                                                                                   true,
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp --dport 9999 -j KUBE-HP-WFUNFVXVDLD5ZVXN":                                                               true,
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-WFUNFVXVDLD5ZVXN":                                                                                   true,
-	"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                true,
-	"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                            true,
-	"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                  true,
 	"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
 	"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:80":                                                         true,
 	"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
@@ -236,24 +212,9 @@ var expectedLinesV4 = map[string]bool{
 	"-A KUBE-HP-WFUNFVXVDLD5ZVXN -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
 	"-A CRIO-MASQ-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m conntrack --ctorigdstport 9999 -m udp -p udp --dport 443 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":  true,
 	"-A KUBE-HP-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m udp -p udp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
-	`COMMIT`: true,
 }
 
-var expectedLinesV6 = map[string]bool{
-	`*nat`:                                true,
-	`:KUBE-HOSTPORTS - [0:0]`:             true,
-	`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
-	`:OUTPUT - [0:0]`:                     true,
-	`:PREROUTING - [0:0]`:                 true,
-	`:POSTROUTING - [0:0]`:                true,
-	`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
-	`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
-	`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
-	`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
-	`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
-	`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
-	`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
-	`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
+var expectedRulesV6 = map[string]bool{
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                                       true,
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                           true,
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                                       true,
@@ -262,9 +223,6 @@ var expectedLinesV6 = map[string]bool{
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8080\" -j CRIO-MASQ-IJHALPHTORMHHPPK":                                                                                           true,
 	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp --dport 8083 -j KUBE-HP-XU6AWMMJYOZOFTFZ":                                                                     true,
 	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8083\" -j CRIO-MASQ-XU6AWMMJYOZOFTFZ":                                                                                           true,
-	"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                        true,
-	"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                    true,
-	"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                          true,
 	"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
 	"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::2]:80":                                                           true,
 	"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
@@ -273,7 +231,26 @@ var expectedLinesV6 = map[string]bool{
 	"-A KUBE-HP-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp -j DNAT --to-destination [2001:beef::2]:83":                                                         true,
 	"-A CRIO-MASQ-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m conntrack --ctorigdstport 8443 -m tcp -p tcp --dport 443 -s 2001:beef::4/32 -d 2001:beef::4/32 -j MASQUERADE":  true,
 	"-A KUBE-HP-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::4]:443":                                                          true,
-	`COMMIT`: true,
+}
+
+func checkIPTablesRules(ipt utiliptables.Interface, expectedRules map[string]bool) {
+	raw := bytes.NewBuffer(nil)
+	err := ipt.SaveInto(utiliptables.TableNAT, raw)
+	ExpectWithOffset(1, err).NotTo(HaveOccurred())
+
+	expected := sets.KeySet(expectedRules)
+
+	matched := sets.New[string]()
+	for _, line := range strings.Split(raw.String(), "\n") {
+		if strings.HasPrefix(line, "-A KUBE-HOSTPORTS ") || strings.HasPrefix(line, "-A CRIO-HOSTPORTS-MASQ ") || strings.HasPrefix(line, "-A KUBE-HP-") || strings.HasPrefix(line, "-A CRIO-MASQ-") {
+			matched.Insert(line)
+		}
+	}
+
+	unexpectedRules := matched.Difference(expected).UnsortedList()
+	missingRules := expected.Difference(matched).UnsortedList()
+
+	ExpectWithOffset(1, len(unexpectedRules)+len(missingRules)).To(Equal(0), "unexpected rules in iptables-save: %#v, expected rules missing from iptables-save: %#v", unexpectedRules, missingRules)
 }
 
 var _ = t.Describe("HostPortManager", func() {
@@ -287,18 +264,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after adding hostports
-		raw := bytes.NewBuffer(nil)
-		err := manager.ip4tables.SaveInto(utiliptables.TableNAT, raw)
-		Expect(err).NotTo(HaveOccurred())
-
-		lines := strings.Split(raw.String(), "\n")
-		for _, line := range lines {
-			GinkgoWriter.Printf("Line: %s\n", line)
-			if strings.TrimSpace(line) != "" {
-				_, ok := expectedLinesV4[strings.TrimSpace(line)]
-				Expect(ok).To(BeTrue())
-			}
-		}
+		checkIPTablesRules(manager.ip4tables, expectedRulesV4)
 
 		// Remove all added hostports
 		for _, tc := range testCasesV4 {
@@ -307,24 +273,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after deleting hostports
-		raw.Reset()
-		err = manager.ip4tables.SaveInto(utiliptables.TableNAT, raw)
-		Expect(err).NotTo(HaveOccurred())
-		lines = strings.Split(raw.String(), "\n")
-		remainingChains := make(map[string]bool)
-		for _, line := range lines {
-			if strings.HasPrefix(line, ":") {
-				remainingChains[strings.TrimSpace(line)] = true
-			}
-		}
-		expectDeletedChains := []string{
-			"KUBE-HP-4YVONL46AKYWSKS3", "KUBE-HP-7THKRFSEH4GIIXK7", "KUBE-HP-5N7UH5JAXCVP5UJR",
-			"KUBE-HP-TUKTZ736U5JD5UTK", "KUBE-HP-CAAJ45HDITK7ARGM", "KUBE-HP-WFUNFVXVDLD5ZVXN", "KUBE-HP-4MFWH2F2NAOMYD6A",
-		}
-		for _, chain := range expectDeletedChains {
-			_, ok := remainingChains[chain]
-			Expect(ok).To(BeFalse())
-		}
+		checkIPTablesRules(manager.ip4tables, nil)
 	})
 
 	It("GetHostportChain", func() {
@@ -350,18 +299,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after adding hostports
-		raw := bytes.NewBuffer(nil)
-		err := manager.ip6tables.SaveInto(utiliptables.TableNAT, raw)
-		Expect(err).NotTo(HaveOccurred())
-
-		lines := strings.Split(raw.String(), "\n")
-		for _, line := range lines {
-			GinkgoWriter.Printf("Line: %s\n", line)
-			if strings.TrimSpace(line) != "" {
-				_, ok := expectedLinesV6[strings.TrimSpace(line)]
-				Expect(ok).To(BeTrue())
-			}
-		}
+		checkIPTablesRules(manager.ip6tables, expectedRulesV6)
 
 		// Remove all added hostports
 		for _, tc := range testCasesV6 {
@@ -370,21 +308,7 @@ var _ = t.Describe("HostPortManager", func() {
 		}
 
 		// Check Iptables-save result after deleting hostports
-		raw.Reset()
-		err = manager.ip6tables.SaveInto(utiliptables.TableNAT, raw)
-		Expect(err).NotTo(HaveOccurred())
-		lines = strings.Split(raw.String(), "\n")
-		remainingChains := make(map[string]bool)
-		for _, line := range lines {
-			if strings.HasPrefix(line, ":") {
-				remainingChains[strings.TrimSpace(line)] = true
-			}
-		}
-		expectDeletedChains := []string{"KUBE-HP-4YVONL46AKYWSKS3", "KUBE-HP-7THKRFSEH4GIIXK7", "KUBE-HP-5N7UH5JAXCVP5UJR"}
-		for _, chain := range expectDeletedChains {
-			_, ok := remainingChains[chain]
-			Expect(ok).To(BeFalse())
-		}
+		checkIPTablesRules(manager.ip6tables, nil)
 	})
 
 	It("HostportManagerDualStack", func() {
