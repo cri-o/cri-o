@@ -48,98 +48,240 @@ func newFakeManager() *hostportManager {
 	}
 }
 
+type testCase struct {
+	mapping *PodPortMapping
+}
+
+var testCasesV4 = []testCase{
+	{
+		mapping: &PodPortMapping{
+			Name:      "pod1",
+			Namespace: "ns1",
+			IP:        net.ParseIP("10.1.1.2"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      8080,
+					ContainerPort: 80,
+					Protocol:      v1.ProtocolTCP,
+				},
+				{
+					HostPort:      8081,
+					ContainerPort: 81,
+					Protocol:      v1.ProtocolUDP,
+				},
+				{
+					HostPort:      8083,
+					ContainerPort: 83,
+					Protocol:      v1.ProtocolSCTP,
+				},
+			},
+		},
+	},
+	{
+		mapping: &PodPortMapping{
+			Name:      "pod3",
+			Namespace: "ns1",
+			IP:        net.ParseIP("10.1.1.4"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      8443,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolTCP,
+				},
+			},
+		},
+	},
+	{
+		// open same HostPort on different HostIPs
+		mapping: &PodPortMapping{
+			Name:      "pod5",
+			Namespace: "ns5",
+			IP:        net.ParseIP("10.1.1.5"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      8888,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolTCP,
+					HostIP:        "127.0.0.2",
+				},
+				{
+					HostPort:      8888,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolTCP,
+					HostIP:        "127.0.0.1",
+				},
+			},
+		},
+	},
+	{
+		// open same HostPort with different protocols
+		mapping: &PodPortMapping{
+			Name:      "pod6",
+			Namespace: "ns1",
+			IP:        net.ParseIP("10.1.1.2"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      9999,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolTCP,
+				},
+				{
+					HostPort:      9999,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolUDP,
+				},
+			},
+		},
+	},
+}
+
+var testCasesV6 = []testCase{
+	{
+		// Same pod and mappings as testCasesV4[0]
+		mapping: &PodPortMapping{
+			Name:      "pod1",
+			Namespace: "ns1",
+			IP:        net.ParseIP("2001:beef::2"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      8080,
+					ContainerPort: 80,
+					Protocol:      v1.ProtocolTCP,
+				},
+				{
+					HostPort:      8081,
+					ContainerPort: 81,
+					Protocol:      v1.ProtocolUDP,
+				},
+				{
+					HostPort:      8083,
+					ContainerPort: 83,
+					Protocol:      v1.ProtocolSCTP,
+				},
+			},
+		},
+	},
+	{
+		// Same pod and mappings as testCasesV4[1]
+		mapping: &PodPortMapping{
+			Name:      "pod3",
+			Namespace: "ns1",
+			IP:        net.ParseIP("2001:beef::4"),
+			PortMappings: []*PortMapping{
+				{
+					HostPort:      8443,
+					ContainerPort: 443,
+					Protocol:      v1.ProtocolTCP,
+				},
+			},
+		},
+	},
+}
+
+var expectedLinesV4 = map[string]bool{
+	`*nat`:                                true,
+	`:KUBE-HOSTPORTS - [0:0]`:             true,
+	`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
+	`:OUTPUT - [0:0]`:                     true,
+	`:PREROUTING - [0:0]`:                 true,
+	`:POSTROUTING - [0:0]`:                true,
+	`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
+	`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
+	`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
+	`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
+	`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
+	`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
+	`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
+	`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
+	`:KUBE-HP-TUKTZ736U5JD5UTK - [0:0]`:   true,
+	`:CRIO-MASQ-TUKTZ736U5JD5UTK - [0:0]`: true,
+	`:KUBE-HP-CAAJ45HDITK7ARGM - [0:0]`:   true,
+	`:CRIO-MASQ-CAAJ45HDITK7ARGM - [0:0]`: true,
+	`:KUBE-HP-WFUNFVXVDLD5ZVXN - [0:0]`:   true,
+	`:CRIO-MASQ-WFUNFVXVDLD5ZVXN - [0:0]`: true,
+	`:KUBE-HP-4MFWH2F2NAOMYD6A - [0:0]`:   true,
+	`:CRIO-MASQ-4MFWH2F2NAOMYD6A - [0:0]`: true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8081\" -j CRIO-MASQ-63UPIDJXVRSZGSUZ":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp --dport 8080 -j KUBE-HP-IJHALPHTORMHHPPK":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8080\" -j CRIO-MASQ-IJHALPHTORMHHPPK":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp --dport 8083 -j KUBE-HP-XU6AWMMJYOZOFTFZ":                                                             true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8083\" -j CRIO-MASQ-XU6AWMMJYOZOFTFZ":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp --dport 8888 -j KUBE-HP-TUKTZ736U5JD5UTK":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod5_ns5 hostport 8888\" -j CRIO-MASQ-TUKTZ736U5JD5UTK":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp --dport 8888 -j KUBE-HP-CAAJ45HDITK7ARGM":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod5_ns5 hostport 8888\" -j CRIO-MASQ-CAAJ45HDITK7ARGM":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod6_ns1 hostport 9999\" -m udp -p udp --dport 9999 -j KUBE-HP-4MFWH2F2NAOMYD6A":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-4MFWH2F2NAOMYD6A":                                                                                   true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp --dport 9999 -j KUBE-HP-WFUNFVXVDLD5ZVXN":                                                               true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-WFUNFVXVDLD5ZVXN":                                                                                   true,
+	"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                true,
+	"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                            true,
+	"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                  true,
+	"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
+	"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:80":                                                         true,
+	"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
+	"-A KUBE-HP-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp -j DNAT --to-destination 10.1.1.2:81":                                                         true,
+	"-A CRIO-MASQ-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m conntrack --ctorigdstport 8083 -m sctp -p sctp --dport 83 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE": true,
+	"-A KUBE-HP-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp -j DNAT --to-destination 10.1.1.2:83":                                                       true,
+	"-A CRIO-MASQ-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m conntrack --ctorigdstport 8443 -m tcp -p tcp --dport 443 -s 10.1.1.4/32 -d 10.1.1.4/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.4:443":                                                        true,
+	"-A CRIO-MASQ-TUKTZ736U5JD5UTK -m comment --comment \"pod5_ns5 hostport 8888\" -m conntrack --ctorigdstport 8888 -m tcp -p tcp --dport 443 -s 10.1.1.5/32 -d 10.1.1.5/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-TUKTZ736U5JD5UTK -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp -d 127.0.0.1/32 -j DNAT --to-destination 10.1.1.5:443":                                        true,
+	"-A CRIO-MASQ-CAAJ45HDITK7ARGM -m comment --comment \"pod5_ns5 hostport 8888\" -m conntrack --ctorigdstport 8888 -m tcp -p tcp --dport 443 -s 10.1.1.5/32 -d 10.1.1.5/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-CAAJ45HDITK7ARGM -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp -d 127.0.0.2/32 -j DNAT --to-destination 10.1.1.5:443":                                        true,
+	"-A CRIO-MASQ-WFUNFVXVDLD5ZVXN -m comment --comment \"pod6_ns1 hostport 9999\" -m conntrack --ctorigdstport 9999 -m tcp -p tcp --dport 443 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-WFUNFVXVDLD5ZVXN -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
+	"-A CRIO-MASQ-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m conntrack --ctorigdstport 9999 -m udp -p udp --dport 443 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m udp -p udp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
+	`COMMIT`: true,
+}
+
+var expectedLinesV6 = map[string]bool{
+	`*nat`:                                true,
+	`:KUBE-HOSTPORTS - [0:0]`:             true,
+	`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
+	`:OUTPUT - [0:0]`:                     true,
+	`:PREROUTING - [0:0]`:                 true,
+	`:POSTROUTING - [0:0]`:                true,
+	`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
+	`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
+	`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
+	`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
+	`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
+	`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
+	`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
+	`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                                       true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                           true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                                       true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8081\" -j CRIO-MASQ-63UPIDJXVRSZGSUZ":                                                                                           true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp --dport 8080 -j KUBE-HP-IJHALPHTORMHHPPK":                                                                       true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8080\" -j CRIO-MASQ-IJHALPHTORMHHPPK":                                                                                           true,
+	"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp --dport 8083 -j KUBE-HP-XU6AWMMJYOZOFTFZ":                                                                     true,
+	"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8083\" -j CRIO-MASQ-XU6AWMMJYOZOFTFZ":                                                                                           true,
+	"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                        true,
+	"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                    true,
+	"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                          true,
+	"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
+	"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::2]:80":                                                           true,
+	"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
+	"-A KUBE-HP-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp -j DNAT --to-destination [2001:beef::2]:81":                                                           true,
+	"-A CRIO-MASQ-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m conntrack --ctorigdstport 8083 -m sctp -p sctp --dport 83 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE": true,
+	"-A KUBE-HP-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp -j DNAT --to-destination [2001:beef::2]:83":                                                         true,
+	"-A CRIO-MASQ-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m conntrack --ctorigdstport 8443 -m tcp -p tcp --dport 443 -s 2001:beef::4/32 -d 2001:beef::4/32 -j MASQUERADE":  true,
+	"-A KUBE-HP-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::4]:443":                                                          true,
+	`COMMIT`: true,
+}
+
 var _ = t.Describe("HostPortManager", func() {
 	It("HostportManagerIPv4", func() {
 		manager := newFakeManager()
-		testCases := []struct {
-			mapping *PodPortMapping
-		}{
-			// open HostPorts 8080/TCP, 8081/UDP and 8083/SCTP
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod1",
-					Namespace: "ns1",
-					IP:        net.ParseIP("10.1.1.2"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8080,
-							ContainerPort: 80,
-							Protocol:      v1.ProtocolTCP,
-						},
-						{
-							HostPort:      8081,
-							ContainerPort: 81,
-							Protocol:      v1.ProtocolUDP,
-						},
-						{
-							HostPort:      8083,
-							ContainerPort: 83,
-							Protocol:      v1.ProtocolSCTP,
-						},
-					},
-				},
-			},
-			// open port 443
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod3",
-					Namespace: "ns1",
-					IP:        net.ParseIP("10.1.1.4"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8443,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-						},
-					},
-				},
-			},
-			// open same HostPort on different IP
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod5",
-					Namespace: "ns5",
-					IP:        net.ParseIP("10.1.1.5"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8888,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-							HostIP:        "127.0.0.2",
-						},
-						{
-							HostPort:      8888,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-							HostIP:        "127.0.0.1",
-						},
-					},
-				},
-			},
-			// open same HostPort on different
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod6",
-					Namespace: "ns1",
-					IP:        net.ParseIP("10.1.1.2"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      9999,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-						},
-						{
-							HostPort:      9999,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolUDP,
-						},
-					},
-				},
-			},
-		}
 
 		// Add Hostports
-		for _, tc := range testCases {
+		for _, tc := range testCasesV4 {
 			err := manager.Add("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -150,76 +292,16 @@ var _ = t.Describe("HostPortManager", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lines := strings.Split(raw.String(), "\n")
-		expectedLines := map[string]bool{
-			`*nat`:                                true,
-			`:KUBE-HOSTPORTS - [0:0]`:             true,
-			`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
-			`:OUTPUT - [0:0]`:                     true,
-			`:PREROUTING - [0:0]`:                 true,
-			`:POSTROUTING - [0:0]`:                true,
-			`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
-			`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
-			`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
-			`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
-			`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
-			`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
-			`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
-			`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
-			`:KUBE-HP-TUKTZ736U5JD5UTK - [0:0]`:   true,
-			`:CRIO-MASQ-TUKTZ736U5JD5UTK - [0:0]`: true,
-			`:KUBE-HP-CAAJ45HDITK7ARGM - [0:0]`:   true,
-			`:CRIO-MASQ-CAAJ45HDITK7ARGM - [0:0]`: true,
-			`:KUBE-HP-WFUNFVXVDLD5ZVXN - [0:0]`:   true,
-			`:CRIO-MASQ-WFUNFVXVDLD5ZVXN - [0:0]`: true,
-			`:KUBE-HP-4MFWH2F2NAOMYD6A - [0:0]`:   true,
-			`:CRIO-MASQ-4MFWH2F2NAOMYD6A - [0:0]`: true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8081\" -j CRIO-MASQ-63UPIDJXVRSZGSUZ":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp --dport 8080 -j KUBE-HP-IJHALPHTORMHHPPK":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8080\" -j CRIO-MASQ-IJHALPHTORMHHPPK":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp --dport 8083 -j KUBE-HP-XU6AWMMJYOZOFTFZ":                                                             true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8083\" -j CRIO-MASQ-XU6AWMMJYOZOFTFZ":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp --dport 8888 -j KUBE-HP-TUKTZ736U5JD5UTK":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod5_ns5 hostport 8888\" -j CRIO-MASQ-TUKTZ736U5JD5UTK":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp --dport 8888 -j KUBE-HP-CAAJ45HDITK7ARGM":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod5_ns5 hostport 8888\" -j CRIO-MASQ-CAAJ45HDITK7ARGM":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod6_ns1 hostport 9999\" -m udp -p udp --dport 9999 -j KUBE-HP-4MFWH2F2NAOMYD6A":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-4MFWH2F2NAOMYD6A":                                                                                   true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp --dport 9999 -j KUBE-HP-WFUNFVXVDLD5ZVXN":                                                               true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod6_ns1 hostport 9999\" -j CRIO-MASQ-WFUNFVXVDLD5ZVXN":                                                                                   true,
-			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                true,
-			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                            true,
-			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                  true,
-			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
-			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:80":                                                         true,
-			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":   true,
-			"-A KUBE-HP-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp -j DNAT --to-destination 10.1.1.2:81":                                                         true,
-			"-A CRIO-MASQ-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m conntrack --ctorigdstport 8083 -m sctp -p sctp --dport 83 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE": true,
-			"-A KUBE-HP-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp -j DNAT --to-destination 10.1.1.2:83":                                                       true,
-			"-A CRIO-MASQ-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m conntrack --ctorigdstport 8443 -m tcp -p tcp --dport 443 -s 10.1.1.4/32 -d 10.1.1.4/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.4:443":                                                        true,
-			"-A CRIO-MASQ-TUKTZ736U5JD5UTK -m comment --comment \"pod5_ns5 hostport 8888\" -m conntrack --ctorigdstport 8888 -m tcp -p tcp --dport 443 -s 10.1.1.5/32 -d 10.1.1.5/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-TUKTZ736U5JD5UTK -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp -d 127.0.0.1/32 -j DNAT --to-destination 10.1.1.5:443":                                        true,
-			"-A CRIO-MASQ-CAAJ45HDITK7ARGM -m comment --comment \"pod5_ns5 hostport 8888\" -m conntrack --ctorigdstport 8888 -m tcp -p tcp --dport 443 -s 10.1.1.5/32 -d 10.1.1.5/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-CAAJ45HDITK7ARGM -m comment --comment \"pod5_ns5 hostport 8888\" -m tcp -p tcp -d 127.0.0.2/32 -j DNAT --to-destination 10.1.1.5:443":                                        true,
-			"-A CRIO-MASQ-WFUNFVXVDLD5ZVXN -m comment --comment \"pod6_ns1 hostport 9999\" -m conntrack --ctorigdstport 9999 -m tcp -p tcp --dport 443 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-WFUNFVXVDLD5ZVXN -m comment --comment \"pod6_ns1 hostport 9999\" -m tcp -p tcp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
-			"-A CRIO-MASQ-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m conntrack --ctorigdstport 9999 -m udp -p udp --dport 443 -s 10.1.1.2/32 -d 10.1.1.2/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-4MFWH2F2NAOMYD6A -m comment --comment \"pod6_ns1 hostport 9999\" -m udp -p udp -j DNAT --to-destination 10.1.1.2:443":                                                        true,
-			`COMMIT`: true,
-		}
 		for _, line := range lines {
 			GinkgoWriter.Printf("Line: %s\n", line)
 			if strings.TrimSpace(line) != "" {
-				_, ok := expectedLines[strings.TrimSpace(line)]
+				_, ok := expectedLinesV4[strings.TrimSpace(line)]
 				Expect(ok).To(BeTrue())
 			}
 		}
 
 		// Remove all added hostports
-		for _, tc := range testCases {
+		for _, tc := range testCasesV4 {
 			err := manager.Remove("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -260,51 +342,9 @@ var _ = t.Describe("HostPortManager", func() {
 
 	It("HostportManagerIPv6", func() {
 		manager := newFakeManager()
-		testCases := []struct {
-			mapping *PodPortMapping
-		}{
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod1",
-					Namespace: "ns1",
-					IP:        net.ParseIP("2001:beef::2"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8080,
-							ContainerPort: 80,
-							Protocol:      v1.ProtocolTCP,
-						},
-						{
-							HostPort:      8081,
-							ContainerPort: 81,
-							Protocol:      v1.ProtocolUDP,
-						},
-						{
-							HostPort:      8083,
-							ContainerPort: 83,
-							Protocol:      v1.ProtocolSCTP,
-						},
-					},
-				},
-			},
-			{
-				mapping: &PodPortMapping{
-					Name:      "pod3",
-					Namespace: "ns1",
-					IP:        net.ParseIP("2001:beef::4"),
-					PortMappings: []*PortMapping{
-						{
-							HostPort:      8443,
-							ContainerPort: 443,
-							Protocol:      v1.ProtocolTCP,
-						},
-					},
-				},
-			},
-		}
 
 		// Add Hostports
-		for _, tc := range testCases {
+		for _, tc := range testCasesV6 {
 			err := manager.Add("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
@@ -315,52 +355,16 @@ var _ = t.Describe("HostPortManager", func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		lines := strings.Split(raw.String(), "\n")
-		expectedLines := map[string]bool{
-			`*nat`:                                true,
-			`:KUBE-HOSTPORTS - [0:0]`:             true,
-			`:CRIO-HOSTPORTS-MASQ - [0:0]`:        true,
-			`:OUTPUT - [0:0]`:                     true,
-			`:PREROUTING - [0:0]`:                 true,
-			`:POSTROUTING - [0:0]`:                true,
-			`:KUBE-HP-IJHALPHTORMHHPPK - [0:0]`:   true,
-			`:CRIO-MASQ-IJHALPHTORMHHPPK - [0:0]`: true,
-			`:KUBE-HP-63UPIDJXVRSZGSUZ - [0:0]`:   true,
-			`:CRIO-MASQ-63UPIDJXVRSZGSUZ - [0:0]`: true,
-			`:KUBE-HP-WFBOALXEP42XEMJK - [0:0]`:   true,
-			`:CRIO-MASQ-WFBOALXEP42XEMJK - [0:0]`: true,
-			`:KUBE-HP-XU6AWMMJYOZOFTFZ - [0:0]`:   true,
-			`:CRIO-MASQ-XU6AWMMJYOZOFTFZ - [0:0]`: true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp --dport 8443 -j KUBE-HP-WFBOALXEP42XEMJK":                                                                       true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod3_ns1 hostport 8443\" -j CRIO-MASQ-WFBOALXEP42XEMJK":                                                                                           true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp --dport 8081 -j KUBE-HP-63UPIDJXVRSZGSUZ":                                                                       true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8081\" -j CRIO-MASQ-63UPIDJXVRSZGSUZ":                                                                                           true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp --dport 8080 -j KUBE-HP-IJHALPHTORMHHPPK":                                                                       true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8080\" -j CRIO-MASQ-IJHALPHTORMHHPPK":                                                                                           true,
-			"-A KUBE-HOSTPORTS -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp --dport 8083 -j KUBE-HP-XU6AWMMJYOZOFTFZ":                                                                     true,
-			"-A CRIO-HOSTPORTS-MASQ -m comment --comment \"pod1_ns1 hostport 8083\" -j CRIO-MASQ-XU6AWMMJYOZOFTFZ":                                                                                           true,
-			"-A OUTPUT -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                        true,
-			"-A PREROUTING -m comment --comment \"kube hostport portals\" -m addrtype --dst-type LOCAL -j KUBE-HOSTPORTS":                                                                                    true,
-			"-A POSTROUTING -m comment --comment \"kube hostport masquerading\" -m conntrack --ctstate DNAT -j CRIO-HOSTPORTS-MASQ":                                                                          true,
-			"-A CRIO-MASQ-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m conntrack --ctorigdstport 8080 -m tcp -p tcp --dport 80 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
-			"-A KUBE-HP-IJHALPHTORMHHPPK -m comment --comment \"pod1_ns1 hostport 8080\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::2]:80":                                                           true,
-			"-A CRIO-MASQ-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m conntrack --ctorigdstport 8081 -m udp -p udp --dport 81 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE":   true,
-			"-A KUBE-HP-63UPIDJXVRSZGSUZ -m comment --comment \"pod1_ns1 hostport 8081\" -m udp -p udp -j DNAT --to-destination [2001:beef::2]:81":                                                           true,
-			"-A CRIO-MASQ-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m conntrack --ctorigdstport 8083 -m sctp -p sctp --dport 83 -s 2001:beef::2/32 -d 2001:beef::2/32 -j MASQUERADE": true,
-			"-A KUBE-HP-XU6AWMMJYOZOFTFZ -m comment --comment \"pod1_ns1 hostport 8083\" -m sctp -p sctp -j DNAT --to-destination [2001:beef::2]:83":                                                         true,
-			"-A CRIO-MASQ-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m conntrack --ctorigdstport 8443 -m tcp -p tcp --dport 443 -s 2001:beef::4/32 -d 2001:beef::4/32 -j MASQUERADE":  true,
-			"-A KUBE-HP-WFBOALXEP42XEMJK -m comment --comment \"pod3_ns1 hostport 8443\" -m tcp -p tcp -j DNAT --to-destination [2001:beef::4]:443":                                                          true,
-			`COMMIT`: true,
-		}
 		for _, line := range lines {
 			GinkgoWriter.Printf("Line: %s\n", line)
 			if strings.TrimSpace(line) != "" {
-				_, ok := expectedLines[strings.TrimSpace(line)]
+				_, ok := expectedLinesV6[strings.TrimSpace(line)]
 				Expect(ok).To(BeTrue())
 			}
 		}
 
 		// Remove all added hostports
-		for _, tc := range testCases {
+		for _, tc := range testCasesV6 {
 			err := manager.Remove("id", tc.mapping)
 			Expect(err).NotTo(HaveOccurred())
 		}
