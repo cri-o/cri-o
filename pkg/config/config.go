@@ -1028,6 +1028,18 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		c.GRPCMaxRecvMsgSize = defaultGRPCMaxMsgSize
 	}
 
+	if c.StreamEnableTLS {
+		if c.StreamTLSCert == "" {
+			return errors.New("stream TLS cert path is empty")
+		}
+		if c.StreamTLSKey == "" {
+			return errors.New("stream TLS key path is empty")
+		}
+		if c.StreamTLSCA == "" {
+			return errors.New("stream TLS CA path is empty")
+		}
+	}
+
 	if onExecution {
 		return RemoveUnusedSocket(c.Listen)
 	}

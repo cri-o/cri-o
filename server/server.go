@@ -504,13 +504,14 @@ func New(
 		// config or it throws an error.
 		cert, err := tls.LoadX509KeyPair(config.StreamTLSCert, config.StreamTLSKey)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certCache.GetConfigForClient,
 			Certificates:       []tls.Certificate{cert},
 			MinVersion:         tls.VersionTLS12,
 		}
+		log.Debugf(ctx, "Applying stream server TLS configuration")
 	}
 	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
