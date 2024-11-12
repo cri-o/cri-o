@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Nov 2024 12:35:38 UTC for commit [7269e0d][0]._
+_Generated on Tue, 12 Nov 2024 16:41:54 UTC for commit [b38cac9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/7269e0d9ab89b61843d784bff2087f092b0e7b75
+[0]: https://github.com/cri-o/cri-o/commit/b38cac90165bc87efd2f695ba67f0286f37df5d4
 
 ## Outdated Dependencies
 
@@ -747,13 +747,13 @@ _Generated on Tue, 12 Nov 2024 12:35:38 UTC for commit [7269e0d][0]._
 | github.com/zmap/zlint/v3                                                                | v3.6.0                                | v3.6.4                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                                 | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                                        | v1.3.10                               | v1.3.11                             | false  | true             |
-| go.etcd.io/etcd/api/v3                                                                  | v3.5.14                               | v3.5.16                             | false  | true             |
-| go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.14                               | v3.5.16                             | false  | true             |
-| go.etcd.io/etcd/client/v2                                                               | v2.305.13                             | v2.305.16                           | false  | true             |
-| go.etcd.io/etcd/client/v3                                                               | v3.5.14                               | v3.5.16                             | false  | true             |
-| go.etcd.io/etcd/pkg/v3                                                                  | v3.5.13                               | v3.5.16                             | false  | true             |
-| go.etcd.io/etcd/raft/v3                                                                 | v3.5.13                               | v3.5.16                             | false  | true             |
-| go.etcd.io/etcd/server/v3                                                               | v3.5.13                               | v3.5.16                             | false  | true             |
+| go.etcd.io/etcd/api/v3                                                                  | v3.5.14                               | v3.5.17                             | false  | true             |
+| go.etcd.io/etcd/client/pkg/v3                                                           | v3.5.14                               | v3.5.17                             | false  | true             |
+| go.etcd.io/etcd/client/v2                                                               | v2.305.13                             | v2.305.17                           | false  | true             |
+| go.etcd.io/etcd/client/v3                                                               | v3.5.14                               | v3.5.17                             | false  | true             |
+| go.etcd.io/etcd/pkg/v3                                                                  | v3.5.13                               | v3.5.17                             | false  | true             |
+| go.etcd.io/etcd/raft/v3                                                                 | v3.5.13                               | v3.5.17                             | false  | true             |
+| go.etcd.io/etcd/server/v3                                                               | v3.5.13                               | v3.5.17                             | false  | true             |
 | go.mongodb.org/mongo-driver                                                             | v1.14.0                               | v1.17.1                             | false  | true             |
 | go.mozilla.org/pkcs7                                                                    | v0.0.0-20210826202110-33d05740a352    | v0.9.0                              | false  | true             |
 | go.opencensus.io                                                                        | v0.24.0                               |                                     | false  | true             |
