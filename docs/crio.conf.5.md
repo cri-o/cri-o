@@ -345,6 +345,9 @@ Root directory used to store runtime data
 **runtime_type**="oci"
 Type of the runtime used for this runtime handler. "oci", "vm"
 
+**inherit_default_runtime**=false
+Override the runtime path, runtime config path, runtime root and runtime type from the default runtime on load.
+
 **runtime_config_path**=""
 Path to the runtime configuration file, should only be used with VM runtime types
 
