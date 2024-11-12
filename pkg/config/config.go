@@ -1035,9 +1035,6 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		if c.StreamTLSKey == "" {
 			return errors.New("stream TLS key path is empty")
 		}
-		if c.StreamTLSCA == "" {
-			return errors.New("stream TLS CA path is empty")
-		}
 	}
 
 	if onExecution {

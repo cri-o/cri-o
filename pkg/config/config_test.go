@@ -232,21 +232,6 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 		})
-
-		It("should fail if stream server TLS enabled and CA is empty", func() {
-			// Given
-			sut = runtimeValidConfig()
-			sut.StreamEnableTLS = true
-			sut.StreamTLSCert = "cert"
-			sut.StreamTLSKey = "key"
-			sut.StreamTLSCA = ""
-
-			// When
-			err := sut.APIConfig.Validate(false)
-
-			// Then
-			Expect(err).To(HaveOccurred())
-		})
 	})
 
 	t.Describe("ValidateRuntimeConfig", func() {
