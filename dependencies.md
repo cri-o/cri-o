@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Nov 2024 05:46:23 UTC for commit [bc34150][0]._
+_Generated on Tue, 12 Nov 2024 12:35:38 UTC for commit [7269e0d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bc34150a80cb1b5074e2e1588c09a1fe135a7c80
+[0]: https://github.com/cri-o/cri-o/commit/7269e0d9ab89b61843d784bff2087f092b0e7b75
 
 ## Outdated Dependencies
 
@@ -642,7 +642,7 @@ _Generated on Tue, 12 Nov 2024 05:46:23 UTC for commit [bc34150][0]._
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               | v0.60.1                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20241023070637-11f40bd50052  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20241112061136-5c07d7caf7b1  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.7.0                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -832,7 +832,7 @@ _Generated on Tue, 12 Nov 2024 05:46:23 UTC for commit [bc34150][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241105132330-32ad38e42d3f  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20241104163129-6fe5fd82f078  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241111070503-7b333a046a23  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241112094440-47a6f9fc2e7d  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
