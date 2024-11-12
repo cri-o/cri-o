@@ -24,7 +24,9 @@ import (
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/config/capabilities"
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/device"
+	"github.com/cri-o/cri-o/internal/config/node"
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/log"
@@ -122,6 +124,12 @@ type Container interface {
 
 	// SpecSetupCapabilities sets up the container's capabilities
 	SpecSetupCapabilities(*types.Capability, capabilities.Capabilities, bool) error
+
+	// SpecSetPrivileges sets the container's privileges
+	SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error
+
+	// SpecSetLinuxContainerResources sets the container resources
+	SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error
 
 	// PidNamespace returns the pid namespace created by SpecAddNamespaces.
 	PidNamespace() nsmgr.Namespace
@@ -757,4 +765,99 @@ func getOCICapabilitiesList() []string {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 	return caps
+}
+
+func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error {
+	specgen := c.Spec()
+	if c.Privileged() {
+		specgen.SetupPrivileged(true)
+	} else {
+		caps := securityContext.Capabilities
+		if err := c.SpecSetupCapabilities(caps, cfg.DefaultCapabilities, cfg.AddInheritableCapabilities); err != nil {
+			return err
+		}
+	}
+
+	if securityContext.NoNewPrivs {
+		const sysAdminCap = "CAP_SYS_ADMIN"
+		for _, cap := range specgen.Config.Process.Capabilities.Bounding {
+			if cap == sysAdminCap {
+				log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container has %s capability", sysAdminCap)
+			}
+		}
+
+		if c.Privileged() {
+			log.Warnf(ctx, "Setting `noNewPrivileges` flag has no effect because container is privileged")
+		}
+	}
+
+	specgen.SetProcessNoNewPrivileges(securityContext.NoNewPrivs)
+
+	if !c.Privileged() {
+		if securityContext.MaskedPaths != nil {
+			for _, path := range securityContext.MaskedPaths {
+				specgen.AddLinuxMaskedPaths(path)
+			}
+		}
+
+		if securityContext.ReadonlyPaths != nil {
+			for _, path := range securityContext.ReadonlyPaths {
+				specgen.AddLinuxReadonlyPaths(path)
+			}
+		}
+	}
+	return nil
+}
+
+func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContainerResources, containerMinMemory int64) error {
+	specgen := c.Spec()
+	specgen.SetLinuxResourcesCPUPeriod(uint64(resources.CpuPeriod))
+	specgen.SetLinuxResourcesCPUQuota(resources.CpuQuota)
+	specgen.SetLinuxResourcesCPUShares(uint64(resources.CpuShares))
+
+	memoryLimit := resources.MemoryLimitInBytes
+	if memoryLimit != 0 {
+		if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
+			return err
+		}
+		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+		if resources.MemorySwapLimitInBytes != 0 {
+			if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
+				return fmt.Errorf(
+					"container %s create failed because memory swap limit (%d) cannot be lower than memory limit (%d)",
+					c.ID(),
+					resources.MemorySwapLimitInBytes,
+					resources.MemoryLimitInBytes,
+				)
+			}
+			memoryLimit = resources.MemorySwapLimitInBytes
+		}
+		// If node doesn't have memory swap, then skip setting
+		// otherwise the container creation fails.
+		if node.CgroupHasMemorySwap() {
+			specgen.SetLinuxResourcesMemorySwap(memoryLimit)
+		}
+	}
+
+	specgen.SetProcessOOMScoreAdj(int(resources.OomScoreAdj))
+	specgen.SetLinuxResourcesCPUCpus(resources.CpusetCpus)
+	specgen.SetLinuxResourcesCPUMems(resources.CpusetMems)
+
+	// If the kernel has no support for hugetlb, silently ignore the limits
+	if node.CgroupHasHugetlb() {
+		hugepageLimits := resources.HugepageLimits
+		for _, limit := range hugepageLimits {
+			specgen.AddLinuxResourcesHugepageLimit(limit.PageSize, limit.Limit)
+		}
+	}
+
+	if node.CgroupIsV2() && len(resources.Unified) != 0 {
+		if specgen.Config.Linux.Resources.Unified == nil {
+			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
+		}
+		for key, value := range resources.Unified {
+			specgen.Config.Linux.Resources.Unified[key] = value
+		}
+	}
+	return nil
 }

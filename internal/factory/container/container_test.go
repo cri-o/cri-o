@@ -12,6 +12,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
+	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/annotations"
+	pkgConfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 var _ = t.Describe("Container", func() {
@@ -631,6 +633,215 @@ var _ = t.Describe("Container", func() {
 
 			Expect(sut.SpecSetupCapabilities(caps, serverCaps, true)).To(Succeed())
 			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(HaveLen(1))
+		})
+	})
+	t.Describe("SpecSetPrivileges", func() {
+		It("Non privileged container should get selected capabilities", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				Capabilities: &types.Capability{
+					AddCapabilities:  []string{"CHOWN"},
+					DropCapabilities: nil,
+				},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.Capabilities.Bounding).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Effective).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Permitted).To(HaveLen(len(cfg.DefaultCapabilities) + 1))
+			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(BeEmpty())
+			Expect(sut.Spec().Config.Process.Capabilities.Ambient).To(BeEmpty())
+		})
+		It("Privileged container gets all capabilities", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{}
+			cfg := &pkgConfig.Config{}
+			config := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
+				Linux: &types.LinuxContainerConfig{
+					SecurityContext: &types.LinuxContainerSecurityContext{
+						Privileged: true,
+					},
+				},
+			}
+			sboxConfig := &types.PodSandboxConfig{
+				Linux: &types.LinuxPodSandboxConfig{
+					SecurityContext: &types.LinuxSandboxSecurityContext{
+						Privileged: true,
+					},
+				},
+			}
+			expectedSize := len(capability.List())
+
+			// When
+			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
+			Expect(sut.SetPrivileged()).To(Succeed())
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.Capabilities.Bounding).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Effective).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Permitted).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Inheritable).To(HaveLen(expectedSize))
+			Expect(sut.Spec().Config.Process.Capabilities.Ambient).To(HaveLen(expectedSize))
+		})
+		It("Should set NoNewPrivs flag if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				NoNewPrivs: true,
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Process.NoNewPrivileges).To(BeTrue())
+		})
+		It("Should add masked paths if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				MaskedPaths: []string{"path1", "path2"},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.MaskedPaths).To(HaveLen(2))
+		})
+		It("Should add readonly paths if set", func() {
+			// Given
+			sc := &types.LinuxContainerSecurityContext{
+				ReadonlyPaths: []string{"path1", "path2"},
+			}
+			cfg := &pkgConfig.Config{}
+
+			// When
+			Expect(sut.SpecSetPrivileges(context.Background(), sc, cfg)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.ReadonlyPaths).To(HaveLen(2))
+		})
+	})
+	t.Describe("SpecSetLinuxContainerResources", func() {
+		It("Sets all fields to their expected values", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				CpuPeriod:   1,
+				CpuQuota:    2,
+				CpuShares:   3,
+				OomScoreAdj: 4,
+				CpusetCpus:  "5",
+				CpusetMems:  "6",
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Period).To(Equal(uint64(resources.CpuPeriod)))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Quota).To(Equal(resources.CpuQuota))
+			Expect(*sut.Spec().Config.Linux.Resources.CPU.Shares).To(Equal(uint64(resources.CpuShares)))
+			Expect(*sut.Spec().Config.Process.OOMScoreAdj).To(Equal(int(resources.OomScoreAdj)))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Cpus).To(Equal(resources.CpusetCpus))
+			Expect(sut.Spec().Config.Linux.Resources.CPU.Mems).To(Equal(resources.CpusetMems))
+		})
+		It("Fails to set memory limit if invalid", func() {
+			// Given
+			minMemory := int64(2048)
+
+			// When
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 1024, // must be >= minMemory
+			}
+
+			// Then
+			Expect(sut.SpecSetLinuxContainerResources(resources, minMemory)).NotTo(Succeed())
+		})
+		It("Fails to set memory swap limit if invalid", func() {
+			// Given
+			minMemory := int64(2048)
+
+			// When
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes:     2048,
+				MemorySwapLimitInBytes: 1024, // must be >= MemoryLimitInBytes
+			}
+
+			// Then
+			Expect(sut.SpecSetLinuxContainerResources(resources, minMemory)).NotTo(Succeed())
+		})
+		It("Set memory limit to both swap and RAM when only MemoryLimit is set", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes: 4096,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemoryLimitInBytes))
+		})
+		It("Set memory limits appropriately when Limit and SwapLimit are set", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				MemoryLimitInBytes:     4096,
+				MemorySwapLimitInBytes: 4096,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Limit).To(Equal(resources.MemoryLimitInBytes))
+			Expect(*sut.Spec().Config.Linux.Resources.Memory.Swap).To(Equal(resources.MemorySwapLimitInBytes))
+		})
+		It("Set hugepage limits", func() {
+			// Given
+			hugepageLimits := []*types.HugepageLimit{
+				{
+					PageSize: "1KB",
+					Limit:    1024,
+				},
+				{
+					PageSize: "2KB",
+					Limit:    2048,
+				},
+			}
+			resources := &types.LinuxContainerResources{
+				HugepageLimits: hugepageLimits,
+			}
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 0)).To(Succeed())
+
+			// Then
+			for i, pageLimit := range sut.Spec().Config.Linux.Resources.HugepageLimits {
+				Expect(pageLimit.Pagesize).To(Equal(hugepageLimits[i].PageSize))
+				Expect(pageLimit.Limit).To(Equal(hugepageLimits[i].Limit))
+			}
+		})
+		It("Set Cgroupv2 resources", func() {
+			// Given
+			resources := &types.LinuxContainerResources{
+				Unified: make(map[string]string, 2),
+			}
+			resources.Unified["memory.high"] = "8000000"
+			resources.Unified["memory.low"] = "100000"
+
+			// When
+			Expect(sut.SpecSetLinuxContainerResources(resources, 2048)).To(Succeed())
+
+			// Then
+			Expect(sut.Spec().Config.Linux.Resources.Unified).To(HaveLen(len(resources.Unified)))
 		})
 	})
 })
