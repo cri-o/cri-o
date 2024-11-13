@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 12 Nov 2024 16:41:54 UTC for commit [b38cac9][0]._
+_Generated on Wed, 13 Nov 2024 08:15:55 UTC for commit [a7e6928][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b38cac90165bc87efd2f695ba67f0286f37df5d4
+[0]: https://github.com/cri-o/cri-o/commit/a7e6928a2f64afd4bee6f336f477a9d9115d127b
 
 ## Outdated Dependencies
 
@@ -642,7 +642,7 @@ _Generated on Tue, 12 Nov 2024 16:41:54 UTC for commit [b38cac9][0]._
 | github.com/prometheus/client_model                                                      | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                            | v0.55.0                               | v0.60.1                             | false  | true             |
 | github.com/prometheus/procfs                                                            | v0.15.1                               |                                     | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20241112061136-5c07d7caf7b1  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                     | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20241112170944-20d2c9ebc01d  | false  | true             |
 | github.com/rcrowley/go-metrics                                                          | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                            | v9.5.1                                | v9.7.0                              | false  | true             |
 | github.com/remyoudompheng/bigfft                                                        | v0.0.0-20200410134404-eec4a21b6bb0    | v0.0.0-20230129092748-24d4a6f8daec  | false  | true             |
@@ -780,7 +780,7 @@ _Generated on Tue, 12 Nov 2024 16:41:54 UTC for commit [b38cac9][0]._
 | golang.org/x/crypto                                                                     | v0.26.0                               | v0.29.0                             | false  | true             |
 | golang.org/x/exp                                                                        | v0.0.0-20240719175910-8a7402abbf56    | v0.0.0-20241108190413-2d47ceb2692f  | false  | true             |
 | golang.org/x/image                                                                      | v0.0.0-20220302094943-723b81ca9867    | v0.22.0                             | false  | true             |
-| golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    |                                     | false  | true             |
+| golang.org/x/lint                                                                       | v0.0.0-20210508222113-6edffad5e616    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mobile                                                                     | v0.0.0-20190719004257-d2bd2a29d028    | v0.0.0-20241108191957-fa514ef75a0f  | false  | true             |
 | golang.org/x/mod                                                                        | v0.20.0                               | v0.22.0                             | false  | true             |
 | golang.org/x/net                                                                        | v0.28.0                               | v0.31.0                             | false  | true             |
