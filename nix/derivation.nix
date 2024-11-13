@@ -23,10 +23,10 @@ with pkgs; buildGo123Module /* use go 1.23 */ {
     glibc.static
   ] ++ [
     gpgme
-    libassuan
-    libgpgerror
-    libseccomp
     libapparmor
+    libassuan
+    libgpg-error
+    libseccomp
     libselinux
   ];
   prePatch = ''

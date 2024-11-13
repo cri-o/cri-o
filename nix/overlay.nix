@@ -9,7 +9,7 @@ self: super:
     configureFlags = self.lib.lists.remove "--enable-fixed-path=${self.gnupg}/bin" x.configureFlags;
   });
   libassuan = (static super.libassuan);
-  libgpgerror = (static super.libgpgerror);
+  libgpg-error = (static super.libgpg-error);
   libseccomp = (static super.libseccomp);
   gnupg = super.gnupg.override {
     libusb1 = null;
