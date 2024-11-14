@@ -747,8 +747,8 @@ github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46t
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/creack/pty v1.1.23 h1:4M6+isWdcStXEf15G/RbrMPOQj1dZ7HPZCGwE4kOeP0=
 github.com/creack/pty v1.1.23/go.mod h1:08sCNb52WyoAwi2QDyzUCTgcvVFhUzewun7wtTfvcwE=
-github.com/cri-o/ocicni v0.4.2 h1:/QRdfxW9x0AUtIloDNLTHY21cEK/U+fh+CadoNG0BPg=
-github.com/cri-o/ocicni v0.4.2/go.mod h1:KoSu7fBBKuRRM+t4om4iFOGt+/a0bkUF+9IeYTMZCNs=
+github.com/cri-o/ocicni v0.4.3 h1:BfnrZrtr/F+o+b+yOguB1o6I4OzjieF3k3dN4MrsCJA=
+github.com/cri-o/ocicni v0.4.3/go.mod h1:RzIKSln5AT65hyyfGj3/gsfCpjiY1Y6rVK51Uc5YNzk=
 github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f h1:eHnXnuK47UlSTOQexbzxAZfekVz6i+LKRdj1CU5DPaM=
 github.com/cyberphone/json-canonicalization v0.0.0-20231217050601-ba74d44ecf5f/go.mod h1:uzvlm1mxhHkdfqitSA92i7Se+S9ksOn3a3qmv/kyOCw=
 github.com/cyphar/filepath-securejoin v0.3.4 h1:VBWugsJh2ZxJmLFSM06/0qzQyiQX2Qs0ViKrUAcqdZ8=

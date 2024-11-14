@@ -125,6 +125,8 @@ type NetResult struct {
 }
 
 // CNIPlugin is the interface that needs to be implemented by a plugin.
+//
+//nolint:interfacebloat // existing API
 type CNIPlugin interface {
 	// Name returns the plugin's name. This will be used when searching
 	// for a plugin by name, e.g.
@@ -154,8 +156,13 @@ type CNIPlugin interface {
 	// GetPodNetworkStatusWithContext is the same as GetPodNetworkStatus but takes a context
 	GetPodNetworkStatusWithContext(ctx context.Context, network PodNetwork) ([]NetResult, error)
 
+	// GC cleans up any resources concerned with stale pods
+	GC(ctx context.Context, validPods []*PodNetwork) error
+
 	// NetworkStatus returns error if the network plugin is in error state
 	Status() error
+
+	StatusWithContext(ctx context.Context) error
 
 	// Shutdown terminates all driver operations
 	Shutdown() error
