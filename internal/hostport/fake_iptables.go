@@ -20,11 +20,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/util/sets"
+	utilnet "k8s.io/utils/net"
 
 	utiliptables "github.com/cri-o/cri-o/internal/iptables"
 )
@@ -192,8 +192,13 @@ func normalizeRule(rule string) (string, error) {
 		arg := remaining[:end]
 
 		// Normalize un-prefixed IP addresses like iptables does
-		if net.ParseIP(arg) != nil {
+		switch utilnet.IPFamilyOfString(arg) {
+		case utilnet.IPv4:
 			arg += "/32"
+		case utilnet.IPv6:
+			arg += "/128"
+		default:
+			// Not an IP, presumably already a CIDR, so don't change
 		}
 
 		if normalized != "" {
