@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
+_Generated on Thu, 14 Nov 2024 20:47:31 UTC for commit [9910bc9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9c4c83107bbb5bd2b3ad14af3850deceeec94572
+[0]: https://github.com/cri-o/cri-o/commit/9910bc929b58809422b96263df7197bd72682cf6
 
 ## Outdated Dependencies
 
@@ -19,10 +19,9 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/containers/image/v5                                              | v5.32.2                              | v5.33.0                            | true   | true             |
 | github.com/containers/storage                                               | v1.55.0                              | v1.56.0                            | true   | true             |
 | github.com/creack/pty                                                       | v1.1.23                              | v1.1.24                            | true   | true             |
-| github.com/cri-o/ocicni                                                     | v0.4.2                               | v0.4.3                             | true   | true             |
 | github.com/fsnotify/fsnotify                                                | v1.7.0                               | v1.8.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                               | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241114103506-915695f5efcc | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241114162450-6a9266124bbd | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.1                             | true   | true             |
@@ -262,10 +261,10 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/aws/aws-sdk-go                                                               | v1.51.6                               | v1.55.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                            | v1.26.0                               | v1.32.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.1                                | v1.6.6                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.28.3                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.44                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.9                               | v1.28.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.9                               | v1.17.45                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.0                               | v1.16.19                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.37                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.38                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.4                                | v1.3.23                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.4                                | v2.6.23                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                | v1.8.1                              | false  | true             |
@@ -277,10 +276,10 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.6                               | v1.12.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.3                               | v1.18.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.30.0                               | v1.37.5                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.66.3                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.51.4                               | v1.67.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.20.3                               | v1.24.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.28.4                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.32.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.33.0                             | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.1                               | v1.22.0                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241109154730-cb9aea31c81f  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
@@ -362,7 +361,7 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/coreos/go-systemd/v22                                                        | v22.5.1-0.20231103132048-7d375ecc2b09 |                                     | true   | true             |
 | github.com/cpuguy83/go-md2man/v2                                                        | v2.0.4                                | v2.0.5                              | false  | true             |
 | github.com/creack/pty                                                                   | v1.1.23                               | v1.1.24                             | true   | true             |
-| github.com/cri-o/ocicni                                                                 | v0.4.2                                | v0.4.3                              | true   | true             |
+| github.com/cri-o/ocicni                                                                 | v0.4.3                                |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                             | v0.0.0-20231217050601-ba74d44ecf5f    |                                     | false  | true             |
 | github.com/cyphar/filepath-securejoin                                                   | v0.3.4                                |                                     | true   | true             |
 | github.com/d2g/dhcp4                                                                    | v0.0.0-20170904100407-a1d1b6c41b1c    |                                     | false  | true             |
@@ -383,7 +382,7 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/docker/docker                                                                | v27.1.1+incompatible                  | v27.3.1+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.2                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                |                                     | false  | true             |
-| github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20241017185736-969db071c880  | false  | true             |
+| github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20241114183025-9940093291f5  | false  | true             |
 | github.com/docker/go-metrics                                                            | v0.0.1                                |                                     | false  | true             |
 | github.com/docker/go-units                                                              | v0.5.0                                |                                     | true   | true             |
 | github.com/docker/libtrust                                                              | v0.0.0-20160708172513-aabc10ec26b7    |                                     | false  | true             |
@@ -443,7 +442,6 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/go-rod/rod                                                                   | v0.116.0                              | v0.116.2                            | false  | true             |
 | github.com/go-sql-driver/mysql                                                          | v1.8.1                                |                                     | false  | true             |
 | github.com/go-stack/stack                                                               | v1.8.0                                | v1.8.1                              | false  | true             |
-| github.com/go-task/slim-sprig                                                           | v0.0.0-20230315185526-52ccab3ef572    |                                     | false  | true             |
 | github.com/go-task/slim-sprig/v3                                                        | v3.0.0                                |                                     | false  | true             |
 | github.com/go-test/deep                                                                 | v1.1.0                                | v1.1.1                              | false  | true             |
 | github.com/goadesign/goa                                                                | v2.2.5+incompatible                   |                                     | false  | true             |
@@ -526,7 +524,7 @@ _Generated on Thu, 14 Nov 2024 11:03:31 UTC for commit [9c4c831][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241114103506-915695f5efcc  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241114162450-6a9266124bbd  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
