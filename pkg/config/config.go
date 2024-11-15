@@ -264,6 +264,10 @@ type RuntimeHandler struct {
 	// Output of the "features" subcommand.
 	// This is populated dynamically and not read from config.
 	features runtimeHandlerFeatures
+
+	// Inheritance request
+	// Fill in the Runtime information (paths and type) from the default runtime
+	InheritDefaultRuntime bool `toml:"inherit_default_runtime,omitempty"`
 }
 
 // Multiple runtime Handlers in a map.

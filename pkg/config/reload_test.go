@@ -428,6 +428,30 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Runtimes).To(HaveKeyWithValue("existing", newRuntime))
 			Expect(sut.Runtimes["existing"].PrivilegedWithoutHostDevices).To(BeTrue())
 		})
+
+		It("should inherit runtime config", func() {
+			// Given
+			newRuntime := &config.RuntimeHandler{
+				RuntimePath:           invalidPath,
+				InheritDefaultRuntime: true,
+			}
+			defaultRuntime := &config.RuntimeHandler{
+				RuntimePath: existingRuntimePath,
+			}
+			newConfig := &config.Config{}
+			newConfig.DefaultRuntime = "default"
+			newConfig.Runtimes = make(config.Runtimes)
+			newConfig.Runtimes["default"] = defaultRuntime
+			newConfig.Runtimes["new"] = newRuntime
+
+			// When
+			err := sut.ReloadRuntimes(newConfig)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes).To(HaveKeyWithValue("new", newRuntime))
+			Expect(sut.Runtimes["new"].RuntimePath).To(Equal(existingRuntimePath))
+		})
 	})
 
 	t.Describe("ReloadPinnedImages", func() {

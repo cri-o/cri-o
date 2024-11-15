@@ -1503,6 +1503,20 @@ var _ = t.Describe("Config", func() {
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("should succeed with empty runtime type and runtime_config_path when inheriting from default", func() {
+			// Given
+			sut.Runtimes["inherited"] = &config.RuntimeHandler{
+				RuntimeConfigPath: invalidPath, RuntimeType: "invalid", InheritDefaultRuntime: true,
+			}
+			err := sut.ReloadRuntimes(sut)
+			Expect(err).ToNot(HaveOccurred())
+
+			// When
+			err = sut.Validate(false)
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+		})
 	})
 
 	t.Describe("RuntimeHandlerFeatures", func() {

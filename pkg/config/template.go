@@ -1230,6 +1230,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # runtime_path = "/path/to/the/executable"
 # runtime_type = "oci"
 # runtime_root = "/path/to/the/root"
+# inherit_default_runtime = false
 # monitor_path = "/path/to/container/monitor"
 # monitor_cgroup = "/cgroup/path"
 # monitor_exec_cgroup = "/cgroup/path"
@@ -1250,6 +1251,9 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   state.
 # - runtime_config_path (optional, string): the path for the runtime configuration
 #   file. This can only be used with when using the VM runtime_type.
+# - inherit_default_runtime (optional, bool): when true the runtime_path,
+#   runtime_type, runtime_root and runtime_config_path will be replaced by
+#   the values from the default runtime on load time.
 # - privileged_without_host_devices (optional, bool): an option for restricting
 #   host devices from being passed to privileged containers.
 # - allowed_annotations (optional, array of strings): an option for specifying
@@ -1320,6 +1324,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ $.Comment }}runtime_path = "{{ $runtime_handler.RuntimePath }}"
 {{ $.Comment }}runtime_type = "{{ $runtime_handler.RuntimeType }}"
 {{ $.Comment }}runtime_root = "{{ $runtime_handler.RuntimeRoot }}"
+{{ $.Comment }}inherit_default_runtime = {{ $runtime_handler.InheritDefaultRuntime }}
 {{ $.Comment }}runtime_config_path = "{{ $runtime_handler.RuntimeConfigPath }}"
 {{ $.Comment }}container_min_memory = "{{ $runtime_handler.ContainerMinMemory }}"
 {{ $.Comment }}monitor_path = "{{ $runtime_handler.MonitorPath }}"
