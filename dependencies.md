@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Nov 2024 10:18:39 UTC for commit [1422a16][0]._
+_Generated on Fri, 15 Nov 2024 14:58:22 UTC for commit [8ff657e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1422a167cd87c8200f06bdd0b23977f836eb8d3a
+[0]: https://github.com/cri-o/cri-o/commit/8ff657ebb17dbc0c59d6518a1e857b65f88e7fb8
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Fri, 15 Nov 2024 10:18:39 UTC for commit [1422a16][0]._
 | github.com/creack/pty                                                       | v1.1.23                              | v1.1.24                            | true   | true             |
 | github.com/fsnotify/fsnotify                                                | v1.7.0                               | v1.8.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                               | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241114162450-6a9266124bbd | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241115111525-92f752655020 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.1                             | true   | true             |
@@ -524,7 +524,7 @@ _Generated on Fri, 15 Nov 2024 10:18:39 UTC for commit [1422a16][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241114162450-6a9266124bbd  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241115111525-92f752655020  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -830,7 +830,7 @@ _Generated on Fri, 15 Nov 2024 10:18:39 UTC for commit [1422a16][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241105132330-32ad38e42d3f  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20241104163129-6fe5fd82f078  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241112094440-47a6f9fc2e7d  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241115112044-215048add14b  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
