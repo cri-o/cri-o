@@ -3,23 +3,18 @@ package metrics
 import (
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strconv"
-	"sync"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"k8s.io/client-go/util/cert"
 
+	"github.com/cri-o/cri-o/internal/cert"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/process"
 	"github.com/cri-o/cri-o/internal/storage/references"
@@ -455,16 +450,19 @@ func (m *Metrics) startEndpoint(
 		if m.config.MetricsCert != "" && m.config.MetricsKey != "" {
 			log.Infof(ctx, "Serving metrics on %s using HTTPS", address)
 
-			kpr, reloadErr := newCertReloader(
-				stop, m.config.MetricsCert, m.config.MetricsKey,
-			)
-			if reloadErr != nil {
-				log.Fatalf(ctx, "Creating key pair reloader: %v", reloadErr)
+			if err = cert.GenerateSelfSignedCertKey(ctx, m.config.MetricsCert, m.config.MetricsKey); err != nil {
+				log.Fatalf(ctx, "Generating self-signed cert/key: %v", err)
+			}
+
+			var cc *cert.Config
+			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "")
+			if err != nil {
+				log.Fatalf(ctx, "Creating key pair reloader: %v", err)
 			}
 
 			srv.TLSConfig = &tls.Config{
-				GetCertificate: kpr.getCertificate,
-				MinVersion:     tls.VersionTLS12,
+				GetConfigForClient: cc.GetConfigForClient,
+				MinVersion:         tls.VersionTLS12,
 			}
 
 			go func() {
@@ -491,132 +489,4 @@ func (m *Metrics) startEndpoint(
 	}()
 
 	return nil
-}
-
-type certReloader struct {
-	certLock    sync.RWMutex
-	certificate *tls.Certificate
-	certPath    string
-	keyPath     string
-}
-
-func newCertReloader(doneChan chan struct{}, certPath, keyPath string) (*certReloader, error) {
-	reloader := &certReloader{
-		certPath: certPath,
-		keyPath:  keyPath,
-	}
-
-	// Generate self-signed certificate and key if the provided ones are not
-	// available.
-	_, errCertPath := os.Stat(certPath)
-	_, errKeyPath := os.Stat(keyPath)
-	if errCertPath != nil && os.IsNotExist(errCertPath) &&
-		errKeyPath != nil && os.IsNotExist(errKeyPath) {
-		logrus.Info("Metrics key and cert path does not exist, generating self-signed")
-
-		hostname, err := os.Hostname()
-		if err != nil {
-			return nil, fmt.Errorf("retrieve hostname: %w", err)
-		}
-
-		certBytes, keyBytes, err := cert.GenerateSelfSignedCertKey(hostname, nil, nil)
-		if err != nil {
-			return nil, fmt.Errorf("generate self-signed cert/key: %w", err)
-		}
-
-		for path, bytes := range map[string][]byte{
-			certPath: certBytes,
-			keyPath:  keyBytes,
-		} {
-			if err := os.MkdirAll(filepath.Dir(path), os.FileMode(0o700)); err != nil {
-				return nil, fmt.Errorf("create path: %w", err)
-			}
-			if err := os.WriteFile(path, bytes, os.FileMode(0o600)); err != nil {
-				return nil, fmt.Errorf("write file: %w", err)
-			}
-		}
-	}
-
-	if err := reloader.reload(); err != nil {
-		return nil, fmt.Errorf("load certificate: %w", err)
-	}
-
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		return nil, fmt.Errorf("create new watcher: %w", err)
-	}
-	go func() {
-		defer watcher.Close()
-		done := make(chan struct{})
-		go func() {
-			for {
-				select {
-				case event := <-watcher.Events:
-					logrus.Debugf(
-						"Got cert watcher event for %s (%s), reloading certificates",
-						event.Name, event.Op.String(),
-					)
-					if err := reloader.reload(); err != nil {
-						logrus.Warnf("Keeping previous certificates: %v", err)
-					}
-				case err := <-watcher.Errors:
-					logrus.Errorf("Cert watcher error: %v", err)
-					close(done)
-					return
-				case <-doneChan:
-					logrus.Debug("Closing cert watcher")
-					close(done)
-					return
-				}
-			}
-		}()
-		for _, f := range []string{certPath, keyPath} {
-			logrus.Debugf("Watching file %s for changes", f)
-			if err := watcher.Add(f); err != nil {
-				logrus.Fatalf("Unable to watch %s: %v", f, err)
-			}
-		}
-		<-done
-	}()
-
-	return reloader, nil
-}
-
-func (c *certReloader) reload() error {
-	certificate, err := tls.LoadX509KeyPair(c.certPath, c.keyPath)
-	if err != nil {
-		return fmt.Errorf("load x509 key pair: %w", err)
-	}
-	if len(certificate.Certificate) == 0 {
-		return errors.New("certificates chain is empty")
-	}
-
-	x509Cert, err := x509.ParseCertificate(certificate.Certificate[0])
-	if err != nil {
-		return fmt.Errorf("parse x509 certificate: %w", err)
-	}
-	logrus.Infof(
-		"Metrics certificate is valid between %v and %v",
-		x509Cert.NotBefore, x509Cert.NotAfter,
-	)
-
-	now := time.Now()
-	if now.After(x509Cert.NotAfter) {
-		return errors.New("certificate is not valid any more")
-	}
-	if now.Before(x509Cert.NotBefore) {
-		return errors.New("certificate is not yet valid")
-	}
-
-	c.certLock.Lock()
-	c.certificate = &certificate
-	c.certLock.Unlock()
-
-	return nil
-}
-
-func (c *certReloader) getCertificate(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-	c.certLock.RLock()
-	defer c.certLock.RUnlock()
-	return c.certificate, nil
 }
