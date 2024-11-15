@@ -245,7 +245,7 @@ jobs:
         with:
           name: unit-amd64-root
           path: build/coverage
-      - uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238 # v4.6.0
+      - uses: codecov/codecov-action@3b1354a6c45db9f1008891f4eafc1a7e94ce1d18 # v5.0.1
         with:
           files: build/coverage/coverprofile
           verbose: true
