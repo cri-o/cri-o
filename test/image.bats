@@ -486,3 +486,16 @@ EOF
 
 	run crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
+
+@test "pull progress timeout should trigger when being set too low" {
+	CONTAINER_PULL_PROGRESS_TIMEOUT=1ms start_crio
+
+	run ! crictl pull "$IMAGE_LIST_TAG"
+	[[ "$output" == *"context canceled"* ]]
+}
+
+@test "pull progress timeout should not timeout when set to 0" {
+	CONTAINER_PULL_PROGRESS_TIMEOUT=0 start_crio
+
+	crictl pull "$IMAGE_LIST_TAG"
+}

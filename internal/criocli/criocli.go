@@ -402,6 +402,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
+	if ctx.IsSet("pull-progress-timeout") {
+		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
+	}
 	if ctx.IsSet("separate-pull-cgroup") {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
@@ -925,6 +928,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   `Path to the temporary directory to use for storing big files, used to store image blobs and data streams related to containers image management.`,
 			EnvVars: []string{"CONTAINER_BIG_FILES_TEMPORARY_DIR"},
 			Value:   defConf.BigFilesTemporaryDir,
+		},
+		&cli.DurationFlag{
+			Name:    "pull-progress-timeout",
+			Usage:   "The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.",
+			EnvVars: []string{"CONTAINER_PULL_PROGRESS_TIMEOUT"},
+			Value:   defConf.PullProgressTimeout,
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",
