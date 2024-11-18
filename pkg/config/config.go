@@ -566,6 +566,11 @@ type ImageConfig struct {
 	// reload the mirror registry when there is an update to the
 	// 'registries.conf.d' directory.
 	AutoReloadRegistries bool `toml:"auto_reload_registries"`
+	// PullProgressTimeout is the timeout for an image pull to make progress
+	// until the pull operation gets canceled. This value will be also used for
+	// calculating the pull progress interval to pullProgressTimeout / 10.
+	// Can be set to 0 to disable the timeout as well as the progress output.
+	PullProgressTimeout time.Duration `toml:"pull_progress_timeout"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -942,11 +947,12 @@ func DefaultConfig() (*Config, error) {
 			EnableCriuSupport:           true,
 		},
 		ImageConfig: ImageConfig{
-			DefaultTransport:   "docker://",
-			PauseImage:         DefaultPauseImage,
-			PauseCommand:       "/pause",
-			ImageVolumes:       ImageVolumesMkdir,
-			SignaturePolicyDir: "/etc/crio/policies",
+			DefaultTransport:    "docker://",
+			PauseImage:          DefaultPauseImage,
+			PauseCommand:        "/pause",
+			ImageVolumes:        ImageVolumesMkdir,
+			SignaturePolicyDir:  "/etc/crio/policies",
+			PullProgressTimeout: 10 * time.Second,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
