@@ -22,7 +22,7 @@ func (s *Server) PortForward(ctx context.Context, req *types.PortForwardRequest)
 	return resp, nil
 }
 
-func (s StreamService) PortForward(ctx context.Context, podSandboxID string, port int32, stream io.ReadWriteCloser) error {
+func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, port int32, stream io.ReadWriteCloser) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 

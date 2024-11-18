@@ -64,7 +64,7 @@ type StreamService struct {
 // Server implements the RuntimeService and ImageService.
 type Server struct {
 	config          libconfig.Config
-	stream          StreamService
+	stream          *StreamService
 	hostportManager hostport.HostPortManager
 
 	*lib.ContainerServer
@@ -405,6 +405,7 @@ func New(
 		ContainerServer:          containerServer,
 		hostportManager:          hostportManager,
 		config:                   *config,
+		stream:                   &StreamService{},
 		monitorsChan:             make(chan struct{}),
 		defaultIDMappings:        idMappings,
 		minimumMappableUID:       config.MinimumMappableUID,
