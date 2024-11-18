@@ -3,6 +3,7 @@ package config
 import (
 	"io"
 	"reflect"
+	"slices"
 	"strings"
 	"text/template"
 )
@@ -128,7 +129,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioStorageOption,
 			group:          crioRootConfig,
-			isDefaultValue: stringSliceEqual(dc.StorageOptions, c.StorageOptions),
+			isDefaultValue: slices.Equal(dc.StorageOptions, c.StorageOptions),
 		},
 		{
 			templateString: templateStringCrioLogDir,
@@ -213,7 +214,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeDefaultUlimits,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.DefaultUlimits, c.DefaultUlimits),
+			isDefaultValue: slices.Equal(dc.DefaultUlimits, c.DefaultUlimits),
 		},
 		{
 			templateString: templateStringCrioRuntimeNoPivot,
@@ -238,12 +239,12 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeConmonEnv,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.ConmonEnv, c.ConmonEnv),
+			isDefaultValue: slices.Equal(dc.ConmonEnv, c.ConmonEnv),
 		},
 		{
 			templateString: templateStringCrioRuntimeDefaultEnv,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.DefaultEnv, c.DefaultEnv),
+			isDefaultValue: slices.Equal(dc.DefaultEnv, c.DefaultEnv),
 		},
 		{
 			templateString: templateStringCrioRuntimeSelinux,
@@ -298,7 +299,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeDefaultCapabilities,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.DefaultCapabilities, c.DefaultCapabilities),
+			isDefaultValue: slices.Equal(dc.DefaultCapabilities, c.DefaultCapabilities),
 		},
 		{
 			templateString: templateStringCrioRuntimeAddInheritableCapabilities,
@@ -308,22 +309,22 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeDefaultSysctls,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.DefaultSysctls, c.DefaultSysctls),
+			isDefaultValue: slices.Equal(dc.DefaultSysctls, c.DefaultSysctls),
 		},
 		{
 			templateString: templateStringCrioRuntimeAllowedDevices,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.AllowedDevices, c.AllowedDevices),
+			isDefaultValue: slices.Equal(dc.AllowedDevices, c.AllowedDevices),
 		},
 		{
 			templateString: templateStringCrioRuntimeAdditionalDevices,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.AdditionalDevices, c.AdditionalDevices),
+			isDefaultValue: slices.Equal(dc.AdditionalDevices, c.AdditionalDevices),
 		},
 		{
 			templateString: templateStringCrioRuntimeCDISpecDirs,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.CDISpecDirs, c.CDISpecDirs),
+			isDefaultValue: slices.Equal(dc.CDISpecDirs, c.CDISpecDirs),
 		},
 		{
 			templateString: templateStringCrioRuntimeDeviceOwnershipFromSecurityContext,
@@ -333,7 +334,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeHooksDir,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.HooksDir, c.HooksDir),
+			isDefaultValue: slices.Equal(dc.HooksDir, c.HooksDir),
 		},
 		{
 			templateString: templateStringCrioRuntimeDefaultMountsFile,
@@ -453,7 +454,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioRuntimeAbsentMountSourcesToReject,
 			group:          crioRuntimeConfig,
-			isDefaultValue: stringSliceEqual(dc.AbsentMountSourcesToReject, c.AbsentMountSourcesToReject),
+			isDefaultValue: slices.Equal(dc.AbsentMountSourcesToReject, c.AbsentMountSourcesToReject),
 		},
 		{
 			templateString: templateStringCrioRuntimeRuntimesRuntimeHandler,
@@ -508,7 +509,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioImagePinnedImages,
 			group:          crioImageConfig,
-			isDefaultValue: stringSliceEqual(dc.PinnedImages, c.PinnedImages),
+			isDefaultValue: slices.Equal(dc.PinnedImages, c.PinnedImages),
 		},
 		{
 			templateString: templateStringCrioImageSignaturePolicy,
@@ -523,7 +524,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioImageInsecureRegistries,
 			group:          crioImageConfig,
-			isDefaultValue: stringSliceEqual(dc.InsecureRegistries, c.InsecureRegistries),
+			isDefaultValue: slices.Equal(dc.InsecureRegistries, c.InsecureRegistries),
 		},
 		{
 			templateString: templateStringCrioImageImageVolumes,
@@ -553,7 +554,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioNetworkPluginDirs,
 			group:          crioNetworkConfig,
-			isDefaultValue: stringSliceEqual(dc.PluginDirs, c.PluginDirs),
+			isDefaultValue: slices.Equal(dc.PluginDirs, c.PluginDirs),
 		},
 		{
 			templateString: templateStringCrioMetricsEnableMetrics,
@@ -563,7 +564,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioMetricsCollectors,
 			group:          crioMetricsConfig,
-			isDefaultValue: stringSliceEqual(dc.MetricsCollectors.ToSlice(), c.MetricsCollectors.ToSlice()),
+			isDefaultValue: slices.Equal(dc.MetricsCollectors.ToSlice(), c.MetricsCollectors.ToSlice()),
 		},
 		{
 			templateString: templateStringCrioMetricsMetricsHost,
@@ -618,7 +619,7 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 		{
 			templateString: templateStringCrioStatsIncludedPodMetrics,
 			group:          crioNetworkConfig,
-			isDefaultValue: stringSliceEqual(dc.IncludedPodMetrics, c.IncludedPodMetrics),
+			isDefaultValue: slices.Equal(dc.IncludedPodMetrics, c.IncludedPodMetrics),
 		},
 		{
 			templateString: templateStringCrioNRIEnable,
@@ -662,32 +663,6 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 
 func simpleEqual(a, b any) bool {
 	return a == b
-}
-
-func stringSliceEqual(a, b []string) bool {
-	if (a == nil) && (b == nil) {
-		return true
-	}
-
-	if (a == nil) && (len(b) == 0) {
-		return true
-	}
-
-	if (b == nil) && (len(a) == 0) {
-		return true
-	}
-
-	if len(a) != len(b) {
-		return false
-	}
-
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-
-	return true
 }
 
 func RuntimesEqual(a, b Runtimes) bool {
