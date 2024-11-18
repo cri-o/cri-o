@@ -141,6 +141,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l profile -d 'Enable pprof r
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile-cpu -r -d 'Write a pprof CPU profile to the provided path.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile-mem -r -d 'Write a pprof memory profile to the provided path.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l profile-port -r -d 'Port for the pprof profiler.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l pull-progress-timeout -r -d 'The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l rdt-config-file -r -d 'Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l read-only -d 'Setup all unprivileged containers to run as read-only. Automatically mounts the containers\' tmpfs on \'/run\', \'/tmp\' and \'/var/tmp\'.'
 complete -c crio -n '__fish_crio_no_subcommand' -l root -s r -r -d 'The CRI-O root directory.'

@@ -408,6 +408,9 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("auto-reload-registries") {
 		config.AutoReloadRegistries = ctx.Bool("auto-reload-registries")
 	}
+	if ctx.IsSet("pull-progress-timeout") {
+		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
+	}
 	if ctx.IsSet("separate-pull-cgroup") {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
@@ -934,6 +937,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.",
 			EnvVars: []string{"AUTO_RELOAD_REGISTRIES"},
 			Value:   defConf.AutoReloadRegistries,
+		},
+		&cli.DurationFlag{
+			Name:    "pull-progress-timeout",
+			Usage:   "The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.",
+			EnvVars: []string{"CONTAINER_PULL_PROGRESS_TIMEOUT"},
+			Value:   defConf.PullProgressTimeout,
 		},
 		&cli.BoolFlag{
 			Name:    "read-only",
