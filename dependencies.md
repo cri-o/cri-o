@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
+_Generated on Mon, 18 Nov 2024 18:07:29 UTC for commit [9015c50][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9dc63d10221cca263850bb2655d96538b7921b82
+[0]: https://github.com/cri-o/cri-o/commit/9015c5034f9afceac1c0766595159e36e557528c
 
 ## Outdated Dependencies
 
@@ -24,7 +24,7 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241115180358-0ce3f5fc6fd8 | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.21.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
-| github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.1                             | true   | true             |
+| github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.2                             | true   | true             |
 | github.com/opencontainers/selinux                                           | v1.11.0                              | v1.11.1                            | true   | true             |
 | github.com/prometheus/client_golang                                         | v1.20.2                              | v1.20.5                            | true   | true             |
 | github.com/uptrace/opentelemetry-go-extra/otellogrus                        | v0.3.1                               | v0.3.2                             | true   | true             |
@@ -208,7 +208,7 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/Azure/go-autorest/autorest/date                                              | v0.3.0                                |                                     | false  | true             |
 | github.com/Azure/go-autorest/logger                                                     | v0.2.1                                |                                     | false  | true             |
 | github.com/Azure/go-autorest/tracing                                                    | v0.6.0                                |                                     | false  | true             |
-| github.com/AzureAD/microsoft-authentication-library-for-go                              | v1.2.2                                | v1.3.1                              | false  | true             |
+| github.com/AzureAD/microsoft-authentication-library-for-go                              | v1.2.2                                | v1.3.2                              | false  | true             |
 | github.com/BurntSushi/toml                                                              | v1.4.0                                |                                     | true   | true             |
 | github.com/BurntSushi/xgb                                                               | v0.0.0-20160522181843-27f122750802    | v0.0.0-20210121224620-deaf085860bc  | false  | true             |
 | github.com/DATA-DOG/go-sqlmock                                                          | v1.5.2                                |                                     | false  | true             |
@@ -280,8 +280,8 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.20.3                               | v1.24.5                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.23.3                               | v1.28.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.28.5                               | v1.33.0                             | false  | true             |
-| github.com/aws/smithy-go                                                                | v1.20.1                               | v1.22.0                             | false  | true             |
-| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241115173249-4b041aa90387  | false  | true             |
+| github.com/aws/smithy-go                                                                | v1.20.1                               | v1.22.1                             | false  | true             |
+| github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20241118174206-7ab30f848c9b  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
 | github.com/beorn7/perks                                                                 | v1.0.1                                |                                     | false  | true             |
 | github.com/blang/semver                                                                 | v3.5.1+incompatible                   |                                     | false  | true             |
@@ -289,7 +289,7 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/blendle/zapdriver                                                            | v1.3.1                                |                                     | false  | true             |
 | github.com/boombuler/barcode                                                            | v1.0.1                                | v1.0.2                              | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.86.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.87.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                | v0.13.2                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251    | v0.1.4                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                |                                     | false  | true             |
@@ -547,7 +547,7 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.28                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241114230438-0d70b12a75e8  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240418210053-89b07f4543e0    | v0.0.0-20241115214507-20fdcbcfe0f8  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -611,7 +611,7 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | github.com/open-policy-agent/opa                                                        | v0.63.0                               | v0.70.0                             | false  | true             |
 | github.com/opencontainers/go-digest                                                     | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                    | v1.1.0                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                          | v1.2.0                                | v1.2.1                              | true   | true             |
+| github.com/opencontainers/runc                                                          | v1.2.0                                | v1.2.2                              | true   | true             |
 | github.com/opencontainers/runtime-spec                                                  | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                                 | v0.9.1-0.20230914150019-408c51e934dc  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                       | v1.11.0                               | v1.11.1                             | true   | true             |
@@ -830,17 +830,17 @@ _Generated on Fri, 15 Nov 2024 18:33:11 UTC for commit [9dc63d1][0]._
 | k8s.io/kube-openapi                                                                     | v0.0.0-20240228011516-70dd3763d340    | v0.0.0-20241105132330-32ad38e42d3f  | false  | true             |
 | k8s.io/kubelet                                                                          | v0.31.0                               | v0.31.2                             | true   | true             |
 | k8s.io/utils                                                                            | v0.0.0-20240711033017-18e509b52bc8    | v0.0.0-20241104163129-6fe5fd82f078  | true   | true             |
-| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241115112044-215048add14b  | false  | true             |
+| knative.dev/pkg                                                                         | v0.0.0-20230612155445-74c4be5e935e    | v0.0.0-20241118074447-a7fd9b10bb9f  | false  | true             |
 | lukechampine.com/uint128                                                                | v1.2.0                                | v1.3.0                              | false  | true             |
 | modernc.org/cc/v3                                                                       | v3.36.3                               | v3.41.0                             | false  | true             |
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.61.0                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.61.2                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                               | v1.33.1                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                               | v1.34.1                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                               | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                | v1.1.0                              | false  | true             |
