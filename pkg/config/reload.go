@@ -285,16 +285,6 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 		return nil
 	}
 
-	// Update the default runtime paths in all runtimes that are asking for inheritance
-	for _, runtime := range c.Runtimes {
-		if runtime.InheritDefaultRuntime {
-			runtime.RuntimePath = c.Runtimes[c.DefaultRuntime].RuntimePath
-			runtime.RuntimeType = c.Runtimes[c.DefaultRuntime].RuntimeType
-			runtime.RuntimeConfigPath = c.Runtimes[c.DefaultRuntime].RuntimeConfigPath
-			runtime.RuntimeRoot = c.Runtimes[c.DefaultRuntime].RuntimeRoot
-		}
-	}
-
 	if err := c.ValidateRuntimes(); err != nil {
 		return fmt.Errorf("unabled to reload runtimes: %w", err)
 	}
