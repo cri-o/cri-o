@@ -1307,6 +1307,30 @@ func defaultRuntimeHandler() *RuntimeHandler {
 func (c *RuntimeConfig) ValidateRuntimes() error {
 	var failedValidation []string
 
+	// Update the default runtime paths in all runtimes that are asking for inheritance
+	for name := range c.Runtimes {
+		if !c.Runtimes[name].InheritDefaultRuntime {
+			continue
+		}
+
+		logrus.Infof("Inheriting runtime configuration %q from %q", name, c.DefaultRuntime)
+
+		c.Runtimes[name].RuntimePath = c.Runtimes[c.DefaultRuntime].RuntimePath
+		// An empty RuntimePath causes cri-o to look for a binary named `name`,
+		// but we inherit from the default - look for binary called c.DefaultRuntime
+		// The validator will check the binary is valid below.
+		if c.Runtimes[name].RuntimePath == "" {
+			executable, err := exec.LookPath(c.DefaultRuntime)
+			if err == nil {
+				c.Runtimes[name].RuntimePath = executable
+			}
+		}
+
+		c.Runtimes[name].RuntimeType = c.Runtimes[c.DefaultRuntime].RuntimeType
+		c.Runtimes[name].RuntimeConfigPath = c.Runtimes[c.DefaultRuntime].RuntimeConfigPath
+		c.Runtimes[name].RuntimeRoot = c.Runtimes[c.DefaultRuntime].RuntimeRoot
+	}
+
 	// Validate if runtime_path does exist for each runtime
 	for name, handler := range c.Runtimes {
 		if err := handler.Validate(name); err != nil {

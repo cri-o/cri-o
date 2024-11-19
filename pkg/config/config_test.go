@@ -1319,6 +1319,28 @@ var _ = t.Describe("Config", func() {
 			Expect(sut.Runtimes).To(HaveKey(config.DefaultRuntime))
 		})
 
+		It("should succeed with additional runtime with inheritance", func() {
+			// Given
+			f := t.MustTempFile("config")
+			Expect(os.WriteFile(f,
+				[]byte(`
+					[crio.runtime.runtimes.crun]
+					[crio.runtime.runtimes.foo]
+					inherit_default_runtime = true
+				`), 0),
+			).To(Succeed())
+
+			// When
+			err := sut.UpdateFromFile(context.Background(), f)
+
+			// Then
+			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes).To(HaveLen(2))
+			Expect(sut.Runtimes).To(HaveKey("foo"))
+			Expect(sut.Runtimes).To(HaveKey(config.DefaultRuntime))
+			Expect(sut.Runtimes["foo"].InheritDefaultRuntime).To(BeTrue())
+		})
+
 		It("should fail when file does not exist", func() {
 			// Given
 			// When
@@ -1509,13 +1531,16 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes["inherited"] = &config.RuntimeHandler{
 				RuntimeConfigPath: invalidPath, RuntimeType: "invalid", InheritDefaultRuntime: true,
 			}
-			err := sut.ReloadRuntimes(sut)
-			Expect(err).ToNot(HaveOccurred())
-
 			// When
-			err = sut.Validate(false)
+			err := sut.ValidateRuntimes()
+
 			// Then
 			Expect(err).ToNot(HaveOccurred())
+			Expect(sut.Runtimes).To(HaveKey(sut.DefaultRuntime))
+			Expect(sut.Runtimes).To(HaveKey("inherited"))
+
+			// When
+			Expect(sut.Runtimes["inherited"].RuntimePath).To(Equal(sut.Runtimes[sut.DefaultRuntime].RuntimePath))
 		})
 	})
 
