@@ -53,7 +53,7 @@ var (
 	testManifest      []byte
 	testPath          string
 	testSandbox       *sandbox.Sandbox
-	testStreamService server.StreamService
+	testStreamService *server.StreamService
 
 	emptyDir string
 )
@@ -171,7 +171,7 @@ var beforeEach = func() {
 
 	// Initialize test streaming server
 	streamServerConfig := streaming.DefaultConfig
-	testStreamService = server.StreamService{}
+	testStreamService = &server.StreamService{}
 	testStreamService.SetRuntimeServer(sut)
 	server, err := streaming.NewServer(streamServerConfig, testStreamService)
 	Expect(err).ToNot(HaveOccurred())

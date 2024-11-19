@@ -26,7 +26,7 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 }
 
 // Exec endpoint for streaming.Runtime.
-func (s StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
+func (s *StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)
