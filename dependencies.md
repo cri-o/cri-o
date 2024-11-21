@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 21 Nov 2024 08:12:21 UTC for commit [b94f7b3][0]._
+_Generated on Thu, 21 Nov 2024 13:40:35 UTC for commit [8a8f17f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b94f7b3fda5a6d6e3f725c49c0242e73733b5b85
+[0]: https://github.com/cri-o/cri-o/commit/8a8f17f0997a43108865c2dd79b91c86ccef7774
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Thu, 21 Nov 2024 08:12:21 UTC for commit [b94f7b3][0]._
 | github.com/creack/pty                                                       | v1.1.23                              | v1.1.24                            | true   | true             |
 | github.com/fsnotify/fsnotify                                                | v1.7.0                               | v1.8.0                             | true   | true             |
 | github.com/intel/goresctrl                                                  | v0.7.0                               | v0.8.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241120102741-358ebf51348b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241121084559-b4da4b5e3b9b | true   | true             |
 | github.com/onsi/ginkgo/v2                                                   | v2.20.2                              | v2.22.0                            | true   | true             |
 | github.com/onsi/gomega                                                      | v1.34.2                              | v1.35.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.0                               | v1.2.2                             | true   | true             |
@@ -524,7 +524,7 @@ _Generated on Thu, 21 Nov 2024 08:12:21 UTC for commit [b94f7b3][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241120102741-358ebf51348b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241121084559-b4da4b5e3b9b  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
