@@ -253,6 +253,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		idMappingOptions,
 		labelOptions,
 		ctr.Privileged(),
+		isRuntimePullImage,
 	)
 	if err != nil {
 		return nil, err
