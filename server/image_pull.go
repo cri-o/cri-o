@@ -211,13 +211,13 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Cancel the pull if no progress is made
 	pullCtx, cancel := context.WithCancel(ctx)
-	go consumeImagePullProgress(ctx, cancel, progress, remoteCandidateName)
+	go consumeImagePullProgress(ctx, cancel, s.Config().PullProgressTimeout, progress, remoteCandidateName)
 
 	repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
-		ProgressInterval: time.Second,
+		ProgressInterval: s.Config().PullProgressTimeout / 10,
 		Progress:         progress,
 		CgroupPull: storage.CgroupPullConfiguration{
 			UseNewCgroup: s.config.SeparatePullCgroup != "",
@@ -237,19 +237,16 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 // It also checks if progress is being made within a constant timeout.
 // If the timeout is reached because no progress updates have been made, then
 // the cancel function will be called.
-func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
-	// The progress interval is 1s, but we give it a bit more time just in case
-	// that the connection revives.
-	const timeout = 10 * time.Second
-	timer := time.AfterFunc(timeout, func() {
-		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", timeout)
+func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pullProgressTimeout time.Duration, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
+	timer := time.AfterFunc(pullProgressTimeout, func() {
+		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", pullProgressTimeout)
 		cancel()
 	})
 	timer.Stop()       // don't start the timer immediately
 	defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
 
 	for p := range progress {
-		timer.Reset(timeout)
+		timer.Reset(pullProgressTimeout)
 
 		if p.Event == imageTypes.ProgressEventSkipped {
 			// Skipped digests metrics

@@ -106,6 +106,7 @@ h
 --profile-cpu
 --profile-mem
 --profile-port
+--pull-progress-timeout
 --rdt-config-file
 --read-only
 --registries-conf

@@ -542,6 +542,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.AutoReloadRegistries, c.AutoReloadRegistries),
 		},
 		{
+			templateString: templateStringCrioImagePullProgressTimeout,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.PullProgressTimeout, c.PullProgressTimeout),
+		},
+		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
 			group:          crioNetworkConfig,
 			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
@@ -1470,6 +1475,13 @@ const templateStringCrioImageBigFilesTemporaryDir = `# Temporary directory to us
 const templateStringCrioImageAutoReloadRegistries = `# If true, CRI-O will automatically reload the mirror registry when
 # there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
 {{ $.Comment }}auto_reload_registries = {{ .AutoReloadRegistries }}
+
+`
+
+const templateStringCrioImagePullProgressTimeout = `# The timeout for an image pull to make progress until the pull operation
+# gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10.
+# Can be set to 0 to disable the timeout as well as the progress output.
+{{ $.Comment }}pull_progress_timeout = "{{ .PullProgressTimeout }}"
 
 `
 
