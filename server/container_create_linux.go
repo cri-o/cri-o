@@ -532,6 +532,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, fmt.Errorf("filter image annotations: %w", err)
 	}
 
+	if s.config.Seccomp().IsDisabled() {
+		specgen.Config.Linux.Seccomp = nil
+	}
+
 	if !ctr.Privileged() {
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
