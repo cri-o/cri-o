@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 26 Nov 2024 17:55:27 UTC for commit [be3a1aa][0]._
+_Generated on Tue, 26 Nov 2024 21:12:40 UTC for commit [e8e7dcb][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/be3a1aa6985fc7c6fe38a713cd9caea40b295be7
+[0]: https://github.com/cri-o/cri-o/commit/e8e7dcb7838d11b5157976bf3e31a5840bb77de7
 
 ## Outdated Dependencies
 
@@ -460,7 +460,7 @@ _Generated on Tue, 26 Nov 2024 17:55:27 UTC for commit [be3a1aa][0]._
 | github.com/golang/snappy                                                                | v0.0.4                                |                                     | false  | true             |
 | github.com/google/btree                                                                 | v1.0.1                                | v1.1.3                              | false  | true             |
 | github.com/google/cel-go                                                                | v0.20.1                               | v0.22.1                             | false  | true             |
-| github.com/google/certificate-transparency-go                                           | v1.1.8                                | v1.2.2                              | false  | true             |
+| github.com/google/certificate-transparency-go                                           | v1.1.8                                | v1.3.0                              | false  | true             |
 | github.com/google/flatbuffers                                                           | v2.0.8+incompatible                   | v24.3.25+incompatible               | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.9-0.20230804172637-c7be7c783f49  |                                     | false  | true             |
 | github.com/google/go-cmp                                                                | v0.6.0                                |                                     | true   | true             |
