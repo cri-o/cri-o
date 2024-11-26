@@ -732,8 +732,6 @@ github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6J
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.6.5 h1:mxdEBF/pjBmryj1ABrTDUqxDyxoZrpo8A1/9+JNvtZU=
 github.com/containers/conmon-rs v0.6.5/go.mod h1:+1QRvqdKmaFgaKL7IfsnXncePoH4K+5qkyBIAl/m9Zs=
-github.com/containers/image/v5 v5.32.2 h1:SzNE2Y6sf9b1GJoC8qjCuMBXwQrACFp4p0RK15+4gmQ=
-github.com/containers/image/v5 v5.32.2/go.mod h1:v1l73VeMugfj/QtKI+jhYbwnwFCFnNGckvbST3rQ5Hk=
 github.com/containers/kubensmnt v1.2.0 h1:BDtkaOFQ5fN7FnB9kC6peMW50KkwI1KI8E9ROBFeQIg=
 github.com/containers/kubensmnt v1.2.0/go.mod h1:1/HG09N/a1+WSD3zkurzeWtqlKRSfUUnlIF/08zloqk=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -1068,6 +1066,8 @@ github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
+github.com/kwilczynski/image/v5 v5.32.3-0.20241126184417-3b9f77637aaa h1:ouaEvR5HxuEJRcmtESbCaLp3kiqKXEsQ3gfXBxflagA=
+github.com/kwilczynski/image/v5 v5.32.3-0.20241126184417-3b9f77637aaa/go.mod h1:v1l73VeMugfj/QtKI+jhYbwnwFCFnNGckvbST3rQ5Hk=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
 github.com/letsencrypt/boulder v0.0.0-20240418210053-89b07f4543e0 h1:aiPrFdHDCCvigNBCkOWj2lv9Bx5xDp210OANZEoiP0I=

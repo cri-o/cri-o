@@ -236,3 +236,5 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
 )
+
+replace github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.32.3-0.20241126184417-3b9f77637aaa
