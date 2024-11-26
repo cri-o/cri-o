@@ -87,7 +87,7 @@ crio
 [--minimum-mappable-uid]=[value]
 [--namespaces-dir]=[value]
 [--no-pivot]
-[--nri-disable-connections]=[value]
+[--nri-disable-connections]
 [--nri-listen]=[value]
 [--nri-plugin-config-dir]=[value]
 [--nri-plugin-dir]=[value]
@@ -243,7 +243,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--enable-metrics**: Enable metrics endpoint for the server.
 
-**--enable-nri**: Enable NRI (Node Resource Interface) support. (default: true)
+**--enable-nri**: Enable NRI (Node Resource Interface) support.
 
 **--enable-pod-events**: If true, CRI-O starts sending the container events to the kubelet
 
@@ -351,7 +351,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--no-pivot**: If true, the runtime will not use 'pivot_root', but instead use 'MS_MOVE'.
 
-**--nri-disable-connections**="": Disable connections from externally started NRI plugins. (default: false)
+**--nri-disable-connections**: Disable connections from externally started NRI plugins.
 
 **--nri-listen**="": Socket to listen on for externally started NRI plugins to connect to. (default: "/var/run/nri/nri.sock")
 

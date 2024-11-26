@@ -898,23 +898,28 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 		},
 		&cli.BoolFlag{
 			Name:  "enable-nri",
-			Usage: fmt.Sprintf("Enable NRI (Node Resource Interface) support. (default: %v)", defConf.NRI.Enabled),
+			Usage: "Enable NRI (Node Resource Interface) support.",
+			Value: defConf.NRI.Enabled,
 		},
 		&cli.StringFlag{
 			Name:  "nri-listen",
-			Usage: fmt.Sprintf("Socket to listen on for externally started NRI plugins to connect to. (default: %q)", defConf.NRI.SocketPath),
+			Usage: "Socket to listen on for externally started NRI plugins to connect to.",
+			Value: defConf.NRI.SocketPath,
 		},
 		&cli.StringFlag{
 			Name:  "nri-plugin-dir",
-			Usage: fmt.Sprintf("Directory to scan for pre-installed NRI plugins to start automatically. (default: %q)", defConf.NRI.PluginPath),
+			Usage: "Directory to scan for pre-installed NRI plugins to start automatically.",
+			Value: defConf.NRI.PluginPath,
 		},
 		&cli.StringFlag{
 			Name:  "nri-plugin-config-dir",
-			Usage: fmt.Sprintf("Directory to scan for configuration of pre-installed NRI plugins. (default: %q)", defConf.NRI.PluginConfigPath),
+			Usage: "Directory to scan for configuration of pre-installed NRI plugins.",
+			Value: defConf.NRI.PluginConfigPath,
 		},
-		&cli.StringFlag{
+		&cli.BoolFlag{
 			Name:  "nri-disable-connections",
-			Usage: fmt.Sprintf("Disable connections from externally started NRI plugins. (default: %v)", defConf.NRI.DisableConnections),
+			Usage: "Disable connections from externally started NRI plugins.",
+			Value: defConf.NRI.DisableConnections,
 		},
 		&cli.DurationFlag{
 			Name:  "nri-plugin-registration-timeout",
