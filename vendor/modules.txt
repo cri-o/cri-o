@@ -243,7 +243,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.5.1
 ## explicit; go 1.20
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/common v0.60.3-0.20241001153533-18930ed8933b
+# github.com/containers/common v0.60.3-0.20241001153533-18930ed8933b => github.com/kwilczynski/common v0.60.3-0.20241124180740-314af20df6a8
 ## explicit; go 1.21.0
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
@@ -1650,5 +1650,6 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/containers/common => github.com/kwilczynski/common v0.60.3-0.20241124180740-314af20df6a8
 # github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.32.3-0.20241126184417-3b9f77637aaa
 # github.com/containers/storage => github.com/kwilczynski/storage v1.55.1-0.20241125074956-2f80f631e7bb

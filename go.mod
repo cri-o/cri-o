@@ -238,6 +238,7 @@ require (
 )
 
 replace (
+	github.com/containers/common => github.com/kwilczynski/common v0.60.3-0.20241124180740-314af20df6a8
 	github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.32.3-0.20241126184417-3b9f77637aaa
 	github.com/containers/storage => github.com/kwilczynski/storage v1.55.1-0.20241125074956-2f80f631e7bb
 )
