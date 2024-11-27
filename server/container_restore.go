@@ -63,7 +63,7 @@ func (s *Server) CRImportCheckpoint(
 		return "", errors.New(`attribute "image" missing from container definition`)
 	}
 
-	if createConfig.Metadata == nil && createConfig.Metadata.Name == "" {
+	if createConfig.Metadata == nil || createConfig.Metadata.Name == "" {
 		return "", errors.New(`attribute "metadata" missing from container definition`)
 	}
 
@@ -288,12 +288,15 @@ func (s *Server) CRImportCheckpoint(
 
 		bindMountFound := false
 		for _, createMount := range createMounts {
-			if createMount.ContainerPath == m.Destination {
-				mount.HostPath = createMount.HostPath
-				mount.Readonly = createMount.Readonly
-				mount.Propagation = createMount.Propagation
-				bindMountFound = true
+			if createMount.ContainerPath != m.Destination {
+				continue
 			}
+
+			bindMountFound = true
+			mount.HostPath = createMount.HostPath
+			mount.Readonly = createMount.Readonly
+			mount.Propagation = createMount.Propagation
+			break
 		}
 
 		if !bindMountFound {
