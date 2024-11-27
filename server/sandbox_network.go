@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"os"
 	"time"
 
 	cnitypes "github.com/containernetworking/cni/pkg/types"
@@ -185,7 +186,19 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 		return err
 	}
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
-		return fmt.Errorf("failed to destroy network for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+		retErr := fmt.Errorf("failed to destroy network for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
+
+		if _, statErr := os.Stat(podNetwork.NetNS); statErr != nil {
+			return fmt.Errorf("%w: stat netns path %q: %w", retErr, podNetwork.NetNS, statErr)
+		}
+
+		// The netns file may still exists, which means that it's likely
+		// corrupted. Remove it to allow cleanup of the network namespace:
+		if rmErr := os.RemoveAll(podNetwork.NetNS); rmErr != nil {
+			return fmt.Errorf("%w: failed to remove netns path: %w", retErr, rmErr)
+		}
+
+		log.Warnf(ctx, "Removed invalid netns path %s from pod sandbox %s(%s)", podNetwork.NetNS, sb.Name(), sb.ID())
 	}
 
 	return sb.SetNetworkStopped(ctx, true)
