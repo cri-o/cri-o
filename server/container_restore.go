@@ -287,14 +287,15 @@ func (s *Server) CRImportCheckpoint(
 
 		bindMountFound := false
 		for _, createMount := range createMounts {
-			if createMount.ContainerPath == m.Destination {
-				mount.HostPath = createMount.HostPath
-				mount.Readonly = createMount.Readonly
-				mount.RecursiveReadOnly = createMount.RecursiveReadOnly
-				mount.Propagation = createMount.Propagation
-				mount.RecursiveReadOnly = createMount.RecursiveReadOnly
-				bindMountFound = true
+			if createMount.ContainerPath != m.Destination {
+				continue
 			}
+			mount.HostPath = createMount.HostPath
+			mount.Readonly = createMount.Readonly
+			mount.RecursiveReadOnly = createMount.RecursiveReadOnly
+			mount.Propagation = createMount.Propagation
+			mount.RecursiveReadOnly = createMount.RecursiveReadOnly
+			bindMountFound = true
 		}
 		if !bindMountFound {
 			missingMount = append(missingMount, m.Destination)
