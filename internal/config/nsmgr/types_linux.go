@@ -83,11 +83,17 @@ func (n *namespace) Remove() error {
 		return nil
 	}
 
-	// try to unmount, ignoring "not mounted" (EINVAL) error.
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
-		return fmt.Errorf("unable to unmount %s: %w", fp, err)
+	// Don't run into unmount issues if the network namespace does not exist any more.
+	if _, err := os.Stat(fp); err == nil {
+		// try to unmount, ignoring "not mounted" (EINVAL) error.
+		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+			return fmt.Errorf("unable to unmount %s: %w", fp, err)
+		}
+
+		return os.RemoveAll(fp)
 	}
-	return os.Remove(fp)
+
+	return nil
 }
 
 // GetNamespace takes a path and type, checks if it is a namespace, and if so
