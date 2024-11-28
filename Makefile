@@ -454,7 +454,8 @@ mockgen: \
 	mock-image-types \
 	mock-ocicni-types \
 	mock-seccompociartifact-types \
-	mock-ociartifact-types
+	mock-ociartifact-types \
+	mock-systemd
 
 .PHONY: mock-containereventserver
 mock-containereventserver: ${MOCKGEN}
@@ -525,6 +526,13 @@ mock-ociartifact-types: ${MOCKGEN}
 		-package ociartifactmock \
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/config/ociartifact Impl
+
+.PHONY: mock-systemd
+mock-systemd: ${MOCKGEN}
+	${MOCKGEN} \
+		-package systemdmock \
+		-destination ${MOCK_PATH}/systemd/systemd.go \
+		github.com/cri-o/cri-o/internal/watchdog Systemd
 
 MANPAGES_MD := $(wildcard docs/*.md)
 MANPAGES    := $(MANPAGES_MD:%.md=%)

@@ -24,6 +24,7 @@ OOMScoreAdjust=-999
 TimeoutStartSec=0
 Restart=on-failure
 RestartSec=10
+WatchdogSec=60s
 
 [Install]
 WantedBy=multi-user.target

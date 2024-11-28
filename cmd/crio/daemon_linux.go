@@ -1,12 +1,14 @@
 package main
 
 import (
-	systemdDaemon "github.com/coreos/go-systemd/v22/daemon"
+	"github.com/coreos/go-systemd/v22/daemon"
 	"github.com/sirupsen/logrus"
+
+	"github.com/cri-o/cri-o/internal/watchdog"
 )
 
 func sdNotify() {
-	if _, err := systemdDaemon.SdNotify(false, "READY=1"); err != nil {
+	if _, err := watchdog.DefaultSystemd().Notify(daemon.SdNotifyReady); err != nil {
 		logrus.Warnf("Failed to sd_notify systemd: %v", err)
 	}
 }
