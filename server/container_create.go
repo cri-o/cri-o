@@ -433,9 +433,10 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	resourceCleaner := resourcestore.NewResourceCleaner()
+	noNeedToCleanup := false
 	defer func() {
 		// no error, no need to cleanup
-		if retErr == nil || isContextError(retErr) {
+		if retErr == nil || noNeedToCleanup {
 			return
 		}
 		if err := resourceCleaner.Cleanup(); err != nil {
@@ -519,6 +520,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 			log.Errorf(ctx, "CreateCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
 		}
 		log.Infof(ctx, "CreateCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		noNeedToCleanup = true
 		return nil, ctx.Err()
 	}
 
