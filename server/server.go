@@ -527,6 +527,8 @@ func New(
 		return nil, err
 	}
 
+	log.Debugf(ctx, "Test")
+
 	return s, nil
 }
 
