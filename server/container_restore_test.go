@@ -66,6 +66,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			)
 
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "does-not-exist.tar",
 				},
@@ -91,6 +92,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			archive.Close()
 			defer os.RemoveAll("empty.tar")
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "empty.tar",
 				},
@@ -113,6 +115,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			Expect(err).To(BeNil())
 			defer os.RemoveAll("no.tar")
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "no.tar",
 				},
@@ -147,6 +150,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},
@@ -184,6 +188,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},
@@ -197,7 +202,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			)
 
 			// Then
-			Expect(err.Error()).To(ContainSubstring(`failed to read "io.kubernetes.cri-o.Metadata": unexpected end of JSON input`))
+			Expect(err.Error()).To(ContainSubstring(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -222,6 +227,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},
@@ -267,6 +273,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},
@@ -315,6 +322,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},
@@ -330,57 +338,6 @@ var _ = t.Describe("ContainerRestore", func() {
 
 			// Then
 			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Annotations": unexpected end of JSON input`))
-		})
-	})
-	t.Describe("ContainerRestore from archive into new pod", func() {
-		It("should fail because archive contains no io.kubernetes.cri-o.Labels", func() {
-			// Given
-			addContainerAndSandbox()
-			testContainer.SetStateAndSpoofPid(&oci.ContainerState{
-				State: specs.State{Status: oci.ContainerStateRunning},
-			})
-
-			err := os.WriteFile(
-				"spec.dump",
-				[]byte(
-					`{"annotations":{"io.kubernetes.cri-o.Metadata"`+
-						`:"{\"name\":\"container-to-restore\"}",`+
-						`"io.kubernetes.cri-o.Annotations": "{\"name\":\"NAME\"}"}}`),
-				0o644,
-			)
-			Expect(err).To(BeNil())
-			defer os.RemoveAll("spec.dump")
-			err = os.WriteFile("config.dump", []byte(`{"rootfsImageName": "image"}`), 0o644)
-			Expect(err).To(BeNil())
-			defer os.RemoveAll("config.dump")
-			outFile, err := os.Create("archive.tar")
-			Expect(err).To(BeNil())
-			defer outFile.Close()
-			input, err := archive.TarWithOptions(".", &archive.TarOptions{
-				Compression:      archive.Uncompressed,
-				IncludeSourceDir: true,
-				IncludeFiles:     []string{"spec.dump", "config.dump"},
-			})
-			Expect(err).To(BeNil())
-			defer os.RemoveAll("archive.tar")
-			_, err = io.Copy(outFile, input)
-			Expect(err).To(BeNil())
-			containerConfig := &types.ContainerConfig{
-				Image: &types.ImageSpec{
-					Image: "archive.tar",
-				},
-			}
-			// When
-
-			_, err = sut.CRImportCheckpoint(
-				context.Background(),
-				containerConfig,
-				"",
-				"",
-			)
-
-			// Then
-			Expect(err.Error()).To(Equal(`failed to read "io.kubernetes.cri-o.Labels": unexpected end of JSON input`))
 		})
 	})
 	t.Describe("ContainerRestore from archive into new pod", func() {
@@ -503,6 +460,10 @@ var _ = t.Describe("ContainerRestore", func() {
 					Metadata: &types.ContainerMetadata{
 						Name: "new-container-name",
 					},
+					Mounts: []*types.Mount{{
+						ContainerPath: "/data",
+						HostPath:      "/data",
+					}},
 				}
 
 				size := uint64(100)
@@ -609,6 +570,7 @@ var _ = t.Describe("ContainerRestore", func() {
 					Return(false, nil),
 			)
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "localhost/checkpoint-image:tag1",
 				},
