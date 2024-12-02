@@ -375,6 +375,7 @@ var _ = t.Describe("ContainerRestore", func() {
 			_, err = io.Copy(outFile, input)
 			Expect(err).To(BeNil())
 			containerConfig := &types.ContainerConfig{
+				Metadata: &types.ContainerMetadata{Name: "name"},
 				Image: &types.ImageSpec{
 					Image: "archive.tar",
 				},

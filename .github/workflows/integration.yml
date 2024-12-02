@@ -21,18 +21,9 @@ jobs:
         run:
           - runner: ubuntu-latest
             arch: amd64
-          - runner: actuated-arm64-4cpu-16gb
-            arch: arm64
     name: binaries / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     steps:
-      - uses: alexellis/arkade-get@master
-        with:
-          crane: latest
-          print-summary: false
-      - name: Install vmmeter
-        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
-      - uses: self-actuated/vmmeter-action@master
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
@@ -63,8 +54,6 @@ jobs:
         run:
           - runner: ubuntu-latest
             arch: amd64
-          - runner: actuated-arm64-8cpu-32gb
-            arch: arm64
         runtime:
           - name: conmon
             type: oci
@@ -73,13 +62,6 @@ jobs:
     name: critest / ${{ matrix.runtime.name }} / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     steps:
-      - uses: alexellis/arkade-get@master
-        with:
-          crane: latest
-          print-summary: false
-      - name: Install vmmeter
-        run: crane export --platform linux/${{ matrix.run.arch }} ghcr.io/openfaasltd/vmmeter:latest | sudo tar -xvf - -C /usr/local/bin
-      - uses: self-actuated/vmmeter-action@master
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
         with:
