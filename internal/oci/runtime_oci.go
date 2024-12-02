@@ -1411,6 +1411,7 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
+	cmd.Env = r.handler.MonitorEnv
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
