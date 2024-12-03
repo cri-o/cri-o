@@ -365,10 +365,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	resourceCleaner := resourcestore.NewResourceCleaner()
-	noNeedToCleanup := false
+	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
+	storeResource := false
 	defer func() {
-		// no error, no need to cleanup
-		if retErr == nil || noNeedToCleanup {
+		// no error or resource need to be stored, no need to cleanup
+		if retErr == nil || storeResource {
 			return
 		}
 		if err := resourceCleaner.Cleanup(); err != nil {
@@ -1031,7 +1032,8 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			log.Errorf(ctx, "RunSandbox: failed to save progress of sandbox %s: %v", sbox.ID(), err)
 		}
 		log.Infof(ctx, "RunSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
-		noNeedToCleanup = true
+		// no need to cleanup
+		storeResource = true
 		return nil, ctx.Err()
 	}
 
