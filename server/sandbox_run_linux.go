@@ -1032,7 +1032,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			log.Errorf(ctx, "RunSandbox: failed to save progress of sandbox %s: %v", sbox.ID(), err)
 		}
 		log.Infof(ctx, "RunSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
-		// no need to cleanup
+		// should not cleanup
 		storeResource = true
 		return nil, ctx.Err()
 	}
