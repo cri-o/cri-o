@@ -32,7 +32,7 @@ dependencies:
         match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.5.1
+    version: v1.6.1
     refPaths:
       - path: scripts/versions
         match: cni-plugins
