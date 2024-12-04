@@ -521,7 +521,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 			log.Errorf(ctx, "CreateCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
 		}
 		log.Infof(ctx, "CreateCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
-		// no need to cleanup
+		// should not cleanup
 		storeResource = true
 		return nil, ctx.Err()
 	}
