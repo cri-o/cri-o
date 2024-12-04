@@ -6,7 +6,7 @@ import (
 )
 
 func sdNotify() {
-	if _, err := systemdDaemon.SdNotify(true, "READY=1"); err != nil {
+	if _, err := systemdDaemon.SdNotify(false, "READY=1"); err != nil {
 		logrus.Warnf("Failed to sd_notify systemd: %v", err)
 	}
 }

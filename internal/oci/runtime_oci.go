@@ -195,20 +195,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		cmd.Stderr = &stderrBuf
 	}
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
-	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.handler.MonitorEnv
-	cmd.Env = append(cmd.Env,
-		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
-		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
-	}
-	if restore {
-		// The CRIU binary is usually in /usr/sbin/criu
-		if v, found := os.LookupEnv("PATH"); found {
-			cmd.Env = append(cmd.Env, "PATH="+v)
-		}
-	}
+	r.prepareEnv(cmd, true)
 
 	err = cmd.Start()
 	if err != nil {
@@ -607,15 +594,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	cmd.Stderr = &stderrBuf
 
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
-	// 0, 1 and 2 are stdin, stdout and stderr
-	cmd.Env = r.handler.MonitorEnv
-	cmd.Env = append(cmd.Env,
-		fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
-		fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
-
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
-	}
+	r.prepareEnv(cmd, true)
 
 	err = cmd.Start()
 	if err != nil {
@@ -808,9 +787,7 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
-	}
+	r.prepareEnv(cmd, false)
 	jsonResources, err := json.Marshal(res)
 	if err != nil {
 		return err
@@ -1411,10 +1388,7 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	var stderr bytes.Buffer
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
-	cmd.Env = r.handler.MonitorEnv
-	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
-		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
-	}
+	r.prepareEnv(cmd, false)
 
 	err := cmd.Run()
 	if err != nil {
@@ -1434,6 +1408,30 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	}
 
 	return stdout.String(), nil
+}
+
+func (r *runtimeOCI) prepareEnv(cmd *exec.Cmd, addOCISyncPipe bool) {
+	// Always inherit the monitor_env
+	cmd.Env = r.handler.MonitorEnv
+
+	// Set a single environment variable to not automatically inherit the values
+	// set in the CRI-O execution environment.
+	cmd.Env = append(cmd.Env, "CRI_O_EXTERNAL=1")
+
+	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
+		cmd.Env = append(cmd.Env, "XDG_RUNTIME_DIR="+v)
+	}
+
+	// Mainly for CRIU support
+	if v, found := os.LookupEnv("PATH"); found {
+		cmd.Env = append(cmd.Env, "PATH="+v)
+	}
+
+	if addOCISyncPipe {
+		cmd.Env = append(cmd.Env,
+			fmt.Sprintf("_OCI_SYNCPIPE=%d", 3),
+			fmt.Sprintf("_OCI_STARTPIPE=%d", 4))
+	}
 }
 
 func (r *runtimeOCI) defaultRuntimeArgs() []string {
