@@ -508,7 +508,9 @@ func New(
 		log.Debugf(ctx, "Metrics are disabled")
 	}
 
-	if err := s.startSeccompNotifierWatcher(ctx); err != nil {
+	if s.config.Seccomp().IsDisabled() {
+		log.Infof(ctx, "Seccomp is disabled. Not starting notifier watcher")
+	} else if err := s.startSeccompNotifierWatcher(ctx); err != nil {
 		return nil, fmt.Errorf("start seccomp notifier watcher: %w", err)
 	}
 

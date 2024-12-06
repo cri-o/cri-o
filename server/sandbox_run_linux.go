@@ -893,6 +893,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	sb.SetNamespaceOptions(securityContext.NamespaceOptions)
 
+	if s.config.Seccomp().IsDisabled() {
+		g.Config.Linux.Seccomp = nil
+	}
+
 	seccompRef := types.SecurityProfile_Unconfined.String()
 	if !privileged {
 		_, ref, err := s.config.Seccomp().Setup(
