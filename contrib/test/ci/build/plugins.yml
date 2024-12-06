@@ -3,7 +3,7 @@
   git:
     repo: "https://github.com/containernetworking/plugins.git"
     dest: "{{ ansible_env.GOPATH }}/src/github.com/containernetworking/plugins"
-    version: v1.5.1
+    version: v1.6.1
 
 - name: build plugins
   command: "./build_linux.sh"
