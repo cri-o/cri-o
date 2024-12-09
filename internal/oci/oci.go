@@ -227,6 +227,16 @@ func (r *Runtime) RuntimeSupportsRROMounts(runtimeHandler string) bool {
 	return rh.RuntimeSupportsRROMounts()
 }
 
+// RuntimeDefaultAnnotations returns the default annotations for this runtime handler.
+func (r *Runtime) RuntimeDefaultAnnotations(runtimeHandler string) (map[string]string, error) {
+	rh, err := r.getRuntimeHandler(runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return rh.RuntimeDefaultAnnotations(), nil
+}
+
 func (r *Runtime) newRuntimeImpl(c *Container) (RuntimeImpl, error) {
 	rh, err := r.getRuntimeHandler(c.runtimeHandler)
 	if err != nil {

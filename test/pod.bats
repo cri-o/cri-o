@@ -533,3 +533,25 @@ EOF
 
 	crictl run "$TESTDIR"/memory.json "$TESTDATA"/sandbox_config.json
 }
+
+@test "run container with default annotations" {
+	setup_crio
+
+	cat << EOF > "$CRIO_CONFIG_DIR/99-ann.conf"
+[crio.runtime]
+default_runtime = "ann"
+[crio.runtime.runtimes.ann]
+runtime_path = "$RUNTIME_BINARY_PATH"
+default_annotations = { "hello" = "1234", "pod" = "5678" }
+EOF
+	unset CONTAINER_DEFAULT_RUNTIME
+	unset CONTAINER_RUNTIMES
+
+	start_crio_no_setup
+
+	ctr_id=$(crictl run "$TESTDATA"/container_sleep.json "$TESTDATA"/sandbox_config.json)
+	annotations=$(crictl inspect "$ctr_id" | jq .info.runtimeSpec.annotations)
+	grep hello <<< "$annotations"
+	# pod spec should override default annotations
+	grep -v "5678" <<< "$annotations"
+}

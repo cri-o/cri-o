@@ -1219,6 +1219,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # allowed_annotations = []
 # platform_runtime_paths = { "os/arch" = "/path/to/binary" }
 # no_sync_log = false
+# default_annotations = {}
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1271,6 +1272,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # - no_sync_log (optional, bool): If set to true, the runtime will not sync the log file on rotate or container exit.
 #   This option is only valid for the 'oci' runtime type. Setting this option to true can cause data loss, e.g.
 #   when a machine crash happens.
+# - default_annotations (optional, map): Default annotations if not overridden by the pod spec.
 #
 # Using the seccomp notifier feature:
 #
@@ -1317,6 +1319,10 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 {{ $.Comment }}privileged_without_host_devices = {{ $runtime_handler.PrivilegedWithoutHostDevices }}
 {{ if $runtime_handler.PlatformRuntimePaths }}platform_runtime_paths = {
 {{- $first := true }}{{- range $key, $value := $runtime_handler.PlatformRuntimePaths }}
+{{- if not $first }},{{ end }}{{- printf "%q = %q" $key $value }}{{- $first = false }}{{- end }}}
+{{ end }}
+{{ if $runtime_handler.DefaultAnnotations }}default_annotations = {
+{{- $first := true }}{{- range $key, $value := $runtime_handler.DefaultAnnotations }}
 {{- if not $first }},{{ end }}{{- printf "%q = %q" $key $value }}{{- $first = false }}{{- end }}}
 {{ end }}
 {{ end }}
