@@ -1,5 +1,4 @@
 //go:build !(seccomp && linux && cgo)
-// +build !seccomp !linux !cgo
 
 package seccomp
 
