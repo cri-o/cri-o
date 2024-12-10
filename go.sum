@@ -909,8 +909,8 @@ github.com/containers/podman/v4 v4.8.2/go.mod h1:D6x9VeKVr0eqgqISBbrJ0c/g5eKcnJG
 github.com/containers/psgo v1.8.0 h1:2loGekmGAxM9ir5OsXWEfGwFxorMPYnc6gEDsGFQvhY=
 github.com/containers/psgo v1.8.0/go.mod h1:T8ZxnX3Ur4RvnhxFJ7t8xJ1F48RhiZB4rSrOaR/qGHc=
 github.com/containers/storage v1.43.0/go.mod h1:uZ147thiIFGdVTjMmIw19knttQnUCl3y9zjreHrg11s=
-github.com/containers/storage v1.51.1-0.20241015082732-9811eb042117 h1:bLPVSqZrJtNXdhoganiEpzcLXZsvEtaHxugJ4bzJgUk=
-github.com/containers/storage v1.51.1-0.20241015082732-9811eb042117/go.mod h1:1vrhsjgb/mfuIOGk1TIX6890/LGWhC8Kqzps3Bh0CRA=
+github.com/containers/storage v1.51.1-0.20241210063904-212975f6ac36 h1:9sQvM5KG2MDduNT321J/a7pxHPW8FKFyt9+ODDuKPUc=
+github.com/containers/storage v1.51.1-0.20241210063904-212975f6ac36/go.mod h1:1vrhsjgb/mfuIOGk1TIX6890/LGWhC8Kqzps3Bh0CRA=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
 github.com/coreos/etcd v3.3.10+incompatible/go.mod h1:uF7uidLiAD3TWHmW31ZFd/JWoc32PjwdhPthX9715RE=
 github.com/coreos/go-iptables v0.4.5/go.mod h1:/mVI274lEDI2ns62jHCDnCyBF9Iwsmekav8Dbxlm1MU=
