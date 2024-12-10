@@ -1,5 +1,4 @@
 //go:build linux
-// +build linux
 
 // Code in this package is heavily adapted from https://github.com/opencontainers/runc/blob/7362fa2d282feffb9b19911150e01e390a23899d/libcontainer/cgroups/systemd
 // Credit goes to the runc authors.
