@@ -141,6 +141,7 @@ rm -f %{_unitdir}/%{repo}.service
 %config(noreplace) %{_sysconfdir}/cni/net.d/200-loopback.conf
 %config(noreplace) %{_sysconfdir}/crictl.yaml
 %{_unitdir}/%{service_name}.service
+%{_unitdir}/irqbalance.service.d/restart-limits.conf
 %dir %{_sharedstatedir}/containers
 %dir %{_datadir}/oci-umount
 %dir %{_datadir}/oci-umount/oci-umount.d

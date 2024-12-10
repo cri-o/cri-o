@@ -296,6 +296,7 @@ install.completions: ## Install the completions.
 install.systemd: ## Install the systemd unit files.
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio.service $(PREFIX)/lib/systemd/system/crio.service
 	install ${SELINUXOPT} -D -m 644 contrib/systemd/crio-wipe.service $(PREFIX)/lib/systemd/system/crio-wipe.service
+	install ${SELINUXOPT} -D -m 644 contrib/systemd/irqbalance.conf $(PREFIX)/lib/systemd/system/irqbalance.service.d/restart-limits.conf
 
 .PHONY: uninstall
 uninstall: ## Uninstall all files.
