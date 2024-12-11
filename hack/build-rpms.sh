@@ -32,12 +32,17 @@ cp -r "${ci_data}/." "${rpm_tmp_dir}/SOURCES"
 # resolves to both IPv4 and IPv6 addresses. This result in occasional
 # "Network is unreachable" errors. Workaround: disable IPv6 for yum.
 if [ -w /etc/yum.conf ] && ! grep -q '^ip_resolve' /etc/yum.conf; then
-	os::log::info "Disabling IPv6 for yum ..."
-	echo 'ip_resolve=4' >> /etc/yum.conf
+    os::log::info "Disabling IPv6 for yum ..."
+    echo 'ip_resolve=4' >>/etc/yum.conf
 fi
 # Just in case builddep isn't an installed plugin
 dnf -y install 'dnf-command(builddep)'
 dnf builddep -y "${OS_RPM_SPECFILE}" || true
+
+# Ensure to use latest golang
+GO_VERSION=$(curl -sSfL "https://go.dev/VERSION?m=text" | head -n1)
+curl -sSfL -o- "https://go.dev/dl/${GO_VERSION}.linux-amd64.tar.gz" | tar xfz - -C /usr/local
+export PATH=/usr/local/go/bin:$PATH
 
 rpmbuild -ba "${OS_RPM_SPECFILE}" \
     --define "_sourcedir ${rpm_tmp_dir}/SOURCES" \

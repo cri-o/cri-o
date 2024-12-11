@@ -1,6 +1,4 @@
-go 1.22.0
-
-toolchain go1.22.2
+go 1.23
 
 module github.com/cri-o/cri-o
 
