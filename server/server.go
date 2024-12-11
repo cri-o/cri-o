@@ -38,6 +38,7 @@ import (
 	"github.com/cri-o/cri-o/internal/signals"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/version"
+	"github.com/cri-o/cri-o/internal/watchdog"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/server/metrics"
 	"github.com/cri-o/cri-o/utils"
@@ -527,6 +528,10 @@ func New(
 
 	if err := s.nri.start(); err != nil {
 		return nil, err
+	}
+
+	if err := watchdog.New(s.checkCRIHealth).Start(ctx); err != nil {
+		return nil, fmt.Errorf("start systemd watchdog: %w", err)
 	}
 
 	return s, nil

@@ -19,6 +19,7 @@ import (
 func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRequest) (res *types.StartContainerResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	log.Infof(ctx, "Starting container: %s", req.ContainerId)
 	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {

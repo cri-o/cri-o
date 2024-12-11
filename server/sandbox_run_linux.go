@@ -345,6 +345,7 @@ func convertToStorageIDMappings(uidMappings, gidMappings []spec.LinuxIDMapping) 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sbox := sboxfactory.New()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, fmt.Errorf("setting sandbox config: %w", err)
