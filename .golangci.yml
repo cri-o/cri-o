@@ -139,78 +139,10 @@ linters-settings:
         disabled: false
         arguments: [22]
   gocritic:
-    enabled-checks:
-      - appendCombine
-      - badLock
-      - badRegexp
-      - badSorting
-      - badSyncOnceFunc
-      - boolExprSimplify
-      - builtinShadow
-      - builtinShadowDecl
-      - commentedOutCode
-      - commentedOutImport
-      - deferInLoop
-      - deferUnlambda
-      - docStub
-      - dupImport
-      - dynamicFmtString
-      - emptyDecl
-      - emptyFallthrough
-      - emptyStringTest
-      - equalFold
-      - evalOrder
-      - exposedSyncMutex
-      - externalErrorReassign
-      - hexLiteral
-      - httpNoBody
-      - hugeParam
-      - importShadow
-      - indexAlloc
-      - initClause
-      - methodExprCall
-      - nestingReduce
-      - nilValReturn
-      - octalLiteral
-      - paramTypeCombine
-      - preferDecodeRune
-      - preferFilepathJoin
-      - preferFprint
-      - preferStringWriter
-      - preferWriteByte
-      - ptrToRefParam
-      - rangeExprCopy
-      - rangeValCopy
-      - redundantSprint
-      - regexpPattern
-      - regexpSimplify
-      - returnAfterHttpError
-      - ruleguard
-      - sliceClear
-      - sloppyReassign
-      - sortSlice
-      - sprintfQuotedString
-      - sqlQuery
-      - stringConcatSimplify
-      - stringXbytes
-      - stringsCompare
-      - syncMapLoadAndDelete
-      - timeExprSimplify
-      - todoCommentWithoutDetail
-      - tooManyResultsChecker
-      - truncateCmp
-      - typeAssertChain
-      - typeDefFirst
-      - typeUnparen
-      - uncheckedInlineErr
-      - unlabelStmt
-      - unnamedResult
-      - unnecessaryBlock
-      - unnecessaryDefer
-      - weakCond
-      - yodaStyleExpr
-      # - filepathJoin
-      # - whyNoLint
+    enable-all: true
+    disabled-checks:
+      - filepathJoin
+      - whyNoLint
   gocyclo:
     min-complexity: 177
   nakedret:
