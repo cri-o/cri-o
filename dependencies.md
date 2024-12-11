@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 11 Dec 2024 06:06:38 UTC for commit [6fe4033][0]._
+_Generated on Wed, 11 Dec 2024 09:46:59 UTC for commit [2462d82][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6fe40334e0f52e0f16768a39f4fc3b8dde86c530
+[0]: https://github.com/cri-o/cri-o/commit/2462d8282eabb9335615a9c691535703de5737e5
 
 ## Outdated Dependencies
 
@@ -393,7 +393,7 @@ _Generated on Wed, 11 Dec 2024 06:06:38 UTC for commit [6fe4033][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5  |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.5.0                                | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241209145312-60626aee8fb5  | false  | true             |
+| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241211082540-3df585cdee79  | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                               | v3.12.1                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                               | v1.13.3                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                               |                                     | false  | true             |
