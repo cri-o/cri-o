@@ -433,9 +433,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	}
 
 	resourceCleaner := resourcestore.NewResourceCleaner()
+	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
+	storeResource := false
 	defer func() {
-		// no error, no need to cleanup
-		if retErr == nil || isContextError(retErr) {
+		// No errors or resource need to be stored, no need to cleanup
+		if retErr == nil || storeResource {
 			return
 		}
 		if err := resourceCleaner.Cleanup(); err != nil {
@@ -519,6 +521,8 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 			log.Errorf(ctx, "CreateCtr: failed to save progress of container %s: %v", newContainer.ID(), err)
 		}
 		log.Infof(ctx, "CreateCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+		// should not cleanup
+		storeResource = true
 		return nil, ctx.Err()
 	}
 
