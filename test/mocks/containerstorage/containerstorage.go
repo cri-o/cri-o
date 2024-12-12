@@ -1023,6 +1023,21 @@ func (mr *MockStoreMockRecorder) Mounted(id any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Mounted", reflect.TypeOf((*MockStore)(nil).Mounted), id)
 }
 
+// MultiList mocks base method.
+func (m *MockStore) MultiList(arg0 storage.MultiListOptions) (storage.MultiListResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MultiList", arg0)
+	ret0, _ := ret[0].(storage.MultiListResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// MultiList indicates an expected call of MultiList.
+func (mr *MockStoreMockRecorder) MultiList(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MultiList", reflect.TypeOf((*MockStore)(nil).MultiList), arg0)
+}
+
 // Names mocks base method.
 func (m *MockStore) Names(id string) ([]string, error) {
 	m.ctrl.T.Helper()
@@ -1036,6 +1051,21 @@ func (m *MockStore) Names(id string) ([]string, error) {
 func (mr *MockStoreMockRecorder) Names(id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Names", reflect.TypeOf((*MockStore)(nil).Names), id)
+}
+
+// PrepareStagedLayer mocks base method.
+func (m *MockStore) PrepareStagedLayer(options *graphdriver.ApplyDiffWithDifferOpts, differ graphdriver.Differ) (*graphdriver.DriverWithDifferOutput, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PrepareStagedLayer", options, differ)
+	ret0, _ := ret[0].(*graphdriver.DriverWithDifferOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// PrepareStagedLayer indicates an expected call of PrepareStagedLayer.
+func (mr *MockStoreMockRecorder) PrepareStagedLayer(options, differ any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PrepareStagedLayer", reflect.TypeOf((*MockStore)(nil).PrepareStagedLayer), options, differ)
 }
 
 // PullOptions mocks base method.
