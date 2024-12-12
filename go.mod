@@ -46,10 +46,10 @@ require (
 	github.com/moby/sys/user v0.3.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/onsi/ginkgo/v2 v2.22.0
-	github.com/onsi/gomega v1.36.0
+	github.com/onsi/gomega v1.36.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/opencontainers/runc v1.2.1
+	github.com/opencontainers/runc v1.2.3
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f
 	github.com/opencontainers/selinux v1.11.1
@@ -69,8 +69,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	go.uber.org/mock v0.5.0
 	golang.org/x/sys v0.28.0
-	google.golang.org/grpc v1.68.0
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/grpc v1.68.1
+	google.golang.org/protobuf v1.35.2
 	k8s.io/api v0.31.4
 	k8s.io/apimachinery v0.31.4
 	k8s.io/client-go v0.31.4
