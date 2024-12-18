@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Dec 2024 05:11:15 UTC for commit [fb80d4c][0]._
+_Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fb80d4c09d47e73632e8c3a4f135e6fccd8f7199
+[0]: https://github.com/cri-o/cri-o/commit/2d5b737c8f0cae2f228aa5e36704f94d2634e4d0
 
 ## Outdated Dependencies
 
@@ -277,7 +277,7 @@ _Generated on Wed, 18 Dec 2024 05:11:15 UTC for commit [fb80d4c][0]._
 | github.com/blang/semver/v4                                                              | v4.0.0                                |                                     | true   | true             |
 | github.com/boombuler/barcode                                                            | v1.0.1                                | v1.0.2                              | false  | true             |
 | github.com/buger/jsonparser                                                             | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.87.1                             | false  | true             |
+| github.com/buildkite/agent/v3                                                           | v3.62.0                               | v3.88.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                        | v0.3.2                                | v0.13.3                             | false  | true             |
 | github.com/buildkite/interpolate                                                        | v0.0.0-20200526001904-07f35b4ae251    | v0.1.5                              | false  | true             |
 | github.com/bwesterb/go-ristretto                                                        | v1.2.3                                |                                     | false  | true             |
