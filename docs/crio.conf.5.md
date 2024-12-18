@@ -378,6 +378,9 @@ A mapping of platforms to the corresponding runtime executable paths for the run
 If set to true, the runtime will not sync the log file on rotate or container exit. This option is only valid for the 'oci'
 runtime type. Setting this option to true can cause data loss, e.g. when a machine crash happens.
 
+**default_annotations**={}
+A mapping of keys to values of annotations set on containers run by this runtime handler, if not overridden by the pod spec.
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.
