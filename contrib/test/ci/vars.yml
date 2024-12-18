@@ -75,17 +75,15 @@ kata_skip_files:
   - "cri-metrics.bats"
 
 kata_int_test_env:
-  CONTAINER_RUNTIMES: "containerd-shim-kata-v2:/opt/kata/bin/containerd-shim-kata-v2:/run/vc:vm:true:/opt/kata/share/defaults/kata-containers/configuration.toml"
-  CONTAINER_RUNTIME: "containerd-shim-kata-v2"
-  CONTAINER_DEFAULT_RUNTIME: "containerd-shim-kata-v2"
-  RUNTIME_NAME: "containerd-shim-kata-v2"
+  TEST_WITH_KATA: "true"
   RUNTIME_ROOT: "/run/vc"
   RUNTIME_TYPE: "vm"
+  RUNTIME_BINARY_PATH: "/opt/kata/bin/containerd-shim-kata-v2"
   TESTFLAGS:
     "{{ lookup('fileglob', '{{ ansible_env.GOPATH }}/src/github.com/cri-o/cri-o/test/*.bats', wantlist=True) \
     | map('basename') | difference(kata_skip_files) | join(' ') }}"
   JOBS: "1" # TODO: add support to parallelization in kata (causes failures in the integration tests)
-  PRIVILEGED_WITHOUT_HOST_DEVICES: true
+  PRIVILEGED_WITHOUT_HOST_DEVICES: "true"
   RUNTIME_CONFIG_PATH: "/opt/kata/share/defaults/kata-containers/configuration.toml"
   PATH: "/opt/kata/bin:{{ ansible_env.PATH }}"
   CONTAINER_STORAGE_OPT: "overlay.skip_mount_home=true"
@@ -128,18 +126,12 @@ kata_skip_ctr_tests:
   - 'test "annotations passed through"'
   - 'test "ctr with default_env set in configuration"'
   - 'test "ctr with absent mount that should be rejected"'
-  - 'test "ctr stop loop kill retry attempts"'
   - 'test "ctr that mounts container storage as read-only option but not recursively"'
   - 'test "ctr that mounts container storage as recursively read-only"'
   - 'test "ctr that fails to mount container storage as recursively read-only without readonly option"'
   - 'test "ctr that fails to mount container storage as recursively read-only without private propagation"'
 kata_skip_devices_tests:
   - 'test "additional devices permissions"'
-  - 'test "annotation devices support"'
-  - 'test "annotation should override configured additional_devices"'
-  - 'test "annotation should not be processed if not allowed in allowed_devices"'
-  - 'test "annotation should configure multiple devices"'
-  - 'test "annotation should fail if one device is invalid"'
 kata_skip_image_tests:
   - 'test "container status when created by image list canonical reference"'
   - 'test "image pull with signature"'
@@ -161,20 +153,6 @@ kata_skip_pod_tests:
   - 'test "restart crio and still get pod status"'
   - 'test "systemd cgroup_parent correctly set"'
   - 'test "kubernetes pod terminationGracePeriod passthru"'
-  - 'test "disable crypto.fips_enabled when FIPS_DISABLE is set"'
-  - 'test "run container with memory_limit_in_bytes -1"'
-  - 'test "run container with memory_limit_in_bytes 12.5MiB"'
-  - 'test "run container with container_min_memory 17.5MiB"'
-  - 'test "run container with container_min_memory 5.5MiB"'
-  - 'test "run container with empty container_min_memory"'
-kata_skip_seccomp_oci_artifacts_tests:
-  - 'test "seccomp OCI artifact with pod annotation"'
-  - 'test "seccomp OCI artifact with container annotation"'
-  - 'test "seccomp OCI artifact with image annotation without suffix"'
-  - 'test "seccomp OCI artifact with image annotation for pod"'
-  - 'test "seccomp OCI artifact with image annotation for container"'
-  - 'test "seccomp OCI artifact with image annotation and profile set to unconfined"'
-  - 'test "seccomp OCI artifact with missing artifact"'
 
 runc_git_version: main
 crun_git_version: main
