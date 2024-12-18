@@ -441,7 +441,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	kubeAnnotations := sbox.Config().Annotations
+	kubeAnnotations, err := s.Runtime().RuntimeDefaultAnnotations(runtimeHandler)
+	if err != nil {
+		return nil, err
+	}
+	if kubeAnnotations == nil {
+		kubeAnnotations = map[string]string{}
+	}
+
+	// override default annotations with pod spec specified ones
+	for k, v := range sbox.Config().Annotations {
+		if _, ok := kubeAnnotations[k]; ok {
+			log.Debugf(ctx, "Overriding default pod annotation %s for pod %s", k, sbox.ID())
+		}
+		kubeAnnotations[k] = v
+	}
 
 	usernsMode := kubeAnnotations[annotations.UsernsModeAnnotation]
 	if usernsMode != "" {

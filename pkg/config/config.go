@@ -268,6 +268,10 @@ type RuntimeHandler struct {
 	// Inheritance request
 	// Fill in the Runtime information (paths and type) from the default runtime
 	InheritDefaultRuntime bool `toml:"inherit_default_runtime,omitempty"`
+
+	// Default annotations specified for runtime handler if they're not overridden by
+	// the pod spec.
+	DefaultAnnotations map[string]string `toml:"default_annotations,omitempty"`
 }
 
 // Multiple runtime Handlers in a map.
@@ -1783,6 +1787,11 @@ func (r *RuntimeHandler) RuntimeSupportsRROMounts() bool {
 // RuntimeSupportsMountFlag returns whether this runtime supports the specified mount option.
 func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
 	return slices.Contains(r.features.MountOptions, flag)
+}
+
+// RuntimeDefaultAnnotations returns the default annotations for this handler.
+func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
+	return r.DefaultAnnotations
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
