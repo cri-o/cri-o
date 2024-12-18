@@ -1013,7 +1013,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, fmt.Errorf("filter image annotations: %w", err)
 	}
 
-	if s.config.Seccomp().IsDisabled() {
+	if s.config.Seccomp().IsDisabled() && specgen.Config.Linux != nil {
 		specgen.Config.Linux.Seccomp = nil
 	}
 
