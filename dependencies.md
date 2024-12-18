@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
+_Generated on Wed, 18 Dec 2024 16:49:57 UTC for commit [4766e09][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2d5b737c8f0cae2f228aa5e36704f94d2634e4d0
+[0]: https://github.com/cri-o/cri-o/commit/4766e0970de7fbece41afa97624fe2f992047d3f
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/containers/ocicrypt                                              | v1.2.0                               | v1.2.1                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.5                               | v0.3.6                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.1.0                               | v5.2.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241217150042-39bf10875b4f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241218132655-fc2c77f3b604 | true   | true             |
 | github.com/onsi/gomega                                                      | v1.36.0                              | v1.36.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.1                               | v1.2.3                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.57.0                              | v0.58.0                            | true   | true             |
@@ -171,7 +171,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | cloud.google.com/go/workflows                                                           | v1.12.11                              | v1.13.2                             | false  | true             |
 | code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.22.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20241125120445-2c00c104c6e1  | false  | true             |
-| cuelang.org/go                                                                          | v0.8.1                                | v0.11.0                             | false  | true             |
+| cuelang.org/go                                                                          | v0.8.1                                | v0.11.1                             | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.1                                |                                     | false  | true             |
 | dmitri.shuralyov.com/gpu/mtl                                                            | v0.0.0-20190408044501-666a987793e9    | v0.0.0-20221208032759-85de2813cf6b  | false  | true             |
 | filippo.io/edwards25519                                                                 | v1.1.0                                |                                     | false  | true             |
@@ -297,7 +297,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/chzyer/logex                                                                 | v1.2.1                                |                                     | false  | true             |
 | github.com/chzyer/readline                                                              | v1.5.1                                |                                     | false  | true             |
 | github.com/chzyer/test                                                                  | v1.0.0                                |                                     | false  | true             |
-| github.com/cilium/ebpf                                                                  | v0.16.0                               |                                     | false  | true             |
+| github.com/cilium/ebpf                                                                  | v0.16.0                               | v0.17.0                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                             | v2.7.0                                |                                     | false  | true             |
 | github.com/client9/misspell                                                             | v0.3.4                                |                                     | false  | true             |
 | github.com/cloudflare/circl                                                             | v1.3.7                                | v1.5.0                              | false  | true             |
@@ -363,9 +363,9 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/dimchansky/utfbom                                                            | v1.1.1                                |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                         | v3.0.2                                |                                     | false  | true             |
 | github.com/distribution/reference                                                       | v0.6.0                                |                                     | false  | true             |
-| github.com/docker/cli                                                                   | v27.3.1+incompatible                  | v27.4.0+incompatible                | false  | true             |
+| github.com/docker/cli                                                                   | v27.3.1+incompatible                  | v27.4.1+incompatible                | false  | true             |
 | github.com/docker/distribution                                                          | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                                | v27.3.1+incompatible                  | v27.4.0+incompatible                | false  | true             |
+| github.com/docker/docker                                                                | v27.3.1+incompatible                  | v27.4.1+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                             | v0.8.2                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                        | v0.5.0                                |                                     | false  | true             |
 | github.com/docker/go-events                                                             | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20241114183025-9940093291f5  | false  | true             |
@@ -376,9 +376,9 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5  |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.6.0                                | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241217194742-73b2f3f620fe  | false  | true             |
+| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241218113450-8cb188a4a09c  | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                               | v3.12.1                             | false  | true             |
-| github.com/emicklei/proto                                                               | v1.12.1                               | v1.13.4                             | false  | true             |
+| github.com/emicklei/proto                                                               | v1.12.1                               | v1.14.0                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                               |                                     | false  | true             |
 | github.com/envoyproxy/go-control-plane                                                  | v0.13.0                               | v0.13.1                             | false  | true             |
 | github.com/envoyproxy/protoc-gen-validate                                               | v1.1.0                                |                                     | false  | true             |
@@ -513,7 +513,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241217150042-39bf10875b4f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241218132655-fc2c77f3b604  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -537,7 +537,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20241218010957-242d74604034  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20241218154221-5c34d05d3aa3  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -554,7 +554,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/mattn/go-shellwords                                                          | v1.0.12                               |                                     | false  | true             |
 | github.com/mattn/go-sqlite3                                                             | v1.14.24                              |                                     | false  | true             |
 | github.com/matttproud/golang_protobuf_extensions                                        | v1.0.4                                |                                     | false  | true             |
-| github.com/maxbrunsfeld/counterfeiter/v6                                                | v6.8.1                                | v6.10.0                             | false  | true             |
+| github.com/maxbrunsfeld/counterfeiter/v6                                                | v6.8.1                                | v6.11.0                             | false  | true             |
 | github.com/mdlayher/packet                                                              | v1.1.2                                |                                     | false  | true             |
 | github.com/mdlayher/socket                                                              | v0.5.1                                |                                     | false  | true             |
 | github.com/mdlayher/vsock                                                               | v1.1.0                                | v1.2.1                              | false  | true             |
@@ -672,7 +672,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | github.com/sourcegraph/conc                                                             | v0.3.0                                |                                     | false  | true             |
 | github.com/spaolacci/murmur3                                                            | v0.0.0-20180118202830-f09979ecbc72    | v1.1.0                              | false  | true             |
 | github.com/spf13/afero                                                                  | v1.11.0                               |                                     | false  | true             |
-| github.com/spf13/cast                                                                   | v1.6.0                                | v1.7.0                              | false  | true             |
+| github.com/spf13/cast                                                                   | v1.6.0                                | v1.7.1                              | false  | true             |
 | github.com/spf13/cobra                                                                  | v1.8.1                                |                                     | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                |                                     | false  | true             |
 | github.com/spf13/viper                                                                  | v1.19.0                               |                                     | false  | true             |
@@ -833,7 +833,7 @@ _Generated on Wed, 18 Dec 2024 08:13:45 UTC for commit [2d5b737][0]._
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.6.0                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.0                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                |                                     | false  | true             |
-| modernc.org/sqlite                                                                      | v1.18.1                               | v1.34.2                             | false  | true             |
+| modernc.org/sqlite                                                                      | v1.18.1                               | v1.34.3                             | false  | true             |
 | modernc.org/strutil                                                                     | v1.1.3                                | v1.2.0                              | false  | true             |
 | modernc.org/tcl                                                                         | v1.13.1                               | v1.15.3                             | false  | true             |
 | modernc.org/token                                                                       | v1.0.0                                | v1.1.0                              | false  | true             |
