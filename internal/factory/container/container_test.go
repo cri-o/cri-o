@@ -20,6 +20,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/constants"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
@@ -100,10 +101,20 @@ var _ = t.Describe("Container", func() {
 			mountPoint := "test"
 			configStopSignal := "test"
 
-			sb, err := sandbox.New("sandboxID", "", "", "", "test",
-				make(map[string]string), make(map[string]string), "", "",
-				&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-				[]*hostport.PortMapping{}, false, currentTime, "", nil, nil)
+			sbox := sandbox.NewBuilder()
+
+			sbox.SetID("sandboxID")
+			sbox.SetLogDir("test")
+			sbox.SetCreatedAt(time.Now())
+			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+			Expect(err).ToNot(HaveOccurred())
+			sbox.SetPrivileged(false)
+			sbox.SetPortMappings([]*hostport.PortMapping{})
+			sbox.SetHostNetwork(false)
+			sbox.SetContainers(memorystore.New[*oci.Container]())
+			sbox.SetCreatedAt(currentTime)
+
+			sb, err := sbox.GetSandbox()
 			Expect(err).ToNot(HaveOccurred())
 
 			image, err := sut.UserRequestedImage()

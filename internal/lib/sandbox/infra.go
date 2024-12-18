@@ -20,9 +20,9 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
-func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
+func (b *sandboxBuilder) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
 	var err error
-	s.infra, err = container.New()
+	b.infra, err = container.New()
 	if err != nil {
 		return err
 	}
@@ -34,7 +34,7 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 		return err
 	}
 
-	g := s.infra.Spec()
+	g := b.infra.Spec()
 	g.HostSpecific = true
 	g.ClearProcessRlimits()
 
@@ -47,12 +47,12 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 	}
 	g.SetProcessArgs(pauseCommand)
 
-	if err := s.createResolvConf(podContainer, sandboxIDMappings); err != nil {
+	if err := b.createResolvConf(podContainer, sandboxIDMappings); err != nil {
 		return fmt.Errorf("create resolv conf: %w", err)
 	}
 
 	// Add capabilities from crio.conf if default_capabilities is defined
-	if err := s.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities, serverConfig.AddInheritableCapabilities); err != nil {
+	if err := b.infra.SpecSetupCapabilities(&types.Capability{}, serverConfig.DefaultCapabilities, serverConfig.AddInheritableCapabilities); err != nil {
 		return err
 	}
 
@@ -60,8 +60,8 @@ func (s *sandbox) InitInfraContainer(serverConfig *libconfig.Config, podContaine
 }
 
 // Spec can only be called after a successful call to InitInfraContainer.
-func (s *sandbox) Spec() *generate.Generator {
-	return s.infra.Spec()
+func (b *sandboxBuilder) Spec() *generate.Generator {
+	return b.infra.Spec()
 }
 
 // PauseCommand returns the pause command for the provided image configuration.
@@ -88,22 +88,22 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	return cmd, nil
 }
 
-func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) (retErr error) {
+func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) (retErr error) {
 	// set DNS options
-	s.resolvPath = podContainer.RunDir + "/resolv.conf"
+	b.sandboxRef.resolvPath = podContainer.RunDir + "/resolv.conf"
 
-	if s.config.DnsConfig == nil {
+	if b.config.DnsConfig == nil {
 		// Ref https://github.com/kubernetes/kubernetes/issues/120748#issuecomment-1922220911
-		s.config.DnsConfig = &types.DNSConfig{}
+		b.config.DnsConfig = &types.DNSConfig{}
 	}
 
-	dnsServers := s.config.DnsConfig.Servers
-	dnsSearches := s.config.DnsConfig.Searches
-	dnsOptions := s.config.DnsConfig.Options
-	err := ParseDNSOptions(dnsServers, dnsSearches, dnsOptions, s.resolvPath)
+	dnsServers := b.config.DnsConfig.Servers
+	dnsSearches := b.config.DnsConfig.Searches
+	dnsOptions := b.config.DnsConfig.Options
+	err := ParseDNSOptions(dnsServers, dnsSearches, dnsOptions, b.sandboxRef.resolvPath)
 	defer func() {
 		if retErr != nil {
-			if err := os.Remove(s.resolvPath); err != nil {
+			if err := os.Remove(b.sandboxRef.resolvPath); err != nil {
 				retErr = fmt.Errorf("failed to remove resolvPath after failing to create it: %w", retErr)
 			}
 		}
@@ -112,22 +112,22 @@ func (s *sandbox) createResolvConf(podContainer *storage.ContainerInfo, sandboxI
 		return err
 	}
 
-	if err := label.Relabel(s.resolvPath, podContainer.MountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
+	if err := label.Relabel(b.sandboxRef.resolvPath, podContainer.MountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return err
 	}
 	if sandboxIDMappings != nil {
 		rootPair := sandboxIDMappings.RootPair()
-		if err := os.Chown(s.resolvPath, rootPair.UID, rootPair.GID); err != nil {
-			return fmt.Errorf("cannot chown %s to %d:%d: %w", s.resolvPath, rootPair.UID, rootPair.GID, err)
+		if err := os.Chown(b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID); err != nil {
+			return fmt.Errorf("cannot chown %s to %d:%d: %w", b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID, err)
 		}
 	}
 	mnt := spec.Mount{
 		Type:        "bind",
-		Source:      s.resolvPath,
+		Source:      b.sandboxRef.resolvPath,
 		Destination: "/etc/resolv.conf",
 		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
-	s.infra.Spec().AddMount(mnt)
+	b.infra.Spec().AddMount(mnt)
 	return nil
 }
 

@@ -16,6 +16,7 @@ import (
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
@@ -154,11 +155,25 @@ func beforeEach() {
 	Expect(sut).NotTo(BeNil())
 
 	// Setup test vars
-	mySandbox, err = sandbox.New(sandboxID, "", "", "", "",
-		make(map[string]string), make(map[string]string), "", "",
-		&types.PodSandboxMetadata{}, "", "", false, "", "", "",
-		[]*hostport.PortMapping{}, false, time.Now(), "", nil, nil)
-	Expect(err).ToNot(HaveOccurred())
+	createdAt := time.Now()
+	sbox := sandbox.NewBuilder()
+	sbox.SetID("sandboxID")
+	sbox.SetLogDir("test")
+	sbox.SetCreatedAt(createdAt)
+	err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	if err != nil {
+		panic(err)
+	}
+	sbox.SetPrivileged(false)
+	sbox.SetPortMappings([]*hostport.PortMapping{})
+	sbox.SetHostNetwork(false)
+	sbox.SetContainers(memorystore.New[*oci.Container]())
+	sbox.SetCreatedAt(createdAt)
+
+	mySandbox, err = sbox.GetSandbox()
+	if err != nil {
+		panic(err)
+	}
 
 	myContainer, err = oci.NewContainer(containerID, "", "", "",
 		make(map[string]string), make(map[string]string),

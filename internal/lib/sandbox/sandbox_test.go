@@ -10,6 +10,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
+	"github.com/cri-o/cri-o/internal/memorystore"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
@@ -43,14 +44,34 @@ var _ = t.Describe("Sandbox", func() {
 			hostNetwork := false
 			createdAt := time.Now()
 
-			// When
-			sandbox, err := sandbox.New(id, namespace, name, kubeName, logDir,
-				labels, annotations, processLabel, mountLabel, &metadata,
-				shmPath, cgroupParent, privileged, runtimeHandler,
-				resolvPath, hostname, portMappings, hostNetwork, createdAt, "", nil, nil)
+			sbox := sandbox.NewBuilder()
+
+			sbox.SetID(id)
+			sbox.SetName(name)
+			sbox.SetNamespace(namespace)
+			sbox.SetKubeName(kubeName)
+			sbox.SetLogDir(logDir)
+			sbox.SetCreatedAt(createdAt)
+			sbox.SetCreatedAt(createdAt)
+			err := sbox.SetCRISandbox(sbox.ID(), labels, annotations, &metadata)
+			Expect(err).ToNot(HaveOccurred())
+			sbox.SetShmPath(shmPath)
+			sbox.SetCgroupParent(cgroupParent)
+			sbox.SetPrivileged(privileged)
+			sbox.SetRuntimeHandler(runtimeHandler)
+			sbox.SetResolvPath(resolvPath)
+			sbox.SetHostname(hostname)
+			sbox.SetPortMappings(portMappings)
+			sbox.SetHostNetwork(hostNetwork)
+			sbox.SetProcessLabel(processLabel)
+			sbox.SetMountLabel(mountLabel)
+			sbox.SetCreatedAt(createdAt)
+			sbox.SetContainers(memorystore.New[*oci.Container]())
+
+			sandbox, err := sbox.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 
 			// Then
-			Expect(err).ToNot(HaveOccurred())
 			Expect(sandbox).NotTo(BeNil())
 			Expect(sandbox.ID()).To(Equal(id))
 			Expect(sandbox.Namespace()).To(Equal(namespace))
