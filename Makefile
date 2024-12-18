@@ -35,6 +35,9 @@ COVERAGE_PATH := ${BUILD_PATH}/coverage
 TESTBIN_PATH := ${BUILD_PATH}/test
 MOCK_PATH := ${PWD}/test/mocks
 
+MANPAGES_MD := $(wildcard docs/*.md)
+MANPAGES    := $(MANPAGES_MD:%.md=%)
+
 BASHINSTALLDIR=${PREFIX}/share/bash-completion/completions
 FISHINSTALLDIR=${PREFIX}/share/fish/completions
 ZSHINSTALLDIR=${PREFIX}/share/zsh/site-functions
@@ -531,9 +534,6 @@ mock-ociartifact-types: ${MOCKGEN}
 		-package ociartifactmock \
 		-destination ${MOCK_PATH}/ociartifact/ociartifact.go \
 		github.com/cri-o/cri-o/internal/config/ociartifact Impl
-
-MANPAGES_MD := $(wildcard docs/*.md)
-MANPAGES    := $(MANPAGES_MD:%.md=%)
 
 docs/%.5: docs/%.5.md ${GO_MD2MAN}
 	(${GO_MD2MAN} -in $< -out $@.tmp && touch $@.tmp && mv $@.tmp $@) || \
