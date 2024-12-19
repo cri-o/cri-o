@@ -258,3 +258,22 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 		},
 	}, nil
 }
+
+// networkGC cleans up any resources concerned with stale pods (pods not
+// included in validPods).
+func (s *Server) networkGC(ctx context.Context, validPods []*sandbox.Sandbox) error {
+	_, span := log.StartSpan(ctx)
+	defer span.End()
+
+	return s.config.CNIPluginGC(ctx, func() ([]*ocicni.PodNetwork, error) {
+		validPodNetworks := make([]*ocicni.PodNetwork, len(validPods))
+		for i := range validPods {
+			podNetwork, err := s.newPodNetwork(ctx, validPods[i])
+			if err != nil {
+				return nil, err
+			}
+			validPodNetworks[i] = &podNetwork
+		}
+		return validPodNetworks, nil
+	})
+}

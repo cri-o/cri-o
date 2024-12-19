@@ -183,8 +183,18 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 	// Go through all the pods and check if it can be restored. If an error occurs, delete the pod and any containers
 	// associated with it. Release the pod and container names as well.
+	knownPods := []*sandbox.Sandbox{}
 	for sbID := range pods {
 		sb, err := s.LoadSandbox(ctx, sbID)
+		// If we were able to restore a sandbox, add the pod id to the list of deletedPods, to be able to call CNI DEL
+		// on the sandbox network. Otherwise, exclude pods for which we weren't able to restore a sandbox from the
+		// knownPods list so that any potential stale resource associated to them is cleaned up in the network plugin GC
+		if sb != nil {
+			knownPods = append(knownPods, sb)
+			if err != nil {
+				deletedPods[sbID] = sb
+			}
+		}
 		if err == nil {
 			continue
 		}
@@ -217,11 +227,6 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			// causing a useless debug message.
 			delete(podContainers, k)
 		}
-		// Add the pod id to the list of deletedPods, to be able to call CNI DEL on the sandbox network.
-		// Unfortunately, if we weren't able to restore a sandbox, then there's little that can be done
-		if sb != nil {
-			deletedPods[sbID] = sb
-		}
 	}
 
 	// Go through all the containers and check if it can be restored. If an error occurs, delete the container and
@@ -240,6 +245,13 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			// Release the container name
 			s.ReleaseContainerName(ctx, n)
 		}
+	}
+
+	// Cleanup any potential stale network resources not associated to any
+	// pod known to us using CNI GC
+	err = s.networkGC(context.Background(), knownPods)
+	if err != nil {
+		log.Errorf(ctx, "Garbage collect stale network resources during server startup failed: %v", err)
 	}
 
 	// Cleanup the deletedPods in the networking plugin

@@ -1829,6 +1829,14 @@ func (c *NetworkConfig) CNIPluginAddWatcher() chan bool {
 	return c.cniManager.AddWatcher()
 }
 
+// CNIPluginGC calls the plugin's GC to clean up any resources concerned with
+// stale pods (pod other than the ones provided by validPodList). The call to
+// the plugin will be deferred until it is ready logging any errors then and
+// returning nil error here.
+func (c *Config) CNIPluginGC(ctx context.Context, validPodList cnimgr.PodNetworkLister) error {
+	return c.cniManager.GC(ctx, validPodList)
+}
+
 // CNIManagerShutdown shuts down the CNI Manager.
 func (c *NetworkConfig) CNIManagerShutdown() {
 	c.cniManager.Shutdown()

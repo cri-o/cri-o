@@ -5,17 +5,7 @@
 
 package server
 
-import (
-	"github.com/cri-o/ocicni/pkg/ocicni"
-)
-
 // SetStorageRuntimeServer sets the runtime server for the ContainerServer.
 func (s *StreamService) SetRuntimeServer(server *Server) {
 	s.runtimeServer = server
-}
-
-// SetCNIPlugin sets the network plugin for the ContainerServer. The function
-// errors if a sane shutdown of the initially created network plugin failed.
-func (s *Server) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
-	return s.config.SetCNIPlugin(plugin)
 }
