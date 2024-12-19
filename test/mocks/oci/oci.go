@@ -147,6 +147,20 @@ func (mr *MockRuntimeImplMockRecorder) ExecSyncContainer(arg0, arg1, arg2, arg3 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecSyncContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).ExecSyncContainer), arg0, arg1, arg2, arg3)
 }
 
+// IsContainerAlive mocks base method.
+func (m *MockRuntimeImpl) IsContainerAlive(arg0 *oci.Container) bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsContainerAlive", arg0)
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsContainerAlive indicates an expected call of IsContainerAlive.
+func (mr *MockRuntimeImplMockRecorder) IsContainerAlive(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsContainerAlive", reflect.TypeOf((*MockRuntimeImpl)(nil).IsContainerAlive), arg0)
+}
+
 // PauseContainer mocks base method.
 func (m *MockRuntimeImpl) PauseContainer(arg0 context.Context, arg1 *oci.Container) error {
 	m.ctrl.T.Helper()
