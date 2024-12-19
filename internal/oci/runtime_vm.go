@@ -1261,3 +1261,7 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 	option := base64.StdEncoding.EncodeToString(validKataVirtualVolumeJSON)
 	return option, nil
 }
+
+func (r *runtimeVM) IsContainerAlive(c *Container) bool {
+	return r.kill(c.ID(), "", 0, false) == nil
+}
