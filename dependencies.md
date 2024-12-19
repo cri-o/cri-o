@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 19 Dec 2024 13:43:53 UTC for commit [ca2e5ed][0]._
+_Generated on Thu, 19 Dec 2024 14:52:23 UTC for commit [557e0b2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ca2e5edcf63f2930eb7e31c81152f6744d701e3c
+[0]: https://github.com/cri-o/cri-o/commit/557e0b229209f83ac99795e794c794a7330393a2
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Thu, 19 Dec 2024 13:43:53 UTC for commit [ca2e5ed][0]._
 | github.com/containers/ocicrypt                                              | v1.2.0                               | v1.2.1                             | true   | true             |
 | github.com/cyphar/filepath-securejoin                                       | v0.3.5                               | v0.3.6                             | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.1.0                               | v5.2.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241219115544-99b9ef4e5a4b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20241219141630-79495379e236 | true   | true             |
 | github.com/onsi/gomega                                                      | v1.36.0                              | v1.36.1                            | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.1                               | v1.2.3                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.57.0                              | v0.58.0                            | true   | true             |
@@ -376,7 +376,7 @@ _Generated on Thu, 19 Dec 2024 13:43:53 UTC for commit [ca2e5ed][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5  |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.6.0                                | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241218172127-ac55c7698e0d  | false  | true             |
+| github.com/elazarl/goproxy                                                              | v0.0.0-20230808193330-2592e75ae04a    | v0.0.0-20241219141958-0cbc93263399  | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                               | v3.12.1                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                               | v1.14.0                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                               |                                     | false  | true             |
@@ -513,7 +513,7 @@ _Generated on Thu, 19 Dec 2024 13:43:53 UTC for commit [ca2e5ed][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241219115544-99b9ef4e5a4b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20241219141630-79495379e236  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
