@@ -1109,3 +1109,7 @@ func (r *runtimeVM) RestoreContainer(ctx context.Context, c *Container, cgroupPa
 
 	return errors.New("restoring not implemented for runtimeVM")
 }
+
+func (r *runtimeVM) IsContainerAlive(c *Container) bool {
+	return r.kill(c.ID(), "", 0, false) == nil
+}
