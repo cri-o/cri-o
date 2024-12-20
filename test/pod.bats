@@ -554,4 +554,8 @@ EOF
 	grep hello <<< "$annotations"
 	# pod spec should override default annotations
 	grep -v "5678" <<< "$annotations"
+
+	# verify the internal crio configuration is unchanged
+	CONFIG=$(crio status -s "$CRIO_SOCKET" config)
+	jq '.annotations | keys[]' < "$TESTDATA"/sandbox_config.json | while read -r key; do ! echo "$CONFIG" | grep "$key"; done
 }
