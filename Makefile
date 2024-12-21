@@ -223,7 +223,6 @@ build-static: ## Build the static binaries.
 	mkdir -p bin
 	cp -r result/bin bin/static
 
-.PHONY: crio.conf
 crio.conf: bin/crio ## Build the CRI-O configuration.
 	./bin/crio -d "" --config="" $(CONF_OVERRIDES) config > crio.conf
 
@@ -413,6 +412,7 @@ verify-prettier: prettier ## Run prettier on the project.
 clean: ## Clean the repository.
 	rm -rf _output
 	rm -f docs/*.5 docs/*.8
+	rm -f crio.conf
 	rm -fr test/testdata/redis-image
 	find . -name \*~ -delete
 	find . -name \#\* -delete
