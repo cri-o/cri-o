@@ -63,7 +63,7 @@ Download the `CNI` plugins source tree:
 ```bash
 git clone https://github.com/containernetworking/plugins
 cd plugins
-git checkout v1.1.1
+git checkout $(git tag -l | sort -V | tail -n 1)
 ```
 
 Build the `CNI` plugins:
