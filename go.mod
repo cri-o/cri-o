@@ -255,3 +255,5 @@ require (
 	tags.cncf.io/container-device-interface/specs-go v0.6.0 // indirect
 	zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739 // indirect
 )
+
+replace github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.29.1-0.20250101220834-68a96cacb343

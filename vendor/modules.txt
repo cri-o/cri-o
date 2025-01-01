@@ -336,7 +336,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.20
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.29.1-0.20240528081619-b99fb79fee83
+# github.com/containers/image/v5 v5.29.1-0.20240528081619-b99fb79fee83 => github.com/kwilczynski/image/v5 v5.29.1-0.20250101220834-68a96cacb343
 ## explicit; go 1.19
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -1866,3 +1866,4 @@ tags.cncf.io/container-device-interface/specs-go
 # zenhack.net/go/util v0.0.0-20230218002511-744d2d6d1739
 ## explicit; go 1.19
 zenhack.net/go/util
+# github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.29.1-0.20250101220834-68a96cacb343

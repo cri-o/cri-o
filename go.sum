@@ -891,8 +891,6 @@ github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6J
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57 h1:EHiHMe0cOPvBzi20g/f+NzhjhPFTxpyAkpRE4h1ZAzw=
 github.com/containers/conmon-rs v0.6.2-0.20230920142715-f5a362044a57/go.mod h1:rMhWT6H3demwJCFuT+Bc9b+T9oypfZ5SnPzOrt6QNkg=
-github.com/containers/image/v5 v5.29.1-0.20240528081619-b99fb79fee83 h1:nvZtM36Qz5bHwFpBBet+bL5sqbVJQIuw2PKcd4d/Sgk=
-github.com/containers/image/v5 v5.29.1-0.20240528081619-b99fb79fee83/go.mod h1:kQ7qcDsps424ZAz24thD+x7+dJw1vgur3A9tTDsj97E=
 github.com/containers/kubensmnt v1.2.0 h1:BDtkaOFQ5fN7FnB9kC6peMW50KkwI1KI8E9ROBFeQIg=
 github.com/containers/kubensmnt v1.2.0/go.mod h1:1/HG09N/a1+WSD3zkurzeWtqlKRSfUUnlIF/08zloqk=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -1427,6 +1425,8 @@ github.com/kr/pty v1.1.5/go.mod h1:9r2w37qlBe7rQ6e1fg1S/9xpWHSnaqNdHD3WcMdbPDA=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
+github.com/kwilczynski/image/v5 v5.29.1-0.20250101220834-68a96cacb343 h1:Q6p5M7ZwyvNsMQFt6MLZD7YH+enUL7ohsSMlo6AO3Pg=
+github.com/kwilczynski/image/v5 v5.29.1-0.20250101220834-68a96cacb343/go.mod h1:kQ7qcDsps424ZAz24thD+x7+dJw1vgur3A9tTDsj97E=
 github.com/letsencrypt/boulder v0.0.0-20231026200631-000cd05d5491 h1:WGrKdjHtWC67RX96eTkYD2f53NDHhrq/7robWTAfk4s=
 github.com/letsencrypt/boulder v0.0.0-20231026200631-000cd05d5491/go.mod h1:o158RFmdEbYyIZmXAbrvmJWesbyxlLKee6X64VPVuOc=
 github.com/linuxkit/virtsock v0.0.0-20201010232012-f8cee7dfc7a3/go.mod h1:3r6x7q95whyfWQpmGZTu3gk3v2YkMi05HEzl7Tf7YEo=
