@@ -437,16 +437,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 	sbox.SetRuntimeHandler(runtimeHandler)
 
-	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
-		return nil, err
-	}
-
-	kubeAnnotations, err := s.Runtime().RuntimeDefaultAnnotations(runtimeHandler)
+	defaultAnnotations, err := s.Runtime().RuntimeDefaultAnnotations(runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
-	if kubeAnnotations == nil {
-		kubeAnnotations = map[string]string{}
+	kubeAnnotations := map[string]string{}
+	// Deep copy to prevent writing to the same map in the config
+	for k, v := range defaultAnnotations {
+		kubeAnnotations[k] = v
+	}
+
+	if err := s.FilterDisallowedAnnotations(sbox.Config().Annotations, sbox.Config().Annotations, runtimeHandler); err != nil {
+		return nil, err
 	}
 
 	// override default annotations with pod spec specified ones
