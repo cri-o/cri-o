@@ -905,8 +905,6 @@ github.com/containers/conmon v2.0.20+incompatible h1:YbCVSFSCqFjjVwHTPINGdMX1F6J
 github.com/containers/conmon v2.0.20+incompatible/go.mod h1:hgwZ2mtuDrppv78a/cOBNiCm6O0UMWGx1mu7P00nu5I=
 github.com/containers/conmon-rs v0.5.1 h1:Qquw9pE0KOeJkb3MhuUIFTvUzI08m9f4SpkuSY0kVSs=
 github.com/containers/conmon-rs v0.5.1/go.mod h1:DHfgZX/c2/TBjApu0qF19q/VHKzrj/gCan+QyPgVht4=
-github.com/containers/image/v5 v5.27.1-0.20240528120211-942a2226c1cd h1:iOqLuU4trcKWbCFuLNTG/QD6rQK+/GDNoo4+fiZKRLk=
-github.com/containers/image/v5 v5.27.1-0.20240528120211-942a2226c1cd/go.mod h1:IwlOGzTkGnmfirXxt0hZeJlzv1zVukE03WZQ203Z9GA=
 github.com/containers/kubensmnt v1.2.0 h1:BDtkaOFQ5fN7FnB9kC6peMW50KkwI1KI8E9ROBFeQIg=
 github.com/containers/kubensmnt v1.2.0/go.mod h1:1/HG09N/a1+WSD3zkurzeWtqlKRSfUUnlIF/08zloqk=
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYglewc+UyGf6lc8Mj2UaPTHy/iF2De0/77CA=
@@ -1470,6 +1468,8 @@ github.com/kr/pty v1.1.1/go.mod h1:pFQYn66WHrOpPYNljwOMqo10TkYh1fy3cYio2l3bCsQ=
 github.com/kr/text v0.1.0/go.mod h1:4Jbv+DJW3UT/LiOwJeYQe1efqtUx/iVham/4vfdArNI=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/kr/text v0.2.0/go.mod h1:eLer722TekiGuMkidMxC/pM04lWEeraHUUmBw8l2grE=
+github.com/kwilczynski/image/v5 v5.26.2-0.20250105211221-cbb9edd2797b h1:KHSTN6r1xH0rfmVWr4HhaJS31gZkaDbl7sMr6EWokW4=
+github.com/kwilczynski/image/v5 v5.26.2-0.20250105211221-cbb9edd2797b/go.mod h1:IwlOGzTkGnmfirXxt0hZeJlzv1zVukE03WZQ203Z9GA=
 github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6 h1:unJdfS94Y3k85TKy+mvKzjW5R9rIC+Lv4KGbE7uNu0I=
 github.com/letsencrypt/boulder v0.0.0-20230213213521-fdfea0d469b6/go.mod h1:PUgW5vI9ANEaV6qv9a6EKu8gAySgwf0xrzG9xIB/CK0=
 github.com/libopenstorage/openstorage v1.0.0/go.mod h1:Sp1sIObHjat1BeXhfMqLZ14wnOzEhNx2YQedreMcUyc=
