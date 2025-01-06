@@ -443,3 +443,5 @@ replace (
 	k8s.io/pod-security-admission => k8s.io/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20221208195143-b46a3f887ca9
 	k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20221208195143-b46a3f887ca9
 )
+
+replace github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.0.0-20250106022554-aafd63097602
