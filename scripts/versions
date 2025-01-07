@@ -3,6 +3,6 @@ declare -A VERSIONS=(
     ["cni-plugins"]=v1.6.2
     ["conmon"]=v2.1.12
     ["runc"]=main
-    ["bats"]=v1.11.0
+    ["bats"]=v1.11.1
     ["buildah"]=v1.34.0
 )
