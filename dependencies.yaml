@@ -90,7 +90,7 @@ dependencies:
         match: NIX_IMAGE
 
   - name: release-notes
-    version: 0.17.8
+    version: 0.17.11
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
