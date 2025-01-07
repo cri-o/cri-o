@@ -652,7 +652,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.18
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.25.1-0.20240528130144-4b2d28a40968
+# github.com/containers/image/v5 v5.25.1-0.20240528130144-4b2d28a40968 => github.com/kwilczynski/image/v5 v5.0.0-20250107012858-afad5d05d5b7
 ## explicit; go 1.18
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -3193,3 +3193,4 @@ sigs.k8s.io/zeitgeist/upstream
 # k8s.io/pod-security-admission => k8s.io/kubernetes/staging/src/k8s.io/pod-security-admission v0.0.0-20220823173643-a866cbe2e5bb
 # k8s.io/sample-apiserver => k8s.io/kubernetes/staging/src/k8s.io/sample-apiserver v0.0.0-20220823173643-a866cbe2e5bb
 # knative.dev/pkg => knative.dev/pkg v0.0.0-20220325200448-1f7514acd0c2
+# github.com/containers/image/v5 => github.com/kwilczynski/image/v5 v5.0.0-20250107012858-afad5d05d5b7
