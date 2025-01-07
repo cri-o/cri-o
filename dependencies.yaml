@@ -114,7 +114,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.19.0
+    version: 2.21.4
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
