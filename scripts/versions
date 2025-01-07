@@ -4,5 +4,5 @@ declare -A VERSIONS=(
     ["conmon"]=v2.1.12
     ["runc"]=main
     ["bats"]=v1.11.1
-    ["buildah"]=v1.34.0
+    ["buildah"]=v1.38.0
 )
