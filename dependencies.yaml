@@ -20,7 +20,7 @@ dependencies:
         match: go
 
   - name: golangci-lint
-    version: v1.62.2
+    version: v1.63.4
     refPaths:
       - path: .github/workflows/verify.yml
         match: GOLANGCI_LINT_VERSION
@@ -34,7 +34,7 @@ dependencies:
         match: SHELLCHECK_VERSION
 
   - name: cni-plugins
-    version: v1.6.1
+    version: v1.6.2
     refPaths:
       - path: scripts/versions
         match: cni-plugins
@@ -54,7 +54,7 @@ dependencies:
         match: cri_tools_git_version
 
   - name: buildah
-    version: v1.34.0
+    version: v1.38.0
     refPaths:
       - path: scripts/versions
         match: buildah
@@ -66,7 +66,7 @@ dependencies:
         match: runc
 
   - name: bats
-    version: v1.11.0
+    version: v1.11.1
     refPaths:
       - path: scripts/versions
         match: bats
@@ -80,7 +80,7 @@ dependencies:
         match: ZEITGEIST_VERSION
 
   - name: nix
-    version: 2.24.3
+    version: 2.24.11
     refPaths:
       - path: .github/workflows/test.yml
         match: NIX_VERSION
@@ -90,13 +90,13 @@ dependencies:
         match: NIX_IMAGE
 
   - name: release-notes
-    version: 0.17.8
+    version: 0.17.11
     refPaths:
       - path: Makefile
         match: RELEASE_NOTES_VERSION
 
   - name: shfmt
-    version: 3.9.0
+    version: 3.10.0
     refPaths:
       - path: Makefile
         match: SHFMT_VERSION
@@ -114,7 +114,7 @@ dependencies:
         match: GOVULNCHECK_VERSION
 
   - name: gosec
-    version: 2.19.0
+    version: 2.21.4
     refPaths:
       - path: Makefile
         match: GOSEC_VERSION
