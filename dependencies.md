@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 07 Jan 2025 23:33:09 UTC for commit [a4fd64f][0]._
+_Generated on Wed, 08 Jan 2025 18:31:05 UTC for commit [9165374][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a4fd64fe43ca8fc4a928f0277bbfc8d8abec1e0b
+[0]: https://github.com/cri-o/cri-o/commit/9165374efe1323244b7a18dc3620f8ef36088fa7
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/ocicrypt                         | v1.2.0                             | v1.2.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250107170204-f4a39e8c40a7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250108165929-8f8988fcd117 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.3                             | v1.2.4                             | true   | true             |
 | google.golang.org/grpc                                 | v1.68.1                            | v1.69.2                            | true   | true             |
 | google.golang.org/protobuf                             | v1.36.1                            | v1.36.2                            | true   | true             |
@@ -505,7 +505,7 @@ _Generated on Tue, 07 Jan 2025 23:33:09 UTC for commit [a4fd64f][0]._
 | github.com/jstemmer/go-junit-report                                                     | v0.9.1                                | v1.0.0                              | false  | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
 | github.com/jung-kurt/gofpdf                                                             | v1.0.3-0.20190309125859-24315acbbda5  | v1.16.2                             | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250107170204-f4a39e8c40a7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250108165929-8f8988fcd117  | true   | true             |
 | github.com/kballard/go-shellquote                                                       | v0.0.0-20180428030007-95032a82bc51    |                                     | false  | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
@@ -529,7 +529,7 @@ _Generated on Tue, 07 Jan 2025 23:33:09 UTC for commit [a4fd64f][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250107222847-f10f462959aa  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250107234847-635f43266a9c  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -822,7 +822,7 @@ _Generated on Tue, 07 Jan 2025 23:33:09 UTC for commit [a4fd64f][0]._
 | modernc.org/ccgo/v3                                                                     | v3.16.9                               | v3.17.0                             | false  | true             |
 | modernc.org/ccorpus                                                                     | v1.11.6                               |                                     | false  | true             |
 | modernc.org/httpfs                                                                      | v1.0.6                                |                                     | false  | true             |
-| modernc.org/libc                                                                        | v1.17.1                               | v1.61.6                             | false  | true             |
+| modernc.org/libc                                                                        | v1.17.1                               | v1.61.7                             | false  | true             |
 | modernc.org/mathutil                                                                    | v1.5.0                                | v1.7.1                              | false  | true             |
 | modernc.org/memory                                                                      | v1.2.1                                | v1.8.1                              | false  | true             |
 | modernc.org/opt                                                                         | v0.1.3                                | v0.1.4                              | false  | true             |
