@@ -33,9 +33,10 @@ import (
 	"k8s.io/apimachinery/pkg/util/sets"
 	utilversion "k8s.io/apimachinery/pkg/util/version"
 	utilwait "k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/klog/v2"
 	utilexec "k8s.io/utils/exec"
 	utiltrace "k8s.io/utils/trace"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
 // RulePosition holds the -I/-A flags for iptable.
@@ -218,10 +219,10 @@ type runner struct {
 
 // newInternal returns a new Interface which will exec iptables, and allows the
 // caller to change the iptables-restore lockfile path.
-func newInternal(exec utilexec.Interface, protocol Protocol, lockfilePath14x, lockfilePath16x string) Interface {
+func newInternal(ctx context.Context, exec utilexec.Interface, protocol Protocol, lockfilePath14x, lockfilePath16x string) Interface {
 	version, err := getIPTablesVersion(exec, protocol)
 	if err != nil {
-		klog.InfoS("Error checking iptables version, assuming version at least", "version", MinCheckVersion, "err", err)
+		log.Warnf(ctx, "Error checking iptables version, assuming version at least: %s (version=%q)", err, MinCheckVersion)
 		version = MinCheckVersion
 	}
 
@@ -246,8 +247,8 @@ func newInternal(exec utilexec.Interface, protocol Protocol, lockfilePath14x, lo
 }
 
 // New returns a new Interface which will exec iptables.
-func New(exec utilexec.Interface, protocol Protocol) Interface {
-	return newInternal(exec, protocol, "", "")
+func New(ctx context.Context, exec utilexec.Interface, protocol Protocol) Interface {
+	return newInternal(ctx, exec, protocol, "", "")
 }
 
 // EnsureChain is part of Interface.
@@ -359,7 +360,7 @@ func (runner *runner) SaveInto(table Table, buffer *bytes.Buffer) error {
 	// run and return
 	iptablesSaveCmd := iptablesSaveCommand(runner.protocol)
 	args := []string{"-t", string(table)}
-	klog.V(4).InfoS("Running", "command", iptablesSaveCmd, "arguments", args)
+	log.Debugf(context.Background(), "Running (command=%q arguments=%+v)", iptablesSaveCmd, args)
 	cmd := runner.exec.Command(iptablesSaveCmd, args...)
 	cmd.SetStdout(buffer)
 	stderrBuffer := bytes.NewBuffer(nil)
@@ -417,7 +418,7 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 		trace.Step("Locks grabbed")
 		defer func(locker iptablesLocker) {
 			if err := locker.Close(); err != nil {
-				klog.ErrorS(err, "Failed to close iptables locks")
+				log.Errorf(context.Background(), "Failed to close iptables locks: %s", err)
 			}
 		}(locker)
 	}
@@ -425,7 +426,7 @@ func (runner *runner) restoreInternal(args []string, data []byte, flush FlushFla
 	// run the command and return the output or an error including the output and error
 	fullArgs := append(runner.restoreWaitFlag, args...) //nolint:gocritic
 	iptablesRestoreCmd := iptablesRestoreCommand(runner.protocol)
-	klog.V(4).InfoS("Running", "command", iptablesRestoreCmd, "arguments", fullArgs)
+	log.Debugf(context.Background(), "Running (command=%q arguments=%q)", iptablesRestoreCmd, fullArgs)
 	cmd := runner.exec.Command(iptablesRestoreCmd, fullArgs...)
 	cmd.SetStdin(bytes.NewBuffer(data))
 	b, err := cmd.CombinedOutput()
@@ -468,7 +469,7 @@ func (runner *runner) runContext(ctx context.Context, op operation, args []strin
 	iptablesCmd := iptablesCommand(runner.protocol)
 	fullArgs := append(runner.waitFlag, string(op)) //nolint:gocritic
 	fullArgs = append(fullArgs, args...)
-	klog.V(5).InfoS("Running", "command", iptablesCmd, "arguments", fullArgs)
+	log.Debugf(context.Background(), "Running (command=%q arguments=%+v)", iptablesCmd, fullArgs)
 	if ctx == nil {
 		return runner.exec.Command(iptablesCmd, fullArgs...).CombinedOutput()
 	}
@@ -496,7 +497,7 @@ func trimhex(s string) string {
 // of hack and half-measures.  We should nix this ASAP.
 func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...string) (bool, error) {
 	iptablesSaveCmd := iptablesSaveCommand(runner.protocol)
-	klog.V(1).InfoS("Running", "command", iptablesSaveCmd, "table", string(table))
+	log.Debugf(context.Background(), "Running (command=%q table=%q)", iptablesSaveCmd, string(table))
 	out, err := runner.exec.Command(iptablesSaveCmd, "-t", string(table)).CombinedOutput()
 	if err != nil {
 		return false, fmt.Errorf("error checking rule: %w", err)
@@ -535,7 +536,7 @@ func (runner *runner) checkRuleWithoutCheck(table Table, chain Chain, args ...st
 		if sets.NewString(fields...).IsSuperset(argset) {
 			return true, nil
 		}
-		klog.V(5).InfoS("DBG: fields is not a superset of args", "fields", fields, "arguments", args)
+		log.Debugf(context.Background(), "fields is not a superset of args (fields=%+v arguments=%+v)", fields, args)
 	}
 
 	return false, nil
@@ -577,7 +578,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 		_ = utilwait.PollImmediateUntil(interval, func() (bool, error) { //nolint:errcheck,staticcheck
 			for _, table := range tables {
 				if _, err := runner.EnsureChain(table, canary); err != nil {
-					klog.ErrorS(err, "Could not set up iptables canary", "table", table, "chain", canary)
+					log.Errorf(context.Background(), "Could not set up iptables canary: %s (table=%+v chain=%q)", err, table, canary)
 					return false, nil
 				}
 			}
@@ -589,10 +590,10 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 			if exists, err := runner.ChainExists(tables[0], canary); exists {
 				return false, nil
 			} else if isResourceError(err) {
-				klog.ErrorS(err, "Could not check for iptables canary", "table", tables[0], "chain", canary)
+				log.Errorf(context.Background(), "Could not check for iptables canary: %s (table=%q chain=%q)", err, tables[0], canary)
 				return false, nil
 			}
-			klog.V(2).InfoS("IPTables canary deleted", "table", tables[0], "chain", canary)
+			log.Debugf(context.Background(), "IPTables canary deleted (table=%q chain=%q)", tables[0], canary)
 			// Wait for the other canaries to be deleted too before returning
 			// so we don't start reloading too soon.
 			err := utilwait.PollImmediate(iptablesFlushPollTime, iptablesFlushTimeout, func() (bool, error) { //nolint:staticcheck
@@ -604,7 +605,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 				return true, nil
 			})
 			if err != nil {
-				klog.InfoS("Inconsistent iptables state detected")
+				log.Warnf(context.Background(), "Inconsistent iptables state detected: %s", err)
 			}
 			return true, nil
 		}, stopCh)
@@ -616,7 +617,7 @@ func (runner *runner) Monitor(canary Chain, tables []Table, reloadFunc func(), i
 			return
 		}
 
-		klog.V(2).InfoS("Reloading after iptables flush")
+		log.Debugf(context.Background(), "Reloading after iptables flush")
 		reloadFunc()
 	}
 }
@@ -697,11 +698,11 @@ func getIPTablesRestoreWaitFlag(version *utilversion.Version, exec utilexec.Inte
 	// --version, assume it also supports --wait
 	vstring, err := getIPTablesRestoreVersionString(exec, protocol)
 	if err != nil || vstring == "" {
-		klog.V(3).InfoS("Couldn't get iptables-restore version; assuming it doesn't support --wait")
+		log.Warnf(context.Background(), "Couldn't get iptables-restore version; assuming it doesn't support --wait: %q", err)
 		return nil
 	}
 	if _, err := utilversion.ParseGeneric(vstring); err != nil {
-		klog.V(3).InfoS("Couldn't parse iptables-restore version; assuming it doesn't support --wait")
+		log.Warnf(context.Background(), "Couldn't parse iptables-restore version; assuming it doesn't support --wait: %q", err)
 		return nil
 	}
 	return []string{WaitString}

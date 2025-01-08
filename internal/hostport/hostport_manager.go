@@ -18,6 +18,7 @@ package hostport
 
 import (
 	"bytes"
+	"context"
 	"crypto/sha256"
 	"encoding/base32"
 	"fmt"
@@ -57,11 +58,11 @@ type hostportManager struct {
 }
 
 // NewHostportManager creates a new HostPortManager.
-func NewHostportManager() HostPortManager {
+func NewHostportManager(ctx context.Context) HostPortManager {
 	exec := utilexec.New()
 	return &hostportManager{
-		ip4tables: utiliptables.New(exec, utiliptables.ProtocolIPv4),
-		ip6tables: utiliptables.New(exec, utiliptables.ProtocolIPv6),
+		ip4tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv4),
+		ip6tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv6),
 	}
 }
 
