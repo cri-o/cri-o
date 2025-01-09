@@ -23,7 +23,7 @@ require (
 	github.com/containers/conmon-rs v0.6.6
 	github.com/containers/image/v5 v5.33.0
 	github.com/containers/kubensmnt v1.2.0
-	github.com/containers/ocicrypt v1.2.0
+	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/storage v1.56.0
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/creack/pty v1.1.24
@@ -49,7 +49,7 @@ require (
 	github.com/onsi/gomega v1.36.2
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.0
-	github.com/opencontainers/runc v1.2.3
+	github.com/opencontainers/runc v1.2.4
 	github.com/opencontainers/runtime-spec v1.2.0
 	github.com/opencontainers/runtime-tools v0.9.1-0.20241001195557-6c9570a1678f
 	github.com/opencontainers/selinux v1.11.1
@@ -69,8 +69,8 @@ require (
 	go.opentelemetry.io/otel/trace v1.33.0
 	go.uber.org/mock v0.5.0
 	golang.org/x/sys v0.29.0
-	google.golang.org/grpc v1.68.1
-	google.golang.org/protobuf v1.36.1
+	google.golang.org/grpc v1.69.2
+	google.golang.org/protobuf v1.36.2
 	k8s.io/api v0.31.4
 	k8s.io/apimachinery v0.31.4
 	k8s.io/client-go v0.31.4
@@ -192,6 +192,7 @@ require (
 	github.com/sigstore/rekor v1.3.6 // indirect
 	github.com/sigstore/sigstore v1.8.9 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
+	github.com/smallstep/pkcs7 v0.1.1 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/stefanberger/go-pkcs11uri v0.0.0-20230803200340-78284954bff6 // indirect
 	github.com/sylabs/sif/v2 v2.19.1 // indirect
@@ -207,7 +208,6 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	go.mongodb.org/mongo-driver v1.14.0 // indirect
-	go.mozilla.org/pkcs7 v0.0.0-20210826202110-33d05740a352 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.53.0 // indirect
