@@ -21,7 +21,7 @@ require (
 	github.com/containers/common v0.61.0
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.6
-	github.com/containers/image/v5 v5.33.0
+	github.com/containers/image/v5 v5.33.1-0.20250109021632-8b4e15e0e60a
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.0
 	github.com/containers/storage v1.56.1-0.20250109030507-3d75bd3f5064

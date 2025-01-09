@@ -263,7 +263,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.23
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.33.0
+# github.com/containers/image/v5 v5.33.1-0.20250109021632-8b4e15e0e60a
 ## explicit; go 1.22.6
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
