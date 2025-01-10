@@ -76,10 +76,9 @@ func (c *memoryStore[T]) List() []T {
 
 // Size returns the number of values in the store.
 func (c *memoryStore[T]) Size() (l int) {
-	c.s.Range(func(k, v any) bool {
+	for range c.s.Range {
 		l++
-		return true
-	})
+	}
 	return l
 }
 
@@ -112,12 +111,11 @@ func (c *memoryStore[T]) ApplyAll(apply StoreReducer[T]) {
 }
 
 func (c *memoryStore[T]) all() (values []T) {
-	c.s.Range(func(k, v any) bool {
+	for _, v := range c.s.Range {
 		typedValue, ok := v.(T)
 		if ok {
 			values = append(values, typedValue)
 		}
-		return true
-	})
+	}
 	return values
 }

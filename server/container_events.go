@@ -39,25 +39,26 @@ func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.Runtime
 
 func (s *Server) broadcastEvents() {
 	// notify all connections that ContainerEventsChan has been closed
-	defer s.containerEventClients.Range(func(_, value any) bool { //nolint: unparam
-		conn, ok := value.(*containerEventConn)
-		if !ok {
-			return true
+	defer func() {
+		for _, value := range s.containerEventClients.Range {
+			conn, ok := value.(*containerEventConn)
+			if !ok {
+				continue
+			}
+			conn.wg.Done()
 		}
-		conn.wg.Done()
-		return true
-	})
+	}()
 
 	for containerEvent := range s.ContainerEventsChan {
-		s.containerEventClients.Range(func(key, value any) bool {
+		for key, value := range s.containerEventClients.Range {
 			stream, ok := key.(types.RuntimeService_GetContainerEventsServer)
 			if !ok {
-				return true
+				continue
 			}
 
 			conn, ok := value.(*containerEventConn)
 			if !ok {
-				return true
+				continue
 			}
 
 			if err := stream.Send(&containerEvent); err != nil {
@@ -70,7 +71,6 @@ func (s *Server) broadcastEvents() {
 				// notify our waiting client connection that we are done
 				conn.wg.Done()
 			}
-			return true
-		})
+		}
 	}
 }

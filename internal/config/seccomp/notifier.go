@@ -57,14 +57,13 @@ func (n *Notifier) AddSyscall(syscall string) {
 // their name.
 func (n *Notifier) UsedSyscalls() string {
 	res := []string{}
-	n.syscalls.Range(func(syscall, count any) bool {
+	for syscall, count := range n.syscalls.Range {
 		s, syscallOk := syscall.(string)
 		c, countOk := count.(*uint64)
 		if syscallOk && countOk {
 			res = append(res, fmt.Sprintf("%s (%dx)", s, *c))
 		}
-		return true
-	})
+	}
 	sort.Strings(res)
 	return strings.Join(res, ", ")
 }
