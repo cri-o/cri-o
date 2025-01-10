@@ -123,6 +123,9 @@ type Builder interface {
 
 	// SetCreatedAt sets the created at time.
 	SetCreatedAt(createdAt time.Time)
+
+	// Validate validates the required fields.
+	Validate() error
 }
 
 // sandboxBuilder is the hidden default type behind the Sandbox interface.
@@ -141,10 +144,10 @@ func NewBuilder() Builder {
 }
 
 // GetSandbox gets the sandbox and deletes the config and sandbox.
-// TODO: Add validations before returning the sandbox.
 func (b *sandboxBuilder) GetSandbox() (*Sandbox, error) {
-	if b.sandboxRef.criSandbox == nil {
-		return nil, errors.New("cri-o sandbox not initialized")
+	err := b.Validate()
+	if err != nil {
+		return nil, err
 	}
 	sandboxRef := b.sandboxRef
 	b.config = nil
@@ -390,4 +393,18 @@ func (b *sandboxBuilder) SetID(id string) {
 			Id: id,
 		}
 	}
+}
+
+// Validate validates the required fields.
+func (b *sandboxBuilder) Validate() error {
+	if b.sandboxRef.criSandbox == nil {
+		return errors.New("cri-o sandbox not initialized")
+	}
+	if b.sandboxRef.criSandbox.Id == "" {
+		return errors.New("cri-o sandbox 'Id' not present")
+	}
+	if b.sandboxRef.createdAt.IsZero() {
+		return errors.New("cri-o sandbox 'createdAt' is not set")
+	}
+	return nil
 }

@@ -95,6 +95,63 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.Containers()).NotTo(BeNil())
 			Expect(sandbox.CreatedAt()).To(Equal(createdAt))
 		})
+
+		t.Describe("Validate", func() {
+			It("empty sandbox should not succeed", func() {
+				// Given
+				sbox := sandbox.NewBuilder()
+
+				// When
+				sb, err := sbox.GetSandbox()
+
+				// Then
+				Expect(sb).To(BeNil())
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("empty crisandbox should not succeed", func() {
+				// Given
+				sbox := sandbox.NewBuilder()
+				sbox.SetID("id")
+				sbox.SetCreatedAt(time.Now())
+
+				// When
+				sb, err := sbox.GetSandbox()
+
+				// Then
+				Expect(sb).To(BeNil())
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("empty id should not succeed", func() {
+				// Given
+				sbox := sandbox.NewBuilder()
+				sbox.SetCRISandbox("id", make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+				sbox.SetCreatedAt(time.Now())
+
+				// When
+				sb, err := sbox.GetSandbox()
+
+				// Then
+				Expect(sb).To(BeNil())
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("should not succeed", func() {
+				// Given
+				sbox := sandbox.NewBuilder()
+				sbox.SetID("id")
+				sbox.SetCRISandbox("id", make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+				sbox.SetCreatedAt(time.Now())
+
+				// When
+				sb, err := sbox.GetSandbox()
+
+				// Then
+				Expect(sb).NotTo(BeNil())
+				Expect(err).NotTo(HaveOccurred())
+			})
+		})
 	})
 
 	t.Describe("SetSeccompProfilePath", func() {

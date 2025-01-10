@@ -213,7 +213,7 @@ var _ = t.Describe("ContainerServer", func() {
 			sb, err := sut.LoadSandbox(context.Background(), "")
 
 			// Then
-			Expect(sb).NotTo(BeNil())
+			Expect(sb).To(BeNil())
 			Expect(err).To(HaveOccurred())
 		})
 
