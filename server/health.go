@@ -4,9 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	cri "k8s.io/cri-client/pkg"
+
+	"github.com/cri-o/cri-o/internal/log"
+)
+
+var (
+	cniPluginInitialized atomic.Bool
+	cniInitOnce          sync.Once
 )
 
 func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) error {
@@ -31,7 +40,15 @@ func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) erro
 		return errors.New("runtime conditions are nil")
 	}
 
+	s.cniPluginReadinessCheck(ctx)
+
 	for _, c := range response.GetStatus().GetConditions() {
+		if c.GetType() == "NetworkReady" {
+			if !cniPluginInitialized.Load() {
+				log.Warnf(ctx, "CNI plugin not yet initialized. Ignoring NetworkReady status: %v, message: %s, reason: %s", c.GetStatus(), c.GetMessage(), c.GetReason())
+				continue
+			}
+		}
 		if !c.GetStatus() {
 			return fmt.Errorf(
 				"runtime status %q is invalid: %s (reason: %s)",
@@ -41,4 +58,17 @@ func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) erro
 	}
 
 	return nil
+}
+
+func (s *Server) cniPluginReadinessCheck(ctx context.Context) {
+	cniInitOnce.Do(func() {
+		go func() {
+			if err := s.waitForCNIPlugin(ctx, ""); err != nil {
+				log.Errorf(ctx, "CNI plugin not ready: %v", err)
+			} else {
+				log.Infof(ctx, "CNI plugin is ready")
+				cniPluginInitialized.Store(true)
+			}
+		}()
+	})
 }
