@@ -281,3 +281,16 @@ func (s *Server) networkGC(ctx context.Context, validPods []*sandbox.Sandbox) er
 		return validPodNetworks, nil
 	})
 }
+
+// WaitForCNIPlugin waits for the CNI plugin to be ready.
+func (s *Server) waitForCNIPlugin(ctx context.Context, sboxName string) error {
+	if err := s.config.CNIPluginReadyOrError(); err != nil {
+		watcher := s.config.CNIPluginAddWatcher()
+		log.Infof(ctx, "CNI plugin not ready. Waiting to create %s", sboxName)
+		if ready := <-watcher; !ready {
+			return fmt.Errorf("server shutdown before CNI plugin was ready: %w", err)
+		}
+		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sboxName)
+	}
+	return nil
+}
