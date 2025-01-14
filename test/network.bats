@@ -166,3 +166,24 @@ function check_networking() {
 	# shellcheck disable=SC2010
 	[[ $(ls $CNI_RESULTS_DIR | grep "$POD") == "" ]]
 }
+
+@test "Clean up network if pod netns gets destroyed" {
+	start_crio
+
+	POD=$(crictl runp "$TESTDATA/sandbox_config.json")
+
+	# remove the network namespace
+	NETNS_PATH=/var/run/netns/
+	NS=$(crictl inspectp "$POD" |
+		jq -er '.info.runtimeSpec.linux.namespaces[] | select(.type == "network").path | sub("'$NETNS_PATH'"; "")')
+
+	# remove network namespace
+	ip netns del "$NS"
+
+	# fake invalid netns path
+	touch "$NETNS_PATH$NS"
+
+	# be able to remove the sandbox
+	crictl rmp -f "$POD"
+	grep -q "Removed invalid netns path $NETNS_PATH$NS from pod sandbox" "$CRIO_LOG"
+}
