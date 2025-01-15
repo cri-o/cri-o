@@ -3,6 +3,7 @@ GO ?= go
 TRIMPATH ?= -trimpath
 GO_ARCH=$(shell $(GO) env GOARCH)
 GO_BUILD ?= $(GO) build $(TRIMPATH)
+GO_TEST ?= $(GO) test $(TRIMPATH)
 GO_RUN ?= $(GO) run
 NIX_IMAGE ?= nixos/nix:2.24.11
 
@@ -209,7 +210,7 @@ test/checkcriu/checkcriu: $(GO_FILES) ## Build the checkcriu test binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./test/checkcriu
 
 test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
-	$(GO) test --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
+	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
 
 bin/crio: $(GO_FILES) ## Build the CRI-O main binary.
 	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./cmd/crio
