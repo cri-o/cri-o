@@ -2,8 +2,10 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
+	"strings"
 
 	metadata "github.com/checkpoint-restore/checkpointctl/lib"
 	istorage "github.com/containers/image/v5/storage"
@@ -62,22 +64,31 @@ func (s *Server) CRImportCheckpoint(
 ) (ctrID string, retErr error) {
 	var mountPoint string
 
-	input := createConfig.Image.Image
+	// Ensure that the image to restore the checkpoint from has been provided.
+	if createConfig.Image == nil || createConfig.Image.Image == "" {
+		return "", errors.New(`attribute "image" missing from container definition`)
+	}
+
+	if createConfig.Metadata == nil || createConfig.Metadata.Name == "" {
+		return "", errors.New(`attribute "metadata" missing from container definition`)
+	}
+
+	inputImage := createConfig.Image.Image
 	createMounts := createConfig.Mounts
 	createAnnotations := createConfig.Annotations
 	createLabels := createConfig.Labels
 
-	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, input)
+	checkpointIsOCIImage, err := s.checkIfCheckpointOCIImage(ctx, inputImage)
 	if err != nil {
 		return "", err
 	}
 
 	if checkpointIsOCIImage {
-		log.Debugf(ctx, "Restoring from oci image %s\n", input)
+		log.Debugf(ctx, "Restoring from oci image %s\n", inputImage)
 
-		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), input)
+		imageRef, err := istorage.Transport.ParseStoreReference(s.ContainerServer.StorageImageServer().GetStore(), inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to parse image name: %s: %w", input, err)
+			return "", fmt.Errorf("failed to parse image name: %s: %w", inputImage, err)
 		}
 		img, err := istorage.Transport.GetStoreImage(s.ContainerServer.StorageImageServer().GetStore(), imageRef)
 		if err != nil {
@@ -87,23 +98,24 @@ func (s *Server) CRImportCheckpoint(
 		if err != nil {
 			return "", err
 		}
-		input = img.ID
+		inputImage = img.ID
 
-		logrus.Debugf("Checkpoint image %s mounted at %v\n", input, mountPoint)
+		logrus.Debugf("Checkpoint image %s mounted at %v\n", inputImage, mountPoint)
 
 		defer func() {
-			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(input, true); err != nil {
-				logrus.Errorf("Could not unmount checkpoint image %s: %q", input, err)
+			if _, err := s.ContainerServer.StorageImageServer().GetStore().UnmountImage(inputImage, true); err != nil {
+				logrus.Errorf("Could not unmount checkpoint image %s: %q", inputImage, err)
 			}
 		}()
 	} else {
 		// First get the container definition from the
 		// tarball to a temporary directory
-		archiveFile, err := os.Open(input)
+		archiveFile, err := os.Open(inputImage)
 		if err != nil {
-			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", input, err)
+			return "", fmt.Errorf("failed to open checkpoint archive %s for import: %w", inputImage, err)
 		}
 		defer errorhandling.CloseQuiet(archiveFile)
+
 		options := &archive.TarOptions{
 			// Here we only need the files config.dump and spec.dump
 			ExcludePatterns: []string{
@@ -151,69 +163,25 @@ func (s *Server) CRImportCheckpoint(
 		ctrID = ""
 	}
 
-	ctrMetadata := types.ContainerMetadata{}
 	originalAnnotations := make(map[string]string)
-	originalLabels := make(map[string]string)
 
-	if dumpSpec.Annotations[annotations.ContainerManager] == "libpod" {
-		// This is an import from Podman
-		ctrMetadata.Name = config.Name
-		ctrMetadata.Attempt = 0
-	} else {
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Metadata]), &ctrMetadata); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Metadata, err)
+	if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
+		return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
+	}
+
+	if sandboxUID != "" {
+		if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
+			originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
 		}
-		if createConfig.Metadata != nil && createConfig.Metadata.Name != "" {
-			ctrMetadata.Name = createConfig.Metadata.Name
-		}
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Annotations]), &originalAnnotations); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Annotations, err)
-		}
+	}
 
-		if err := json.Unmarshal([]byte(dumpSpec.Annotations[annotations.Labels]), &originalLabels); err != nil {
-			return "", fmt.Errorf("failed to read %q: %w", annotations.Labels, err)
-		}
-		if sandboxUID != "" {
-			if _, ok := originalLabels[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalLabels[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-			if _, ok := originalAnnotations[kubetypes.KubernetesPodUIDLabel]; ok {
-				originalAnnotations[kubetypes.KubernetesPodUIDLabel] = sandboxUID
-			}
-		}
+	if createAnnotations != nil {
+		// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
+		_, ok1 := createAnnotations["io.kubernetes.container.hash"]
+		_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
 
-		if createLabels != nil {
-			fixupLabels := []string{
-				// Update the container name. It has already been update in metadata.Name.
-				// It also needs to be updated in the container labels.
-				kubetypes.KubernetesContainerNameLabel,
-				// Update pod name in the labels.
-				kubetypes.KubernetesPodNameLabel,
-				// Also update namespace.
-				kubetypes.KubernetesPodNamespaceLabel,
-			}
-
-			for _, annotation := range fixupLabels {
-				_, ok1 := createLabels[annotation]
-				_, ok2 := originalLabels[annotation]
-
-				// If the value is not set in the original container or
-				// if it is not set in the new container, just skip
-				// the step of updating metadata.
-				if ok1 && ok2 {
-					originalLabels[annotation] = createLabels[annotation]
-				}
-			}
-		}
-
-		if createAnnotations != nil {
-			// The hash also needs to be update or Kubernetes thinks the container needs to be restarted
-			_, ok1 := createAnnotations["io.kubernetes.container.hash"]
-			_, ok2 := originalAnnotations["io.kubernetes.container.hash"]
-
-			if ok1 && ok2 {
-				originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
-			}
+		if ok1 && ok2 {
+			originalAnnotations["io.kubernetes.container.hash"] = createAnnotations["io.kubernetes.container.hash"]
 		}
 	}
 
@@ -239,8 +207,8 @@ func (s *Server) CRImportCheckpoint(
 
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
-			Name:    ctrMetadata.Name,
-			Attempt: ctrMetadata.Attempt,
+			Name:    createConfig.Metadata.Name,
+			Attempt: createConfig.Metadata.Attempt,
 		},
 		Image: &types.ImageSpec{
 			Image: func() string {
@@ -268,14 +236,19 @@ func (s *Server) CRImportCheckpoint(
 			SecurityContext: &types.LinuxContainerSecurityContext{},
 		},
 		Annotations: originalAnnotations,
-		Labels:      originalLabels,
+		// The labels are nod changed or adapted. They are just taken from the CRI
+		// request without any modification (in contrast to the annotations).
+		Labels: createLabels,
 	}
 
-	if createConfig.Linux.Resources != nil {
-		containerConfig.Linux.Resources = createConfig.Linux.Resources
-	}
-	if createConfig.Linux.SecurityContext != nil {
-		containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+	if createConfig.Linux != nil {
+		if createConfig.Linux.Resources != nil {
+			containerConfig.Linux.Resources = createConfig.Linux.Resources
+		}
+
+		if createConfig.Linux.SecurityContext != nil {
+			containerConfig.Linux.SecurityContext = createConfig.Linux.SecurityContext
+		}
 	}
 
 	if dumpSpec.Linux != nil {
@@ -302,6 +275,13 @@ func (s *Server) CRImportCheckpoint(
 		"/run/.containerenv": true,
 	}
 
+	// It is necessary to ensure that all bind mounts in the checkpoint archive are defined
+	// in the create container requested coming in via the CRI. If this check would not
+	// be here it would be possible to create a checkpoint archive that mounts some random
+	// file/directory on the host with the user knowing as it will happen without specifying
+	// it in the container definition.
+	missingMount := []string{}
+
 	for _, m := range dumpSpec.Mounts {
 		// Following mounts are ignored as they might point to the
 		// wrong location and if ignored the mounts will correctly
@@ -311,31 +291,40 @@ func (s *Server) CRImportCheckpoint(
 		}
 		mount := &types.Mount{
 			ContainerPath: m.Destination,
-			HostPath:      m.Source,
 		}
 
+		bindMountFound := false
 		for _, createMount := range createMounts {
-			if createMount.ContainerPath == m.Destination {
-				mount.HostPath = createMount.HostPath
+			if createMount.ContainerPath != m.Destination {
+				continue
 			}
+
+			bindMountFound = true
+			mount.HostPath = createMount.HostPath
+			mount.Readonly = createMount.Readonly
+			mount.Propagation = createMount.Propagation
+			break
 		}
 
-		for _, opt := range m.Options {
-			switch opt {
-			case "ro":
-				mount.Readonly = true
-			case "rprivate":
-				mount.Propagation = types.MountPropagation_PROPAGATION_PRIVATE
-			case "rshared":
-				mount.Propagation = types.MountPropagation_PROPAGATION_BIDIRECTIONAL
-			case "rslaved":
-				mount.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
-			}
+		if !bindMountFound {
+			missingMount = append(missingMount, m.Destination)
+			// If one mount is missing we can skip over any further code as we have
+			// to abort the restore process anyway. Not using break to get all missing
+			// mountpoints in one error message.
+			continue
 		}
 
 		log.Debugf(ctx, "Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
+	if len(missingMount) > 0 {
+		return "", fmt.Errorf(
+			"restoring %q expects following bind mounts defined (%s)",
+			inputImage,
+			strings.Join(missingMount, ","),
+		)
+	}
+
 	sandboxConfig := &types.PodSandboxConfig{
 		Metadata: &types.PodSandboxMetadata{
 			Name:      sb.Metadata().Name,
@@ -403,7 +392,7 @@ func (s *Server) CRImportCheckpoint(
 
 	newContainer.SetCreated()
 	newContainer.SetRestore(true)
-	newContainer.SetRestoreArchive(input)
+	newContainer.SetRestoreArchive(inputImage)
 	newContainer.SetRestoreIsOCIImage(checkpointIsOCIImage)
 	newContainer.SetCheckpointedAt(config.CheckpointedAt)
 
