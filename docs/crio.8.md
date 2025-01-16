@@ -78,9 +78,11 @@ crio
 [--log-size-max]=[value]
 [--log]=[value]
 [--metrics-cert]=[value]
+[--metrics-cipher-suites]=[value]
 [--metrics-collectors]=[value]
 [--metrics-host]=[value]
 [--metrics-key]=[value]
+[--metrics-min-tls-version]=[value]
 [--metrics-port]=[value]
 [--metrics-socket]=[value]
 [--minimum-mappable-gid]=[value]
@@ -119,8 +121,10 @@ crio
 [--storage-driver|-s]=[value]
 [--storage-opt]=[value]
 [--stream-address]=[value]
+[--stream-cipher-suites]=[value]
 [--stream-enable-tls]
 [--stream-idle-timeout]=[value]
+[--stream-min-tls-version]=[value]
 [--stream-port]=[value]
 [--stream-tls-ca]=[value]
 [--stream-tls-cert]=[value]
@@ -333,11 +337,15 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--metrics-cert**="": Certificate for the secure metrics endpoint.
 
+**--metrics-cipher-suites**="": Cipher suites to use for metrics endpoint. Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.
+
 **--metrics-collectors**="": Enabled metrics collectors. (default: "image_pulls_layer_size", "containers_events_dropped_total", "containers_oom_total", "processes_defunct", "operations_total", "operations_latency_seconds", "operations_latency_seconds_total", "operations_errors_total", "image_pulls_bytes_total", "image_pulls_skipped_bytes_total", "image_pulls_failure_total", "image_pulls_success_total", "image_layer_reuse_total", "containers_oom_count_total", "containers_seccomp_notifier_count_total", "resources_stalled_at_stage")
 
 **--metrics-host**="": Host for the metrics endpoint. (default: "127.0.0.1")
 
 **--metrics-key**="": Certificate key for the secure metrics endpoint.
+
+**--metrics-min-tls-version**="": Minimum TLS version for the metrics endpoint. Valid values are VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13. (default: "VersionTLS12")
 
 **--metrics-port**="": Port for the metrics endpoint. (default: 9090)
 
@@ -415,9 +423,13 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--stream-address**="": Bind address for streaming socket. (default: "127.0.0.1")
 
+**--stream-cipher-suites**="": Cipher suites to use for stream endpoint. Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.
+
 **--stream-enable-tls**: Enable encrypted TLS transport of the stream server.
 
 **--stream-idle-timeout**="": Length of time until open streams terminate due to lack of activity.
+
+**--stream-min-tls-version**="": Minimum TLS version for the stream endpoint. Valid values are VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13. (default: "VersionTLS12")
 
 **--stream-port**="": Bind port for streaming socket. If the port is set to '0', then CRI-O will allocate a random free port number. (default: "0")
 

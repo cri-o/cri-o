@@ -26,11 +26,13 @@ type Config struct {
 	TLSCA   string
 }
 
-func NewCertConfig(ctx context.Context, doneChan chan struct{}, certPath, keyPath, caPath string) (*Config, error) {
+func NewCertConfig(ctx context.Context, doneChan chan struct{}, certPath, keyPath, caPath string, config *tls.Config) (*Config, error) {
 	cc := &Config{
 		TLSCert: certPath,
 		TLSKey:  keyPath,
 		TLSCA:   caPath,
+
+		config: config,
 	}
 
 	if err := cc.reload(ctx); err != nil {
@@ -89,6 +91,8 @@ func (cc *Config) GetConfigForClient(hello *tls.ClientHelloInfo) (*tls.Config, e
 
 func (cc *Config) reload(ctx context.Context) error {
 	config := new(tls.Config)
+	config.MinVersion = cc.config.MinVersion
+	config.CipherSuites = append(config.CipherSuites, cc.config.CipherSuites...)
 	certificate, err := tls.LoadX509KeyPair(cc.TLSCert, cc.TLSKey)
 	// Validate the certificates
 	if err != nil {

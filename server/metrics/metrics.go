@@ -455,14 +455,17 @@ func (m *Metrics) startEndpoint(
 			}
 
 			var cc *cert.Config
-			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "")
+			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "",
+				&tls.Config{
+					MinVersion:   libconfig.TLSVersions[m.config.MetricsMinTLSVersion],
+					CipherSuites: libconfig.CipherSuitesFromConfig(m.config.MetricsCipherSuites),
+				})
 			if err != nil {
 				log.Fatalf(ctx, "Creating key pair reloader: %v", err)
 			}
 
 			srv.TLSConfig = &tls.Config{
 				GetConfigForClient: cc.GetConfigForClient,
-				MinVersion:         tls.VersionTLS12,
 			}
 
 			go func() {

@@ -474,7 +474,11 @@ func New(
 	s.stream.streamServerCloseCh = make(chan struct{})
 	if config.StreamEnableTLS {
 		log.Debugf(ctx, "TLS enabled for streaming server")
-		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA)
+		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh,
+			config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA, &tls.Config{
+				MinVersion:   libconfig.TLSVersions[config.StreamMinTLSVersion],
+				CipherSuites: libconfig.CipherSuitesFromConfig(config.StreamCipherSuites),
+			})
 		if err != nil {
 			return nil, err
 		}
@@ -485,10 +489,10 @@ func New(
 		if err != nil {
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
+		log.Debugf(ctx, "%s: %d", config.StreamMinTLSVersion, libconfig.TLSVersions[config.StreamMinTLSVersion])
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certConf.GetConfigForClient,
 			Certificates:       []tls.Certificate{certificate},
-			MinVersion:         tls.VersionTLS12,
 		}
 		log.Debugf(ctx, "Applying stream server TLS configuration")
 	}

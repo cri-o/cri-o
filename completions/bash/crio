@@ -81,9 +81,11 @@ h
 --log-level
 --log-size-max
 --metrics-cert
+--metrics-cipher-suites
 --metrics-collectors
 --metrics-host
 --metrics-key
+--metrics-min-tls-version
 --metrics-port
 --metrics-socket
 --minimum-mappable-gid
@@ -124,8 +126,10 @@ h
 --storage-driver
 --storage-opt
 --stream-address
+--stream-cipher-suites
 --stream-enable-tls
 --stream-idle-timeout
+--stream-min-tls-version
 --stream-port
 --stream-tls-ca
 --stream-tls-cert

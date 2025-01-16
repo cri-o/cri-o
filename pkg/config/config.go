@@ -629,6 +629,14 @@ type APIConfig struct {
 
 	// StreamIdleTimeout is how long to leave idle connections open for
 	StreamIdleTimeout string `toml:"stream_idle_timeout"`
+
+	// MetricsMinTLSVersion is the minimum TLS version for stream server.
+	// Valid values are VersionTLS10, VersionTLS11, VersionTLS12 and VersionTLS13.
+	StreamMinTLSVersion string `toml:"stream_min_tls_version"`
+
+	// MetricsCipherSuites is the list of enabled TLS 1.0–1.2 cipher suites for stream server.
+	// Valid values are on https://pkg.go.dev/crypto/tls#pkg-constants.
+	StreamCipherSuites []string `toml:"stream_cipher_suites"`
 }
 
 // MetricsConfig specifies all necessary configuration for Prometheus based
@@ -654,6 +662,14 @@ type MetricsConfig struct {
 
 	// MetricsKey is the certificate key for the secure metrics server.
 	MetricsKey string `toml:"metrics_key"`
+
+	// MetricsMinTLSVersion is the minimum TLS version for metrics server.
+	// Valid values are VersionTLS10, VersionTLS11, VersionTLS12 and VersionTLS13.
+	MetricsMinTLSVersion string `toml:"metrics_min_tls_version"`
+
+	// MetricsCipherSuites is the list of enabled TLS 1.0–1.2 cipher suites for metrics server.
+	// Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.
+	MetricsCipherSuites []string `toml:"metrics_cipher_suites"`
 }
 
 // TracingConfig specifies all necessary configuration for opentelemetry trace exports.
@@ -904,11 +920,12 @@ func DefaultConfig() (*Config, error) {
 			InternalRepair:    true,
 		},
 		APIConfig: APIConfig{
-			Listen:             CrioSocketPath,
-			StreamAddress:      "127.0.0.1",
-			StreamPort:         "0",
-			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
-			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
+			Listen:              CrioSocketPath,
+			StreamAddress:       "127.0.0.1",
+			StreamPort:          "0",
+			StreamMinTLSVersion: VersionTLS12,
+			GRPCMaxSendMsgSize:  defaultGRPCMaxMsgSize,
+			GRPCMaxRecvMsgSize:  defaultGRPCMaxMsgSize,
 		},
 		RuntimeConfig: RuntimeConfig{
 			AllowedDevices:     []string{"/dev/fuse", "/dev/net/tun"},
@@ -963,9 +980,10 @@ func DefaultConfig() (*Config, error) {
 			PluginDirs: []string{cniBinDir},
 		},
 		MetricsConfig: MetricsConfig{
-			MetricsHost:       "127.0.0.1",
-			MetricsPort:       9090,
-			MetricsCollectors: collectors.All(),
+			MetricsHost:          "127.0.0.1",
+			MetricsPort:          9090,
+			MetricsCollectors:    collectors.All(),
+			MetricsMinTLSVersion: VersionTLS12,
 		},
 		TracingConfig: TracingConfig{
 			TracingEndpoint:               "127.0.0.1:4317",
@@ -1019,6 +1037,10 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("validating api config: %w", err)
 	}
 
+	if err := c.MetricsConfig.Validate(); err != nil {
+		return fmt.Errorf("validating metrics config: %w", err)
+	}
+
 	if !c.SELinux {
 		selinux.SetDisabled()
 	}
@@ -1049,6 +1071,12 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		if c.StreamTLSKey == "" {
 			return errors.New("stream TLS key path is empty")
 		}
+		if err := ValidateTLSVersion(c.StreamMinTLSVersion); err != nil {
+			return err
+		}
+		if err := ValidateCipherSuites(c.StreamCipherSuites); err != nil {
+			return err
+		}
 	}
 
 	if onExecution {
@@ -1076,6 +1104,18 @@ func RemoveUnusedSocket(path string) error {
 		}
 	}
 
+	return nil
+}
+
+// Validate is the main entry point for metrics configuration validation.
+// It returns an `error` on validation failure, otherwise `nil`.
+func (c *MetricsConfig) Validate() error {
+	if err := ValidateTLSVersion(c.MetricsMinTLSVersion); err != nil {
+		return err
+	}
+	if err := ValidateCipherSuites(c.MetricsCipherSuites); err != nil {
+		return err
+	}
 	return nil
 }
 

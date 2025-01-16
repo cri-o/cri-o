@@ -327,6 +327,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
+	if ctx.IsSet("stream-min-tls-version") {
+		config.StreamMinTLSVersion = ctx.String("stream-min-tls-version")
+	}
+	if ctx.IsSet("stream-cipher-suites") {
+		config.StreamCipherSuites = StringSliceTrySplit(ctx, "stream-cipher-suites")
+	}
 	if ctx.IsSet("stream-idle-timeout") {
 		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
@@ -368,6 +374,12 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	}
 	if ctx.IsSet("metrics-key") {
 		config.MetricsKey = ctx.String("metrics-key")
+	}
+	if ctx.IsSet("metrics-min-tls-version") {
+		config.MetricsMinTLSVersion = ctx.String("metrics-min-tls-version")
+	}
+	if ctx.IsSet("metrics-cipher-suites") {
+		config.MetricsCipherSuites = StringSliceTrySplit(ctx, "metrics-cipher-suites")
 	}
 	if ctx.IsSet("metrics-collectors") {
 		config.MetricsCollectors = collectors.FromSlice(ctx.StringSlice("metrics-collectors"))
@@ -872,6 +884,18 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"CONTAINER_METRICS_KEY"},
 			Value:   defConf.MetricsKey,
 		},
+		&cli.StringFlag{
+			Name:    "metrics-min-tls-version",
+			Usage:   "Minimum TLS version for the metrics endpoint. Valid values are VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.",
+			EnvVars: []string{"CONTAINER_METRICS_MIN_TLS_VERSION"},
+			Value:   defConf.MetricsMinTLSVersion,
+		},
+		&cli.StringSliceFlag{
+			Name:    "metrics-cipher-suites",
+			Usage:   "Cipher suites to use for metrics endpoint. Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.",
+			EnvVars: []string{"CONTAINER_METRICS_CIPHER_SUITES"},
+			Value:   cli.NewStringSlice(defConf.MetricsCipherSuites...),
+		},
 		&cli.StringSliceFlag{
 			Name:    "metrics-collectors",
 			Usage:   "Enabled metrics collectors.",
@@ -1098,6 +1122,18 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:     "Path to the key file used to serve the encrypted stream. This file can change and CRI-O will automatically pick up the changes.",
 			EnvVars:   []string{"CONTAINER_TLS_KEY"},
 			TakesFile: true,
+		},
+		&cli.StringFlag{
+			Name:    "stream-min-tls-version",
+			Usage:   "Minimum TLS version for the stream endpoint. Valid values are VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13.",
+			EnvVars: []string{"CONTAINER_STREAM_MIN_TLS_VERSION"},
+			Value:   defConf.StreamMinTLSVersion,
+		},
+		&cli.StringSliceFlag{
+			Name:    "stream-cipher-suites",
+			Usage:   "Cipher suites to use for stream endpoint. Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.",
+			EnvVars: []string{"CONTAINER_STREAM_CIPHER_SUITES"},
+			Value:   cli.NewStringSlice(defConf.StreamCipherSuites...),
 		},
 		&cli.StringFlag{
 			Name:    "stream-idle-timeout",

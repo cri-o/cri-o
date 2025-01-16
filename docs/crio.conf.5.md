@@ -103,6 +103,12 @@ Path to the key file used to serve the encrypted stream. This file can change an
 **stream_tls_ca**=""
 Path to the x509 CA(s) file used to verify and authenticate client communication with the encrypted stream. This file can change and CRI-O will automatically pick up the changes within 5 minutes.
 
+**stream_min_tls_version**="VersionTLS12"
+Minimum TLS version for the stream endpoint (VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13). (default: "VersionTLS12")
+
+**stream_cipher_suites**=[]
+Cipher suites to use for stream endpoint. See https://pkg.go.dev/crypto/tls#pkg-constants for supported values
+
 **grpc_max_send_msg_size**=83886080
 Maximum grpc send message size in bytes. If not set or <=0, then CRI-O will default to 80 _ 1024 _ 1024.
 
@@ -534,6 +540,12 @@ The certificate for the secure metrics server.
 
 **metrics_key**=""
 The certificate key for the secure metrics server.
+
+**metrics_min_tls_version**="VersionTLS12"
+Minimum TLS version for the metrics endpoint (VersionTLS10, VersionTLS11, VersionTLS12, VersionTLS13). (default: "VersionTLS12")
+
+**metrics_cipher_suites**=[]
+Cipher suites to use for metrics endpoint. See https://pkg.go.dev/crypto/tls#pkg-constants for supported values
 
 ## CRIO.TRACING TABLE
 

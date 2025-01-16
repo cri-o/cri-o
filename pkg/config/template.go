@@ -46,6 +46,7 @@ func assembleTemplateString(displayAllConfig bool, c *Config) string {
 
 	// [crio.tracing] configuration
 	templateString += crioTemplateString(crioTracingConfig, templateStringCrioTracing, displayAllConfig, crioTemplateConfig)
+
 	// [crio.nri] configuration
 	templateString += crioTemplateString(crioNRIConfig, templateStringCrioNRI, displayAllConfig, crioTemplateConfig)
 
@@ -200,6 +201,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			templateString: templateStringCrioAPIStreamTLSCa,
 			group:          crioAPIConfig,
 			isDefaultValue: simpleEqual(dc.StreamTLSCA, c.StreamTLSCA),
+		},
+		{
+			templateString: templateStringCrioAPIStreamMinTLSVersion,
+			group:          crioAPIConfig,
+			isDefaultValue: simpleEqual(dc.StreamMinTLSVersion, c.StreamMinTLSVersion),
+		},
+		{
+			templateString: templateStringCrioAPIStreamCipherSuites,
+			group:          crioAPIConfig,
+			isDefaultValue: slices.Equal(dc.StreamCipherSuites, c.StreamCipherSuites),
 		},
 		{
 			templateString: templateStringCrioAPIGrpcMaxSendMsgSize,
@@ -597,6 +608,16 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.MetricsKey, c.MetricsKey),
 		},
 		{
+			templateString: templateStringCrioMetricsMinTLSVersion,
+			group:          crioMetricsConfig,
+			isDefaultValue: simpleEqual(dc.MetricsMinTLSVersion, c.MetricsMinTLSVersion),
+		},
+		{
+			templateString: templateStringCrioMetricsCipherSuites,
+			group:          crioMetricsConfig,
+			isDefaultValue: slices.Equal(dc.MetricsCipherSuites, c.MetricsCipherSuites),
+		},
+		{
 			templateString: templateStringCrioTracingEnableTracing,
 			group:          crioTracingConfig,
 			isDefaultValue: simpleEqual(dc.EnableTracing, c.EnableTracing),
@@ -842,6 +863,19 @@ const templateStringCrioAPIStreamTLSCa = `# Path to the x509 CA(s) file used to 
 # communication with the encrypted stream. This file can change and CRI-O will
 # automatically pick up the changes.
 {{ $.Comment }}stream_tls_ca = "{{ .StreamTLSCA }}"
+
+`
+
+const templateStringCrioAPIStreamMinTLSVersion = `# Minimum TLS version supported by the stream server.
+# Valid values are "VersionTLS10", "VersionTLS11", "VersionTLS12" and "VersionTLS13".
+{{ $.Comment }}stream_min_tls_version = "{{ .StreamMinTLSVersion }}"
+
+`
+
+const templateStringCrioAPIStreamCipherSuites = `# List of supported cipher suites for the stream server.
+# Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.",
+{{ $.Comment }}stream_cipher_suites = [
+{{ range $opt := .StreamCipherSuites }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 
@@ -1559,6 +1593,19 @@ const templateStringCrioMetricsMetricsCert = `# The certificate for the secure m
 const templateStringCrioMetricsMetricsKey = `# The certificate key for the secure metrics server.
 # Behaves in the same way as the metrics_cert.
 {{ $.Comment }}metrics_key = "{{ .MetricsKey }}"
+
+`
+
+const templateStringCrioMetricsMinTLSVersion = `# Minimum TLS version supported by the metrics server.
+# Valid values are "VersionTLS10", "VersionTLS11", "VersionTLS12" and "VersionTLS13".
+{{ $.Comment }}metrics_min_tls_version = "{{ .MetricsMinTLSVersion }}"
+
+`
+
+const templateStringCrioMetricsCipherSuites = `# List of supported cipher suites for the metrics server.
+# Valid values are listed on https://pkg.go.dev/crypto/tls#pkg-constants.",
+{{ $.Comment }}metrics_cipher_suites = [
+{{ range $opt := .MetricsCipherSuites }}{{ $.Comment }}{{ printf "\t%q,\n" $opt }}{{ end }}{{ $.Comment }}]
 
 `
 
