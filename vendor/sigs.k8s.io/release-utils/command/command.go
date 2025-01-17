@@ -52,7 +52,7 @@ type filter struct {
 }
 
 // A generic command exit status.
-type Status struct {
+type Status struct { //nolint: errname
 	waitStatus syscall.WaitStatus
 	*Stream
 }
