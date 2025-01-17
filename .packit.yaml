@@ -43,23 +43,6 @@ packages:
         - "rm -fv .packit_rpm/sources"
         # Update %global commit0 <sha> in specfile
         - 'sed -i "s/^%global commit0.*/%global commit0 $(git rev-parse HEAD)/" .packit_rpm/cri-o.spec'
-  fedora-39:
-    # v1.27.x
-    # Only propose patch releases downstream
-    version_update_mask: '\d+\.\d+\'
-    specfile_path: .packit_rpm/cri-o.spec
-    files_to_sync:
-      - .packit.yaml
-      - src: .packit_rpm/cri-o.spec
-        dest: cri-o.spec
-    actions:
-      post-upstream-clone:
-        # Use the Fedora 39 specfile
-        - "git clone https://src.fedoraproject.org/rpms/cri-o .packit_rpm --branch=f39 --depth=1"
-        # Drop the "sources" file so rebase-helper doesn't think we're a dist-git
-        - "rm -fv .packit_rpm/sources"
-        # Update %global commit0 <sha> in specfile
-        - 'sed -i "s/^%global commit0.*/%global commit0 $(git rev-parse HEAD)/" .packit_rpm/cri-o.spec'
 
 jobs:
   - job: copr_build
@@ -114,19 +97,6 @@ jobs:
     packages:
       - fedora-40
 
-  - job: copr_build
-    trigger: pull_request
-    branch: release-1.27
-    targets:
-      - centos-stream-9-aarch64
-      - centos-stream-9-x86_64
-      - fedora-rawhide-aarch64
-      - fedora-rawhide-x86_64
-      - fedora-39-aarch64
-      - fedora-39-x86_64
-    packages:
-      - fedora-39
-
   - job: propose_downstream
     trigger: release
     dist_git_branches:
@@ -140,13 +110,6 @@ jobs:
       - f40
     packages:
       - fedora-40
-
-  - job: propose_downstream
-    trigger: release
-    dist_git_branches:
-      - f39
-    packages:
-      - fedora-39
 
   # downstream automation:
   - job: koji_build
