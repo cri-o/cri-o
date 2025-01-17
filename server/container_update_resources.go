@@ -19,7 +19,7 @@ import (
 func (s *Server) UpdateContainerResources(ctx context.Context, req *types.UpdateContainerResourcesRequest) (*types.UpdateContainerResourcesResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
@@ -40,12 +40,12 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 			updated = req.Linux
 		}
 		resources := toOCIResources(updated)
-		if err := s.Runtime().UpdateContainer(ctx, c, resources); err != nil {
+		if err := s.ContainerServer.Runtime().UpdateContainer(ctx, c, resources); err != nil {
 			return nil, err
 		}
 
 		// update memory store with updated resources
-		s.UpdateContainerLinuxResources(c, resources)
+		s.ContainerServer.UpdateContainerLinuxResources(c, resources)
 
 		if err := s.nri.postUpdateContainer(ctx, c); err != nil {
 			log.Errorf(ctx, "NRI container post-update failed: %v", err)

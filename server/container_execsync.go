@@ -15,7 +15,7 @@ import (
 func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -29,5 +29,5 @@ func (s *Server) ExecSync(ctx context.Context, req *types.ExecSyncRequest) (*typ
 		return nil, errors.New("exec command cannot be empty")
 	}
 
-	return s.Runtime().ExecSyncContainer(ctx, c, cmd, req.Timeout)
+	return s.ContainerServer.Runtime().ExecSyncContainer(ctx, c, cmd, req.Timeout)
 }

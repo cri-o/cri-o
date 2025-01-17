@@ -19,7 +19,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		return nil, errors.New("checkpoint/restore support not available")
 	}
 
-	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	_, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}

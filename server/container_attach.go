@@ -28,12 +28,12 @@ func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.A
 func (s *StreamService) Attach(ctx context.Context, containerID string, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)
+	c, err := s.runtimeServer.ContainerServer.GetContainerFromShortID(ctx, containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
 
-	if err := s.runtimeServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
+	if err := s.runtimeServer.ContainerServer.Runtime().UpdateContainerStatus(s.ctx, c); err != nil {
 		return err
 	}
 
@@ -42,5 +42,5 @@ func (s *StreamService) Attach(ctx context.Context, containerID string, inputStr
 		return errors.New("container is not created or running")
 	}
 
-	return s.runtimeServer.Runtime().AttachContainer(s.ctx, c, inputStream, outputStream, errorStream, tty, resizeChan)
+	return s.runtimeServer.ContainerServer.Runtime().AttachContainer(s.ctx, c, inputStream, outputStream, errorStream, tty, resizeChan)
 }

@@ -335,14 +335,14 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("setting container name and ID: %w", err)
 	}
 
-	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+	if _, err = s.ContainerServer.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load: %w", err)
 	}
 
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: releasing container name %s", ctr.Name())
-			s.ReleaseContainerName(ctx, ctr.Name())
+			s.ContainerServer.ReleaseContainerName(ctx, ctr.Name())
 		}
 	}()
 	ctr.SetRestore(true)
@@ -354,7 +354,7 @@ func (s *Server) CRImportCheckpoint(
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container %s from storage", ctr.ID())
-			err2 := s.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID())
+			err2 := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
@@ -370,13 +370,13 @@ func (s *Server) CRImportCheckpoint(
 		}
 	}()
 
-	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
+	if err := s.ContainerServer.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return "", err
 	}
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container ID %s from idIndex", ctr.ID())
-			if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil {
+			if err := s.ContainerServer.CtrIDIndex().Delete(ctr.ID()); err != nil {
 				log.Warnf(ctx, "Couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
 		}

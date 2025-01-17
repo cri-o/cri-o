@@ -46,7 +46,7 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 		return podList
 	}
 	if filter.Id != "" {
-		id, err := s.PodIDIndex().Get(filter.Id)
+		id, err := s.ContainerServer.PodIDIndex().Get(filter.Id)
 		if err != nil {
 			// Not finding an ID in a filtered list should not be considered
 			// and error; it might have been deleted when stop was done.

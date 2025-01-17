@@ -242,6 +242,10 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 
 	network := s.config.CNIPlugin().GetDefaultNetworkName()
 	podAnnotations := sb.Annotations()
+	// To address typecheck linter.
+	if podAnnotations == nil {
+		podAnnotations = make(map[string]string)
+	}
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),

@@ -146,7 +146,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
-	podContainer, err := s.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
+	podContainer, err := s.ContainerServer.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sboxName, sboxId,
 		pauseImage,
 		s.config.PauseImageAuthFile,
@@ -166,7 +166,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, fmt.Errorf("creating pod sandbox with name %q: %w", sboxName, err)
 	}
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sboxId, func() error {
-		return s.StorageRuntimeServer().DeleteContainer(ctx, sboxId)
+		return s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, sboxId)
 	})
 
 	mountLabel := podContainer.MountLabel
@@ -239,11 +239,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox spec configuration")
 
-	if err := s.CtrIDIndex().Add(sboxId); err != nil {
+	if err := s.ContainerServer.CtrIDIndex().Add(sboxId); err != nil {
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "runSandbox: deleting container ID from idIndex for sandbox "+sboxId, func() error {
-		if err := s.CtrIDIndex().Delete(sboxId); err != nil && !strings.Contains(err.Error(), noSuchID) {
+		if err := s.ContainerServer.CtrIDIndex().Delete(sboxId); err != nil && !strings.Contains(err.Error(), noSuchID) {
 			return fmt.Errorf("could not delete ctr id %s from idIndex: %w", sboxId, err)
 		}
 		return nil
@@ -397,12 +397,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox storage start")
 
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(sboxId)
+	mountPoint, err := s.ContainerServer.StorageRuntimeServer().StartContainer(sboxId)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sboxId, err)
 	}
 	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sboxId, func() error {
-		if err := s.StorageRuntimeServer().StopContainer(ctx, sboxId); err != nil {
+		if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, sboxId); err != nil {
 			return fmt.Errorf("could not stop storage container: %s: %w", sboxId, err)
 		}
 		return nil
@@ -430,7 +430,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.RemoveMount("/dev/fd")
 	g.RemoveMount("/dev")
 
-	runtimeType, err := s.Runtime().RuntimeType(runtimeHandler)
+	runtimeType, err := s.ContainerServer.Runtime().RuntimeType(runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -500,7 +500,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 
 		log.Infof(ctx, "RunSandbox: deleting container %s", container.ID())
-		if err := s.Runtime().DeleteContainer(ctx, container); err != nil {
+		if err := s.ContainerServer.Runtime().DeleteContainer(ctx, container); err != nil {
 			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
@@ -544,7 +544,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_CREATED_EVENT)
-	if err := s.Runtime().StartContainer(ctx, container); err != nil {
+	if err := s.ContainerServer.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
 

@@ -212,7 +212,7 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 	// will handle duplicates, if any.
 	// TODO: eventually, this should be in the container package, but it's going through a lot of churn
 	// and SpecAddAnnotations is already passed too many arguments
-	allowed, err := s.Runtime().AllowedAnnotations(runtimeHandler)
+	allowed, err := s.ContainerServer.Runtime().AllowedAnnotations(runtimeHandler)
 	if err != nil {
 		return err
 	}

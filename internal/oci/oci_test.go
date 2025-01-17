@@ -46,19 +46,19 @@ var _ = t.Describe("Oci", func() {
 			vmRuntime          = "kata"
 		)
 		runtimes := libconfig.Runtimes{
-			defaultRuntime: {
+			defaultRuntime: &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/sh",
 				RuntimeType: "",
 				RuntimeRoot: "/run/runc",
 			},
-			invalidRuntime: {},
-			usernsRuntime: {
+			invalidRuntime: &libconfig.RuntimeHandler{},
+			usernsRuntime: &libconfig.RuntimeHandler{
 				RuntimePath:        "/bin/sh",
 				RuntimeType:        "",
 				RuntimeRoot:        "/run/runc",
 				AllowedAnnotations: []string{annotations.UsernsModeAnnotation},
 			},
-			performanceRuntime: {
+			performanceRuntime: &libconfig.RuntimeHandler{
 				RuntimePath: "/bin/sh",
 				RuntimeType: "",
 				RuntimeRoot: "/run/runc",
@@ -69,7 +69,7 @@ var _ = t.Describe("Oci", func() {
 					annotations.OCISeccompBPFHookAnnotation,
 				},
 			},
-			vmRuntime: {
+			vmRuntime: &libconfig.RuntimeHandler{
 				RuntimePath:                  "/usr/bin/containerd-shim-kata-v2",
 				RuntimeType:                  "vm",
 				RuntimeRoot:                  "/run/vc",

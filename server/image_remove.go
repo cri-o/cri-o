@@ -34,8 +34,8 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
-		if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
+	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
+		if err := s.ContainerServer.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
 			if errors.Is(err, storagetypes.ErrImageUnknown) {
 				// The RemoveImage RPC is idempotent, and must not return an
 				// error if the image has already been removed. Ref:
@@ -52,13 +52,13 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		deleted   bool
 		statusErr error
 	)
-	potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
+	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {
 		return err
 	}
 	for _, name := range potentialMatches {
 		var status *storage.ImageResult
-		status, statusErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+		status, statusErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if statusErr != nil {
 			log.Errorf(ctx, "Error getting image status %s: %v", name, statusErr)
 			continue
@@ -78,7 +78,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 			}
 		}
 
-		untagErr = s.StorageImageServer().UntagImage(s.config.SystemContext, name)
+		untagErr = s.ContainerServer.StorageImageServer().UntagImage(s.config.SystemContext, name)
 		if untagErr != nil {
 			log.Debugf(ctx, "Error deleting image %s: %v", name, untagErr)
 			continue

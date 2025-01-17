@@ -165,7 +165,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux.Get(InspectContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.TODO()
 		containerID := chi.URLParam(req, "id")
-		ci, err := s.getContainerInfo(ctx, containerID, s.GetContainer, s.getInfraContainer, s.getSandbox)
+		ci, err := s.getContainerInfo(ctx, containerID, s.ContainerServer.GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
 			switch {
 			case errors.Is(err, errCtrNotFound):
@@ -193,7 +193,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux.Get(InspectPauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
-		ctr := s.GetContainer(ctx, containerID)
+		ctr := s.ContainerServer.GetContainer(ctx, containerID)
 
 		if ctr == nil {
 			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
@@ -206,11 +206,11 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 				http.StatusConflict)
 			return
 		}
-		if err := s.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
+		if err := s.ContainerServer.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if err := s.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
+		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -223,7 +223,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux.Get(InspectUnpauseEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		containerID := chi.URLParam(req, "id")
 		ctx := context.TODO()
-		ctr := s.GetContainer(ctx, containerID)
+		ctr := s.ContainerServer.GetContainer(ctx, containerID)
 
 		if ctr == nil {
 			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
@@ -236,11 +236,11 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 				http.StatusConflict)
 			return
 		}
-		if err := s.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
+		if err := s.ContainerServer.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		if err := s.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
+		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

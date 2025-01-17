@@ -11,5 +11,5 @@ import (
 
 // createContainerPlatform performs platform dependent intermediate steps before calling the container's oci.Runtime().CreateContainer()
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
-	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
+	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }

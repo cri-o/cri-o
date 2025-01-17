@@ -9,7 +9,7 @@ import (
 // ListMetricDescriptors lists all metric descriptors.
 func (s *Server) ListMetricDescriptors(ctx context.Context, req *types.ListMetricDescriptorsRequest) (*types.ListMetricDescriptorsResponse, error) {
 	includedKeys := s.config.IncludedPodMetrics
-	descriptorsMap := s.StatsServer.PopulateMetricDescriptors(includedKeys)
+	descriptorsMap := s.ContainerServer.StatsServer.PopulateMetricDescriptors(includedKeys)
 
 	// Flatten the map of descriptors to a slice.
 	var flattenedDescriptors []*types.MetricDescriptor

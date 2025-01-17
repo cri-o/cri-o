@@ -32,7 +32,7 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 		}
 	}
 
-	results, err := s.StorageImageServer().ListImages(s.config.SystemContext)
+	results, err := s.ContainerServer.StorageImageServer().ListImages(s.config.SystemContext)
 	if err != nil {
 		return nil, err
 	}

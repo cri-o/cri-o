@@ -74,11 +74,11 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
-	s.ReleasePodName(sb.Name())
+	s.ContainerServer.ReleasePodName(sb.Name())
 	if err := s.removeSandbox(ctx, sb.ID()); err != nil {
 		log.Warnf(ctx, "Failed to remove sandbox: %v", err)
 	}
-	if err := s.PodIDIndex().Delete(sb.ID()); err != nil {
+	if err := s.ContainerServer.PodIDIndex().Delete(sb.ID()); err != nil {
 		return fmt.Errorf("failed to delete pod sandbox %s from index: %w", sb.ID(), err)
 	}
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_DELETED_EVENT)

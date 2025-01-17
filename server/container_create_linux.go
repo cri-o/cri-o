@@ -58,7 +58,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 			}
 		}
 	}
-	return s.Runtime().CreateContainer(ctx, container, cgroupParent, false)
+	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
 // makeAccessible changes the path permission and each parent directory to have --x--x--x.
@@ -163,19 +163,19 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	// Get imageName and imageID that are later requested in container status
 	var imgResult *storage.ImageResult
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
-		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = s.ContainerServer.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
 		var imgResultErr error
 		for _, name := range potentialMatches {
-			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			imgResult, imgResultErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 			if imgResultErr == nil {
 				break
 			}
@@ -228,7 +228,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			return nil, fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
 		}
 
-		if err := s.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, imageID); err != nil {
+		if err := s.ContainerServer.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, imageID); err != nil {
 			return nil, err
 		}
 	}
@@ -251,7 +251,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	metadata := containerConfig.Metadata
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
-	containerInfo, err := s.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
+	containerInfo, err := s.ContainerServer.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		userRequestedImage, imageID,
 		containerName, containerID,
@@ -267,7 +267,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
-			if err := s.StorageRuntimeServer().DeleteContainer(ctx, containerInfo.ID); err != nil {
+			if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
 		}
@@ -310,9 +310,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
-	idMapSupport := s.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
-	rroSupport := s.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
-	containerVolumes, ociMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.Config().Root)
+	idMapSupport := s.ContainerServer.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
+	rroSupport := s.ContainerServer.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
+	containerVolumes, ociMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root)
 	if err != nil {
 		return nil, err
 	}
@@ -324,7 +324,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
-	mountPoint, err := s.StorageRuntimeServer().StartContainer(containerID)
+	mountPoint, err := s.ContainerServer.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
 	}
@@ -332,7 +332,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
-			if err := s.StorageRuntimeServer().StopContainer(ctx, containerID); err != nil {
+			if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, containerID); err != nil {
 				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
 		}
@@ -370,7 +370,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if linux != nil {
 		resources := linux.Resources
 		if resources != nil {
-			containerMinMemory, err := s.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
+			containerMinMemory, err := s.ContainerServer.Runtime().GetContainerMinMemory(sb.RuntimeHandler())
 			if err != nil {
 				return nil, err
 			}
@@ -394,7 +394,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	var nsTargetCtr *oci.Container
 	if target := securityContext.NamespaceOptions.TargetId; target != "" {
-		nsTargetCtr = s.GetContainer(ctx, target)
+		nsTargetCtr = s.ContainerServer.GetContainer(ctx, target)
 	}
 
 	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
@@ -558,7 +558,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	// Get RDT class
-	rdtClass, err := s.Config().Rdt().ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations())
+	rdtClass, err := s.ContainerServer.Config().Rdt().ContainerClassFromAnnotations(metadata.Name, containerConfig.Annotations, sb.Annotations())
 	if err != nil {
 		return nil, err
 	}
@@ -569,7 +569,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 	// compute the runtime path for a given container
 	platform := containerInfo.Config.Platform.OS + "/" + containerInfo.Config.Platform.Architecture
-	runtimePath, err := s.Runtime().PlatformRuntimePath(sb.RuntimeHandler(), platform)
+	runtimePath, err := s.ContainerServer.Runtime().PlatformRuntimePath(sb.RuntimeHandler(), platform)
 	if err != nil {
 		return nil, err
 	}
@@ -584,7 +584,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	// First add any configured environment variables from crio config.
 	// They will get overridden if specified in the image or container config.
-	specgen.AddMultipleProcessEnv(s.Config().DefaultEnv)
+	specgen.AddMultipleProcessEnv(s.ContainerServer.Config().DefaultEnv)
 
 	// Add environment variables from image the CRI configuration
 	envs := mergeEnvs(containerImageConfig, containerConfig.Envs)
@@ -787,7 +787,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	// Configure timezone for the container if it is set.
-	if err := configureTimezone(s.Runtime().Timezone(), ociContainer.BundlePath(), mountPoint, mountLabel, etcPath, ociContainer.ID(), options, ctr); err != nil {
+	if err := configureTimezone(s.ContainerServer.Runtime().Timezone(), ociContainer.BundlePath(), mountPoint, mountLabel, etcPath, ociContainer.ID(), options, ctr); err != nil {
 		return nil, fmt.Errorf("failed to configure timezone for container %s: %w", ociContainer.ID(), err)
 	}
 
@@ -1178,7 +1178,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
-	mountPoint, err := s.Store().MountImage(imageID, options, "")
+	mountPoint, err := s.ContainerServer.Store().MountImage(imageID, options, "")
 	if err != nil {
 		return nil, fmt.Errorf("mount storage: %w", err)
 	}
@@ -1222,7 +1222,7 @@ func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mou
 		return "", nil
 	}
 
-	imageVolumesPath := filepath.Join(filepath.Dir(s.Config().ContainerExitsDir), "image-volumes")
+	imageVolumesPath := filepath.Join(filepath.Dir(s.ContainerServer.Config().ContainerExitsDir), "image-volumes")
 	log.Debugf(ctx, "Using image volumes path: %s", imageVolumesPath)
 
 	if err := os.MkdirAll(imageVolumesPath, 0o700); err != nil {
@@ -1421,8 +1421,8 @@ func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.Con
 
 func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.Generator, ctr ctrfactory.Container, securityContext *types.LinuxContainerSecurityContext) error {
 	// set this container's apparmor profile if it is set by sandbox
-	if s.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
-		profile, err := s.Config().AppArmor().Apply(securityContext)
+	if s.ContainerServer.Config().AppArmor().IsEnabled() && !ctr.Privileged() {
+		profile, err := s.ContainerServer.Config().AppArmor().Apply(securityContext)
 		if err != nil {
 			return fmt.Errorf("applying apparmor profile to container %s: %w", ctr.ID(), err)
 		}
@@ -1435,10 +1435,10 @@ func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.G
 
 func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName string, containerAnnotations, sandboxAnnotations map[string]string) error {
 	// Get blockio class
-	if s.Config().BlockIO().Enabled() {
+	if s.ContainerServer.Config().BlockIO().Enabled() {
 		if blockioClass, err := blockio.ContainerClassFromAnnotations(containerName, containerAnnotations, sandboxAnnotations); blockioClass != "" && err == nil {
-			if s.Config().BlockIO().ReloadRequired() {
-				if err := s.Config().BlockIO().Reload(); err != nil {
+			if s.ContainerServer.Config().BlockIO().ReloadRequired() {
+				if err := s.ContainerServer.Config().BlockIO().Reload(); err != nil {
 					return err
 				}
 			}
@@ -1456,7 +1456,7 @@ func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName 
 func (s *Server) specSetDevices(ctr ctrfactory.Container, sb *sandbox.Sandbox) error {
 	configuredDevices := s.config.Devices()
 
-	privilegedWithoutHostDevices, err := s.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
+	privilegedWithoutHostDevices, err := s.ContainerServer.Runtime().PrivilegedWithoutHostDevices(sb.RuntimeHandler())
 	if err != nil {
 		return err
 	}
