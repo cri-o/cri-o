@@ -2,6 +2,8 @@ package sandbox
 
 import (
 	"errors"
+	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -123,28 +125,40 @@ type Builder interface {
 
 	// SetCreatedAt sets the created at time.
 	SetCreatedAt(createdAt time.Time)
+
+	// validate checks if the methods were called if not return error
+	validate() error
+}
+
+type sandboxValidations struct {
+	setId         bool
+	setCRISandbox bool
+	setCreatedAt  bool
 }
 
 // sandboxBuilder is the hidden default type behind the Sandbox interface.
 type sandboxBuilder struct {
-	config     *types.PodSandboxConfig
-	infra      container.Container
-	sandboxRef *Sandbox
+	config      *types.PodSandboxConfig
+	infra       container.Container
+	sandboxRef  *Sandbox
+	validations *sandboxValidations
 }
 
 // NewBuilder creates a new, empty Sandbox instance.
 func NewBuilder() Builder {
 	return &sandboxBuilder{
-		config:     nil,
-		sandboxRef: new(Sandbox),
+		config:      nil,
+		sandboxRef:  new(Sandbox),
+		validations: &sandboxValidations{},
 	}
 }
 
 // GetSandbox gets the sandbox and deletes the config and sandbox.
 // TODO: Add validations before returning the sandbox.
 func (b *sandboxBuilder) GetSandbox() (*Sandbox, error) {
-	if b.sandboxRef.criSandbox == nil {
-		return nil, errors.New("cri-o sandbox not initialized")
+	err := b.validate()
+	if err != nil {
+		return nil, err
 	}
 	sandboxRef := b.sandboxRef
 	b.config = nil
@@ -250,6 +264,7 @@ func (b *sandboxBuilder) SetDNSConfig(dnsConfig *types.DNSConfig) {
 // SetCRISandbox sets the CRISandbox.
 // TODO: Consider breaking this to separate Create and Update functions.
 func (b *sandboxBuilder) SetCRISandbox(id string, labels, annotations map[string]string, metadata *types.PodSandboxMetadata) error {
+	b.validations.setCRISandbox = true
 	if b.sandboxRef.createdAt.IsZero() {
 		return errors.New("createdAt time is Zero")
 	}
@@ -379,10 +394,12 @@ func (b *sandboxBuilder) SetSeccompProfilePath(profilePath string) {
 
 // SetCreatedAt sets the created at time.
 func (b *sandboxBuilder) SetCreatedAt(createdAt time.Time) {
+	b.validations.setCreatedAt = true
 	b.sandboxRef.createdAt = createdAt
 }
 
 func (b *sandboxBuilder) SetID(id string) {
+	b.validations.setId = true
 	if b.sandboxRef.criSandbox != nil {
 		b.sandboxRef.criSandbox.Id = id
 	} else {
@@ -390,4 +407,22 @@ func (b *sandboxBuilder) SetID(id string) {
 			Id: id,
 		}
 	}
+}
+
+func (b *sandboxBuilder) validate() error {
+
+	// Check if the Methods are being called
+	v := reflect.ValueOf(b.validations).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		field := v.Field(i)
+		if !field.Bool() {
+			return fmt.Errorf("field '%s' is not set to true", v.Type().Field(i).Name)
+		}
+	}
+
+	// check additional conditions
+	if b.sandboxRef.criSandbox == nil {
+		return errors.New("cri-o sandbox not initialized")
+	}
+	return nil
 }

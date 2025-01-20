@@ -52,7 +52,6 @@ var _ = t.Describe("Sandbox", func() {
 			sbox.SetKubeName(kubeName)
 			sbox.SetLogDir(logDir)
 			sbox.SetCreatedAt(createdAt)
-			sbox.SetCreatedAt(createdAt)
 			err := sbox.SetCRISandbox(sbox.ID(), labels, annotations, &metadata)
 			Expect(err).ToNot(HaveOccurred())
 			sbox.SetShmPath(shmPath)
@@ -94,6 +93,19 @@ var _ = t.Describe("Sandbox", func() {
 			Expect(sandbox.StopMutex()).NotTo(BeNil())
 			Expect(sandbox.Containers()).NotTo(BeNil())
 			Expect(sandbox.CreatedAt()).To(Equal(createdAt))
+		})
+	})
+
+	t.Describe("validate", func() {
+		It("Should not suceed", func() {
+			createdAt := time.Now()
+			sbox := sandbox.NewBuilder()
+			sbox.SetID("id")
+			sbox.SetCreatedAt(createdAt)
+			sb, err := sbox.GetSandbox()
+
+			Expect(err).To(HaveOccurred())
+			Expect(sb).To(BeNil())
 		})
 	})
 
