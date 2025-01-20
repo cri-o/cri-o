@@ -290,8 +290,8 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	layerBytesHex := hex.EncodeToString(sum)
 	if layerBytesHex != layer.BlobInfo.Digest.Hex() {
 		return fmt.Errorf(
-			"sha256 mismatch between real layer bytes (%s) and manifest descriptor (%s)",
-			layerBytesHex, layer.BlobInfo.Digest.Hex(),
+			"%s mismatch between real layer bytes (%s) and manifest descriptor (%s)",
+			digestAlgorithm, layerBytesHex, layer.BlobInfo.Digest.Hex(),
 		)
 	}
 

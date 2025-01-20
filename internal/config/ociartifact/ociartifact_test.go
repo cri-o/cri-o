@@ -351,7 +351,7 @@ var _ = t.Describe("OCIArtifact", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("mismatch between real layer bytes"))
+			Expect(err.Error()).To(ContainSubstring("sha256 mismatch between real layer bytes"))
 			Expect(res).To(BeNil())
 		})
 
