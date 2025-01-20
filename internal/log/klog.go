@@ -38,7 +38,12 @@ func (l *logSink) Error(err error, msg string, keysAndValues ...any) {
 }
 
 func writeKeysAndValues(b *strings.Builder, keysAndValues ...any) {
+	if len(keysAndValues) == 0 {
+		return
+	}
 	const missingValue = "[MISSING]"
+
+	b.WriteString(" (")
 	for i := 0; i < len(keysAndValues); i += 2 {
 		var v any
 		k := keysAndValues[i]
@@ -46,9 +51,6 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...any) {
 			v = keysAndValues[i+1]
 		} else {
 			v = missingValue
-		}
-		if i == 0 {
-			b.WriteString(" (")
 		}
 		if i > 0 {
 			b.WriteByte(' ')
@@ -66,11 +68,8 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...any) {
 				fmt.Fprintf(b, "%s=%+v", k, v)
 			}
 		}
-
-		if i == len(keysAndValues) {
-			b.WriteByte(')')
-		}
 	}
+	b.WriteByte(')')
 }
 
 func (l *logSink) Init(logr.RuntimeInfo)          {}
