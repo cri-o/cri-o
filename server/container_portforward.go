@@ -40,12 +40,12 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		}()
 	}()
 
-	sandboxID, err := s.runtimeServer.PodIDIndex().Get(podSandboxID)
+	sandboxID, err := s.runtimeServer.ContainerServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
 
-	sb := s.runtimeServer.GetSandbox(sandboxID)
+	sb := s.runtimeServer.ContainerServer.GetSandbox(sandboxID)
 	if sb == nil {
 		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}
@@ -61,5 +61,5 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		)
 	}
 
-	return s.runtimeServer.Runtime().PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
+	return s.runtimeServer.ContainerServer.Runtime().PortForwardContainer(ctx, sb.InfraContainer(), netNsPath, port, stream)
 }

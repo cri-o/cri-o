@@ -121,7 +121,7 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 				}
 				if mem := r.Memory; mem != nil {
 					if mem.Limit != nil {
-						containerMinMemory, err := a.cri.Runtime().GetContainerMinMemory(criPod.RuntimeHandler())
+						containerMinMemory, err := a.cri.ContainerServer.Runtime().GetContainerMinMemory(criPod.RuntimeHandler())
 						if err != nil {
 							return err
 						}
@@ -141,7 +141,7 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 		),
 		nrigen.WithBlockIOResolver(
 			func(className string) (*rspec.LinuxBlockIO, error) {
-				if !a.cri.Config().BlockIO().Enabled() || className == "" {
+				if !a.cri.ContainerServer.Config().BlockIO().Enabled() || className == "" {
 					return nil, nil
 				}
 				if blockIO, err := blockio.OciLinuxBlockIO(className); err == nil {
@@ -259,7 +259,7 @@ func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, cri
 	}
 
 	if criPod == nil {
-		sandboxID, err := a.cri.PodIDIndex().Get(ctr.GetPodSandboxID())
+		sandboxID, err := a.cri.ContainerServer.PodIDIndex().Get(ctr.GetPodSandboxID())
 		if err != nil {
 			log.Errorf(ctx, "Failed to stop CRI container %q: %v", ctr.GetID(), err)
 			return nil
@@ -358,7 +358,7 @@ func (a *nriAPI) ListContainers() []nri.Container {
 }
 
 func (a *nriAPI) GetPodSandbox(ctx context.Context, id string) (nri.PodSandbox, bool) {
-	sandboxID, err := a.cri.PodIDIndex().Get(id)
+	sandboxID, err := a.cri.ContainerServer.PodIDIndex().Get(id)
 	if err != nil {
 		return nil, false
 	}
@@ -372,7 +372,7 @@ func (a *nriAPI) GetPodSandbox(ctx context.Context, id string) (nri.PodSandbox, 
 }
 
 func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
-	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), id)
+	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), id)
 	if err != nil {
 		return nil, false
 	}
@@ -384,7 +384,7 @@ func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
 }
 
 func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) error {
-	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), u.GetContainerId())
+	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), u.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
 		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
@@ -396,7 +396,7 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 	}
 
 	resources := u.GetLinux().GetResources().ToOCI()
-	if err = a.cri.Runtime().UpdateContainer(ctx, ctr, resources); err != nil {
+	if err = a.cri.ContainerServer.Runtime().UpdateContainer(ctx, ctr, resources); err != nil {
 		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
 		if u.GetIgnoreFailure() {
 			return nil
@@ -404,13 +404,13 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 		return fmt.Errorf("failed to update CRI container %q: %w", u.GetContainerId(), err)
 	}
 
-	a.cri.UpdateContainerLinuxResources(ctr, resources)
+	a.cri.ContainerServer.UpdateContainerLinuxResources(ctr, resources)
 
 	return nil
 }
 
 func (a *nriAPI) EvictContainer(ctx context.Context, e *api.ContainerEviction) error {
-	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), e.GetContainerId())
+	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), e.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
 		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.GetContainerId(), err)
@@ -464,28 +464,28 @@ func (p *criPodSandbox) GetID() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.ID()
+	return p.Sandbox.ID()
 }
 
 func (p *criPodSandbox) GetName() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.Metadata().Name
+	return p.Sandbox.Metadata().Name
 }
 
 func (p *criPodSandbox) GetUID() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.Metadata().GetUid()
+	return p.Sandbox.Metadata().GetUid()
 }
 
 func (p *criPodSandbox) GetNamespace() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.Metadata().Namespace
+	return p.Sandbox.Metadata().Namespace
 }
 
 func (p *criPodSandbox) GetAnnotations() map[string]string {
@@ -493,7 +493,7 @@ func (p *criPodSandbox) GetAnnotations() map[string]string {
 		return nil
 	}
 	anns := map[string]string{}
-	for key, value := range p.Annotations() {
+	for key, value := range p.Sandbox.Annotations() {
 		anns[key] = value
 	}
 	return anns
@@ -504,7 +504,7 @@ func (p *criPodSandbox) GetLabels() map[string]string {
 		return nil
 	}
 	labels := map[string]string{}
-	for key, value := range p.Labels() {
+	for key, value := range p.Sandbox.Labels() {
 		labels[key] = value
 	}
 	return labels
@@ -514,7 +514,7 @@ func (p *criPodSandbox) GetRuntimeHandler() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.RuntimeHandler()
+	return p.Sandbox.RuntimeHandler()
 }
 
 func (p *criPodSandbox) GetLinuxPodSandbox() nri.LinuxPodSandbox {
@@ -555,7 +555,7 @@ func (p *criPodSandbox) GetCgroupParent() string {
 	if p.Sandbox == nil {
 		return ""
 	}
-	return p.CgroupParent()
+	return p.Sandbox.CgroupParent()
 }
 
 func (p *criPodSandbox) GetCgroupsPath() string {

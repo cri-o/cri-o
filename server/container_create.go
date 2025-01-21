@@ -445,14 +445,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}
 	}()
 
-	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		reservedID, getErr := s.ContainerIDForName(ctr.Name())
+	if _, err = s.ContainerServer.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		reservedID, getErr := s.ContainerServer.ContainerIDForName(ctr.Name())
 		if getErr != nil {
 			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %w: %w", ctr.Name(), getErr, getErr)
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// Just return that container
-		if reservedCtr := s.GetContainer(ctx, reservedID); reservedCtr != nil && reservedCtr.Created() {
+		if reservedCtr := s.ContainerServer.GetContainer(ctx, reservedID); reservedCtr != nil && reservedCtr.Created() {
 			return &types.CreateContainerResponse{ContainerId: reservedID}, nil
 		}
 		cachedID, resourceErr := s.getResourceOrWait(ctx, ctr.Name(), "container")
@@ -465,7 +465,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container creating")
 
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
-		s.ReleaseContainerName(ctx, ctr.Name())
+		s.ContainerServer.ReleaseContainerName(ctx, ctr.Name())
 		return nil
 	})
 
@@ -474,7 +474,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "createCtr: deleting container "+ctr.ID()+" from storage", func() error {
-		if err := s.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID()); err != nil {
+		if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID()); err != nil {
 			return fmt.Errorf("failed to cleanup container storage: %w", err)
 		}
 		return nil
@@ -486,11 +486,11 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil
 	})
 
-	if err := s.CtrIDIndex().Add(ctr.ID()); err != nil {
+	if err := s.ContainerServer.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "createCtr: deleting container ID "+ctr.ID()+" from idIndex", func() error {
-		if err := s.CtrIDIndex().Delete(ctr.ID()); err != nil && !strings.Contains(err.Error(), noSuchID) {
+		if err := s.ContainerServer.CtrIDIndex().Delete(ctr.ID()); err != nil && !strings.Contains(err.Error(), noSuchID) {
 			return err
 		}
 		return nil
@@ -506,13 +506,13 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil, err
 	}
 	resourceCleaner.Add(ctx, "createCtr: removing container ID "+ctr.ID()+" from runtime", func() error {
-		if err := s.Runtime().DeleteContainer(ctx, newContainer); err != nil {
+		if err := s.ContainerServer.Runtime().DeleteContainer(ctx, newContainer); err != nil {
 			return fmt.Errorf("failed to delete container in runtime %s: %w", ctr.ID(), err)
 		}
 		return nil
 	})
 
-	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
+	if err := s.ContainerServer.ContainerStateToDisk(ctx, newContainer); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 

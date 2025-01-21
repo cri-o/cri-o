@@ -27,7 +27,7 @@ const (
 func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatusRequest) (*types.ContainerStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -82,7 +82,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	// If we defaulted to exit code not set earlier then we attempt to
 	// get the exit code from the exit file again.
 	if cState.Status == oci.ContainerStateStopped && cState.ExitCode == nil {
-		err := s.Runtime().UpdateContainerStatus(ctx, c)
+		err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, c)
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}
@@ -149,7 +149,7 @@ type containerInfoCheckpointRestore struct {
 }
 
 func (s *Server) createContainerInfo(container *oci.Container) (map[string]string, error) {
-	metadata, err := s.StorageRuntimeServer().GetContainerMetadata(container.ID())
+	metadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(container.ID())
 	if err != nil {
 		return nil, fmt.Errorf("getting container metadata: %w", err)
 	}

@@ -149,7 +149,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	containersAndTheirImages := map[string]storage.StorageImageID{}
-	containers, err := s.Store().Containers()
+	containers, err := s.ContainerServer.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Warnf(ctx, "Could not read containers and sandboxes: %v", err)
 	}
@@ -158,7 +158,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	names := map[string][]string{}
 	deletedPods := map[string]*sandbox.Sandbox{}
 	for i := range containers {
-		metadata, err2 := s.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
+		metadata, err2 := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
 			log.Warnf(ctx, "Error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
 			continue
@@ -185,7 +185,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// associated with it. Release the pod and container names as well.
 	knownPods := []*sandbox.Sandbox{}
 	for sbID := range pods {
-		sb, err := s.LoadSandbox(ctx, sbID)
+		sb, err := s.ContainerServer.LoadSandbox(ctx, sbID)
 		// If we were able to restore a sandbox, add the pod id to the list of deletedPods, to be able to call CNI DEL
 		// on the sandbox network. Otherwise, exclude pods for which we weren't able to restore a sandbox from the
 		// knownPods list so that any potential stale resource associated to them is cleaned up in the network plugin GC
@@ -200,14 +200,14 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		}
 		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
 		for _, n := range names[sbID] {
-			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, oci.InfraContainerName) {
-				s.ReleaseContainerName(ctx, n)
+				s.ContainerServer.ReleaseContainerName(ctx, n)
 			} else {
-				s.ReleasePodName(n)
+				s.ContainerServer.ReleasePodName(n)
 			}
 		}
 		// Go through the containers and delete any container that was under the deleted pod
@@ -217,11 +217,11 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 				continue
 			}
 			for _, n := range names[k] {
-				if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+				if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
-				s.ReleaseContainerName(ctx, n)
+				s.ContainerServer.ReleaseContainerName(ctx, n)
 			}
 			// Remove the container from the list of podContainers, or else we'll retry the delete later,
 			// causing a useless debug message.
@@ -232,18 +232,18 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// Go through all the containers and check if it can be restored. If an error occurs, delete the container and
 	// release the name associated with you.
 	for containerID := range podContainers {
-		err := s.LoadContainer(ctx, containerID)
+		err := s.ContainerServer.LoadContainer(ctx, containerID)
 		if err == nil || errors.Is(err, lib.ErrIsNonCrioContainer) {
 			delete(containersAndTheirImages, containerID)
 			continue
 		}
 		log.Warnf(ctx, "Could not restore container %s: %v", containerID, err)
 		for _, n := range names[containerID] {
-			if err := s.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
+			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the container name
-			s.ReleaseContainerName(ctx, n)
+			s.ContainerServer.ReleaseContainerName(ctx, n)
 		}
 	}
 
@@ -276,7 +276,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	}()
 
 	// Restore sandbox IPs
-	for _, sb := range s.ListSandboxes() {
+	for _, sb := range s.ContainerServer.ListSandboxes() {
 		ips, err := s.getSandboxIPs(ctx, sb)
 		if err != nil {
 			log.Warnf(ctx, "Could not restore sandbox IP for %v: %v", sb.ID(), err)
@@ -305,7 +305,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 	// first, make sure we sync all the changes to the file system holding
 	// the graph root
-	if err := utils.Syncfs(s.Store().GraphRoot()); err != nil {
+	if err := utils.Syncfs(s.ContainerServer.Store().GraphRoot()); err != nil {
 		return fmt.Errorf("failed to sync graph root after shutting down: %w", err)
 	}
 
@@ -565,7 +565,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 			}
 			// ImageServer compiles the list with regex for both
 			// pinned and sandbox/pause images, we need to update them
-			s.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
+			s.ContainerServer.StorageImageServer().UpdatePinnedImagesList(append(s.config.PinnedImages, s.config.PauseImage))
 			log.Infof(ctx, "Configuration reload completed")
 			// Print the current configuration.
 			tomlConfig, err := s.config.ToString()
@@ -652,7 +652,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 	// disk usage gets too high.
 	if shouldWipeImages {
 		for img := range imageMapToDelete {
-			if err := s.StorageImageServer().DeleteImage(s.config.SystemContext, img); err != nil {
+			if err := s.ContainerServer.StorageImageServer().DeleteImage(s.config.SystemContext, img); err != nil {
 				log.Warnf(ctx, "Failed to remove image %s: %v", img, err)
 			}
 		}
@@ -714,7 +714,7 @@ func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID stri
 		return nil, sandbox.ErrIDEmpty
 	}
 
-	sandboxID, err := s.PodIDIndex().Get(podSandboxID)
+	sandboxID, err := s.ContainerServer.PodIDIndex().Get(podSandboxID)
 	if err != nil {
 		return nil, fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
@@ -781,23 +781,23 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	}
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
-	c := s.GetContainer(ctx, containerID)
+	c := s.ContainerServer.GetContainer(ctx, containerID)
 	nriCtr := c
 	resource := "container"
 	var sb *sandbox.Sandbox
 	if c == nil {
-		sb = s.GetSandbox(containerID)
+		sb = s.ContainerServer.GetSandbox(containerID)
 		if sb == nil {
 			return
 		}
 		c = sb.InfraContainer()
 		resource = "sandbox infra"
 	} else {
-		sb = s.GetSandbox(c.Sandbox())
+		sb = s.ContainerServer.GetSandbox(c.Sandbox())
 	}
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
-	if err := s.ContainerStateToDisk(ctx, c); err != nil {
+	if err := s.ContainerServer.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}
 
@@ -888,16 +888,16 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	if !s.config.EnablePodEvents {
 		return
 	}
-	if err := s.Runtime().UpdateContainerStatus(ctx, container); err != nil {
+	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
 		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to update the container status %s: %v", eventType, container.ID(), err)
 		return
 	}
 
-	if !s.HasSandbox(container.Sandbox()) {
+	if !s.ContainerServer.HasSandbox(container.Sandbox()) {
 		return
 	}
 
-	sandboxStatuses, err := s.getSandboxStatuses(ctx, s.GetSandbox(container.Sandbox()).ID())
+	sandboxStatuses, err := s.getSandboxStatuses(ctx, s.ContainerServer.GetSandbox(container.Sandbox()).ID())
 
 	if isNotFound(err) {
 		return

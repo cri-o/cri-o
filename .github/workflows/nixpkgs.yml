@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 0 * * 0" # At 00:00 on Sunday
 env:
-  NIX_VERSION: "2.24.11"
+  NIX_VERSION: "2.25.4"
 permissions:
   contents: read
 

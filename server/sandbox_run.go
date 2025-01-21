@@ -57,7 +57,7 @@ func (s *Server) runtimeHandler(req *types.RunPodSandboxRequest) (string, error)
 		return handler, nil
 	}
 
-	if _, err := s.Runtime().ValidateRuntimeHandler(handler); err != nil {
+	if _, err := s.ContainerServer.Runtime().ValidateRuntimeHandler(handler); err != nil {
 		return "", err
 	}
 
@@ -106,10 +106,10 @@ func getHostname(id, hostname string, hostNetwork bool) (string, error) {
 func (s *Server) setPodSandboxMountLabel(ctx context.Context, id, mountLabel string) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
-	storageMetadata, err := s.StorageRuntimeServer().GetContainerMetadata(id)
+	storageMetadata, err := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(id)
 	if err != nil {
 		return err
 	}
 	storageMetadata.SetMountLabel(mountLabel)
-	return s.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
+	return s.ContainerServer.StorageRuntimeServer().SetContainerMetadata(id, &storageMetadata)
 }

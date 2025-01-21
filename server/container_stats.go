@@ -14,11 +14,11 @@ import (
 func (s *Server) ContainerStats(ctx context.Context, req *types.ContainerStatsRequest) (*types.ContainerStatsResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	container, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	container, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
-	sb := s.GetSandbox(container.Sandbox())
+	sb := s.ContainerServer.GetSandbox(container.Sandbox())
 	if sb == nil {
 		return nil, fmt.Errorf("unable to get stats for container %s: sandbox %s not found", container.ID(), container.Sandbox())
 	}

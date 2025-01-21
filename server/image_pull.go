@@ -164,7 +164,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		}
 	}
 
-	remoteCandidates, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
+	remoteCandidates, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, pullArgs.image)
 	if err != nil {
 		return storage.RegistryImageReference{}, err
 	}
@@ -211,13 +211,13 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 
 	// Cancel the pull if no progress is made
 	pullCtx, cancel := context.WithCancel(ctx)
-	go consumeImagePullProgress(ctx, cancel, s.Config().PullProgressTimeout, progress, remoteCandidateName)
+	go consumeImagePullProgress(ctx, cancel, s.ContainerServer.Config().PullProgressTimeout, progress, remoteCandidateName)
 
-	repoDigest, err := s.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
+	repoDigest, err := s.ContainerServer.StorageImageServer().PullImage(pullCtx, remoteCandidateName, &storage.ImageCopyOptions{
 		SourceCtx:        sourceCtx,
 		DestinationCtx:   s.config.SystemContext,
 		OciDecryptConfig: decryptConfig,
-		ProgressInterval: s.Config().PullProgressTimeout / 10,
+		ProgressInterval: s.ContainerServer.Config().PullProgressTimeout / 10,
 		Progress:         progress,
 		CgroupPull: storage.CgroupPullConfiguration{
 			UseNewCgroup: s.config.SeparatePullCgroup != "",

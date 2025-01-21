@@ -15,7 +15,7 @@ type containerEventConn struct {
 
 // GetContainerEvents sends the stream of container events to clients.
 func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.RuntimeService_GetContainerEventsServer) error {
-	if !s.Config().EnablePodEvents {
+	if !s.ContainerServer.Config().EnablePodEvents {
 		return nil
 	}
 

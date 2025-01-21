@@ -11,7 +11,7 @@ import (
 
 func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) error {
 	// Validate that a CRI connection is possible using the socket path.
-	rrs, err := cri.NewRemoteRuntimeService(s.Config().Listen, timeout, nil, nil)
+	rrs, err := cri.NewRemoteRuntimeService(s.ContainerServer.Config().Listen, timeout, nil, nil)
 	if err != nil {
 		return fmt.Errorf("create remote runtime service: %w", err)
 	}
