@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 20 Jan 2025 12:40:19 UTC for commit [2be64b4][0]._
+_Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2be64b433f28a63703a85c89dabbe1a88b39d603
+[0]: https://github.com/cri-o/cri-o/commit/086021e5424d15fd0a340e7f9728e1327e6b2ce5
 
 ## Outdated Dependencies
 
@@ -172,7 +172,7 @@ _Generated on Mon, 20 Jan 2025 12:40:19 UTC for commit [2be64b4][0]._
 | cloud.google.com/go/webrisk                                                             | v1.9.12                               | v1.10.3                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                                  | v1.6.12                               | v1.7.3                              | false  | true             |
 | cloud.google.com/go/workflows                                                           | v1.12.11                              | v1.13.3                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.25.0                             | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                           | v0.0.0-20211005130812-5bb3c17173e5    | v0.26.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                          | v0.0.0-20240314152124-224736b49f2e    | v0.0.0-20241125120445-2c00c104c6e1  | false  | true             |
 | cuelang.org/go                                                                          | v0.8.1                                | v0.11.1                             | false  | true             |
 | dario.cat/mergo                                                                         | v1.0.1                                |                                     | false  | true             |
@@ -461,7 +461,7 @@ _Generated on Mon, 20 Jan 2025 12:40:19 UTC for commit [2be64b4][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    |                                     | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250120214715-4e5bb2051dab  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.8                                | v0.1.9                              | false  | true             |
@@ -540,7 +540,7 @@ _Generated on Mon, 20 Jan 2025 12:40:19 UTC for commit [2be64b4][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250118011501-6b1e7f04e808  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250120173157-600010305a6e  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -705,7 +705,7 @@ _Generated on Mon, 20 Jan 2025 12:40:19 UTC for commit [2be64b4][0]._
 | github.com/urfave/cli                                                                   | v1.22.15                              | v1.22.16                            | false  | true             |
 | github.com/urfave/cli/v2                                                                | v2.27.5                               |                                     | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.0                               | v0.10.1                             | false  | true             |
-| github.com/vbatts/tar-split                                                             | v0.11.6                               |                                     | false  | true             |
+| github.com/vbatts/tar-split                                                             | v0.11.6                               | v0.11.7                             | false  | true             |
 | github.com/vbauerster/mpb/v8                                                            | v8.8.3                                | v8.9.1                              | false  | true             |
 | github.com/veraison/go-cose                                                             | v1.2.1                                | v1.3.0                              | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.3.0                                |                                     | true   | true             |
