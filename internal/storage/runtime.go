@@ -12,6 +12,7 @@ import (
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	"github.com/sirupsen/logrus"
 
+	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/log"
 )
 
@@ -76,7 +77,7 @@ type RuntimeServer interface {
 	// CreateContainer creates a container with the specified ID.
 	// Pointer arguments can be nil.
 	// All other arguments are required.
-	CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error)
+	CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged, isRuntimePullImage bool) (ContainerInfo, error)
 	// DeleteContainer deletes a container, unmounting it first if need be.
 	DeleteContainer(ctx context.Context, idOrName string) error
 
@@ -157,7 +158,7 @@ type runtimeContainerMetadataTemplate struct {
 	privileged   bool   // Applicable to both PodSandboxes and Containers
 }
 
-func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, containerID string, template *runtimeContainerMetadataTemplate, idMappingsOptions *storage.IDMappingOptions, labelOptions []string) (ci ContainerInfo, retErr error) {
+func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.SystemContext, containerID string, template *runtimeContainerMetadataTemplate, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, isRuntimePullImage bool) (ci ContainerInfo, retErr error) {
 	if template.podName == "" || template.podID == "" {
 		return ContainerInfo{}, ErrInvalidPodName
 	}
@@ -187,21 +188,31 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 
 	// Pull out a copy of the image's configuration.
 	// Ideally we would call imageID.imageRef(r.storageImageServer), but storageImageServer does not have access to private data.
-	ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, template.imageID.privateID)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	image, err := ref.NewImage(r.ctx, systemContext)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
-	defer image.Close()
+	var imageConfig *v1.Image
+	if isRuntimePullImage {
+		var err error
+		artifact := ociartifact.New()
 
-	imageConfig, err := image.OCIConfig(r.ctx)
-	if err != nil {
-		return ContainerInfo{}, err
-	}
+		imageConfig, err = artifact.GetConfig(r.ctx, metadata.ImageName, &ociartifact.PullOptions{})
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+	} else {
+		ref, err := istorage.Transport.NewStoreReference(r.storageImageServer.GetStore(), nil, template.imageID.privateID)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		image, err := ref.NewImage(r.ctx, systemContext)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+		defer image.Close()
 
+		imageConfig, err = image.OCIConfig(r.ctx)
+		if err != nil {
+			return ContainerInfo{}, err
+		}
+	}
 	metadata.Pod = (containerID == metadata.PodID) // Or should this be hard-coded in callers? The caller should know whether it is creating the infra container.
 	metadata.CreatedAt = time.Now().Unix()
 	mdata, err := json.Marshal(&metadata)
@@ -222,7 +233,12 @@ func (r *runtimeService) createContainerOrPodSandbox(systemContext *types.System
 	if idMappingsOptions != nil {
 		coptions.IDMappingOptions = *idMappingsOptions
 	}
-	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, template.imageID.privateID, "", string(mdata), &coptions)
+	imageName := template.imageID.privateID
+	if isRuntimePullImage {
+		// store.CreateContainer accepts empty image names
+		imageName = ""
+	}
+	container, err := r.storageImageServer.GetStore().CreateContainer(containerID, names, imageName, "", string(mdata), &coptions)
 	if err != nil {
 		if metadata.Pod {
 			logrus.Debugf("Failed to create pod sandbox %s(%s): %v", metadata.PodName, metadata.PodID, err)
@@ -350,10 +366,10 @@ func (r *runtimeService) CreatePodSandbox(systemContext *types.SystemContext, po
 		namespace:          namespace,
 		attempt:            attempt,
 		privileged:         privileged,
-	}, idMappingsOptions, labelOptions)
+	}, idMappingsOptions, labelOptions, false)
 }
 
-func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (ContainerInfo, error) {
+func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged, isRuntimePullImage bool) (ContainerInfo, error) {
 	return r.createContainerOrPodSandbox(systemContext, containerID, &runtimeContainerMetadataTemplate{
 		podName:            podName,
 		podID:              podID,
@@ -365,7 +381,7 @@ func (r *runtimeService) CreateContainer(systemContext *types.SystemContext, pod
 		namespace:          "",
 		attempt:            attempt,
 		privileged:         privileged,
-	}, idMappingsOptions, labelOptions)
+	}, idMappingsOptions, labelOptions, isRuntimePullImage)
 }
 
 func (r *runtimeService) deleteLayerIfMapped(imageID, layerID string) {

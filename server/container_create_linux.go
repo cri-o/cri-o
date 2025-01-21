@@ -15,12 +15,14 @@ import (
 
 	"github.com/containers/common/pkg/subscriptions"
 	"github.com/containers/common/pkg/timezone"
+	"github.com/containers/image/v5/manifest"
 	cstorage "github.com/containers/storage"
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
 	"github.com/containers/storage/pkg/unshare"
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
+	"github.com/opencontainers/go-digest"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"golang.org/x/sys/unix"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
+	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/config/rdt"
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -161,40 +164,30 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		return nil, err
 	}
 
+	isRuntimePullImage := false
+	if sb.RuntimeHandler() != "" {
+		r, ok := s.config.Runtimes[sb.RuntimeHandler()]
+		if ok {
+			isRuntimePullImage = r.RuntimePullImage
+		}
+	}
+
+	var someNameOfTheImage *references.RegistryImageReference
+	var imageID storage.StorageImageID
+	var someRepoDigest string
+	var imageAnnotations map[string]string
+
 	// Get imageName and imageID that are later requested in container status
-	var imgResult *storage.ImageResult
-	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
-		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+	if isRuntimePullImage {
+		someNameOfTheImage, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromArtifact(ctx, userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		potentialMatches, err := s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		someNameOfTheImage, imageID, someRepoDigest, imageAnnotations, err = s.getInfoFromImage(userRequestedImage)
 		if err != nil {
 			return nil, err
 		}
-		var imgResultErr error
-		for _, name := range potentialMatches {
-			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
-			if imgResultErr == nil {
-				break
-			}
-		}
-		if imgResultErr != nil {
-			return nil, imgResultErr
-		}
-	}
-	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
-	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
-	if userRequestedImage == "" {
-		return nil, errors.New("internal error: successfully found an image, but userRequestedImage is empty")
-	}
-
-	someNameOfTheImage := imgResult.SomeNameOfThisImage
-	imageID := imgResult.ID
-	someRepoDigest := ""
-	if len(imgResult.RepoDigests) > 0 {
-		someRepoDigest = imgResult.RepoDigests[0]
 	}
 	// == Image lookup done.
 	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
@@ -260,6 +253,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		idMappingOptions,
 		labelOptions,
 		ctr.Privileged(),
+		isRuntimePullImage,
 	)
 	if err != nil {
 		return nil, err
@@ -528,7 +522,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	created := time.Now()
 	seccompRef := types.SecurityProfile_Unconfined.String()
 
-	if err := s.FilterDisallowedAnnotations(sb.Annotations(), imgResult.Annotations, sb.RuntimeHandler()); err != nil {
+	if err := s.FilterDisallowedAnnotations(sb.Annotations(), imageAnnotations, sb.RuntimeHandler()); err != nil {
 		return nil, fmt.Errorf("filter image annotations: %w", err)
 	}
 
@@ -544,7 +538,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			containerID,
 			ctr.Config().Metadata.Name,
 			sb.Annotations(),
-			imgResult.Annotations,
+			imageAnnotations,
 			specgen,
 			securityContext.Seccomp,
 		)
@@ -573,7 +567,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, someNameOfTheImage, &imageID, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
 	}
@@ -860,6 +854,77 @@ func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
 	if containerConfig.Linux.SecurityContext.SelinuxOptions == nil {
 		containerConfig.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{}
 	}
+}
+
+// This function returns information from the image, coming from the storage image server.
+func (s *Server) getInfoFromImage(userRequestedImage string) (someNameOfTheImage *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	var imgResult *storage.ImageResult
+	if id := s.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(userRequestedImage); id != nil {
+		imgResult, err = s.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
+		if err != nil {
+			return nil, storage.StorageImageID{}, "", nil, err
+		}
+	} else {
+		var potentialMatches []references.RegistryImageReference
+		potentialMatches, err = s.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, userRequestedImage)
+		if err != nil {
+			return nil, storage.StorageImageID{}, "", nil, err
+		}
+		var imgResultErr error
+		for _, name := range potentialMatches {
+			imgResult, imgResultErr = s.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
+			if imgResultErr == nil {
+				break
+			}
+		}
+		if imgResultErr != nil {
+			return nil, storage.StorageImageID{}, "", nil, imgResultErr
+		}
+	}
+	// At this point we know userRequestedImage is not empty; "" is accepted by neither HeuristicallyTryResolvingStringAsIDPrefix
+	// nor CandidatesForPotentiallyShortImageName. Just to be sure:
+	if userRequestedImage == "" {
+		err = errors.New("internal error: successfully found an image, but userRequestedImage is empty")
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	someRepoDigest = ""
+	if len(imgResult.RepoDigests) > 0 {
+		someRepoDigest = imgResult.RepoDigests[0]
+	}
+	return imgResult.SomeNameOfThisImage, imgResult.ID, someRepoDigest, imgResult.Annotations, nil
+}
+
+func (s *Server) getInfoFromArtifact(ctx context.Context, userRequestedImage string) (imageName *references.RegistryImageReference, imageID storage.StorageImageID, someRepoDigest string, imageAnnotations map[string]string, err error) {
+	artifact := ociartifact.New()
+	pullOpts := &ociartifact.PullOptions{}
+
+	var imgManifest manifest.Manifest
+	imgManifest, err = artifact.GetManifest(ctx, userRequestedImage, pullOpts)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var name references.RegistryImageReference
+	name, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userRequestedImage)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var diffIDs []digest.Digest
+	var strID string
+	strID, err = imgManifest.ImageID(diffIDs)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	var ID storage.StorageImageID
+	ID, err = storage.ParseStorageImageIDFromOutOfProcessData(strID)
+	if err != nil {
+		return nil, storage.StorageImageID{}, "", nil, err
+	}
+
+	return &name, ID, imgManifest.ConfigInfo().Digest.String(), imgManifest.ConfigInfo().Annotations, nil
 }
 
 func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) error {
