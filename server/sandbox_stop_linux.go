@@ -48,11 +48,11 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	const maxWorkers = 128
 	var waitGroup errgroup.Group
 	for i := 0; i < len(containers); i += maxWorkers {
-		max := i + maxWorkers
-		if len(containers) < max {
-			max = len(containers)
+		maximum := i + maxWorkers
+		if len(containers) < maximum {
+			maximum = len(containers)
 		}
-		for _, ctr := range containers[i:max] {
+		for _, ctr := range containers[i:maximum] {
 			cStatus := ctr.State()
 			if cStatus.Status != oci.ContainerStateStopped {
 				if ctr.ID() == podInfraContainer.ID() {

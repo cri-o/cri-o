@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: '0 0 * * *'
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
 jobs:
   release-branch-forward:
     permissions:
