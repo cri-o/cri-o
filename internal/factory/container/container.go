@@ -112,6 +112,9 @@ type Container interface {
 	// SpecAddDevices adds devices from the server config, and container CRI config
 	SpecAddDevices([]device.Device, []device.Device, bool, bool) error
 
+	// SpecAddDomainName adds a domain name to the container's spec.
+	SpecAddDomainName(string)
+
 	// AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation
 	AddUnifiedResourcesFromAnnotations(annotationsMap map[string]string) error
 
@@ -169,6 +172,11 @@ func New() (Container, error) {
 func (c *container) SpecAddMount(r rspec.Mount) {
 	c.spec.RemoveMount(r.Destination)
 	c.spec.AddMount(r)
+}
+
+// SpecAddDomainName adds a specified domain name to the spec.
+func (c *container) SpecAddDomainName(domainName string) {
+	c.spec.SetDomainName(domainName)
 }
 
 // SpecAddAnnotation adds all annotations to the spec.

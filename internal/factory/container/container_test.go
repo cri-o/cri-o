@@ -64,6 +64,14 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.Spec().Mounts()).To(HaveLen(defaultMounts + 1))
 		})
 	})
+	t.Describe("SpecAddDomainName", func() {
+		It("should set the domain name in the spec", func() {
+			domainName := "example.com"
+			sut.SpecAddDomainName(domainName)
+			Expect(sut.Spec().Config.Domainname).To(Equal(domainName))
+		})
+	})
+
 	t.Describe("Spec", func() {
 		It("should return the spec", func() {
 			Expect(sut.Spec()).ToNot(BeNil())
