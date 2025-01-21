@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
+_Generated on Tue, 21 Jan 2025 11:01:31 UTC for commit [30e2172][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/086021e5424d15fd0a340e7f9728e1327e6b2ce5
+[0]: https://github.com/cri-o/cri-o/commit/30e21721528530e22e2620e8a6df68b38ba0f278
 
 ## Outdated Dependencies
 
@@ -379,7 +379,7 @@ _Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
 | github.com/dsnet/compress                                                               | v0.0.2-0.20210315054119-f66993602bf5  |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                           | v3.6.0                                | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                              | v1.2.3                                | v1.5.0                              | false  | true             |
+| github.com/elazarl/goproxy                                                              | v1.2.3                                | v1.6.0                              | false  | true             |
 | github.com/emicklei/go-restful/v3                                                       | v3.11.0                               | v3.12.1                             | false  | true             |
 | github.com/emicklei/proto                                                               | v1.12.1                               | v1.14.0                             | false  | true             |
 | github.com/emirpasic/gods                                                               | v1.18.1                               |                                     | false  | true             |
@@ -461,7 +461,7 @@ _Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
 | github.com/google/martian                                                               | v2.1.0+incompatible                   |                                     | false  | true             |
 | github.com/google/martian/v3                                                            | v3.3.2                                | v3.3.3                              | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250120214715-4e5bb2051dab  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250121033306-997b0b79cac0  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.8                                | v0.1.9                              | false  | true             |
@@ -479,7 +479,7 @@ _Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
 | github.com/grpc-ecosystem/go-grpc-middleware                                            | v1.4.0                                |                                     | true   | true             |
 | github.com/grpc-ecosystem/go-grpc-prometheus                                            | v1.2.1-0.20210315223345-82c243799c99  |                                     | false  | true             |
 | github.com/grpc-ecosystem/grpc-gateway                                                  | v1.16.0                               |                                     | false  | true             |
-| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.24.0                               | v2.25.1                             | false  | true             |
+| github.com/grpc-ecosystem/grpc-gateway/v2                                               | v2.24.0                               | v2.26.0                             | false  | true             |
 | github.com/hashicorp/errwrap                                                            | v1.1.0                                |                                     | false  | true             |
 | github.com/hashicorp/go-cleanhttp                                                       | v0.5.2                                |                                     | false  | true             |
 | github.com/hashicorp/go-multierror                                                      | v1.1.1                                |                                     | false  | true             |
@@ -621,7 +621,7 @@ _Generated on Tue, 21 Jan 2025 01:48:07 UTC for commit [086021e][0]._
 | github.com/phpdave11/gofpdf                                                             | v1.4.2                                |                                     | false  | true             |
 | github.com/phpdave11/gofpdi                                                             | v1.0.13                               | v1.0.14                             | false  | true             |
 | github.com/pierrec/lz4/v4                                                               | v4.1.21                               | v4.1.22                             | false  | true             |
-| github.com/pjbgf/sha1cd                                                                 | v0.3.0                                | v0.3.1                              | false  | true             |
+| github.com/pjbgf/sha1cd                                                                 | v0.3.0                                | v0.3.2                              | false  | true             |
 | github.com/pkg/browser                                                                  | v0.0.0-20240102092130-5ac0b6a4141c    |                                     | false  | true             |
 | github.com/pkg/diff                                                                     | v0.0.0-20210226163009-20ebb0f2a09e    | v0.0.0-20241224192749-4e6772a4315c  | false  | true             |
 | github.com/pkg/errors                                                                   | v0.9.1                                |                                     | false  | true             |
