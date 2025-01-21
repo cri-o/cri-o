@@ -66,7 +66,7 @@ func retry(ctx context.Context, description string, fn func() error) error {
 	}
 
 	waitErr := wait.ExponentialBackoff(backoff, func() (bool, error) {
-		log.Infof(ctx, description)
+		log.Infof(ctx, "%s", description)
 		if err := fn(); err != nil {
 			log.Errorf(ctx, "Failed to cleanup (probably retrying): %v", err)
 			return false, nil

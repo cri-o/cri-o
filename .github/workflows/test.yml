@@ -10,7 +10,7 @@ on:
       - nixpkgs
   pull_request:
 env:
-  GO_VERSION: '1.22'
+  GO_VERSION: '1.23'
   NIX_VERSION: '2.19.2'
 jobs:
   build:
@@ -271,7 +271,7 @@ jobs:
       - name: Run unit tests
         run: |
           sudo PATH="$PATH" GOCACHE="$(go env GOCACHE)" GOMODCACHE="$(go env GOMODCACHE)" make testunit
-          sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)"
+          sudo chown -R $(id -u):$(id -g) "$(go env GOCACHE)" "$(go env GOMODCACHE)" || true
       - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
         with:
           name: unit-${{ matrix.run.arch }}
