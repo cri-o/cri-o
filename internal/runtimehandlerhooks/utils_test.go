@@ -2,7 +2,6 @@ package runtimehandlerhooks
 
 import (
 	"bufio"
-	"fmt"
 	"os"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -30,10 +29,13 @@ var _ = Describe("Utils", func() {
 
 		DescribeTable("testing cpu mask",
 			func(c TestData) {
-				mask, invMask, err := calcIRQSMPAffinityMask(cpuSetOrDie(c.input.cpus), c.input.mask, c.input.set)
+				mask, banCPUs, err := calcIRQSMPAffinityMask(cpuSetOrDie(c.input.cpus), c.input.mask, calculateCPUSizeFromMask(c.input.mask), c.input.set)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(mask).To(Equal(c.expected.mask))
-				Expect(invMask).To(Equal(c.expected.invMask))
+
+				expectedBanCPUs, err := mapHexCharToCPUSet(c.expected.invMask)
+				Expect(err).ToNot(HaveOccurred(), "Failed to parse "+c.expected.invMask)
+				Expect(banCPUs.Equals(expectedBanCPUs)).To(BeTrue(), "got=%s want=%s", banCPUs, expectedBanCPUs)
 			},
 			Entry("clear a single bit that was one", TestData{
 				input:    Input{cpus: "0", mask: "0000,00003003", set: false},
@@ -68,7 +70,7 @@ var _ = Describe("Utils", func() {
 
 				defer os.Remove(fakeFile)
 
-				fakeData := "000000000,0000000fa" // doesn't need to be valid
+				fakeData := cpuset.New() // doesn't need to be valid
 				err = updateIrqBalanceConfigFile(fakeFile, fakeData)
 				Expect(err).ToNot(HaveOccurred())
 
@@ -77,7 +79,7 @@ var _ = Describe("Utils", func() {
 
 				attempts := 10 // random number, no special meaning
 				for idx := range attempts {
-					data := fmt.Sprintf("000000000,0000000%02x", idx)
+					data := cpuset.New(idx)
 					err = updateIrqBalanceConfigFile(fakeFile, data)
 					Expect(err).ToNot(HaveOccurred())
 
@@ -170,4 +172,5 @@ const confTemplate = `# irqbalance is a daemon process that distributes interrup
 #IRQBALANCE_ARGS=
 
 IRQBALANCE_BANNED_CPUS=
+IRQBALANCE_BANNED_CPU_LIST=
 `

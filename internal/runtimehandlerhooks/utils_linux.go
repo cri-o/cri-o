@@ -23,20 +23,18 @@ func isASCII(s string) bool {
 	return true
 }
 
-func cpuMaskByte(c int) byte {
-	return byte(1 << c)
-}
-
 func mapHexCharToByte(h string) ([]byte, error) {
-	l := len(h)
-
 	var hexin string
+	// remove ","; now each element is "0-9,a-f"
+	s := strings.ReplaceAll(h, ",", "")
+
+	l := len(s)
 
 	if l%2 != 0 {
 		// expect even number of chars
-		hexin = "0" + h
+		hexin = "0" + s
 	} else {
-		hexin = h
+		hexin = s
 	}
 
 	breversed, err := hex.DecodeString(hexin)
@@ -82,6 +80,33 @@ func mapByteToHexChar(b []byte) string {
 	return hex.EncodeToString(breversed)
 }
 
+// Convert byte encoded cpu mask (converted from hex, no commas)
+// to a cpuset.CPUSet representation.
+func mapByteToCPUSet(b []byte) cpuset.CPUSet {
+	result := cpuset.New()
+
+	for i, chunk := range b {
+		start := 8 * i // (len(b) - 1 - i) // First cpu in the chunk
+
+		for bit := range 8 {
+			if chunk&(1<<bit) != 0 { // Check if this bit is set
+				result = result.Union(cpuset.New(start + bit))
+			}
+		}
+	}
+
+	return result
+}
+
+func mapHexCharToCPUSet(s string) (cpuset.CPUSet, error) {
+	toByte, err := mapHexCharToByte(s)
+	if err != nil {
+		return cpuset.New(), err
+	}
+
+	return mapByteToCPUSet(toByte), nil
+}
+
 // take a byte array and invert each byte.
 func invertByteArray(in []byte) (out []byte) {
 	for _, b := range in {
@@ -106,48 +131,35 @@ func isAllBitSet(in []byte) bool {
 // calcIRQSMPAffinityMask takes cpuset containerCPUSet that needs to change irq affinity mask and
 // the current mask string, as well as bool set. It then returns an updated mask string and inverted mask, with those
 // CPUs enabled or disable in the mask.
-func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
+func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, size int, set bool) (string, cpuset.CPUSet, error) {
+	if size == 0 {
+		return "", cpuset.New(), fmt.Errorf("cannot compute IRQ SMP affinity mask: cpu size is 0")
+	}
+
+	var updatedSMPAffinityCPUs cpuset.CPUSet
+
 	// only ascii string supported
 	if !isASCII(current) {
-		return "", "", fmt.Errorf("non ascii character detected: %s", current)
+		return "", cpuset.New(), fmt.Errorf("non ascii character detected: %s", current)
 	}
 
-	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
-
-	// the index 0 corresponds to the cpu 0-7
-	// the LSb (right-most bit) represents the lowest cpu id from the byte
-	// and the MSb (left-most bit) represents the highest cpu id from the byte
-	currentMaskArray, err := mapHexCharToByte(s)
+	currentCPUs, err := mapHexCharToCPUSet(current)
 	if err != nil {
-		return "", "", err
+		return "", cpuset.New(), err
 	}
 
-	invertedMaskArray := invertByteArray(currentMaskArray)
-
-	for _, cpu := range containerCPUSet.List() {
-		if set {
-			// each byte represent 8 cpus
-			currentMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
-			invertedMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
-		} else {
-			currentMaskArray[cpu/8] &^= cpuMaskByte(cpu % 8)
-			invertedMaskArray[cpu/8] |= cpuMaskByte(cpu % 8)
-		}
+	allCPUs, err := cpuset.Parse(fmt.Sprintf("0-%d", size-1))
+	if err != nil {
+		return "", cpuset.New(), err
 	}
 
-	maskString := mapByteToHexChar(currentMaskArray)
-	invertedMaskString := mapByteToHexChar(invertedMaskArray)
-
-	maskStringWithComma := maskString[0:8]
-	invertedMaskStringWithComma := invertedMaskString[0:8]
-
-	for i := 8; i+8 <= len(maskString); i += 8 {
-		maskStringWithComma = maskStringWithComma + "," + maskString[i:i+8]
-		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
+	if set {
+		updatedSMPAffinityCPUs = currentCPUs.Union(containerCPUSet)
+	} else {
+		updatedSMPAffinityCPUs = currentCPUs.Difference(containerCPUSet)
 	}
 
-	return maskStringWithComma, invertedMaskStringWithComma, nil
+	return toMask(size, updatedSMPAffinityCPUs), allCPUs.Difference(updatedSMPAffinityCPUs), nil
 }
 
 func restartService(serviceName string) error {
@@ -171,7 +183,7 @@ func isServiceEnabled(serviceName string) bool {
 	return false
 }
 
-func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
+func updateIrqBalanceConfigFile(irqBalanceConfigFile string, newIRQBalanceSetting cpuset.CPUSet) error {
 	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
 		return err
@@ -181,15 +193,20 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	found := false
 
 	for i, line := range lines {
-		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
+		// Comment out the old deprecated variable
+		if strings.HasPrefix(line, irqBalanceBannedCpusLegacy+"=") {
+			lines[i] = "#" + line
+		}
+
+		if strings.HasPrefix(line, irqBalanceBannedCPUs+"=") {
+			lines[i] = irqBalanceBannedCPUs + "=" + "\"" + newIRQBalanceSetting.String() + "\""
 			found = true
 		}
 	}
 
 	output := strings.Join(lines, "\n")
 	if !found {
-		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+		output = output + "\n" + irqBalanceBannedCPUs + "=" + "\"" + newIRQBalanceSetting.String() + "\"" + "\n"
 	}
 
 	if err := os.WriteFile(irqBalanceConfigFile, []byte(output), 0o644); err != nil {
@@ -199,20 +216,40 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	return nil
 }
 
-func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
+func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error) {
 	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
-		return "", err
+		return cpuset.New(), err
 	}
+
+	setFromOldValue := cpuset.New()
+	setFromNewValue := cpuset.New()
 
 	lines := strings.SplitSeq(string(input), "\n")
 	for line := range lines {
-		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			return strings.Trim(strings.Split(line, "=")[1], "\""), nil
+		// try to read from the legacy variable first and merge both values.
+		// after the first iteration, it'll comment this line, so
+		// it will not enter this flow again (because the prefix won't match).
+		if strings.HasPrefix(line, irqBalanceBannedCpusLegacy+"=") {
+			list := strings.Trim(strings.Split(line, "=")[1], "\"")
+
+			setFromOldValue, err = mapHexCharToCPUSet(list)
+			if err != nil {
+				return cpuset.New(), err
+			}
+		}
+
+		if strings.HasPrefix(line, irqBalanceBannedCPUs+"=") {
+			list := strings.Trim(strings.Split(line, "=")[1], "\"")
+
+			setFromNewValue, err = cpuset.Parse(list)
+			if err != nil {
+				return cpuset.New(), err
+			}
 		}
 	}
 
-	return "", nil
+	return setFromOldValue.Union(setFromNewValue), nil
 }
 
 func fileExists(filename string) bool {
@@ -222,4 +259,49 @@ func fileExists(filename string) bool {
 	}
 
 	return !info.IsDir()
+}
+
+// calculateCPUSizeFromMask return the number of total cpus
+// given a CPU mask
+// this is useful for finding the complement of a mask.
+func calculateCPUSizeFromMask(mask string) int {
+	noCommaMask := strings.ReplaceAll(mask, ",", "")
+	maskLen := len(noCommaMask)
+	// if mask is odd, round up
+	if maskLen%2 == 1 {
+		maskLen++
+	}
+	// each hexadecimal char represents 4 CPUs
+	return maskLen * 4
+}
+
+// toMask convert cpuset which is represented as a CPU list format
+// into mask format
+// size is the number of bits that will be presented in the mask.
+func toMask(size int, set cpuset.CPUSet) string {
+	if size == 0 {
+		return ""
+	}
+
+	arraySize := size / 8
+	if size%8 != 0 {
+		arraySize += 1
+	}
+
+	byteArray := make([]byte, arraySize)
+
+	for i := range size {
+		if set.Contains(i) {
+			byteArray[i/8] |= 1 << (i % 8)
+		}
+	}
+
+	maskString := mapByteToHexChar(byteArray)
+	maskStringWithComma := maskString[0:8]
+
+	for i := 8; i+8 <= len(maskString); i += 8 {
+		maskStringWithComma = maskStringWithComma + "," + maskString[i:i+8]
+	}
+
+	return maskStringWithComma
 }
