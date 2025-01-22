@@ -417,16 +417,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
 	sbox.SetHostNetwork(hostNetwork)
 
-	if err := s.config.CNIPluginReadyOrError(); err != nil && !hostNetwork {
-		// if the cni plugin isn't ready yet, we should wait until it is
-		// before proceeding
-		watcher := s.config.CNIPluginAddWatcher()
-		log.Infof(ctx, "CNI plugin not ready. Waiting to create %s as it is not host network", sboxName)
-		if ready := <-watcher; !ready {
-			return nil, fmt.Errorf("server shutdown before network was ready: %w", err)
+	if !hostNetwork {
+		if err := s.waitForCNIPlugin(ctx, sboxName); err != nil {
+			return nil, err
 		}
-		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sboxName)
 	}
+
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox network ready")
 
