@@ -1141,41 +1141,119 @@ func makeEntriesFlat(mergedEntries []fileMetadata) ([]fileMetadata, error) {
 	return new, nil
 }
 
-func (c *chunkedDiffer) copyAllBlobToFile(destination *os.File) (digest.Digest, error) {
-	var payload io.ReadCloser
-	var streams chan io.ReadCloser
-	var errs chan error
-	var err error
+type streamOrErr struct {
+	stream io.ReadCloser
+	err    error
+}
 
-	chunksToRequest := []ImageSourceChunk{
-		{
-			Offset: 0,
-			Length: uint64(c.blobSize),
-		},
+// ensureAllBlobsDone ensures that all blobs are closed and returns the first error encountered.
+func ensureAllBlobsDone(streamsOrErrors chan streamOrErr) (retErr error) {
+	for soe := range streamsOrErrors {
+		if soe.stream != nil {
+			_ = soe.stream.Close()
+		} else if retErr == nil {
+			retErr = soe.err
+		}
 	}
+	return
+}
 
-	streams, errs, err = c.stream.GetBlobAt(chunksToRequest)
+// getBlobAtConverterGoroutine reads from the streams and errs channels, then sends
+// either a stream or an error to the stream channel.  The streams channel is closed when
+// there are no more streams and errors to read.
+// It ensures that no more than maxStreams streams are returned, and that every item from the
+// streams and errs channels is consumed.
+func getBlobAtConverterGoroutine(stream chan streamOrErr, streams chan io.ReadCloser, errs chan error, maxStreams int) {
+	tooManyStreams := false
+	streamsSoFar := 0
+
+	err := errors.New("Unexpected error in getBlobAtGoroutine")
+
+	defer func() {
+		if err != nil {
+			stream <- streamOrErr{err: err}
+		}
+		close(stream)
+	}()
+
+loop:
+	for {
+		select {
+		case p, ok := <-streams:
+			if !ok {
+				streams = nil
+				break loop
+			}
+			if streamsSoFar >= maxStreams {
+				tooManyStreams = true
+				_ = p.Close()
+				continue
+			}
+			streamsSoFar++
+			stream <- streamOrErr{stream: p}
+		case err, ok := <-errs:
+			if !ok {
+				errs = nil
+				break loop
+			}
+			stream <- streamOrErr{err: err}
+		}
+	}
+	if streams != nil {
+		for p := range streams {
+			if streamsSoFar >= maxStreams {
+				tooManyStreams = true
+				_ = p.Close()
+				continue
+			}
+			streamsSoFar++
+			stream <- streamOrErr{stream: p}
+		}
+	}
+	if errs != nil {
+		for err := range errs {
+			stream <- streamOrErr{err: err}
+		}
+	}
+	if tooManyStreams {
+		stream <- streamOrErr{err: fmt.Errorf("too many streams returned, got more than %d", maxStreams)}
+	}
+	err = nil
+}
+
+// getBlobAt provides a much more convenient way to consume data returned by ImageSourceSeekable.GetBlobAt.
+// GetBlobAt returns two channels, forcing a caller to `select` on both of them — and in Go, reading a closed channel
+// always succeeds in select.
+// Instead, getBlobAt provides a single channel with all events, which can be consumed conveniently using `range`.
+func getBlobAt(is ImageSourceSeekable, chunksToRequest ...ImageSourceChunk) (chan streamOrErr, error) {
+	streams, errs, err := is.GetBlobAt(chunksToRequest)
+	if err != nil {
+		return nil, err
+	}
+	stream := make(chan streamOrErr)
+	go getBlobAtConverterGoroutine(stream, streams, errs, len(chunksToRequest))
+	return stream, nil
+}
+
+func (c *chunkedDiffer) copyAllBlobToFile(destination *os.File) (digest.Digest, error) {
+	streamsOrErrors, err := getBlobAt(c.stream, ImageSourceChunk{Offset: 0, Length: uint64(c.blobSize)})
 	if err != nil {
 		return "", err
 	}
-	select {
-	case p := <-streams:
-		payload = p
-	case err := <-errs:
-		return "", err
-	}
-	if payload == nil {
-		return "", errors.New("invalid stream returned")
-	}
-	defer payload.Close()
 
 	originalRawDigester := digest.Canonical.Digester()
+	for soe := range streamsOrErrors {
+		if soe.stream != nil {
+			r := io.TeeReader(soe.stream, originalRawDigester.Hash())
 
-	r := io.TeeReader(payload, originalRawDigester.Hash())
-
-	// copy the entire tarball and compute its digest
-	_, err = io.CopyBuffer(destination, r, c.copyBuffer)
-
+			// copy the entire tarball and compute its digest
+			_, err = io.CopyBuffer(destination, r, c.copyBuffer)
+			_ = soe.stream.Close()
+		}
+		if soe.err != nil && err == nil {
+			err = soe.err
+		}
+	}
 	return originalRawDigester.Digest(), err
 }
 
