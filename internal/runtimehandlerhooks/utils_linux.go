@@ -107,15 +107,6 @@ func mapHexCharToCPUSet(s string) (cpuset.CPUSet, error) {
 	return mapByteToCPUSet(toByte), nil
 }
 
-// take a byte array and invert each byte.
-func invertByteArray(in []byte) (out []byte) {
-	for _, b := range in {
-		out = append(out, byte(0xff)-b)
-	}
-
-	return
-}
-
 // take a byte array and returns true when bits of every byte element
 // set to 1, otherwise returns false.
 func isAllBitSet(in []byte) bool {
