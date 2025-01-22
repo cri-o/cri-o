@@ -59,7 +59,7 @@ func (w *Watchdog) Start(ctx context.Context) error {
 
 	log.Infof(ctx, "Starting systemd watchdog using interval: %v", interval)
 
-	go wait.Forever(func() {
+	go wait.Until(func() {
 		if err := w.runHealthCheckers(ctx, interval); err != nil {
 			log.Errorf(ctx, "Will not notify watchdog because CRI-O is unhealthy: %v", err)
 			return
@@ -81,7 +81,7 @@ func (w *Watchdog) Start(ctx context.Context) error {
 		}); err != nil {
 			log.Errorf(ctx, "Failed to notify watchdog: %v", err)
 		}
-	}, interval)
+	}, interval, ctx.Done())
 
 	return nil
 }
