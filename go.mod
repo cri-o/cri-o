@@ -25,12 +25,12 @@ require (
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.1.10
 	github.com/containers/podman/v4 v4.4.1
-	github.com/containers/storage v1.46.2-0.20241016160923-423ff1b5a608
+	github.com/containers/storage v1.46.2-0.20250117060752-72feeff89e43
 	github.com/coreos/go-systemd/v22 v22.5.0
 	github.com/cpuguy83/go-md2man v1.0.10
 	github.com/creack/pty v1.1.18
 	github.com/cri-o/ocicni v0.4.0
-	github.com/cyphar/filepath-securejoin v0.2.5
+	github.com/cyphar/filepath-securejoin v0.3.6
 	github.com/docker/distribution v2.8.1+incompatible
 	github.com/docker/go-units v0.5.0
 	github.com/emicklei/go-restful v2.16.0+incompatible
