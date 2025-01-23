@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 23 Jan 2025 09:57:49 UTC for commit [2b43fdd][0]._
+_Generated on Thu, 23 Jan 2025 17:02:16 UTC for commit [d87a2f3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2b43fdd104ec4d2ee34752d8160150d52b7cac8c
+[0]: https://github.com/cri-o/cri-o/commit/d87a2f3620e799e0aec10604e36494f882bfeeff
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                                       | v0.3.6                             | v0.4.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250123060342-944eb2cf3f59 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250123142524-66d881a5da9e | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.58.0                            | v0.59.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.33.0                            | v1.34.0                            | true   | true             |
 | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc             | v1.33.0                            | v1.34.0                            | true   | true             |
@@ -459,7 +459,7 @@ _Generated on Thu, 23 Jan 2025 09:57:49 UTC for commit [2b43fdd][0]._
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250123060342-944eb2cf3f59  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250123142524-66d881a5da9e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
