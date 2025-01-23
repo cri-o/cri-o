@@ -44,17 +44,17 @@ func ToGRPC(err error) error {
 
 	switch {
 	case IsInvalidArgument(err):
-		return status.Errorf(codes.InvalidArgument, err.Error())
+		return status.Errorf(codes.InvalidArgument, "%v", err.Error())
 	case IsNotFound(err):
-		return status.Errorf(codes.NotFound, err.Error())
+		return status.Errorf(codes.NotFound, "%v", err.Error())
 	case IsAlreadyExists(err):
-		return status.Errorf(codes.AlreadyExists, err.Error())
+		return status.Errorf(codes.AlreadyExists, "%v", err.Error())
 	case IsFailedPrecondition(err):
-		return status.Errorf(codes.FailedPrecondition, err.Error())
+		return status.Errorf(codes.FailedPrecondition, "%v", err.Error())
 	case IsUnavailable(err):
-		return status.Errorf(codes.Unavailable, err.Error())
+		return status.Errorf(codes.Unavailable, "%v", err.Error())
 	case IsNotImplemented(err):
-		return status.Errorf(codes.Unimplemented, err.Error())
+		return status.Errorf(codes.Unimplemented, "%v", err.Error())
 	}
 
 	return err
