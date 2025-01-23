@@ -2,6 +2,7 @@ package sandbox
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"golang.org/x/sys/unix"
@@ -22,7 +23,7 @@ func (s *Sandbox) UnmountShm(ctx context.Context) error {
 
 	// try to unmount, ignoring "not mounted" (EINVAL) error and
 	// "already unmounted" (ENOENT) error
-	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL && err != unix.ENOENT {
+	if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) && !errors.Is(err, unix.ENOENT) {
 		return fmt.Errorf("unable to unmount %s: %w", fp, err)
 	}
 

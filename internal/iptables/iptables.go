@@ -548,7 +548,7 @@ func (runner *runner) checkRuleUsingCheck(args []string) (bool, error) {
 	defer cancel()
 
 	out, err := runner.runContext(ctx, opCheckRule, args)
-	if ctx.Err() == context.DeadlineExceeded {
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
 		return false, errors.New("timed out while checking rules")
 	}
 	if err == nil {

@@ -43,11 +43,7 @@ func TestMergeEnvs(t *testing.T) {
 }
 
 func TestGetDecryptionKeys(t *testing.T) {
-	keysDir, err := os.MkdirTemp("", "temp-keys-1")
-	if err != nil {
-		t.Fatalf("Unable to create a temporary directory %v", err)
-	}
-	defer os.RemoveAll(keysDir)
+	keysDir := t.TempDir()
 
 	// Create a RSA private key
 	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
