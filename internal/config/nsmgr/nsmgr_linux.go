@@ -125,7 +125,7 @@ func (mgr *NamespaceManager) NewPodNamespaces(cfg *PodNamespacesConfig) ([]Names
 		logrus.Warnf("Pinns %v failed: %s (%v)", pinnsArgs, string(output), err)
 		// cleanup the mounts
 		for _, ns := range cfg.Namespaces {
-			if mErr := unix.Unmount(ns.Path, unix.MNT_DETACH); mErr != nil && mErr != unix.EINVAL {
+			if mErr := unix.Unmount(ns.Path, unix.MNT_DETACH); mErr != nil && !errors.Is(mErr, unix.EINVAL) {
 				logrus.Warnf("Failed to unmount %s: %v", ns.Path, mErr)
 			}
 		}
@@ -207,7 +207,7 @@ func (mgr *NamespaceManager) NamespaceFromProcEntry(pid int, nsType NSType) (_ N
 	}
 	defer func() {
 		if retErr != nil {
-			if err := unix.Unmount(pinnedNamespace, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+			if err := unix.Unmount(pinnedNamespace, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
 				logrus.Errorf("Failed umount after failed to pin %s namespace: %v", string(nsType), err)
 			}
 		}

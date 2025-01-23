@@ -3,6 +3,7 @@
 package nsmgr
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"sync"
@@ -85,7 +86,7 @@ func (n *namespace) Remove() error {
 	// Don't run into unmount issues if the network namespace does not exist any more.
 	if _, err := os.Stat(fp); err == nil {
 		// try to unmount, ignoring "not mounted" (EINVAL) error.
-		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && err != unix.EINVAL {
+		if err := unix.Unmount(fp, unix.MNT_DETACH); err != nil && !errors.Is(err, unix.EINVAL) {
 			return fmt.Errorf("unable to unmount %s: %w", fp, err)
 		}
 

@@ -30,6 +30,7 @@ linters:
     - errcheck
     - errchkjson
     - errorlint
+    - exptostd
     - fatcontext
     - forcetypeassert
     - gci
@@ -62,6 +63,7 @@ linters:
     - misspell
     - musttag
     - nakedret
+    - nilnesserr
     - noctx
     - nolintlint
     - nosprintfhostport
@@ -88,6 +90,7 @@ linters:
     - unparam
     - unused
     - usestdlibvars
+    - usetesting
     - wastedassign
     - whitespace
     - zerologlint
