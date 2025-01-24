@@ -316,7 +316,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 
 // StartContainer starts a container.
 func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
-	_, span := log.StartSpan(ctx)
+	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -325,7 +325,7 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	if _, err := r.runtimeCmd("start", c.ID()); err != nil {
+	if _, err := r.runtimeCmd(ctx, "start", c.ID()); err != nil {
 		return err
 	}
 	c.state.Started = time.Now()
@@ -857,13 +857,13 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 		c.SetAsDoneStopping()
 	}()
 	if c.state.Status == ContainerStatePaused {
-		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
+		if _, err := r.runtimeCmd(ctx, "resume", c.ID()); err != nil {
 			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
 		}
 	}
 
 	// Begin the actual kill.
-	if _, err := r.runtimeCmd("kill", c.ID(), c.GetStopSignal()); err != nil {
+	if _, err := r.runtimeCmd(ctx, "kill", c.ID(), c.GetStopSignal()); err != nil {
 		if err := c.Living(); err != nil {
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
@@ -939,7 +939,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 killContainer:
 	// We cannot use ExponentialBackoff() here as its stop conditions are not flexible enough.
 	kwait.BackoffUntil(func() {
-		if _, err := r.runtimeCmd("kill", c.ID(), "KILL"); err != nil {
+		if _, err := r.runtimeCmd(ctx, "kill", c.ID(), "KILL"); err != nil {
 			if !errors.Is(err, ErrNotFound) {
 				log.Errorf(ctx, "Killing container %v failed: %v", c.ID(), err)
 			} else {
@@ -958,7 +958,7 @@ killContainer:
 
 // DeleteContainer deletes a container.
 func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
-	_, span := log.StartSpan(ctx)
+	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -972,7 +972,7 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 		metrics.Instance().MetricContainersOOMCountTotalDelete(c.Name())
 	}
 
-	_, err := r.runtimeCmd("delete", "--force", c.ID())
+	_, err := r.runtimeCmd(ctx, "delete", "--force", c.ID())
 	if errors.Is(err, ErrNotFound) {
 		return nil
 	}
@@ -1018,7 +1018,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	}
 
 	stateCmd := func() (*ContainerState, bool, error) {
-		out, err := r.runtimeCmd("state", c.ID())
+		out, err := r.runtimeCmd(ctx, "state", c.ID())
 		if err != nil {
 			// there are many code paths that could lead to have a bad state in the
 			// underlying runtime.
@@ -1108,7 +1108,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	// Eventually, the processes will get cleaned up when the pod cgroup is cleaned by the kubelet,
 	// but this situation is atypical and should be avoided.
 	if c.nodeLevelPIDNamespace() {
-		return r.signalContainer(c, syscall.SIGKILL, true)
+		return r.signalContainer(ctx, c, syscall.SIGKILL, true)
 	}
 	return nil
 }
@@ -1122,7 +1122,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := r.runtimeCmd("pause", c.ID())
+	_, err := r.runtimeCmd(ctx, "pause", c.ID())
 	return err
 }
 
@@ -1135,7 +1135,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 		return nil
 	}
 
-	_, err := r.runtimeCmd("resume", c.ID())
+	_, err := r.runtimeCmd(ctx, "resume", c.ID())
 	return err
 }
 
@@ -1150,7 +1150,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 
 // SignalContainer sends a signal to a container process.
 func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
-	_, span := log.StartSpan(ctx)
+	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
@@ -1163,10 +1163,10 @@ func (r *runtimeOCI) SignalContainer(ctx context.Context, c *Container, sig sysc
 		return fmt.Errorf("unable to find signal %s", sig.String())
 	}
 
-	return r.signalContainer(c, sig, false)
+	return r.signalContainer(ctx, c, sig, false)
 }
 
-func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool) error {
+func (r *runtimeOCI) signalContainer(ctx context.Context, c *Container, sig syscall.Signal, all bool) error {
 	args := []string{
 		"kill",
 	}
@@ -1174,7 +1174,7 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 		args = append(args, "-a")
 	}
 	args = append(args, c.ID(), strconv.Itoa(int(sig)))
-	_, err := r.runtimeCmd(args...)
+	_, err := r.runtimeCmd(ctx, args...)
 	return err
 }
 
@@ -1382,7 +1382,7 @@ func (c *Container) conmonPidFilePath() string {
 
 // runtimeCmd executes a command with args and returns its output as a string along
 // with an error, if any.
-func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
+func (r *runtimeOCI) runtimeCmd(ctx context.Context, args ...string) (string, error) {
 	runtimeArgs := append(r.defaultRuntimeArgs(), args...)
 	cmd := cmdrunner.Command(r.handler.RuntimePath, runtimeArgs...)
 	var stdout bytes.Buffer
@@ -1392,8 +1392,11 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	r.prepareEnv(cmd, false)
 
 	err := cmd.Run()
+	stdErrStr := stderr.String()
+	if stdErrStr != "" {
+		log.Debugf(ctx, "Runtime stderr: %s", stdErrStr)
+	}
 	if err != nil {
-		stdErrStr := stderr.String()
 		switch {
 		// crun, for most of the commands.
 		case strings.Contains(stdErrStr, "no such process"):
@@ -1439,6 +1442,9 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 	args := []string{rootFlag, r.root}
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "--systemd-cgroup")
+	}
+	if r.config.LogLevel == "debug" {
+		args = append(args, "--debug")
 	}
 	return args
 }
@@ -1487,7 +1493,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 
 	args = append(args, c.ID())
 
-	_, err := r.runtimeCmd(args...)
+	_, err := r.runtimeCmd(ctx, args...)
 	if err != nil {
 		return fmt.Errorf("running %q %q failed: %w", runtimePath, args, err)
 	}
