@@ -1034,6 +1034,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			}
 			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
+				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), err)
 				c.state.Finished = time.Now()
 				c.state.ExitCode = utils.Int32Ptr(255)
 			}
