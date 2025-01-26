@@ -39,16 +39,17 @@ const (
 )
 
 const (
-	annotationTrue       = "true"
-	annotationDisable    = "disable"
-	annotationEnable     = "enable"
-	schedDomainDir       = "/proc/sys/kernel/sched_domain"
-	cgroupMountPoint     = "/sys/fs/cgroup"
-	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
-	irqBalancedName      = "irqbalance"
-	sysCPUDir            = "/sys/devices/system/cpu"
-	sysCPUSaveDir        = "/var/run/crio/cpu"
-	milliCPUToCPU        = 1000
+	annotationTrue          = "true"
+	annotationDisable       = "disable"
+	annotationEnable        = "enable"
+	schedDomainDir          = "/proc/sys/kernel/sched_domain"
+	cgroupMountPoint        = "/sys/fs/cgroup"
+	irqBalanceBannedCpus    = "IRQBALANCE_BANNED_CPUS"
+	irqBalanceBannedCpuList = "IRQBALANCE_BANNED_CPULIST"
+	irqBalancedName         = "irqbalance"
+	sysCPUDir               = "/sys/devices/system/cpu"
+	sysCPUSaveDir           = "/var/run/crio/cpu"
+	milliCPUToCPU           = 1000
 )
 
 const (
@@ -575,7 +576,7 @@ func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irq
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
 		cmd := cmdrunner.Command(irqBalancedName, "--oneshot")
-		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
+		additionalEnv := irqBalanceBannedCpuList + "=" + newIRQBalanceSetting.String()
 		cmd.Env = append(os.Environ(), additionalEnv)
 		return cmd.Run()
 	}
@@ -920,7 +921,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return nil
 	}
 
-	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+	bannedCPUList, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning err as given irqBalanceConfigFile may not exist.
 		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
@@ -934,7 +935,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 			return err
 		}
 		defer irqBannedCPUsConfig.Close()
-		_, err = irqBannedCPUsConfig.WriteString(bannedCPUMasks)
+		_, err = irqBannedCPUsConfig.WriteString(bannedCPUList.String())
 		if err != nil {
 			return err
 		}
@@ -946,9 +947,12 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	if err != nil {
 		return err
 	}
-	origBannedCPUMasks := strings.TrimSpace(string(content))
+	origBannedCPUMasks, err := cpuset.Parse(strings.TrimSpace(string(content)))
+	if err != nil {
+		return err
+	}
 
-	if bannedCPUMasks == origBannedCPUMasks {
+	if bannedCPUList.Equals(origBannedCPUMasks) {
 		log.Infof(ctx, "Restore irqbalance config: nothing to do")
 		return nil
 	}

@@ -27,13 +27,16 @@ func cpuMaskByte(c int) byte {
 }
 
 func mapHexCharToByte(h string) ([]byte, error) {
-	l := len(h)
+	// remove ","; now each element is "0-9,a-f"
+	s := strings.ReplaceAll(h, ",", "")
+
+	l := len(s)
 	var hexin string
 	if l%2 != 0 {
 		// expect even number of chars
-		hexin = "0" + h
+		hexin = "0" + s
 	} else {
-		hexin = h
+		hexin = s
 	}
 
 	breversed, err := hex.DecodeString(hexin)
@@ -75,6 +78,22 @@ func mapByteToHexChar(b []byte) string {
 	return hex.EncodeToString(breversed)
 }
 
+// Convert byte encoded cpu mask (converted from hex, no commas)
+// to a cpuset.CPUSet representation
+func mapByteToCpuSet(b []byte) cpuset.CPUSet {
+	result := cpuset.New()
+
+	for i, chunk := range b {
+		start := 8 * i // (len(b) - 1 - i) // First cpu in the chunk
+		for cpu := range 8 {
+			if chunk&0x1 == 1 {
+				result = result.Union(cpuset.New(cpu + start))
+			}
+		}
+	}
+	return result
+}
+
 // take a byte array and invert each byte.
 func invertByteArray(in []byte) (out []byte) {
 	for _, b := range in {
@@ -97,26 +116,23 @@ func isAllBitSet(in []byte) bool {
 // UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
 // the current mask string, return an update mask string and inverted mask, with those cpus
 // enabled or disable in the mask.
-func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
+func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask string, banned cpuset.CPUSet, err error) {
 	podcpuset, err := cpuset.Parse(cpus)
 	if err != nil {
-		return cpus, "", err
+		return cpus, cpuset.New(), err
 	}
 
 	// only ascii string supported
 	if !isASCII(current) {
-		return cpus, "", fmt.Errorf("non ascii character detected: %s", current)
+		return cpus, cpuset.New(), fmt.Errorf("non ascii character detected: %s", current)
 	}
-
-	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
 
 	// the index 0 corresponds to the cpu 0-7
 	// the LSb (right-most bit) represents the lowest cpu id from the byte
 	// and the MSb (left-most bit) represents the highest cpu id from the byte
-	currentMaskArray, err := mapHexCharToByte(s)
+	currentMaskArray, err := mapHexCharToByte(current)
 	if err != nil {
-		return cpus, "", err
+		return cpus, cpuset.New(), err
 	}
 	invertedMaskArray := invertByteArray(currentMaskArray)
 
@@ -132,15 +148,13 @@ func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCP
 	}
 
 	maskString := mapByteToHexChar(currentMaskArray)
-	invertedMaskString := mapByteToHexChar(invertedMaskArray)
+	bannedCpuSet := mapByteToCpuSet(invertedMaskArray)
 
 	maskStringWithComma := maskString[0:8]
-	invertedMaskStringWithComma := invertedMaskString[0:8]
 	for i := 8; i+8 <= len(maskString); i += 8 {
 		maskStringWithComma = maskStringWithComma + "," + maskString[i:i+8]
-		invertedMaskStringWithComma = invertedMaskStringWithComma + "," + invertedMaskString[i:i+8]
 	}
-	return maskStringWithComma, invertedMaskStringWithComma, nil
+	return maskStringWithComma, bannedCpuSet, nil
 }
 
 func restartIrqBalanceService() error {
@@ -160,7 +174,7 @@ func isServiceEnabled(serviceName string) bool {
 	return false
 }
 
-func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting string) error {
+func updateIrqBalanceConfigFile(irqBalanceConfigFile string, newIRQBalanceSetting cpuset.CPUSet) error {
 	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
 		return err
@@ -168,14 +182,19 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	lines := strings.Split(string(input), "\n")
 	found := false
 	for i, line := range lines {
+		// Comment out the old deprecated variable
 		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			lines[i] = irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\""
+			lines[i] = "#" + line
+		}
+
+		if strings.HasPrefix(line, irqBalanceBannedCpuList+"=") {
+			lines[i] = irqBalanceBannedCpuList + "=" + "\"" + newIRQBalanceSetting.String() + "\""
 			found = true
 		}
 	}
 	output := strings.Join(lines, "\n")
 	if !found {
-		output = output + "\n" + irqBalanceBannedCpus + "=" + "\"" + newIRQBalanceSetting + "\"" + "\n"
+		output = output + "\n" + irqBalanceBannedCpuList + "=" + "\"" + newIRQBalanceSetting.String() + "\"" + "\n"
 	}
 	if err := os.WriteFile(irqBalanceConfigFile, []byte(output), 0o644); err != nil {
 		return err
@@ -183,18 +202,19 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile, newIRQBalanceSetting strin
 	return nil
 }
 
-func retrieveIrqBannedCPUMasks(irqBalanceConfigFile string) (string, error) {
+func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error) {
 	input, err := os.ReadFile(irqBalanceConfigFile)
 	if err != nil {
-		return "", err
+		return cpuset.New(), err
 	}
 	lines := strings.Split(string(input), "\n")
 	for _, line := range lines {
-		if strings.HasPrefix(line, irqBalanceBannedCpus+"=") {
-			return strings.Trim(strings.Split(line, "=")[1], "\""), nil
+		if strings.HasPrefix(line, irqBalanceBannedCpuList+"=") {
+			list := strings.Trim(strings.Split(line, "=")[1], "\"")
+			return cpuset.Parse(list)
 		}
 	}
-	return "", nil
+	return cpuset.New(), nil
 }
 
 func fileExists(filename string) bool {

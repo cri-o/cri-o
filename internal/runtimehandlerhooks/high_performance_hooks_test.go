@@ -119,21 +119,31 @@ var _ = Describe("high_performance_hooks", func() {
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
 
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(bannedCPUs).To(Equal(expectedBan))
+			bannedCpuMask, err := mapHexCharToByte(expectedBan)
+			Expect(err).ToNot(HaveOccurred())
+			bannedCpuSet := mapByteToCpuSet(bannedCpuMask)
+
+			Expect(bannedCPUs).To(Equal(bannedCpuSet))
 		}
 
 		JustBeforeEach(func() {
 			// set irqbalanace config file with no banned cpus
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
+
+			bannedCpuMask, err := mapHexCharToByte(bannedCPUFlags)
 			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCpuSet := mapByteToCpuSet(bannedCpuMask)
+
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCpuSet)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(bannedCPUs).To(Equal(bannedCpuSet))
 			// set container CPUs
 			container.SetSpec(
 				&specs.Spec{
@@ -548,11 +558,21 @@ var _ = Describe("high_performance_hooks", func() {
 
 			content, err := os.ReadFile(irqBannedCPUConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
 
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			origBannedCpuMask, err := mapHexCharToByte(expectedOrigBannedCPUs)
+			Expect(err).ToNot(HaveOccurred())
+			origBannedCpuSet := mapByteToCpuSet(origBannedCpuMask)
+
+			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(origBannedCpuSet.String()))
+
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, bannedCPUs).To(Equal(expectedBannedCPUs))
+
+			bannedCpuMask, err := mapHexCharToByte(expectedBannedCPUs)
+			Expect(err).ToNot(HaveOccurred())
+			bannedCpuSet := mapByteToCpuSet(bannedCpuMask)
+
+			ExpectWithOffset(1, bannedCPUs).To(Equal(bannedCpuSet))
 		}
 
 		JustBeforeEach(func() {
@@ -562,11 +582,16 @@ var _ = Describe("high_performance_hooks", func() {
 			// set irqbalanace config file with banned cpus mask
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, "0000ffff,ffffcfcc")
+
+			bannedCpuMask, err := mapHexCharToByte("0000ffff,ffffcfcc")
 			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCpuSet := mapByteToCpuSet(bannedCpuMask)
+
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCpuSet)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal("0000ffff,ffffcfcc"))
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bannedCPUs).To(Equal(bannedCpuSet))
 		})
 
 		Context("when banned cpu config file doesn't exist", func() {
@@ -584,7 +609,7 @@ var _ = Describe("high_performance_hooks", func() {
 			BeforeEach(func() {
 				// create banned cpu config file
 				os.Remove(irqBannedCPUConfigFile)
-				err = os.WriteFile(irqBannedCPUConfigFile, []byte("00000000,00000000"), 0o644)
+				err = os.WriteFile(irqBannedCPUConfigFile, []byte(""), 0o644)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
