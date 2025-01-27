@@ -177,6 +177,36 @@ jobs:
             jobs: 2
             timeout: 120
 
+          - name: integration / conmon / runc / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: runc
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
+          - name: integration / conmon / crun / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
+          - name: integration / conmon-rs / runc / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: runc
+            runtimeType: pod
+            critest: 0
+            userns: 0
+            jobs: 2
+            timeout: 120
+
     name: ${{ matrix.run.name }}
     runs-on: ${{ matrix.run.runner }}
     timeout-minutes: ${{ matrix.run.timeout }}
