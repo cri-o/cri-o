@@ -23,6 +23,8 @@ jobs:
         run:
           - runner: ubuntu-latest
             arch: amd64
+          - runner: ubuntu-24.04-arm
+            arch: arm64
     name: binaries / ${{ matrix.run.arch }}
     runs-on: ${{ matrix.run.runner }}
     steps:
@@ -88,6 +90,46 @@ jobs:
           - name: critest / conmon-rs / crun / amd64
             arch: amd64
             runner: ubuntu-latest
+            defaultRuntime: crun
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon / runc / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: runc
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon / crun / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: crun
+            runtimeType: oci
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon-rs / runc / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
+            defaultRuntime: runc
+            runtimeType: pod
+            critest: 1
+            userns: 0
+            jobs: 1
+            timeout: 10
+
+          - name: critest / conmon-rs / crun / arm64
+            arch: arm64
+            runner: ubuntu-24.04-arm
             defaultRuntime: crun
             runtimeType: pod
             critest: 1
