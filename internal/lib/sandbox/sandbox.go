@@ -86,6 +86,7 @@ func (s *Sandbox) CRISandbox() *types.PodSandbox {
 		cpy.State = newState
 		s.criSandbox = &cpy
 	}
+
 	return s.criSandbox
 }
 
@@ -284,6 +285,7 @@ func (s *Sandbox) AddContainer(ctx context.Context, c *oci.Container) {
 func (s *Sandbox) GetContainer(ctx context.Context, name string) *oci.Container {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return s.containers.Get(name)
 }
 
@@ -326,9 +328,11 @@ func (s *Sandbox) RemoveInfraContainer() {
 func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if s.stopped {
 		return
 	}
+
 	s.stopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(ctx, sbStoppedFilename); err != nil {
@@ -363,15 +367,18 @@ func (s *Sandbox) NetworkStopped() bool {
 func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if s.networkStopped {
 		return nil
 	}
+
 	s.networkStopped = true
 	if createFile {
 		if err := s.createFileInInfraDir(ctx, sbNetworkStoppedFilename); err != nil {
 			return fmt.Errorf("failed to create state file in container directory. Restores may fail: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -379,6 +386,7 @@ func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error 
 func (s *Sandbox) SetContainerEnvFile(ctx context.Context) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if s.containerEnvPath != "" {
 		return nil
 	}
@@ -390,7 +398,9 @@ func (s *Sandbox) SetContainerEnvFile(ctx context.Context) error {
 	if err == nil {
 		f.Close()
 	}
+
 	s.containerEnvPath = filePath
+
 	return nil
 }
 
@@ -402,19 +412,23 @@ func (s *Sandbox) createFileInInfraDir(ctx context.Context, filename string) err
 	// sandbox to restore
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if !s.created {
 		return nil
 	}
+
 	infra := s.InfraContainer()
 	// If the infra directory has been cleaned up already, we should not fail to
 	// create this file.
 	if _, err := os.Stat(infra.Dir()); os.IsNotExist(err) {
 		return nil
 	}
+
 	f, err := os.Create(filepath.Join(infra.Dir(), filename))
 	if err == nil {
 		f.Close()
 	}
+
 	return err
 }
 
@@ -422,6 +436,7 @@ func (s *Sandbox) RestoreStopped() {
 	if s.fileExistsInInfraDir(sbStoppedFilename) {
 		s.stopped = true
 	}
+
 	if s.fileExistsInInfraDir(sbNetworkStoppedFilename) {
 		s.networkStopped = true
 	}
@@ -429,13 +444,16 @@ func (s *Sandbox) RestoreStopped() {
 
 func (s *Sandbox) fileExistsInInfraDir(filename string) bool {
 	infra := s.InfraContainer()
+
 	infraFilePath := filepath.Join(infra.Dir(), filename)
 	if _, err := os.Stat(infraFilePath); err != nil {
 		if !os.IsNotExist(err) {
 			logrus.Warnf("Error checking if %s exists: %v", infraFilePath, err)
 		}
+
 		return false
 	}
+
 	return true
 }
 
@@ -448,6 +466,7 @@ func (s *Sandbox) State() types.PodSandboxState {
 	if s.Ready(false) {
 		return types.PodSandboxState_SANDBOX_READY
 	}
+
 	return types.PodSandboxState_SANDBOX_NOTREADY
 }
 
@@ -461,6 +480,7 @@ func (s *Sandbox) Ready(takeLock bool) bool {
 	if podInfraContainer == nil {
 		return false
 	}
+
 	if podInfraContainer.Spoofed() {
 		return s.created && !s.stopped
 	}

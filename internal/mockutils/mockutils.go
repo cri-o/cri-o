@@ -29,12 +29,15 @@ func InOrder(calls ...any) MockSequence {
 		if elem.first == nil {
 			continue
 		}
+
 		if first == nil {
 			first = elem.first
 		} else if last != nil {
 			elem.first.After(last)
 		}
+
 		last = elem.last
 	}
+
 	return MockSequence{first, last}
 }

@@ -577,5 +577,6 @@ nobody:x:65534:`
 	Expect(err).ToNot(HaveOccurred())
 	err = os.WriteFile(filepath.Join(dir, "etc", "group"), []byte(alpineGroupFile), 0o755)
 	Expect(err).ToNot(HaveOccurred())
+
 	return dir
 }

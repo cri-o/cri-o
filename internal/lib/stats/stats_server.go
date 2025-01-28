@@ -54,6 +54,7 @@ func New(ctx context.Context, cs parentServerIface) *StatsServer {
 		ctx:               ctx,
 	}
 	go ss.updateLoop()
+
 	return ss
 }
 
@@ -64,6 +65,7 @@ func (ss *StatsServer) updateLoop() {
 		// fetch stats on-demand
 		return
 	}
+
 	for {
 		select {
 		case <-ss.shutdown:
@@ -109,6 +111,7 @@ func (ss *StatsServer) populateWritableLayer(stats *types.ContainerStats, contai
 	if err != nil {
 		logrus.Error(err)
 	}
+
 	stats.WritableLayer = writableLayer
 }
 
@@ -119,18 +122,22 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 		Timestamp: time.Now().UnixNano(),
 		FsId:      &types.FilesystemIdentifier{Mountpoint: container.MountPoint()},
 	}
+
 	driver, err := ss.Store().GraphDriver()
 	if err != nil {
 		return writableLayer, fmt.Errorf("unable to get graph driver for disk usage for container %s: %w", container.ID(), err)
 	}
+
 	storageContainer, err := ss.Store().Container(container.ID())
 	if err != nil {
 		return writableLayer, fmt.Errorf("unable to get storage container for disk usage for container %s: %w", container.ID(), err)
 	}
+
 	usage, err := driver.ReadWriteDiskUsage(storageContainer.LayerID)
 	if err != nil {
 		return writableLayer, fmt.Errorf("unable to get disk usage for container %s: %w", container.ID(), err)
 	}
+
 	writableLayer.UsedBytes = &types.UInt64Value{Value: uint64(usage.Size)}
 	writableLayer.InodesUsed = &types.UInt64Value{Value: uint64(usage.InodeCount)}
 
@@ -141,6 +148,7 @@ func (ss *StatsServer) writableLayerForContainer(container *oci.Container) (*typ
 func (ss *StatsServer) StatsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	return ss.statsForSandbox(sb)
 }
 
@@ -148,12 +156,15 @@ func (ss *StatsServer) StatsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxSta
 func (ss *StatsServer) StatsForSandboxes(sboxes []*sandbox.Sandbox) []*types.PodSandboxStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	stats := make([]*types.PodSandboxStats, 0, len(sboxes))
+
 	for _, sb := range sboxes {
 		if stat := ss.statsForSandbox(sb); stat != nil {
 			stats = append(stats, stat)
 		}
 	}
+
 	return stats
 }
 
@@ -163,6 +174,7 @@ func (ss *StatsServer) statsForSandbox(sb *sandbox.Sandbox) *types.PodSandboxSta
 	if ss.collectionPeriod == 0 {
 		return ss.updateSandbox(sb)
 	}
+
 	sboxStat, ok := ss.sboxStats[sb.ID()]
 	if ok {
 		return sboxStat
@@ -183,6 +195,7 @@ func (ss *StatsServer) RemoveStatsForSandbox(sb *sandbox.Sandbox) {
 func (ss *StatsServer) StatsForContainer(c *oci.Container, sb *sandbox.Sandbox) *types.ContainerStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	return ss.statsForContainer(c, sb)
 }
 
@@ -190,11 +203,14 @@ func (ss *StatsServer) StatsForContainer(c *oci.Container, sb *sandbox.Sandbox) 
 func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.ContainerStats {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	stats := make([]*types.ContainerStats, 0, len(ctrs))
+
 	for _, c := range ctrs {
 		sb := ss.GetSandbox(c.Sandbox())
 		if sb == nil {
 			logrus.Errorf("Unexpectedly failed to get sandbox %s for container %s", c.Sandbox(), c.ID())
+
 			continue
 		}
 
@@ -202,6 +218,7 @@ func (ss *StatsServer) StatsForContainers(ctrs []*oci.Container) []*types.Contai
 			stats = append(stats, stat)
 		}
 	}
+
 	return stats
 }
 
@@ -211,10 +228,12 @@ func (ss *StatsServer) statsForContainer(c *oci.Container, sb *sandbox.Sandbox) 
 	if ss.collectionPeriod == 0 {
 		return ss.updateContainerStats(c, sb)
 	}
+
 	ctrStat, ok := ss.ctrStats[c.ID()]
 	if ok {
 		return ctrStat
 	}
+
 	return ss.updateContainerStats(c, sb)
 }
 
@@ -231,6 +250,7 @@ func (ss *StatsServer) Shutdown() {
 	if ss.alreadyShutdown {
 		return
 	}
+
 	close(ss.shutdown)
 	ss.alreadyShutdown = true
 }
@@ -239,6 +259,7 @@ func (ss *StatsServer) Shutdown() {
 func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	return ss.metricsForPodSandbox(sb)
 }
 
@@ -246,12 +267,15 @@ func (ss *StatsServer) MetricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics
 func (ss *StatsServer) MetricsForPodSandboxList(sboxes []*sandbox.Sandbox) []*SandboxMetrics {
 	ss.mutex.Lock()
 	defer ss.mutex.Unlock()
+
 	metricsList := make([]*SandboxMetrics, 0, len(sboxes))
+
 	for _, sb := range sboxes {
 		if metrics := ss.metricsForPodSandbox(sb); metrics != nil {
 			metricsList = append(metricsList, metrics)
 		}
 	}
+
 	return metricsList
 }
 

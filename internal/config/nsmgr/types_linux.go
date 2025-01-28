@@ -53,6 +53,7 @@ func (n *namespace) Path() string {
 	if n == nil || n.ns == nil {
 		return ""
 	}
+
 	return n.nsPath
 }
 

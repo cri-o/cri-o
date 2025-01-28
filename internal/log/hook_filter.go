@@ -19,15 +19,18 @@ func NewFilterHook(filter string) (*FilterHook, error) {
 		custom *regexp.Regexp
 		err    error
 	)
+
 	if filter != "" {
 		custom, err = regexp.Compile(filter)
 		logrus.Debugf("Using log filter: %q", custom)
+
 		if err != nil {
 			return nil, fmt.Errorf("custom log level filter does not compile: %w", err)
 		}
 	}
 
 	predefined := regexp.MustCompile(`\[[\d\s]+\]`)
+
 	return &FilterHook{custom, predefined}, nil
 }
 

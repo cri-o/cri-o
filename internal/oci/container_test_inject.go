@@ -25,6 +25,7 @@ func (c *Container) SetStateAndSpoofPid(state *ContainerState) {
 		state.Pid = 1
 		state.SetInitPid(state.Pid) //nolint:errcheck
 	}
+
 	c.state = state
 }
 

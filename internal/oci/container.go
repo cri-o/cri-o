@@ -172,6 +172,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopWatchers:       []chan struct{}{},
 		execPIDs:           map[int]bool{},
 	}
+
 	return c, nil
 }
 
@@ -197,6 +198,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 		state:   state,
 		dir:     dir,
 	}
+
 	return c
 }
 
@@ -205,6 +207,7 @@ func (c *Container) CRIContainer() *types.Container {
 	// We would like to avoid deep copies when possible to avoid excessive garbage
 	// collection, but need to if the container changes state.
 	newState := types.ContainerState_CONTAINER_UNKNOWN
+
 	switch c.StateNoLock().Status {
 	case ContainerStateCreated:
 		newState = types.ContainerState_CONTAINER_CREATED
@@ -213,11 +216,13 @@ func (c *Container) CRIContainer() *types.Container {
 	case ContainerStateStopped:
 		newState = types.ContainerState_CONTAINER_EXITED
 	}
+
 	if newState != c.criContainer.State {
 		cpy := *c.criContainer
 		cpy.State = newState
 		c.criContainer = &cpy
 	}
+
 	return c.criContainer
 }
 
@@ -233,6 +238,7 @@ func (c *Container) Spec() specs.Spec {
 	if c.spec != nil {
 		return *c.spec
 	}
+
 	return specs.Spec{}
 }
 
@@ -261,6 +267,7 @@ func (c *Container) StopSignal() syscall.Signal {
 	if err != nil {
 		return defaultStopSignalInt
 	}
+
 	return s
 }
 
@@ -280,6 +287,7 @@ func (c *Container) FromDisk() error {
 
 	dec := json.NewDecoder(jsonSource)
 	tmpState := &ContainerState{}
+
 	if err := dec.Decode(tmpState); err != nil {
 		return err
 	}
@@ -290,9 +298,12 @@ func (c *Container) FromDisk() error {
 		if err := tmpState.SetInitPid(tmpState.Pid); err != nil {
 			return err
 		}
+
 		logrus.Infof("PID information for container %s updated to %d %s", c.ID(), tmpState.InitPid, tmpState.InitStartTime)
 	}
+
 	c.state = tmpState
+
 	return nil
 }
 
@@ -303,12 +314,16 @@ func (cstate *ContainerState) SetInitPid(pid int) error {
 	if cstate.InitPid != 0 || cstate.InitStartTime != "" {
 		return fmt.Errorf("pid and start time already initialized: %d %s", cstate.InitPid, cstate.InitStartTime)
 	}
+
 	cstate.InitPid = pid
+
 	startTime, err := getPidStartTime(pid)
 	if err != nil {
 		return err
 	}
+
 	cstate.InitStartTime = startTime
+
 	return nil
 }
 
@@ -419,6 +434,7 @@ func (c *Container) Metadata() *types.ContainerMetadata {
 func (c *Container) State() *ContainerState {
 	c.opLock.RLock()
 	defer c.opLock.RUnlock()
+
 	return c.state
 }
 
@@ -547,6 +563,7 @@ func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unn
 	if c.state == nil {
 		return 0, "", ErrNotInitialized
 	}
+
 	if c.state.InitPid <= 0 {
 		return 0, "", ErrNotInitialized
 	}
@@ -560,6 +577,7 @@ func (c *Container) pid() (int, string, error) { //nolint:gocritic // Ignore unn
 		if errors.Is(err, unix.ESRCH) {
 			return 0, "", ErrNotFound
 		}
+
 		return 0, "", fmt.Errorf("error checking if process %d is running: %w", c.state.InitPid, err)
 	}
 
@@ -614,10 +632,13 @@ func (c *Container) Spoofed() bool {
 func (c *Container) SetAsStopping() (setToStopping bool) {
 	c.stopLock.Lock()
 	defer c.stopLock.Unlock()
+
 	if !c.stopping {
 		c.stopping = true
+
 		return true
 	}
+
 	return false
 }
 
@@ -625,6 +646,7 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
 	if !c.stopping {
 		c.stopLock.Unlock()
+
 		return
 	}
 
@@ -645,6 +667,7 @@ func (c *Container) SetAsDoneStopping() {
 	for _, watcher := range c.stopWatchers {
 		close(watcher)
 	}
+
 	c.stopWatchers = make([]chan struct{}, 0)
 	close(c.stopTimeoutChan)
 	c.stopLock.Unlock()
@@ -658,6 +681,7 @@ func (c *Container) RemoveManagedPIDNamespace() error {
 	if c.pidns == nil {
 		return nil
 	}
+
 	return fmt.Errorf("remove PID namespace for container %s: %w", c.ID(), c.pidns.Remove())
 }
 
@@ -677,6 +701,7 @@ func (c *Container) nodeLevelPIDNamespace() bool {
 			}
 		}
 	}
+
 	return true
 }
 
@@ -715,36 +740,45 @@ func (c *Container) SetResources(s *specs.Spec) {
 		linuxResources := s.Linux.Resources
 		resourceStatus := &types.ContainerResources{}
 		resourceStatus.Linux = &types.LinuxContainerResources{}
+
 		if linuxResources.CPU != nil {
 			resourceStatus.Linux.CpusetCpus = linuxResources.CPU.Cpus
 			resourceStatus.Linux.CpusetMems = linuxResources.CPU.Mems
+
 			if linuxResources.CPU.Period != nil {
 				resourceStatus.Linux.CpuPeriod = int64(*linuxResources.CPU.Period)
 			}
+
 			if linuxResources.CPU.Quota != nil {
 				resourceStatus.Linux.CpuQuota = *linuxResources.CPU.Quota
 			}
+
 			if linuxResources.CPU.Shares != nil {
 				resourceStatus.Linux.CpuShares = int64(*linuxResources.CPU.Shares)
 			}
 		}
+
 		if linuxResources.Memory != nil {
 			if linuxResources.Memory.Limit != nil {
 				resourceStatus.Linux.MemoryLimitInBytes = *linuxResources.Memory.Limit
 			}
+
 			if linuxResources.Memory.Swap != nil {
 				resourceStatus.Linux.MemorySwapLimitInBytes = *linuxResources.Memory.Swap
 			}
 		}
+
 		if s.Process != nil {
 			if s.Process.OOMScoreAdj != nil {
 				resourceStatus.Linux.OomScoreAdj = int64(*s.Process.OOMScoreAdj)
 			}
 		}
+
 		resourceStatus.Linux.Unified = make(map[string]string)
 		for key, value := range linuxResources.Unified {
 			resourceStatus.Linux.Unified[key] = value
 		}
+
 		resourceStatus.Linux.HugepageLimits = []*types.HugepageLimit{}
 		for _, entry := range linuxResources.HugepageLimits {
 			resourceStatus.Linux.HugepageLimits = append(resourceStatus.Linux.HugepageLimits, &types.HugepageLimit{
@@ -752,6 +786,7 @@ func (c *Container) SetResources(s *specs.Spec) {
 				Limit:    entry.Limit,
 			})
 		}
+
 		c.resources = resourceStatus
 	}
 }
@@ -771,6 +806,7 @@ func (c *Container) RuntimePathForPlatform(r *runtimeOCI) string {
 	if c.runtimePath == "" {
 		return r.handler.RuntimePath
 	}
+
 	return c.runtimePath
 }
 
@@ -784,10 +820,13 @@ func (c *Container) AddExecPID(pid int, shouldKill bool) error {
 	defer c.stopLock.Unlock()
 
 	logrus.Debugf("Starting to track exec PID %d for container %s (should kill = %t) ...", pid, c.ID(), shouldKill)
+
 	if c.stopping {
 		return errors.New("cannot register an exec PID: container is stopping")
 	}
+
 	c.execPIDs[pid] = shouldKill
+
 	return nil
 }
 
@@ -807,6 +846,7 @@ func (c *Container) KillExecPIDs() {
 
 	for len(toKill) != 0 {
 		unkilled := map[int]bool{}
+
 		for pid, shouldKill := range toKill {
 			if pid == 0 {
 				// The caller may accidentally register `0` (for instance if the PID of the cmd has already exited)
@@ -814,17 +854,21 @@ func (c *Container) KillExecPIDs() {
 				// We definitely don't want to kill the CRI-O process group, so add this check just in case.
 				continue
 			}
+
 			sig := syscall.SIGINT
 			if shouldKill {
 				sig = syscall.SIGKILL
 			}
 
 			logrus.Debugf("Stopping exec PID %d for container %s with signal %s ...", pid, c.ID(), unix.SignalName(sig))
+
 			if err := syscall.Kill(pid, sig); err != nil && !errors.Is(err, syscall.ESRCH) {
 				unkilled[pid] = shouldKill
 			}
 		}
+
 		toKill = unkilled
+
 		time.Sleep(stopProcessWatchSleep)
 	}
 }

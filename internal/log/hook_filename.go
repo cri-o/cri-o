@@ -42,7 +42,9 @@ func (f *FileNameHook) Fire(entry *logrus.Entry) error {
 	if f.formatter != entry.Logger.Formatter {
 		f.formatter = &wrapper{entry.Logger.Formatter, f}
 	}
+
 	entry.Logger.Formatter = f.formatter
+
 	return nil
 }
 
@@ -54,6 +56,7 @@ func (w *wrapper) Format(entry *logrus.Entry) ([]byte, error) {
 	)
 	field.Level = entry.Level
 	field.Message = entry.Message
+
 	return w.old.Format(field)
 }
 
@@ -65,11 +68,13 @@ func (f *FileNameHook) findCaller() (file, function string, line int) {
 	for i := range maxFrames {
 		// The amount of frames to be skipped to land at the actual caller
 		const skipFrames = 6
+
 		pc, file, line = caller(skipFrames + i)
 		if !f.shouldSkipPrefix(file) {
 			break
 		}
 	}
+
 	if pc != 0 {
 		frames := runtime.CallersFrames([]uintptr{pc})
 		frame, _ := frames.Next()
@@ -89,11 +94,13 @@ func caller(skip int) (pc uintptr, file string, line int) {
 	}
 
 	n := 0
+
 	for i := len(file) - 1; i > 0; i-- {
 		if file[i] == '/' {
 			n++
 			if n >= 2 {
 				file = file[i+1:]
+
 				break
 			}
 		}
@@ -109,5 +116,6 @@ func (f *FileNameHook) shouldSkipPrefix(file string) bool {
 			return true
 		}
 	}
+
 	return false
 }

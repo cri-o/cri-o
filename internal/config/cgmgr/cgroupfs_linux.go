@@ -55,6 +55,7 @@ func (*CgroupfsManager) ContainerCgroupPath(sbParent, containerID string) string
 	if sbParent != "" {
 		parent = sbParent
 	}
+
 	return filepath.Join("/", parent, containerCgroupPath(containerID))
 }
 
@@ -69,23 +70,28 @@ func (m *CgroupfsManager) ContainerCgroupAbsolutePath(sbParent, containerID stri
 func (m *CgroupfsManager) ContainerCgroupManager(sbParent, containerID string) (libctrCg.Manager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1CtrCgMgr[containerID]; ok {
 			return cgMgr, nil
 		}
 	}
+
 	cgPath, err := m.ContainerCgroupAbsolutePath(sbParent, containerID)
 	if err != nil {
 		return nil, err
 	}
+
 	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
+
 	if !node.CgroupIsV2() {
 		// cache only cgroup v1 managers
 		m.v1CtrCgMgr[containerID] = cgMgr
 	}
+
 	return cgMgr, nil
 }
 
@@ -97,10 +103,12 @@ func (m *CgroupfsManager) ContainerCgroupStats(sbParent, containerID string) (*C
 	if err != nil {
 		return nil, err
 	}
+
 	stats, err := cgMgr.GetStats()
 	if err != nil {
 		return nil, err
 	}
+
 	return libctrStatsToCgroupStats(stats), nil
 }
 
@@ -133,23 +141,28 @@ func (m *CgroupfsManager) SandboxCgroupPath(sbParent, sbID string, containerMinM
 func (m *CgroupfsManager) SandboxCgroupManager(sbParent, sbID string) (libctrCg.Manager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1SbCgMgr[sbID]; ok {
 			return cgMgr, nil
 		}
 	}
+
 	_, cgPath, err := sandboxCgroupAbsolutePath(sbParent)
 	if err != nil {
 		return nil, err
 	}
+
 	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), false)
 	if err != nil {
 		return nil, err
 	}
+
 	if !node.CgroupIsV2() {
 		// cache only cgroup v1 managers
 		m.v1SbCgMgr[sbID] = cgMgr
 	}
+
 	return cgMgr, nil
 }
 
@@ -161,10 +174,12 @@ func (m *CgroupfsManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStat
 	if err != nil {
 		return nil, err
 	}
+
 	stats, err := cgMgr.GetStats()
 	if err != nil {
 		return nil, err
 	}
+
 	return libctrStatsToCgroupStats(stats), nil
 }
 
@@ -191,10 +206,12 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	}
 
 	cgroupPath := fmt.Sprintf("%s/crio-conmon-%s", cgroupParent, cid)
+
 	control, err := cgroups.New(cgroupPath, &cgcfgs.Resources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}
+
 	if control == nil {
 		return cgroupPath, nil
 	}
@@ -214,6 +231,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 	if err := control.AddPid(pid); err != nil {
 		return "", fmt.Errorf("failed to add conmon to cgroupfs sandbox cgroup: %w", err)
 	}
+
 	return cgroupPath, nil
 }
 
@@ -233,9 +251,11 @@ func setWorkloadSettings(cgPath string, resources *rspec.LinuxResources) (err er
 	if resources.CPU.Shares != nil {
 		cg.Resources.CpuShares = *resources.CPU.Shares
 	}
+
 	if resources.CPU.Quota != nil {
 		cg.Resources.CpuQuota = *resources.CPU.Quota
 	}
+
 	if resources.CPU.Period != nil {
 		cg.Resources.CpuPeriod = *resources.CPU.Period
 	}

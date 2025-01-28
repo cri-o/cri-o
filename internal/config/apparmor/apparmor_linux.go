@@ -33,12 +33,15 @@ func New() *Config {
 func (c *Config) LoadProfile(profile string) error {
 	if !c.IsEnabled() {
 		logrus.Info("AppArmor is disabled by the system or at CRI-O build-time")
+
 		return nil
 	}
 
 	if profile == v1.DeprecatedAppArmorBetaProfileNameUnconfined {
 		logrus.Info("AppArmor profile is unconfined which basically disables it")
+
 		c.defaultProfile = v1.DeprecatedAppArmorBetaProfileNameUnconfined
+
 		return nil
 	}
 
@@ -61,15 +64,18 @@ func (c *Config) LoadProfile(profile string) error {
 					DefaultProfile,
 				)
 			}
+
 			logrus.Tracef("Default AppArmor profile contents: %s", c)
 		}
 
 		c.defaultProfile = DefaultProfile
+
 		return nil
 	}
 
 	// Load a custom profile
 	logrus.Infof("Assuming user-provided AppArmor profile: %v", profile)
+
 	isLoaded, err := apparmor.IsLoaded(profile)
 	if err != nil {
 		return fmt.Errorf(
@@ -84,6 +90,7 @@ func (c *Config) LoadProfile(profile string) error {
 	}
 
 	c.defaultProfile = profile
+
 	return nil
 }
 
@@ -106,6 +113,7 @@ func (c *Config) Apply(p *runtimeapi.LinuxContainerSecurityContext) (string, err
 	if p.Apparmor != nil && p.Apparmor.ProfileType == runtimeapi.SecurityProfile_RuntimeDefault {
 		return c.defaultProfile, nil
 	}
+
 	if p.Apparmor == nil && p.ApparmorProfile == "" || p.ApparmorProfile == v1.DeprecatedAppArmorBetaProfileRuntimeDefault {
 		return c.defaultProfile, nil
 	}
@@ -150,6 +158,7 @@ func reloadDefaultProfile() error {
 			"checking if default AppArmor profile %s is loaded: %w", DefaultProfile, err,
 		)
 	}
+
 	if !isLoaded {
 		if err := apparmor.InstallDefault(DefaultProfile); err != nil {
 			return fmt.Errorf(
@@ -158,5 +167,6 @@ func reloadDefaultProfile() error {
 			)
 		}
 	}
+
 	return nil
 }

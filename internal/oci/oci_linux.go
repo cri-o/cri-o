@@ -43,7 +43,9 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 	if err != nil {
 		return err
 	}
+
 	c.conmonCgroupfsPath = conmonCgroupfsPath
+
 	return nil
 }
 
@@ -59,5 +61,6 @@ func newPipe() (parent, child *os.File, _ error) {
 	if err != nil {
 		return nil, nil, err
 	}
+
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }

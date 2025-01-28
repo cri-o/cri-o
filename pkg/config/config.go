@@ -742,10 +742,13 @@ const configLogPrefix = "Updating config from "
 // otherwise.
 func (c *Config) UpdateFromFile(ctx context.Context, path string) error {
 	log.Infof(ctx, configLogPrefix+"single file: %s", path)
+
 	if err := c.UpdateFromDropInFile(ctx, path); err != nil {
 		return fmt.Errorf("update config from drop-in file: %w", err)
 	}
+
 	c.singleConfigPath = path
+
 	return nil
 }
 
@@ -784,14 +787,17 @@ func (c *Config) UpdateFromDropInFile(ctx context.Context, path string) error {
 	if t.Crio.Root == "" {
 		t.Crio.Root = graphRoot
 	}
+
 	if t.Crio.RunRoot == "" {
 		t.Crio.RunRoot = runRoot
 	}
+
 	if t.Crio.Storage == "" {
 		t.Crio.Storage = storageDriver
 	}
 
 	t.toConfig(c)
+
 	return nil
 }
 
@@ -799,17 +805,22 @@ func (c *Config) UpdateFromDropInFile(ctx context.Context, path string) error {
 // keeps the last appearance.
 func removeDupStorageOpts(storageOpts []string) []string {
 	var resOpts []string
+
 	opts := make(map[string]bool)
 	for i := len(storageOpts) - 1; i >= 0; i-- {
 		if ok := opts[storageOpts[i]]; ok {
 			continue
 		}
+
 		opts[storageOpts[i]] = true
+
 		resOpts = append(resOpts, storageOpts[i])
 	}
+
 	for i, j := 0, len(resOpts)-1; i < j; i, j = i+1, j-1 {
 		resOpts[i], resOpts[j] = resOpts[j], resOpts[i]
 	}
+
 	return resOpts
 }
 
@@ -817,9 +828,11 @@ func removeDupStorageOpts(storageOpts []string) []string {
 // configuration for it.
 func (c *Config) UpdateFromPath(ctx context.Context, path string) error {
 	log.Infof(ctx, configLogPrefix+"path: %s", path)
+
 	if _, err := os.Stat(path); err != nil && os.IsNotExist(err) {
 		return nil
 	}
+
 	if err := filepath.Walk(path,
 		func(p string, info os.FileInfo, err error) error {
 			if err != nil {
@@ -828,11 +841,14 @@ func (c *Config) UpdateFromPath(ctx context.Context, path string) error {
 			if info.IsDir() {
 				return nil
 			}
+
 			return c.UpdateFromDropInFile(ctx, p)
 		}); err != nil {
 		return fmt.Errorf("walk path: %w", err)
 	}
+
 	c.dropInConfigDir = path
+
 	return nil
 }
 
@@ -880,11 +896,14 @@ func DefaultConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cgroupManager := cgmgr.New()
+
 	ua, err := useragent.Get()
 	if err != nil {
 		return nil, fmt.Errorf("get user agent: %w", err)
 	}
+
 	return &Config{
 		Comment: "# ",
 		SystemContext: &types.SystemContext{
@@ -1038,6 +1057,7 @@ func (c *APIConfig) Validate(onExecution bool) error {
 	if c.GRPCMaxSendMsgSize <= 0 {
 		c.GRPCMaxSendMsgSize = defaultGRPCMaxMsgSize
 	}
+
 	if c.GRPCMaxRecvMsgSize <= 0 {
 		c.GRPCMaxRecvMsgSize = defaultGRPCMaxMsgSize
 	}
@@ -1046,6 +1066,7 @@ func (c *APIConfig) Validate(onExecution bool) error {
 		if c.StreamTLSCert == "" {
 			return errors.New("stream TLS cert path is empty")
 		}
+
 		if c.StreamTLSKey == "" {
 			return errors.New("stream TLS key path is empty")
 		}
@@ -1088,9 +1109,11 @@ func (c *RootConfig) Validate(onExecution bool) error {
 		if !filepath.IsAbs(c.LogDir) {
 			return errors.New("log_dir is not an absolute path")
 		}
+
 		if err := os.MkdirAll(c.LogDir, 0o700); err != nil {
 			return fmt.Errorf("invalid log_dir: %w", err)
 		}
+
 		store, err := c.GetStore()
 		if err != nil {
 			return fmt.Errorf("failed to get store to set defaults: %w", err)
@@ -1167,6 +1190,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err != nil {
 			return fmt.Errorf("%q not found in $PATH: %w", tasksetBinary, err)
 		}
+
 		cmdrunner.PrependCommandsWith(executable, "--cpu-list", set.String())
 	}
 
@@ -1181,6 +1205,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if err != nil {
 			return fmt.Errorf("unable to update cgroup manager: %w", err)
 		}
+
 		c.cgroupManager = cgroupManager
 
 		if err := c.ValidateRuntimes(); err != nil {
@@ -1197,21 +1222,28 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		// it does not exist but can be created
 		// otherwise, we skip
 		hooksDirs := []string{}
+
 		for _, hooksDir := range c.HooksDir {
 			if err := utils.IsDirectory(hooksDir); err != nil {
 				if !os.IsNotExist(err) {
 					logrus.Warnf("Skipping invalid hooks directory: %s exists but is not a directory", hooksDir)
+
 					continue
 				}
+
 				if err := os.MkdirAll(hooksDir, 0o755); err != nil {
 					logrus.Debugf("Failed to create requested hooks dir: %v", err)
+
 					continue
 				}
 			}
+
 			logrus.Debugf("Using hooks directory: %s", hooksDir)
 			hooksDirs = append(hooksDirs, hooksDir)
+
 			continue
 		}
+
 		c.HooksDir = hooksDirs
 
 		if err := cdi.Configure(cdi.WithSpecDirs(c.CDISpecDirs...)); err != nil {
@@ -1231,6 +1263,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 		if c.EnableCriuSupport {
 			if err := validateCriuInPath(); err != nil {
 				c.EnableCriuSupport = false
+
 				logrus.Infof("Checkpoint/restore support disabled: CRIU binary not found int $PATH")
 			} else {
 				logrus.Infof("Checkpoint/restore support enabled")
@@ -1245,6 +1278,7 @@ func (c *RuntimeConfig) Validate(systemContext *types.SystemContext, onExecution
 			}
 
 			logrus.Info("Specified profile does not exist on disk")
+
 			if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
 				return fmt.Errorf("load default seccomp profile: %w", err)
 			}
@@ -1356,6 +1390,7 @@ func (c *RuntimeConfig) ValidateRuntimes() error {
 	for _, invalidHandlerName := range failedValidation {
 		delete(c.Runtimes, invalidHandlerName)
 	}
+
 	c.initializeRuntimeFeatures()
 
 	return nil
@@ -1366,6 +1401,7 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 		versionOutput, err := cmdrunner.CombinedOutput(handler.RuntimePath, "--version")
 		if err != nil {
 			logrus.Errorf("Unable to determine version of runtime handler %q: %v", name, err)
+
 			continue
 		}
 
@@ -1377,12 +1413,14 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 		output, err := cmdrunner.CombinedOutput(handler.RuntimePath, "features")
 		if err != nil {
 			logrus.Errorf("Getting %s OCI runtime features failed: %s: %v", handler.RuntimePath, output, err)
+
 			continue
 		}
 
 		// Ignore error if we can't load runtime features.
 		if err := handler.LoadRuntimeFeatures(output); err != nil {
 			logrus.Errorf("Unable to load OCI features for runtime handler %q: %v", name, err)
+
 			continue
 		}
 
@@ -1402,9 +1440,11 @@ func (c *RuntimeConfig) initializeRuntimeFeatures() {
 			// but the current kernel might not.
 			if err := checkKernelRROMountSupport(); err != nil {
 				logrus.Warnf("Runtime handler %q supports Recursive Read-only (RRO) mounts, but kernel does not: %v", name, err)
+
 				rro = false
 			}
 		}
+
 		handler.features.RecursiveReadOnlyMounts = rro
 	}
 }
@@ -1417,6 +1457,7 @@ func (c *RuntimeConfig) TranslateMonitorFields(onExecution bool) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -1427,10 +1468,12 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 		logrus.Debugf("Monitor cgroup %s is becoming %s", handler.MonitorCgroup, c.ConmonCgroup)
 		handler.MonitorCgroup = c.ConmonCgroup
 	}
+
 	if c.Conmon != "" {
 		logrus.Debugf("Monitor path %s is becoming %s", handler.MonitorPath, c.Conmon)
 		handler.MonitorPath = c.Conmon
 	}
+
 	if len(c.ConmonEnv) != 0 {
 		handler.MonitorEnv = c.ConmonEnv
 	}
@@ -1438,20 +1481,25 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 	if handler.MonitorCgroup == "" {
 		handler.MonitorCgroup = defaultMonitorCgroup
 	}
+
 	if onExecution {
 		if err := c.ValidateConmonPath("conmon", handler); err != nil {
 			return err
 		}
+
 		if !c.cgroupManager.IsSystemd() {
 			if handler.MonitorCgroup != utils.PodCgroupName && handler.MonitorCgroup != "" {
 				return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
 			}
+
 			return nil
 		}
+
 		if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
 			return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 		}
 	}
+
 	return nil
 }
 
@@ -1460,10 +1508,12 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 // In any other case, it simply checks if `Conmon` is a valid file.
 func (c *RuntimeConfig) ValidateConmonPath(executable string, handler *RuntimeHandler) error {
 	var err error
+
 	handler.MonitorPath, err = validateExecutablePath(executable, handler.MonitorPath)
 	if err != nil {
 		return err
 	}
+
 	c.conmonManager, err = conmonmgr.New(handler.MonitorPath)
 
 	return err
@@ -1532,13 +1582,18 @@ func validateExecutablePath(executable, currentPath string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+
 		logrus.Debugf("Using %s from $PATH: %s", executable, path)
+
 		return path, nil
 	}
+
 	if _, err := os.Stat(currentPath); err != nil {
 		return "", fmt.Errorf("invalid %s path: %w", executable, err)
 	}
+
 	logrus.Infof("Using %s executable: %s", executable, currentPath)
+
 	return currentPath, nil
 }
 
@@ -1548,14 +1603,17 @@ func (c *ImageConfig) Validate(onExecution bool) error {
 	if !filepath.IsAbs(c.SignaturePolicyDir) {
 		return fmt.Errorf("signature policy dir %q is not absolute", c.SignaturePolicyDir)
 	}
+
 	if _, err := c.ParsePauseImage(); err != nil {
 		return fmt.Errorf("invalid pause image %q: %w", c.PauseImage, err)
 	}
+
 	if onExecution {
 		if err := os.MkdirAll(c.SignaturePolicyDir, 0o755); err != nil {
 			return fmt.Errorf("cannot create signature policy dir: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -1589,6 +1647,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		// While the plugin_dir option is being deprecated, we need this check
 		if c.PluginDir != "" {
 			logrus.Warnf("The config field plugin_dir is being deprecated. Please use plugin_dirs instead")
+
 			if err := os.MkdirAll(c.PluginDir, 0o755); err != nil {
 				return fmt.Errorf("invalid plugin_dir entry: %w", err)
 			}
@@ -1608,6 +1667,7 @@ func (c *NetworkConfig) Validate(onExecution bool) error {
 		if err != nil {
 			return fmt.Errorf("initialize CNI plugin: %w", err)
 		}
+
 		c.cniManager = cniManager
 	}
 
@@ -1619,15 +1679,19 @@ func (r *RuntimeHandler) Validate(name string) error {
 	if err := r.ValidateRuntimeType(name); err != nil {
 		return err
 	}
+
 	if err := r.ValidateRuntimePath(name); err != nil {
 		return err
 	}
+
 	if err := r.ValidateRuntimeConfigPath(name); err != nil {
 		return err
 	}
+
 	if err := r.ValidateRuntimeAllowedAnnotations(); err != nil {
 		return err
 	}
+
 	if err := r.ValidateContainerMinMemory(name); err != nil {
 		logrus.Errorf("Unable to set minimum container memory for runtime handler %q: %v", name, err)
 	}
@@ -1659,6 +1723,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 		if err != nil {
 			return fmt.Errorf("%q not found in $PATH: %w", name, err)
 		}
+
 		r.RuntimePath = executable
 		logrus.Debugf("Using runtime executable from $PATH %q", executable)
 	} else if _, err := os.Stat(r.RuntimePath); err != nil && os.IsNotExist(err) {
@@ -1674,6 +1739,7 @@ func (r *RuntimeHandler) ValidateRuntimePath(name string) error {
 	logrus.Debugf(
 		"Found valid runtime %q for runtime_path %q", name, r.RuntimePath,
 	)
+
 	return nil
 }
 
@@ -1683,6 +1749,7 @@ func (r *RuntimeHandler) ValidateRuntimeType(name string) error {
 		return fmt.Errorf("invalid `runtime_type` %q for runtime %q",
 			r.RuntimeType, name)
 	}
+
 	return nil
 }
 
@@ -1691,12 +1758,15 @@ func (r *RuntimeHandler) ValidateRuntimeConfigPath(name string) error {
 	if r.RuntimeConfigPath == "" {
 		return nil
 	}
+
 	if r.RuntimeType != RuntimeTypeVM {
 		return errors.New("runtime_config_path can only be used with the 'vm' runtime type")
 	}
+
 	if _, err := os.Stat(r.RuntimeConfigPath); err != nil && os.IsNotExist(err) {
 		return fmt.Errorf("invalid runtime_config_path for runtime '%s': %w", name, err)
 	}
+
 	return nil
 }
 
@@ -1705,10 +1775,13 @@ func (r *RuntimeHandler) ValidateRuntimeAllowedAnnotations() error {
 	if err != nil {
 		return err
 	}
+
 	logrus.Debugf(
 		"Allowed annotations for runtime: %v", r.AllowedAnnotations,
 	)
+
 	r.DisallowedAnnotations = disallowed
+
 	return nil
 }
 
@@ -1721,8 +1794,10 @@ func (r *RuntimeHandler) ValidateNoSyncLog() error {
 	// This means that the runtime type must be set to 'oci' or left empty
 	if r.RuntimeType == DefaultRuntimeType || r.RuntimeType == "" {
 		logrus.Warn("NoSyncLog is enabled. This can lead to lost log data")
+
 		return nil
 	}
+
 	return fmt.Errorf("no_sync_log is only allowed with runtime type 'oci', runtime type is '%s'", r.RuntimeType)
 }
 
@@ -1738,9 +1813,12 @@ func (r *RuntimeHandler) ValidateContainerMinMemory(name string) error {
 		err = fmt.Errorf("unable to set runtime memory to %q: %w. Setting to %q instead", r.ContainerMinMemory, err, defaultContainerMinMemory)
 		// Fallback to default value if something is wrong with the configured value.
 		r.ContainerMinMemory = units.BytesSize(defaultContainerMinMemory)
+
 		return err
 	}
+
 	logrus.Debugf("Runtime handler %q container minimum memory set to %d bytes", name, memorySize)
+
 	return nil
 }
 
@@ -1773,9 +1851,11 @@ func (r *RuntimeHandler) RuntimeSupportsIDMap() bool {
 	if r.features.Linux == nil || r.features.Linux.MountExtensions == nil || r.features.Linux.MountExtensions.IDMap == nil {
 		return false
 	}
+
 	if enabled := r.features.Linux.MountExtensions.IDMap.Enabled; enabled == nil || !*enabled {
 		return false
 	}
+
 	return true
 }
 
@@ -1799,18 +1879,23 @@ func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallow
 	for _, ann := range annotations.AllAllowedAnnotations {
 		disallowedMap[ann] = false
 	}
+
 	for _, ann := range allowed {
 		if _, ok := disallowedMap[ann]; !ok {
 			return nil, fmt.Errorf("invalid allowed_annotation: %s", ann)
 		}
+
 		disallowedMap[ann] = true
 	}
+
 	disallowed = make([]string, 0, len(disallowedMap))
+
 	for ann, allowed := range disallowedMap {
 		if !allowed {
 			disallowed = append(disallowed, ann)
 		}
 	}
+
 	return disallowed, nil
 }
 

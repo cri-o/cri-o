@@ -139,6 +139,7 @@ func beforeEach() {
 	var err error
 	config, err = libconfig.DefaultConfig()
 	Expect(err).ToNot(HaveOccurred())
+
 	config.LogDir = "."
 	config.HooksDir = []string{}
 	// so we have permission to make a directory within it
@@ -160,10 +161,12 @@ func beforeEach() {
 	sbox.SetID("sandboxID")
 	sbox.SetLogDir("test")
 	sbox.SetCreatedAt(createdAt)
+
 	err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
 	if err != nil {
 		panic(err)
 	}
+
 	sbox.SetPrivileged(false)
 	sbox.SetPortMappings([]*hostport.PortMapping{})
 	sbox.SetHostNetwork(false)
@@ -215,6 +218,7 @@ func createDummyConfig() {
 func mockRuntimeInLibConfig() {
 	echo, err := exec.LookPath("echo")
 	Expect(err).NotTo(HaveOccurred())
+
 	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
 		RuntimePath: echo,
 	}
@@ -224,6 +228,7 @@ func mockRuntimeInLibConfigCheckpoint() {
 	trueCMD, err := exec.LookPath("true")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(os.WriteFile("/tmp/fake-runtime", []byte("#!/bin/bash\n\necho flag needs an argument\nexit 0\n"), 0o755)).To(Succeed())
+
 	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
 		RuntimePath: "/tmp/fake-runtime",
 		MonitorPath: trueCMD,
@@ -233,6 +238,7 @@ func mockRuntimeInLibConfigCheckpoint() {
 func mockRuntimeToFalseInLibConfig() {
 	falseCMD, err := exec.LookPath("false")
 	Expect(err).NotTo(HaveOccurred())
+
 	config.Runtimes[config.DefaultRuntime] = &libconfig.RuntimeHandler{
 		RuntimePath: falseCMD,
 	}

@@ -33,19 +33,23 @@ func run() error {
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
 
 	logrus.Info("Getting cluster configuration")
+
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return fmt.Errorf("retrieving client config: %w", err)
 	}
 
 	logrus.Info("Creating Kubernetes client")
+
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return fmt.Errorf("creating Kubernetes client: %w", err)
 	}
 
 	logrus.Info("Retrieving nodes")
+
 	ctx := context.Background()
+
 	nodes, err := clientset.CoreV1().
 		Nodes().
 		List(ctx, metav1.ListOptions{})
@@ -54,6 +58,7 @@ func run() error {
 	}
 
 	jobConfigs := []string{}
+
 	for i := range nodes.Items {
 		node := nodes.Items[i]
 		nodeAddress := node.Status.Addresses[0].Address
@@ -70,7 +75,9 @@ func run() error {
 	cm, err := clientset.CoreV1().
 		ConfigMaps(namespace).
 		Get(ctx, configMap, metav1.GetOptions{})
+
 	const key = "config"
+
 	if err == nil {
 		cm.Data[key] = scrapeConfigs
 		if _, err := clientset.CoreV1().
@@ -78,6 +85,7 @@ func run() error {
 			Update(ctx, cm, metav1.UpdateOptions{}); err != nil {
 			return fmt.Errorf("updating scrape config map: %w", err)
 		}
+
 		logrus.Infof("Updated scrape configs in configMap %s", configMap)
 	} else if _, err := clientset.CoreV1().
 		ConfigMaps(namespace).
@@ -92,10 +100,12 @@ func run() error {
 		}, metav1.CreateOptions{}); err != nil {
 		return fmt.Errorf("creating scrape config map: %w", err)
 	}
+
 	logrus.Infof("Wrote scrape configs to configMap %s", configMap)
 
 	addr := ":8080"
 	logrus.Infof("Serving HTTP on %s", addr)
+
 	if err := http.ListenAndServe(addr, nil); err != nil {
 		return fmt.Errorf("running HTTP server: %w", err)
 	}
@@ -125,6 +135,7 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		),
 		Path: "/metrics",
 	}
+
 	metricsReq, err := http.NewRequestWithContext(req.Context(), http.MethodGet, metricsEndpoint.String(), http.NoBody)
 	if err != nil {
 		logrus.Errorf(
@@ -132,8 +143,10 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			metricsEndpoint.String(), err,
 		)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
+
 	resp, err := http.DefaultClient.Do(metricsReq)
 	if err != nil {
 		logrus.Errorf(
@@ -141,18 +154,22 @@ func (h *handler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			metricsEndpoint.String(), err,
 		)
 		w.WriteHeader(http.StatusInternalServerError)
+
 		return
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		w.WriteHeader(resp.StatusCode)
+
 		return
 	}
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		logrus.Errorf("Unable to read metrics response: %v", err)
+
 		return
 	}
 

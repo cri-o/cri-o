@@ -42,6 +42,7 @@ var _ = t.Describe("Config", func() {
 					"caps": ["CAP_SYS_ADMIN"]
 				}
 			}`), 0o644)).To(Succeed())
+
 		return file
 	}
 

@@ -19,6 +19,7 @@ import (
 func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStatusRequest) (*types.PodSandboxStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
@@ -39,9 +40,11 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	}
 
 	var containerStatuses []*types.ContainerStatus
+
 	var timestamp int64
 	if s.config.EnablePodEvents {
 		timestamp = time.Now().UnixNano()
+
 		containerStatuses, err = s.getContainerStatusesFromSandboxID(ctx, req.PodSandboxId)
 		if err != nil {
 			return nil, status.Errorf(codes.Unknown, "could not get container statuses of the sandbox Id %q: %v", req.PodSandboxId, err)
@@ -67,6 +70,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 	if len(sb.IPs()) > 0 {
 		resp.Status.Network.Ip = sb.IPs()[0]
 	}
+
 	if len(sb.IPs()) > 1 {
 		resp.Status.Network.AdditionalIps = toPodIPs(sb.IPs()[1:])
 	}
@@ -76,6 +80,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 		if err != nil {
 			return nil, fmt.Errorf("creating sandbox info: %w", err)
 		}
+
 		resp.Info = info
 	}
 
@@ -86,6 +91,7 @@ func toPodIPs(ips []string) (result []*types.PodIP) {
 	for _, ip := range ips {
 		result = append(result, &types.PodIP{Ip: ip})
 	}
+
 	return result
 }
 
@@ -108,9 +114,11 @@ func createSandboxInfo(c *oci.Container) (map[string]string, error) {
 			c.Spec(),
 		}
 	}
+
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
 	}
+
 	return map[string]string{"info": string(bytes)}, nil
 }

@@ -40,6 +40,7 @@ func CombinedOutput(command string, args ...string) ([]byte, error) {
 	if commandRunner == nil {
 		return exec.Command(command, args...).CombinedOutput()
 	}
+
 	return commandRunner.CombinedOutput(command, args...)
 }
 
@@ -54,6 +55,7 @@ func Command(cmd string, args ...string) *exec.Cmd {
 	if commandRunner == nil {
 		return exec.Command(cmd, args...)
 	}
+
 	return commandRunner.Command(cmd, args...)
 }
 
@@ -73,12 +75,14 @@ func CommandContext(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 func (c *prependableCommandRunner) Command(cmd string, args ...string) *exec.Cmd {
 	realCmd := cmd
 	realArgs := args
+
 	if c.prependCmd != "" {
 		realCmd = c.prependCmd
 		realArgs = c.prependArgs
 		realArgs = append(realArgs, cmd)
 		realArgs = append(realArgs, args...)
 	}
+
 	return exec.Command(realCmd, realArgs...)
 }
 
@@ -88,12 +92,14 @@ func (c *prependableCommandRunner) Command(cmd string, args ...string) *exec.Cmd
 func (c *prependableCommandRunner) CommandContext(ctx context.Context, cmd string, args ...string) *exec.Cmd {
 	realCmd := cmd
 	realArgs := args
+
 	if c.prependCmd != "" {
 		realCmd = c.prependCmd
 		realArgs = c.prependArgs
 		realArgs = append(realArgs, cmd)
 		realArgs = append(realArgs, args...)
 	}
+
 	return exec.CommandContext(ctx, realCmd, realArgs...)
 }
 
@@ -102,6 +108,7 @@ func GetPrependedCmd() string {
 	if c, ok := commandRunner.(*prependableCommandRunner); ok {
 		return c.prependCmd
 	}
+
 	return ""
 }
 

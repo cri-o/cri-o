@@ -25,6 +25,7 @@ func newUserSystemdDbus() (*systemdDbus.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	uid, err := DetectUID()
 	if err != nil {
 		return nil, err
@@ -35,16 +36,22 @@ func newUserSystemdDbus() (*systemdDbus.Conn, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error while dialing %q: %w", addr, err)
 		}
+
 		methods := []dbus.Auth{dbus.AuthExternal(strconv.Itoa(uid))}
+
 		err = conn.Auth(methods)
 		if err != nil {
 			conn.Close()
+
 			return nil, fmt.Errorf("error while authenticating connection, address=%q, UID=%d: %w", addr, uid, err)
 		}
+
 		if err = conn.Hello(); err != nil {
 			conn.Close()
+
 			return nil, fmt.Errorf("error while sending Hello message, address=%q, UID=%d: %w", addr, uid, err)
 		}
+
 		return conn, nil
 	})
 }
@@ -57,25 +64,31 @@ func DetectUID() (int, error) {
 	if !userns.RunningInUserNS() {
 		return os.Getuid(), nil
 	}
+
 	b, err := cmdrunner.Command("busctl", "--user", "--no-pager", "status").CombinedOutput()
 	if err != nil {
 		return -1, fmt.Errorf("could not execute `busctl --user --no-pager status`: %q: %w", string(b), err)
 	}
+
 	scanner := bufio.NewScanner(bytes.NewReader(b))
 	for scanner.Scan() {
 		s := strings.TrimSpace(scanner.Text())
 		if strings.HasPrefix(s, "OwnerUID=") {
 			uidStr := strings.TrimPrefix(s, "OwnerUID=")
+
 			i, err := strconv.Atoi(uidStr)
 			if err != nil {
 				return -1, fmt.Errorf("could not detect the OwnerUID: %s: %w", s, err)
 			}
+
 			return i, nil
 		}
 	}
+
 	if err := scanner.Err(); err != nil {
 		return -1, err
 	}
+
 	return -1, errors.New("could not detect the OwnerUID")
 }
 
@@ -86,17 +99,21 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 	if env := os.Getenv("DBUS_SESSION_BUS_ADDRESS"); env != "" {
 		return env, nil
 	}
+
 	if xdr := os.Getenv("XDG_RUNTIME_DIR"); xdr != "" {
 		busPath := filepath.Join(xdr, "bus")
 		if _, err := os.Stat(busPath); err == nil {
 			busAddress := "unix:path=" + busPath
+
 			return busAddress, nil
 		}
 	}
+
 	b, err := cmdrunner.Command("systemctl", "--user", "--no-pager", "show-environment").CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("could not execute `systemctl --user --no-pager show-environment`, output=%q: %w", string(b), err)
 	}
+
 	scanner := bufio.NewScanner(bytes.NewReader(b))
 	for scanner.Scan() {
 		s := strings.TrimSpace(scanner.Text())
@@ -104,5 +121,6 @@ func DetectUserDbusSessionBusAddress() (string, error) {
 			return strings.TrimPrefix(s, "DBUS_SESSION_BUS_ADDRESS="), nil
 		}
 	}
+
 	return "", errors.New("could not detect DBUS_SESSION_BUS_ADDRESS from `systemctl --user --no-pager show-environment`. Make sure you have installed the dbus-user-session or dbus-daemon package and then run: `systemctl --user start dbus`")
 }

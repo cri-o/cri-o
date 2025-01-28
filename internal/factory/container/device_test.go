@@ -105,6 +105,7 @@ var _ = t.Describe("Container", func() {
 			for _, d := range hostDevices {
 				if d.Uid != d.Gid {
 					testDevice = d
+
 					break
 				}
 			}
@@ -203,6 +204,7 @@ var _ = t.Describe("Container", func() {
 			if err := cdi.Configure(cdi.WithSpecDirs(dir)); err != nil {
 				return err
 			}
+
 			return cdi.Refresh()
 		}
 

@@ -31,6 +31,7 @@ func (f *fakeDirEntry) Info() (os.FileInfo, error) {
 	if f.failOnInfo {
 		return nil, errTest
 	}
+
 	return &fakeFileInfo{}, nil
 }
 

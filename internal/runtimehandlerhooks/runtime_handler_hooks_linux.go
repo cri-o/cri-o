@@ -14,14 +14,19 @@ import (
 func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
+
 		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
+
 	if highPerformanceAnnotationsSpecified(annotations) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
+
 		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
 	}
+
 	if cpuLoadBalancingAllowed(config) {
 		return &DefaultCPULoadBalanceHooks{}, nil
 	}
@@ -40,6 +45,7 @@ func highPerformanceAnnotationsSpecified(annotations map[string]string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -52,6 +58,7 @@ func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
 				}
 			}
 		}
+
 		for _, workload := range config.Workloads {
 			for _, ann := range workload.AllowedAnnotations {
 				if ann == crioann.CPULoadBalancingAnnotation {
@@ -60,5 +67,6 @@ func cpuLoadBalancingAllowed(config *libconfig.Config) bool {
 			}
 		}
 	})
+
 	return cpuLoadBalancingAllowedAnywhere
 }

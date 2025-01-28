@@ -36,21 +36,25 @@ type locker struct {
 
 func (l *locker) Close() error {
 	errList := []error{}
+
 	if l.lock16 != nil {
 		if err := l.lock16.Close(); err != nil {
 			errList = append(errList, err)
 		}
 	}
+
 	if l.lock14 != nil {
 		if err := l.lock14.Close(); err != nil {
 			errList = append(errList, err)
 		}
 	}
+
 	return utilerrors.NewAggregate(errList)
 }
 
 func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker, error) {
 	var err error
+
 	var success bool
 
 	l := &locker{}
@@ -75,6 +79,7 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 		if err := grabIptablesFileLock(l.lock16); err != nil {
 			return false, nil
 		}
+
 		return true, nil
 	}); err != nil {
 		return nil, fmt.Errorf("failed to acquire new iptables lock: %w", err)
@@ -86,12 +91,14 @@ func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker,
 		if err != nil {
 			return false, nil
 		}
+
 		return true, nil
 	}); err != nil {
 		return nil, fmt.Errorf("failed to acquire old iptables lock: %w", err)
 	}
 
 	success = true
+
 	return l, nil
 }
 

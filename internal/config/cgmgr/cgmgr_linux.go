@@ -93,6 +93,7 @@ func New() CgroupManager {
 	if err != nil {
 		panic(err)
 	}
+
 	return cm
 }
 
@@ -109,6 +110,7 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 				memoryMaxFile: cgroupMemoryMaxFileV2,
 			}, nil
 		}
+
 		return &CgroupfsManager{
 			memoryPath:    cgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
@@ -126,8 +128,10 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 	if err != nil {
 		if os.IsNotExist(err) {
 			logrus.Warnf("Failed to find %s at path: %q", memoryMaxFilename, slicePath)
+
 			return nil
 		}
+
 		return fmt.Errorf("unable to read memory file for cgroups at %s: %w", slicePath, err)
 	}
 
@@ -143,6 +147,7 @@ func verifyCgroupHasEnoughMemory(slicePath, memorySubsystemPath, memoryMaxFilena
 			return fmt.Errorf("pod %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -151,12 +156,14 @@ func VerifyMemoryIsEnough(memoryLimit, minMemory int64) error {
 	if memoryLimit != 0 && memoryLimit < minMemory {
 		return fmt.Errorf("set memory limit %d too low; should be at least %d bytes", memoryLimit, minMemory)
 	}
+
 	return nil
 }
 
 // MoveProcessToContainerCgroup moves process to the container cgroup.
 func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 	parentCgroupFile := fmt.Sprintf("/proc/%d/cgroup", containerPid)
+
 	cgmap, err := libctr.ParseCgroupFile(parentCgroupFile)
 	if err != nil {
 		return err
@@ -173,6 +180,7 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -186,6 +194,7 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 			SkipDevices: true,
 		},
 	}
+
 	mgr, err := libctrCgMgr.New(cg)
 	if err != nil {
 		return err
@@ -204,9 +213,11 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 		if path == "" {
 			return errors.New("failed to find cpuset for newly created cgroup")
 		}
+
 		if err := os.MkdirAll(path, 0o755); err != nil && !os.IsNotExist(err) {
 			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
 		}
+
 		if err := libctr.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
 			return fmt.Errorf("failed to set sched_load_balance cpuset for newly created cgroup: %w", err)
 		}
@@ -223,6 +234,7 @@ func removeSandboxCgroup(sbParent, containerCgroup string) error {
 			SkipDevices: true,
 		},
 	}
+
 	mgr, err := libctrCgMgr.New(cg)
 	if err != nil {
 		return err

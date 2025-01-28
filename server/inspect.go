@@ -35,11 +35,13 @@ func (s *Server) getIDMappingsInfo() types.IDMappings {
 			HostID:      0,
 			Size:        int(sizeMax),
 		}
+
 		return types.IDMappings{
 			Uids: []idtools.IDMap{fullMapping},
 			Gids: []idtools.IDMap{fullMapping},
 		}
 	}
+
 	return types.IDMappings{
 		Uids: s.defaultIDMappings.UIDs(),
 		Gids: s.defaultIDMappings.GIDs(),
@@ -65,13 +67,16 @@ var (
 func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFunc, getInfraContainerFunc func(ctx context.Context, id string) *oci.Container, getSandboxFunc func(ctx context.Context, id string) *sandbox.Sandbox) (types.ContainerInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	ctr := getContainerFunc(ctx, id)
 	isInfra := false
+
 	if ctr == nil {
 		ctr = getInfraContainerFunc(ctx, id)
 		if ctr == nil {
 			return types.ContainerInfo{}, errCtrNotFound
 		}
+
 		isInfra = true
 	}
 	// TODO(mrunalp): should we call UpdateStatus()?
@@ -79,9 +84,11 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 	if ctrState == nil {
 		return types.ContainerInfo{}, errCtrStateNil
 	}
+
 	sb := getSandboxFunc(ctx, ctr.Sandbox())
 	if sb == nil {
 		log.Debugf(ctx, "Can't find sandbox %s for container %s", ctr.Sandbox(), id)
+
 		return types.ContainerInfo{}, errSandboxNotFound
 	}
 
@@ -97,15 +104,19 @@ func (s *Server) getContainerInfo(ctx context.Context, id string, getContainerFu
 			ctrPid, err := c.Pid()
 			if ctrPid > 0 && err == nil {
 				pidToReturn = ctrPid
+
 				break
 			}
 		}
 	}
+
 	image := ""
 	if someNameOfTheImage := ctr.SomeNameOfTheImage(); someNameOfTheImage != nil {
 		image = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
+
 	imageRef := ctr.CRIContainer().ImageRef
+
 	return types.ContainerInfo{
 		Name:            ctr.Name(),
 		Pid:             pidToReturn,
@@ -140,10 +151,12 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		b, err := s.config.ToBytes()
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/toml")
+
 		if _, err := w.Write(b); err != nil {
 			logrus.Errorf("Unable to write response TOML: %v", err)
 		}
@@ -151,12 +164,16 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 
 	mux.Get(InspectInfoEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ci := s.getInfo()
+
 		js, err := json.Marshal(ci)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		w.Header().Set("Content-Type", "application/json")
+
 		if _, err := w.Write(js); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
@@ -165,6 +182,7 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 	mux.Get(InspectContainersEndpoint+"/{id}", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		ctx := context.TODO()
 		containerID := chi.URLParam(req, "id")
+
 		ci, err := s.getContainerInfo(ctx, containerID, s.ContainerServer.GetContainer, s.getInfraContainer, s.getSandbox)
 		if err != nil {
 			switch {
@@ -177,14 +195,19 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 			default:
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 			}
+
 			return
 		}
+
 		js, err := json.Marshal(ci)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		w.Header().Set("Content-Type", "application/json")
+
 		if _, err := w.Write(js); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
@@ -197,24 +220,33 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 
 		if ctr == nil {
 			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
+
 			return
 		}
+
 		ctrStatus := ctr.State().Status
 		if ctrStatus != oci.ContainerStateRunning && ctrStatus != oci.ContainerStateCreated {
 			http.Error(w,
 				fmt.Sprintf("container is not in running or created state, now is %s", ctrStatus),
 				http.StatusConflict)
+
 			return
 		}
+
 		if err := s.ContainerServer.Runtime().PauseContainer(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		w.Header().Set("Content-Type", "text/html")
+
 		if _, err := w.Write([]byte("200 OK")); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
@@ -227,24 +259,33 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 
 		if ctr == nil {
 			http.Error(w, "can't find the container with id "+containerID, http.StatusNotFound)
+
 			return
 		}
+
 		ctrStatus := ctr.State().Status
 		if ctrStatus != oci.ContainerStatePaused {
 			http.Error(w,
 				fmt.Sprintf("container is not in paused state, now is %s", ctrStatus),
 				http.StatusConflict)
+
 			return
 		}
+
 		if err := s.ContainerServer.Runtime().UnpauseContainer(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		if err := s.ContainerServer.Runtime().UpdateContainerStatus(s.stream.ctx, ctr); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		w.Header().Set("Content-Type", "text/html")
+
 		if _, err := w.Write([]byte("200 OK")); err != nil {
 			logrus.Errorf("Unable to write response JSON: %v", err)
 		}
@@ -252,8 +293,10 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 
 	mux.Get(InspectGoRoutinesEndpoint, http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Content-Type", "text/plain")
+
 		if err := utils.WriteGoroutineStacksTo(w); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 	}))
@@ -264,18 +307,22 @@ func (s *Server) GetExtendInterfaceMux(enableProfile bool) *chi.Mux {
 		f, err := os.CreateTemp("", "cri-o-heap-*.out")
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
+
 		defer os.Remove(f.Name())
 		debug.WriteHeapDump(f.Fd())
 
 		if _, err := f.Seek(0, 0); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 
 		if _, err := io.Copy(w, f); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
+
 			return
 		}
 	}))

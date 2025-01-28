@@ -23,6 +23,7 @@ func moveSelfToCgroup(cgroup string) error {
 		if !strings.Contains(cgroup, ".slice") {
 			return fmt.Errorf("invalid systemd cgroup %q", cgroup)
 		}
+
 		slice = filepath.Base(cgroup)
 	}
 

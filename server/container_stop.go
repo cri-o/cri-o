@@ -20,6 +20,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
+
 	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// The StopContainer RPC is idempotent, and must not return an error if
@@ -28,6 +29,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 		if errors.Is(err, truncindex.ErrNotExist) {
 			return &types.StopContainerResponse{}, nil
 		}
+
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
@@ -36,6 +38,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 	}
 
 	log.Infof(ctx, "Stopped container %s: %s", c.ID(), c.Description())
+
 	return &types.StopContainerResponse{}, nil
 }
 
@@ -71,8 +74,8 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	if hooks != nil {
 		if err := hooks.PostStop(ctx, ctr, sb); err != nil {
-			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", ctr.ID(), err)
 			// The hook failure MUST NOT prevent the Pod termination
+			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", ctr.ID(), err)
 		}
 	}
 

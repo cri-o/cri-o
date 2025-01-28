@@ -49,5 +49,6 @@ func podSandboxesToNRI(podList []PodSandbox) []*nri.PodSandbox {
 	for _, pod := range podList {
 		pods = append(pods, podSandboxToNRI(pod))
 	}
+
 	return pods
 }

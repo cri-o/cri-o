@@ -14,5 +14,6 @@ func getFinishedTime(fi os.FileInfo) (time.Time, error) {
 	if !ok {
 		return time.Time{}, errors.New("type assertion failed")
 	}
+
 	return time.Unix(st.Ctim.Sec, st.Ctim.Nsec), nil
 }

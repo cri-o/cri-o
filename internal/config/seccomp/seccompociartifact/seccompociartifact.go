@@ -44,6 +44,7 @@ func (s *SeccompOCIArtifact) TryPull(
 	log.Debugf(ctx, "Evaluating seccomp annotations")
 
 	profileRef := ""
+
 	containerKey := fmt.Sprintf("%s/%s", annotations.SeccompProfileAnnotation, containerName)
 	if val, ok := podAnnotations[containerKey]; ok {
 		log.Infof(ctx, "Found container specific seccomp profile annotation: %s=%s", containerKey, val)
@@ -71,11 +72,13 @@ func (s *SeccompOCIArtifact) TryPull(
 		EnforceConfigMediaType: requiredConfigMediaType,
 		CachePath:              "/var/lib/crio/seccomp-oci-artifacts",
 	}
+
 	artifact, err := s.impl.Pull(ctx, profileRef, pullOptions)
 	if err != nil {
 		return nil, fmt.Errorf("pull OCI artifact: %w", err)
 	}
 
 	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(artifact.Data))
+
 	return artifact.Data, nil
 }

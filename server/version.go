@@ -24,6 +24,7 @@ func (s *Server) Version(context.Context, *types.VersionRequest) (*types.Version
 	if err != nil {
 		return nil, fmt.Errorf("get server version: %w", err)
 	}
+
 	return &types.VersionResponse{
 		Version:           kubeAPIVersion,
 		RuntimeName:       containerName,

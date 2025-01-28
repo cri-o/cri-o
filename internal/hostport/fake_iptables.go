@@ -62,6 +62,7 @@ func (f *fakeIPTables) getTable(tableName utiliptables.Table) (*fakeTable, error
 	if !ok {
 		return nil, fmt.Errorf("table %s does not exist", tableName)
 	}
+
 	return table, nil
 }
 
@@ -90,18 +91,22 @@ func (f *fakeIPTables) ensureChain(tableName utiliptables.Table, chainName utili
 			}
 			f.tables[string(tableName)] = table
 		}
+
 		chain := &fakeChain{
 			name:  chainName,
 			rules: make([]string, 0),
 		}
 		table.chains[string(chainName)] = chain
+
 		return false, chain
 	}
+
 	return true, chain
 }
 
 func (f *fakeIPTables) EnsureChain(tableName utiliptables.Table, chainName utiliptables.Chain) (bool, error) {
 	existed, _ := f.ensureChain(tableName, chainName)
+
 	return existed, nil
 }
 
@@ -110,7 +115,9 @@ func (f *fakeIPTables) FlushChain(tableName utiliptables.Table, chainName utilip
 	if err != nil {
 		return err
 	}
+
 	chain.rules = make([]string, 0)
+
 	return nil
 }
 
@@ -119,7 +126,9 @@ func (f *fakeIPTables) DeleteChain(tableName utiliptables.Table, chainName utili
 	if err != nil {
 		return err
 	}
+
 	delete(table.chains, string(chainName))
+
 	return nil
 }
 
@@ -128,6 +137,7 @@ func (f *fakeIPTables) ChainExists(tableName utiliptables.Table, chainName utili
 	if err != nil {
 		return false, err
 	}
+
 	return true, nil
 }
 
@@ -138,6 +148,7 @@ func findRule(chain *fakeChain, rule string) int {
 			return i
 		}
 	}
+
 	return -1
 }
 
@@ -151,6 +162,7 @@ func (f *fakeIPTables) ensureRule(position utiliptables.RulePosition, tableName 
 	if err != nil {
 		return false, err
 	}
+
 	ruleIdx := findRule(chain, rule)
 	if ruleIdx >= 0 {
 		return true, nil
@@ -164,12 +176,14 @@ func (f *fakeIPTables) ensureRule(position utiliptables.RulePosition, tableName 
 	default:
 		return false, fmt.Errorf("unknown position argument %q", position)
 	}
+
 	return false, nil
 }
 
 func normalizeRule(rule string) (string, error) {
 	normalized := ""
 	remaining := strings.TrimSpace(rule)
+
 	for {
 		var end int
 
@@ -182,6 +196,7 @@ func normalizeRule(rule string) (string, error) {
 			if end < 0 {
 				return "", errors.New("invalid rule syntax: mismatched quotes")
 			}
+
 			end += 2
 		} else {
 			end = strings.Index(remaining, " ")
@@ -189,6 +204,7 @@ func normalizeRule(rule string) (string, error) {
 				end = len(remaining)
 			}
 		}
+
 		arg := remaining[:end]
 
 		// Normalize un-prefixed IP addresses like iptables does
@@ -197,31 +213,37 @@ func normalizeRule(rule string) (string, error) {
 			arg += "/32"
 		case utilnet.IPv6:
 			arg += "/128"
-		default:
-			// Not an IP, presumably already a CIDR, so don't change
 		}
+		// default: Not an IP, presumably already a CIDR, so don't change
 
 		if normalized != "" {
 			normalized += " "
 		}
+
 		normalized += strings.TrimSpace(arg)
+
 		if len(remaining) == end {
 			break
 		}
+
 		remaining = remaining[end+1:]
 	}
+
 	return normalized, nil
 }
 
 func (f *fakeIPTables) EnsureRule(position utiliptables.RulePosition, tableName utiliptables.Table, chainName utiliptables.Chain, args ...string) (bool, error) {
 	ruleArgs := make([]string, 0)
+
 	for _, arg := range args {
 		// quote args with internal spaces (like comments)
 		if strings.Contains(arg, " ") {
 			arg = fmt.Sprintf("%q", arg)
 		}
+
 		ruleArgs = append(ruleArgs, arg)
 	}
+
 	return f.ensureRule(position, tableName, chainName, strings.Join(ruleArgs, " "))
 }
 
@@ -229,12 +251,15 @@ func (f *fakeIPTables) DeleteRule(tableName utiliptables.Table, chainName utilip
 	_, chain, err := f.getChain(tableName, chainName)
 	if err == nil {
 		rule := strings.Join(args, " ")
+
 		ruleIdx := findRule(chain, rule)
 		if ruleIdx < 0 {
 			return nil
 		}
+
 		chain.rules = append(chain.rules[:ruleIdx], chain.rules[ruleIdx+1:]...)
 	}
+
 	return nil
 }
 
@@ -262,24 +287,30 @@ func (f *fakeIPTables) SaveInto(tableName utiliptables.Table, buffer *bytes.Buff
 	fmt.Fprintf(buffer, "*%s\n", table.name)
 
 	rules := bytes.NewBuffer(nil)
+
 	for _, chain := range table.chains {
 		fmt.Fprintf(buffer, ":%s - [0:0]\n", string(chain.name))
 		saveChain(chain, rules)
 	}
+
 	buffer.Write(rules.Bytes())
 	buffer.WriteString("COMMIT\n")
+
 	return nil
 }
 
 func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte, flush utiliptables.FlushFlag) error {
 	allLines := string(data)
 	buf := bytes.NewBuffer(data)
+
 	var tableName utiliptables.Table
+
 	for {
 		line, err := buf.ReadString('\n')
 		if err != nil {
 			break
 		}
+
 		if line[0] == '#' {
 			continue
 		}
@@ -288,6 +319,7 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 		if strings.HasPrefix(line, "*") {
 			tableName = utiliptables.Table(line[1:])
 		}
+
 		if tableName != "" {
 			if restoreTableName != "" && restoreTableName != tableName {
 				continue
@@ -300,10 +332,12 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 					if err != nil {
 						return err
 					}
+
 					if chain != nil {
 						delete(table.chains, string(chainName))
 					}
 				}
+
 				_, _ = f.ensureChain(tableName, chainName)
 				// The --noflush option for iptables-restore doesn't work for user-defined chains, only builtin chains.
 				// We should flush user-defined chains if the chain is not to be deleted
@@ -317,8 +351,10 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 				if len(parts) < 3 {
 					return fmt.Errorf("invalid iptables rule '%s'", line)
 				}
+
 				chainName := utiliptables.Chain(parts[1])
 				rule := strings.TrimPrefix(line, fmt.Sprintf("-A %s ", chainName))
+
 				_, err := f.ensureRule(utiliptables.Append, tableName, chainName, rule)
 				if err != nil {
 					return err
@@ -328,8 +364,10 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 				if len(parts) < 3 {
 					return fmt.Errorf("invalid iptables rule '%s'", line)
 				}
+
 				chainName := utiliptables.Chain(parts[1])
 				rule := strings.TrimPrefix(line, fmt.Sprintf("-I %s ", chainName))
+
 				_, err := f.ensureRule(utiliptables.Prepend, tableName, chainName, rule)
 				if err != nil {
 					return err
@@ -339,6 +377,7 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 				if len(parts) < 2 {
 					return fmt.Errorf("invalid iptables rule '%s'", line)
 				}
+
 				if err := f.DeleteChain(tableName, utiliptables.Chain(parts[1])); err != nil {
 					return err
 				}
@@ -346,6 +385,7 @@ func (f *fakeIPTables) restore(restoreTableName utiliptables.Table, data []byte,
 				if restoreTableName == tableName {
 					return nil
 				}
+
 				tableName = ""
 			}
 		}
@@ -369,6 +409,7 @@ func (f *fakeIPTables) isBuiltinChain(tableName utiliptables.Table, chainName ut
 	if builtinChains, ok := f.builtinChains[string(tableName)]; ok && builtinChains.Has(string(chainName)) {
 		return true
 	}
+
 	return false
 }
 

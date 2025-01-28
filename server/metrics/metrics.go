@@ -52,11 +52,13 @@ func GetSizeBucket(size float64) string {
 		">300 MiB", ">200 MiB", ">100 MiB", ">50 MiB",
 		">10 MiB", ">1 MiB", ">1 KiB",
 	}
+
 	for bucketIdx := range sizeBuckets {
 		if size > sizeBuckets[bucketIdx] {
 			return sizeBucketNames[bucketIdx]
 		}
 	}
+
 	return ">0 B"
 }
 
@@ -133,6 +135,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 					return float64(total)
 				}
 				logrus.Warn(err)
+
 				return 0
 			},
 		),
@@ -236,6 +239,7 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 			[]string{"stage"},
 		),
 	}
+
 	return Instance()
 }
 
@@ -244,6 +248,7 @@ func Instance() *Metrics {
 	if instance == nil {
 		return New(&libconfig.MetricsConfig{})
 	}
+
 	return instance
 }
 
@@ -272,6 +277,7 @@ func (m *Metrics) Start(ctx context.Context, stop chan struct{}) error {
 		if err := m.startEndpoint(ctx, stop, "unix", m.config.MetricsSocket, me); err != nil {
 			return fmt.Errorf("creating metrics endpoint socket: %w", err)
 		}
+
 		return nil
 	}
 
@@ -282,8 +288,10 @@ func (m *Metrics) MetricOperationsInc(operation string) {
 	c, err := m.metricOperationsTotal.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operations metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -291,8 +299,10 @@ func (m *Metrics) MetricOperationsLatencySet(operation string, start time.Time) 
 	g, err := m.metricOperationsLatencySeconds.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operation latency metric: %v", err)
+
 		return
 	}
+
 	g.Set(SinceInSeconds(start))
 }
 
@@ -300,8 +310,10 @@ func (m *Metrics) MetricOperationsLatencyTotalObserve(operation string, start ti
 	o, err := m.metricOperationsLatencySecondsTotal.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operation latency (total) metric: %v", err)
+
 		return
 	}
+
 	o.Observe(SinceInSeconds(start))
 }
 
@@ -309,8 +321,10 @@ func (m *Metrics) MetricOperationsErrorsInc(operation string) {
 	c, err := m.metricOperationsErrorsTotal.GetMetricWithLabelValues(operation)
 	if err != nil {
 		logrus.Warnf("Unable to write operation errors metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -318,8 +332,10 @@ func (m *Metrics) MetricContainersOOMCountTotalInc(name string) {
 	c, err := m.metricContainersOOMCountTotal.GetMetricWithLabelValues(name)
 	if err != nil {
 		logrus.Warnf("Unable to write container OOM metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -339,8 +355,10 @@ func (m *Metrics) MetricContainersSeccompNotifierCountTotalInc(name, syscall str
 	c, err := m.metricContainersSeccompNotifierCountTotal.GetMetricWithLabelValues(name, syscall)
 	if err != nil {
 		logrus.Warnf("Unable to write container seccomp notifier metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -352,8 +370,10 @@ func (m *Metrics) MetricImagePullsSkippedBytesAdd(add float64) {
 	c, err := m.metricImagePullsSkippedBytesTotal.GetMetricWithLabelValues(GetSizeBucket(add))
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls skipped bytes metric: %v", err)
+
 		return
 	}
+
 	c.Add(add)
 }
 
@@ -361,8 +381,10 @@ func (m *Metrics) MetricImagePullsFailuresInc(image references.RegistryImageRefe
 	c, err := m.metricImagePullsFailureTotal.GetMetricWithLabelValues(label)
 	if err != nil {
 		logrus.Warnf("Unable to write image pull failures total metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -370,8 +392,10 @@ func (m *Metrics) MetricImageLayerReuseInc(layer string) {
 	c, err := m.metricImageLayerReuseTotal.GetMetricWithLabelValues(layer)
 	if err != nil {
 		logrus.Warnf("Unable to write image layer reuse total metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -383,8 +407,10 @@ func (m *Metrics) MetricImagePullsBytesAdd(add float64, mediatype string, size i
 	c, err := m.metricImagePullsBytesTotal.GetMetricWithLabelValues(mediatype, GetSizeBucket(float64(size)))
 	if err != nil {
 		logrus.Warnf("Unable to write image pulls bytes metric: %v", err)
+
 		return
 	}
+
 	c.Add(add)
 }
 
@@ -392,8 +418,10 @@ func (m *Metrics) MetricResourcesStalledAtStage(stage string) {
 	c, err := m.metricResourcesStalledAtStage.GetMetricWithLabelValues(stage)
 	if err != nil {
 		logrus.Warnf("Unable to write resource stalled at stage metric: %v", err)
+
 		return
 	}
+
 	c.Inc()
 }
 
@@ -419,6 +447,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
+
 			if err := prometheus.Register(metric); err != nil {
 				return nil, fmt.Errorf("register metric: %w", err)
 			}
@@ -429,6 +458,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 
 	mux := &http.ServeMux{}
 	mux.Handle("/metrics", promhttp.Handler())
+
 	return mux, nil
 }
 
@@ -455,6 +485,7 @@ func (m *Metrics) startEndpoint(
 			}
 
 			var cc *cert.Config
+
 			cc, err = cert.NewCertConfig(ctx, stop, m.config.MetricsCert, m.config.MetricsKey, "")
 			if err != nil {
 				log.Fatalf(ctx, "Creating key pair reloader: %v", err)
@@ -467,19 +498,24 @@ func (m *Metrics) startEndpoint(
 
 			go func() {
 				<-stop
+
 				if err := srv.Shutdown(ctx); err != nil {
 					log.Errorf(ctx, "Error on metrics server shutdown: %v", err)
 				}
 			}()
+
 			err = srv.ServeTLS(l, m.config.MetricsCert, m.config.MetricsKey)
 		} else {
 			log.Infof(ctx, "Serving metrics on %s using HTTP", address)
+
 			go func() {
 				<-stop
+
 				if err := srv.Shutdown(ctx); err != nil {
 					log.Errorf(ctx, "Error on metrics server shutdown: %v", err)
 				}
 			}()
+
 			err = srv.Serve(l)
 		}
 

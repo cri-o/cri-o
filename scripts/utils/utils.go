@@ -24,6 +24,7 @@ const (
 
 func GetCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (res semver.Version, err error) {
 	logrus.Infof("Switching to branch: %s", baseBranchName)
+
 	if err := repo.Checkout(baseBranchName); err != nil {
 		return res, fmt.Errorf("unable to checkout branch %s: %w", baseBranchName, err)
 	}
@@ -34,6 +35,7 @@ func GetCurrentVersionFromReleaseBranch(repo *git.Repo, baseBranchName string) (
 	}
 
 	logrus.Infof("Using version: %s", versionFromVersionFile)
+
 	return ConvertStringToSemver(versionFromVersionFile)
 }
 
@@ -45,6 +47,7 @@ func ConvertStringToSemver(tag string) (res semver.Version, err error) {
 
 	// Clear any pre-release and development suffixes.
 	sv.Pre = nil
+
 	return sv, nil
 }
 
@@ -57,6 +60,7 @@ func GetCurrentVersionFromVersionFile(versionFile string) (string, error) {
 	}
 
 	re := regexp.MustCompile(versionPattern)
+
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
 		return "", fmt.Errorf("unable to find current release version using file: %s", versionFile)

@@ -20,11 +20,13 @@ import (
 
 func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 	logrus.Info("Starting seccomp notifier watcher")
+
 	s.seccompNotifierChan = make(chan seccomp.Notification)
 
 	// Restore or cleanup
 	notifierPath := s.config.Seccomp().NotifierPath()
 	info, err := os.Stat(notifierPath)
+
 	if err == nil && info.IsDir() {
 		if err := filepath.Walk(notifierPath, func(path string, info fs.FileInfo, err error) error {
 			if err != nil {
@@ -38,17 +40,20 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 
 			if err := os.RemoveAll(path); err != nil {
 				logrus.Error("Unable to remove path: %w", err)
+
 				return nil
 			}
 
 			ctr, err := s.ContainerServer.GetContainerFromShortID(ctx, id)
 			if err != nil {
 				logrus.Warnf("Skipping not existing seccomp notifier container ID: %s", id)
+
 				return nil
 			}
 
 			if ctr.State().Status != specs.StateRunning {
 				logrus.Warnf("Skipping container %s because it is not running any more", id)
+
 				return nil
 			}
 
@@ -56,6 +61,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			notifier, err := seccomp.NewNotifier(ctx, s.seccompNotifierChan, id, path, ctr.Annotations())
 			if err != nil {
 				logrus.Errorf("Unable to run restored notifier: %v", err)
+
 				return nil
 			}
 
@@ -88,13 +94,17 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 			result, ok := s.seccompNotifiers.Load(id)
 			if !ok {
 				log.Errorf(ctx, "Unable to get notifier for container ID")
+
 				continue
 			}
+
 			notifier, ok := result.(*seccomp.Notifier)
 			if !ok {
 				log.Errorf(ctx, "Notifier is not a seccomp notifier type")
+
 				continue
 			}
+
 			notifier.AddSyscall(syscall)
 
 			ctr := s.ContainerServer.GetContainer(ctx, id)
@@ -130,12 +140,15 @@ func configureMaxThreads() error {
 	if err != nil {
 		return fmt.Errorf("read max threads file: %w", err)
 	}
+
 	mtint, err := strconv.Atoi(strings.TrimSpace(string(mt)))
 	if err != nil {
 		return err
 	}
+
 	maxThreads := (mtint / 100) * 90
 	debug.SetMaxThreads(maxThreads)
 	logrus.Debugf("Golang's threads limit set to %d", maxThreads)
+
 	return nil
 }

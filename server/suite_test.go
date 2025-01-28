@@ -254,6 +254,7 @@ func createDummyConfig() {
 func mockRuntimeInLibConfig() {
 	echo, err := exec.LookPath("echo")
 	Expect(err).ToNot(HaveOccurred())
+
 	serverConfig.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{
 		RuntimePath: echo,
 	}

@@ -189,9 +189,11 @@ func parseImageNames(image *storage.Image) (someName *RegistryImageReference, ta
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("invalid name %q in image %q: %w", nameString, image.ID, err)
 		}
+
 		if reference.IsNameOnly(name) {
 			return nil, nil, nil, fmt.Errorf("invalid name %q in image %q, it has neither a tag nor a digest", nameString, image.ID)
 		}
+
 		switch name := name.(type) {
 		case reference.Canonical:
 			digests = append(digests, name)
@@ -201,14 +203,17 @@ func parseImageNames(image *storage.Image) (someName *RegistryImageReference, ta
 			return nil, nil, nil, fmt.Errorf("internal error, invalid name %q in image %q is !IsNameOnly but neither Canonical nor NamedTagged", nameString, image.ID)
 		}
 	}
+
 	if len(digests) > 0 {
 		best := references.RegistryImageReferenceFromRaw(digests[0])
 		someName = &best
 	}
+
 	if len(tags) > 0 {
 		best := references.RegistryImageReferenceFromRaw(tags[0])
 		someName = &best
 	}
+
 	return someName, tags, digests, nil
 }
 
@@ -220,9 +225,12 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests []reference.Canonical,
 		if err != nil || imgDigest == "" {
 			return "", knownRepoDigests
 		}
+
 		imageDigest = imgDigest
 	}
+
 	imageDigests := []digest.Digest{imageDigest}
+
 	for _, anotherImageDigest := range img.Digests {
 		if anotherImageDigest != imageDigest {
 			imageDigests = append(imageDigests, anotherImageDigest)
@@ -232,6 +240,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests []reference.Canonical,
 	// that we already know.
 	digestMap := make(map[string]struct{})
 	repoDigests = knownRepoDigests
+
 	for _, repoDigest := range knownRepoDigests {
 		digestMap[repoDigest.String()] = struct{}{}
 	}
@@ -240,6 +249,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests []reference.Canonical,
 	for _, tagged := range tags {
 		repos = append(repos, reference.TrimNamed(tagged))
 	}
+
 	for _, digested := range knownRepoDigests {
 		repos = append(repos, reference.TrimNamed(digested))
 	}
@@ -255,6 +265,7 @@ func (svc *imageService) makeRepoDigests(knownRepoDigests []reference.Canonical,
 			}
 		}
 	}
+
 	return imageDigest, repoDigests
 }
 
@@ -263,11 +274,14 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	if err != nil {
 		return imageCacheItem{}, err
 	}
+
 	defer imageFull.Close()
+
 	imageConfig, err := imageFull.OCIConfig(svc.ctx)
 	if err != nil {
 		return imageCacheItem{}, err
 	}
+
 	size := imageSize(imageFull)
 
 	info, err := imageFull.Inspect(svc.ctx)
@@ -285,6 +299,7 @@ func (svc *imageService) buildImageCacheItem(systemContext *types.SystemContext,
 	if err != nil {
 		return imageCacheItem{}, err
 	}
+
 	var ociManifest specs.Manifest
 	if manifestType == specs.MediaTypeImageManifest {
 		if err := json.Unmarshal(topManifestBlob, &ociManifest); err != nil {
@@ -305,20 +320,25 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	if err != nil {
 		return ImageResult{}, err
 	}
+
 	imageDigest, repoDigests := svc.makeRepoDigests(digests, tags, image)
 
 	repoTagStrings := make([]string, 0, len(tags))
 	for _, t := range tags {
 		repoTagStrings = append(repoTagStrings, t.String())
 	}
+
 	sort.Strings(repoTagStrings)
+
 	repoDigestStrings := make([]string, 0, len(repoDigests))
 	for _, d := range repoDigests {
 		repoDigestStrings = append(repoDigestStrings, d.String())
 	}
+
 	sort.Strings(repoDigestStrings)
 
 	previousName := ""
+
 	if len(image.NamesHistory) > 0 {
 		// Remove the tag because we can only keep the name as indicator
 		split := strings.SplitN(image.NamesHistory[0], ":", 2)
@@ -328,9 +348,11 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 	}
 
 	imagePinned := false
+
 	for _, image := range image.Names {
 		if FilterPinnedImage(image, svc.regexForPinnedImages) {
 			imagePinned = true
+
 			break
 		}
 	}
@@ -347,11 +369,14 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 			logrus.Warnf("Unable to get mount info for path %s: %v", mountPoint, err)
 			mountPoint = ""
 		}
+
 		if len(infos) == 0 {
 			logrus.Warnf("Unable to find mount path %s for image %s, assuming image is no longer mounted", mountPoint, image.ID)
+
 			if _, err := svc.store.UnmountImage(image.ID, true); err != nil {
 				logrus.Warnf("Unable to unmount image %s: %v", image.ID, err)
 			}
+
 			mountPoint = ""
 		}
 	}
@@ -378,32 +403,40 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	if err != nil {
 		return nil, err
 	}
+
 	results := make([]ImageResult, 0, len(images))
 	newImageCache := make(imageCache, len(images))
+
 	for i := range images {
 		image := &images[i]
+
 		ref, err := istorage.Transport.NewStoreReference(svc.store, nil, image.ID)
 		if err != nil {
 			return nil, err
 		}
+
 		svc.imageCacheLock.Lock()
 		cacheItem, ok := svc.imageCache[image.ID]
 		svc.imageCacheLock.Unlock()
+
 		if !ok {
 			cacheItem, err = svc.buildImageCacheItem(systemContext, ref)
 			if err != nil {
 				if os.IsNotExist(err) && imageIsBeingPulled(image) { // skip reporting errors if the images haven't finished pulling
 					continue
 				}
+
 				return nil, err
 			}
 		}
 
 		newImageCache[image.ID] = cacheItem
+
 		res, err := svc.buildImageResult(image, cacheItem)
 		if err != nil {
 			return nil, err
 		}
+
 		results = append(results, res)
 	}
 	// replace image cache with cache we just built
@@ -411,6 +444,7 @@ func (svc *imageService) ListImages(systemContext *types.SystemContext) ([]Image
 	svc.imageCacheLock.Lock()
 	svc.imageCache = newImageCache
 	svc.imageCacheLock.Unlock()
+
 	return results, nil
 }
 
@@ -420,6 +454,7 @@ func imageIsBeingPulled(image *storage.Image) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -428,6 +463,7 @@ func (svc *imageService) ImageStatusByName(systemContext *types.SystemContext, n
 	if err != nil {
 		return nil, err
 	}
+
 	return svc.imageStatus(systemContext, unstableRef)
 }
 
@@ -436,6 +472,7 @@ func (svc *imageService) ImageStatusByID(systemContext *types.SystemContext, id 
 	if err != nil {
 		return nil, err
 	}
+
 	return svc.imageStatus(systemContext, ref)
 }
 
@@ -454,6 +491,7 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 
 	if !ok {
 		var err error
+
 		cacheItem, err = svc.buildImageCacheItem(systemContext, resolvedRef) // Single-use-only, not actually cached
 		if err != nil {
 			return nil, err
@@ -464,6 +502,7 @@ func (svc *imageService) imageStatus(systemContext *types.SystemContext, unstabl
 	if err != nil {
 		return nil, err
 	}
+
 	return &result, nil
 }
 
@@ -512,6 +551,7 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 	if err != nil {
 		return fmt.Errorf("creating containers-storage: reference for %v: %w", storageRef, err)
 	}
+
 	log.Debugf(ctx, "Created storageRef = %q", transports.ImageName(storageRef))
 
 	storageSource, err := storageRef.NewImageSource(ctx, sys)
@@ -521,12 +561,14 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 	defer storageSource.Close()
 
 	unparsedToplevel := cimage.UnparsedInstance(storageSource, nil)
+
 	topManifest, topMIMEType, err := unparsedToplevel.Manifest(ctx)
 	if err != nil {
 		return fmt.Errorf("get top level manifest: %w", err)
 	}
 
 	unparsedInstance := unparsedToplevel
+
 	if manifest.MIMETypeIsMultiImage(topMIMEType) {
 		manifestList, err := manifest.ListFromBlob(topManifest, topMIMEType)
 		if err != nil {
@@ -547,6 +589,7 @@ func (svc *imageService) checkSignature(ctx context.Context, sys *types.SystemCo
 	if err != nil {
 		return fmt.Errorf("verifying signatures: %w", WrapSignatureCRIErrorIfNeeded(err))
 	}
+
 	if !allowed {
 		panic("Internal inconsistency: IsRunningImageAllowed returned !allowed and no error when checking image signature")
 	}
@@ -561,6 +604,7 @@ func WrapSignatureCRIErrorIfNeeded(err error) error {
 		policyErr    signature.PolicyRequirementError
 		signatureErr signature.InvalidSignatureError
 	)
+
 	if errors.As(err, &policyErr) || errors.As(err, &signatureErr) {
 		return fmt.Errorf("%w: %w", crierrors.ErrSignatureValidationFailed, err)
 	}
@@ -571,8 +615,10 @@ func WrapSignatureCRIErrorIfNeeded(err error) error {
 func imageSize(img types.Image) *uint64 {
 	if sum, err := img.Size(); err == nil {
 		usum := uint64(sum)
+
 		return &usum
 	}
+
 	return nil
 }
 
@@ -628,6 +674,7 @@ func pullImageChild() {
 
 	output := make(chan pullImageOutputItem)
 	outputWritten := make(chan struct{})
+
 	go formatPullImageOutputItemGoroutine(os.Stdout, output, outputWritten)
 
 	progress := make(chan types.ProgressProperties)
@@ -636,6 +683,7 @@ func pullImageChild() {
 			output <- pullImageOutputItem{Progress: &p}
 		}
 	}()
+
 	args.Options.Progress = progress
 
 	canonicalRef, err := pullImageImplementation(context.Background(), args.Lookup, store, imageName, args.Options)
@@ -661,6 +709,7 @@ func formatPullImageOutputItemGoroutine(dest io.Writer, items <-chan pullImageOu
 	for item := range items {
 		stream.WriteVal(item)
 		stream.WriteRaw("\n")
+
 		if err := stream.Flush(); err != nil {
 			fmt.Fprintf(os.Stderr, "%v", err)
 			//nolint:gocritic // “exitAfterDefer: os.Exit will exit, and `defer func(){...}(...)` will not run”
@@ -676,10 +725,12 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 	// the first argument imageName is not used by the re-execed command but it is useful for debugging as it
 	// shows in the ps output.
 	cmd := reexec.CommandContext(ctx, "crio-pull-image", imageName.StringForOutOfProcessConsumptionOnly())
+
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("error getting stdout pipe for image copy process: %w", err)
 	}
+
 	defer stdout.Close()
 
 	stderr, err := cmd.StderrPipe()
@@ -709,28 +760,36 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 	}
 
 	stdinArguments.Options.Progress = nil
+
 	if err := cmd.Start(); err != nil {
 		return RegistryImageReference{}, err
 	}
+
 	if err := json.NewEncoder(stdin).Encode(&stdinArguments); err != nil {
 		stdin.Close()
+
 		if waitErr := cmd.Wait(); waitErr != nil {
 			return RegistryImageReference{}, fmt.Errorf("%w: %w", waitErr, err)
 		}
+
 		return RegistryImageReference{}, fmt.Errorf("json encode to pipe failed: %w", err)
 	}
+
 	stdin.Close()
 
 	resultChan := make(chan string)
+
 	go func() {
 		defer func() {
 			close(resultChan) // Future reads, if any, will get "".
 		}()
 
 		decoder := json.NewDecoder(bufio.NewReader(stdout))
+
 		if progress != nil {
 			defer close(progress)
 		}
+
 		for decoder.More() {
 			var item pullImageOutputItem
 			if err := decoder.Decode(&item); err != nil {
@@ -754,12 +813,14 @@ func (svc *imageService) pullImageParent(ctx context.Context, imageName Registry
 		if errReadAll == nil && len(errOutput) > 0 {
 			return RegistryImageReference{}, fmt.Errorf("pull image: %s", string(errOutput))
 		}
+
 		return RegistryImageReference{}, err
 	}
 
 	if result == "" {
 		return RegistryImageReference{}, errors.New("pull child finished successfully but didn’t send a result")
 	}
+
 	canonicalRef, err := references.ParseRegistryImageReferenceFromOutOfProcessData(result)
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -785,10 +846,12 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	if err != nil {
 		return RegistryImageReference{}, err
 	}
+
 	srcSystemContext := types.SystemContext{}
 	if options.SourceCtx != nil {
 		srcSystemContext = *options.SourceCtx // A shallow copy
 	}
+
 	if secure := lookup.isSecureIndex(imageName.Registry()); !secure {
 		srcSystemContext.DockerInsecureSkipTLSVerify = types.OptionalBoolTrue
 	}
@@ -802,6 +865,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	if err != nil {
 		return RegistryImageReference{}, err
 	}
+
 	policyContext, err := signature.NewPolicyContext(policy)
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -831,6 +895,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, name Reg
 	if err != nil {
 		return err
 	}
+
 	_, img, err := svc.storageTransport.ResolveReference(unstableRef)
 	if err != nil {
 		return err
@@ -840,6 +905,7 @@ func (svc *imageService) UntagImage(systemContext *types.SystemContext, name Reg
 
 	nameString := name.Raw().String()
 	remainingNames := 0
+
 	for _, imgName := range img.Names {
 		if imgName != nameString {
 			remainingNames += 1
@@ -882,13 +948,12 @@ func (svc *imageLookupService) isSecureIndex(indexName string) bool {
 	addrs, err := net.LookupIP(host)
 	if err != nil {
 		ip := net.ParseIP(host)
-		if ip != nil {
-			addrs = []net.IP{ip}
-		}
-
 		// if ip == nil, then `host` is neither an IP nor it could be looked up,
 		// either because the index is unreachable, or because the index is behind an HTTP proxy.
 		// So, len(addrs) == 0 and we're not aborting.
+		if ip != nil {
+			addrs = []net.IP{ip}
+		}
 	}
 
 	// Try CIDR notation only if addrs has any elements, i.e. if `host`'s IP could be determined.
@@ -911,14 +976,17 @@ func (svc *imageService) HeuristicallyTryResolvingStringAsIDPrefix(heuristicInpu
 	if res, err := parseStorageImageID(heuristicInput); err == nil {
 		return &res // If it is already a full image ID, accept it.
 	}
+
 	if len(heuristicInput) >= minimumTruncatedIDLength {
 		if img, err := svc.store.Image(heuristicInput); err == nil && strings.HasPrefix(img.ID, heuristicInput) {
 			// It's a truncated version of the ID of an image that's present in local storage;
 			// we need to expand it.
 			res := storageImageIDFromImage(img)
+
 			return &res
 		}
 	}
+
 	return nil
 }
 
@@ -930,8 +998,10 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 	if systemContext != nil {
 		sc = *systemContext // A shallow copy
 	}
+
 	disabled := types.ShortNameModeDisabled
 	sc.ShortNameMode = &disabled
+
 	resolved, err := shortnames.Resolve(&sc, imageName)
 	if err != nil {
 		return nil, err
@@ -958,18 +1028,22 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 func GetImageService(ctx context.Context, store storage.Store, storageTransport StorageTransport, serverConfig *config.Config) (ImageServer, error) {
 	if store == nil {
 		var err error
+
 		storeOpts, err := storage.DefaultStoreOptions()
 		if err != nil {
 			return nil, err
 		}
+
 		store, err = storage.GetStore(storeOpts)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	if storageTransport == nil {
 		storageTransport = nativeStorageTransport{}
 	}
+
 	ils := &imageLookupService{
 		DefaultTransport:      serverConfig.DefaultTransport,
 		IndexConfigs:          make(map[string]*indexInfo),
@@ -979,6 +1053,7 @@ func GetImageService(ctx context.Context, store storage.Store, storageTransport 
 	if serverConfig.PauseImage != "" {
 		serverConfig.PinnedImages = append(serverConfig.PinnedImages, serverConfig.PauseImage)
 	}
+
 	is := &imageService{
 		lookup:               ils,
 		store:                store,
@@ -1037,6 +1112,7 @@ func FilterPinnedImage(image string, pinnedImages []*regexp.Regexp) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -1044,8 +1120,10 @@ func FilterPinnedImage(image string, pinnedImages []*regexp.Regexp) bool {
 // list of pinned images.
 func CompileRegexpsForPinnedImages(patterns []string) []*regexp.Regexp {
 	regexps := make([]*regexp.Regexp, 0, len(patterns))
+
 	for _, pattern := range patterns {
 		var re *regexp.Regexp
+
 		switch {
 		case strings.HasPrefix(pattern, "*") && strings.HasSuffix(pattern, "*"):
 			// keyword pattern
@@ -1059,6 +1137,7 @@ func CompileRegexpsForPinnedImages(patterns []string) []*regexp.Regexp {
 			// exact pattern
 			re = regexp.MustCompile("(?i)^" + regexp.QuoteMeta(pattern) + "$")
 		}
+
 		regexps = append(regexps, re)
 	}
 

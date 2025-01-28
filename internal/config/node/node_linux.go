@@ -15,6 +15,7 @@ import (
 // cri-o early, instead of when we're already trying to run containers.
 func ValidateConfig() error {
 	cgroupIsV2 := CgroupIsV2()
+
 	toInit := []struct {
 		name      string
 		init      func() bool
@@ -67,16 +68,20 @@ func ValidateConfig() error {
 	}
 	for _, i := range toInit {
 		i.init()
+
 		if *i.err != nil {
 			err := fmt.Errorf("node configuration validation for %s failed: %w", i.name, *i.err)
 			if i.fatal {
 				return err
 			}
+
 			logrus.Warn(err)
 		}
+
 		if i.activated != nil {
 			logrus.Infof("Node configuration value for %s is %v", i.name, *i.activated)
 		}
 	}
+
 	return nil
 }

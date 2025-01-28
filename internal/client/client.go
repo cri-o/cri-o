@@ -41,6 +41,7 @@ func configureUnixTransport(tr *http.Transport, proto, addr string) error {
 	tr.DialContext = func(_ context.Context, _, _ string) (net.Conn, error) {
 		return net.DialTimeout(proto, addr, 32*time.Second)
 	}
+
 	return nil
 }
 
@@ -50,9 +51,11 @@ func New(crioSocketPath string) (CrioClient, error) {
 	if err := configureUnixTransport(tr, "unix", crioSocketPath); err != nil {
 		return nil, err
 	}
+
 	c := &http.Client{
 		Transport: tr,
 	}
+
 	return &crioClientImpl{
 		client:         c,
 		crioSocketPath: crioSocketPath,
@@ -76,6 +79,7 @@ func (c *crioClientImpl) doGetRequest(ctx context.Context, path string) ([]byte,
 	}
 
 	defer resp.Body.Close()
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("read body: %w", err)
@@ -88,11 +92,14 @@ func (c *crioClientImpl) doGetRequest(ctx context.Context, path string) ([]byte,
 // info endpoint.
 func (c *crioClientImpl) DaemonInfo(ctx context.Context) (types.CrioInfo, error) {
 	info := types.CrioInfo{}
+
 	body, err := c.doGetRequest(ctx, server.InspectInfoEndpoint)
 	if err != nil {
 		return info, err
 	}
+
 	err = json.Unmarshal(body, &info)
+
 	return info, err
 }
 
@@ -103,10 +110,12 @@ func (c *crioClientImpl) ContainerInfo(ctx context.Context, id string) (*types.C
 	if err != nil {
 		return nil, err
 	}
+
 	cInfo := types.ContainerInfo{}
 	if err := json.Unmarshal(body, &cInfo); err != nil {
 		return nil, err
 	}
+
 	return &cInfo, nil
 }
 
@@ -116,6 +125,7 @@ func (c *crioClientImpl) ConfigInfo(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(body), nil
 }
 
@@ -125,6 +135,7 @@ func (c *crioClientImpl) GoRoutinesInfo(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(body), nil
 }
 
@@ -134,5 +145,6 @@ func (c *crioClientImpl) HeapInfo(ctx context.Context) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return body, nil
 }

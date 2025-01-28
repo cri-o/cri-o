@@ -48,32 +48,43 @@ func (c *Config) Reload(ctx context.Context) error {
 	if err := c.ReloadLogLevel(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadLogFilter(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadPauseImage(newConfig); err != nil {
 		return err
 	}
+
 	c.ReloadPinnedImages(newConfig)
+
 	if err := c.ReloadRegistries(); err != nil {
 		return err
 	}
+
 	c.ReloadDecryptionKeyConfig(newConfig)
+
 	if err := c.ReloadSeccompProfile(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadAppArmorProfile(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadBlockIOConfig(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadRdtConfig(newConfig); err != nil {
 		return err
 	}
+
 	if err := c.ReloadRuntimes(newConfig); err != nil {
 		return err
 	}
+
 	if err := cdi.Configure(cdi.WithSpecDirs(newConfig.CDISpecDirs...)); err != nil {
 		return err
 	}
@@ -101,8 +112,10 @@ func (c *Config) ReloadLogLevel(newConfig *Config) error {
 		logConfig("log_level", newConfig.LogLevel)
 
 		logrus.SetLevel(level)
+
 		c.LogLevel = newConfig.LogLevel
 	}
+
 	return nil
 }
 
@@ -114,12 +127,15 @@ func (c *Config) ReloadLogFilter(newConfig *Config) error {
 		if err != nil {
 			return err
 		}
+
 		logger := logrus.StandardLogger()
 		log.RemoveHook(logger, "FilterHook")
 		logConfig("log_filter", newConfig.LogFilter)
 		logger.AddHook(hook)
+
 		c.LogFilter = newConfig.LogFilter
 	}
+
 	return nil
 }
 
@@ -128,22 +144,27 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 		if _, err := newConfig.ParsePauseImage(); err != nil {
 			return err
 		}
+
 		c.PauseImage = newConfig.PauseImage
 		logConfig("pause_image", c.PauseImage)
 	}
+
 	if c.PauseImageAuthFile != newConfig.PauseImageAuthFile {
 		if newConfig.PauseImageAuthFile != "" {
 			if _, err := os.Stat(newConfig.PauseImageAuthFile); err != nil {
 				return err
 			}
 		}
+
 		c.PauseImageAuthFile = newConfig.PauseImageAuthFile
 		logConfig("pause_image_auth_file", c.PauseImageAuthFile)
 	}
+
 	if c.PauseCommand != newConfig.PauseCommand {
 		c.PauseCommand = newConfig.PauseCommand
 		logConfig("pause_command", c.PauseCommand)
 	}
+
 	return nil
 }
 
@@ -153,7 +174,9 @@ func (c *Config) ReloadPauseImage(newConfig *Config) error {
 func (c *Config) ReloadPinnedImages(newConfig *Config) {
 	if len(newConfig.PinnedImages) == 0 {
 		c.PinnedImages = []string{}
+
 		logConfig("pinned_images", "[]")
+
 		return
 	}
 
@@ -166,6 +189,7 @@ func (c *Config) ReloadPinnedImages(newConfig *Config) {
 	}
 
 	pinnedImages := []string{}
+
 	for _, img := range newConfig.PinnedImages {
 		if img != "" {
 			pinnedImages = append(pinnedImages, img)
@@ -188,7 +212,9 @@ func (c *Config) ReloadRegistries() error {
 			err,
 		)
 	}
+
 	logrus.Infof("Applied new registry configuration: %+v", registries)
+
 	return nil
 }
 
@@ -212,6 +238,7 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 		}
 
 		logrus.Info("Specified profile does not exist on disk")
+
 		if err := c.seccompConfig.LoadDefaultProfile(); err != nil {
 			return fmt.Errorf("load default seccomp profile: %w", err)
 		}
@@ -219,6 +246,7 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
+
 	return nil
 }
 
@@ -229,9 +257,11 @@ func (c *Config) ReloadAppArmorProfile(newConfig *Config) error {
 		if err := c.AppArmor().LoadProfile(newConfig.ApparmorProfile); err != nil {
 			return fmt.Errorf("unable to reload apparmor_profile: %w", err)
 		}
+
 		c.ApparmorProfile = newConfig.ApparmorProfile
 		logConfig("apparmor_profile", c.ApparmorProfile)
 	}
+
 	return nil
 }
 
@@ -241,13 +271,16 @@ func (c *Config) ReloadBlockIOConfig(newConfig *Config) error {
 		if err := c.BlockIO().Load(newConfig.BlockIOConfigFile); err != nil {
 			return fmt.Errorf("unable to reload blockio_config_file: %w", err)
 		}
+
 		c.BlockIOConfigFile = newConfig.BlockIOConfigFile
 		logConfig("blockio_config_file", c.BlockIOConfigFile)
 	}
+
 	if c.BlockIOReload != newConfig.BlockIOReload {
 		c.BlockIOReload = newConfig.BlockIOReload
 		logConfig("blockio_reload", strconv.FormatBool(c.BlockIOReload))
 	}
+
 	return nil
 }
 
@@ -257,17 +290,21 @@ func (c *Config) ReloadRdtConfig(newConfig *Config) error {
 		if err := c.Rdt().Load(newConfig.RdtConfigFile); err != nil {
 			return fmt.Errorf("unable to reload rdt_config_file: %w", err)
 		}
+
 		c.RdtConfigFile = newConfig.RdtConfigFile
 		logConfig("rdt_config_file", c.RdtConfigFile)
 	}
+
 	return nil
 }
 
 // ReloadRuntimes reloads the runtimes configuration if changed.
 func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	var updated bool
+
 	if !RuntimesEqual(c.Runtimes, newConfig.Runtimes) {
 		logrus.Infof("Updating runtime configuration")
+
 		c.Runtimes = newConfig.Runtimes
 		updated = true
 	}
@@ -277,7 +314,9 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 		if err := c.ValidateDefaultRuntime(); err != nil {
 			return fmt.Errorf("unable to reload runtimes: %w", err)
 		}
+
 		logConfig("default_runtime", c.DefaultRuntime)
+
 		updated = true
 	}
 

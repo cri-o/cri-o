@@ -10,6 +10,7 @@ import (
 func tempFileWithData(data string) string {
 	f := t.MustTempFile("")
 	Expect(os.WriteFile(f, []byte(data), 0o644)).To(Succeed())
+
 	return f
 }
 

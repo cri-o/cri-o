@@ -51,48 +51,62 @@ func CopyDetachable(dst io.Writer, src io.Reader, keys []byte) (int64, error) {
 	if dst == nil || src == nil {
 		return 0, errors.New("src/dst reader/writer nil")
 	}
+
 	if len(keys) == 0 {
 		// Default keys : ctrl-p ctrl-q
 		keys = []byte{16, 17}
 	}
 
 	buf := make([]byte, 32*1024)
+
 	for {
 		nr, er := src.Read(buf)
 		if nr > 0 {
 			preserveBuf := []byte{}
 			for i, key := range keys {
 				preserveBuf = append(preserveBuf, buf[0:nr]...)
+
 				if nr != 1 || buf[0] != key {
 					break
 				}
+
 				if i == len(keys)-1 {
 					// src.Close()
 					return 0, DetachError{}
 				}
+
 				nr, er = src.Read(buf)
 			}
+
 			nw, ew := dst.Write(preserveBuf)
 			nr = len(preserveBuf)
+
 			if nw > 0 {
 				written += int64(nw)
 			}
+
 			if ew != nil {
 				err = ew
+
 				break
 			}
+
 			if nr != nw {
 				err = io.ErrShortWrite
+
 				break
 			}
 		}
+
 		if er != nil {
 			if er != io.EOF {
 				err = er
 			}
+
 			break
 		}
 	}
+
 	return written, err
 }
 
@@ -132,6 +146,7 @@ func GenerateID() (string, error) {
 	if _, err := rand.Read(b); err != nil {
 		return "", fmt.Errorf("generate ID: %w", err)
 	}
+
 	return hex.EncodeToString(b), nil
 }
 
@@ -141,6 +156,7 @@ func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	fh, err := os.Open(fp)
 	if err != nil {
 		// This is needed because a nil *os.File is different to a nil
@@ -148,6 +164,7 @@ func openContainerFile(rootfs, path string) (io.ReadCloser, error) {
 		// container file is missing.
 		return nil, err
 	}
+
 	return fh, nil
 }
 
@@ -177,6 +194,7 @@ func GetUserInfo(rootfs, userName string) (uid, gid uint32, additionalGids []uin
 
 	uid = uint32(execUser.Uid)
 	gid = uint32(execUser.Gid)
+
 	additionalGids = make([]uint32, 0, len(execUser.Sgids))
 	for _, g := range execUser.Sgids {
 		additionalGids = append(additionalGids, uint32(g))
@@ -209,6 +227,7 @@ func GeneratePasswd(username string, uid, gid uint32, homedir, rootfs, rundir st
 	if username == "" {
 		username = "default"
 	}
+
 	if homedir == "" {
 		homedir = "/tmp"
 	}
@@ -253,13 +272,16 @@ func secureFilePath(rootfs, file string) (string, unix.Stat_t, error) {
 	}
 
 	var st unix.Stat_t
+
 	err = unix.Stat(path, &st)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return "", unix.Stat_t{}, nil // File does not exist
 		}
+
 		return "", unix.Stat_t{}, fmt.Errorf("unable to stat file %s: %w", path, err)
 	}
+
 	return path, st, nil
 }
 
@@ -283,8 +305,10 @@ func readFileContent(path string) ([]byte, error) {
 		if os.IsNotExist(err) {
 			return nil, nil // File does not exist
 		}
+
 		return nil, fmt.Errorf("read file: %w", err)
 	}
+
 	return content, nil
 }
 
@@ -292,9 +316,11 @@ func createAndSecureFile(path, content string, mode os.FileMode, uid, gid int) (
 	if err := os.WriteFile(path, []byte(content), mode&os.ModePerm); err != nil {
 		return "", fmt.Errorf("failed to create file: %w", err)
 	}
+
 	if err := os.Chown(path, uid, gid); err != nil {
 		return "", fmt.Errorf("failed to chown file: %w", err)
 	}
+
 	return path, nil
 }
 
@@ -304,29 +330,36 @@ func createAndSecureFile(path, content string, mode os.FileMode, uid, gid int) (
 // ErrNoGroupEntries.
 func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
 	var inputIsName bool
+
 	gid, err := strconv.Atoi(groupIDorName)
 	if err != nil {
 		inputIsName = true
 	}
+
 	groupDest, err := securejoin.SecureJoin(containerMount, "/etc/group")
 	if err != nil {
 		return nil, err
 	}
+
 	groups, err := user.ParseGroupFileFilter(groupDest, func(g user.Group) bool {
 		if inputIsName {
 			return g.Name == groupIDorName
 		}
+
 		return g.Gid == gid
 	})
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
+
 	if len(groups) > 0 {
 		return &groups[0], nil
 	}
+
 	if !inputIsName {
 		return &user.Group{Gid: gid}, user.ErrNoGroupEntries
 	}
+
 	return nil, user.ErrNoGroupEntries
 }
 
@@ -337,29 +370,36 @@ func GetGroup(containerMount, groupIDorName string) (*user.Group, error) {
 // set is returned along with ErrNoPasswdEntries.
 func GetUser(containerMount, userIDorName string) (*user.User, error) {
 	var inputIsName bool
+
 	uid, err := strconv.Atoi(userIDorName)
 	if err != nil {
 		inputIsName = true
 	}
+
 	passwdDest, err := securejoin.SecureJoin(containerMount, "/etc/passwd")
 	if err != nil {
 		return nil, err
 	}
+
 	users, err := user.ParsePasswdFileFilter(passwdDest, func(u user.User) bool {
 		if inputIsName {
 			return u.Name == userIDorName
 		}
+
 		return u.Uid == uid
 	})
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
+
 	if len(users) > 0 {
 		return &users[0], nil
 	}
+
 	if !inputIsName {
 		return &user.User{Uid: uid}, user.ErrNoPasswdEntries
 	}
+
 	return nil, user.ErrNoPasswdEntries
 }
 
@@ -388,25 +428,31 @@ func EnsureSaneLogPath(logPath string) error {
 			return fmt.Errorf("failed to remove bad log path %s: %w", logPath, err)
 		}
 	}
+
 	return nil
 }
 
 func GetLabelOptions(selinuxOptions *types.SELinuxOption) []string {
 	labels := []string{}
+
 	if selinuxOptions != nil {
 		if selinuxOptions.User != "" {
 			labels = append(labels, "user:"+selinuxOptions.User)
 		}
+
 		if selinuxOptions.Role != "" {
 			labels = append(labels, "role:"+selinuxOptions.Role)
 		}
+
 		if selinuxOptions.Type != "" {
 			labels = append(labels, "type:"+selinuxOptions.Type)
 		}
+
 		if selinuxOptions.Level != "" {
 			labels = append(labels, "level:"+selinuxOptions.Level)
 		}
 	}
+
 	return labels
 }
 
@@ -426,6 +472,7 @@ func Sync(path string) error {
 	if err := f.Sync(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -443,9 +490,11 @@ func HandleResizing(resize <-chan remotecommand.TerminalSize, resizeFunc func(si
 			if !ok {
 				return
 			}
+
 			if size.Height < 1 || size.Width < 1 {
 				continue
 			}
+
 			resizeFunc(size)
 		}
 	}()
@@ -468,6 +517,7 @@ func ParseDuration(s string) (time.Duration, error) {
 	} else {
 		t, err = time.ParseDuration(s)
 	}
+
 	if err != nil {
 		return 0, err
 	}

@@ -26,7 +26,9 @@ func (c *ContainerServer) ContainerRestore(
 	opts *ContainerCheckpointOptions,
 ) (string, error) {
 	var ctr *oci.Container
+
 	var err error
+
 	ctr, err = c.LookupContainer(ctx, config.ID)
 	if err != nil {
 		return "", fmt.Errorf("failed to find container %s: %w", config.ID, err)
@@ -49,11 +51,14 @@ func (c *ContainerServer) ContainerRestore(
 	mountPoint, err := c.StorageImageServer().GetStore().Mount(ctr.ID(), ctrSpec.Config.Linux.MountLabel)
 	if err != nil {
 		log.Debugf(ctx, "Failed to mount container %q: %v", ctr.ID(), err)
+
 		return "", err
 	}
+
 	log.Debugf(ctx, "Container mountpoint %v", mountPoint)
 	log.Debugf(ctx, "Sandbox %v", ctr.Sandbox())
 	log.Debugf(ctx, "Specgen.Config.Annotations[io.kubernetes.cri-o.SandboxID] %v", ctrSpec.Config.Annotations["io.kubernetes.cri-o.SandboxID"])
+
 	sb, err := c.LookupSandbox(ctr.Sandbox())
 	if err != nil {
 		return "", err
@@ -67,7 +72,9 @@ func (c *ContainerServer) ContainerRestore(
 			if err != nil {
 				return "", err
 			}
+
 			logrus.Debugf("Checkpoint image mounted at %v", imageMountPoint)
+
 			defer func() {
 				// This is not out-of-process, but it is at least out of the CRI-O codebase; containers/storage uses raw strings.
 				_, err := c.StorageImageServer().GetStore().UnmountImage(ctr.RestoreStorageImageID().IDStringForOutOfProcessConsumptionOnly(), true)
@@ -94,6 +101,7 @@ func (c *ContainerServer) ContainerRestore(
 			for _, name := range checkpoint {
 				src := filepath.Join(imageMountPoint, name)
 				dst := filepath.Join(ctr.Dir(), name)
+
 				if err := archive.NewDefaultArchiver().CopyWithTar(src, dst); err != nil {
 					logrus.Debugf("Can't import '%s' from checkpoint image", name)
 				}
@@ -103,6 +111,7 @@ func (c *ContainerServer) ContainerRestore(
 				return "", err
 			}
 		}
+
 		if err := c.restoreFileSystemChanges(ctr, mountPoint); err != nil {
 			return "", err
 		}
@@ -113,13 +122,18 @@ func (c *ContainerServer) ContainerRestore(
 			if err != nil {
 				return "", fmt.Errorf("error opening log file %q: %w", annotations.LogPath, err)
 			}
+
 			defer src.Close()
+
 			destLogPath := ctrSpec.Config.Annotations[annotations.LogPath]
+
 			destLog, err := os.Create(destLogPath)
 			if err != nil {
 				return "", fmt.Errorf("error opening log file %q: %w", destLogPath, err)
 			}
+
 			defer destLog.Close()
+
 			_, err = io.Copy(destLog, src)
 			if err != nil {
 				return "", fmt.Errorf("copying log file to %q failed: %w", destLogPath, err)
@@ -132,10 +146,12 @@ func (c *ContainerServer) ContainerRestore(
 			// without this type of file and we just ignore it. Possible failures are
 			// caught in the next block.
 			var externalBindMounts []ExternalBindMount
+
 			_, err := metadata.ReadJSONFile(&externalBindMounts, ctr.Dir(), "bind.mounts")
 			if err != nil {
 				return "", err
 			}
+
 			for _, e := range externalBindMounts {
 				if func() bool {
 					for _, m := range ctrSpec.Config.Mounts {
@@ -148,10 +164,12 @@ func (c *ContainerServer) ContainerRestore(
 							return true
 						}
 					}
+
 					return false
 				}() {
 					continue
 				}
+
 				_, err = os.Lstat(e.Source)
 				if err != nil {
 					// Even if this looks suspicious it is was CRI-O does during
@@ -177,6 +195,7 @@ func (c *ContainerServer) ContainerRestore(
 						if err := os.MkdirAll(filepath.Dir(e.Source), 0o700); err != nil {
 							return "", err
 						}
+
 						source, err := os.OpenFile(
 							e.Source,
 							os.O_RDONLY|os.O_CREATE,
@@ -190,8 +209,10 @@ func (c *ContainerServer) ContainerRestore(
 								err,
 							)
 						}
+
 						source.Close()
 					}
+
 					log.Debugf(ctx, "Created missing external bind mount %q %q\n", e.FileType, e.Source)
 				}
 			}
@@ -208,13 +229,13 @@ func (c *ContainerServer) ContainerRestore(
 			// cannot figure out the file type of the destination.
 			// At this point we will fail and tell the user to create
 			// the missing bind mount source file/directory.
-
 			// With the code to create directories or files as necessary
 			// this should not happen anymore. Still keeping the code
 			// for backwards compatibility.
 			if m.Type != bindMount {
 				continue
 			}
+
 			_, err := os.Lstat(m.Source)
 			if err != nil {
 				return "", fmt.Errorf(
@@ -237,9 +258,11 @@ func (c *ContainerServer) ContainerRestore(
 			// CRIU will restore the namespace
 			continue
 		}
+
 		for _, np := range sb.NamespacePaths() {
 			if string(np.Type()) == string(n.Type) {
 				ctrSpec.Config.Linux.Namespaces[i].Path = np.Path()
+
 				break
 			}
 		}
@@ -265,6 +288,7 @@ func (c *ContainerServer) ContainerRestore(
 	if err := ctrSpec.SaveToFile(filepath.Join(ctr.Dir(), "config.json"), saveOptions); err != nil {
 		return "", err
 	}
+
 	if err := ctrSpec.SaveToFile(filepath.Join(ctr.BundlePath(), "config.json"), saveOptions); err != nil {
 		return "", err
 	}
@@ -277,6 +301,7 @@ func (c *ContainerServer) ContainerRestore(
 	); err != nil {
 		return "", fmt.Errorf("failed to restore container %s: %w", ctr.ID(), err)
 	}
+
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
@@ -290,6 +315,7 @@ func (c *ContainerServer) ContainerRestore(
 		if err != nil {
 			log.Debugf(ctx, "Non-fatal: removal of checkpoint directory (%s) failed: %v", ctr.CheckpointPath(), err)
 		}
+
 		cleanup := [...]string{
 			metadata.RestoreLogFile,
 			metadata.DumpLogFile,
@@ -311,6 +337,7 @@ func (c *ContainerServer) ContainerRestore(
 			} else {
 				file = filepath.Join(ctr.Dir(), del)
 			}
+
 			err = os.Remove(file)
 			if err != nil {
 				log.Debugf(ctx, "Non-fatal: removal of checkpoint file (%s) failed: %v", file, err)
@@ -329,5 +356,6 @@ func (c *ContainerServer) restoreFileSystemChanges(ctr *oci.Container, mountPoin
 	if err := crutils.CRRemoveDeletedFiles(ctr.ID(), ctr.Dir(), mountPoint); err != nil {
 		return err
 	}
+
 	return nil
 }

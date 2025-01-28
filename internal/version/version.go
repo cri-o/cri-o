@@ -62,6 +62,7 @@ func shouldCrioWipe(versionFileName, versionString string) (bool, error) {
 	if versionFileName == "" {
 		return false, nil
 	}
+
 	versionBytes, err := os.ReadFile(versionFileName)
 	if err != nil {
 		return true, err
@@ -103,11 +104,13 @@ func writeVersionFile(file, gitCommit, version string) error {
 	if file == "" {
 		return nil
 	}
+
 	current, err := parseVersionConstant(version, gitCommit)
 	// Sanity check-this should never happen
 	if err != nil {
 		return err
 	}
+
 	j, err := current.MarshalJSON()
 	// Sanity check-this should never happen
 	if err != nil {
@@ -133,6 +136,7 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 	if err != nil {
 		return nil, err
 	}
+
 	if gitCommit != "" {
 		gitBuild, err := semver.NewBuildVersion(strings.Trim(gitCommit, "\""))
 		// If gitCommit is empty, silently error, as it's helpful, but not needed.
@@ -140,6 +144,7 @@ func parseVersionConstant(versionString, gitCommit string) (*semver.Version, err
 			v.Build = append(v.Build, gitBuild)
 		}
 	}
+
 	return &v, nil
 }
 
@@ -178,6 +183,7 @@ func Get(verbose bool) (*Info, error) {
 	}
 
 	dependencies := []string{}
+
 	if verbose {
 		for _, d := range info.Deps {
 			dependencies = append(
@@ -211,6 +217,7 @@ func (i *Info) String() string {
 	w := tabwriter.NewWriter(&b, 0, 0, 2, ' ', 0)
 
 	v := reflect.ValueOf(*i)
+
 	t := v.Type()
 	for i := range t.NumField() {
 		field := t.Field(i)
@@ -218,6 +225,7 @@ func (i *Info) String() string {
 
 		valueString := ""
 		isMultiLineValue := false
+
 		switch field.Type.Kind() {
 		case reflect.Bool:
 			valueString = strconv.FormatBool(value.Bool())
@@ -228,6 +236,7 @@ func (i *Info) String() string {
 				const sep = "\n  "
 				valueString = sep + strings.Join(s, sep)
 			}
+
 			isMultiLineValue = true
 
 		case reflect.String:
@@ -236,11 +245,13 @@ func (i *Info) String() string {
 
 		if strings.TrimSpace(valueString) != "" {
 			fmt.Fprintf(w, "%s:", field.Name)
+
 			if isMultiLineValue {
 				fmt.Fprint(w, valueString)
 			} else {
 				fmt.Fprintf(w, "\t%s", valueString)
 			}
+
 			if i+1 < t.NumField() {
 				fmt.Fprintf(w, "\n")
 			}
@@ -248,6 +259,7 @@ func (i *Info) String() string {
 	}
 
 	w.Flush()
+
 	return b.String()
 }
 
@@ -257,5 +269,6 @@ func (i *Info) JSONString() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return string(b), nil
 }

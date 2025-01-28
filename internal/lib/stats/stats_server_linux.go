@@ -66,17 +66,21 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 		if c.StateNoLock().Status == oci.ContainerStateStopped {
 			continue
 		}
+
 		cgstats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
 		if err != nil {
 			log.Errorf(ss.ctx, "Error getting container stats %s: %v", c.ID(), err)
+
 			continue
 		}
 		// Convert cgroups stats to CRI stats.
 		cStats := containerCRIStats(cgstats, c, cgstats.SystemNano)
 		ss.populateWritableLayer(cStats, c)
+
 		if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 			updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 		}
+
 		containerStats = append(containerStats, cStats)
 
 		// Convert cgroups stats to CRI metrics.
@@ -104,20 +108,27 @@ func (ss *StatsServer) updateContainerStats(c *oci.Container, sb *sandbox.Sandbo
 	if c == nil || sb == nil {
 		return nil
 	}
+
 	if c.StateNoLock().Status == oci.ContainerStateStopped {
 		return nil
 	}
+
 	cgstats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
 	if err != nil {
 		log.Errorf(ss.ctx, "Error getting container stats %s: %v", c.ID(), err)
+
 		return nil
 	}
+
 	cStats := containerCRIStats(cgstats, c, cgstats.SystemNano)
 	ss.populateWritableLayer(cStats, c)
+
 	if oldcStats, ok := ss.ctrStats[c.ID()]; ok {
 		updateUsageNanoCores(oldcStats.Cpu, cStats.Cpu)
 	}
+
 	ss.ctrStats[c.ID()] = cStats
+
 	return cStats
 }
 
@@ -127,15 +138,19 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 		links, err := netlink.LinkList()
 		if err != nil {
 			log.Errorf(ss.ctx, "Unable to retrieve network namespace links: %v", err)
+
 			return err
 		}
+
 		stats.Linux.Network = &types.NetworkUsage{
 			Interfaces: make([]*types.NetworkInterfaceUsage, 0, len(links)-1),
 		}
+
 		for i := range links {
 			iface, err := linkToInterface(links[i])
 			if err != nil {
 				log.Errorf(ss.ctx, "Failed to %v for pod %s", err, sb.ID())
+
 				continue
 			}
 			// TODO FIXME or DefaultInterfaceName?
@@ -145,6 +160,7 @@ func (ss *StatsServer) populateNetworkUsage(stats *types.PodSandboxStats, sb *sa
 				stats.Linux.Network.Interfaces = append(stats.Linux.Network.Interfaces, iface)
 			}
 		}
+
 		return nil
 	})
 }
@@ -156,6 +172,7 @@ func (ss *StatsServer) metricsForPodSandbox(sb *sandbox.Sandbox) *SandboxMetrics
 	if ss.collectionPeriod == 0 {
 		return ss.updatePodSandboxMetrics(sb)
 	}
+
 	if sboxMetrics, ok := ss.sboxMetrics[sb.ID()]; ok {
 		return sboxMetrics
 	}
@@ -170,6 +187,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 	if sb == nil {
 		return nil
 	}
+
 	sm, exists := ss.sboxMetrics[sb.ID()]
 	if !exists {
 		sm = NewSandboxMetrics(sb)
@@ -182,16 +200,20 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 
 	containersList := sb.Containers().List()
 	containerMetrics := make([]*types.ContainerMetrics, 0, len(containersList))
+
 	for _, c := range containersList {
 		// Skip if the container is stopped.
 		if c.StateNoLock().Status == oci.ContainerStateStopped {
 			continue
 		}
+
 		cMetrics := ss.GenerateSandboxContainerMetrics(sb, c, sm)
 		containerMetrics = append(containerMetrics, cMetrics)
 	}
+
 	sm.metric.ContainerMetrics = containerMetrics
 	ss.sboxMetrics[sb.ID()] = sm
+
 	return sm
 }
 
@@ -202,13 +224,16 @@ func (ss *StatsServer) GenerateSandboxContainerMetrics(sb *sandbox.Sandbox, c *o
 	cgstats, err := ss.Runtime().ContainerStats(ss.ctx, c, sb.CgroupParent())
 	if err != nil || cgstats == nil {
 		log.Errorf(ss.ctx, "Error getting sandbox stats %s: %v", sb.ID(), err)
+
 		return nil
 	}
+
 	return ss.containerMetricsFromCgStats(sb, c, cgstats)
 }
 
 func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.Container, cgstats *cgmgr.CgroupStats) *types.ContainerMetrics {
 	var metrics []*types.Metric
+
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
 		case "cpu":
@@ -223,13 +248,17 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
 			if err != nil {
 				log.Errorf(ss.ctx, "Unable to fetch cgroup manager for container %s: %v", c.ID(), err)
+
 				continue
 			}
+
 			oomCount, err := cm.OOMKillCount()
 			if err != nil {
 				log.Errorf(ss.ctx, "Unable to fetch OOM kill count for container %s: %v", c.ID(), err)
+
 				continue
 			}
+
 			oomMetrics := GenerateSandboxOOMMetrics(sb, c, oomCount)
 			metrics = append(metrics, oomMetrics...)
 		case "network":
@@ -238,6 +267,7 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
 		}
 	}
+
 	return &types.ContainerMetrics{
 		ContainerId: c.ID(),
 		Metrics:     metrics,
@@ -251,9 +281,11 @@ func linkToInterface(link netlink.Link) (*types.NetworkInterfaceUsage, error) {
 	if attrs == nil {
 		return nil, errors.New("get stats for iface")
 	}
+
 	if attrs.Statistics == nil {
 		return nil, fmt.Errorf("get stats for iface %s", attrs.Name)
 	}
+
 	return &types.NetworkInterfaceUsage{
 		Name:     attrs.Name,
 		RxBytes:  &types.UInt64Value{Value: attrs.Statistics.RxBytes},
@@ -270,6 +302,7 @@ func containerCRIStats(stats *cgmgr.CgroupStats, ctr *oci.Container, systemNano 
 	criStats.Cpu = criCPUStats(stats.CPU, systemNano)
 	criStats.Memory = criMemStats(stats.Memory, systemNano)
 	criStats.Swap = criSwapStats(stats.Memory, systemNano)
+
 	return criStats
 }
 

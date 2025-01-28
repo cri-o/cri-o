@@ -69,6 +69,7 @@ type PidsStats struct {
 // physical system memory size is returned.
 func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	si := &syscall.Sysinfo_t{}
+
 	err := syscall.Sysinfo(si)
 	if err != nil {
 		return cgroupLimit
@@ -81,6 +82,7 @@ func MemLimitGivenSystem(cgroupLimit uint64) uint64 {
 	if cgroupLimit > physicalLimit {
 		return physicalLimit
 	}
+
 	return cgroupLimit
 }
 
@@ -93,6 +95,7 @@ func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, 
 			parent = "-.slice"
 		}
 	}
+
 	cg := &cgcfgs.Cgroup{
 		Name:   cgroup,
 		Parent: parent,
@@ -107,6 +110,7 @@ func libctrManager(cgroup, parent string, systemd bool) (libctrcgroups.Manager, 
 		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
 		ScopePrefix: CrioPrefix,
 	}
+
 	return manager.New(cg)
 }
 
@@ -135,7 +139,9 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		fileMapped       uint64
 		failcnt          uint64
 	)
+
 	usageBytes = memStats.Usage.Usage
+
 	if node.CgroupIsV2() {
 		// Use anon for rssBytes for cgroup v2 as in cAdvisor
 		// See: https://github.com/google/cadvisor/blob/786dbcfdf5b1aae8341b47e71ab115066a9b4c06/container/libcontainer/handler.go#L809
@@ -152,13 +158,16 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 		inactiveFileName = "total_inactive_file"
 		rssBytes = memStats.Stats["total_rss"]
 		memSwap = memStats.SwapUsage.Usage
+
 		fileMapped = memStats.Stats["mapped_file"]
 		if memStats.UseHierarchy {
 			fileMapped = memStats.Stats["total_mapped_file"]
 		}
-		failcnt = memStats.Usage.Failcnt
+
 		// cgroup v1 doesn't have equivalent stats for pgfault and pgmajfault
+		failcnt = memStats.Usage.Failcnt
 	}
+
 	workingSetBytes = usageBytes
 	if v, ok := memStats.Stats[inactiveFileName]; ok {
 		if workingSetBytes < v {
@@ -167,10 +176,12 @@ func cgroupMemStats(memStats *libctrcgroups.MemoryStats) *MemoryStats {
 			workingSetBytes -= v
 		}
 	}
+
 	if !isMemoryUnlimited(memStats.Usage.Limit) {
 		// https://github.com/kubernetes/kubernetes/blob/94f15bbbcbe952762b7f5e6e3f77d86ecec7d7c2/pkg/kubelet/stats/helper.go#L69
 		availableBytes = memStats.Usage.Limit - workingSetBytes
 	}
+
 	return &MemoryStats{
 		Usage:           usageBytes,
 		Cache:           memStats.Cache,

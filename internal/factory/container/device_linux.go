@@ -57,10 +57,12 @@ func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices 
 	if !c.Privileged() || privilegedWithoutHostDevices {
 		return nil
 	}
+
 	hostDevices, err := devices.HostDevices()
 	if err != nil {
 		return err
 	}
+
 	for _, hostDevice := range hostDevices {
 		rd := rspec.LinuxDevice{
 			Path:  hostDevice.Path,
@@ -70,18 +72,22 @@ func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices 
 			UID:   &hostDevice.Uid,
 			GID:   &hostDevice.Gid,
 		}
+
 		if hostDevice.Major == 0 && hostDevice.Minor == 0 {
 			// Invalid device, most likely a symbolic link, skip it.
 			continue
 		}
+
 		c.Spec().AddDevice(rd)
 	}
+
 	c.Spec().Config.Linux.Resources.Devices = []rspec.LinuxDeviceCgroup{
 		{
 			Allow:  true,
 			Access: "rwm",
 		},
 	}
+
 	return nil
 }
 
@@ -98,6 +104,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			if err == nil {
 				return errors.New("privileged container was configured with a device container path that already exists on the host")
 			}
+
 			if !os.IsNotExist(err) {
 				return fmt.Errorf("error checking if container path exists on host: %w", err)
 			}
@@ -107,6 +114,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 		if err != nil {
 			return err
 		}
+
 		dev, err := devices.DeviceFromPath(path, device.Permissions)
 		// if there was no error, return the device
 		if err == nil {
@@ -119,6 +127,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 				GID:   getDeviceUserGroupID(c.Config().Linux.SecurityContext.RunAsGroup, dev.Gid, enableDeviceOwnershipFromSecurityContext),
 			}
 			c.Spec().AddDevice(rd)
+
 			sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
 				Allow:  true,
 				Type:   string(dev.Type),
@@ -126,6 +135,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 				Minor:  &dev.Minor,
 				Access: string(dev.Permissions),
 			})
+
 			continue
 		}
 		// if the device is not a device node
@@ -140,11 +150,13 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 					if e != nil {
 						return nil
 					}
+
 					childDevice, e := devices.DeviceFromPath(dpath, device.Permissions)
 					if e != nil {
 						// ignore the device
 						return nil
 					}
+
 					cPath := strings.Replace(dpath, path, device.ContainerPath, 1)
 					rd := rspec.LinuxDevice{
 						Path:  cPath,
@@ -155,6 +167,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 						GID:   &childDevice.Gid,
 					}
 					c.Spec().AddDevice(rd)
+
 					sp.Linux.Resources.Devices = append(sp.Linux.Resources.Devices, rspec.LinuxDeviceCgroup{
 						Allow:  true,
 						Type:   string(childDevice.Type),
@@ -168,6 +181,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -208,8 +222,10 @@ func (c *container) specInjectCDIDevices() error {
 				// TODO(klihub): change to a warning once annotations are deprecated
 				log.Infof(context.TODO(),
 					"Skipping duplicate annotated CDI device %s", name)
+
 				continue
 			}
+
 			requested = append(requested, name)
 		}
 		// TODO(klihub): change to a warning once annotations are deprecated
@@ -228,7 +244,6 @@ func (c *container) specInjectCDIDevices() error {
 		// any particular vendor shouldn't prevent injection of devices of
 		// different vendors. CDI itself knows better and it will fail the
 		// injection if necessary.
-
 		log.Warnf(context.TODO(), "CDI registry has errors: %v", err)
 	}
 
@@ -268,5 +283,6 @@ func getDeviceUserGroupID(runAsVal *types.Int64Value, hostVal uint32, enableDevi
 			return &id
 		}
 	}
+
 	return &hostVal
 }

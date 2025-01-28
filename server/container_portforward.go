@@ -33,6 +33,7 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		if stream == nil {
 			return
 		}
+
 		go func() {
 			if _, err := pools.Copy(io.Discard, stream); err != nil {
 				log.Errorf(ctx, "Unable to drain the stream data: %v", err)

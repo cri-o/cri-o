@@ -17,5 +17,6 @@ func podSandboxToNRI(pod PodSandbox) *nri.PodSandbox {
 		CgroupsPath:  lnxPod.GetCgroupsPath(),
 		Resources:    lnxPod.GetLinuxResources(),
 	}
+
 	return nriPod
 }

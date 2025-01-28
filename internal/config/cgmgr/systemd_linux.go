@@ -50,6 +50,7 @@ func NewSystemdManager() *SystemdManager {
 		systemdMgr.v1CtrCgMgr = make(map[string]cgroups.Manager)
 		systemdMgr.v1SbCgMgr = make(map[string]cgroups.Manager)
 	}
+
 	systemdMgr.dbusMgr = dbusmgr.NewDbusConnManager(unshare.IsRootless())
 
 	return &systemdMgr
@@ -73,6 +74,7 @@ func (*SystemdManager) ContainerCgroupPath(sbParent, containerID string) string 
 	if sbParent != "" {
 		parent = sbParent
 	}
+
 	return parent + ":" + CrioPrefix + ":" + containerID
 }
 
@@ -81,7 +83,9 @@ func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID strin
 	if sbParent != "" {
 		parent = sbParent
 	}
+
 	logrus.Debugf("Expanding systemd cgroup slice %v", parent)
+
 	cgroup, err := systemd.ExpandSlice(parent)
 	if err != nil {
 		return "", fmt.Errorf("expanding systemd slice to get container %s stats: %w", containerID, err)
@@ -95,6 +99,7 @@ func (m *SystemdManager) ContainerCgroupAbsolutePath(sbParent, containerID strin
 func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (cgroups.Manager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1CtrCgMgr[containerID]; ok {
 			return cgMgr, nil
@@ -115,6 +120,7 @@ func (m *SystemdManager) ContainerCgroupManager(sbParent, containerID string) (c
 		// cache only cgroup v1 managers
 		m.v1CtrCgMgr[containerID] = cgMgr
 	}
+
 	return cgMgr, nil
 }
 
@@ -126,10 +132,12 @@ func (m *SystemdManager) ContainerCgroupStats(sbParent, containerID string) (*Cg
 	if err != nil {
 		return nil, err
 	}
+
 	stats, err := cgMgr.GetStats()
 	if err != nil {
 		return nil, err
 	}
+
 	return libctrStatsToCgroupStats(stats), nil
 }
 
@@ -151,6 +159,7 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 	if strings.HasSuffix(conmonCgroup, ".slice") {
 		cgroupParent = conmonCgroup
 	}
+
 	conmonUnitName := fmt.Sprintf("crio-conmon-%s.scope", cid)
 
 	// Set the systemd KillSignal to SIGPIPE that conmon ignores.
@@ -173,24 +182,28 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 				if err != nil {
 					return "", fmt.Errorf("cpuset conversion error: %w", err)
 				}
+
 				props = append(props, systemdDbus.Property{
 					Name:  "AllowedCPUs",
 					Value: dbus.MakeVariant(bits),
 				})
 			}
 		}
+
 		if resources.CPU.Shares != nil {
 			props = append(props, systemdDbus.Property{
 				Name:  "CPUShares",
 				Value: dbus.MakeVariant(resources.CPU.Shares),
 			})
 		}
+
 		if resources.CPU.Quota != nil {
 			props = append(props, systemdDbus.Property{
 				Name:  "CPUQuota",
 				Value: dbus.MakeVariant(resources.CPU.Quota),
 			})
 		}
+
 		if resources.CPU.Period != nil {
 			props = append(props, systemdDbus.Property{
 				Name:  "CPUQuotaPeriodSec",
@@ -200,6 +213,7 @@ func (m *SystemdManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup stri
 	}
 
 	logrus.Debugf("Running conmon under slice %s and unitName %s", cgroupParent, conmonUnitName)
+
 	if err := utils.RunUnderSystemdScope(m.dbusMgr, pid, cgroupParent, conmonUnitName, props...); err != nil {
 		return "", fmt.Errorf("failed to add conmon to systemd sandbox cgroup: %w", err)
 	}
@@ -220,6 +234,7 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string, containerMinMe
 	}
 
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
+
 	if err := verifyCgroupHasEnoughMemory(sbParent, m.memoryPath, m.memoryMaxFile, containerMinMemory); err != nil {
 		return "", "", err
 	}
@@ -234,6 +249,7 @@ func (m *SystemdManager) SandboxCgroupPath(sbParent, sbID string, containerMinMe
 func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Manager, error) {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+
 	if !node.CgroupIsV2() {
 		if cgMgr, ok := m.v1SbCgMgr[sbID]; ok {
 			return cgMgr, nil
@@ -244,6 +260,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 	if err != nil {
 		return nil, err
 	}
+
 	cgMgr, err := libctrManager(filepath.Base(cgPath), filepath.Dir(cgPath), true)
 	if err != nil {
 		return nil, err
@@ -253,6 +270,7 @@ func (m *SystemdManager) SandboxCgroupManager(sbParent, sbID string) (cgroups.Ma
 		// cache only cgroup v1 managers
 		m.v1SbCgMgr[sbID] = cgMgr
 	}
+
 	return cgMgr, nil
 }
 
@@ -264,10 +282,12 @@ func (m *SystemdManager) SandboxCgroupStats(sbParent, sbID string) (*CgroupStats
 	if err != nil {
 		return nil, err
 	}
+
 	stats, err := cgMgr.GetStats()
 	if err != nil {
 		return nil, err
 	}
+
 	return libctrStatsToCgroupStats(stats), nil
 }
 
@@ -283,10 +303,12 @@ func (m *SystemdManager) RemoveSandboxCgManager(sbID string) {
 //nolint:unparam // golangci-lint claims cgParent is unused, though it's being used to include documentation inline.
 func sandboxCgroupAbsolutePath(sbParent string) (cgParent, slicePath string, err error) {
 	cgParent = convertCgroupFsNameToSystemd(sbParent)
+
 	slicePath, err = systemd.ExpandSlice(cgParent)
 	if err != nil {
 		return "", "", fmt.Errorf("expanding systemd slice path for %q: %w", cgParent, err)
 	}
+
 	return cgParent, slicePath, nil
 }
 
@@ -312,12 +334,15 @@ func (m *SystemdManager) CreateSandboxCgroup(sbParent, containerID string) error
 	// Skip creation in this case.
 	if sbParent == "" {
 		logrus.Infof("Not creating sandbox cgroup: sbParent is empty")
+
 		return nil
 	}
+
 	expandedParent, err := systemd.ExpandSlice(sbParent)
 	if err != nil {
 		return err
 	}
+
 	return createSandboxCgroup(expandedParent, containerCgroupPath(containerID))
 }
 
@@ -327,11 +352,14 @@ func (m *SystemdManager) RemoveSandboxCgroup(sbParent, containerID string) error
 	// Skip creation in this case.
 	if sbParent == "" {
 		logrus.Infof("Not creating sandbox cgroup: sbParent is empty")
+
 		return nil
 	}
+
 	expandedParent, err := systemd.ExpandSlice(sbParent)
 	if err != nil {
 		return err
 	}
+
 	return removeSandboxCgroup(expandedParent, containerCgroupPath(containerID))
 }

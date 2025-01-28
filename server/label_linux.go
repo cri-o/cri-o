@@ -21,12 +21,15 @@ func securityLabel(path, secLabel string, shared, maybeRelabel bool) error {
 				logrus.Debugf(
 					"Skipping relabel for %s, as TrySkipVolumeSELinuxLabel is true and the label of the top level of the volume is already correct",
 					path)
+
 				return nil
 			}
 		}
 	}
+
 	if err := label.Relabel(path, secLabel, shared); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return fmt.Errorf("relabel failed %s: %w", path, err)
 	}
+
 	return nil
 }

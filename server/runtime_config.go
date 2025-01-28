@@ -13,6 +13,7 @@ func (s *Server) RuntimeConfig(_ context.Context, req *types.RuntimeConfigReques
 			CgroupDriver: s.getCgroupDriver(),
 		},
 	}
+
 	return resp, nil
 }
 
@@ -20,5 +21,6 @@ func (s *Server) getCgroupDriver() types.CgroupDriver {
 	if s.config.CgroupManager().IsSystemd() {
 		return types.CgroupDriver_SYSTEMD
 	}
+
 	return types.CgroupDriver_CGROUPFS
 }

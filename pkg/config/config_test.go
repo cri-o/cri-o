@@ -38,6 +38,7 @@ var _ = t.Describe("Config", func() {
 		sut.LogDir = "/"
 		sut.Listen = t.MustTempFile("crio.sock")
 		sut.HooksDir = []string{}
+
 		return sut
 	}
 

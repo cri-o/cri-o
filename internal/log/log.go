@@ -46,6 +46,7 @@ func entry(ctx context.Context) *logrus.Entry {
 
 	id, idOk := ctx.Value(ID{}).(string)
 	name, nameOk := ctx.Value(Name{}).(string)
+
 	if idOk && nameOk {
 		return logger.WithField("id", id).WithField("name", name).WithContext(ctx)
 	}

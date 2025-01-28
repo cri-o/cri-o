@@ -44,7 +44,9 @@ func (d *Config) LoadDevices(devsFromConfig []string) error {
 	if err != nil {
 		return err
 	}
+
 	d.devices = devs
+
 	return nil
 }
 
@@ -56,6 +58,7 @@ func DevicesFromAnnotation(annotation string, allowedDevices []string) ([]Device
 	for _, d := range allowedDevices {
 		allowedMap[d] = struct{}{}
 	}
+
 	return devicesFromStrings(strings.Split(annotation, DeviceAnnotationDelim), allowedMap)
 }
 
@@ -73,6 +76,7 @@ func devicesFromStrings(devsFromConfig []string, allowedDevices map[string]struc
 		if d == "" {
 			continue
 		}
+
 		src, dst, permissions, err := parseDevice(d)
 		if err != nil {
 			return nil, err
@@ -128,13 +132,16 @@ func (d *Config) Devices() []Device {
 // ParseDevice parses device mapping string to a src, dest & permissions string.
 func parseDevice(device string) (src, dst, permissions string, err error) {
 	permissions = "rwm"
+
 	arr := strings.Split(device, ":")
 	switch len(arr) {
 	case 3:
 		if !isValidDeviceMode(arr[2]) {
 			return "", "", "", fmt.Errorf("invalid device mode: %s", arr[2])
 		}
+
 		permissions = arr[2]
+
 		fallthrough
 	case 2:
 		if isValidDeviceMode(arr[1]) {
@@ -143,8 +150,10 @@ func parseDevice(device string) (src, dst, permissions string, err error) {
 			if arr[1] != "" && arr[1][0] != '/' {
 				return "", "", "", fmt.Errorf("invalid device mode: %s", arr[1])
 			}
+
 			dst = arr[1]
 		}
+
 		fallthrough
 	case 1:
 		src = arr[0]
@@ -155,6 +164,7 @@ func parseDevice(device string) (src, dst, permissions string, err error) {
 	if dst == "" {
 		dst = src
 	}
+
 	return src, dst, permissions, nil
 }
 
@@ -166,14 +176,18 @@ func isValidDeviceMode(mode string) bool {
 		'w': true,
 		'm': true,
 	}
+
 	if mode == "" {
 		return false
 	}
+
 	for _, c := range mode {
 		if !legalDeviceMode[c] {
 			return false
 		}
+
 		legalDeviceMode[c] = false
 	}
+
 	return true
 }

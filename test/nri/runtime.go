@@ -44,6 +44,7 @@ var (
 func ConnectRuntime() (*runtime, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), connectTimeout)
 	defer cancel()
+
 	dialOpts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),                  //nolint:staticcheck // use it until an appropriate alternative is present
@@ -83,6 +84,7 @@ func (r *runtime) PullImages() error {
 		if err != nil {
 			return err
 		}
+
 		setRef(ref, name)
 	}
 
@@ -95,6 +97,7 @@ func (r *runtime) Disconnect() {
 	if r == nil || r.cc == nil {
 		return
 	}
+
 	r.cc.Close()
 	r.runtime = nil
 	r.image = nil
@@ -149,6 +152,7 @@ func (r *runtime) ListPods(namespace string) (ready, other []string, err error) 
 		if pod.GetMetadata().GetNamespace() != namespace {
 			continue
 		}
+
 		if pod.GetState() == cri.PodSandboxState_SANDBOX_READY {
 			ready = append(ready, pod.GetId())
 		} else {
@@ -166,6 +170,7 @@ func WithPodAnnotations(annotations map[string]string) PodOption {
 		for k, v := range annotations {
 			cfg.Annotations[k] = v
 		}
+
 		return nil
 	}
 }
@@ -175,6 +180,7 @@ func WithPodLabels(labels map[string]string) PodOption {
 		for k, v := range labels {
 			cfg.Labels[k] = v
 		}
+
 		return nil
 	}
 }
@@ -239,6 +245,7 @@ func (r *runtime) CreatePod(namespace, name, uid string, options ...PodOption) (
 
 	r.Lock()
 	defer r.Unlock()
+
 	id := reply.PodSandboxId
 	r.podConfigs[id] = config
 	r.pods[uid] = id
@@ -300,6 +307,7 @@ func (r *runtime) ListContainers(namespace string) (running, other, readyPods, o
 	for _, pod := range readyPods {
 		pods[pod] = struct{}{}
 	}
+
 	for _, pod := range otherPods {
 		pods[pod] = struct{}{}
 	}
@@ -317,6 +325,7 @@ func (r *runtime) ListContainers(namespace string) (running, other, readyPods, o
 		if _, ok := pods[pod]; !ok {
 			continue
 		}
+
 		if ctr.GetState() == cri.ContainerState_CONTAINER_RUNNING {
 			running = append(running, ctr.GetId())
 		} else {
@@ -335,6 +344,7 @@ func WithImage(image string) ContainerOption {
 			Image:              image,
 			UserSpecifiedImage: image,
 		}
+
 		return nil
 	}
 }
@@ -342,6 +352,7 @@ func WithImage(image string) ContainerOption {
 func WithCommand(cmd ...string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Command = cmd
+
 		return nil
 	}
 }
@@ -349,6 +360,7 @@ func WithCommand(cmd ...string) ContainerOption {
 func WithShellScript(cmd string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Command = []string{"sh", "-c", cmd}
+
 		return nil
 	}
 }
@@ -356,6 +368,7 @@ func WithShellScript(cmd string) ContainerOption {
 func WithArgs(args ...string) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Args = args
+
 		return nil
 	}
 }
@@ -363,6 +376,7 @@ func WithArgs(args ...string) ContainerOption {
 func WithEnv(envs []*cri.KeyValue) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Envs = envs
+
 		return nil
 	}
 }
@@ -372,6 +386,7 @@ func WithAnnotations(annotations map[string]string) ContainerOption {
 		for k, v := range annotations {
 			cfg.Annotations[k] = v
 		}
+
 		return nil
 	}
 }
@@ -381,6 +396,7 @@ func WithLabels(labels map[string]string) ContainerOption {
 		for k, v := range labels {
 			cfg.Labels[k] = v
 		}
+
 		return nil
 	}
 }
@@ -388,6 +404,7 @@ func WithLabels(labels map[string]string) ContainerOption {
 func WithResources(r *cri.LinuxContainerResources) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Linux.Resources = r
+
 		return nil
 	}
 }
@@ -395,6 +412,7 @@ func WithResources(r *cri.LinuxContainerResources) ContainerOption {
 func WithSecurityContext(c *cri.LinuxContainerSecurityContext) ContainerOption {
 	return func(cfg *cri.ContainerConfig) error {
 		cfg.Linux.SecurityContext = c
+
 		return nil
 	}
 }
@@ -454,6 +472,7 @@ func (r *runtime) CreateContainer(pod, name, uid string, options ...ContainerOpt
 
 	r.Lock()
 	defer r.Unlock()
+
 	id := reply.ContainerId
 	r.containers[uid] = id
 	r.containers[id] = id

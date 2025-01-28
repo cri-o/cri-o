@@ -45,20 +45,24 @@ const DefaultUserNSSize = 65536
 // addToMappingsIfMissing ensures the specified id is mapped from the host.
 func addToMappingsIfMissing(ids []idtools.IDMap, id int64) []idtools.IDMap {
 	firstAvailable := int(0)
+
 	for _, r := range ids {
 		if int(id) >= r.HostID && int(id) < r.HostID+r.Size {
 			// Already present, nothing to do
 			return ids
 		}
+
 		if r.ContainerID+r.Size > firstAvailable {
 			firstAvailable = r.ContainerID + r.Size
 		}
 	}
+
 	newMapping := idtools.IDMap{
 		ContainerID: firstAvailable,
 		HostID:      int(id),
 		Size:        1,
 	}
+
 	return append(ids, newMapping)
 }
 
@@ -82,8 +86,10 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		if s.defaultIDMappings != nil {
 			uids := s.defaultIDMappings.UIDs()
 			gids := s.defaultIDMappings.GIDs()
+
 			return &storage.IDMappingOptions{UIDMap: uids, GIDMap: gids}, nil
 		}
+
 		return nil, nil
 	}
 
@@ -91,12 +97,14 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	parts := strings.SplitN(mode, ":", 2)
 
 	values := map[string]string{}
+
 	if len(parts) > 1 {
 		for _, r := range strings.Split(parts[1], ";") {
 			kv := strings.SplitN(r, "=", 2)
 			if len(kv) != 2 {
 				return nil, fmt.Errorf("invalid argument: %q", r)
 			}
+
 			values[kv[0]] = kv[1]
 		}
 	}
@@ -105,15 +113,18 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	_, gidMappingsPresent := values["gidmapping"]
 	// limit mappings for pods that aren't going to be running as root
 	minimumMappableUID, minimumMappableGID := s.minimumMappableUID, s.minimumMappableGID
+
 	if uidMappingsPresent || gidMappingsPresent {
 		user := sc.RunAsUser
 		if user == nil {
 			return nil, errors.New("cannot use uidmapping or gidmapping if RunAsUser is not set")
 		}
+
 		if user.Value != 0 {
 			if minimumMappableUID < 0 {
 				return nil, errors.New("cannot use uidmapping or gidmapping if not running as root and minimum mappable ID is not set")
 			}
+
 			if user.Value < minimumMappableUID {
 				return nil, fmt.Errorf("cannot use uidmapping or gidmapping if running as a UID below minimum mappable ID %d", minimumMappableUID)
 			}
@@ -123,6 +134,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 	switch parts[0] {
 	case "auto":
 		const t = "true"
+
 		ret := &storage.IDMappingOptions{
 			AutoUserNs: true,
 		}
@@ -134,35 +146,43 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		if keepID && mapToRoot {
 			return nil, fmt.Errorf("cannot use both keep-id and map-to-root: %q", mode)
 		}
+
 		if v, ok := values["size"]; ok {
 			s, err := strconv.ParseUint(v, 10, 32)
 			if err != nil {
 				return nil, err
 			}
+
 			ret.AutoUserNsOpts.Size = uint32(s)
 		} else {
 			ret.AutoUserNsOpts.Size = DefaultUserNSSize
 		}
+
 		if v, ok := values["uidmapping"]; ok {
 			uids, err := idtools.ParseIDMap(strings.Split(v, ","), "UID")
 			if err != nil {
 				return nil, err
 			}
+
 			ret.AutoUserNsOpts.AdditionalUIDMappings = append(ret.AutoUserNsOpts.AdditionalUIDMappings, uids...)
 		}
+
 		if v, ok := values["gidmapping"]; ok {
 			gids, err := idtools.ParseIDMap(strings.Split(v, ","), "GID")
 			if err != nil {
 				return nil, err
 			}
+
 			ret.AutoUserNsOpts.AdditionalGIDMappings = append(ret.AutoUserNsOpts.AdditionalGIDMappings, gids...)
 		}
+
 		if sc.RunAsUser != nil {
 			if keepID || mapToRoot {
 				id := 0
 				if keepID {
 					id = int(sc.RunAsUser.Value)
 				}
+
 				ret.AutoUserNsOpts.AdditionalUIDMappings = append(
 					ret.AutoUserNsOpts.AdditionalUIDMappings,
 					idtools.IDMap{
@@ -175,12 +195,14 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				ret.AutoUserNsOpts.AdditionalUIDMappings = m
 			}
 		}
+
 		if sc.RunAsGroup != nil {
 			if keepID || mapToRoot {
 				id := 0
 				if keepID {
 					id = int(sc.RunAsGroup.Value)
 				}
+
 				ret.AutoUserNsOpts.AdditionalGIDMappings = append(
 					ret.AutoUserNsOpts.AdditionalGIDMappings,
 					idtools.IDMap{
@@ -193,6 +215,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				ret.AutoUserNsOpts.AdditionalGIDMappings = m
 			}
 		}
+
 		for _, g := range sc.SupplementalGroups {
 			if keepID {
 				ret.AutoUserNsOpts.AdditionalGIDMappings = append(
@@ -215,6 +238,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				}
 			}
 		}
+
 		if minimumMappableGID >= 0 {
 			for _, gidSlice := range ret.AutoUserNsOpts.AdditionalGIDMappings {
 				if int64(gidSlice.HostID) < minimumMappableGID {
@@ -222,9 +246,11 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				}
 			}
 		}
+
 		return ret, nil
 	case "private":
 		var err error
+
 		var uids, gids []idtools.IDMap
 
 		if v, ok := values["uidmapping"]; ok {
@@ -233,6 +259,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				return nil, err
 			}
 		}
+
 		if v, ok := values["gidmapping"]; ok {
 			// both gidmapping and uidmapping are specified
 			gids, err = idtools.ParseIDMap(strings.Split(v, ","), "GID")
@@ -262,9 +289,11 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 		if sc.RunAsUser != nil {
 			uids = addToMappingsIfMissing(uids, sc.RunAsUser.Value)
 		}
+
 		if sc.RunAsGroup != nil {
 			gids = addToMappingsIfMissing(gids, sc.RunAsGroup.Value)
 		}
+
 		for _, g := range sc.SupplementalGroups {
 			gids = addToMappingsIfMissing(gids, g)
 		}
@@ -277,6 +306,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 				}
 			}
 		}
+
 		if minimumMappableGID >= 0 {
 			for _, gidSlice := range gids {
 				if int64(gidSlice.HostID) < minimumMappableGID {
@@ -287,6 +317,7 @@ func (s *Server) configureSandboxIDMappings(mode string, sc *types.LinuxSandboxS
 
 		return &storage.IDMappingOptions{UIDMap: uids, GIDMap: gids}, nil
 	}
+
 	return nil, fmt.Errorf("invalid userns mode: %q", mode)
 }
 
@@ -299,6 +330,7 @@ func convertToStorageIDMap(mappings []*types.IDMapping) []idtools.IDMap {
 			Size:        int(m.Length),
 		}
 	}
+
 	return ret
 }
 
@@ -313,6 +345,7 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 			return mappings, nil
 		}
 	}
+
 	if sb.UsernsMode() == "" && s.defaultIDMappings == nil {
 		return nil, nil
 	}
@@ -325,26 +358,32 @@ func (s *Server) getSandboxIDMappings(ctx context.Context, sb *libsandbox.Sandbo
 	if err != nil {
 		return nil, err
 	}
+
 	mappings := convertToStorageIDMappings(uids, gids)
 	ic.SetIDMappings(mappings)
+
 	return mappings, nil
 }
 
 func convertToStorageIDMappings(uidMappings, gidMappings []spec.LinuxIDMapping) *idtools.IDMappings {
 	uids := make([]idtools.IDMap, len(uidMappings))
 	gids := make([]idtools.IDMap, len(gidMappings))
+
 	for i, v := range uidMappings {
 		uids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
 	}
+
 	for i, v := range gidMappings {
 		gids[i] = idtools.IDMap{ContainerID: int(v.ContainerID), HostID: int(v.HostID), Size: int(v.Size)}
 	}
+
 	return idtools.NewIDMappingsFromMaps(uids, gids)
 }
 
 func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequest) (resp *types.RunPodSandboxResponse, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sbox := libsandbox.NewBuilder()
 	if err := sbox.SetConfig(req.Config); err != nil {
 		return nil, fmt.Errorf("setting sandbox config: %w", err)
@@ -368,10 +407,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := sbox.GenerateNameAndID(); err != nil {
 		return nil, fmt.Errorf("setting pod sandbox name and id: %w", err)
 	}
+
 	sboxID := sbox.ID()
 	sboxName := sbox.Name()
 
 	sbox.SetName(sboxName)
+
 	resourceCleaner := resourcestore.NewResourceCleaner()
 	// in some cases, it is still necessary to reserve container resources when an error occurs (such as just a request context timeout error)
 	storeResource := false
@@ -380,6 +421,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if retErr == nil || storeResource {
 			return
 		}
+
 		if err := resourceCleaner.Cleanup(); err != nil {
 			log.Errorf(ctx, "Unable to cleanup: %v", err)
 		}
@@ -395,14 +437,18 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if reservedSbox := s.ContainerServer.GetSandbox(reservedID); reservedSbox != nil && reservedSbox.Created() {
 			return &types.RunPodSandboxResponse{PodSandboxId: reservedID}, nil
 		}
+
 		cachedID, resourceErr := s.getResourceOrWait(ctx, sboxName, "sandbox")
 		if resourceErr == nil {
 			return &types.RunPodSandboxResponse{PodSandboxId: cachedID}, nil
 		}
+
 		return nil, fmt.Errorf("%w: %w", resourceErr, err)
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: releasing pod sandbox name: "+sboxName, func() error {
 		s.ContainerServer.ReleasePodName(sboxName)
+
 		return nil
 	})
 
@@ -414,6 +460,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if securityContext.NamespaceOptions == nil {
 		securityContext.NamespaceOptions = &types.NamespaceOption{}
 	}
+
 	hostNetwork := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
 	sbox.SetHostNetwork(hostNetwork)
 
@@ -431,12 +478,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+
 	sbox.SetRuntimeHandler(runtimeHandler)
 
 	defaultAnnotations, err := s.ContainerServer.Runtime().RuntimeDefaultAnnotations(runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
+
 	kubeAnnotations := map[string]string{}
 	// Deep copy to prevent writing to the same map in the config
 	for k, v := range defaultAnnotations {
@@ -452,6 +501,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if _, ok := kubeAnnotations[k]; ok {
 			log.Debugf(ctx, "Overriding default pod annotation %s for pod %s", k, sbox.ID())
 		}
+
 		kubeAnnotations[k] = v
 	}
 
@@ -459,6 +509,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if usernsMode != "" {
 		log.Warnf(ctx, "Annotation 'io.kubernetes.cri-o.userns-mode' is deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
 	}
+
 	sbox.SetUsernsMode(usernsMode)
 
 	idMappingsOptions, err := s.configureSandboxIDMappings(usernsMode, sbox.Config().Linux.SecurityContext)
@@ -470,12 +521,15 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: releasing container name: "+containerName, func() error {
 		s.ContainerServer.ReleaseContainerName(ctx, containerName)
+
 		return nil
 	})
 
 	var labelOptions []string
+
 	selinuxConfig := securityContext.SelinuxOptions
 	if selinuxConfig != nil {
 		labelOptions = utils.GetLabelOptions(selinuxConfig)
@@ -486,10 +540,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox storage creation")
+
 	pauseImage, err := s.config.ParsePauseImage()
 	if err != nil {
 		return nil, err
 	}
+
 	podContainer, err := s.ContainerServer.StorageRuntimeServer().CreatePodSandbox(s.config.SystemContext,
 		sboxName, sboxID,
 		pauseImage,
@@ -506,9 +562,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if errors.Is(err, storage.ErrDuplicateName) {
 		return nil, fmt.Errorf("pod sandbox with name %q already exists", sboxName)
 	}
+
 	if err != nil {
 		return nil, fmt.Errorf("creating pod sandbox with name %q: %w", sboxName, err)
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox from storage: "+sboxID, func() error {
 		return s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, sboxID)
 	})
@@ -527,9 +585,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if !filepath.IsAbs(logDir) {
 		return nil, fmt.Errorf("requested logDir for sbuilder ID %s is a relative path: %s", sboxID, logDir)
 	}
+
 	if err := os.MkdirAll(logDir, 0o700); err != nil {
 		return nil, err
 	}
+
 	sbox.SetLogDir(logDir)
 
 	var sandboxIDMappings *idtools.IDMappings
@@ -544,6 +604,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	// add metadata
 	metadata := sbox.Config().Metadata
+
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
 		return nil, err
@@ -560,6 +621,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if labels != nil {
 		labels[kubeletTypes.KubernetesContainerNameLabel] = oci.InfraContainerName
 	}
+
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return nil, err
@@ -583,6 +645,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if hostPID || hostIPC {
 		processLabel, mountLabel = "", ""
 	}
+
 	g := sbox.Spec()
 	g.SetProcessSelinuxLabel(processLabel)
 	g.SetLinuxMountLabel(mountLabel)
@@ -593,35 +656,43 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	// create shm mount for the pod containers.
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox shm creation")
+
 	var shmPath string
 	if hostIPC {
 		shmPath = libsandbox.DevShmPath
 	} else {
 		shmSize := int64(libsandbox.DefaultShmSize)
+
 		if shmSizeStr, ok := kubeAnnotations[annotations.ShmSizeAnnotation]; ok {
 			quantity, err := resource.ParseQuantity(shmSizeStr)
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse shm size '%s': %w", shmSizeStr, err)
 			}
+
 			shmSize = quantity.Value()
 		}
+
 		shmPath, err = libsandbox.SetupShm(podContainer.RunDir, mountLabel, shmSize)
 		if err != nil {
 			return nil, err
 		}
+
 		if sandboxIDMappings != nil {
 			rootPair := sandboxIDMappings.RootPair()
 			if err := os.Chown(shmPath, rootPair.UID, rootPair.GID); err != nil {
 				return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", shmPath, rootPair.UID, rootPair.GID, err)
 			}
 		}
+
 		resourceCleaner.Add(ctx, "runSandbox: unmounting shmPath for sandbox "+sboxID, func() error {
 			if err := unix.Unmount(shmPath, unix.MNT_DETACH); err != nil {
 				return fmt.Errorf("failed to unmount shm for sandbox: %w", err)
 			}
+
 			return nil
 		})
 	}
+
 	sbox.SetShmPath(shmPath)
 
 	// Link logs if requested
@@ -651,10 +722,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err := s.ContainerServer.CtrIDIndex().Add(sboxID); err != nil {
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: deleting container ID from idIndex for sandbox "+sboxID, func() error {
 		if err := s.ContainerServer.CtrIDIndex().Delete(sboxID); err != nil && !strings.Contains(err.Error(), noSuchID) {
 			return fmt.Errorf("could not delete ctr id %s from idIndex: %w", sboxID, err)
 		}
+
 		return nil
 	})
 
@@ -670,6 +743,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+
 	sbox.SetHostname(hostname)
 	g.SetHostname(hostname)
 
@@ -695,6 +769,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.KubeName, kubeName)
 	g.AddAnnotation(annotations.HostNetwork, strconv.FormatBool(hostNetwork))
 	g.AddAnnotation(annotations.ContainerManager, constants.ContainerManagerCRIO)
+
 	if podContainer.Config.Config.StopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
 		g.AddAnnotation("org.opencontainers.image.stopSignal", podContainer.Config.Config.StopSignal)
@@ -702,28 +777,35 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	created := time.Now()
 	sbox.SetCreatedAt(created)
+
 	err = sbox.SetCRISandbox(sboxID, labels, kubeAnnotations, metadata)
 	if err != nil {
 		return nil, err
 	}
+
 	g.AddAnnotation(annotations.Created, created.Format(time.RFC3339Nano))
 
 	portMappings := convertPortMappings(sbox.Config().PortMappings)
+
 	portMappingsJSON, err := json.Marshal(portMappings)
 	if err != nil {
 		return nil, err
 	}
+
 	sbox.SetPortMappings(portMappings)
 
 	g.AddAnnotation(annotations.PortMappings, string(portMappingsJSON))
+
 	containerMinMemory, err := s.ContainerServer.Runtime().GetContainerMinMemory(runtimeHandler)
 	if err != nil {
 		return nil, err
 	}
+
 	cgroupParent, cgroupPath, err := s.config.CgroupManager().SandboxCgroupPath(sbox.Config().Linux.CgroupParent, sboxID, containerMinMemory)
 	if err != nil {
 		return nil, err
 	}
+
 	if cgroupPath != "" {
 		g.SetLinuxCgroupsPath(cgroupPath)
 	}
@@ -735,31 +817,38 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err := g.AddOrReplaceLinuxNamespace(string(spec.UserNamespace), ""); err != nil {
 			return nil, fmt.Errorf("add or replace linux namespace: %w", err)
 		}
+
 		for _, uidmap := range sandboxIDMappings.UIDs() {
 			g.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
+
 		for _, gidmap := range sandboxIDMappings.GIDs() {
 			g.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
 	}
 
 	overhead := sbox.Config().GetLinux().GetOverhead()
+
 	overheadJSON, err := json.Marshal(overhead)
 	if err != nil {
 		return nil, err
 	}
+
 	sbox.SetPodLinuxOverhead(overhead)
 	g.AddAnnotation(annotations.PodLinuxOverhead, string(overheadJSON))
 
 	resources := sbox.Config().GetLinux().GetResources()
+
 	resourcesJSON, err := json.Marshal(resources)
 	if err != nil {
 		return nil, err
 	}
+
 	sbox.SetPodLinuxResources(resources)
 	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
 
 	seccompRef := types.SecurityProfile_Unconfined.String()
+
 	if !privileged {
 		_, ref, err := s.config.Seccomp().Setup(
 			ctx,
@@ -775,10 +864,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
 		}
+
 		seccompRef = ref
 	}
 
 	hostnamePath := podContainer.RunDir + "/hostname"
+
 	sbox.SetResolvPath(sbox.ResolvPath())
 	sbox.SetDNSConfig(sbox.Config().DnsConfig)
 	sbox.SetHostnamePath(hostnamePath)
@@ -789,29 +880,35 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, err
 	}
+
 	if err := s.addSandbox(ctx, sb); err != nil {
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: removing pod sandbox "+sboxID, func() error {
 		if err := s.removeSandbox(ctx, sboxID); err != nil {
 			return fmt.Errorf("could not remove pod sandbox: %w", err)
 		}
+
 		return nil
 	})
 
 	if err := s.ContainerServer.PodIDIndex().Add(sboxID); err != nil {
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: deleting pod ID "+sboxID+" from idIndex", func() error {
 		if err := s.ContainerServer.PodIDIndex().Delete(sboxID); err != nil && !strings.Contains(err.Error(), noSuchID) {
 			return fmt.Errorf("could not delete pod id %s from idIndex: %w", sboxID, err)
 		}
+
 		return nil
 	})
 
 	for k, v := range kubeAnnotations {
 		g.AddAnnotation(k, v)
 	}
+
 	for k, v := range labels {
 		g.AddAnnotation(k, v)
 	}
@@ -834,24 +931,31 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 				return fmt.Errorf("RunSandbox: failed to cleanup namespace %w", err)
 			}
 		}
+
 		return nil
 	}
+
 	if err != nil {
 		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
+
 		return nil, err
 	}
 
 	// now that we have the namespaces, we should create the network if we're managing namespace Lifecycle
 	var ips []string
+
 	var result cnitypes.Result
 
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox network creation")
+
 	ips, result, err = s.networkStart(ctx, sb)
 	if err != nil {
 		resourceCleaner.Add(ctx, nsCleanupDescription, nsCleanupFunc)
+
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: stopping network for sandbox"+sb.ID(), func() error {
 		// use a new context to prevent an expired context from preventing a stop
 		if err := s.networkStop(context.Background(), sb); err != nil {
@@ -860,17 +964,21 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 		// Now that we've succeeded in stopping the network, cleanup namespaces
 		log.Infof(ctx, "%s", nsCleanupDescription)
+
 		return nsCleanupFunc()
 	})
+
 	if result != nil {
 		resultCurrent, err := current.NewResultFromResult(result)
 		if err != nil {
 			return nil, err
 		}
+
 		cniResultJSON, err := json.Marshal(resultCurrent)
 		if err != nil {
 			return nil, err
 		}
+
 		g.AddAnnotation(annotations.CNIResult, string(cniResultJSON))
 	}
 	// TODO: Pass interface instead of individual field.
@@ -880,10 +988,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s in pod sandbox %s(%s): %w", containerName, sb.Name(), sboxID, err)
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: stopping storage container for sandbox "+sboxID, func() error {
 		if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, sboxID); err != nil {
 			return fmt.Errorf("could not stop storage container: %s: %w", sboxID, err)
 		}
+
 		return nil
 	})
 
@@ -900,20 +1010,24 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	saveOptions := generate.ExportOptions{}
+
 	g.AddAnnotation(annotations.MountPoint, mountPoint)
 
 	if err := os.WriteFile(hostnamePath, []byte(hostname+"\n"), 0o644); err != nil {
 		return nil, err
 	}
+
 	if err := label.Relabel(hostnamePath, mountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return nil, err
 	}
+
 	if sandboxIDMappings != nil {
 		rootPair := sandboxIDMappings.RootPair()
 		if err := os.Chown(hostnamePath, rootPair.UID, rootPair.GID); err != nil {
 			return nil, fmt.Errorf("cannot chown %s to %d:%d: %w", hostnamePath, rootPair.UID, rootPair.GID, err)
 		}
 	}
+
 	mnt = spec.Mount{
 		Type:        "bind",
 		Source:      hostnamePath,
@@ -926,6 +1040,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if sandboxIDMappings != nil {
 		if securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE {
 			g.RemoveMount("/dev/mqueue")
+
 			mqueue := spec.Mount{
 				Type:        "bind",
 				Source:      "/dev/mqueue",
@@ -934,9 +1049,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			g.AddMount(mqueue)
 		}
+
 		if hostNetwork {
 			g.RemoveMount("/sys")
 			g.RemoveMount("/sys/cgroup")
+
 			sysMnt := spec.Mount{
 				Destination: "/sys",
 				Type:        "bind",
@@ -945,8 +1062,10 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			}
 			g.AddMount(sysMnt)
 		}
+
 		if securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE {
 			g.RemoveMount("/proc")
+
 			proc := spec.Mount{
 				Type:        "bind",
 				Source:      "/proc",
@@ -956,6 +1075,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			g.AddMount(proc)
 		}
 	}
+
 	g.SetRootPath(mountPoint)
 
 	if os.Getenv(rootlessEnvName) != "" {
@@ -996,16 +1116,20 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			if err != nil {
 				return nil, err
 			}
+
 			g.SetProcessSelinuxLabel(processLabel)
 		}
 	} else {
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxID)
 		container = oci.NewSpoofedContainer(sboxID, containerName, labels, sboxID, created, podContainer.RunDir)
+
 		g.AddAnnotation(annotations.SpoofedContainer, "true")
+
 		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sboxID); err != nil {
 			return nil, fmt.Errorf("create dropped infra %s cgroup: %w", sboxID, err)
 		}
 	}
+
 	container.SetMountPoint(mountPoint)
 	container.SetSpec(g.Config)
 
@@ -1023,6 +1147,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err = g.SaveToFile(filepath.Join(podContainer.Dir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to save template configuration for pod sandbox %s(%s): %w", sb.Name(), sboxID, err)
 	}
+
 	if err = g.SaveToFile(filepath.Join(podContainer.RunDir, "config.json"), saveOptions); err != nil {
 		return nil, fmt.Errorf("failed to write runtime configuration for pod sandbox %s(%s): %w", sb.Name(), sboxID, err)
 	}
@@ -1030,10 +1155,12 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	s.addInfraContainer(ctx, container)
 	resourceCleaner.Add(ctx, "runSandbox: removing infra container "+container.ID(), func() error {
 		s.removeInfraContainer(ctx, container)
+
 		return nil
 	})
 	// TODO: Pass interface instead of individual field.
 	s.resourceStore.SetStageForResource(ctx, sboxName, "sandbox container runtime creation")
+
 	if err := s.createContainerPlatform(ctx, container, sb.CgroupParent(), sandboxIDMappings); err != nil {
 		return nil, err
 	}
@@ -1042,15 +1169,19 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	}
+
 	if hooks != nil {
 		if err := hooks.PreStart(ctx, container, sb); err != nil {
 			return nil, fmt.Errorf("failed to run pre-stop hook for container %q: %w", sb.ID(), err)
 		}
 	}
+
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_CREATED_EVENT)
+
 	if err := s.ContainerServer.Runtime().StartContainer(ctx, container); err != nil {
 		return nil, err
 	}
+
 	resourceCleaner.Add(ctx, "runSandbox: stopping container "+container.ID(), func() error {
 		// Clean-up steps from RemovePodSandbox
 		if err := s.stopContainer(ctx, container, stopTimeoutFromContext(ctx)); err != nil {
@@ -1058,13 +1189,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 
 		log.Infof(ctx, "RunSandbox: deleting container %s", container.ID())
+
 		if err := s.ContainerServer.Runtime().DeleteContainer(ctx, container); err != nil {
 			return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
+
 		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
+
 		if err := s.ContainerServer.ContainerStateToDisk(ctx, container); err != nil {
 			return fmt.Errorf("failed to write container state %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
+
 		return nil
 	})
 
@@ -1075,6 +1210,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	for idx, ip := range ips {
 		g.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
+
 	sb.AddIPs(ips)
 
 	if err := s.nri.runPodSandbox(ctx, sb); err != nil {
@@ -1085,9 +1221,11 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		if err := s.resourceStore.Put(sboxName, sb, resourceCleaner); err != nil {
 			log.Errorf(ctx, "RunSandbox: failed to save progress of sandbox %s: %v", sboxID, err)
 		}
+
 		log.Infof(ctx, "RunSandbox: context was either canceled or the deadline was exceeded: %v", ctx.Err())
 		// should not cleanup
 		storeResource = true
+
 		return nil, ctx.Err()
 	}
 
@@ -1098,7 +1236,9 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	s.generateCRIEvent(ctx, sb.InfraContainer(), types.ContainerEventType_CONTAINER_STARTED_EVENT)
 
 	log.Infof(ctx, "Ran pod sandbox %s with infra container: %s", container.ID(), container.Description())
+
 	resp = &types.RunPodSandboxResponse{PodSandboxId: sboxID}
+
 	return resp, nil
 }
 
@@ -1109,22 +1249,28 @@ func populateSandboxLabels(labels map[string]string, kubeName, kubePodUID, names
 	if labels == nil {
 		labels = make(map[string]string)
 	}
+
 	if _, ok := labels[kubeletTypes.KubernetesPodNameLabel]; !ok {
 		labels[kubeletTypes.KubernetesPodNameLabel] = kubeName
 	}
+
 	if _, ok := labels[kubeletTypes.KubernetesPodNamespaceLabel]; !ok {
 		labels[kubeletTypes.KubernetesPodNamespaceLabel] = namespace
 	}
+
 	if _, ok := labels[kubeletTypes.KubernetesPodUIDLabel]; !ok {
 		labels[kubeletTypes.KubernetesPodUIDLabel] = kubePodUID
 	}
+
 	return labels
 }
 
 func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.Generator, hostNetwork, hostIPC bool, sandboxIDMappings *idtools.IDMappings, sysctls map[string]string) map[string]string {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sysctlsToReturn := make(map[string]string)
+
 	defaultSysctls, err := s.config.RuntimeConfig.Sysctls()
 	if err != nil {
 		log.Warnf(ctx, "Sysctls invalid: %v", err)
@@ -1133,8 +1279,10 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 	for _, sysctl := range defaultSysctls {
 		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
 			log.Warnf(ctx, "Skipping invalid sysctl specified by config %s: %v", sysctl, err)
+
 			continue
 		}
+
 		g.AddLinuxSysctl(sysctl.Key(), sysctl.Value())
 		sysctlsToReturn[sysctl.Key()] = sysctl.Value()
 	}
@@ -1145,11 +1293,14 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 		sysctl := libconfig.NewSysctl(key, value)
 		if err := sysctl.Validate(hostNetwork, hostIPC); err != nil {
 			log.Warnf(ctx, "Skipping invalid sysctl specified over CRI %s: %v", sysctl, err)
+
 			continue
 		}
+
 		g.AddLinuxSysctl(key, value)
 		sysctlsToReturn[key] = value
 	}
+
 	return configurePingGroupRangeGivenIDMappings(ctx, g, sandboxIDMappings, sysctlsToReturn)
 }
 
@@ -1164,6 +1315,7 @@ func configurePingGroupRangeGivenIDMappings(ctx context.Context, g *generate.Gen
 		pingGroupFullRangeBottom = "0"
 		pingGroupFullRangeTop    = "2147483647"
 	)
+
 	val, ok := sysctls[pingGroupRangeKey]
 	if !ok || sandboxIDMappings == nil {
 		return sysctls
@@ -1178,11 +1330,13 @@ func configurePingGroupRangeGivenIDMappings(ctx context.Context, g *generate.Gen
 	for _, mapping := range sandboxIDMappings.GIDs() {
 		maxID = max(maxID, mapping.ContainerID+mapping.Size-1)
 	}
+
 	newRange := "0 " + strconv.Itoa(maxID)
 
 	log.Debugf(ctx, "Mutating %s sysctl to %s", pingGroupRangeKey, newRange)
 	g.AddLinuxSysctl(pingGroupRangeKey, newRange)
 	sysctls[pingGroupRangeKey] = newRange
+
 	return sysctls
 }
 
@@ -1199,6 +1353,7 @@ func (s *Server) configureGeneratorForSandboxNamespaces(ctx context.Context, hos
 			return nil, err
 		}
 	}
+
 	namespaceConfig := &nsmgr.PodNamespacesConfig{
 		Sysctls:    sysctls,
 		IDMappings: idMappings,

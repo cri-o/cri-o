@@ -70,6 +70,7 @@ type HighPerformanceHooks struct {
 
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
 	log.Infof(ctx, "Run %q runtime handler pre-create hook for the container %q", HighPerformance, c.ID())
+
 	if !shouldRunHooks(ctx, c.ID(), specgen.Config, s) {
 		return nil
 	}
@@ -78,14 +79,18 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		if isContainerCPUsSpecEmpty(specgen.Config) {
 			return fmt.Errorf("no cpus found for container %q", c.Name())
 		}
+
 		cpusString := specgen.Config.Linux.Resources.CPU.Cpus
+
 		exclusiveCPUs, err := cpuset.Parse(cpusString)
 		if err != nil {
 			return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
 		}
+
 		if h.sharedCPUs == "" {
 			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
 		}
+
 		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
 		if err != nil {
 			return fmt.Errorf("failed to parse shared cpus: %w", err)
@@ -95,6 +100,7 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		// by the low-level runtime and the environment variables are already finalized.
 		injectCpusetEnv(specgen, &exclusiveCPUs, &sharedCPUSet)
 	}
+
 	return nil
 }
 
@@ -115,9 +121,11 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	var sharedCPUsRequested bool
 	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
 		sharedCPUsRequested = true
+
 		if containerManagers, err = setSharedCPUs(c, containerManagers, h.sharedCPUs); err != nil {
 			return fmt.Errorf("setSharedCPUs: failed to set shared CPUs for container %q; %w", c.Name(), err)
 		}
+
 		if err := injectQuotaGivenSharedCPUs(c, podManager, containerManagers, h.sharedCPUs); err != nil {
 			return err
 		}
@@ -133,6 +141,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the IRQ smp load balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
+
 		if err := setIRQLoadBalancing(ctx, c, false, IrqSmpAffinityProcFile, h.irqBalanceConfigFile); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
@@ -141,6 +150,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	// disable the CFS quota for the container CPUs
 	if shouldCPUQuotaBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable cpu cfs quota for container %q", c.ID())
+
 		if err := setCPUQuota(podManager, containerManagers); err != nil {
 			return fmt.Errorf("set CPU CFS quota: %w", err)
 		}
@@ -155,6 +165,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 
 		if maxLatency != "" {
 			log.Infof(ctx, "Configure c-states for container %q to %q (pm_qos_resume_latency_us: %q)", c.ID(), value, maxLatency)
+
 			if err := setCPUPMQOSResumeLatency(c, maxLatency); err != nil {
 				return fmt.Errorf("set CPU PM QOS resume latency: %w", err)
 			}
@@ -196,6 +207,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 		if err != nil {
 			return err
 		}
+
 		if err := h.setCPULoadBalancing(ctx, c, podManager, containerManagers, true, requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName())); err != nil {
 			return fmt.Errorf("set CPU load balancing: %w", err)
 		}
@@ -230,6 +242,7 @@ func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *
 	// odd to plumb. Instead, always assume if they're using a HighPerformanceHook, they have CPULoadBalanceDisabled
 	// annotation allowed.
 	h := &DefaultCPULoadBalanceHooks{}
+
 	return h.PostStop(ctx, c, s)
 }
 
@@ -262,11 +275,13 @@ func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Se
 
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
 	value, present = annotations[crioannotations.CPUCStatesAnnotation]
+
 	return
 }
 
 func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value string) {
 	value, present = annotations[crioannotations.CPUFreqGovernorAnnotation]
+
 	return
 }
 
@@ -277,6 +292,7 @@ func annotationValueDeprecationWarning(annotation string) string {
 func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 	key := crioannotations.CPUSharedAnnotation + "/" + cName
 	v, ok := annotations[key]
+
 	return ok && v == annotationEnable
 }
 
@@ -290,6 +306,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancing(ctx context.Context, c *oci.C
 	if node.CgroupIsV2() {
 		return h.setCPULoadBalancingV2(ctx, c, podManager, containerManagers, enable, sharedCPUsRequested)
 	}
+
 	if !enable {
 		if err := disableCPULoadBalancingV1(containerManagers); err != nil {
 			return err
@@ -324,6 +341,7 @@ type desiredManagerCPUSetState struct {
 // To avoid systemd clobbering this value, a libcontainer cgroup manager object is created, and through it CRI-O will use dbus to make changes to the cgroup.
 func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, enable, sharedCPUsRequested bool) (retErr error) {
 	cpusString := c.Spec().Linux.Resources.CPU.Cpus
+
 	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return err
@@ -333,6 +351,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 	// So we can begin by constructing all the parents of the pod manager
 	podManagerPath := podManager.Path("")
 	systemd := false
+
 	if strings.HasSuffix(podManagerPath, ".slice") {
 		systemd = true
 	}
@@ -356,10 +375,12 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 		if dir == "" {
 			continue
 		}
+
 		mgr, err := libctrManager(dir, parent, systemd)
 		if err != nil {
 			return err
 		}
+
 		managers = append(managers, &desiredManagerCPUSetState{
 			manager:       mgr,
 			exclusiveCPUs: exclusiveCPUs,
@@ -369,17 +390,21 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 	}
 
 	var childState *desiredManagerCPUSetState
+
 	ctrCgroupCPUs := exclusiveCPUs
+
 	if sharedCPUsRequested {
 		// the child cgroup already created earlier by setSharedCPUs()
 		childCgroup, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
 		if err != nil {
 			return err
 		}
+
 		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
 		if err != nil {
 			return fmt.Errorf("failed to parse shared cpus: %w", err)
 		}
+
 		childState = &desiredManagerCPUSetState{
 			manager:       childCgroup,
 			exclusiveCPUs: exclusiveCPUs,
@@ -390,6 +415,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 		// only have the exclusiveCPUs, and be isolated
 		ctrCgroupCPUs = exclusiveCPUs.Union(sharedCPUSet)
 	}
+
 	for _, mgr := range containerManagers {
 		managers = append(managers, &desiredManagerCPUSetState{
 			manager:       mgr,
@@ -397,6 +423,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 			cpus:          ctrCgroupCPUs,
 		})
 	}
+
 	if childState != nil {
 		managers[len(managers)-1] = childState
 	}
@@ -414,6 +441,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 			}
 		}
 	}()
+
 	if err := h.addOrRemoveCpusetFromManagers(managers, !enable); err != nil {
 		return err
 	}
@@ -432,6 +460,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredMa
 	if !add {
 		slices.Reverse(states)
 	}
+
 	for _, state := range states {
 		// If we're updating a cpuset to be exclusive, we need to set cpuset.cpus first
 		if add {
@@ -458,6 +487,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManagers(states []*desiredMa
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -469,6 +499,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(mgr cgroups.Manager,
 	if err != nil {
 		return err
 	}
+
 	currentCpus, err := cpuset.Parse(strings.TrimSpace(currentCpusStr))
 	if err != nil {
 		return err
@@ -493,6 +524,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(mgr cgroups.Manager,
 		if toWrite == "" {
 			toWrite = "\n"
 		}
+
 		return cgroups.WriteFile(mgr.Path(""), file, toWrite)
 	}
 	// otherwise, we should use the mgr directly, as it will go through systemd if necessary
@@ -515,10 +547,13 @@ func fullCPUSet() (cpuset.CPUSet, error) {
 		content, err := os.ReadFile(filepath.Join(sysCPUDir, "online"))
 		if err != nil {
 			fullCPUSetErr = err
+
 			return
 		}
+
 		fullCPUSetVar, fullCPUSetErr = cpuset.Parse(strings.TrimSpace(string(content)))
 	})
+
 	return fullCPUSetVar, fullCPUSetErr
 }
 
@@ -534,6 +569,7 @@ func disableCPULoadBalancingV1(containerManagers []cgroups.Manager) error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -550,11 +586,14 @@ func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irq
 	if err != nil {
 		return err
 	}
+
 	currentIRQSMPSetting := strings.TrimSpace(string(content))
+
 	newIRQSMPSetting, newIRQBalanceSetting, err := UpdateIRQSmpAffinityMask(lspec.Resources.CPU.Cpus, currentIRQSMPSetting, enable)
 	if err != nil {
 		return err
 	}
+
 	if err := os.WriteFile(irqSmpAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
 		return err
 	}
@@ -571,18 +610,21 @@ func setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irq
 		if _, err := exec.LookPath(irqBalancedName); err != nil {
 			// irqbalance is not installed, skip the rest; pod should still start, so return nil instead
 			log.Warnf(ctx, "Irqbalance binary not found: %v", err)
+
 			return nil
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
 		cmd := cmdrunner.Command(irqBalancedName, "--oneshot")
 		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
 		cmd.Env = append(os.Environ(), additionalEnv)
+
 		return cmd.Run()
 	}
 
 	if err := restartIrqBalanceService(); err != nil {
 		log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 	}
+
 	return nil
 }
 
@@ -590,11 +632,13 @@ func setCPUQuota(podManager cgroups.Manager, containerManagers []cgroups.Manager
 	if err := disableCPUQuotaForCgroup(podManager); err != nil {
 		return err
 	}
+
 	for _, containerManager := range containerManagers {
 		if err := disableCPUQuotaForCgroup(containerManager); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -620,6 +664,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	}
 
 	podCgroupFullPath := filepath.Dir(containerCgroupFullPath)
+
 	podManager, err = libctrManager(filepath.Base(podCgroupFullPath), filepath.Dir(podCgroupFullPath), cgroupManager.IsSystemd())
 	if err != nil {
 		return nil, nil, err
@@ -635,6 +680,7 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	if err != nil {
 		return nil, nil, err
 	}
+
 	containerManagers = []cgroups.Manager{containerManager}
 
 	// crun actually does the cgroup configuration in a child of the cgroup CRI-O expects to be the container's
@@ -642,9 +688,11 @@ func libctrManagersForPodAndContainerCgroup(c *oci.Container, parentDir string) 
 	if err != nil {
 		return nil, nil, err
 	}
+
 	if extraManager != nil {
 		containerManagers = append(containerManagers, extraManager)
 	}
+
 	return podManager, containerManagers, nil
 }
 
@@ -659,6 +707,7 @@ func trueContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager
 	if !node.CgroupIsV2() {
 		cgroupRoot += "/cpuset"
 	}
+
 	if _, err := os.Stat(filepath.Join(cgroupRoot, actualContainerCgroup)); err != nil {
 		return nil, nil
 	}
@@ -682,6 +731,7 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 			parent = "-.slice"
 		}
 	}
+
 	cg := &configs.Cgroup{
 		Name:   cgroup,
 		Parent: parent,
@@ -696,6 +746,7 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 		// See: https://github.com/opencontainers/runc/tree/main/libcontainer/cgroups/systemd/common.go:getUnitName
 		ScopePrefix: cgmgr.CrioPrefix,
 	}
+
 	return libCtrMgr.New(cg)
 }
 
@@ -705,9 +756,11 @@ func getManagerByIndex(idx int, containerManagers []cgroups.Manager) (cgroups.Ma
 	if length == 0 {
 		return nil, errors.New("getManagerByIndex: no cgroup manager were found")
 	}
+
 	if length-1 < idx || idx < 0 {
 		return nil, errors.New("getManagerByIndex: invalid index")
 	}
+
 	return containerManagers[idx], nil
 }
 
@@ -753,6 +806,7 @@ func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir st
 				if err != nil {
 					return err
 				}
+
 				err = os.WriteFile(latencyFileOrig, latencyOrig, 0o644)
 				if err != nil {
 					return err
@@ -775,6 +829,7 @@ func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir st
 				// The latency may have already been restored by a previous invocation of the hook.
 				return nil
 			}
+
 			return err
 		}
 
@@ -798,6 +853,7 @@ func doSetCPUPMQOSResumeLatency(c *oci.Container, latency, cpuDir, cpuSaveDir st
 func isCPUGovernorSupported(governor, cpuDir string, cpu int) error {
 	// Get available cpu scaling governors.
 	availGovernorFile := fmt.Sprintf("%s/cpu%d/cpufreq/scaling_available_governors", cpuDir, cpu)
+
 	availGovernors, err := os.ReadFile(availGovernorFile)
 	if err != nil {
 		return err
@@ -860,6 +916,7 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 				if err != nil {
 					return err
 				}
+
 				err = os.WriteFile(governorFileOrig, governorOrig, 0o644)
 				if err != nil {
 					return err
@@ -882,6 +939,7 @@ func doSetCPUFreqGovernor(c *oci.Container, governor, cpuDir, cpuSaveDir string)
 				// The governor may have already been restored by a previous invocation of the hook.
 				return nil
 			}
+
 			return err
 		}
 
@@ -907,16 +965,20 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	if err != nil {
 		return err
 	}
+
 	current := strings.TrimSpace(string(content))
 	// remove ","; now each element is "0-9,a-f"
 	s := strings.ReplaceAll(current, ",", "")
+
 	currentMaskArray, err := mapHexCharToByte(s)
 	if err != nil {
 		return err
 	}
+
 	if !isAllBitSet(currentMaskArray) {
 		// not system reboot scenario, just return it.
 		log.Infof(ctx, "Restore irqbalance config: not system reboot, ignoring")
+
 		return nil
 	}
 
@@ -924,21 +986,27 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	if err != nil {
 		// Ignore returning err as given irqBalanceConfigFile may not exist.
 		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
+
 		return nil
 	}
 
 	if !fileExists(irqBannedCPUConfigFile) {
 		log.Infof(ctx, "Creating banned CPU list file %q", irqBannedCPUConfigFile)
+
 		irqBannedCPUsConfig, err := os.Create(irqBannedCPUConfigFile)
 		if err != nil {
 			return err
 		}
+
 		defer irqBannedCPUsConfig.Close()
+
 		_, err = irqBannedCPUsConfig.WriteString(bannedCPUMasks)
 		if err != nil {
 			return err
 		}
+
 		log.Infof(ctx, "Restore irqbalance config: created backup file")
+
 		return nil
 	}
 
@@ -946,22 +1014,27 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	if err != nil {
 		return err
 	}
+
 	origBannedCPUMasks := strings.TrimSpace(string(content))
 
 	if bannedCPUMasks == origBannedCPUMasks {
 		log.Infof(ctx, "Restore irqbalance config: nothing to do")
+
 		return nil
 	}
 
 	log.Infof(ctx, "Restore irqbalance banned CPU list in %q to %q", irqBalanceConfigFile, origBannedCPUMasks)
+
 	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, origBannedCPUMasks); err != nil {
 		return err
 	}
+
 	if isServiceEnabled(irqBalancedName) {
 		if err := restartIrqBalanceService(); err != nil {
 			log.Warnf(ctx, "Irqbalance service restart failed: %v", err)
 		}
 	}
+
 	return nil
 }
 
@@ -969,6 +1042,7 @@ func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec
 	if !shouldRunHooks(ctx, cid, cSpec, s) {
 		return false
 	}
+
 	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
 	}
@@ -980,16 +1054,22 @@ func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec
 func shouldRunHooks(ctx context.Context, id string, cSpec *specs.Spec, s *sandbox.Sandbox) bool {
 	if isCgroupParentBurstable(s) {
 		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStart.", id)
+
 		return false
 	}
+
 	if isCgroupParentBestEffort(s) {
 		log.Infof(ctx, "Container %q is a besteffort pod. Skip PreStart.", id)
+
 		return false
 	}
+
 	if !isContainerRequestWholeCPU(cSpec) {
 		log.Infof(ctx, "Container %q requests partial cpu(s). Skip PreStart", id)
+
 		return false
 	}
+
 	return true
 }
 
@@ -1049,28 +1129,35 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	if isContainerCPUsSpecEmpty(&cSpec) {
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
+
 	cpusString := cSpec.Linux.Resources.CPU.Cpus
+
 	exclusiveCPUs, err := cpuset.Parse(cpusString)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
 	}
+
 	if sharedCPUs == "" {
 		return nil, fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
 	}
+
 	sharedCPUSet, err := cpuset.Parse(sharedCPUs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse shared cpus: %w", err)
 	}
+
 	ctrManager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
 	if err != nil {
 		return nil, err
 	}
+
 	if err := ctrManager.Set(&configs.Resources{
 		SkipDevices: true,
 		CpusetCpus:  exclusiveCPUs.Union(sharedCPUSet).String(),
 	}); err != nil {
 		return nil, err
 	}
+
 	if node.CgroupIsV2() {
 		// we need to move the isolated cpus into a separate child cgroup
 		// on V2 all controllers are under the same path
@@ -1083,6 +1170,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		if err != nil {
 			return nil, err
 		}
+
 		if err := childCgroup.Apply(-1); err != nil {
 			return nil, err
 		}
@@ -1094,6 +1182,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		}); err != nil {
 			return nil, err
 		}
+
 		containerManagers = append(containerManagers, childCgroup)
 	}
 	// here we return the containerManagers with the child cgroup inside
@@ -1110,14 +1199,17 @@ func isContainerCPUsSpecEmpty(spec *specs.Spec) bool {
 
 func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string) error {
 	cpuSpec := c.Spec().Linux.Resources.CPU
+
 	isolatedCPUSet, err := cpuset.Parse(cpuSpec.Cpus)
 	if err != nil {
 		return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
 	}
+
 	sharedCPUSet, err := cpuset.Parse(sharedCPUs)
 	if err != nil {
 		return fmt.Errorf("failed to parse shared cpus: %w", err)
 	}
+
 	if sharedCPUSet.IsEmpty() {
 		return errors.New("shared CPU set is empty")
 	}
@@ -1137,14 +1229,17 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 	}
 	// container level operations
 	ctrCPUSet := isolatedCPUSet.Union(sharedCPUSet)
+
 	ctrQuota, err := calculateMaximalQuota(&ctrCPUSet, *cpuSpec.Period)
 	if err != nil {
 		return fmt.Errorf("failed to calculate container %s quota: %w", c.ID(), err)
 	}
+
 	manager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
 	if err != nil {
 		return err
 	}
+
 	return manager.Set(&configs.Resources{
 		SkipDevices: true,
 		CpuQuota:    ctrQuota,
@@ -1158,6 +1253,7 @@ func calculateMaximalQuota(cpus *cpuset.CPUSet, period uint64) (quota int64, err
 	}
 	// after we divide in milliCPUToCPU, it's safe to convert into int64
 	quota = int64((uint64(quan.MilliValue()) * period) / milliCPUToCPU)
+
 	return
 }
 
@@ -1168,6 +1264,7 @@ func calculatePodQuota(sharedCpus *cpuset.CPUSet, podManager cgroups.Manager, pe
 	} else {
 		quotaGetFunc = getPodQuotaV1
 	}
+
 	existingQuota, err := quotaGetFunc(podManager)
 	if err != nil {
 		return 0, err
@@ -1177,29 +1274,36 @@ func calculatePodQuota(sharedCpus *cpuset.CPUSet, podManager cgroups.Manager, pe
 	if existingQuota == "-1" || existingQuota == "max" {
 		return -1, nil
 	}
+
 	additionalQuota, err := calculateMaximalQuota(sharedCpus, period)
 	if err != nil {
 		return 0, err
 	}
+
 	q, err := strconv.ParseInt(existingQuota, 10, 0)
 	if err != nil {
 		return 0, err
 	}
+
 	return q + additionalQuota, err
 }
 
 func getPodQuotaV1(mng cgroups.Manager) (string, error) {
 	controllerPath := mng.Path("cpu")
+
 	q, err := cgroups.ReadFile(controllerPath, cgroupV1QuotaFile)
 	if err != nil {
 		return "", err
 	}
+
 	cpuQuota := strings.TrimSuffix(q, "\n")
+
 	return cpuQuota, nil
 }
 
 func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 	controllerPath := mng.Path("")
+
 	cpuQuotaAndPeriod, err := cgroups.ReadFile(controllerPath, cgroupV2QuotaFile)
 	if err != nil {
 		return "", err
@@ -1207,6 +1311,7 @@ func getPodQuotaV2(mng cgroups.Manager) (string, error) {
 	// in v2, the quota file contains both quota and period
 	// example: max 100000
 	cpuQuota := strings.Split(strings.TrimSuffix(cpuQuotaAndPeriod, "\n"), " ")[0]
+
 	return cpuQuota, nil
 }
 

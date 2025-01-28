@@ -29,10 +29,12 @@ func (l *logSink) Info(level int, msg string, keysAndValues ...any) {
 func (l *logSink) Error(err error, msg string, keysAndValues ...any) {
 	res := &strings.Builder{}
 	res.WriteString(msg)
+
 	if err != nil {
 		res.WriteString(": ")
 		res.WriteString(err.Error())
 	}
+
 	writeKeysAndValues(res, keysAndValues...)
 	logrus.Error(res.String())
 }
@@ -41,17 +43,22 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...any) {
 	if len(keysAndValues) == 0 {
 		return
 	}
+
 	const missingValue = "[MISSING]"
 
 	b.WriteString(" (")
+
 	for i := 0; i < len(keysAndValues); i += 2 {
 		var v any
+
 		k := keysAndValues[i]
+
 		if i+1 < len(keysAndValues) {
 			v = keysAndValues[i+1]
 		} else {
 			v = missingValue
 		}
+
 		if i > 0 {
 			b.WriteByte(' ')
 		}
@@ -69,6 +76,7 @@ func writeKeysAndValues(b *strings.Builder, keysAndValues ...any) {
 			}
 		}
 	}
+
 	b.WriteByte(')')
 }
 

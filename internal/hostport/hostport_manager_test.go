@@ -268,6 +268,7 @@ func checkIPTablesRules(ipt utiliptables.Interface, expectedRules []string) {
 	expected := sets.New(expectedRules...)
 
 	matched := sets.New[string]()
+
 	for _, line := range strings.Split(raw.String(), "\n") {
 		if strings.HasPrefix(line, "-A KUBE-HOSTPORTS ") || strings.HasPrefix(line, "-A CRIO-HOSTPORTS-MASQ ") || strings.HasPrefix(line, "-A KUBE-HP-") || strings.HasPrefix(line, "-A CRIO-MASQ-") {
 			matched.Insert(line)

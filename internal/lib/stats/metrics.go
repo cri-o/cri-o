@@ -333,6 +333,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			},
 		},
 	}
+
 	return descriptorsMap
 }
 

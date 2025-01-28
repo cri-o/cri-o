@@ -36,6 +36,7 @@ func main() {
 	flag.Parse()
 
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+
 	if err := run(); err != nil {
 		logrus.Fatal(err)
 	}
@@ -67,11 +68,13 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to retrieve latest release branch: %w", err)
 	}
+
 	latestReleaseBranch := lsRemoteHeads.OutputTrimNL()
 	logrus.Infof("Latest release branch: %s", latestReleaseBranch)
 
 	// Check if a release has been done on that branch
 	tagPrefix := strings.TrimPrefix(latestReleaseBranch, releaseBranchPrefix)
+
 	lsRemoteTags, err := command.
 		New(git, "ls-remote", "--sort=v:refname", "--tags", remote).
 		Pipe(grep, "v"+tagPrefix).
@@ -82,6 +85,7 @@ func run() error {
 			strings.Join(strings.Fields(lsRemoteTags.OutputTrimNL()), ", "),
 		)
 		logrus.Infof("We’re all set, doing nothing")
+
 		return nil
 	}
 
@@ -90,20 +94,25 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("unable to open this repository: %w", err)
 	}
+
 	if dryRun {
 		logrus.Info("Setting repository to only do a dry-run")
 		repo.SetDry()
 	}
+
 	currentBranch, err := repo.CurrentBranch()
 	if err != nil {
 		return fmt.Errorf("unable to get current branch: %w", err)
 	}
+
 	logrus.Infof("Checking out branch: %s", latestReleaseBranch)
+
 	if err := repo.Checkout(latestReleaseBranch); err != nil {
 		return fmt.Errorf(
 			"unable to checkout release branch %s: %w", latestReleaseBranch, err,
 		)
 	}
+
 	defer func() {
 		logrus.Infof("Checking out branch: %s", currentBranch)
 		err = repo.Checkout(currentBranch)
@@ -123,6 +132,7 @@ func run() error {
 	}
 
 	logrus.Infof("Running GitHub `test` workflow")
+
 	if err := command.NewWithWorkDir(repo.Dir(), "gh", "workflow", "run", "test", "--ref", latestReleaseBranch).RunSilentSuccess(); err != nil {
 		return fmt.Errorf("unable to run GitHub workflow: %w", err)
 	}

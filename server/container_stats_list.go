@@ -18,6 +18,7 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 	if err != nil {
 		return nil, err
 	}
+
 	if req.Filter != nil {
 		cFilter := &types.ContainerFilter{
 			Id:            req.Filter.Id,
@@ -27,11 +28,13 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 		ctrList = s.filterContainerList(ctx, cFilter, ctrList)
 
 		filteredCtrList := []*oci.Container{}
+
 		for _, ctr := range ctrList {
 			if filterContainer(ctr.CRIContainer(), cFilter) {
 				filteredCtrList = append(filteredCtrList, ctr)
 			}
 		}
+
 		ctrList = filteredCtrList
 	}
 

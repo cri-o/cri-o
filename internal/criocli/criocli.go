@@ -28,6 +28,7 @@ func GetConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	if !ok {
 		return nil, errors.New("type assertion error when accessing server config")
 	}
+
 	return config, nil
 }
 
@@ -36,9 +37,11 @@ func GetAndMergeConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if err := mergeConfig(config, c); err != nil {
 		return nil, err
 	}
+
 	return config, nil
 }
 
@@ -51,6 +54,7 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			if isNotExistErr {
 				log.Infof(ctx.Context, "Skipping not-existing config file %q", path)
 			}
+
 			if ctx.IsSet("config") || !isNotExistErr {
 				return fmt.Errorf("update config from file: %w", err)
 			}
@@ -72,51 +76,67 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("conmon") {
 		config.Conmon = ctx.String("conmon")
 	}
+
 	if ctx.IsSet("pause-command") {
 		config.PauseCommand = ctx.String("pause-command")
 	}
+
 	if ctx.IsSet("pause-image") {
 		config.PauseImage = ctx.String("pause-image")
 	}
+
 	if ctx.IsSet("pause-image-auth-file") {
 		config.PauseImageAuthFile = ctx.String("pause-image-auth-file")
 	}
+
 	if ctx.IsSet("global-auth-file") {
 		config.GlobalAuthFile = ctx.String("global-auth-file")
 	}
+
 	if ctx.IsSet("signature-policy") {
 		config.SignaturePolicyPath = ctx.String("signature-policy")
 	}
+
 	if ctx.IsSet("signature-policy-dir") {
 		config.SignaturePolicyDir = ctx.String("signature-policy-dir")
 	}
+
 	if ctx.IsSet("root") {
 		config.Root = ctx.String("root")
 	}
+
 	if ctx.IsSet("runroot") {
 		config.RunRoot = ctx.String("runroot")
 	}
+
 	if ctx.IsSet("storage-driver") {
 		config.Storage = ctx.String("storage-driver")
 	}
+
 	if ctx.IsSet("storage-opt") {
 		config.StorageOptions = StringSliceTrySplit(ctx, "storage-opt")
 	}
+
 	if ctx.IsSet("insecure-registry") {
 		config.InsecureRegistries = StringSliceTrySplit(ctx, "insecure-registry")
 	}
+
 	if ctx.IsSet("default-transport") {
 		config.DefaultTransport = ctx.String("default-transport")
 	}
+
 	if ctx.IsSet("listen") {
 		config.Listen = ctx.String("listen")
 	}
+
 	if ctx.IsSet("stream-address") {
 		config.StreamAddress = ctx.String("stream-address")
 	}
+
 	if ctx.IsSet("stream-port") {
 		config.StreamPort = ctx.String("stream-port")
 	}
+
 	if ctx.IsSet("default-runtime") {
 		config.DefaultRuntime = ctx.String("default-runtime")
 	}
@@ -133,29 +153,30 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			runtimeType := libconfig.DefaultRuntimeType
 			privilegedWithoutHostDevices := false
 			runtimeConfigPath := ""
-			var (
-				containerMinMemory string
-				err                error
-			)
+			containerMinMemory := ""
 
 			switch len(fields) {
 			case 7:
 				containerMinMemory = fields[6]
-				_, err = units.RAMInBytes(containerMinMemory)
-				if err != nil {
+
+				if _, err := units.RAMInBytes(containerMinMemory); err != nil {
 					return fmt.Errorf("invalid value %q for --runtimes:container_min_memory: %w", containerMinMemory, err)
 				}
+
 				fallthrough
 			case 6:
 				runtimeConfigPath = fields[5]
+
 				fallthrough
 			case 5:
 				if fields[4] == "true" {
 					privilegedWithoutHostDevices = true
 				}
+
 				fallthrough
 			case 4:
 				runtimeType = fields[3]
+
 				fallthrough
 			case 3:
 				config.Runtimes[fields[0]] = &libconfig.RuntimeHandler{
@@ -171,279 +192,371 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 			}
 		}
 	}
+
 	if ctx.IsSet("selinux") {
 		config.SELinux = ctx.Bool("selinux")
 	}
+
 	if ctx.IsSet("imagestore") {
 		config.ImageStore = ctx.String("imagestore")
 	}
+
 	if ctx.IsSet("seccomp-profile") {
 		config.SeccompProfile = ctx.String("seccomp-profile")
 	}
+
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
+
 	if ctx.IsSet("blockio-config-file") {
 		config.BlockIOConfigFile = ctx.String("blockio-config-file")
 	}
+
 	if ctx.IsSet("blockio-reload") {
 		config.BlockIOReload = ctx.Bool("blockio-reload")
 	}
+
 	if ctx.IsSet("irqbalance-config-file") {
 		config.IrqBalanceConfigFile = ctx.String("irqbalance-config-file")
 	}
+
 	if ctx.IsSet("rdt-config-file") {
 		config.RdtConfigFile = ctx.String("rdt-config-file")
 	}
+
 	if ctx.IsSet("cgroup-manager") {
 		config.CgroupManagerName = ctx.String("cgroup-manager")
 	}
+
 	if ctx.IsSet("conmon-cgroup") {
 		config.ConmonCgroup = ctx.String("conmon-cgroup")
 	}
+
 	if ctx.IsSet("hooks-dir") {
 		config.HooksDir = StringSliceTrySplit(ctx, "hooks-dir")
 	}
+
 	if ctx.IsSet("default-mounts-file") {
 		config.DefaultMountsFile = ctx.String("default-mounts-file")
 	}
+
 	if ctx.IsSet("default-capabilities") {
 		config.DefaultCapabilities = StringSliceTrySplit(ctx, "default-capabilities")
 	}
+
 	if ctx.IsSet("add-inheritable-capabilities") {
 		config.AddInheritableCapabilities = ctx.Bool("add-inheritable-capabilities")
 	}
+
 	if ctx.IsSet("default-sysctls") {
 		config.DefaultSysctls = StringSliceTrySplit(ctx, "default-sysctls")
 	}
+
 	if ctx.IsSet("default-ulimits") {
 		config.DefaultUlimits = StringSliceTrySplit(ctx, "default-ulimits")
 	}
+
 	if ctx.IsSet("pids-limit") {
 		config.PidsLimit = ctx.Int64("pids-limit")
 	}
+
 	if ctx.IsSet("log-size-max") {
 		config.LogSizeMax = ctx.Int64("log-size-max")
 	}
+
 	if ctx.IsSet("log-journald") {
 		config.LogToJournald = ctx.Bool("log-journald")
 	}
+
 	if ctx.IsSet("cni-default-network") {
 		config.CNIDefaultNetwork = ctx.String("cni-default-network")
 	}
+
 	if ctx.IsSet("cni-config-dir") {
 		config.NetworkDir = ctx.String("cni-config-dir")
 	}
+
 	if ctx.IsSet("cni-plugin-dir") {
 		config.PluginDirs = StringSliceTrySplit(ctx, "cni-plugin-dir")
 	}
+
 	if ctx.IsSet("image-volumes") {
 		config.ImageVolumes = libconfig.ImageVolumesType(ctx.String("image-volumes"))
 	}
+
 	if ctx.IsSet("read-only") {
 		config.ReadOnly = ctx.Bool("read-only")
 	}
+
 	if ctx.IsSet("bind-mount-prefix") {
 		config.BindMountPrefix = ctx.String("bind-mount-prefix")
 	}
+
 	if ctx.IsSet("uid-mappings") {
 		config.UIDMappings = ctx.String("uid-mappings")
 	}
+
 	if ctx.IsSet("minimum-mappable-uid") {
 		config.MinimumMappableUID = ctx.Int64("minimum-mappable-uid")
 	}
+
 	if ctx.IsSet("gid-mappings") {
 		config.GIDMappings = ctx.String("gid-mappings")
 	}
+
 	if ctx.IsSet("minimum-mappable-gid") {
 		config.MinimumMappableGID = ctx.Int64("minimum-mappable-gid")
 	}
+
 	if ctx.IsSet("log-level") {
 		config.LogLevel = ctx.String("log-level")
 	}
+
 	if ctx.IsSet("log-filter") {
 		config.LogFilter = ctx.String("log-filter")
 	}
+
 	if ctx.IsSet("log-dir") {
 		config.LogDir = ctx.String("log-dir")
 	}
+
 	if ctx.IsSet("additional-devices") {
 		config.AdditionalDevices = StringSliceTrySplit(ctx, "additional-devices")
 	}
+
 	if ctx.IsSet("allowed-devices") {
 		config.AllowedDevices = StringSliceTrySplit(ctx, "allowed-devices")
 	}
+
 	if ctx.IsSet("cdi-spec-dirs") {
 		config.CDISpecDirs = StringSliceTrySplit(ctx, "cdi-spec-dirs")
 	}
+
 	if ctx.IsSet("device-ownership-from-security-context") {
 		config.DeviceOwnershipFromSecurityContext = ctx.Bool("device-ownership-from-security-context")
 	}
+
 	if ctx.IsSet("conmon-env") {
 		config.ConmonEnv = StringSliceTrySplit(ctx, "conmon-env")
 	}
+
 	if ctx.IsSet("default-env") {
 		config.DefaultEnv = StringSliceTrySplit(ctx, "default-env")
 	}
+
 	if ctx.IsSet("container-attach-socket-dir") {
 		config.ContainerAttachSocketDir = ctx.String("container-attach-socket-dir")
 	}
+
 	if ctx.IsSet("container-exits-dir") {
 		config.ContainerExitsDir = ctx.String("container-exits-dir")
 	}
+
 	if ctx.IsSet("enable-criu-support") {
 		config.EnableCriuSupport = ctx.Bool("enable-criu-support")
 	}
+
 	if ctx.IsSet("ctr-stop-timeout") {
 		config.CtrStopTimeout = ctx.Int64("ctr-stop-timeout")
 	}
+
 	if ctx.IsSet("grpc-max-recv-msg-size") {
 		config.GRPCMaxRecvMsgSize = ctx.Int("grpc-max-recv-msg-size")
 	}
+
 	if ctx.IsSet("grpc-max-send-msg-size") {
 		config.GRPCMaxSendMsgSize = ctx.Int("grpc-max-send-msg-size")
 	}
+
 	if ctx.IsSet("drop-infra-ctr") {
 		config.DropInfraCtr = ctx.Bool("drop-infra-ctr")
 	}
+
 	if ctx.IsSet("namespaces-dir") {
 		config.NamespacesDir = ctx.String("namespaces-dir")
 	}
+
 	if ctx.IsSet("pinns-path") {
 		config.PinnsPath = ctx.String("pinns-path")
 	}
+
 	if ctx.IsSet("no-pivot") {
 		config.NoPivot = ctx.Bool("no-pivot")
 	}
+
 	if ctx.IsSet("stream-enable-tls") {
 		config.StreamEnableTLS = ctx.Bool("stream-enable-tls")
 	}
+
 	if ctx.IsSet("stream-tls-ca") {
 		config.StreamTLSCA = ctx.String("stream-tls-ca")
 	}
+
 	if ctx.IsSet("stream-tls-cert") {
 		config.StreamTLSCert = ctx.String("stream-tls-cert")
 	}
+
 	if ctx.IsSet("stream-tls-key") {
 		config.StreamTLSKey = ctx.String("stream-tls-key")
 	}
+
 	if ctx.IsSet("stream-idle-timeout") {
 		config.StreamIdleTimeout = ctx.String("stream-idle-timeout")
 	}
+
 	if ctx.IsSet("version-file") {
 		config.VersionFile = ctx.String("version-file")
 	}
+
 	if ctx.IsSet("version-file-persist") {
 		config.VersionFilePersist = ctx.String("version-file-persist")
 	}
+
 	if ctx.IsSet("clean-shutdown-file") {
 		config.CleanShutdownFile = ctx.String("clean-shutdown-file")
 	}
+
 	if ctx.IsSet("absent-mount-sources-to-reject") {
 		config.AbsentMountSourcesToReject = StringSliceTrySplit(ctx, "absent-mount-sources-to-reject")
 	}
+
 	if ctx.IsSet("irqbalance-config-restore-file") {
 		config.IrqBalanceConfigRestoreFile = ctx.String("irqbalance-config-restore-file")
 	}
+
 	if ctx.IsSet("internal-wipe") {
 		config.InternalWipe = ctx.Bool("internal-wipe")
 	}
+
 	if ctx.IsSet("internal-repair") {
 		config.InternalRepair = ctx.Bool("internal-repair")
 	}
+
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
+
 	if ctx.IsSet("metrics-host") {
 		config.MetricsHost = ctx.String("metrics-host")
 	}
+
 	if ctx.IsSet("metrics-port") {
 		config.MetricsPort = ctx.Int("metrics-port")
 	}
+
 	if ctx.IsSet("metrics-socket") {
 		config.MetricsSocket = ctx.String("metrics-socket")
 	}
+
 	if ctx.IsSet("metrics-cert") {
 		config.MetricsCert = ctx.String("metrics-cert")
 	}
+
 	if ctx.IsSet("metrics-key") {
 		config.MetricsKey = ctx.String("metrics-key")
 	}
+
 	if ctx.IsSet("metrics-collectors") {
 		config.MetricsCollectors = collectors.FromSlice(ctx.StringSlice("metrics-collectors"))
 	}
+
 	if ctx.IsSet("enable-tracing") {
 		config.EnableTracing = ctx.Bool("enable-tracing")
 	}
+
 	if ctx.IsSet("tracing-endpoint") {
 		config.TracingEndpoint = ctx.String("tracing-endpoint")
 	}
+
 	if ctx.IsSet("tracing-sampling-rate-per-million") {
 		config.TracingSamplingRatePerMillion = ctx.Int("tracing-sampling-rate-per-million")
 	}
+
 	if ctx.IsSet("enable-nri") {
 		config.NRI.Enabled = ctx.Bool("enable-nri")
 	}
+
 	if ctx.IsSet("nri-listen") {
 		config.NRI.SocketPath = ctx.String("nri-listen")
 	}
+
 	if ctx.IsSet("nri-plugin-dir") {
 		config.NRI.PluginPath = ctx.String("nri-plugin-dir")
 	}
+
 	if ctx.IsSet("nri-plugin-config-dir") {
 		config.NRI.PluginConfigPath = ctx.String("nri-plugin-config-dir")
 	}
+
 	if ctx.IsSet("nri-disable-connections") {
 		config.NRI.DisableConnections = ctx.Bool("nri-disable-connections")
 	}
+
 	if ctx.IsSet("nri-plugin-registration-timeout") {
 		config.NRI.PluginRegistrationTimeout = ctx.Duration("nri-plugin-registration-timeout")
 	}
+
 	if ctx.IsSet("nri-plugin-request-timeout") {
 		config.NRI.PluginRequestTimeout = ctx.Duration("nri-plugin-request-timeout")
 	}
+
 	if ctx.IsSet("big-files-temporary-dir") {
 		config.BigFilesTemporaryDir = ctx.String("big-files-temporary-dir")
 	}
+
 	if ctx.IsSet("auto-reload-registries") {
 		config.AutoReloadRegistries = ctx.Bool("auto-reload-registries")
 	}
+
 	if ctx.IsSet("pull-progress-timeout") {
 		config.PullProgressTimeout = ctx.Duration("pull-progress-timeout")
 	}
+
 	if ctx.IsSet("separate-pull-cgroup") {
 		config.SeparatePullCgroup = ctx.String("separate-pull-cgroup")
 	}
+
 	if ctx.IsSet("infra-ctr-cpuset") {
 		config.InfraCtrCPUSet = ctx.String("infra-ctr-cpuset")
 	}
+
 	if ctx.IsSet("shared-cpuset") {
 		config.SharedCPUSet = ctx.String("shared-cpuset")
 	}
+
 	if ctx.IsSet("stats-collection-period") {
 		config.StatsCollectionPeriod = ctx.Int("stats-collection-period")
 	}
+
 	if ctx.IsSet("collection-period") {
 		config.CollectionPeriod = ctx.Int("collection-period")
 	}
+
 	if ctx.IsSet("included-pod-metrics") {
 		config.IncludedPodMetrics = StringSliceTrySplit(ctx, "included-pod-metrics")
 	}
+
 	if ctx.IsSet("enable-pod-events") {
 		config.EnablePodEvents = ctx.Bool("enable-pod-events")
 	}
+
 	if ctx.IsSet("hostnetwork-disable-selinux") {
 		config.HostNetworkDisableSELinux = ctx.Bool("hostnetwork-disable-selinux")
 	}
+
 	if ctx.IsSet("pinned-images") {
 		config.PinnedImages = StringSliceTrySplit(ctx, "pinned-images")
 	}
+
 	if ctx.IsSet("disable-hostport-mapping") {
 		config.DisableHostPortMapping = ctx.Bool("disable-hostport-mapping")
 	}
+
 	if ctx.IsSet("timezone") {
 		config.Timezone = ctx.String("timezone")
 	}
+
 	return nil
 }
 
@@ -459,6 +572,7 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
 	metadata := map[string]any{
 		"config": config,
 	}
+
 	return flags, metadata, nil
 }
 

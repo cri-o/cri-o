@@ -41,7 +41,6 @@ func NilFunc(f *TestFramework) error {
 // suite.
 func (t *TestFramework) Setup() {
 	// Global initialization for the whole framework goes in here
-
 	// Setup the actual test suite
 	gomega.Expect(t.setup(t)).To(gomega.Succeed())
 }
@@ -50,7 +49,6 @@ func (t *TestFramework) Setup() {
 // suite.
 func (t *TestFramework) Teardown() {
 	// Global deinitialization for the whole framework goes in here
-
 	// Teardown the actual test suite
 	gomega.Expect(t.teardown(t)).To(gomega.Succeed())
 
@@ -58,6 +56,7 @@ func (t *TestFramework) Teardown() {
 	for _, d := range t.tempDirs {
 		os.RemoveAll(d)
 	}
+
 	for _, d := range t.tempFiles {
 		os.RemoveAll(d)
 	}
@@ -77,6 +76,7 @@ func (t *TestFramework) MustTempDir(prefix string) string {
 	}
 
 	t.tempDirs = append(t.tempDirs, path)
+
 	return path
 }
 
@@ -89,6 +89,7 @@ func (t *TestFramework) MustTempFile(pattern string) string {
 	}
 
 	t.tempFiles = append(t.tempFiles, path.Name())
+
 	return path.Name()
 }
 
@@ -105,7 +106,9 @@ func (t *TestFramework) EnsureRuntimeDeps() string {
 		gomega.Expect(os.WriteFile(runtimeDep, []byte(content), 0o755)).
 			NotTo(gomega.HaveOccurred())
 	}
+
 	ginkgo.GinkgoTB().Setenv("PATH", dir)
+
 	return dir
 }
 

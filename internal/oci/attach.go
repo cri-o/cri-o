@@ -16,12 +16,14 @@ const (
 
 func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, conn io.Reader) error {
 	var err error
+
 	buf := make([]byte, conmon.BufSize+1)
 
 	for {
 		nr, er := conn.Read(buf)
 		if nr > 0 {
 			var dst io.Writer
+
 			switch buf[0] {
 			case AttachPipeStdout:
 				dst = outputStream
@@ -30,23 +32,30 @@ func redirectResponseToOutputStreams(outputStream, errorStream io.WriteCloser, c
 			default:
 				logrus.Debugf("Got unexpected attach type %+d", buf[0])
 			}
+
 			if dst != nil {
 				nw, ew := dst.Write(buf[1:nr])
 				if ew != nil {
 					err = ew
+
 					break
 				}
+
 				if nr != nw+1 {
 					err = io.ErrShortWrite
+
 					break
 				}
 			}
 		}
+
 		if er == io.EOF {
 			break
 		}
+
 		if er != nil {
 			err = er
+
 			break
 		}
 	}

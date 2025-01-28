@@ -73,7 +73,9 @@ func main() {
 
 	app.Action = func(c *cli.Context) error {
 		var store sstorage.Store
+
 		var ref, importRef, exportRef types.ImageReference
+
 		var err error
 
 		debug := c.Bool("debug")
@@ -99,23 +101,28 @@ func main() {
 			if rootDir == "" && runrootDir != "" {
 				log.Fatalf(ctx, "Must set --root and --runroot, or neither")
 			}
+
 			if rootDir != "" && runrootDir == "" {
 				log.Fatalf(ctx, "Must set --root and --runroot, or neither")
 			}
+
 			storeOptions, err := sstorage.DefaultStoreOptions()
 			if err != nil {
 				return err
 			}
+
 			if rootDir != "" && runrootDir != "" {
 				storeOptions.GraphDriverName = storageDriver
 				storeOptions.GraphDriverOptions = storageOptions
 				storeOptions.GraphRoot = rootDir
 				storeOptions.RunRoot = runrootDir
 			}
+
 			store, err = sstorage.GetStore(storeOptions)
 			if err != nil {
 				log.Fatalf(ctx, "Error opening storage: %v", err)
 			}
+
 			defer func() {
 				_, err = store.Shutdown(false)
 				if err != nil {
@@ -124,6 +131,7 @@ func main() {
 			}()
 
 			storage.Transport.SetStore(store)
+
 			ref, err = storage.Transport.ParseStoreReference(store, imageName)
 			if err != nil {
 				log.Fatalf(ctx, "Error parsing image name: %v", err)
@@ -133,20 +141,24 @@ func main() {
 		systemContext := types.SystemContext{
 			SignaturePolicyPath: signaturePolicy,
 		}
+
 		policy, err := signature.DefaultPolicy(&systemContext)
 		if err != nil {
 			log.Fatalf(ctx, "Error loading signature policy: %v", err)
 		}
+
 		policyContext, err := signature.NewPolicyContext(policy)
 		if err != nil {
 			log.Fatalf(ctx, "Error loading signature policy: %v", err)
 		}
+
 		defer func() {
 			err = policyContext.Destroy()
 			if err != nil {
 				log.Fatalf(ctx, "Unable to destroy policy context: %v", err)
 			}
 		}()
+
 		options := &copy.Options{}
 
 		if importFrom != "" {
@@ -170,16 +182,19 @@ func main() {
 					log.Fatalf(ctx, "Error importing %s: %v", importFrom, err)
 				}
 			}
+
 			if addName != "" {
 				_, destImage, err1 := storage.ResolveReference(ref)
 				if err1 != nil {
 					log.Fatalf(ctx, "Error finding image: %v", err1)
 				}
+
 				err = store.AddNames(destImage.ID, []string{imageName, addName})
 				if err != nil {
 					log.Fatalf(ctx, "Error adding name to %s: %v", imageName, err)
 				}
 			}
+
 			if exportTo != "" {
 				_, err = copy.Image(ctx, policyContext, exportRef, ref, options)
 				if err != nil {
@@ -192,6 +207,7 @@ func main() {
 				log.Fatalf(ctx, "Error copying %s to %s: %v", importFrom, exportTo, err)
 			}
 		}
+
 		return nil
 	}
 

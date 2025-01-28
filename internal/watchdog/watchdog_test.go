@@ -46,9 +46,11 @@ var _ = t.Describe("Watchdog", func() {
 		check2 := false
 		sut = watchdog.New(func(context.Context, time.Duration) error {
 			check1 = true
+
 			return nil
 		}, func(context.Context, time.Duration) error {
 			check2 = true
+
 			return nil
 		})
 		sut.SetSystemd(systemdMock)
@@ -105,11 +107,13 @@ var _ = t.Describe("Watchdog", func() {
 		check2 := false
 		sut = watchdog.New(func(context.Context, time.Duration) error {
 			check1 = true
+
 			return nil
 		}, func(context.Context, time.Duration) error {
 			return errTest
 		}, func(context.Context, time.Duration) error {
 			check2 = true
+
 			return nil
 		})
 		sut.SetSystemd(systemdMock)

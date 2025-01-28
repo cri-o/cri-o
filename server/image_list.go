@@ -24,10 +24,12 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 			if err != nil {
 				return nil, err
 			}
+
 			resp := &types.ListImagesResponse{}
 			if status != nil {
 				resp.Images = append(resp.Images, ConvertImage(status))
 			}
+
 			return resp, nil
 		}
 	}
@@ -36,11 +38,14 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	if err != nil {
 		return nil, err
 	}
+
 	resp := &types.ListImagesResponse{}
+
 	for i := range results {
 		image := ConvertImage(&results[i])
 		resp.Images = append(resp.Images, image)
 	}
+
 	return resp, nil
 }
 
@@ -78,6 +83,7 @@ func ConvertImage(from *storage.ImageResult) *types.Image {
 	if uid != nil {
 		to.Uid = &types.Int64Value{Value: *uid}
 	}
+
 	if from.Size != nil {
 		to.Size_ = *from.Size
 	}

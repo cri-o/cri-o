@@ -10,8 +10,10 @@ func KVMLabel(cLabel string) (string, error) {
 		// selinux is disabled
 		return "", nil
 	}
+
 	processLabel, _ := selinux.KVMContainerLabels()
 	selinux.ReleaseLabel(processLabel)
+
 	return swapSELinuxLabel(cLabel, processLabel)
 }
 
@@ -21,8 +23,10 @@ func InitLabel(cLabel string) (string, error) {
 		// selinux is disabled
 		return "", nil
 	}
+
 	processLabel, _ := selinux.InitContainerLabels()
 	selinux.ReleaseLabel(processLabel)
+
 	return swapSELinuxLabel(cLabel, processLabel)
 }
 
@@ -31,10 +35,13 @@ func swapSELinuxLabel(cLabel, processLabel string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	scon, err := selinux.NewContext(processLabel)
 	if err != nil {
 		return "", err
 	}
+
 	dcon["type"] = scon["type"]
+
 	return dcon.Get(), nil
 }

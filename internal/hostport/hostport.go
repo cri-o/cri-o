@@ -61,6 +61,7 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 	if _, err := iptables.EnsureChain(utiliptables.TableNAT, kubeHostportsChain); err != nil {
 		return fmt.Errorf("failed to ensure that %s chain %s exists: %w", utiliptables.TableNAT, kubeHostportsChain, err)
 	}
+
 	tableChainsNeedJumpServices := []struct {
 		table utiliptables.Table
 		chain utiliptables.Chain
@@ -73,6 +74,7 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 		"-m", "addrtype", "--dst-type", "LOCAL",
 		"-j", string(kubeHostportsChain),
 	}
+
 	for _, tc := range tableChainsNeedJumpServices {
 		// KUBE-HOSTPORTS chain needs to be appended to the system chains.
 		// This ensures KUBE-SERVICES chain gets processed first.
@@ -86,6 +88,7 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 	if _, err := iptables.EnsureChain(utiliptables.TableNAT, crioMasqueradeChain); err != nil {
 		return fmt.Errorf("failed to ensure that %s chain %s exists: %w", utiliptables.TableNAT, crioMasqueradeChain, err)
 	}
+
 	args = []string{
 		"-m", "comment", "--comment", "kube hostport masquerading",
 		"-m", "conntrack", "--ctstate", "DNAT",
@@ -94,5 +97,6 @@ func ensureKubeHostportChains(iptables utiliptables.Interface) error {
 	if _, err := iptables.EnsureRule(utiliptables.Append, utiliptables.TableNAT, utiliptables.ChainPostrouting, args...); err != nil {
 		return fmt.Errorf("failed to ensure that %s chain %s jumps to %s: %w", utiliptables.TableNAT, utiliptables.ChainPostrouting, crioMasqueradeChain, err)
 	}
+
 	return nil
 }

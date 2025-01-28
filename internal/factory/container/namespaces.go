@@ -40,6 +40,7 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 			if sb.NamespaceOptions().Pid != types.NamespaceMode_POD {
 				return errors.New("pod level PID namespace requested for the container, but pod sandbox was not similarly configured, and does not have an infra container")
 			}
+
 			return errors.New("PID namespace requested, but sandbox infra container unexpectedly invalid")
 		}
 
@@ -50,19 +51,24 @@ func (c *container) SpecAddNamespaces(sb SandboxIFace, targetCtr *oci.Container,
 		if targetCtr == nil {
 			return errors.New("target PID namespace specified with invalid target ID")
 		}
+
 		targetPID, err := targetCtr.Pid()
 		if err != nil {
 			return fmt.Errorf("target PID namespace find PID: %w", err)
 		}
+
 		ns, err := serverConfig.NamespaceManager().NamespaceFromProcEntry(targetPID, nsmgr.PIDNS)
 		if err != nil {
 			return fmt.Errorf("target PID namespace from proc: %w", err)
 		}
+
 		if err := c.spec.AddOrReplaceLinuxNamespace(string(rspec.PIDNamespace), ns.Path()); err != nil {
 			return fmt.Errorf("updating container PID namespace to target %s: %w", targetCtr.ID(), err)
 		}
+
 		c.pidns = ns
 	}
+
 	return nil
 }
 
@@ -81,14 +87,17 @@ func ConfigureGeneratorGivenNamespacePaths(managedNamespaces []*namespace.Manage
 		if ns.Path() == "" {
 			continue
 		}
+
 		nsForSpec := typeToSpec[ns.Type()]
 		if nsForSpec == "" {
 			return fmt.Errorf("invalid namespace type %s", ns.Type())
 		}
+
 		if err := g.AddOrReplaceLinuxNamespace(string(nsForSpec), ns.Path()); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

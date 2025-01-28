@@ -148,35 +148,47 @@ func (s *Server) getPortForward(req *types.PortForwardRequest) (*types.PortForwa
 func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	containersAndTheirImages := map[string]storage.StorageImageID{}
+
 	containers, err := s.ContainerServer.Store().Containers()
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		log.Warnf(ctx, "Could not read containers and sandboxes: %v", err)
 	}
+
 	pods := map[string]*storage.RuntimeContainerMetadata{}
 	podContainers := map[string]*storage.RuntimeContainerMetadata{}
 	names := map[string][]string{}
 	deletedPods := map[string]*sandbox.Sandbox{}
+
 	for i := range containers {
 		metadata, err2 := s.ContainerServer.StorageRuntimeServer().GetContainerMetadata(containers[i].ID)
 		if err2 != nil {
 			log.Warnf(ctx, "Error parsing metadata for %s: %v, ignoring", containers[i].ID, err2)
+
 			continue
 		}
+
 		if !storage.IsCrioContainer(&metadata) {
 			log.Debugf(ctx, "Container %s determined to not be a CRI-O container or sandbox", containers[i].ID)
+
 			continue
 		}
+
 		names[containers[i].ID] = containers[i].Names
+
 		if metadata.Pod {
 			pods[containers[i].ID] = &metadata
 		} else {
 			podContainers[containers[i].ID] = &metadata
+
 			imageID, err := storage.ParseStorageImageIDFromOutOfProcessData(containers[i].ImageID)
 			if err != nil {
 				log.Warnf(ctx, "Error parsing image ID %q of container %q: %v, ignoring", containers[i].ImageID, containers[i].ID, err)
+
 				continue
 			}
+
 			containersAndTheirImages[containers[i].ID] = imageID
 		}
 	}
@@ -184,6 +196,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// Go through all the pods and check if it can be restored. If an error occurs, delete the pod and any containers
 	// associated with it. Release the pod and container names as well.
 	knownPods := []*sandbox.Sandbox{}
+
 	for sbID := range pods {
 		sb, err := s.ContainerServer.LoadSandbox(ctx, sbID)
 		// If we were able to restore a sandbox, add the pod id to the list of deletedPods, to be able to call CNI DEL
@@ -191,14 +204,18 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		// knownPods list so that any potential stale resource associated to them is cleaned up in the network plugin GC
 		if sb != nil {
 			knownPods = append(knownPods, sb)
+
 			if err != nil {
 				deletedPods[sbID] = sb
 			}
 		}
+
 		if err == nil {
 			continue
 		}
+
 		log.Warnf(ctx, "Could not restore sandbox %s: %v", sbID, err)
+
 		for _, n := range names[sbID] {
 			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
@@ -212,10 +229,12 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		}
 		// Go through the containers and delete any container that was under the deleted pod
 		log.Warnf(ctx, "Deleting all containers under sandbox %s since it could not be restored", sbID)
+
 		for k, v := range podContainers {
 			if v.PodID != sbID {
 				continue
 			}
+
 			for _, n := range names[k] {
 				if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
@@ -235,9 +254,12 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		err := s.ContainerServer.LoadContainer(ctx, containerID)
 		if err == nil || errors.Is(err, lib.ErrIsNonCrioContainer) {
 			delete(containersAndTheirImages, containerID)
+
 			continue
 		}
+
 		log.Warnf(ctx, "Could not restore container %s: %v", containerID, err)
+
 		for _, n := range names[containerID] {
 			if err := s.ContainerServer.Store().DeleteContainer(n); err != nil && !errors.Is(err, storageTypes.ErrNotAContainer) {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
@@ -256,12 +278,14 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 
 	// Cleanup the deletedPods in the networking plugin
 	wipeResourceCleaner := resourcestore.NewResourceCleaner()
+
 	for _, sb := range deletedPods {
 		cleanupFunc := func() error {
 			err := s.networkStop(context.Background(), sb)
 			if err == nil {
 				log.Infof(ctx, "Successfully cleaned up network for pod %s", sb.ID())
 			}
+
 			return err
 		}
 		wipeResourceCleaner.Add(ctx, "cleanup sandbox network", cleanupFunc)
@@ -280,8 +304,10 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 		ips, err := s.getSandboxIPs(ctx, sb)
 		if err != nil {
 			log.Warnf(ctx, "Could not restore sandbox IP for %v: %v", sb.ID(), err)
+
 			continue
 		}
+
 		sb.AddIPs(ips)
 	}
 
@@ -319,6 +345,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		if err != nil {
 			return fmt.Errorf("failed to write file to indicate a clean shutdown: %w", err)
 		}
+
 		f.Close()
 
 		// finally, attempt to sync the newly created file to disk.
@@ -348,6 +375,7 @@ func getIDMappings(config *libconfig.Config) (*idtools.IDMappings, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	parsedGIDsMappings, err := idtools.ParseIDMap(strings.Split(config.GIDMappings, ","), "GID")
 	if err != nil {
 		return nil, err
@@ -364,6 +392,7 @@ func New(
 	if configIface == nil || configIface.GetData() == nil {
 		return nil, errors.New("provided configuration interface or its data is nil")
 	}
+
 	config := configIface.GetData()
 
 	useDefaultUmask(ctx)
@@ -379,6 +408,7 @@ func New(
 	if err := os.MkdirAll(config.ContainerExitsDir, 0o755); err != nil {
 		return nil, err
 	}
+
 	containerServer, err := lib.New(ctx, configIface)
 	if err != nil {
 		return nil, err
@@ -386,6 +416,7 @@ func New(
 
 	if strings.ToLower(strings.TrimSpace(config.IrqBalanceConfigRestoreFile)) != irqBalanceConfigRestoreDisable {
 		log.Infof(ctx, "Attempting to restore irqbalance config from %s", config.IrqBalanceConfigRestoreFile)
+
 		err = runtimehandlerhooks.RestoreIrqBalanceConfig(context.TODO(), config.IrqBalanceConfigFile, config.IrqBalanceConfigRestoreFile, runtimehandlerhooks.IrqSmpAffinityProcFile)
 		if err != nil {
 			return nil, err
@@ -404,6 +435,7 @@ func New(
 	if err != nil {
 		return nil, err
 	}
+
 	if idMappings != nil {
 		log.Errorf(ctx, "Configuration options 'uid_mappings' and 'gid_mappings' are deprecated, and will be replaced with native Kubernetes support for user namespaces in the future")
 	}
@@ -430,6 +462,7 @@ func New(
 		// creating a container events channel only if the evented pleg is enabled
 		s.ContainerEventsChan = make(chan types.ContainerEventResponse, 1000)
 	}
+
 	if err := configureMaxThreads(); err != nil {
 		return nil, err
 	}
@@ -441,6 +474,7 @@ func New(
 	}
 
 	defer devNullFile.Close()
+
 	if err := unix.Dup2(int(devNullFile.Fd()), int(os.Stdin.Fd())); err != nil {
 		return nil, fmt.Errorf("close stdin: %w", err)
 	}
@@ -449,6 +483,7 @@ func New(
 	s.wipeIfAppropriate(ctx, deletedImages)
 
 	var bindAddressStr string
+
 	bindAddress := net.ParseIP(config.StreamAddress)
 	if bindAddress != nil {
 		bindAddressStr = bindAddress.String()
@@ -461,6 +496,7 @@ func New(
 
 	// Prepare streaming server
 	streamServerConfig := streaming.DefaultConfig
+
 	if config.StreamIdleTimeout != "" {
 		idleTimeout, err := time.ParseDuration(config.StreamIdleTimeout)
 		if err != nil {
@@ -469,11 +505,14 @@ func New(
 
 		streamServerConfig.StreamIdleTimeout = idleTimeout
 	}
+
 	streamServerConfig.Addr = net.JoinHostPort(bindAddressStr, config.StreamPort)
 
 	s.stream.streamServerCloseCh = make(chan struct{})
+
 	if config.StreamEnableTLS {
 		log.Debugf(ctx, "TLS enabled for streaming server")
+
 		certConf, err := cert.NewCertConfig(ctx, s.stream.streamServerCloseCh, config.StreamTLSCert, config.StreamTLSKey, config.StreamTLSCA)
 		if err != nil {
 			return nil, err
@@ -485,15 +524,19 @@ func New(
 		if err != nil {
 			return nil, fmt.Errorf("load stream server x509 key pair: %w", err)
 		}
+
 		streamServerConfig.TLSConfig = &tls.Config{
 			GetConfigForClient: certConf.GetConfigForClient,
 			Certificates:       []tls.Certificate{certificate},
 			MinVersion:         tls.VersionTLS12,
 		}
+
 		log.Debugf(ctx, "Applying stream server TLS configuration")
 	}
+
 	s.stream.ctx = ctx
 	s.stream.runtimeServer = s
+
 	s.stream.streamServer, err = streaming.NewServer(streamServerConfig, s.stream)
 	if err != nil {
 		return nil, errors.New("unable to create streaming server")
@@ -501,6 +544,7 @@ func New(
 
 	go func() {
 		defer close(s.stream.streamServerCloseCh)
+
 		if err := s.stream.streamServer.Start(true); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatalf(ctx, "Failed to start streaming server: %v", err)
 		}
@@ -509,6 +553,7 @@ func New(
 	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
 
 	s.startReloadWatcher(ctx)
+
 	if s.config.AutoReloadRegistries {
 		go s.startWatcherForMirrorRegistries(ctx, s.config.SystemContext.SystemRegistriesConfDirPath)
 	}
@@ -559,8 +604,10 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 		for {
 			// Block until the signal is received
 			<-ch
+
 			if err := s.config.Reload(ctx); err != nil {
 				log.Errorf(ctx, "Unable to reload configuration: %v", err)
+
 				continue
 			}
 			// ImageServer compiles the list with regex for both
@@ -582,6 +629,7 @@ func (s *Server) startReloadWatcher(ctx context.Context) {
 
 func useDefaultUmask(ctx context.Context) {
 	const defaultUmask = 0o022
+
 	oldUmask := unix.Umask(defaultUmask)
 	if oldUmask != defaultUmask {
 		log.Infof(ctx,
@@ -597,9 +645,11 @@ func useDefaultUmask(ctx context.Context) {
 func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage.StorageImageID) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if !s.config.InternalWipe {
 		return
 	}
+
 	var (
 		shouldWipeContainers, shouldWipeImages bool
 		err                                    error
@@ -640,6 +690,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 				}
 			}
 		}
+
 		for _, sb := range s.ContainerServer.ListSandboxes() {
 			if err := s.removePodSandbox(ctx, sb); err != nil {
 				log.Warnf(ctx, "Failed to remove sandbox %s: %v", sb.ID(), err)
@@ -662,18 +713,21 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 func (s *Server) addSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return s.ContainerServer.AddSandbox(ctx, sb)
 }
 
 func (s *Server) getSandbox(ctx context.Context, id string) *sandbox.Sandbox {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return s.ContainerServer.GetSandbox(id)
 }
 
 func (s *Server) removeSandbox(ctx context.Context, id string) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return s.ContainerServer.RemoveSandbox(ctx, id)
 }
 
@@ -692,6 +746,7 @@ func (s *Server) addInfraContainer(ctx context.Context, c *oci.Container) {
 func (s *Server) getInfraContainer(ctx context.Context, id string) *oci.Container {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return s.ContainerServer.GetInfraContainer(ctx, id)
 }
 
@@ -710,6 +765,7 @@ func (s *Server) removeInfraContainer(ctx context.Context, c *oci.Container) {
 func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID string) (*sandbox.Sandbox, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if podSandboxID == "" {
 		return nil, sandbox.ErrIDEmpty
 	}
@@ -723,9 +779,11 @@ func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID stri
 	if sb == nil {
 		return nil, fmt.Errorf("specified pod sandbox not found: %s", sandboxID)
 	}
+
 	if !sb.Created() {
 		return nil, errSandboxNotCreated
 	}
+
 	return sb, nil
 }
 
@@ -746,7 +804,9 @@ func (s *Server) StartExitMonitor(ctx context.Context) {
 	if err != nil {
 		log.Fatalf(ctx, "Failed to create new watch: %v", err)
 	}
+
 	defer watcher.Close()
+
 	done := make(chan struct{})
 	go s.monitorExits(ctx, watcher, done)
 
@@ -754,6 +814,7 @@ func (s *Server) StartExitMonitor(ctx context.Context) {
 		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", s.config.ContainerExitsDir, err)
 		close(done)
 	}
+
 	<-done
 }
 
@@ -767,6 +828,7 @@ func (s *Server) monitorExits(ctx context.Context, watcher *fsnotify.Watcher, do
 		case <-s.monitorsChan:
 			log.Debugf(ctx, "Closing exit monitor...")
 			close(done)
+
 			return
 		}
 	}
@@ -776,25 +838,30 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 	log.Debugf(ctx, "Event: %v", event)
+
 	if event.Op&fsnotify.Create != fsnotify.Create {
 		return
 	}
+
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
 	c := s.ContainerServer.GetContainer(ctx, containerID)
 	nriCtr := c
 	resource := "container"
+
 	var sb *sandbox.Sandbox
 	if c == nil {
 		sb = s.ContainerServer.GetSandbox(containerID)
 		if sb == nil {
 			return
 		}
+
 		c = sb.InfraContainer()
 		resource = "sandbox infra"
 	} else {
 		sb = s.ContainerServer.GetSandbox(c.Sandbox())
 	}
+
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
 	if err := s.ContainerServer.ContainerStateToDisk(ctx, c); err != nil {
@@ -817,6 +884,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 	}
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STOPPED_EVENT)
+
 	if err := os.Remove(event.Name); err != nil {
 		log.Warnf(ctx, "Failed to remove exit file: %v", err)
 	}
@@ -839,21 +907,26 @@ func (s *Server) getSandboxStatuses(ctx context.Context, sandboxID string) (*typ
 
 func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([]*types.ContainerStatus, error) {
 	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{LabelSelector: map[string]string{kubetypes.KubernetesPodUIDLabel: sandboxUID}}}
+
 	containers, err := s.ListContainers(ctx, listContainerRequest)
 	if err != nil {
 		return []*types.ContainerStatus{}, err
 	}
 
 	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+
 	for i, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id}
+
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
 			continue
 		}
+
 		if err != nil {
 			return []*types.ContainerStatus{}, err
 		}
+
 		containerStatuses[i] = resp.GetStatus()
 	}
 
@@ -862,21 +935,26 @@ func (s *Server) getContainerStatuses(ctx context.Context, sandboxUID string) ([
 
 func (s *Server) getContainerStatusesFromSandboxID(ctx context.Context, sandboxID string) ([]*types.ContainerStatus, error) {
 	listContainerRequest := &types.ListContainersRequest{Filter: &types.ContainerFilter{PodSandboxId: sandboxID}}
+
 	containers, err := s.ListContainers(ctx, listContainerRequest)
 	if err != nil {
 		return []*types.ContainerStatus{}, err
 	}
 
 	containerStatuses := make([]*types.ContainerStatus, len(containers.GetContainers()))
+
 	for i, cc := range containers.GetContainers() {
 		containerStatusRequest := &types.ContainerStatusRequest{ContainerId: cc.Id, Verbose: false}
+
 		resp, err := s.ContainerStatus(ctx, containerStatusRequest)
 		if isNotFound(err) {
 			continue
 		}
+
 		if err != nil {
 			return []*types.ContainerStatus{}, err
 		}
+
 		containerStatuses[i] = resp.GetStatus()
 	}
 
@@ -888,8 +966,10 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	if !s.config.EnablePodEvents {
 		return
 	}
+
 	if err := s.ContainerServer.Runtime().UpdateContainerStatus(ctx, container); err != nil {
 		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to update the container status %s: %v", eventType, container.ID(), err)
+
 		return
 	}
 
@@ -905,12 +985,14 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 
 	if err != nil {
 		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get sandbox statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+
 		return
 	}
 
 	containerStatuses, err := s.getContainerStatuses(ctx, sandboxStatuses.Metadata.Uid)
 	if err != nil {
 		log.Errorf(ctx, "GenerateCRIEvent: event type: %s, failed to get container statuses of the pod %s: %v", eventType, sandboxStatuses.Metadata.Uid, err)
+
 		return
 	}
 
@@ -920,6 +1002,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 	default:
 		log.Errorf(ctx, "GenerateCRIEvent: failed to generate event %s for container %s", eventType, container.ID())
 		metrics.Instance().MetricContainersEventsDroppedInc()
+
 		return
 	}
 }
@@ -929,6 +1012,7 @@ func isNotFound(err error) bool {
 	if !ok {
 		return ok
 	}
+
 	if s.Code() == codes.NotFound {
 		return true
 	}
@@ -942,18 +1026,22 @@ func isNotFound(err error) bool {
 func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registriesConfDDir string) {
 	if registriesConfDDir == "" {
 		log.Infof(ctx, "No registries.conf.d directory specified, defaulting to /etc/containers/registries.conf.d")
+
 		registriesConfDDir = defaultRegistriesConfDDir
 	}
+
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatalf(ctx, "Failed to create new watcher: %v", err)
 	}
+
 	defer watcher.Close()
 
 	log.Infof(ctx, "Registered reload watcher for mirror registries configuration")
 
 	if err := watcher.Add(registriesConfDDir); err != nil {
 		log.Errorf(ctx, "Failed to add watcher for path %q: %s", registriesConfDDir, err)
+
 		return
 	}
 
@@ -962,7 +1050,9 @@ func (s *Server) startWatcherForMirrorRegistries(ctx context.Context, registries
 
 func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context, watcher *fsnotify.Watcher) {
 	var timer *time.Timer
+
 	reloadChannel := make(chan string, 1)
+
 	go func() {
 		// The for loop ensures that the channel is properly drained, even if
 		// no new events are received, thus preventing potential deadlocks.
@@ -970,6 +1060,7 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 		// an empty string and then reloads the registries.
 		for evenName := range reloadChannel {
 			log.Infof(ctx, "File %q changed, reloading registries configuration", evenName)
+
 			if err := s.config.ReloadRegistries(); err != nil {
 				log.Errorf(ctx, "Failed to reload registry configuration: %v", err)
 			}
@@ -981,11 +1072,14 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 		case event, ok := <-watcher.Events:
 			if !ok {
 				close(reloadChannel)
+
 				return
 			}
+
 			if !strings.HasSuffix(filepath.Base(event.Name), ".conf") {
 				continue
 			}
+
 			if event.Op&(fsnotify.Write|fsnotify.Create|fsnotify.Remove|fsnotify.Chmod) != 0 {
 				// Reset timer if exists, else create a new one.
 				if timer != nil {
@@ -1000,8 +1094,10 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 		case err, ok := <-watcher.Errors:
 			if !ok {
 				close(reloadChannel)
+
 				return
 			}
+
 			log.Errorf(ctx, "Watcher error: %v", err)
 		}
 	}

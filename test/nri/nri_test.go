@@ -52,6 +52,7 @@ func TestPluginSynchronization(stdT *testing.T) {
 	t := nriTest{
 		plugins: []*plugin{nil},
 	}
+
 	const containerCount = 3
 	pods := make([]string, 0, containerCount)
 	ctrs := make([]string, 0, containerCount)
@@ -158,6 +159,7 @@ func TestMountInjection(stdT *testing.T) {
 					Options:     []string{"bind"},
 				},
 			)
+
 			return adjust, nil, nil
 		}
 
@@ -194,6 +196,7 @@ func TestEnvironmentInjection(stdT *testing.T) {
 		injectEnv = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 			adjust := &api.ContainerAdjustment{}
 			adjust.AddEnv("TEST_VARIABLE", "TEST_VALUE")
+
 			return adjust, nil, nil
 		}
 
@@ -232,10 +235,12 @@ func TestAnnotationInjection(stdT *testing.T) {
 		injectAnnotation = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 			adjust := &api.ContainerAdjustment{}
 			adjust.AddAnnotation(testKey, testValue)
+
 			return adjust, nil, nil
 		}
 		saveContainer = func(p *plugin, pod *api.PodSandbox, ctr *api.Container) error {
 			annotated = ctr
+
 			return nil
 		}
 
@@ -280,6 +285,7 @@ func TestDeviceInjection(stdT *testing.T) {
 				Gid:      api.UInt32(uint32(22)),
 				FileMode: api.FileMode(uint32(0o0664)),
 			})
+
 			return adjust, nil, nil
 		}
 
@@ -317,6 +323,7 @@ func TestCpusetAdjustment(stdT *testing.T) {
 		func() *api.ContainerAdjustment {
 			adjust := &api.ContainerAdjustment{}
 			adjust.SetLinuxCPUSetCPUs(availableCpuset[1])
+
 			return adjust
 		},
 		"set -e; grep Cpus_allowed_list: /proc/self/status",
@@ -337,6 +344,7 @@ func TestMemsetAdjustment(stdT *testing.T) {
 		func() *api.ContainerAdjustment {
 			adjust := &api.ContainerAdjustment{}
 			adjust.SetLinuxCPUSetMems(availableMemset[1])
+
 			return adjust
 		},
 		"set -e; grep Mems_allowed_list: /proc/self/status",
@@ -381,12 +389,14 @@ func TestCpusetAdjustmentUpdate(stdT *testing.T) {
 		func() *api.ContainerAdjustment {
 			adjust := &api.ContainerAdjustment{}
 			adjust.SetLinuxCPUSetCPUs(availableCpuset[1])
+
 			return adjust
 		},
 		func(ctr0 string) *api.ContainerUpdate {
 			update := &api.ContainerUpdate{}
 			update.SetContainerId(ctr0)
 			update.SetLinuxCPUSetCPUs(availableCpuset[0])
+
 			return update
 		},
 		"set -e; grep Cpus_allowed_list: /proc/self/status",
@@ -408,12 +418,14 @@ func TestMemsetAdjustmentUpdate(stdT *testing.T) {
 		func() *api.ContainerAdjustment {
 			adjust := &api.ContainerAdjustment{}
 			adjust.SetLinuxCPUSetMems(availableMemset[1])
+
 			return adjust
 		},
 		func(ctr0 string) *api.ContainerUpdate {
 			update := &api.ContainerUpdate{}
 			update.SetContainerId(ctr0)
 			update.SetLinuxCPUSetMems(availableMemset[0])
+
 			return update
 		},
 		"set -e; grep Mems_allowed_list: /proc/self/status",
@@ -434,6 +446,7 @@ func testXxxsetAdjustmentUpdate(stdT *testing.T, adjust func() *api.ContainerAdj
 	handler := func(p *plugin, pod *api.PodSandbox, ctr *api.Container) (*api.ContainerAdjustment, []*api.ContainerUpdate, error) {
 		if ctr0 == "" {
 			ctr0 = ctr.GetId()
+
 			return adjust(), nil, nil
 		} else {
 			return nil, []*api.ContainerUpdate{update(ctr0)}, nil
