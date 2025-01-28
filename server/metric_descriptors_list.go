@@ -20,5 +20,6 @@ func (s *Server) ListMetricDescriptors(ctx context.Context, req *types.ListMetri
 	response := &types.ListMetricDescriptorsResponse{
 		Descriptors: flattenedDescriptors,
 	}
+
 	return response, nil
 }

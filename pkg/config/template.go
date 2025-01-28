@@ -11,10 +11,12 @@ import (
 // WriteTemplate write the configuration template to the provided writer.
 func (c *Config) WriteTemplate(displayAllConfig bool, w io.Writer) error {
 	const templateName = "config"
+
 	tpl, err := template.New(templateName).Parse(assembleTemplateString(displayAllConfig, c))
 	if err != nil {
 		return err
 	}
+
 	return tpl.ExecuteTemplate(w, templateName, c)
 }
 
@@ -680,6 +682,7 @@ func RuntimesEqual(a, b Runtimes) bool {
 		if !ok {
 			return false
 		}
+
 		if !reflect.DeepEqual(valueA, valueB) {
 			return false
 		}
@@ -698,6 +701,7 @@ func WorkloadsEqual(a, b Workloads) bool {
 		if !ok {
 			return false
 		}
+
 		if !reflect.DeepEqual(valueA, valueB) {
 			return false
 		}

@@ -9,6 +9,7 @@ import (
 // ListPodSandboxStats returns stats of all sandboxes.
 func (s *Server) ListPodSandboxStats(ctx context.Context, req *types.ListPodSandboxStatsRequest) (*types.ListPodSandboxStatsResponse, error) {
 	sboxList := s.ContainerServer.ListSandboxes()
+
 	if req.Filter != nil {
 		sbFilter := &types.PodSandboxFilter{
 			Id:            req.Filter.Id,

@@ -99,6 +99,7 @@ func New(cfg *config.Config) (*local, error) {
 
 	if !cfg.Enabled {
 		logrus.Info("NRI interface is disabled in the configuration.")
+
 		return l, nil
 	}
 
@@ -217,6 +218,7 @@ func (l *local) CreateContainer(ctx context.Context, pod PodSandbox, ctr Contain
 
 	response, err := l.nri.CreateContainer(ctx, request)
 	l.setState(request.GetContainer().GetId(), Created)
+
 	if err != nil {
 		return nil, err
 	}
@@ -364,6 +366,7 @@ func (l *local) stopContainer(ctx context.Context, pod PodSandbox, ctr Container
 
 	response, err := l.nri.StopContainer(ctx, request)
 	l.setState(request.GetContainer().GetId(), Stopped)
+
 	if err != nil {
 		return err
 	}
@@ -446,22 +449,26 @@ func (l *local) updateFromPlugin(ctx context.Context, req []*nri.ContainerUpdate
 	log.Infof(ctx, "Unsolicited container update from NRI")
 
 	failed, err := l.applyUpdates(ctx, req)
+
 	return failed, err
 }
 
 func (l *local) applyUpdates(ctx context.Context, updates []*nri.ContainerUpdate) ([]*nri.ContainerUpdate, error) {
 	failed, err := domains.updateContainers(ctx, updates)
+
 	return failed, err
 }
 
 func (l *local) evictContainers(ctx context.Context, evict []*nri.ContainerEviction) ([]*nri.ContainerEviction, error) {
 	failed, err := domains.evictContainers(ctx, evict)
+
 	return failed, err
 }
 
 func (l *local) setState(id string, state State) {
 	if state != Removed {
 		l.state[id] = state
+
 		return
 	}
 
@@ -473,6 +480,7 @@ func (l *local) needsStopping(id string) bool {
 	if s == Created || s == Running {
 		return true
 	}
+
 	return false
 }
 
@@ -481,6 +489,7 @@ func (l *local) needsRemoval(id string) bool {
 	if s == Created || s == Running || s == Stopped {
 		return true
 	}
+
 	return false
 }
 

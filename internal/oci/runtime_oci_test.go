@@ -81,6 +81,7 @@ var _ = t.Describe("Oci", func() {
 					func(_ string, _ ...string) any {
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
+
 						return exec.Command("/bin/false")
 					},
 				),
@@ -103,6 +104,7 @@ var _ = t.Describe("Oci", func() {
 					func(_ string, _ ...string) any {
 						Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 						waitForKillToComplete(sleepProcess)
+
 						return exec.Command("/bin/true")
 					},
 				),
@@ -229,6 +231,7 @@ func containerIgnoreSignalCmdrunnerMock(sleepProcess *exec.Cmd, runner *runnerMo
 			func(_ string, _ ...string) any {
 				Expect(oci.Kill(sleepProcess.Process.Pid)).To(Succeed())
 				waitForKillToComplete(sleepProcess)
+
 				return exec.Command("/bin/true")
 			},
 		),
@@ -252,11 +255,13 @@ func stopTimeoutWithChannel(ctx context.Context, sut *oci.Container, timeout int
 		sut.WaitOnStopTimeout(ctx, timeout)
 		close(stoppedChan)
 	}()
+
 	return stoppedChan
 }
 
 func verifyContainerStopped(sut *oci.Container, sleepProcess *exec.Cmd) {
 	waitForKillToComplete(sleepProcess)
+
 	pid, err := sut.Pid()
 	Expect(pid).To(Equal(0))
 	Expect(err).To(HaveOccurred())

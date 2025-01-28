@@ -74,6 +74,7 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 			debug("stop forwarding in direction: %v", errFwd)
 		case <-ctx.Done():
 			debug("cancelled: %v", ctx.Err())
+
 			return ctx.Err()
 		}
 
@@ -102,5 +103,6 @@ func (r *runtimeOCI) PortForwardContainer(ctx context.Context, c *Container, net
 	}
 
 	log.Infof(ctx, "Finished port forwarding for %q on port %d", c.ID(), port)
+
 	return nil
 }

@@ -57,6 +57,7 @@ func checkKernelRROMountSupport() error {
 					err = fmt.Errorf("%w: %w", versionErr, err)
 				}
 			}
+
 			return err
 		})()
 	})
@@ -94,6 +95,7 @@ func validateKernelRROMount() error {
 	if err != nil {
 		return fmt.Errorf("unable to create directory: %w", err)
 	}
+
 	defer func() {
 		if err := os.RemoveAll(path); err != nil {
 			logrus.Errorf("Unable to remove directory: %v", err)
@@ -106,17 +108,21 @@ func validateKernelRROMount() error {
 			break
 		}
 	}
+
 	if err != nil {
 		return fmt.Errorf("unable to mount directory %q using tmpfs: %w", path, err)
 	}
+
 	defer func() {
 		var unmountErr error
+
 		for {
 			unmountErr = unix.Unmount(path, 0)
 			if !errors.Is(unmountErr, unix.EINTR) {
 				break
 			}
 		}
+
 		if unmountErr != nil {
 			logrus.Errorf("Unable to unmount directory %q: %v", path, unmountErr)
 		}
@@ -132,10 +138,12 @@ func validateKernelRROMount() error {
 			break
 		}
 	}
+
 	if err != nil {
 		if !errors.Is(err, unix.ENOSYS) {
 			return fmt.Errorf("unable to set mount attribute for directory %q: %w", path, err)
 		}
+
 		return fmt.Errorf("unable to set recursive read-only mount attribute: %w", err)
 	}
 

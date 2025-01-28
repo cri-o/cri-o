@@ -94,6 +94,7 @@ var _ = t.Describe("ResourceStore", func() {
 
 			waitWatcherSet := func(watcher chan struct{}) bool {
 				<-watcher
+
 				return true
 			}
 
@@ -122,6 +123,7 @@ var _ = t.Describe("ResourceStore", func() {
 			timedOutChan := make(chan bool)
 			cleaner.Add(context.Background(), "test", func() error {
 				timedOutChan <- true
+
 				return nil
 			})
 			go func() {

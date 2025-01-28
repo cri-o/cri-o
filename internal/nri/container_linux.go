@@ -8,6 +8,7 @@ import (
 
 func linuxContainerToNRI(ctr Container) *nri.LinuxContainer {
 	lnx := ctr.GetLinuxContainer()
+
 	return &nri.LinuxContainer{
 		Namespaces:  lnx.GetLinuxNamespaces(),
 		Devices:     lnx.GetLinuxDevices(),

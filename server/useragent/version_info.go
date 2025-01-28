@@ -17,9 +17,11 @@ func (vi *VersionInfo) isValid() bool {
 	if strings.ContainsAny(vi.Name, stopChars) {
 		return false
 	}
+
 	if strings.ContainsAny(vi.Version, stopChars) {
 		return false
 	}
+
 	return true
 }
 
@@ -47,7 +49,9 @@ func AppendVersions(base string, versions ...VersionInfo) string {
 		if !v.isValid() {
 			continue
 		}
+
 		verstrs = append(verstrs, v.Name+"/"+v.Version)
 	}
+
 	return strings.Join(verstrs, " ")
 }

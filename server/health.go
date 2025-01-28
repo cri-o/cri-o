@@ -46,9 +46,11 @@ func (s *Server) checkCRIHealth(ctx context.Context, timeout time.Duration) erro
 		if c.GetType() == "NetworkReady" {
 			if !cniPluginInitialized.Load() {
 				log.Warnf(ctx, "CNI plugin not yet initialized. Ignoring NetworkReady status: %v, message: %s, reason: %s", c.GetStatus(), c.GetMessage(), c.GetReason())
+
 				continue
 			}
 		}
+
 		if !c.GetStatus() {
 			return fmt.Errorf(
 				"runtime status %q is invalid: %s (reason: %s)",

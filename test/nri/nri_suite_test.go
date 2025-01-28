@@ -50,7 +50,9 @@ func TestMain(m *testing.M) {
 
 	setupLogging()
 	setup()
+
 	status := m.Run()
+
 	cleanup()
 
 	os.Exit(status)
@@ -66,6 +68,7 @@ type testLogger struct {
 
 func (t *testLogger) Write(p []byte) (n int, err error) {
 	fmt.Printf("%s", string(p))
+
 	return len(p), nil
 }
 
@@ -102,6 +105,7 @@ func (t *nriTest) Setup(stdT *testing.T) {
 		} else {
 			t.plugins[i] = NewPlugin(t.namespace)
 		}
+
 		require.NotNil(t, t.plugins[i], "create plugin #%d for test %s", t.namespace)
 	}
 
@@ -119,9 +123,11 @@ func (t *nriTest) StartPlugins(waitSync bool) []*event {
 
 	for i, p := range t.plugins {
 		require.NoError(t, p.Start(), "start test %s plugin #%d (%s)", t.namespace, i, p.Name())
+
 		if !waitSync {
 			continue
 		}
+
 		e := p.WaitEvent(PluginSyncedEvent, pluginSyncTimeout)
 		require.NotNil(t, e, "test %s plugin #%d (%s) startup", t.namespace, i, p.Name())
 		events = append(events, e)
@@ -159,8 +165,10 @@ func (t *nriTest) purgePodsAndContainers() {
 		if err := crio.StopContainer(ctr); err != nil {
 			t.Logf("failed to stop container %s: %v", ctr, err)
 		}
+
 		require.NoError(t, crio.RemoveContainer(ctr), "remove container %s", ctr)
 	}
+
 	for _, ctr := range otherCtrs {
 		require.NoError(t, crio.RemoveContainer(ctr), "remove container %s", ctr)
 	}
@@ -169,8 +177,10 @@ func (t *nriTest) purgePodsAndContainers() {
 		if err := crio.StopPod(pod); err != nil {
 			t.Logf("failed to stop pod %s: %v", pod, err)
 		}
+
 		require.NoError(t, crio.RemovePod(pod), "remove test %s pod %s", t.namespace, pod)
 	}
+
 	for _, pod := range otherPods {
 		require.NoError(t, crio.RemovePod(pod), "remove test %s pod %s", t.namespace, pod)
 	}
@@ -201,6 +211,7 @@ func (t *nriTest) runContainer(options ...ContainerOption) (pod, ctr string) {
 func (t *nriTest) createPod() string {
 	pod, err := crio.CreatePod(t.namespace, ids.GenPodName(), ids.GenUID())
 	require.NoError(t, err, "create pod")
+
 	return pod
 }
 
@@ -215,6 +226,7 @@ func (t *nriTest) removePod(pod string) {
 func (t *nriTest) createContainer(pod string) string {
 	ctr, err := crio.CreateContainer(pod, ids.GenCtrName(), ids.GenUID())
 	require.NoError(t, err, "create container")
+
 	return ctr
 }
 
@@ -234,6 +246,7 @@ func (t *nriTest) execShellScript(ctr, cmd string) (stdout, stderr []byte, exitC
 	var err error
 	stdout, stderr, exitCode, err = crio.ExecSync(ctr, []string{"sh", "-c", cmd})
 	require.NoError(t, err, "exec in container %s", ctr)
+
 	return stdout, stderr, exitCode
 }
 
@@ -242,6 +255,7 @@ func (t *nriTest) verifyPodIDs(ids []string, pods []*api.PodSandbox, description
 	for _, id := range ids {
 		idMap[id] = struct{}{}
 	}
+
 	for _, pod := range pods {
 		_, ok := idMap[pod.GetId()]
 		require.True(t, ok, description+"(missing pod ID %s)", pod.GetId())
@@ -253,6 +267,7 @@ func (t *nriTest) verifyContainerIDs(ids []string, ctrs []*api.Container, descri
 	for _, id := range ids {
 		idMap[id] = struct{}{}
 	}
+
 	for _, ctr := range ctrs {
 		_, ok := idMap[ctr.GetId()]
 		require.True(t, ok, description)

@@ -76,6 +76,7 @@ func (t *domainTable) updateContainers(ctx context.Context, updates []*nri.Conta
 		err := t.domain.UpdateContainer(ctx, u)
 		if err != nil {
 			log.Errorf(ctx, "NRI update of container %s failed: %v", u.GetContainerId(), err)
+
 			if !u.GetIgnoreFailure() {
 				failed = append(failed, u)
 			}

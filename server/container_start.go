@@ -21,6 +21,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	defer span.End()
 
 	log.Infof(ctx, "Starting container: %s", req.ContainerId)
+
 	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
@@ -44,16 +45,21 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			if err1 != nil {
 				return nil, fmt.Errorf("failed to find container %s: %w", c.ID(), err1)
 			}
+
 			s.ContainerServer.ReleaseContainerName(ctx, ociContainer.Name())
+
 			err2 := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, c.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
 			}
+
 			s.removeContainer(ctx, ociContainer)
+
 			return nil, err
 		}
 
 		log.Infof(ctx, "Restored container: %s", ctr)
+
 		return &types.StartContainerResponse{}, nil
 	}
 
@@ -63,6 +69,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	}
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
+
 	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
@@ -79,6 +86,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		// returned in the Reason field for container status call.
 		if retErr != nil {
 			c.SetStartFailed(retErr)
+
 			if hooks != nil {
 				if err := hooks.PreStop(ctx, c, sandbox); err != nil {
 					log.Warnf(ctx, "Failed to run pre-stop hook for container %q: %v", c.ID(), err)
@@ -88,10 +96,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			if err := s.nri.stopContainer(ctx, sandbox, c); err != nil {
 				log.Warnf(ctx, "NRI stop failed for container %q: %v", c.ID(), err)
 			}
+
 			if err := s.removeContainerInPod(ctx, sandbox, c); err != nil {
 				log.Warnf(ctx, "Failed to delete container in runtime %s: %v", c.ID(), err)
 			}
 		}
+
 		if err := s.ContainerServer.ContainerStateToDisk(ctx, c); err != nil {
 			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 		}
@@ -106,6 +116,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 	if err := s.ContainerServer.Runtime().StartContainer(ctx, c); err != nil {
 		return nil, fmt.Errorf("failed to start container %s: %w", c.ID(), err)
 	}
+
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_STARTED_EVENT)
 
 	if err := s.nri.postStartContainer(ctx, sandbox, c); err != nil {

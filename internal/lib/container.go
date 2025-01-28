@@ -18,6 +18,7 @@ func (c *ContainerServer) GetStorageContainer(ctx context.Context, container str
 	if err != nil {
 		return nil, err
 	}
+
 	return c.store.Container(ociCtr.ID())
 }
 
@@ -27,6 +28,7 @@ func (c *ContainerServer) GetContainerTopLayerID(ctx context.Context, containerI
 	if err != nil {
 		return "", err
 	}
+
 	return ctr.LayerID, nil
 }
 
@@ -85,6 +87,7 @@ func (c *ContainerServer) getSandboxFromRequest(pid string) (*sandbox.Sandbox, e
 	if sb == nil {
 		return nil, fmt.Errorf("specified pod not found: %s", podID)
 	}
+
 	return sb, nil
 }
 

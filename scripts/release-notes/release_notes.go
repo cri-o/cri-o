@@ -52,6 +52,7 @@ func run() error {
 	}
 
 	logrus.Infof("Ensuring output path %s", outputPath)
+
 	if err := os.MkdirAll(outputPath, 0o755); err != nil {
 		return fmt.Errorf("create output path: %w", err)
 	}
@@ -66,6 +67,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("get repository HEAD: %w", err)
 	}
+
 	logrus.Infof("Using HEAD commit %s", head)
 
 	currentBranch, currentBranchSet := os.LookupEnv(currentBranchKey)
@@ -74,14 +76,17 @@ func run() error {
 			"%s environment variable is not set, using default branch `%s`",
 			currentBranchKey, defaultBranch,
 		)
+
 		currentBranch = defaultBranch
 	}
+
 	logrus.Infof("Using branch: %s", currentBranch)
 
 	templateFile, err := os.CreateTemp("", "")
 	if err != nil {
 		return fmt.Errorf("writing template file: %w", err)
 	}
+
 	defer func() { err = os.RemoveAll(templateFile.Name()) }()
 
 	// Check if we're on a tag and adapt variables if necessary
@@ -93,7 +98,9 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("parsing start version: %w", err)
 	}
+
 	startTag := util.AddTagPrefix(startVersion)
+
 	if output, err := command.New(
 		"git", "describe", "--tags", "--exact-match",
 	).RunSilentSuccessOutput(); err == nil {
@@ -225,9 +232,11 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	}
 
 	logrus.Infof("Generating release notes")
+
 	outputFile := endRev + ".md"
 	outputFilePath := filepath.Join(outputPath, outputFile)
 	os.RemoveAll(outputFilePath)
+
 	if err := command.Execute(
 		"./build/bin/release-notes",
 		"--org=cri-o",
@@ -251,9 +260,11 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	}
 
 	logrus.Infof("Checking out branch %s", branch)
+
 	if err := repo.Checkout(branch); err != nil {
 		return fmt.Errorf("checkout %s branch: %w", branch, err)
 	}
+
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
@@ -268,10 +279,12 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	// Update the README
 	readmeFile := "README.md"
 	logrus.Infof("Updating %s", readmeFile)
+
 	readmeSlice, err := readLines(readmeFile)
 	if err != nil {
 		return fmt.Errorf("open %s file: %w", readmeFile, err)
 	}
+
 	link := fmt.Sprintf("- [%s](%s)", endRev, outputFile)
 
 	// Item not in list
@@ -292,11 +305,13 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 	} else {
 		readmeSlice[alreadyExistingIndex] = link
 	}
+
 	if err := os.WriteFile(
 		readmeFile, []byte(strings.Join(readmeSlice, "\n")), 0o644,
 	); err != nil {
 		return fmt.Errorf("write content to file: %w", err)
 	}
+
 	if err := repo.Add(readmeFile); err != nil {
 		return fmt.Errorf("add file to repo: %w", err)
 	}
@@ -342,10 +357,12 @@ func readLines(path string) ([]string, error) {
 	defer file.Close()
 
 	var lines []string
+
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
+
 	return lines, scanner.Err()
 }
 
@@ -355,6 +372,7 @@ func indexOfPrefix(prefix string, slice []string) int {
 			return k
 		}
 	}
+
 	return -1
 }
 
@@ -385,6 +403,7 @@ func startVersionFromCurrent(ver string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	if semVer.Patch == 0 {
 		// If we're looking at an unreleased (or recently released) branch,
 		// we compare against the last version.
@@ -393,5 +412,6 @@ func startVersionFromCurrent(ver string) (string, error) {
 		// Otherwise, we're comparing against the last patch version.
 		semVer.Patch--
 	}
+
 	return semVer.String(), nil
 }

@@ -34,6 +34,7 @@ func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.Runtime
 	// wait here until we don't want to send events to this client anymore
 	conn.wg.Wait()
 	s.containerEventClients.Delete(ces)
+
 	return conn.err
 }
 
@@ -45,6 +46,7 @@ func (s *Server) broadcastEvents() {
 			if !ok {
 				continue
 			}
+
 			conn.wg.Done()
 		}
 	}()

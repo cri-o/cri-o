@@ -14,6 +14,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	if err := ctr.SetConfig(&types.ContainerConfig{
 		Mounts: []*types.Mount{
 			{
@@ -33,22 +34,28 @@ func TestAddOCIBindsForDev(t *testing.T) {
 	}
 
 	sut := &Server{}
+
 	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
+
 	for _, m := range ctr.Spec().Mounts() {
 		if m.Destination == "/dev" {
 			t.Error("/dev shouldn't be in the spec if it's bind mounted from kube")
 		}
 	}
+
 	var foundDev bool
+
 	for _, b := range binds {
 		if b.Destination == "/dev" {
 			foundDev = true
+
 			break
 		}
 	}
+
 	if !foundDev {
 		t.Error("no /dev mount found in spec mounts")
 	}
@@ -59,6 +66,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	if err := ctr.SetConfig(&types.ContainerConfig{
 		Mounts: []*types.Mount{
 			{
@@ -78,16 +86,20 @@ func TestAddOCIBindsForSys(t *testing.T) {
 	}
 
 	sut := &Server{}
+
 	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
+
 	var howManySys int
+
 	for _, b := range binds {
 		if b.Destination == "/sys" && b.Type != "sysfs" {
 			howManySys++
 		}
 	}
+
 	if howManySys != 1 {
 		t.Error("there is not a single /sys bind mount")
 	}
@@ -128,12 +140,14 @@ func TestAddOCIBindsRROMounts(t *testing.T) {
 	ctx := context.TODO()
 
 	sut := &Server{}
+
 	_, binds, err := sut.addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, true, "")
 	if err != nil {
 		t.Errorf("Should not fail to create RRO mount, got: %v", err)
 	}
 
 	hasRRO := false
+
 	for _, m := range binds {
 		if m.Source == hostPath {
 			for _, o := range m.Options {
@@ -224,6 +238,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 			}
 
 			sut := &Server{}
+
 			_, _, err = sut.addOCIBindMounts(ctx, ctr, "", "", nil, false, false, false, false, tc.rroSupport, "")
 			if err == nil {
 				t.Error("Should fail to add an RRO mount with a specific error")
@@ -253,12 +268,16 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
+
 	sut := &Server{}
+
 	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
+
 	var hasCgroupRW bool
+
 	for _, m := range ctr.Spec().Mounts() {
 		if m.Destination == "/sys/fs/cgroup" {
 			for _, o := range m.Options {
@@ -268,6 +287,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 			}
 		}
 	}
+
 	if !hasCgroupRW {
 		t.Error("Cgroup mount not added with RW.")
 	}
@@ -276,6 +296,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
+
 	if err := ctr.SetConfig(&types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
 			Name: "testctr",
@@ -287,11 +308,14 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 	}); err != nil {
 		t.Error(err)
 	}
+
 	var hasCgroupRO bool
+
 	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
+
 	for _, m := range ctr.Spec().Mounts() {
 		if m.Destination == "/sys/fs/cgroup" {
 			for _, o := range m.Options {
@@ -301,6 +325,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 			}
 		}
 	}
+
 	if !hasCgroupRO {
 		t.Error("Cgroup mount not added with RO.")
 	}
@@ -336,7 +361,9 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+
 	sut := &Server{}
+
 	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")

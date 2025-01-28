@@ -68,8 +68,10 @@ func (s *Server) Status(ctx context.Context, req *types.StatusRequest) (*types.S
 		if err != nil {
 			return nil, fmt.Errorf("creating runtime info: %w", err)
 		}
+
 		resp.Info = info
 	}
+
 	return resp, nil
 }
 
@@ -77,9 +79,11 @@ func (s *Server) createRuntimeInfo() (map[string]string, error) {
 	config := map[string]any{
 		"sandboxImage": s.config.ImageConfig.PauseImage,
 	}
+
 	bytes, err := json.Marshal(config)
 	if err != nil {
 		return nil, fmt.Errorf("marshal data: %w", err)
 	}
+
 	return map[string]string{"config": string(bytes)}, nil
 }

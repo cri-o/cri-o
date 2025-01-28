@@ -75,6 +75,7 @@ func (w Workloads) Validate() error {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -82,9 +83,11 @@ func (w *WorkloadConfig) Validate(workloadName string) error {
 	if w.ActivationAnnotation == "" {
 		return fmt.Errorf("annotation shouldn't be empty for workload %q", workloadName)
 	}
+
 	if err := w.ValidateWorkloadAllowedAnnotations(); err != nil {
 		return err
 	}
+
 	return w.Resources.ValidateDefaults()
 }
 
@@ -93,10 +96,13 @@ func (w *WorkloadConfig) ValidateWorkloadAllowedAnnotations() error {
 	if err != nil {
 		return err
 	}
+
 	logrus.Debugf(
 		"Allowed annotations for workload: %v", w.AllowedAnnotations,
 	)
+
 	w.DisallowedAnnotations = disallowed
+
 	return nil
 }
 
@@ -105,6 +111,7 @@ func (w Workloads) AllowedAnnotations(toFind map[string]string) []string {
 	if workload == nil {
 		return []string{}
 	}
+
 	return workload.AllowedAnnotations
 }
 
@@ -117,6 +124,7 @@ func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[st
 	if err != nil {
 		return err
 	}
+
 	logrus.Infof("Allowed annotations are specified for workload %v", allowed)
 
 	for ann := range toFilter {
@@ -126,6 +134,7 @@ func (w Workloads) FilterDisallowedAnnotations(allowed []string, toFilter map[st
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -134,10 +143,12 @@ func (w Workloads) MutateSpecGivenAnnotations(ctrName string, specgen *generate.
 	if workload == nil {
 		return nil
 	}
+
 	resources, err := resourcesFromAnnotation(workload.AnnotationPrefix, ctrName, sboxAnnotations, workload.Resources)
 	if err != nil {
 		return err
 	}
+
 	resources.MutateSpec(specgen)
 
 	return nil
@@ -151,11 +162,13 @@ func (w Workloads) workloadGivenActivationAnnotation(sboxAnnotations map[string]
 			}
 		}
 	}
+
 	return nil
 }
 
 func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]string, defaultResources *Resources) (*Resources, error) {
 	annotationKey := prefix + "/" + ctrName
+
 	value, ok := allAnnotations[annotationKey]
 	if !ok {
 		return defaultResources, nil
@@ -165,6 +178,7 @@ func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]s
 	if err := json.Unmarshal([]byte(value), &resources); err != nil {
 		return nil, err
 	}
+
 	if resources == nil {
 		return nil, nil
 	}
@@ -172,15 +186,19 @@ func resourcesFromAnnotation(prefix, ctrName string, allAnnotations map[string]s
 	if resources.CPUSet == "" {
 		resources.CPUSet = defaultResources.CPUSet
 	}
+
 	if resources.CPUShares == 0 {
 		resources.CPUShares = defaultResources.CPUShares
 	}
+
 	if resources.CPUQuota == 0 {
 		resources.CPUQuota = defaultResources.CPUQuota
 	}
+
 	if resources.CPUPeriod == 0 {
 		resources.CPUPeriod = defaultResources.CPUPeriod
 	}
+
 	if resources.CPULimit == 0 {
 		resources.CPULimit = defaultResources.CPULimit
 	}
@@ -211,6 +229,7 @@ func milliCPUToQuota(milliCPU, period int64) (quota int64) {
 	if quota < minQuotaPeriod {
 		quota = minQuotaPeriod
 	}
+
 	return quota
 }
 
@@ -222,9 +241,11 @@ func (r *Resources) ValidateDefaults() error {
 	if _, err := cpuset.Parse(r.CPUSet); err != nil {
 		return fmt.Errorf("unable to parse cpuset %q: %w", r.CPUSet, err)
 	}
+
 	if r.CPUQuota != 0 && r.CPUQuota < int64(r.CPUShares) {
 		return fmt.Errorf("cpuquota %d cannot be less than cpushares %d", r.CPUQuota, r.CPUShares)
 	}
+
 	if r.CPUPeriod != 0 && r.CPUPeriod < minQuotaPeriod {
 		return fmt.Errorf("cpuperiod %d cannot be less than 1000 microseconds", r.CPUPeriod)
 	}
@@ -236,15 +257,19 @@ func (r *Resources) MutateSpec(specgen *generate.Generator) {
 	if r == nil {
 		return
 	}
+
 	if r.CPUSet != "" {
 		specgen.SetLinuxResourcesCPUCpus(r.CPUSet)
 	}
+
 	if r.CPUShares != 0 {
 		specgen.SetLinuxResourcesCPUShares(r.CPUShares)
 	}
+
 	if r.CPUQuota != 0 {
 		specgen.SetLinuxResourcesCPUQuota(r.CPUQuota)
 	}
+
 	if r.CPUPeriod != 0 {
 		specgen.SetLinuxResourcesCPUPeriod(r.CPUPeriod)
 	}

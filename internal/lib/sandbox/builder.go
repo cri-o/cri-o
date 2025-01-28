@@ -146,9 +146,11 @@ func (b *sandboxBuilder) GetSandbox() (*Sandbox, error) {
 	if b.sandboxRef.criSandbox == nil {
 		return nil, errors.New("cri-o sandbox not initialized")
 	}
+
 	sandboxRef := b.sandboxRef
 	b.config = nil
 	b.sandboxRef = nil
+
 	return sandboxRef, nil
 }
 
@@ -186,6 +188,7 @@ func (b *sandboxBuilder) SetConfig(config *types.PodSandboxConfig) error {
 	}
 
 	b.config = config
+
 	return nil
 }
 
@@ -230,6 +233,7 @@ func (b *sandboxBuilder) ID() string {
 	if b.sandboxRef == nil || b.sandboxRef.criSandbox == nil {
 		return ""
 	}
+
 	return b.sandboxRef.criSandbox.Id
 }
 
@@ -259,8 +263,10 @@ func (b *sandboxBuilder) SetCRISandbox(id string, labels, annotations map[string
 		b.sandboxRef.criSandbox.Annotations = annotations
 		b.sandboxRef.criSandbox.Labels = labels
 		b.sandboxRef.criSandbox.Metadata = metadata
+
 		return nil
 	}
+
 	b.sandboxRef.criSandbox = &types.PodSandbox{
 		Id:          id,
 		CreatedAt:   b.sandboxRef.createdAt.UnixNano(),

@@ -140,10 +140,12 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 					},
 				}
 				metrics = append(metrics, pgmajfaultMetrics...)
+
 				return metrics
 			},
 		},
 	}
+
 	return computeSandboxMetrics(sb, memoryMetrics, "memory")
 }
 
@@ -160,5 +162,6 @@ func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount u
 			},
 		},
 	}
+
 	return computeSandboxMetrics(sb, oomMetrics, "oom")
 }

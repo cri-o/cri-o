@@ -16,11 +16,13 @@ func (s *Sandbox) AddManagedNamespaces(namespaces []nsmgr.Namespace) {
 	if namespaces == nil {
 		return
 	}
+
 	for _, ns := range namespaces {
 		// skip any nil entries
 		if ns == nil {
 			continue
 		}
+
 		switch ns.Type() {
 		case nsmgr.IPCNS:
 			s.ipcns = ns
@@ -48,15 +50,19 @@ func (s *Sandbox) NamespacePaths() []*namespace.ManagedNamespace {
 	if ipc := nsPathGivenInfraPid(s.ipcns, nsmgr.IPCNS, pid); ipc != "" {
 		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(ipc, nsmgr.IPCNS))
 	}
+
 	if net := nsPathGivenInfraPid(s.netns, nsmgr.NETNS, pid); net != "" {
 		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(net, nsmgr.NETNS))
 	}
+
 	if uts := nsPathGivenInfraPid(s.utsns, nsmgr.UTSNS, pid); uts != "" {
 		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(uts, nsmgr.UTSNS))
 	}
+
 	if user := nsPathGivenInfraPid(s.userns, nsmgr.USERNS, pid); user != "" {
 		typesAndPaths = append(typesAndPaths, namespace.NewManagedNamespace(user, nsmgr.USERNS))
 	}
+
 	return typesAndPaths
 }
 
@@ -76,6 +82,7 @@ func (s *Sandbox) runFunctionOnNamespaces(toRun func(nsmgr.Namespace) error) err
 		if ns == nil {
 			continue
 		}
+
 		if err := toRun(ns); err != nil {
 			errs = append(errs, err)
 		}
@@ -85,6 +92,7 @@ func (s *Sandbox) runFunctionOnNamespaces(toRun func(nsmgr.Namespace) error) err
 	if len(errs) != 0 {
 		err = fmt.Errorf("removing namespaces encountered the following errors %v", errs)
 	}
+
 	return err
 }
 
@@ -106,6 +114,7 @@ func (s *Sandbox) NetNsJoin(nspath string) error {
 	if err != nil && !s.stopped {
 		return err
 	}
+
 	return nil
 }
 
@@ -123,6 +132,7 @@ func (s *Sandbox) IpcNsJoin(nspath string) error {
 	if s.stopped {
 		return nil
 	}
+
 	ns, err := nsJoin(nspath, nsmgr.IPCNS, s.ipcns)
 	// Regardless of error, set the namespace
 	s.ipcns = ns
@@ -130,6 +140,7 @@ func (s *Sandbox) IpcNsJoin(nspath string) error {
 	if err != nil && !s.stopped {
 		return err
 	}
+
 	return nil
 }
 
@@ -147,6 +158,7 @@ func (s *Sandbox) UtsNsJoin(nspath string) error {
 	if s.stopped {
 		return nil
 	}
+
 	ns, err := nsJoin(nspath, nsmgr.UTSNS, s.utsns)
 	// Regardless of error, set the namespace
 	s.utsns = ns
@@ -154,6 +166,7 @@ func (s *Sandbox) UtsNsJoin(nspath string) error {
 	if err != nil && !s.stopped {
 		return err
 	}
+
 	return nil
 }
 
@@ -175,6 +188,7 @@ func (s *Sandbox) UserNsJoin(nspath string) error {
 	if err != nil && !s.stopped {
 		return err
 	}
+
 	return nil
 }
 
@@ -205,6 +219,7 @@ func (s *Sandbox) nsPath(ns nsmgr.Namespace, nsType nsmgr.NSType) string {
 // if the infra container is nil, pid is returned negative.
 func infraPid(infra *oci.Container) int {
 	pid := -1
+
 	if infra != nil && !infra.Spoofed() {
 		var err error
 		pid, err = infra.Pid()
@@ -219,6 +234,7 @@ func infraPid(infra *oci.Container) int {
 			logrus.Errorf("Pid for infra container %s not found: %v", infra.ID(), err)
 		}
 	}
+
 	return pid
 }
 
@@ -231,6 +247,7 @@ func nsPathGivenInfraPid(ns nsmgr.Namespace, nsType nsmgr.NSType, infraPid int) 
 		if infraPid > 0 {
 			return nsmgr.NamespacePathFromProc(nsType, infraPid)
 		}
+
 		return ""
 	}
 

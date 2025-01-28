@@ -109,6 +109,7 @@ func FromGRPC(err error) error {
 func rebaseMessage(cls, err error) string {
 	desc := errDesc(err)
 	clss := cls.Error()
+
 	if desc == clss {
 		return ""
 	}
@@ -118,6 +119,7 @@ func rebaseMessage(cls, err error) string {
 
 func isGRPCError(err error) bool {
 	_, ok := status.FromError(err)
+
 	return ok
 }
 
@@ -125,6 +127,7 @@ func code(err error) codes.Code {
 	if s, ok := status.FromError(err); ok {
 		return s.Code()
 	}
+
 	return codes.Unknown
 }
 
@@ -132,5 +135,6 @@ func errDesc(err error) string {
 	if s, ok := status.FromError(err); ok {
 		return s.Message()
 	}
+
 	return err.Error()
 }

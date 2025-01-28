@@ -34,6 +34,7 @@ func New() *Config {
 	if err := rdt.Initialize(ResctrlPrefix); err != nil {
 		c.supported = false
 	}
+
 	return c
 }
 
@@ -53,11 +54,13 @@ func (c *Config) Load(path string) error {
 
 	if !c.Supported() {
 		logrus.Info("RDT not available in the host system")
+
 		return nil
 	}
 
 	if path == "" {
 		logrus.Info("No RDT config file specified, RDT not enabled")
+
 		return nil
 	}
 
@@ -71,6 +74,7 @@ func (c *Config) Load(path string) error {
 	}
 
 	logrus.Infof("RDT enabled, config successfully loaded from %q", path)
+
 	c.enabled = true
 	c.config = tmpCfg
 
@@ -96,8 +100,10 @@ func (c *Config) ContainerClassFromAnnotations(containerName string, containerAn
 	if err != nil {
 		return "", err
 	}
+
 	if cls != "" && !c.Enabled() {
 		return "", fmt.Errorf("RDT disabled, refusing to set RDT class of container %q to %q", containerName, cls)
 	}
+
 	return cls, nil
 }

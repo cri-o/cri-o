@@ -53,5 +53,6 @@ func containersToNRI(ctrList []Container) []*nri.Container {
 	for _, ctr := range ctrList {
 		ctrs = append(ctrs, containerToNRI(ctr))
 	}
+
 	return ctrs
 }

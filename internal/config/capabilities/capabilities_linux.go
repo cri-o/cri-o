@@ -32,9 +32,12 @@ func (c Capabilities) Validate() error {
 	for _, cap := range c {
 		caps = append(caps, "CAP_"+strings.ToUpper(cap))
 	}
+
 	if err := common.ValidateCapabilities(caps); err != nil {
 		return fmt.Errorf("validating capabilities: %w", err)
 	}
+
 	logrus.Infof("Using default capabilities: %s", strings.Join(caps, ", "))
+
 	return nil
 }

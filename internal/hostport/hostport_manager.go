@@ -60,6 +60,7 @@ type hostportManager struct {
 // NewHostportManager creates a new HostPortManager.
 func NewHostportManager(ctx context.Context) HostPortManager {
 	exec := utilexec.New()
+
 	return &hostportManager{
 		ip4tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv4),
 		ip6tables: utiliptables.New(ctx, exec, utiliptables.ProtocolIPv6),
@@ -72,6 +73,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 	if podPortMapping.IP.To16() == nil {
 		return fmt.Errorf("invalid or missing IP of pod %s", podFullName)
 	}
+
 	podIP := podPortMapping.IP.String()
 	isIPv6 := utilnet.IsIPv6(podPortMapping.IP)
 
@@ -98,6 +100,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 
 	natChains := bytes.NewBuffer(nil)
 	natRules := bytes.NewBuffer(nil)
+
 	writeLine(natChains, "*nat")
 
 	existingChains, existingRules, err := getExistingHostportIPTablesRules(ipt)
@@ -107,11 +110,13 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 
 	newChains := []utiliptables.Chain{}
 	conntrackPortsToRemove := []int{}
+
 	for _, pm := range hostportMappings {
 		protocol := strings.ToLower(string(pm.Protocol))
 		hpChain := getHostportChain(kubeHostportChainPrefix, id, pm)
 		masqChain := getHostportChain(crioMasqueradeChainPrefix, id, pm)
 		newChains = append(newChains, hpChain, masqChain)
+
 		if pm.Protocol == v1.ProtocolUDP {
 			conntrackPortsToRemove = append(conntrackPortsToRemove, int(pm.HostPort))
 		}
@@ -168,9 +173,11 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 	for _, chain := range existingChains {
 		writeLine(natChains, chain)
 	}
+
 	for _, rule := range existingRules {
 		writeLine(natRules, rule)
 	}
+
 	writeLine(natRules, "COMMIT")
 
 	if err := syncIPTables(ipt, append(natChains.Bytes(), natRules.Bytes()...)); err != nil {
@@ -190,6 +197,7 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 			logrus.Errorf("Failed to clear udp conntrack for port %d, error: %v", port, err)
 		}
 	}
+
 	return nil
 }
 
@@ -201,6 +209,7 @@ func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (er
 	if err != nil {
 		errors = append(errors, err)
 	}
+
 	err = hm.removeForFamily(id, podPortMapping, hm.ip6tables)
 	if err != nil {
 		errors = append(errors, err)
@@ -220,7 +229,9 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 	defer hm.mu.Unlock()
 
 	var existingChains map[utiliptables.Chain]string
+
 	var existingRules []string
+
 	existingChains, existingRules, err = getExistingHostportIPTablesRules(ipt)
 	if err != nil {
 		return err
@@ -240,6 +251,7 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 
 	// gather target hostport chains that exists in iptables-save result
 	existingChainsToRemove := []utiliptables.Chain{}
+
 	for _, chain := range chainsToRemove {
 		if _, ok := existingChains[chain]; ok {
 			existingChainsToRemove = append(existingChainsToRemove, chain)
@@ -253,16 +265,21 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 
 	natChains := bytes.NewBuffer(nil)
 	natRules := bytes.NewBuffer(nil)
+
 	writeLine(natChains, "*nat")
+
 	for _, chain := range existingChains {
 		writeLine(natChains, chain)
 	}
+
 	for _, rule := range remainingRules {
 		writeLine(natRules, rule)
 	}
+
 	for _, chain := range existingChainsToRemove {
 		writeLine(natRules, "-X", string(chain))
 	}
+
 	writeLine(natRules, "COMMIT")
 
 	return syncIPTables(ipt, append(natChains.Bytes(), natRules.Bytes()...))
@@ -271,10 +288,12 @@ func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMap
 // syncIPTables executes iptables-restore with given lines.
 func syncIPTables(ipt utiliptables.Interface, lines []byte) error {
 	logrus.Infof("Restoring iptables rules: %s", lines)
+
 	err := ipt.RestoreAll(lines, utiliptables.NoFlushTables, utiliptables.RestoreCounters)
 	if err != nil {
 		return fmt.Errorf("failed to execute iptables-restore: %w", err)
 	}
+
 	return nil
 }
 
@@ -287,6 +306,7 @@ func syncIPTables(ipt utiliptables.Interface, lines []byte) error {
 func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 	hash := sha256.Sum256([]byte(id + strconv.Itoa(int(pm.HostPort)) + string(pm.Protocol) + pm.HostIP))
 	encoded := base32.StdEncoding.EncodeToString(hash[:])
+
 	return utiliptables.Chain(prefix + encoded[:16])
 }
 
@@ -294,15 +314,19 @@ func getHostportChain(prefix, id string, pm *PortMapping) utiliptables.Chain {
 // it filters the PortMappings that use HostIP and doesn't match the IP family specified.
 func gatherHostportMappings(podPortMapping *PodPortMapping, isIPv6 bool) []*PortMapping {
 	mappings := []*PortMapping{}
+
 	for _, pm := range podPortMapping.PortMappings {
 		if pm.HostPort <= 0 {
 			continue
 		}
+
 		if pm.HostIP != "" && utilnet.IsIPv6String(pm.HostIP) != isIPv6 {
 			continue
 		}
+
 		mappings = append(mappings, pm)
 	}
+
 	return mappings
 }
 
@@ -312,10 +336,12 @@ func gatherHostportMappings(podPortMapping *PodPortMapping, isIPv6 bool) []*Port
 //nolint:gocritic // unnamedResult: consider giving a name to these results
 func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[utiliptables.Chain]string, []string, error) {
 	iptablesData := bytes.NewBuffer(nil)
+
 	err := iptables.SaveInto(utiliptables.TableNAT, iptablesData)
 	if err != nil { // if we failed to get any rules
 		return nil, nil, fmt.Errorf("failed to execute iptables-save: %w", err)
 	}
+
 	existingNATChains := getChainLines(utiliptables.TableNAT, iptablesData.Bytes())
 
 	existingHostportChains := make(map[utiliptables.Chain]string)
@@ -337,6 +363,7 @@ func getExistingHostportIPTablesRules(iptables utiliptables.Interface) (map[util
 			existingHostportRules = append(existingHostportRules, line)
 		}
 	}
+
 	return existingHostportChains, existingHostportRules, nil
 }
 
@@ -352,10 +379,12 @@ func getChainLines(table utiliptables.Table, save []byte) map[utiliptables.Chain
 	for readIndex < len(save) {
 		line, n := readLine(readIndex, save)
 		readIndex = n
+
 		if bytes.HasPrefix(line, tablePrefix) {
 			break
 		}
 	}
+
 	var (
 		commitBytes = []byte("COMMIT")
 		spaceBytes  = []byte(" ")
@@ -364,9 +393,11 @@ func getChainLines(table utiliptables.Table, save []byte) map[utiliptables.Chain
 	for readIndex < len(save) {
 		line, n := readLine(readIndex, save)
 		readIndex = n
+
 		if len(line) == 0 {
 			continue
 		}
+
 		if bytes.HasPrefix(line, commitBytes) || line[0] == '*' { //nolint:gocritic
 			break
 		} else if line[0] == '#' {
@@ -378,10 +409,12 @@ func getChainLines(table utiliptables.Table, save []byte) map[utiliptables.Chain
 			if spaceIndex == -1 {
 				panic(fmt.Sprintf("Unexpected chain line in iptables-save output: %v", string(line)))
 			}
+
 			chain := utiliptables.Chain(line[1:spaceIndex])
 			chainsMap[chain] = line
 		}
 	}
+
 	return chainsMap
 }
 
@@ -431,6 +464,7 @@ func readLine(readIndex int, byteArray []byte) (line []byte, n int) {
 			rightTrimIndex = -1
 		}
 	}
+
 	return nil, currentReadIndex
 }
 
@@ -438,18 +472,23 @@ func readLine(readIndex int, byteArray []byte) (line []byte, n int) {
 // The order of the input rules is important and is preserved.
 func filterRules(rules []string, filters []utiliptables.Chain) []string {
 	filtered := []string{}
+
 	for _, rule := range rules {
 		skip := false
+
 		for _, filter := range filters {
 			if strings.Contains(rule, string(filter)) {
 				skip = true
+
 				break
 			}
 		}
+
 		if !skip {
 			filtered = append(filtered, rule)
 		}
 	}
+
 	return filtered
 }
 
@@ -477,5 +516,6 @@ func getNetlinkFamily(isIPv6 bool) netlink.InetFamily {
 	if isIPv6 {
 		return unix.AF_INET6
 	}
+
 	return unix.AF_INET
 }

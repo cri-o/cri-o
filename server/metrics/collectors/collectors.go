@@ -70,6 +70,7 @@ func FromSlice(in []string) (c Collectors) {
 	for _, i := range in {
 		c = append(c, Collector(i).Stripped())
 	}
+
 	return c
 }
 
@@ -78,6 +79,7 @@ func (c Collectors) ToSlice() (r []string) {
 	for _, i := range c {
 		r = append(r, i.Stripped().String())
 	}
+
 	return r
 }
 
@@ -120,6 +122,7 @@ func (c Collectors) Contains(in Collector) bool {
 // stripPrefix strips the metrics prefixes from the provided string.
 func stripPrefix(s string) string {
 	s = strings.TrimPrefix(s, subsystemPrefix)
+
 	return strings.TrimPrefix(s, crioPrefix)
 }
 

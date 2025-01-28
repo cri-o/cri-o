@@ -20,6 +20,7 @@ import (
 func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	stopMutex := sb.StopMutex()
 	stopMutex.Lock()
 	defer stopMutex.Unlock()
@@ -39,10 +40,12 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 
 	if sb.Stopped() {
 		log.Infof(ctx, "Stopped pod sandbox (already stopped): %s", sb.ID())
+
 		return nil
 	}
 
 	funcs := []func() error{}
+
 	for _, ctr := range sb.Containers().List() {
 		if ctr.State().Status == oci.ContainerStateStopped {
 			continue
@@ -52,6 +55,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 			return s.stopContainer(ctx, ctr, stopTimeoutFromContext(ctx))
 		})
 	}
+
 	if err := errorUtils.AggregateGoroutines(funcs...); err != nil {
 		return fmt.Errorf("stop containers in parallel: %w", err)
 	}

@@ -92,10 +92,12 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	if configIface == nil {
 		return nil, errors.New("provided config is nil")
 	}
+
 	store, err := configIface.GetStore()
 	if err != nil {
 		return nil, err
 	}
+
 	config := configIface.GetData()
 
 	if config == nil {
@@ -107,9 +109,11 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		log.Warnf(ctx, "Checking storage directory %s for errors because of unclean shutdown", graphRoot)
 
 		wipeStorage := false
+
 		report, err := store.Check(checkQuick())
 		if err == nil && CheckReportHasErrors(report) {
 			log.Warnf(ctx, "Attempting to repair storage directory %s because of unclean shutdown", graphRoot)
+
 			if errs := store.Repair(report, cstorage.RepairEverything()); len(errs) > 0 {
 				wipeStorage = true
 			}
@@ -117,6 +121,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			// Storage check has failed with irrecoverable errors.
 			wipeStorage = true
 		}
+
 		if wipeStorage {
 			log.Warnf(ctx, "Wiping storage directory %s because of unclean shutdown", graphRoot)
 			// This will fail if there are any containers currently running.
@@ -163,6 +168,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 		config: config,
 	}
 	c.StatsServer = statsserver.New(ctx, c)
+
 	return c, nil
 }
 
@@ -170,14 +176,17 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandbox.Sandbox, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return nil, err
 	}
+
 	var m rspec.Spec
 	if err := json.Unmarshal(config, &m); err != nil {
 		return nil, fmt.Errorf("error unmarshalling sandbox spec: %w", err)
 	}
+
 	labels := make(map[string]string)
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Labels, err)
@@ -185,6 +194,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	sbox := sandbox.NewBuilder()
 	name := m.Annotations[annotations.Name]
+
 	name, err = c.ReservePodName(id, name)
 	if err != nil {
 		return nil, err
@@ -198,6 +208,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			c.ReleasePodName(name)
 		}
 	}()
+
 	var metadata types.PodSandboxMetadata
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.Metadata, err)
@@ -205,6 +216,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	processLabel := m.Process.SelinuxLabel
 	mountLabel := m.Linux.MountLabel
+
 	sbox.SetProcessLabel(processLabel)
 	sbox.SetMountLabel(mountLabel)
 
@@ -222,6 +234,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 
 	privileged := isTrue(m.Annotations[annotations.PrivilegedRuntime])
 	hostNetwork := isTrue(m.Annotations[annotations.HostNetwork])
+
 	nsOpts := types.NamespaceOption{}
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.NamespaceOptions]), &nsOpts); err != nil {
 		return nil, fmt.Errorf("error unmarshalling %s annotation: %w", annotations.NamespaceOptions, err)
@@ -231,7 +244,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err != nil {
 		return nil, fmt.Errorf("parsing created timestamp annotation: %w", err)
 	}
+
 	sbox.SetCreatedAt(created)
+
 	if err := sbox.SetCRISandbox(id, labels, kubeAnnotations, &metadata); err != nil {
 		return nil, err
 	}
@@ -267,10 +282,12 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	sbox.SetNamespaceOptions(&nsOpts)
 	sbox.SetSeccompProfilePath(spp)
 	sbox.SetCreatedAt(created)
+
 	sb, err = sbox.GetSandbox()
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() {
 		if retErr != nil {
 			if err := sb.RemoveManagedNamespaces(); err != nil {
@@ -278,6 +295,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			}
 		}
 	}()
+
 	if err := c.AddSandbox(ctx, sb); err != nil {
 		return sb, err
 	}
@@ -306,6 +324,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err != nil {
 		return sb, err
 	}
+
 	defer func() {
 		if retErr != nil {
 			c.ReleaseContainerName(ctx, cname)
@@ -329,6 +348,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	} else {
 		scontainer = oci.NewSpoofedContainer(cID, cname, labels, id, created, sandboxPath)
 	}
+
 	scontainer.SetSpec(&m)
 	scontainer.SetMountPoint(m.Annotations[annotations.MountPoint])
 
@@ -375,6 +395,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sb.SetCreated()
+
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return sb, err
 	}
@@ -382,6 +403,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
 		return sb, err
 	}
+
 	defer func() {
 		if retErr != nil {
 			if err1 := c.ctrIDIndex.Delete(scontainer.ID()); err1 != nil {
@@ -389,9 +411,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 			}
 		}
 	}()
+
 	if err := c.podIDIndex.Add(id); err != nil {
 		return sb, err
 	}
+
 	return sb, nil
 }
 
@@ -401,10 +425,12 @@ var ErrIsNonCrioContainer = errors.New("non CRI-O container")
 func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	config, err := c.store.FromContainerDirectory(id, "config.json")
 	if err != nil {
 		return err
 	}
+
 	var m rspec.Spec
 	if err := json.Unmarshal(config, &m); err != nil {
 		return err
@@ -419,7 +445,9 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Labels]), &labels); err != nil {
 		return err
 	}
+
 	name := m.Annotations[annotations.Name]
+
 	name, err = c.ReserveContainerName(id, name)
 	if err != nil {
 		return err
@@ -435,6 +463,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	if err := json.Unmarshal([]byte(m.Annotations[annotations.Metadata]), &metadata); err != nil {
 		return err
 	}
+
 	sb := c.GetSandbox(m.Annotations[annotations.SandboxID])
 	if sb == nil {
 		return fmt.Errorf("could not get sandbox with id %s, skipping", m.Annotations[annotations.SandboxID])
@@ -460,20 +489,24 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	}
 
 	var someNameOfTheImage *references.RegistryImageReference
+
 	if s, ok := m.Annotations[annotations.SomeNameOfTheImage]; ok && s != "" {
 		name, err := references.ParseRegistryImageReferenceFromOutOfProcessData(s)
 		if err != nil {
 			return fmt.Errorf("invalid %s annotation %q: %w", annotations.SomeNameOfTheImage, s, err)
 		}
+
 		someNameOfTheImage = &name
 	}
 
 	var imageID *storage.StorageImageID
+
 	if s, ok := m.Annotations[annotations.ImageRef]; ok {
 		id, err := storage.ParseStorageImageIDFromOutOfProcessData(s)
 		if err != nil {
 			return fmt.Errorf("invalid %s annotation %q: %w", annotations.ImageRef, s, err)
 		}
+
 		imageID = &id
 	}
 
@@ -515,6 +548,7 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 	if err := c.ContainerStateToDisk(ctx, ctr); err != nil {
 		return fmt.Errorf("failed to write container state to disk %q: %w", ctr.ID(), err)
 	}
+
 	ctr.SetCreated()
 
 	ctr.SetRuntimePathForPlatform(platformRuntimePath)
@@ -530,10 +564,12 @@ func restoreVolumes(m *rspec.Spec, ctr *oci.Container) error {
 		if err := json.Unmarshal([]byte(m.Annotations[annotations.Volumes]), &containerVolumes); err != nil {
 			return fmt.Errorf("failed to unmarshal container volumes: %w", err)
 		}
+
 		for _, cv := range containerVolumes {
 			ctr.AddVolume(cv)
 		}
 	}
+
 	return nil
 }
 
@@ -546,6 +582,7 @@ func isTrue(annotaton string) bool {
 func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if err := c.Runtime().UpdateContainerStatus(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Error updating the container status %q: %v", ctr.ID(), err)
 	}
@@ -554,8 +591,10 @@ func (c *ContainerServer) ContainerStateToDisk(ctx context.Context, ctr *oci.Con
 	if err != nil {
 		return err
 	}
+
 	defer jsonSource.Close()
 	enc := json.NewEncoder(jsonSource)
+
 	return enc.Encode(ctr.State())
 }
 
@@ -564,8 +603,10 @@ func (c *ContainerServer) ReserveContainerName(id, name string) (string, error) 
 	if err := c.ctrNameIndex.Reserve(name, id); err != nil {
 		err = fmt.Errorf("error reserving ctr name %s for id %s: %w", name, id, err)
 		logrus.Warn(err)
+
 		return "", err
 	}
+
 	return name, nil
 }
 
@@ -587,8 +628,10 @@ func (c *ContainerServer) ReservePodName(id, name string) (string, error) {
 	if err := c.podNameIndex.Reserve(name, id); err != nil {
 		err = fmt.Errorf("error reserving pod name %s for id %s: %w", name, id, err)
 		logrus.Warn(err)
+
 		return "", err
 	}
+
 	return name, nil
 }
 
@@ -614,11 +657,14 @@ func recoverLogError() {
 // Shutdown attempts to shut down the server's storage cleanly.
 func (c *ContainerServer) Shutdown() error {
 	defer recoverLogError()
+
 	_, err := c.store.Shutdown(false)
 	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 		return err
 	}
+
 	c.StatsServer.Shutdown()
+
 	return nil
 }
 
@@ -634,10 +680,12 @@ type containerServerState struct {
 func (c *ContainerServer) AddContainer(ctx context.Context, ctr *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	newSandbox := c.state.sandboxes.Get(ctr.Sandbox())
 	if newSandbox == nil {
 		return
 	}
+
 	newSandbox.AddContainer(ctx, ctr)
 	c.state.containers.Add(ctr.ID(), ctr)
 }
@@ -656,6 +704,7 @@ func (c *ContainerServer) GetContainer(ctx context.Context, id string) *oci.Cont
 func (c *ContainerServer) GetInfraContainer(ctx context.Context, id string) *oci.Container {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	return c.state.infraContainers.Get(id)
 }
 
@@ -668,16 +717,21 @@ func (c *ContainerServer) HasContainer(id string) bool {
 func (c *ContainerServer) RemoveContainer(ctx context.Context, ctr *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sbID := ctr.Sandbox()
+
 	sb := c.state.sandboxes.Get(sbID)
 	if sb == nil {
 		return
 	}
+
 	sb.RemoveContainer(ctx, ctr)
 	c.StatsServer.RemoveStatsForContainer(ctr)
+
 	if err := ctr.RemoveManagedPIDNamespace(); err != nil {
 		log.Errorf(ctx, "Failed to remove container %s PID namespace: %v", ctr.ID(), err)
 	}
+
 	c.state.containers.Delete(ctr.ID())
 }
 
@@ -700,15 +754,19 @@ func (c *ContainerServer) ListContainers(filters ...func(*oci.Container) bool) (
 	if len(filters) == 0 {
 		return containers, nil
 	}
+
 	filteredContainers := make([]*oci.Container, 0, len(containers))
+
 	for _, container := range containers {
 		for _, filter := range filters {
 			if filter(container) {
 				filteredContainers = append(filteredContainers, container)
+
 				break
 			}
 		}
 	}
+
 	return filteredContainers, nil
 }
 
@@ -720,6 +778,7 @@ func (c *ContainerServer) AddSandbox(ctx context.Context, sb *sandbox.Sandbox) e
 
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+
 	return c.addSandboxPlatform(sb)
 }
 
@@ -734,6 +793,7 @@ func (c *ContainerServer) GetSandboxContainer(id string) *oci.Container {
 	if sb == nil {
 		return nil
 	}
+
 	return sb.InfraContainer()
 }
 
@@ -746,6 +806,7 @@ func (c *ContainerServer) HasSandbox(id string) bool {
 func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sb := c.state.sandboxes.Get(id)
 	if sb == nil {
 		return nil
@@ -753,12 +814,14 @@ func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 
 	c.stateLock.Lock()
 	defer c.stateLock.Unlock()
+
 	if err := c.removeSandboxPlatform(sb); err != nil {
 		return err
 	}
 
 	c.StatsServer.RemoveStatsForSandbox(sb)
 	c.state.sandboxes.Delete(id)
+
 	return nil
 }
 
@@ -831,6 +894,7 @@ func ShutdownWasUnclean(config *libconfig.Config) bool {
 	if _, err := os.Stat(config.CleanShutdownFile); err == nil {
 		return false
 	}
+
 	return true
 }
 
@@ -857,6 +921,7 @@ func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, forc
 		if !force && errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 			return fmt.Errorf("failed to shutdown storage: %w", err)
 		}
+
 		logrus.Warnf("Failed to shutdown storage: %v", err)
 
 		// At this point, storage is most likely corrupted
@@ -872,6 +937,7 @@ func RemoveStorageDirectory(config *libconfig.Config, store cstorage.Store, forc
 	if err := os.RemoveAll(store.GraphRoot()); err != nil {
 		return fmt.Errorf("failed to remove storage directory: %w", err)
 	}
+
 	return nil
 }
 

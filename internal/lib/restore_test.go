@@ -356,6 +356,7 @@ func setupInfraContainerWithPid(pid int, bundle string) {
 		Version:     "1.0.0",
 		Annotations: map[string]string{"io.kubernetes.cri-o.SandboxID": "sandboxID"},
 	})
+
 	spec := testContainer.Spec()
 	g := generate.Generator{Config: &spec}
 	err = g.SaveToFile(filepath.Join(bundle, "config.json"), generate.ExportOptions{})

@@ -16,17 +16,22 @@ import (
 func (s *Server) RemoveImage(ctx context.Context, req *types.RemoveImageRequest) (*types.RemoveImageResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	imageRef := ""
 	img := req.Image
+
 	if img != nil {
 		imageRef = img.Image
 	}
+
 	if imageRef == "" {
 		return nil, errors.New("no image specified")
 	}
+
 	if err := s.removeImage(ctx, imageRef); err != nil {
 		return nil, err
 	}
+
 	return &types.RemoveImageResponse{}, nil
 }
 
@@ -45,6 +50,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 
 			return fmt.Errorf("delete image: %w", err)
 		}
+
 		return nil
 	}
 
@@ -52,23 +58,30 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		deleted   bool
 		statusErr error
 	)
+
 	potentialMatches, err := s.ContainerServer.StorageImageServer().CandidatesForPotentiallyShortImageName(s.config.SystemContext, imageRef)
 	if err != nil {
 		return err
 	}
+
 	for _, name := range potentialMatches {
 		var status *storage.ImageResult
+
 		status, statusErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if statusErr != nil {
 			log.Errorf(ctx, "Error getting image status %s: %v", name, statusErr)
+
 			continue
 		}
+
 		if status.MountPoint != "" {
 			containerList, err := s.ContainerServer.ListContainers()
 			if err != nil {
 				log.Errorf(ctx, "Error listing containers %s: %v", name, err)
+
 				continue
 			}
+
 			for _, container := range containerList {
 				for _, volume := range container.Volumes() {
 					if volume.HostPath == status.MountPoint {
@@ -81,11 +94,15 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		untagErr = s.ContainerServer.StorageImageServer().UntagImage(s.config.SystemContext, name)
 		if untagErr != nil {
 			log.Debugf(ctx, "Error deleting image %s: %v", name, untagErr)
+
 			continue
 		}
+
 		deleted = true
+
 		break
 	}
+
 	if !deleted && untagErr != nil {
 		return untagErr
 	}

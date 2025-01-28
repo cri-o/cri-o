@@ -22,6 +22,7 @@ func New() *Config {
 	c := &Config{
 		config: &blockio.Config{},
 	}
+
 	return c
 }
 
@@ -60,7 +61,9 @@ func (c *Config) Reload() error {
 	if err := blockio.SetConfig(tmpCfg, true); err != nil {
 		return fmt.Errorf("configuring blockio failed: %w", err)
 	}
+
 	c.config = tmpCfg
+
 	return nil
 }
 
@@ -71,6 +74,7 @@ func (c *Config) Load(path string) error {
 
 	if path == "" {
 		logrus.Info("No blockio config file specified, blockio not configured")
+
 		return nil
 	}
 
@@ -80,6 +84,8 @@ func (c *Config) Load(path string) error {
 	}
 
 	logrus.Infof("Blockio config successfully loaded from %q", path)
+
 	c.enabled = true
+
 	return nil
 }

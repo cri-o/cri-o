@@ -34,18 +34,23 @@ const (
 func (c *Container) CleanupConmonCgroup(ctx context.Context) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if c.spoofed {
 		return
 	}
+
 	path := c.ConmonCgroupfsPath()
 	if path == "" {
 		return
 	}
+
 	cg, err := cgroups.Load(path)
 	if err != nil {
 		log.Infof(ctx, "Error loading conmon cgroup of container %s: %v", c.ID(), err)
+
 		return
 	}
+
 	if err := cg.Delete(); err != nil {
 		log.Infof(ctx, "Error deleting conmon cgroup of container %s: %v", c.ID(), err)
 	}
@@ -66,12 +71,14 @@ func (c *Container) SeccompProfilePath() string {
 // allow for unit testing.
 func GetPidStartTimeFromFile(file string) (string, error) {
 	_, startTime, err := getPidStatDataFromFile(file)
+
 	return startTime, err
 }
 
 // getPidStartTime returns the process start time for a given PID.
 func getPidStartTime(pid int) (string, error) {
 	_, startTime, err := getPidStatDataFromFile(fmt.Sprintf(procStatFile, pid))
+
 	return startTime, err
 }
 
@@ -113,10 +120,13 @@ func getPidStatDataFromFile(file string) (string, string, error) { //nolint:gocr
 func (c *Container) SetRuntimeUser(runtimeSpec *specs.Spec) {
 	if runtimeSpec.Process == nil {
 		logrus.Infof("Container %s is missing process attribute from the runtime specification", c.ID())
+
 		return
 	}
+
 	user := runtimeSpec.Process.User
 	supplementalGroups := make([]int64, 0, len(user.AdditionalGids))
+
 	for _, gid := range user.AdditionalGids {
 		supplementalGroups = append(supplementalGroups, int64(gid))
 	}

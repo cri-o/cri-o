@@ -33,9 +33,11 @@ func (s *Server) ReserveSandboxContainerIDAndName(config *types.PodSandboxConfig
 	}
 
 	id := stringid.GenerateNonCryptoID()
+
 	name, err := s.ContainerServer.ReserveContainerName(id, makeSandboxContainerName(config))
 	if err != nil {
 		return "", err
 	}
+
 	return name, err
 }

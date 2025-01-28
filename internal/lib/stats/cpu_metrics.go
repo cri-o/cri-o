@@ -60,6 +60,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 						})
 					}
 				}
+
 				return metricValues
 			},
 		}, {
@@ -100,5 +101,6 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 			},
 		},
 	}
+
 	return computeSandboxMetrics(sb, cpuMetrics, "cpu")
 }

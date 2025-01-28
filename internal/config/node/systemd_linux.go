@@ -19,6 +19,7 @@ func SystemdHasAllowedCPUs() bool {
 	systemdHasAllowedCPUsOnce.Do(func() {
 		systemdHasAllowedCPUs, systemdHasAllowedCPUsErr = systemdSupportsProperty("AllowedCPUs")
 	})
+
 	return systemdHasAllowedCPUs
 }
 
@@ -29,8 +30,10 @@ func systemdSupportsProperty(property string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("check systemd %s: %w", property, err)
 	}
+
 	if len(output) == 0 {
 		return false, nil
 	}
+
 	return true, nil
 }

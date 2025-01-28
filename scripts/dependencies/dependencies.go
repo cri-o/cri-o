@@ -28,6 +28,7 @@ func main() {
 	flag.Parse()
 
 	logrus.SetFormatter(&logrus.TextFormatter{DisableTimestamp: true})
+
 	if err := run(); err != nil {
 		logrus.Fatalf("Unable to %v", err)
 	}
@@ -36,30 +37,36 @@ func main() {
 func run() error {
 	// Ensure output path
 	logrus.Infof("Ensuring output path %s", outputPath)
+
 	if err := os.MkdirAll(outputPath, 0o755); err != nil {
 		return fmt.Errorf("create output path: %w", err)
 	}
 
 	// Generate the report
 	logrus.Infof("Getting go modules")
+
 	if err := os.Setenv("GOSUMDB", "off"); err != nil {
 		return fmt.Errorf("disabling GOSUMDB: %w", err)
 	}
+
 	modules, err := command.New(
 		"go", "list", "--mod=mod", "-u", "-m", "--json", "all",
 	).RunSilentSuccessOutput()
 	if err != nil {
 		return fmt.Errorf("listing go modules: %w", err)
 	}
+
 	tmpFile, err := os.CreateTemp("", "modules-")
 	if err != nil {
 		return fmt.Errorf("creating temp file: %w", err)
 	}
+
 	if _, err := tmpFile.WriteString(modules.OutputTrimNL()); err != nil {
 		return fmt.Errorf("writing to temp file: %w", err)
 	}
 
 	logrus.Infof("Retrieving outdated dependencies")
+
 	outdated, err := command.New("cat", tmpFile.Name()).
 		Pipe("./build/bin/go-mod-outdated", "--direct", "--update", "--style=markdown").
 		RunSuccessOutput()
@@ -68,6 +75,7 @@ func run() error {
 	}
 
 	logrus.Infof("Retrieving all dependencies")
+
 	all, err := command.New("cat", tmpFile.Name()).
 		Pipe("./build/bin/go-mod-outdated", "--style=markdown").
 		RunSuccessOutput()
@@ -125,13 +133,16 @@ _Generated on %s for commit [%s][0]._
 	}
 
 	logrus.Infof("Checking out branch %s", branch)
+
 	if err := repo.Checkout(branch); err != nil {
 		return fmt.Errorf("checkout %s branch: %w", branch, err)
 	}
+
 	defer func() { err = repo.Checkout(currentBranch) }()
 
 	// Write the target file
 	logrus.Infof("Writing dependency report to %s", file)
+
 	if err := os.WriteFile(file, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("write content to file: %w", err)
 	}
@@ -142,6 +153,7 @@ _Generated on %s for commit [%s][0]._
 
 	// Publish the changes
 	logrus.Info("Committing changes")
+
 	if err := repo.Commit("Update dependency report"); err != nil {
 		return fmt.Errorf("commit: %w", err)
 	}

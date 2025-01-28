@@ -49,12 +49,14 @@ func (w *Watchdog) Start(ctx context.Context) error {
 
 	if interval == 0 {
 		log.Infof(ctx, "No systemd watchdog enabled")
+
 		return nil
 	}
 
 	if interval <= minInterval {
 		return fmt.Errorf("watchdog timeout of %v should be at least %v", interval, minInterval)
 	}
+
 	interval /= 2
 
 	log.Infof(ctx, "Starting systemd watchdog using interval: %v", interval)
@@ -62,6 +64,7 @@ func (w *Watchdog) Start(ctx context.Context) error {
 	go wait.Until(func() {
 		if err := w.runHealthCheckers(ctx, interval); err != nil {
 			log.Errorf(ctx, "Will not notify watchdog because CRI-O is unhealthy: %v", err)
+
 			return
 		}
 
@@ -70,6 +73,7 @@ func (w *Watchdog) Start(ctx context.Context) error {
 			w.notifications.Add(1)
 			if err != nil {
 				log.Warnf(ctx, "Failed to notify systemd watchdog, retrying: %v", err)
+
 				return false, nil
 			}
 			if !gotAck {
@@ -77,6 +81,7 @@ func (w *Watchdog) Start(ctx context.Context) error {
 			}
 
 			log.Debugf(ctx, "Systemd watchdog successfully notified")
+
 			return true, nil
 		}); err != nil {
 			log.Errorf(ctx, "Failed to notify watchdog: %v", err)
@@ -97,5 +102,6 @@ func (w *Watchdog) runHealthCheckers(ctx context.Context, timeout time.Duration)
 			return fmt.Errorf("health checker failed: %w", err)
 		}
 	}
+
 	return nil
 }

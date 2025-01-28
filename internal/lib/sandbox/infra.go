@@ -22,6 +22,7 @@ import (
 
 func (b *sandboxBuilder) InitInfraContainer(serverConfig *libconfig.Config, podContainer *storage.ContainerInfo, sandboxIDMappings *idtools.IDMappings) error {
 	var err error
+
 	b.infra, err = container.New()
 	if err != nil {
 		return err
@@ -45,6 +46,7 @@ func (b *sandboxBuilder) InitInfraContainer(serverConfig *libconfig.Config, podC
 	for _, u := range serverConfig.Ulimits() {
 		g.AddProcessRlimits(u.Name, u.Hard, u.Soft)
 	}
+
 	g.SetProcessArgs(pauseCommand)
 
 	if err := b.createResolvConf(podContainer, sandboxIDMappings); err != nil {
@@ -75,6 +77,7 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 	if cfg.PauseCommand != "" {
 		return []string{cfg.PauseCommand}, nil
 	}
+
 	if image == nil || (len(image.Config.Entrypoint) == 0 && len(image.Config.Cmd) == 0) {
 		return nil, fmt.Errorf(
 			"unable to run pause image %q: %s",
@@ -82,9 +85,11 @@ func PauseCommand(cfg *libconfig.Config, image *v1.Image) ([]string, error) {
 			"neither Cmd nor Entrypoint specified",
 		)
 	}
+
 	cmd := []string{}
 	cmd = append(cmd, image.Config.Entrypoint...)
 	cmd = append(cmd, image.Config.Cmd...)
+
 	return cmd, nil
 }
 
@@ -101,6 +106,7 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 	dnsSearches := b.config.DnsConfig.Searches
 	dnsOptions := b.config.DnsConfig.Options
 	err := ParseDNSOptions(dnsServers, dnsSearches, dnsOptions, b.sandboxRef.resolvPath)
+
 	defer func() {
 		if retErr != nil {
 			if err := os.Remove(b.sandboxRef.resolvPath); err != nil {
@@ -108,6 +114,7 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 			}
 		}
 	}()
+
 	if err != nil {
 		return err
 	}
@@ -115,12 +122,14 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 	if err := label.Relabel(b.sandboxRef.resolvPath, podContainer.MountLabel, false); err != nil && !errors.Is(err, unix.ENOTSUP) {
 		return err
 	}
+
 	if sandboxIDMappings != nil {
 		rootPair := sandboxIDMappings.RootPair()
 		if err := os.Chown(b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID); err != nil {
 			return fmt.Errorf("cannot chown %s to %d:%d: %w", b.sandboxRef.resolvPath, rootPair.UID, rootPair.GID, err)
 		}
 	}
+
 	mnt := spec.Mount{
 		Type:        "bind",
 		Source:      b.sandboxRef.resolvPath,
@@ -128,6 +137,7 @@ func (b *sandboxBuilder) createResolvConf(podContainer *storage.ContainerInfo, s
 		Options:     []string{"ro", "bind", "nodev", "nosuid", "noexec"},
 	}
 	b.infra.Spec().AddMount(mnt)
+
 	return nil
 }
 
@@ -135,6 +145,7 @@ func ParseDNSOptions(servers, searches, options []string, path string) (retErr e
 	nServers := len(servers)
 	nSearches := len(searches)
 	nOptions := len(options)
+
 	if nServers == 0 && nSearches == 0 && nOptions == 0 {
 		return copyFile("/etc/resolv.conf", path)
 	}
@@ -183,5 +194,6 @@ func copyFile(src, dest string) error {
 	defer out.Close()
 
 	_, err = io.Copy(out, in)
+
 	return err
 }

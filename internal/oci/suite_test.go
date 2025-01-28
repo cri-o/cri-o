@@ -68,6 +68,7 @@ func getTestContainer() *oci.Container {
 		false, false, false, "", "dir", time.Now(), "")
 	Expect(err).ToNot(HaveOccurred())
 	Expect(container).NotTo(BeNil())
+
 	return container
 }
 

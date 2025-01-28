@@ -89,6 +89,7 @@ func man() *cli.Command {
 				return err
 			}
 			fmt.Print(res)
+
 			return nil
 		},
 	}
@@ -109,6 +110,7 @@ func markdown() *cli.Command {
 			// Add a newline to ensure that the markdown
 			// document is correctly formatted.
 			fmt.Printf("\n")
+
 			return nil
 		},
 	}

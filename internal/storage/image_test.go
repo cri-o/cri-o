@@ -172,6 +172,7 @@ var _ = t.Describe("Image", func() {
 			for _, ref := range refs {
 				names = append(names, ref.StringForOutOfProcessConsumptionOnly())
 			}
+
 			return names
 		}
 

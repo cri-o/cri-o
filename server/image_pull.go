@@ -30,11 +30,14 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	defer span.End()
 	// TODO: what else do we need here? (Signatures when the story isn't just pulling from docker://)
 	var err error
+
 	image := ""
 	img := req.Image
+
 	if img != nil {
 		image = img.Image
 	}
+
 	log.Infof(ctx, "Pulling image: %s", image)
 
 	pullArgs := pullArguments{image: image}
@@ -44,6 +47,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 		if sc.Linux != nil {
 			pullArgs.sandboxCgroup = sc.Linux.CgroupParent
 		}
+
 		if sc.Metadata != nil {
 			pullArgs.namespace = sc.Metadata.Namespace
 		}
@@ -52,10 +56,12 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	if req.Auth != nil {
 		username := req.Auth.Username
 		password := req.Auth.Password
+
 		if req.Auth.Auth != "" {
 			username, password, err = decodeDockerAuth(req.Auth.Auth)
 			if err != nil {
 				log.Debugf(ctx, "Error decoding authentication for image %s: %v", image, err)
+
 				return nil, err
 			}
 		}
@@ -76,13 +82,16 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	pullOp, pullInProcess := func() (pullOp *pullOperation, inProgress bool) {
 		s.pullOperationsLock.Lock()
 		defer s.pullOperationsLock.Unlock()
+
 		pullOp, inProgress = s.pullOperationsInProgress[pullArgs]
 		if !inProgress {
 			pullOp = &pullOperation{}
 			s.pullOperationsInProgress[pullArgs] = pullOp
+
 			storage.ImageBeingPulled.Store(pullArgs.image, true)
 			pullOp.wg.Add(1)
 		}
+
 		return pullOp, inProgress
 	}()
 
@@ -95,6 +104,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 			pullOp.wg.Done()
 			s.pullOperationsLock.Unlock()
 		}()
+
 		pullOp.imageRef, pullOp.err = s.pullImage(ctx, &pullArgs)
 	} else {
 		// Wait for the pull operation to finish.
@@ -110,6 +120,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 	}
 
 	log.Infof(ctx, "Pulled image: %v", pullOp.imageRef)
+
 	return &types.PullImageResponse{
 		ImageRef: pullOp.imageRef.StringForOutOfProcessConsumptionOnly(),
 	}, nil
@@ -120,6 +131,7 @@ func (s *Server) PullImage(ctx context.Context, req *types.PullImageRequest) (*t
 // readability and maintainability.
 func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storage.RegistryImageReference, error) {
 	var err error
+
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -127,6 +139,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	if err != nil {
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
+
 	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
@@ -142,6 +155,7 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 			return storage.RegistryImageReference{}, fmt.Errorf("read policy path %s: %w", policyPath, err)
 		}
 	}
+
 	log.Debugf(ctx, "Using pull policy path for image %s: %s", pullArgs.image, sourceCtx.SignaturePolicyPath)
 
 	decryptConfig, err := getDecryptionKeys(s.config.DecryptionKeysPath)
@@ -150,10 +164,12 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	}
 
 	cgroup := ""
+
 	if s.config.SeparatePullCgroup != "" {
 		if !s.config.CgroupManager().IsSystemd() {
 			return storage.RegistryImageReference{}, errors.New("--separate-pull-cgroup is supported only with systemd")
 		}
+
 		if s.config.SeparatePullCgroup == utils.PodCgroupName {
 			cgroup = pullArgs.sandboxCgroup
 		} else {
@@ -171,15 +187,19 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	// CandidatesForPotentiallyShortImageName is defined never to return an empty slice on success, so if the loop considers all candidates
 	// and they all fail, this error value should be overwritten by a real failure.
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
+
 	for _, remoteCandidateName := range remoteCandidates {
 		repoDigest, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
 		if err == nil {
 			// Update metric for successful image pulls
 			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
+
 			return repoDigest, nil
 		}
+
 		lastErr = err
 	}
+
 	return storage.RegistryImageReference{}, lastErr
 }
 
@@ -227,6 +247,7 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 	if err != nil {
 		log.Debugf(ctx, "Error pulling image %s: %v", remoteCandidateName, err)
 		tryIncrementImagePullFailureMetric(remoteCandidateName, err)
+
 		return storage.RegistryImageReference{}, err
 	}
 
@@ -252,6 +273,7 @@ func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pu
 			// Skipped digests metrics
 			tryRecordSkippedMetric(ctx, remoteCandidateName, p.Artifact.Digest)
 		}
+
 		if p.Artifact.Size > 0 {
 			log.Debugf(ctx, "ImagePull (%v): %s (%s): %v bytes (%.2f%%)",
 				p.Event, remoteCandidateName, p.Artifact.Digest, p.Offset,
@@ -286,9 +308,11 @@ func tryIncrementImagePullFailureMetric(img storage.RegistryImageReference, err 
 	for _, desc := range errcode.GetErrorAllDescriptors() {
 		if strings.Contains(err.Error(), desc.Message) {
 			label = desc.Value
+
 			break
 		}
 	}
+
 	if label == labelUnknown {
 		if strings.Contains(err.Error(), "connection refused") { //nolint:gocritic
 			label = "CONNECTION_REFUSED"
@@ -318,12 +342,15 @@ func decodeDockerAuth(s string) (user, password string, _ error) {
 	if err != nil {
 		return "", "", err
 	}
+
 	parts := strings.SplitN(string(decoded), ":", 2)
 	if len(parts) != 2 {
 		// if it's invalid just skip, as docker does
 		return "", "", nil
 	}
+
 	user = parts[0]
 	password = strings.Trim(parts[1], "\x00")
+
 	return user, password, nil
 }

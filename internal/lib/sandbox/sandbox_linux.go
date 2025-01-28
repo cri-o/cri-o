@@ -16,6 +16,7 @@ import (
 func (s *Sandbox) UnmountShm(ctx context.Context) error {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
+
 	fp := s.ShmPath()
 	if fp == DevShmPath {
 		return nil

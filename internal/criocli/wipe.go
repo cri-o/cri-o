@@ -37,6 +37,7 @@ func crioWipe(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	shouldWipeImages := true
 	shouldWipeContainers := true
 
@@ -91,7 +92,9 @@ func crioWipe(c *cli.Context) error {
 		if shouldWipeImages {
 			logrus.Infof("Legacy version-file path found, but new version-file-persist path not. Skipping wipe")
 		}
+
 		logrus.Infof("Version unchanged and node not rebooted; no wipe needed")
+
 		return nil
 	}
 
@@ -112,20 +115,25 @@ func (c ContainerStore) wipeCrio(shouldWipeImages bool) error {
 	if err != nil {
 		return err
 	}
+
 	if len(crioContainers) != 0 {
 		logrus.Infof("Wiping containers")
 	}
+
 	for _, id := range crioContainers {
 		c.deleteContainer(id)
 	}
+
 	if shouldWipeImages {
 		if len(crioImages) != 0 {
 			logrus.Infof("Wiping images")
 		}
+
 		for _, id := range crioImages {
 			c.deleteImage(id)
 		}
 	}
+
 	return nil
 }
 
@@ -135,11 +143,13 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 		if errors.Is(err, os.ErrNotExist) {
 			return crioContainers, crioImages, err
 		}
+
 		logrus.Errorf("Could not read containers and sandboxes: %v", err)
 	}
 
 	for i := range containers {
 		id := containers[i].ID
+
 		metadataString, err := c.store.Metadata(id)
 		if err != nil {
 			continue
@@ -149,31 +159,40 @@ func (c ContainerStore) getCrioContainersAndImages() (crioContainers, crioImages
 		if err := json.Unmarshal([]byte(metadataString), &metadata); err != nil {
 			continue
 		}
+
 		if !storage.IsCrioContainer(&metadata) {
 			continue
 		}
+
 		crioContainers = append(crioContainers, id)
 		crioImages = append(crioImages, containers[i].ImageID)
 	}
+
 	return crioContainers, crioImages, nil
 }
 
 func (c ContainerStore) deleteContainer(id string) {
 	if mounted, err := c.store.Unmount(id, true); err != nil || mounted {
 		logrus.Errorf("Unable to unmount container %s: %v", id, err)
+
 		return
 	}
+
 	if err := c.store.DeleteContainer(id); err != nil {
 		logrus.Errorf("Unable to delete container %s: %v", id, err)
+
 		return
 	}
+
 	logrus.Infof("Deleted container %s", id)
 }
 
 func (c ContainerStore) deleteImage(id string) {
 	if _, err := c.store.DeleteImage(id, true); err != nil {
 		logrus.Errorf("Unable to delete image %s: %v", id, err)
+
 		return
 	}
+
 	logrus.Infof("Deleted image %s", id)
 }

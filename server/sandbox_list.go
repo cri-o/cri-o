@@ -14,6 +14,7 @@ import (
 func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRequest) (*types.ListPodSandboxResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	podList := s.filterSandboxList(ctx, req.Filter, s.ContainerServer.ListSandboxes())
 	respList := make([]*types.PodSandbox, 0, len(podList))
 
@@ -45,6 +46,7 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 	if filter == nil {
 		return podList
 	}
+
 	if filter.Id != "" {
 		id, err := s.ContainerServer.PodIDIndex().Get(filter.Id)
 		if err != nil {
@@ -52,8 +54,10 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 			// and error; it might have been deleted when stop was done.
 			// Log and return an empty struct.
 			log.Warnf(ctx, "Unable to find pod %s with filter", filter.Id)
+
 			return []*sandbox.Sandbox{}
 		}
+
 		sb := s.getSandbox(ctx, id)
 		if sb == nil {
 			podList = []*sandbox.Sandbox{}
@@ -61,7 +65,9 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 			podList = []*sandbox.Sandbox{sb}
 		}
 	}
+
 	finalList := make([]*sandbox.Sandbox, 0, len(podList))
+
 	for _, pod := range podList {
 		// Skip sandboxes that aren't created yet
 		if !pod.Created() {
@@ -73,14 +79,17 @@ func (s *Server) filterSandboxList(ctx context.Context, filter *types.PodSandbox
 				continue
 			}
 		}
+
 		if filter.LabelSelector != nil {
 			sel := fields.SelectorFromSet(filter.LabelSelector)
 			if !sel.Matches(pod.Labels()) {
 				continue
 			}
 		}
+
 		finalList = append(finalList, pod)
 	}
+
 	return finalList
 }
 
@@ -92,6 +101,7 @@ func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
 				return false
 			}
 		}
+
 		if filter.LabelSelector != nil {
 			sel := fields.SelectorFromSet(filter.LabelSelector)
 			if !sel.Matches(fields.Set(p.Labels)) {
@@ -99,5 +109,6 @@ func filterSandbox(p *types.PodSandbox, filter *types.PodSandboxFilter) bool {
 			}
 		}
 	}
+
 	return true
 }

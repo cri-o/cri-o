@@ -111,14 +111,17 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	}
 
 	var stderrBuf bytes.Buffer
+
 	parentPipe, childPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %w", err)
 	}
+
 	childStartPipe, parentStartPipe, err := newPipe()
 	if err != nil {
 		return fmt.Errorf("error creating socket pair: %w", err)
 	}
+
 	defer parentPipe.Close()
 	defer parentStartPipe.Close()
 
@@ -142,28 +145,36 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
 	}
+
 	if r.config.LogSizeMax >= 0 {
 		args = append(args, "--log-size-max", strconv.FormatInt(r.config.LogSizeMax, 10))
 	}
+
 	if r.handler.NoSyncLog {
 		args = append(args, "--no-sync-log")
 	}
+
 	if r.config.LogToJournald {
 		args = append(args, "--log-path", "journald:")
 	}
+
 	if r.config.NoPivot {
 		args = append(args, "--no-pivot")
 	}
+
 	if c.terminal {
 		args = append(args, "-t")
 	} else if c.stdin {
 		if !c.stdinOnce {
 			args = append(args, "--leave-stdin-open")
 		}
+
 		args = append(args, "-i")
 	}
+
 	if restore {
 		log.Debugf(ctx, "Restore is true %v", restore)
+
 		args = append(args, "--restore", c.CheckpointPath())
 		if c.Spec().Process.SelinuxLabel != "" {
 			args = append(
@@ -172,6 +183,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 				"--lsm-profile=selinux:"+c.Spec().Process.SelinuxLabel,
 			)
 		}
+
 		if c.Spec().Linux.MountLabel != "" {
 			args = append(
 				args,
@@ -191,9 +203,11 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	if c.terminal {
 		cmd.Stderr = &stderrBuf
 	}
+
 	cmd.ExtraFiles = append(cmd.ExtraFiles, childPipe, childStartPipe)
 	r.prepareEnv(cmd, true)
 
@@ -201,6 +215,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if err != nil {
 		childPipe.Close()
 		childStartPipe.Close()
+
 		return err
 	}
 
@@ -238,6 +253,7 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		/* We set the cgroup, now the child can start creating children */
 		someData := []byte{0}
 		_, err = parentStartPipe.Write(someData)
+
 		return err
 	}(); err != nil {
 		return err
@@ -270,12 +286,16 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		si  *syncInfo
 		err error
 	}
+
 	ch := make(chan syncStruct, 1)
+
 	go func() {
 		defer close(ch)
+
 		var si *syncInfo
 		if err = json.NewDecoder(parentPipe).Decode(&si); err != nil {
 			ch <- syncStruct{err: err}
+
 			return
 		}
 		ch <- syncStruct{si: si}
@@ -287,22 +307,30 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		if ss.err != nil {
 			return fmt.Errorf("error reading container (probably exited) json message: %w", ss.err)
 		}
+
 		log.Debugf(ctx, "Received container pid: %d", ss.si.Pid)
 		pid = ss.si.Pid
+
 		if ss.si.Pid == -1 {
 			if ss.si.Message != "" {
 				if restore {
 					log.Errorf(ctx, "Container restore error: %s", ss.si.Message)
+
 					return fmt.Errorf("container restore failed: %s", ss.si.Message)
 				}
+
 				log.Errorf(ctx, "Container creation error: %s", ss.si.Message)
+
 				return fmt.Errorf("container create failed: %s", ss.si.Message)
 			}
+
 			log.Errorf(ctx, "Container creation failed")
+
 			return errors.New("container create failed")
 		}
 	case <-time.After(ContainerCreateTimeout):
 		log.Errorf(ctx, "Container creation timeout (%v)", ContainerCreateTimeout)
+
 		return errors.New("create container timeout")
 	}
 
@@ -328,12 +356,15 @@ func (r *runtimeOCI) StartContainer(ctx context.Context, c *Container) error {
 	if _, err := r.runtimeCmd("start", c.ID()); err != nil {
 		return err
 	}
+
 	c.state.Started = time.Now()
+
 	return nil
 }
 
 func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error) {
 	var err error
+
 	parentPipe, childPipe, err = os.Pipe()
 	if err != nil {
 		return "", nil, nil, err
@@ -343,8 +374,10 @@ func prepareExec() (pidFileName string, parentPipe, childPipe *os.File, _ error)
 	if err != nil {
 		parentPipe.Close()
 		childPipe.Close()
+
 		return "", nil, nil, err
 	}
+
 	pidFile.Close()
 	pidFileName = pidFile.Name()
 
@@ -368,6 +401,7 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 			// Ignore the line if it's formatted incorrectly, but complain
 			// about it so it can be debugged.
 			log.Warnf(ctx, "Hit invalid log format: %q", string(line))
+
 			continue
 		}
 
@@ -390,6 +424,7 @@ func parseLog(ctx context.Context, l []byte) (stdout, stderr []byte) {
 		default:
 			// Complain about unknown pipes.
 			log.Warnf(ctx, "Hit invalid log format [unknown pipe %s]: %q", pipe, string(line))
+
 			continue
 		}
 	}
@@ -414,11 +449,14 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 
 	args := r.defaultRuntimeArgs()
 	args = append(args, "exec", "--process", processFile, c.ID())
+
 	execCmd := cmdrunner.CommandContext(ctx, c.RuntimePathForPlatform(r), args...) //nolint: gosec
 	if v, found := os.LookupEnv("XDG_RUNTIME_DIR"); found {
 		execCmd.Env = append(execCmd.Env, "XDG_RUNTIME_DIR="+v)
 	}
+
 	var cmdErr, copyError error
+
 	if tty {
 		execCmd.WaitDelay = 30 * time.Second
 		cmdErr = ttyCmd(execCmd, stdin, stdout, resizeChan, c)
@@ -441,6 +479,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 			}
 
 			execCmd.Stdin = r
+
 			go func() {
 				_, copyError = pools.Copy(w, stdin)
 				w.Close()
@@ -471,6 +510,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 				if waitErr := execCmd.Wait(); waitErr != nil {
 					return fmt.Errorf("%w: %w", waitErr, err)
 				}
+
 				return err
 			}
 		}
@@ -481,10 +521,12 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 	if copyError != nil {
 		return copyError
 	}
+
 	var exitErr *exec.ExitError
 	if errors.As(cmdErr, &exitErr) {
 		return &utilexec.ExitErrorWrapper{ExitError: exitErr}
 	}
+
 	return cmdErr
 }
 
@@ -528,6 +570,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 			Err:      err,
 		}
 	}
+
 	logFile.Close()
 
 	logPath := logFile.Name()
@@ -549,15 +592,19 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	if r.config.ConmonSupportsSync() {
 		args = append(args, "--sync")
 	}
+
 	if r.config.ConmonSupportsLogGlobalSizeMax() {
 		args = append(args, "--log-global-size-max", strconv.Itoa(maxExecSyncSize))
 	}
+
 	if c.terminal {
 		args = append(args, "-t")
 	}
+
 	if timeout > 0 {
 		args = append(args, "-T", strconv.FormatInt(timeout, 10))
 	}
+
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "-s")
 	}
@@ -583,6 +630,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		cmd = exec.Command(r.handler.MonitorPath, args...) //nolint: gosec
 	} else {
 		msg := "Unsupported monitor_exec_cgroup value: " + r.handler.MonitorExecCgroup
+
 		return &types.ExecSyncResponse{
 			Stderr:   []byte(msg),
 			ExitCode: -1,
@@ -682,6 +730,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 	// we should attempt to decode the output of the parent pipe
 	// this allows us to catch TimedOutMessage, which will cause waitErr to not be nil
 	var ec *exitCodeInfo
+
 	decodeErr := json.NewDecoder(parentPipe).Decode(&ec)
 	if decodeErr == nil {
 		log.Debugf(ctx, "Received container exit code: %v, message: %s", ec.ExitCode, ec.Message)
@@ -747,6 +796,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 
 	// We have to parse the log output into {stdout, stderr} buffers.
 	stdoutBytes, stderrBytes := parseLog(ctx, logBytes)
+
 	return &types.ExecSyncResponse{
 		Stdout:   stdoutBytes,
 		Stderr:   stderrBytes,
@@ -757,16 +807,20 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 func TruncateAndReadFile(ctx context.Context, path string, size int64) ([]byte, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	info, err := os.Stat(path)
 	if err != nil {
 		return nil, err
 	}
+
 	if info.Size() > size {
 		log.Errorf(ctx, "Exec sync output in file %s has size %d which is longer than expected size of %d", path, info.Size(), size)
+
 		if err := os.Truncate(path, size); err != nil {
 			return nil, err
 		}
 	}
+
 	return os.ReadFile(path)
 }
 
@@ -783,20 +837,26 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 	}
 
 	cmd := cmdrunner.Command(c.RuntimePathForPlatform(r), rootFlag, r.root, "update", "--resources", "-", c.ID()) //nolint: gosec
+
 	var stdout bytes.Buffer
+
 	var stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	r.prepareEnv(cmd, false)
+
 	jsonResources, err := json.Marshal(res)
 	if err != nil {
 		return err
 	}
+
 	cmd.Stdin = bytes.NewReader(jsonResources)
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("updating resources for container %q failed: %v %v: %w", c.ID(), stderr.String(), stdout.String(), err)
 	}
+
 	return nil
 }
 
@@ -808,12 +868,14 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	if c.Spoofed() {
 		c.state.Status = ContainerStateStopped
 		c.state.Finished = time.Now()
+
 		return nil
 	}
 
 	// The initial container process either doesn't exist, or isn't ours.
 	if err := c.Living(); err != nil {
 		c.state.Finished = time.Now()
+
 		return nil
 	}
 
@@ -833,11 +895,13 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	}
 
 	c.WaitOnStopTimeout(ctx, timeout)
+
 	return nil
 }
 
 func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager) {
 	ctx := context.Background()
+
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -856,6 +920,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
 	}()
+
 	if c.state.Status == ContainerStatePaused {
 		if _, err := r.runtimeCmd("resume", c.ID()); err != nil {
 			log.Errorf(ctx, "Failed to unpause container %s: %v", c.Name(), err)
@@ -868,14 +933,17 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			// The initial container process either doesn't exist, or isn't ours.
 			// Set state accordingly.
 			c.state.Finished = time.Now()
+
 			return
 		}
 	}
 
 	done := make(chan struct{})
+
 	go func() {
 		statusCheckTicker := time.NewTicker(stopProcessWatchSleep)
 		defer statusCheckTicker.Stop()
+
 		for {
 			select {
 			case <-ctx.Done():
@@ -889,7 +957,9 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 					if !errors.Is(err, ErrNotFound) {
 						log.Warnf(ctx, "Failed to find process for container %s: %v", c.ID(), err)
 					}
+
 					close(done)
+
 					return
 				}
 			}
@@ -927,10 +997,12 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 
 		case <-time.After(time.Until(targetTime)):
 			log.Warnf(ctx, "Stopping container %s with stop signal timed out. Killing...", c.ID())
+
 			goto killContainer
 
 		case <-done:
 			stop()
+
 			return
 		case <-ctx.Done():
 			return
@@ -949,6 +1021,7 @@ killContainer:
 
 		if err := c.Living(); err != nil {
 			stop()
+
 			return
 		}
 		// Reschedule the timer so that the periodic reminder can continue.
@@ -976,28 +1049,35 @@ func (r *runtimeOCI) DeleteContainer(ctx context.Context, c *Container) error {
 	if errors.Is(err, ErrNotFound) {
 		return nil
 	}
+
 	return err
 }
 
 func updateContainerStatusFromExitFile(c *Container) error {
 	exitFilePath := c.exitFilePath()
+
 	fi, err := os.Stat(exitFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to find container exit file for %s: %w", c.ID(), err)
 	}
+
 	c.state.Finished, err = getFinishedTime(fi)
 	if err != nil {
 		return fmt.Errorf("failed to get finished time: %w", err)
 	}
+
 	statusCodeStr, err := os.ReadFile(exitFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to read exit file: %w", err)
 	}
+
 	statusCode, err := strconv.ParseInt(string(statusCodeStr), 10, 32)
 	if err != nil {
 		return fmt.Errorf("status code conversion failed: %w", err)
 	}
+
 	c.state.ExitCode = utils.Int32Ptr(int32(statusCode))
+
 	return nil
 }
 
@@ -1014,6 +1094,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 
 	if c.state.ExitCode != nil && !c.state.Finished.IsZero() {
 		log.Debugf(ctx, "Skipping status update for: %+v", c.state)
+
 		return nil
 	}
 
@@ -1032,30 +1113,37 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 			} else {
 				log.Errorf(ctx, "Failed to update container state for %s: %v", c.ID(), err)
 			}
+
 			c.state.Status = ContainerStateStopped
 			if err := updateContainerStatusFromExitFile(c); err != nil {
 				log.Errorf(ctx, "Failed to update container status from exit file for %s: %v", c.ID(), err)
 				c.state.Finished = time.Now()
 				c.state.ExitCode = utils.Int32Ptr(255)
 			}
+
 			return nil, true, nil
 		}
+
 		state := *c.state
 		if err := json.NewDecoder(strings.NewReader(out)).Decode(&state); err != nil {
 			return &state, false, fmt.Errorf("failed to decode container status for %s: %w", c.ID(), err)
 		}
+
 		return &state, false, nil
 	}
+
 	state, canReturn, err := stateCmd()
 	if err != nil {
 		return err
 	}
+
 	if canReturn {
 		return nil
 	}
 
 	if state.Status != ContainerStateStopped {
 		*c.state = *state
+
 		return nil
 	}
 	// release the lock before waiting
@@ -1073,17 +1161,21 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 				// wait longer
 				return false, nil
 			}
+
 			return true, nil
 		})
+
 	c.opLock.Lock()
 	// run command again
 	state, _, err2 := stateCmd()
 	if err2 != nil {
 		return err2
 	}
+
 	if state == nil {
 		return errors.New("state command returned nil")
 	}
+
 	*c.state = *state
 	if err != nil {
 		log.Warnf(ctx, "Failed to find container exit file for %v: %v", c.ID(), err)
@@ -1091,6 +1183,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 		if err := updateContainerStatusFromExitFile(c); err != nil {
 			return err
 		}
+
 		log.Debugf(ctx, "Found exit code for %s: %d", c.ID(), *c.state.ExitCode)
 	}
 
@@ -1110,6 +1203,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 	if c.nodeLevelPIDNamespace() {
 		return r.signalContainer(c, syscall.SIGKILL, true)
 	}
+
 	return nil
 }
 
@@ -1123,6 +1217,7 @@ func (r *runtimeOCI) PauseContainer(ctx context.Context, c *Container) error {
 	}
 
 	_, err := r.runtimeCmd("pause", c.ID())
+
 	return err
 }
 
@@ -1136,6 +1231,7 @@ func (r *runtimeOCI) UnpauseContainer(ctx context.Context, c *Container) error {
 	}
 
 	_, err := r.runtimeCmd("resume", c.ID())
+
 	return err
 }
 
@@ -1145,6 +1241,7 @@ func (r *runtimeOCI) ContainerStats(ctx context.Context, c *Container, cgroup st
 	defer span.End()
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
 	return r.config.CgroupManager().ContainerCgroupStats(cgroup, c.ID())
 }
 
@@ -1173,8 +1270,10 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 	if all {
 		args = append(args, "-a")
 	}
+
 	args = append(args, c.ID(), strconv.Itoa(int(sig)))
 	_, err := r.runtimeCmd(args...)
+
 	return err
 }
 
@@ -1182,19 +1281,23 @@ func (r *runtimeOCI) signalContainer(c *Container, sig syscall.Signal, all bool)
 func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if c.Spoofed() {
 		return nil
 	}
 
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
+
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open container ctl file: %w", err)
 	}
+
 	defer controlFile.Close()
 
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
+
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
 			log.Debugf(ctx, "Failed to write to control file to resize terminal: %v", err)
@@ -1202,10 +1305,12 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 	})
 
 	attachSocketPath := filepath.Join(r.config.ContainerAttachSocketDir, c.ID(), "attach")
+
 	conn, err := net.DialUnix("unixpacket", nil, &net.UnixAddr{Name: attachSocketPath, Net: "unixpacket"})
 	if err != nil {
 		return fmt.Errorf("failed to connect to container %s attach socket: %w", c.ID(), err)
 	}
+
 	defer conn.Close()
 
 	receiveStdout := make(chan error)
@@ -1221,6 +1326,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 			_, err = utils.CopyDetachable(conn, inputStream, nil)
 			closeErr = conn.CloseWrite()
 		}
+
 		switch {
 		case err != nil:
 			stdinDone <- err
@@ -1230,6 +1336,7 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 			// neither CopyDetachable nor CloseWrite returned error
 			stdinDone <- nil
 		}
+
 		close(stdinDone)
 	}()
 
@@ -1245,10 +1352,12 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 		if c.stdin && !c.StdinOnce() && !tty {
 			return nil
 		}
+
 		var detachErr utils.DetachError
 		if errors.As(err, &detachErr) {
 			return nil
 		}
+
 		return <-receiveStdout
 	}
 }
@@ -1257,15 +1366,18 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if c.Spoofed() {
 		return nil
 	}
 
 	controlPath := filepath.Join(c.BundlePath(), "ctl")
+
 	controlFile, err := os.OpenFile(controlPath, os.O_WRONLY, 0)
 	if err != nil {
 		return fmt.Errorf("failed to open container ctl file: %w", err)
 	}
+
 	defer controlFile.Close()
 
 	watcher, err := fsnotify.NewWatcher()
@@ -1277,30 +1389,37 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 	done := make(chan struct{})
 	doneClosed := false
 	errorCh := make(chan error)
+
 	go func() {
 		for {
 			select {
 			case event := <-watcher.Events:
 				log.Debugf(ctx, "Event: %v", event)
+
 				if event.Op&fsnotify.Create == fsnotify.Create || event.Op&fsnotify.Write == fsnotify.Write {
 					log.Debugf(ctx, "File created %s", event.Name)
+
 					if event.Name == c.LogPath() {
 						log.Debugf(ctx, "Expected log file created")
 						done <- struct{}{}
+
 						return
 					}
 				}
 			case err := <-watcher.Errors:
 				errorCh <- fmt.Errorf("watch error for container log reopen %v: %w", c.ID(), err)
 				close(errorCh)
+
 				return
 			}
 		}
 	}()
+
 	cLogDir := filepath.Dir(c.LogPath())
 	if err := watcher.Add(cLogDir); err != nil {
 		log.Errorf(ctx, "Watcher.Add(%q) failed: %s", cLogDir, err)
 		close(done)
+
 		doneClosed = true
 	}
 
@@ -1313,11 +1432,13 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 		if !doneClosed {
 			close(done)
 		}
+
 		return err
 	case <-done:
 		if !doneClosed {
 			close(done)
 		}
+
 		break
 	}
 
@@ -1331,7 +1452,9 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	if err != nil {
 		return "", err
 	}
+
 	f.Close()
+
 	processFile = f.Name()
 	defer func(processFile string) {
 		if retErr != nil {
@@ -1349,6 +1472,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	if tty {
 		pspec.Terminal = true
 	}
+
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
 		return "", err
@@ -1357,6 +1481,7 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	if err := os.WriteFile(processFile, processJSON, 0o644); err != nil {
 		return "", err
 	}
+
 	return processFile, nil
 }
 
@@ -1373,6 +1498,7 @@ func ReadConmonPidFile(c *Container) (int, error) {
 	if err != nil {
 		return -1, err
 	}
+
 	return conmonPID, nil
 }
 
@@ -1385,8 +1511,11 @@ func (c *Container) conmonPidFilePath() string {
 func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	runtimeArgs := append(r.defaultRuntimeArgs(), args...)
 	cmd := cmdrunner.Command(r.handler.RuntimePath, runtimeArgs...)
+
 	var stdout bytes.Buffer
+
 	var stderr bytes.Buffer
+
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	r.prepareEnv(cmd, false)
@@ -1394,6 +1523,7 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 	err := cmd.Run()
 	if err != nil {
 		stdErrStr := stderr.String()
+
 		switch {
 		// crun, for most of the commands.
 		case strings.Contains(stdErrStr, "no such process"):
@@ -1405,6 +1535,7 @@ func (r *runtimeOCI) runtimeCmd(args ...string) (string, error) {
 		case strings.Contains(stdErrStr, "invalid process"):
 			err = ErrNotFound
 		}
+
 		return "", fmt.Errorf("`%v %v` failed: %v %v: %w", r.handler.RuntimePath, strings.Join(runtimeArgs, " "), stderr.String(), stdout.String(), err)
 	}
 
@@ -1440,6 +1571,7 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 	if r.config.CgroupManager().IsSystemd() {
 		args = append(args, "--systemd-cgroup")
 	}
+
 	return args
 }
 
@@ -1447,6 +1579,7 @@ func (r *runtimeOCI) defaultRuntimeArgs() []string {
 func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, specgen *rspec.Spec, leaveRunning bool) error {
 	c.opLock.Lock()
 	defer c.opLock.Unlock()
+
 	runtimePath := c.RuntimePathForPlatform(r)
 	if err := r.checkpointRestoreSupported(runtimePath); err != nil {
 		return err
@@ -1471,6 +1604,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 
 	log.Debugf(ctx, "Writing checkpoint to %s", imagePath)
 	log.Debugf(ctx, "Writing checkpoint logs to %s", workPath)
+
 	args := []string{}
 	args = append(
 		args,
@@ -1481,6 +1615,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 		"--work-path",
 		workPath,
 	)
+
 	if leaveRunning {
 		args = append(args, "--leave-running")
 	}
@@ -1493,6 +1628,7 @@ func (r *runtimeOCI) CheckpointContainer(ctx context.Context, c *Container, spec
 	}
 
 	c.SetCheckpointedAt(time.Now())
+
 	if !leaveRunning {
 		c.state.Status = ContainerStateStopped
 		c.state.ExitCode = utils.Int32Ptr(0)
@@ -1559,6 +1695,7 @@ func (r *runtimeOCI) RestoreContainer(ctx context.Context, c *Container, cgroupP
 	if err != nil {
 		return err
 	}
+
 	c.state.Pid = pid
 	// 3. Reset ExitCode (also needed for stopping)
 	c.state.ExitCode = nil
@@ -1572,9 +1709,11 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 	if err := criu.CheckForCriu(criu.PodCriuVersion); err != nil {
 		return fmt.Errorf("check for CRIU %w", err)
 	}
+
 	if !crutils.CRRuntimeSupportsCheckpointRestore(runtimePath) {
 		return errors.New("configured runtime does not support checkpoint/restore")
 	}
+
 	return nil
 }
 

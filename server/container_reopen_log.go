@@ -14,6 +14,7 @@ import (
 func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContainerLogRequest) (*types.ReopenContainerLogResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, fmt.Errorf("could not find container %s: %w", req.ContainerId, err)
@@ -23,6 +24,7 @@ func (s *Server) ReopenContainerLog(ctx context.Context, req *types.ReopenContai
 	if err != nil {
 		return nil, err
 	}
+
 	if !isRunning {
 		return nil, errors.New("container is not running")
 	}

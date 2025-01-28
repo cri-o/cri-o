@@ -113,6 +113,7 @@ func (r *Runtime) ValidateRuntimeHandler(handler string) (*config.RuntimeHandler
 		return nil, fmt.Errorf("failed to find runtime handler %s from runtime list %v",
 			handler, r.config.Runtimes)
 	}
+
 	if runtimeHandler.RuntimePath == "" {
 		return nil, fmt.Errorf("empty runtime path for runtime handler %s", handler)
 	}
@@ -157,6 +158,7 @@ func (r *Runtime) PlatformRuntimePath(handler, platform string) (string, error) 
 	if err != nil {
 		return "", err
 	}
+
 	if runtimePath, ok := rh.PlatformRuntimePaths[platform]; ok {
 		return runtimePath, nil
 	}
@@ -262,17 +264,21 @@ func (r *Runtime) RuntimeImpl(c *Container) (RuntimeImpl, error) {
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()
+
 	if ok {
 		return impl, nil
 	}
 
 	r.runtimeImplMapMutex.Lock()
 	defer r.runtimeImplMapMutex.Unlock()
+
 	impl, err := r.newRuntimeImpl(c)
 	if err != nil {
 		return nil, err
 	}
+
 	r.runtimeImplMap[c.ID()] = impl
+
 	return impl, nil
 }
 
@@ -298,6 +304,7 @@ func (r *Runtime) CreateContainer(ctx context.Context, c *Container, cgroupParen
 func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -310,6 +317,7 @@ func (r *Runtime) StartContainer(ctx context.Context, c *Container) error {
 func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -322,6 +330,7 @@ func (r *Runtime) ExecContainer(ctx context.Context, c *Container, cmd []string,
 func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command []string, timeout int64) (*types.ExecSyncResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -334,6 +343,7 @@ func (r *Runtime) ExecSyncContainer(ctx context.Context, c *Container, command [
 func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.LinuxResources) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -346,6 +356,7 @@ func (r *Runtime) UpdateContainer(ctx context.Context, c *Container, res *rspec.
 func (r *Runtime) StopContainer(ctx context.Context, c *Container, timeout int64) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -361,6 +372,7 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 	r.runtimeImplMapMutex.RLock()
 	impl, ok := r.runtimeImplMap[c.ID()]
 	r.runtimeImplMapMutex.RUnlock()
+
 	if !ok {
 		if impl, err = r.newRuntimeImpl(c); err != nil {
 			return err
@@ -382,6 +394,7 @@ func (r *Runtime) DeleteContainer(ctx context.Context, c *Container) (err error)
 func (r *Runtime) UpdateContainerStatus(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -394,6 +407,7 @@ func (r *Runtime) UpdateContainerStatus(ctx context.Context, c *Container) error
 func (r *Runtime) PauseContainer(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -406,6 +420,7 @@ func (r *Runtime) PauseContainer(ctx context.Context, c *Container) error {
 func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -418,6 +433,7 @@ func (r *Runtime) UnpauseContainer(ctx context.Context, c *Container) error {
 func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup string) (*cgmgr.CgroupStats, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return nil, err
@@ -430,6 +446,7 @@ func (r *Runtime) ContainerStats(ctx context.Context, c *Container, cgroup strin
 func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall.Signal) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -442,6 +459,7 @@ func (r *Runtime) SignalContainer(ctx context.Context, c *Container, sig syscall
 func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream io.Reader, outputStream, errorStream io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -454,6 +472,7 @@ func (r *Runtime) AttachContainer(ctx context.Context, c *Container, inputStream
 func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsPath string, port int32, stream io.ReadWriteCloser) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err
@@ -466,6 +485,7 @@ func (r *Runtime) PortForwardContainer(ctx context.Context, c *Container, netNsP
 func (r *Runtime) ReopenContainerLog(ctx context.Context, c *Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	impl, err := r.RuntimeImpl(c)
 	if err != nil {
 		return err

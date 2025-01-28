@@ -14,12 +14,16 @@ func (ss *StatsServer) GenerateNetworkMetrics(sb *sandbox.Sandbox) []*types.Metr
 	links, err := netlink.LinkList()
 	if err != nil {
 		log.Errorf(ss.ctx, "Unable to retrieve network namespace links %s: %v", sb.ID(), err)
+
 		return nil
 	}
+
 	if len(links) == 0 {
 		log.Warnf(ss.ctx, "Network links are not available.")
+
 		return nil
 	}
+
 	for i := range links {
 		if attrs := links[i].Attrs(); attrs != nil {
 			networkMetrics := generateSandboxNetworkMetrics(sb, attrs)
@@ -130,5 +134,6 @@ func generateSandboxNetworkMetrics(sb *sandbox.Sandbox, attr *netlink.LinkAttrs)
 			},
 		},
 	}
+
 	return computeSandboxMetrics(sb, networkMetrics, "network")
 }

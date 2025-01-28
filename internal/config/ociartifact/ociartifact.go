@@ -88,6 +88,7 @@ func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (
 	if err != nil {
 		return nil, fmt.Errorf("parse image name: %w", err)
 	}
+
 	name = reference.TagNameOnly(name) // make sure to add ":latest" if needed
 
 	ref, err := o.impl.NewReference(name)
@@ -109,6 +110,7 @@ func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (
 	if err != nil {
 		return nil, fmt.Errorf("parse manifest: %w", err)
 	}
+
 	if opts.EnforceConfigMediaType != "" && o.impl.ManifestConfigInfo(parsedManifest).MediaType != opts.EnforceConfigMediaType {
 		return nil, fmt.Errorf(
 			"wrong config media type %q, requires %q",
@@ -132,10 +134,12 @@ func (o *OCIArtifact) Pull(ctx context.Context, img string, opts *PullOptions) (
 	}
 
 	bic := blobinfocache.DefaultCache(opts.SystemContext)
+
 	rc, size, err := o.impl.GetBlob(ctx, src, layer.BlobInfo, bic)
 	if err != nil {
 		return nil, fmt.Errorf("get layer blob: %w", err)
 	}
+
 	defer rc.Close()
 
 	maxArtifactSize := defaultMaxArtifactSize
@@ -171,12 +175,14 @@ func (o *OCIArtifact) prepareCache(ctx context.Context, opts *PullOptions) (useC
 
 	if err := o.impl.MkdirAll(opts.CachePath, 0o700); err != nil {
 		log.Errorf(ctx, "Unable to create cache path: %v", err)
+
 		return false
 	}
 
 	entries, err := o.impl.ReadDir(opts.CachePath)
 	if err != nil {
 		log.Errorf(ctx, "Unable to read cache path: %v", err)
+
 		return false
 	}
 
@@ -186,17 +192,20 @@ func (o *OCIArtifact) prepareCache(ctx context.Context, opts *PullOptions) (useC
 	}
 
 	now := time.Now()
+
 	if maxAge > 0 {
 		for _, entry := range entries {
 			info, err := entry.Info()
 			if err != nil {
 				log.Errorf(ctx, "Unable to get artifact layer info for %q: %v", entry.Name(), err)
+
 				continue
 			}
 
 			if diff := now.Sub(info.ModTime()); diff > maxAge {
 				p := filepath.Join(opts.CachePath, info.Name())
 				log.Infof(ctx, "Removing old artifact layer %q (age: %v)", p, diff.Round(time.Second))
+
 				if err := o.impl.RemoveAll(p); err != nil {
 					log.Errorf(ctx, "Unable to remove artifact layer %q: %v", p, err)
 				}
@@ -218,6 +227,7 @@ func (o *OCIArtifact) tryLookupCache(ctx context.Context, useCache bool, opts *P
 	if value, err := o.impl.ReadFile(keyPath); err == nil {
 		if err := verifyDigest(layer, value); err == nil {
 			log.Infof(ctx, "Using cached artifact layer for digest %q", layer.BlobInfo.Digest)
+
 			return &Artifact{
 				Data: value,
 				Path: keyPath,
@@ -225,14 +235,17 @@ func (o *OCIArtifact) tryLookupCache(ctx context.Context, useCache bool, opts *P
 		}
 
 		log.Warnf(ctx, "Unable to verify cached artifact layer digest: %v", err)
+
 		tryRemoveKeyPath = true
 	} else if !os.IsNotExist(err) {
 		log.Warnf(ctx, "Unable to read cached artifact layer: %v", err)
+
 		tryRemoveKeyPath = true
 	}
 
 	if tryRemoveKeyPath {
 		log.Infof(ctx, "Removing cached artifact layer for digest %q", layer.BlobInfo.Digest)
+
 		if err := o.impl.RemoveAll(keyPath); err != nil {
 			log.Warnf(ctx, "Unable to remove artifact from cache: %v", err)
 		}
@@ -250,6 +263,7 @@ func (o *OCIArtifact) tryWriteCache(ctx context.Context, useCache bool, opts *Pu
 
 	if err := o.impl.WriteFile(keyPath, layerBytes, 0o600); err != nil {
 		log.Errorf(ctx, "Unable to write artifact layer to cache: %v", err)
+
 		return ""
 	}
 
@@ -258,6 +272,7 @@ func (o *OCIArtifact) tryWriteCache(ctx context.Context, useCache bool, opts *Pu
 
 func getKeyPath(opts *PullOptions, layer *manifest.LayerInfo) string {
 	key := string(layer.BlobInfo.Digest)
+
 	return filepath.Join(opts.CachePath, key)
 }
 
@@ -281,12 +296,14 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	if err := expectedDigest.Validate(); err != nil {
 		return fmt.Errorf("invalid digest %q: %w", expectedDigest, err)
 	}
+
 	digestAlgorithm := expectedDigest.Algorithm()
 	digester := digestAlgorithm.Digester()
 
 	hash := digester.Hash()
 	hash.Write(layerBytes)
 	sum := hash.Sum(nil)
+
 	layerBytesHex := hex.EncodeToString(sum)
 	if layerBytesHex != layer.BlobInfo.Digest.Hex() {
 		return fmt.Errorf(

@@ -54,10 +54,12 @@ func (c *memoryStore[T]) Add(id string, value T) {
 // Get returns a value from the store by id.
 func (c *memoryStore[T]) Get(id string) (res T) {
 	v, _ := c.s.Load(id)
+
 	typedValue, ok := v.(T)
 	if ok {
 		return typedValue
 	}
+
 	return res
 }
 
@@ -71,6 +73,7 @@ func (c *memoryStore[T]) Delete(id string) {
 func (c *memoryStore[T]) List() []T {
 	values := History[T](c.all())
 	values.sort()
+
 	return values
 }
 
@@ -79,6 +82,7 @@ func (c *memoryStore[T]) Size() (l int) {
 	for range c.s.Range {
 		l++
 	}
+
 	return l
 }
 
@@ -89,6 +93,7 @@ func (c *memoryStore[T]) First(filter StoreFilter[T]) (res T) {
 			return value
 		}
 	}
+
 	return res
 }
 
@@ -98,9 +103,11 @@ func (c *memoryStore[T]) ApplyAll(apply StoreReducer[T]) {
 	if apply == nil {
 		return
 	}
+
 	wg := new(sync.WaitGroup)
 	for _, value := range c.all() {
 		wg.Add(1)
+
 		go func(value T) {
 			apply(value)
 			wg.Done()
@@ -117,5 +124,6 @@ func (c *memoryStore[T]) all() (values []T) {
 			values = append(values, typedValue)
 		}
 	}
+
 	return values
 }

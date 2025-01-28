@@ -93,12 +93,15 @@ func countLines(fileName string) (int, error) {
 	if err != nil {
 		return -1, err
 	}
+
 	defer file.Close()
 	fileScanner := bufio.NewScanner(file)
 	lineCount := 0
+
 	for fileScanner.Scan() {
 		lineCount++
 	}
+
 	return lineCount, nil
 }
 
@@ -111,9 +114,11 @@ func writeTempFile(content string) (string, error) {
 	if _, err := f.WriteString(content); err != nil {
 		return "", err
 	}
+
 	if err := f.Close(); err != nil {
 		return "", err
 	}
+
 	return f.Name(), nil
 }
 

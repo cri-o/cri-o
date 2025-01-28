@@ -28,11 +28,14 @@ type DbusConnManager struct{}
 func NewDbusConnManager(rootless bool) *DbusConnManager {
 	dbusMu.Lock()
 	defer dbusMu.Unlock()
+
 	if dbusInited && rootless != dbusRootless {
 		panic("can't have both root and rootless dbus")
 	}
+
 	dbusRootless = rootless
 	dbusInited = true
+
 	return &DbusConnManager{}
 }
 
@@ -44,6 +47,7 @@ func (d *DbusConnManager) GetConnection() (*systemdDbus.Conn, error) {
 	dbusMu.RLock()
 	if conn := dbusC; conn != nil {
 		dbusMu.RUnlock()
+
 		return conn, nil
 	}
 	dbusMu.RUnlock()
@@ -53,6 +57,7 @@ func (d *DbusConnManager) GetConnection() (*systemdDbus.Conn, error) {
 	// will be created
 	dbusMu.Lock()
 	defer dbusMu.Unlock()
+
 	if conn := dbusC; conn != nil {
 		return conn, nil
 	}
@@ -61,7 +66,9 @@ func (d *DbusConnManager) GetConnection() (*systemdDbus.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	dbusC = conn
+
 	return conn, nil
 }
 
@@ -69,6 +76,7 @@ func (d *DbusConnManager) newConnection() (*systemdDbus.Conn, error) {
 	if dbusRootless {
 		return newUserSystemdDbus()
 	}
+
 	return systemdDbus.NewWithContext(context.TODO())
 }
 
@@ -81,13 +89,16 @@ func (d *DbusConnManager) RetryOnDisconnect(op func(*systemdDbus.Conn) error) er
 		if err != nil {
 			return err
 		}
+
 		err = op(conn)
 		if err == nil {
 			return nil
 		}
+
 		if errors.Is(err, syscall.EAGAIN) {
 			continue
 		}
+
 		if !errors.Is(err, dbus.ErrClosed) {
 			return err
 		}
@@ -101,6 +112,7 @@ func (d *DbusConnManager) RetryOnDisconnect(op func(*systemdDbus.Conn) error) er
 func (d *DbusConnManager) resetConnection(conn *systemdDbus.Conn) {
 	dbusMu.Lock()
 	defer dbusMu.Unlock()
+
 	if dbusC != nil && dbusC == conn {
 		dbusC.Close()
 		dbusC = nil

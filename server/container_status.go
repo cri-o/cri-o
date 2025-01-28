@@ -27,6 +27,7 @@ const (
 func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatusRequest) (*types.ContainerStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
@@ -34,14 +35,17 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 
 	containerID := c.ID()
 	imageRef := c.CRIContainer().ImageRef
+
 	imageNameInSpec := ""
 	if someNameOfTheImage := c.SomeNameOfTheImage(); someNameOfTheImage != nil {
 		imageNameInSpec = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
+
 	imageID := ""
 	if c.ImageID() != nil {
 		imageID = c.ImageID().IDStringForOutOfProcessConsumptionOnly()
 	}
+
 	resp := &types.ContainerStatusResponse{
 		Status: &types.ContainerStatus{
 			Id:          containerID,
@@ -69,6 +73,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 			Image:             cv.Image,
 		})
 	}
+
 	resp.Status.Mounts = mounts
 
 	containerSpec := c.Spec()
@@ -86,10 +91,12 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		if err != nil {
 			log.Warnf(ctx, "Failed to UpdateStatus of container %s: %v", c.ID(), err)
 		}
+
 		cState = c.State()
 	}
 
 	resp.Status.CreatedAt = c.CreatedAt().UnixNano()
+
 	switch cState.Status {
 	case oci.ContainerStateCreated:
 		rStatus = types.ContainerState_CONTAINER_CREATED
@@ -102,12 +109,14 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		started := cState.Started.UnixNano()
 		resp.Status.StartedAt = started
 		finished := cState.Finished.UnixNano()
+
 		resp.Status.FinishedAt = finished
 		if cState.ExitCode == nil {
 			resp.Status.ExitCode = -1
 		} else {
 			resp.Status.ExitCode = *cState.ExitCode
 		}
+
 		switch {
 		case cState.OOMKilled:
 			resp.Status.Reason = oomKilledReason
@@ -130,6 +139,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		if err != nil {
 			return nil, fmt.Errorf("creating container info: %w", err)
 		}
+
 		resp.Info = info
 	}
 
@@ -174,6 +184,7 @@ func (s *Server) createContainerInfo(container *oci.Container) (map[string]strin
 				localContainerInfo,
 				localContainerInfoCheckpointRestore,
 			}
+
 			return json.Marshal(info)
 		}
 
@@ -182,5 +193,6 @@ func (s *Server) createContainerInfo(container *oci.Container) (map[string]strin
 	if err != nil {
 		return nil, fmt.Errorf("marshal data: %w", err)
 	}
+
 	return map[string]string{"info": string(bytes)}, nil
 }

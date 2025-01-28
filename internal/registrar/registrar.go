@@ -44,11 +44,13 @@ func (r *Registrar) Reserve(name, key string) error {
 		if k != key {
 			return ErrNameReserved
 		}
+
 		return nil
 	}
 
 	r.idx[key] = append(r.idx[key], name)
 	r.names[name] = key
+
 	return nil
 }
 
@@ -67,7 +69,9 @@ func (r *Registrar) Release(name string) {
 		if n != name {
 			continue
 		}
+
 		r.idx[key] = append(r.idx[key][:i], r.idx[key][i+1:]...)
+
 		break
 	}
 
@@ -85,6 +89,7 @@ func (r *Registrar) Delete(key string) {
 	for _, name := range r.idx[key] {
 		delete(r.names, name)
 	}
+
 	delete(r.idx, key)
 	r.mu.Unlock()
 }
@@ -98,6 +103,7 @@ func (r *Registrar) GetNames(key string) ([]string, error) {
 	if !exists {
 		return nil, ErrNoSuchKey
 	}
+
 	return names, nil
 }
 
@@ -110,6 +116,7 @@ func (r *Registrar) Get(name string) (string, error) {
 	if !exists {
 		return "", ErrNameNotReserved
 	}
+
 	return key, nil
 }
 
@@ -123,5 +130,6 @@ func (r *Registrar) GetAll() map[string][]string {
 		out[id] = names
 	}
 	r.mu.Unlock()
+
 	return out
 }

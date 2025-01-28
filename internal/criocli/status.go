@@ -87,6 +87,7 @@ func configSubCommand(c *cli.Context) error {
 	}
 
 	fmt.Print(info)
+
 	return nil
 }
 
@@ -112,17 +113,23 @@ func containers(c *cli.Context) error {
 	fmt.Printf("image ref: %s\n", info.ImageRef)
 	fmt.Printf("created: %v\n", info.CreatedTime)
 	fmt.Printf("labels:\n")
+
 	for k, v := range info.Labels {
 		fmt.Printf("  %s: %s\n", k, v)
 	}
+
 	fmt.Printf("annotations:\n")
+
 	for k, v := range info.Annotations {
 		fmt.Printf("  %s: %s\n", k, v)
 	}
+
 	fmt.Printf("CRI-O annotations:\n")
+
 	for k, v := range info.CrioAnnotations {
 		fmt.Printf("  %s: %s\n", k, v)
 	}
+
 	fmt.Printf("log path: %s\n", info.LogPath)
 	fmt.Printf("graph root: %s\n", info.Root)
 	fmt.Printf("sandbox: %s\n", info.Sandbox)
@@ -148,10 +155,13 @@ func info(c *cli.Context) error {
 	fmt.Printf("storage image: %s\n", info.StorageImage)
 
 	fmt.Printf("default GID mappings (format <container>:<host>:<size>):\n")
+
 	for _, m := range info.DefaultIDMappings.Gids {
 		fmt.Printf("  %d:%d:%d\n", m.ContainerID, m.HostID, m.Size)
 	}
+
 	fmt.Printf("default UID mappings (format <container>:<host>:<size>):\n")
+
 	for _, m := range info.DefaultIDMappings.Uids {
 		fmt.Printf("  %d:%d:%d\n", m.ContainerID, m.HostID, m.Size)
 	}
@@ -195,6 +205,7 @@ func heap(c *cli.Context) error {
 
 	case "":
 		outputPath = fmt.Sprintf("crio-heap-%s.out", Timestamp())
+
 		fallthrough
 
 	default:

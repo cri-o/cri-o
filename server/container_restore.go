@@ -27,9 +27,11 @@ func (s *Server) checkIfCheckpointOCIImage(ctx context.Context, input string) (*
 	if input == "" {
 		return nil, nil
 	}
+
 	if _, err := os.Stat(input); err == nil {
 		return nil, nil
 	}
+
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{
 		Image: input,
 	})
@@ -79,6 +81,7 @@ func (s *Server) CRImportCheckpoint(
 	}
 
 	var restoreArchivePath string
+
 	if restoreStorageImageID != nil {
 		systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
 		if err != nil {
@@ -131,19 +134,23 @@ func (s *Server) CRImportCheckpoint(
 				metadata.CheckpointDirectory,
 			},
 		}
+
 		mountPoint, err = os.MkdirTemp("", "checkpoint")
 		if err != nil {
 			return "", err
 		}
+
 		defer func() {
 			if err := os.RemoveAll(mountPoint); err != nil {
 				log.Errorf(ctx, "Could not recursively remove %s: %q", mountPoint, err)
 			}
 		}()
+
 		err = archive.Untar(archiveFile, mountPoint, options)
 		if err != nil {
 			return "", fmt.Errorf("unpacking of checkpoint archive %s failed: %w", mountPoint, err)
 		}
+
 		log.Debugf(ctx, "Unpacked checkpoint in %s", mountPoint)
 	}
 
@@ -184,6 +191,7 @@ func (s *Server) CRImportCheckpoint(
 	stopMutex := sb.StopMutex()
 	stopMutex.RLock()
 	defer stopMutex.RUnlock()
+
 	if sb.Stopped() {
 		return "", fmt.Errorf("CreateContainer failed as the sandbox was stopped: %s", sb.ID())
 	}
@@ -206,6 +214,7 @@ func (s *Server) CRImportCheckpoint(
 	// If the container in the registry was updated (new latest tag)
 	// all of a sudden the wrong base image would be downloaded.
 	rootFSImage := config.RootfsImageName
+
 	if config.RootfsImageRef != "" {
 		id, err := storage.ParseStorageImageIDFromOutOfProcessData(config.RootfsImageRef)
 		if err != nil {
@@ -215,6 +224,7 @@ func (s *Server) CRImportCheckpoint(
 		// a cross-process API, and this value is correct in that API.
 		rootFSImage = id.IDStringForOutOfProcessConsumptionOnly()
 	}
+
 	containerConfig := &types.ContainerConfig{
 		Metadata: &types.ContainerMetadata{
 			Name:    createConfig.Metadata.Name,
@@ -281,11 +291,13 @@ func (s *Server) CRImportCheckpoint(
 		if ignoreMounts[m.Destination] {
 			continue
 		}
+
 		mount := &types.Mount{
 			ContainerPath: m.Destination,
 		}
 
 		bindMountFound := false
+
 		for _, createMount := range createMounts {
 			if createMount.ContainerPath != m.Destination {
 				continue
@@ -296,8 +308,10 @@ func (s *Server) CRImportCheckpoint(
 			mount.Readonly = createMount.Readonly
 			mount.RecursiveReadOnly = createMount.RecursiveReadOnly
 			mount.Propagation = createMount.Propagation
+
 			break
 		}
+
 		if !bindMountFound {
 			missingMount = append(missingMount, m.Destination)
 			// If one mount is missing we can skip over any further code as we have
@@ -309,6 +323,7 @@ func (s *Server) CRImportCheckpoint(
 		log.Debugf(ctx, "Adding mounts %#v", mount)
 		containerConfig.Mounts = append(containerConfig.Mounts, mount)
 	}
+
 	if len(missingMount) > 0 {
 		return "", fmt.Errorf(
 			"restoring %q expects following bind mounts defined (%s)",
@@ -351,9 +366,11 @@ func (s *Server) CRImportCheckpoint(
 	if err != nil {
 		return "", err
 	}
+
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container %s from storage", ctr.ID())
+
 			err2 := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, ctr.ID())
 			if err2 != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err2)
@@ -373,9 +390,11 @@ func (s *Server) CRImportCheckpoint(
 	if err := s.ContainerServer.CtrIDIndex().Add(ctr.ID()); err != nil {
 		return "", err
 	}
+
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: deleting container ID %s from idIndex", ctr.ID())
+
 			if err := s.ContainerServer.CtrIDIndex().Delete(ctr.ID()); err != nil {
 				log.Warnf(ctx, "Couldn't delete ctr id %s from idIndex", ctr.ID())
 			}
@@ -390,7 +409,9 @@ func (s *Server) CRImportCheckpoint(
 
 	if isContextError(ctx.Err()) {
 		log.Infof(ctx, "RestoreCtr: context was either canceled or the deadline was exceeded: %v", ctx.Err())
+
 		return "", ctx.Err()
 	}
+
 	return ctr.ID(), nil
 }

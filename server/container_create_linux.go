@@ -50,6 +50,7 @@ const (
 func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Container, cgroupParent string, idMappings *idtools.IDMappings) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if idMappings != nil && !container.Spoofed() {
 		rootPair := idMappings.RootPair()
 		for _, path := range []string{container.BundlePath(), container.MountPoint()} {
@@ -58,6 +59,7 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 			}
 		}
 	}
+
 	return s.ContainerServer.Runtime().CreateContainer(ctx, container, cgroupParent, false)
 }
 
@@ -65,16 +67,20 @@ func (s *Server) createContainerPlatform(ctx context.Context, container *oci.Con
 func makeAccessible(path string, uid, gid int) error {
 	for ; path != "/"; path = filepath.Dir(path) {
 		var st unix.Stat_t
+
 		err := unix.Stat(path, &st)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
 			}
+
 			return err
 		}
+
 		if int(st.Uid) == uid && int(st.Gid) == gid {
 			continue
 		}
+
 		perm := os.FileMode(st.Mode) & os.ModePerm
 		if perm&0o111 != 0o111 {
 			if err := os.Chmod(path, perm|0o111); err != nil {
@@ -82,6 +88,7 @@ func makeAccessible(path string, uid, gid int) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -90,9 +97,11 @@ func toContainer(id uint32, idMap []idtools.IDMap) uint32 {
 	if idMap == nil {
 		return uint32(hostID)
 	}
+
 	for _, m := range idMap {
 		if hostID >= m.HostID && hostID < m.HostID+m.Size {
 			contID := m.ContainerID + (hostID - m.HostID)
+
 			return uint32(contID)
 		}
 	}
@@ -119,6 +128,7 @@ func (s *Server) finalizeUserMapping(sb *sandbox.Sandbox, specgen *generate.Gene
 	specgen.Config.Process.User.UID = toContainer(specgen.Config.Process.User.UID, mappings.UIDs())
 	gids := mappings.GIDs()
 	specgen.Config.Process.User.GID = toContainer(specgen.Config.Process.User.GID, gids)
+
 	for i := range specgen.Config.Process.User.AdditionalGids {
 		gid := toContainer(specgen.Config.Process.User.AdditionalGids[i], gids)
 		specgen.Config.Process.User.AdditionalGids[i] = gid
@@ -144,9 +154,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	containerID := ctr.ID()
 	containerName := ctr.Name()
 	containerConfig := ctr.Config()
+
 	if err := ctr.SetPrivileged(); err != nil {
 		return nil, err
 	}
+
 	setContainerConfigSecurityContext(containerConfig)
 	securityContext := containerConfig.Linux.SecurityContext
 
@@ -173,6 +185,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if err != nil {
 			return nil, err
 		}
+
 		var imgResultErr error
 		for _, name := range potentialMatches {
 			imgResult, imgResultErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
@@ -180,6 +193,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 				break
 			}
 		}
+
 		if imgResultErr != nil {
 			return nil, imgResultErr
 		}
@@ -192,6 +206,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 
 	someNameOfTheImage := imgResult.SomeNameOfThisImage
 	imageID := imgResult.ID
+
 	someRepoDigest := ""
 	if len(imgResult.RepoDigests) > 0 {
 		someRepoDigest = imgResult.RepoDigests[0]
@@ -251,6 +266,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	metadata := containerConfig.Metadata
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage creation")
+
 	containerInfo, err := s.ContainerServer.StorageRuntimeServer().CreateContainer(s.config.SystemContext,
 		sb.Name(), sb.ID(),
 		userRequestedImage, imageID,
@@ -264,9 +280,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
+
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: deleting container %s from storage", containerInfo.ID)
+
 			if err := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, containerInfo.ID); err != nil {
 				log.Warnf(ctx, "Failed to cleanup container directory: %v", err)
 			}
@@ -274,10 +292,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}()
 
 	mountLabel := containerInfo.MountLabel
+
 	var processLabel string
 	if !ctr.Privileged() {
 		processLabel = containerInfo.ProcessLabel
 	}
+
 	hostIPC := securityContext.NamespaceOptions.Ipc == types.NamespaceMode_NODE
 	hostPID := securityContext.NamespaceOptions.Pid == types.NamespaceMode_NODE
 	hostNet := securityContext.NamespaceOptions.Network == types.NamespaceMode_NODE
@@ -297,7 +317,9 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	skipRelabel := false
+
 	const superPrivilegedType = "spc_t"
+
 	if securityContext.SelinuxOptions.Type == superPrivilegedType || // super privileged container
 		(ctr.SandboxConfig().Linux != nil &&
 			ctr.SandboxConfig().Linux.SecurityContext != nil &&
@@ -312,18 +334,21 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.ContainerServer.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
 	rroSupport := s.ContainerServer.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
+
 	containerVolumes, ociMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root)
 	if err != nil {
 		return nil, err
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
+
 	err = s.specSetDevices(ctr, sb)
 	if err != nil {
 		return nil, err
 	}
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container storage start")
+
 	mountPoint, err := s.ContainerServer.StorageRuntimeServer().StartContainer(containerID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to mount container %s(%s): %w", containerName, containerID, err)
@@ -332,6 +357,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "CreateCtrLinux: stopping storage container %s", containerID)
+
 			if err := s.ContainerServer.StorageRuntimeServer().StopContainer(ctx, containerID); err != nil {
 				log.Warnf(ctx, "Couldn't stop storage container: %v: %v", containerID, err)
 			}
@@ -362,6 +388,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 
 	specgen.SetProcessTerminal(containerConfig.Tty)
+
 	if containerConfig.Tty {
 		specgen.AddProcessEnv("TERM", "xterm")
 	}
@@ -374,6 +401,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 			if err != nil {
 				return nil, err
 			}
+
 			err = ctr.SpecSetLinuxContainerResources(resources, containerMinMemory)
 			if err != nil {
 				return nil, err
@@ -404,6 +432,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	defer func() {
 		if retErr != nil && ctr.PidNamespace() != nil {
 			log.Infof(ctx, "CreateCtrLinux: clearing PID namespace for container %s", containerInfo.ID)
+
 			if err := ctr.PidNamespace().Remove(); err != nil {
 				log.Warnf(ctx, "Failed to remove PID namespace: %v", err)
 			}
@@ -446,6 +475,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	containerImageConfig := containerInfo.Config
 	if containerImageConfig == nil {
 		err = fmt.Errorf("empty image config for %s", userRequestedImage)
+
 		return nil, err
 	}
 
@@ -471,10 +501,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if ctr.ReadOnly(s.config.ReadOnly) {
 		options = []string{"ro"}
 	}
+
 	if sb.ResolvPath() != "" {
 		if err := securityLabel(sb.ResolvPath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
+
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/etc/resolv.conf",
 			Type:        "bind",
@@ -487,6 +519,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if err := securityLabel(sb.HostnamePath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
+
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/etc/hostname",
 			Type:        "bind",
@@ -499,6 +532,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if err := securityLabel(sb.ContainerEnvPath(), mountLabel, false, false); err != nil {
 			return nil, err
 		}
+
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/run/.containerenv",
 			Type:        "bind",
@@ -551,9 +585,11 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
 		}
+
 		if notifier != nil {
 			s.seccompNotifiers.Store(containerID, notifier)
 		}
+
 		seccompRef = ref
 	}
 
@@ -562,6 +598,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil {
 		return nil, err
 	}
+
 	if rdtClass != "" {
 		log.Debugf(ctx, "Setting RDT ClosID of container %s to %q", containerID, rdt.ResctrlPrefix+rdtClass)
 		// TODO: patch runtime-tools to support setting ClosID via a helper func similar to SetLinuxIntelRdtL3CacheSchema()
@@ -569,10 +606,12 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	}
 	// compute the runtime path for a given container
 	platform := containerInfo.Config.Platform.OS + "/" + containerInfo.Config.Platform.Architecture
+
 	runtimePath, err := s.ContainerServer.Runtime().PlatformRuntimePath(sb.RuntimeHandler(), platform)
 	if err != nil {
 		return nil, err
 	}
+
 	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
@@ -610,19 +649,24 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	// Pick it up from image config first and override if specified in CRI
 	containerCwd := "/"
 	imageCwd := containerImageConfig.Config.WorkingDir
+
 	if imageCwd != "" {
 		containerCwd = imageCwd
 	}
+
 	runtimeCwd := containerConfig.WorkingDir
 	if runtimeCwd != "" {
 		containerCwd = runtimeCwd
 	}
+
 	specgen.SetProcessCwd(containerCwd)
+
 	if err := setupWorkingDirectory(mountPoint, mountLabel, containerCwd); err != nil {
 		return nil, err
 	}
 
 	rootUID, rootGID := 0, 0
+
 	if containerIDMappings != nil {
 		rootPair := containerIDMappings.RootPair()
 		rootUID, rootGID = rootPair.UID, rootPair.GID
@@ -670,6 +714,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if err != nil {
 			return nil, err
 		}
+
 		setupSystemd(specgen.Mounts(), *specgen)
 	}
 
@@ -678,6 +723,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		for key, value := range containerConfig.Annotations {
 			newAnnotations[key] = value
 		}
+
 		for key, value := range sb.Annotations() {
 			newAnnotations[key] = value
 		}
@@ -701,6 +747,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		Name:    metadata.Name,
 		Attempt: metadata.Attempt,
 	}
+
 	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, someNameOfTheImage, &imageID, someRepoDigest, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
 	if err != nil {
 		return nil, err
@@ -712,12 +759,14 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.AddManagedPIDNamespace(ctr.PidNamespace())
 
 	ociContainer.SetIDMappings(containerIDMappings)
+
 	if containerIDMappings != nil {
 		s.finalizeUserMapping(sb, specgen, containerIDMappings)
 
 		for _, uidmap := range containerIDMappings.UIDs() {
 			specgen.AddLinuxUIDMapping(uint32(uidmap.HostID), uint32(uidmap.ContainerID), uint32(uidmap.Size))
 		}
+
 		for _, gidmap := range containerIDMappings.GIDs() {
 			specgen.AddLinuxGIDMapping(uint32(gidmap.HostID), uint32(gidmap.ContainerID), uint32(gidmap.Size))
 		}
@@ -730,15 +779,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	} else if err := specgen.RemoveLinuxNamespace(string(rspec.UserNamespace)); err != nil {
 		return nil, err
 	}
+
 	if v := sb.Annotations()[crioann.UmaskAnnotation]; v != "" {
 		umaskRegexp := regexp.MustCompile(`^[0-7]{1,4}$`)
 		if !umaskRegexp.MatchString(v) {
 			return nil, fmt.Errorf("invalid umask string %s", v)
 		}
+
 		decVal, err := strconv.ParseUint(sb.Annotations()[crioann.UmaskAnnotation], 8, 32)
 		if err != nil {
 			return nil, err
 		}
+
 		umask := uint32(decVal)
 		specgen.Config.Process.User.Umask = &umask
 	}
@@ -752,6 +804,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
+
 	if err == nil && !etc.IsDir() {
 		log.Warnf(ctx, "Detected /etc path for container %s is not a directory", ctr.ID())
 	}
@@ -770,6 +823,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 		if containerIDMappings != nil {
 			rootPair = containerIDMappings.RootPair()
 		}
+
 		if err := idtools.MkdirAllAndChown(etcPath, 0o755, rootPair); err != nil {
 			return nil, fmt.Errorf("failed to create container /etc directory: %w", err)
 		}
@@ -834,6 +888,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr ctrfactory.Cont
 	ociContainer.SetSpec(specgen.Config)
 	ociContainer.SetMountPoint(mountPoint)
 	ociContainer.SetSeccompProfilePath(seccompRef)
+
 	if runtimePath != "" {
 		ociContainer.SetRuntimePathForPlatform(runtimePath)
 	}
@@ -851,12 +906,15 @@ func setContainerConfigSecurityContext(containerConfig *types.ContainerConfig) {
 	if containerConfig.Linux == nil {
 		containerConfig.Linux = &types.LinuxContainerConfig{}
 	}
+
 	if containerConfig.Linux.SecurityContext == nil {
 		containerConfig.Linux.SecurityContext = newLinuxContainerSecurityContext()
 	}
+
 	if containerConfig.Linux.SecurityContext.NamespaceOptions == nil {
 		containerConfig.Linux.SecurityContext.NamespaceOptions = &types.NamespaceOption{}
 	}
+
 	if containerConfig.Linux.SecurityContext.SelinuxOptions == nil {
 		containerConfig.Linux.SecurityContext.SelinuxOptions = &types.SELinuxOption{}
 	}
@@ -871,6 +929,7 @@ func disableFipsForContainer(ctr ctrfactory.Container, containerDir string) erro
 	if err := os.WriteFile(fileName, content, 0o444); err != nil {
 		return fmt.Errorf("failed to write to file: %w", err)
 	}
+
 	ctr.SpecAddMount(rspec.Mount{
 		Destination: "/proc/sys/crypto/fips_enabled",
 		Source:      fileName,
@@ -886,10 +945,12 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 	if err != nil {
 		return fmt.Errorf("setting timezone for container %s: %w", containerID, err)
 	}
+
 	if localTimePath != "" {
 		if err := securityLabel(localTimePath, mountLabel, false, false); err != nil {
 			return err
 		}
+
 		ctr.SpecAddMount(rspec.Mount{
 			Destination: "/etc/localtime",
 			Type:        "bind",
@@ -897,6 +958,7 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 			Options:     append(options, []string{"bind", "nodev", "nosuid", "noexec"}...),
 		})
 	}
+
 	return nil
 }
 
@@ -905,14 +967,17 @@ func setupWorkingDirectory(rootfs, mountLabel, containerCwd string) error {
 	if err != nil {
 		return err
 	}
+
 	if err := os.MkdirAll(fp, 0o755); err != nil {
 		return err
 	}
+
 	if mountLabel != "" {
 		if err1 := securityLabel(fp, mountLabel, false, false); err1 != nil {
 			return err1
 		}
 	}
+
 	return nil
 }
 
@@ -922,12 +987,14 @@ func setOCIBindMountsPrivileged(g *generate.Generator) {
 	for i := range spec.Mounts {
 		clearReadOnly(&spec.Mounts[i])
 	}
+
 	spec.Linux.ReadonlyPaths = nil
 	spec.Linux.MaskedPaths = nil
 }
 
 func clearReadOnly(m *rspec.Mount) {
 	var opt []string
+
 	for _, o := range m.Options {
 		if o == "rw" {
 			return
@@ -935,6 +1002,7 @@ func clearReadOnly(m *rspec.Mount) {
 			opt = append(opt, o)
 		}
 	}
+
 	m.Options = opt
 	m.Options = append(m.Options, "rw")
 }
@@ -960,22 +1028,27 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	for _, m := range mounts {
 		mountSet[filepath.Clean(m.ContainerPath)] = struct{}{}
 	}
+
 	defaultMounts := specgen.Mounts()
 	specgen.ClearMounts()
+
 	for _, m := range defaultMounts {
 		dst := filepath.Clean(m.Destination)
 		if _, ok := mountSet[dst]; ok {
 			// filter out mount overridden by a supplied mount
 			continue
 		}
+
 		if _, mountDev := mountSet["/dev"]; mountDev && strings.HasPrefix(dst, "/dev/") {
 			// filter out everything under /dev if /dev is a supplied mount
 			continue
 		}
+
 		if _, mountSys := mountSet["/sys"]; mountSys && strings.HasPrefix(dst, "/sys/") {
 			// filter out everything under /sys if /sys is a supplied mount
 			continue
 		}
+
 		specgen.AddMount(m)
 	}
 
@@ -994,17 +1067,22 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if dest == "" {
 			return nil, nil, errors.New("mount.ContainerPath is empty")
 		}
+
 		if m.Image != nil && m.Image.Image != "" {
 			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m)
 			if err != nil {
 				return nil, nil, fmt.Errorf("mount image: %w", err)
 			}
+
 			volumes = append(volumes, *volume)
+
 			continue
 		}
+
 		if m.HostPath == "" {
 			return nil, nil, errors.New("mount.HostPath is empty")
 		}
+
 		if m.HostPath == "/" && dest == "/" {
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
@@ -1023,6 +1101,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			if !os.IsNotExist(err) {
 				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
+
 			for _, toReject := range absentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
@@ -1030,6 +1109,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 					return nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
 				}
 			}
+
 			if !ctr.Restore() {
 				// Although this would also be really helpful for restoring containers
 				// it is problematic as during restore external bind mounts need to be
@@ -1056,7 +1136,9 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			if err := ensureShared(src, mountInfos); err != nil {
 				return nil, nil, err
 			}
+
 			options = append(options, "rshared")
+
 			if err := specgen.SetLinuxRootPropagation("rshared"); err != nil {
 				return nil, nil, err
 			}
@@ -1064,7 +1146,9 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
 				return nil, nil, err
 			}
+
 			options = append(options, "rslave")
+
 			if specgen.Config.Linux.RootfsPropagation != "rshared" &&
 				specgen.Config.Linux.RootfsPropagation != "rslave" {
 				if err := specgen.SetLinuxRootPropagation("rslave"); err != nil {
@@ -1073,6 +1157,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			}
 		default:
 			log.Warnf(ctx, "Unknown propagation mode for hostPath %q", m.HostPath)
+
 			options = append(options, "rprivate")
 		}
 
@@ -1086,12 +1171,14 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 					m.HostPath,
 				)
 			}
+
 			if m.Propagation != types.MountPropagation_PROPAGATION_PRIVATE {
 				return nil, nil, fmt.Errorf(
 					"recursive read-only mount requires private propagation for hostPath %q, got: %s",
 					m.HostPath, m.Propagation,
 				)
 			}
+
 			options = append(options, "rro")
 		case m.RecursiveReadOnly:
 			return nil, nil, fmt.Errorf(
@@ -1126,9 +1213,11 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 		uidMappings := getOCIMappings(m.UidMappings)
 		gidMappings := getOCIMappings(m.GidMappings)
+
 		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
 			return nil, nil, errors.New("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
 		}
+
 		ociMounts = append(ociMounts, rspec.Mount{
 			Source:      src,
 			Destination: dest,
@@ -1151,6 +1240,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		} else {
 			m.Options = append(m.Options, "ro")
 		}
+
 		specgen.AddMount(m)
 	}
 
@@ -1164,6 +1254,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}
 
 	log.Debugf(ctx, "Image ref to mount: %s", m.Image.Image)
+
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: m.Image.Image})
 	if err != nil {
 		return nil, fmt.Errorf("get storage image status: %w", err)
@@ -1178,13 +1269,16 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
+
 	mountPoint, err := s.ContainerServer.Store().MountImage(imageID, options, "")
 	if err != nil {
 		return nil, fmt.Errorf("mount storage: %w", err)
 	}
+
 	log.Infof(ctx, "Image mounted to: %s", mountPoint)
 
 	const overlay = "overlay"
+
 	specgen.AddMount(rspec.Mount{
 		Type:        overlay,
 		Source:      overlay,
@@ -1211,9 +1305,11 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (string, error) {
 	// Check if we need to anything at all
 	noop := true
+
 	for _, m := range mounts {
 		if m.Image != nil && m.Image.Image != "" {
 			noop = false
+
 			break
 		}
 	}
@@ -1238,6 +1334,7 @@ func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mou
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
 		return "", fmt.Errorf("unable to read dir names of image volumes path %s: %w", imageVolumesPath, err)
 	}
+
 	if readErr == nil {
 		return "", fmt.Errorf("image volumes path %s is not empty", imageVolumesPath)
 	}
@@ -1249,6 +1346,7 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 	if len(m) == 0 {
 		return nil
 	}
+
 	ids := make([]rspec.LinuxIDMapping, 0, len(m))
 	for _, m := range m {
 		ids = append(ids, rspec.LinuxIDMapping{
@@ -1257,6 +1355,7 @@ func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
 			Size:        m.Length,
 		})
 	}
+
 	return ids
 }
 
@@ -1267,6 +1366,7 @@ func mountExists(specMounts []rspec.Mount, dest string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -1274,10 +1374,12 @@ func mountExists(specMounts []rspec.Mount, dest string) bool {
 // It also expects to be able to write to /sys/fs/cgroup/systemd and /var/log/journal.
 func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 	options := []string{"rw", "rprivate", "noexec", "nosuid", "nodev"}
+
 	for _, dest := range []string{"/run", "/run/lock"} {
 		if mountExists(mounts, dest) {
 			continue
 		}
+
 		tmpfsMnt := rspec.Mount{
 			Destination: dest,
 			Type:        "tmpfs",
@@ -1286,10 +1388,12 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 		}
 		g.AddMount(tmpfsMnt)
 	}
+
 	for _, dest := range []string{"/tmp", "/var/log/journal"} {
 		if mountExists(mounts, dest) {
 			continue
 		}
+
 		tmpfsMnt := rspec.Mount{
 			Destination: dest,
 			Type:        "tmpfs",
@@ -1322,8 +1426,10 @@ func setupSystemd(mounts []rspec.Mount, g generate.Generator) {
 			}
 			g.AddMount(systemdMnt)
 		}
+
 		g.AddLinuxMaskedPaths(filepath.Join(cgroupSysFsSystemdPath, "release_agent"))
 	}
+
 	g.AddProcessEnv("container", "crio")
 }
 
@@ -1333,6 +1439,7 @@ func hasCgroupMount(mounts []rspec.Mount) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -1342,6 +1449,7 @@ func isBindMount(mountOptions []string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -1376,9 +1484,11 @@ func isSubDirectoryOf(base, target string) bool {
 	if !strings.HasSuffix(target, "/") {
 		target += "/"
 	}
+
 	if !strings.HasSuffix(base, "/") {
 		base += "/"
 	}
+
 	return strings.HasPrefix(base, target)
 }
 
@@ -1399,6 +1509,7 @@ func (s *Server) getSpecGen(ctr ctrfactory.Container, containerConfig *types.Con
 		// WORK ON: Use "overlay" mounts as an alternative to tmpfs with tmpcopyup
 		// Look at https://github.com/cri-o/cri-o/pull/1434#discussion_r177200245 for more info on this
 		options := []string{"rw", "noexec", "nosuid", "nodev", "tmpcopyup"}
+
 		mounts := map[string]string{
 			"/run":     "mode=0755",
 			"/tmp":     "mode=1777",
@@ -1430,6 +1541,7 @@ func (s *Server) specSetApparmorProfile(ctx context.Context, specgen *generate.G
 		log.Debugf(ctx, "Applied AppArmor profile %s to container %s", profile, ctr.ID())
 		specgen.SetProcessApparmorProfile(profile)
 	}
+
 	return nil
 }
 
@@ -1442,14 +1554,17 @@ func (s *Server) specSetBlockioClass(specgen *generate.Generator, containerName 
 					return err
 				}
 			}
+
 			if linuxBlockIO, err := blockio.OciLinuxBlockIO(blockioClass); err == nil {
 				if specgen.Config.Linux.Resources == nil {
 					specgen.Config.Linux.Resources = &rspec.LinuxResources{}
 				}
+
 				specgen.Config.Linux.Resources.BlockIO = linuxBlockIO
 			}
 		}
 	}
+
 	return nil
 }
 

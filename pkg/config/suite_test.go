@@ -34,7 +34,9 @@ func validConmonPath() string {
 	if errors.Is(err, exec.ErrNotFound) {
 		Skip("conmon not found in $PATH")
 	}
+
 	Expect(err).ToNot(HaveOccurred())
+
 	return conmonPath
 }
 
@@ -58,5 +60,6 @@ func defaultConfig() *config.Config {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(c).NotTo(BeNil())
 	t.EnsureRuntimeDeps()
+
 	return c
 }

@@ -41,6 +41,7 @@ func (c *Config) WithTracing(enable bool) *Config {
 	if c != nil {
 		c.withTracing = enable
 	}
+
 	return c
 }
 
@@ -50,15 +51,19 @@ func (c *Config) ToOptions() []nri.Option {
 	if c != nil && c.SocketPath != "" {
 		opts = append(opts, nri.WithSocketPath(c.SocketPath))
 	}
+
 	if c != nil && c.PluginPath != "" {
 		opts = append(opts, nri.WithPluginPath(c.PluginPath))
 	}
+
 	if c != nil && c.PluginConfigPath != "" {
 		opts = append(opts, nri.WithPluginConfigPath(c.PluginConfigPath))
 	}
+
 	if c != nil && c.DisableConnections {
 		opts = append(opts, nri.WithDisabledExternalConnections())
 	}
+
 	if c.withTracing {
 		opts = append(opts,
 			nri.WithTTRPCOptions(
@@ -75,6 +80,7 @@ func (c *Config) ToOptions() []nri.Option {
 			),
 		)
 	}
+
 	return opts
 }
 
@@ -82,6 +88,7 @@ func (c *Config) ConfigureTimeouts() {
 	if c.PluginRegistrationTimeout != 0 {
 		nri.SetPluginRegistrationTimeout(c.PluginRegistrationTimeout)
 	}
+
 	if c.PluginRequestTimeout != 0 {
 		nri.SetPluginRequestTimeout(c.PluginRequestTimeout)
 	}

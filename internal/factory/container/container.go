@@ -158,6 +158,7 @@ func New() (Container, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &container{
 		spec: spec,
 	}, nil
@@ -186,6 +187,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	if err != nil {
 		return err
 	}
+
 	logPath, err := c.LogPath(sb.LogDir())
 	if err != nil {
 		return err
@@ -214,6 +216,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 				"Annotation key for container %q rewritten to %q (value is: %q)",
 				c.config.Metadata.Name, annotations.OCISeccompBPFHookAnnotation, v,
 			)
+
 			c.config.Annotations[annotations.OCISeccompBPFHookAnnotation] = v
 			c.spec.AddAnnotation(annotations.OCISeccompBPFHookAnnotation, v)
 		} else {
@@ -222,10 +225,12 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	}
 
 	c.spec.AddAnnotation(annotations.UserRequestedImage, userRequestedImage)
+
 	someNameOfThisImage := ""
 	if imageResult.SomeNameOfThisImage != nil {
 		someNameOfThisImage = imageResult.SomeNameOfThisImage.StringForOutOfProcessConsumptionOnly()
 	}
+
 	c.spec.AddAnnotation(annotations.SomeNameOfTheImage, someNameOfThisImage)
 	c.spec.AddAnnotation(annotations.ImageRef, imageResult.ID.IDStringForOutOfProcessConsumptionOnly())
 	c.spec.AddAnnotation(annotations.Name, c.Name())
@@ -249,32 +254,38 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 	if err != nil {
 		return err
 	}
+
 	c.spec.AddAnnotation(annotations.Metadata, string(metadataJSON))
 
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
 		return err
 	}
+
 	c.spec.AddAnnotation(annotations.Labels, string(labelsJSON))
 
 	volumesJSON, err := json.Marshal(containerVolumes)
 	if err != nil {
 		return err
 	}
+
 	c.spec.AddAnnotation(annotations.Volumes, string(volumesJSON))
 
 	kubeAnnotationsJSON, err := json.Marshal(kubeAnnotations)
 	if err != nil {
 		return err
 	}
+
 	c.spec.AddAnnotation(annotations.Annotations, string(kubeAnnotationsJSON))
 
 	for k, v := range kubeAnnotations {
 		c.spec.AddAnnotation(k, v)
 	}
+
 	for k, v := range labels {
 		c.spec.AddAnnotation(k, v)
 	}
+
 	for idx, ip := range sb.IPs() {
 		c.spec.AddAnnotation(fmt.Sprintf("%s.%d", annotations.IP, idx), ip)
 	}
@@ -285,6 +296,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 			// https://github.com/opencontainers/runc/pull/2224
 			c.spec.AddAnnotation("org.systemd.property.TimeoutStopUSec", "uint64 "+t+"000000") // sec to usec
 		}
+
 		c.spec.AddAnnotation("org.systemd.property.DefaultDependencies", "true")
 		c.spec.AddAnnotation("org.systemd.property.After", "['crio.service']")
 	}
@@ -329,6 +341,7 @@ func (c *container) SetConfig(cfg *types.ContainerConfig, sboxConfig *types.PodS
 
 	c.config = cfg
 	c.sboxConfig = sboxConfig
+
 	return nil
 }
 
@@ -352,6 +365,7 @@ func (c *container) SetNameAndID(oldID string) error {
 	} else {
 		id = oldID
 	}
+
 	name := strings.Join([]string{
 		"k8s",
 		c.config.Metadata.Name,
@@ -363,6 +377,7 @@ func (c *container) SetNameAndID(oldID string) error {
 
 	c.id = id
 	c.name = name
+
 	return nil
 }
 
@@ -402,9 +417,11 @@ func (c *container) SetPrivileged() error {
 	if c.config == nil {
 		return nil
 	}
+
 	if c.config.Linux == nil {
 		return nil
 	}
+
 	if c.config.Linux.SecurityContext == nil {
 		return nil
 	}
@@ -425,8 +442,10 @@ func (c *container) SetPrivileged() error {
 		if !c.sboxConfig.Linux.SecurityContext.Privileged {
 			return errors.New("no privileged container allowed in sandbox")
 		}
+
 		c.privileged = true
 	}
+
 	return nil
 }
 
@@ -463,6 +482,7 @@ func (c *container) LogPath(sboxLogDir string) (string, error) {
 	logrus.Debugf("Setting container's log_path = %s, sbox.logdir = %s, ctr.logfile = %s",
 		sboxLogDir, c.config.LogPath, logPath,
 	)
+
 	return logPath, nil
 }
 
@@ -471,6 +491,7 @@ func (c *container) DisableFips() bool {
 	if value, ok := c.sboxConfig.Labels["FIPS_DISABLE"]; ok && value == "true" {
 		return true
 	}
+
 	return false
 }
 
@@ -486,6 +507,7 @@ func (c *container) UserRequestedImage() (string, error) {
 	if image == "" {
 		return "", errors.New("CreateContainerRequest.ContainerConfig.Image.Image is empty")
 	}
+
 	return image, nil
 }
 
@@ -497,6 +519,7 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 	if c.config.Linux != nil && c.config.Linux.SecurityContext.ReadonlyRootfs {
 		return true
 	}
+
 	return serverIsReadOnly
 }
 
@@ -511,6 +534,7 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for _, r := range labelOptions {
 		k := strings.Split(r, ":")[0]
 		labels[k] = r
@@ -522,10 +546,12 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 			labels[k] = r
 		}
 	}
+
 	ret := []string{}
 	for _, v := range labels {
 		ret = append(ret, v)
 	}
+
 	return ret, nil
 }
 
@@ -534,12 +560,14 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 	if c.config == nil || c.config.Labels == nil {
 		return nil
 	}
+
 	containerName := c.config.Labels[kubeletTypes.KubernetesContainerNameLabel]
 	if containerName == "" {
 		return nil
 	}
 
 	annotationKey := fmt.Sprintf("%s.%s", annotations.UnifiedCgroupAnnotation, containerName)
+
 	annotation := annotationsMap[annotationKey]
 	if annotation == "" {
 		return nil
@@ -548,17 +576,21 @@ func (c *container) AddUnifiedResourcesFromAnnotations(annotationsMap map[string
 	if c.spec.Config.Linux == nil {
 		c.spec.Config.Linux = &rspec.Linux{}
 	}
+
 	if c.spec.Config.Linux.Resources == nil {
 		c.spec.Config.Linux.Resources = &rspec.LinuxResources{}
 	}
+
 	if c.spec.Config.Linux.Resources.Unified == nil {
 		c.spec.Config.Linux.Resources.Unified = make(map[string]string)
 	}
+
 	for _, r := range strings.Split(annotation, ";") {
 		parts := strings.SplitN(r, "=", 2)
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid annotation %q", annotations.UnifiedCgroupAnnotation)
 		}
+
 		d, err := b64.StdEncoding.DecodeString(parts[1])
 		// if the value is not specified in base64, then use its raw value.
 		if err == nil {
@@ -584,6 +616,7 @@ func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
 			if len(kubeArgs) == 0 {
 				kubeArgs = imageOCIConfig.Config.Cmd
 			}
+
 			if kubeCommands == nil {
 				kubeCommands = imageOCIConfig.Config.Entrypoint
 			}
@@ -592,7 +625,9 @@ func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
 
 	// create entrypoint and args
 	var entrypoint string
+
 	var args []string
+
 	switch {
 	case len(kubeCommands) != 0:
 		entrypoint = kubeCommands[0]
@@ -606,6 +641,7 @@ func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
 	}
 
 	c.spec.SetProcessArgs(append([]string{entrypoint}, args...))
+
 	return nil
 }
 
@@ -613,6 +649,7 @@ func (c *container) SpecSetProcessArgs(imageOCIConfig *v1.Image) error {
 // are configured to be run as a systemd instance.
 func (c *container) WillRunSystemd() bool {
 	entrypoint := c.spec.Config.Process.Args[0]
+
 	return strings.Contains(entrypoint, "/sbin/init") || (filepath.Base(entrypoint) == "systemd")
 }
 
@@ -636,6 +673,7 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		if !strings.HasPrefix(strings.ToLower(cap), "cap_") {
 			return "CAP_" + strings.ToUpper(cap)
 		}
+
 		return cap
 	}
 
@@ -663,12 +701,15 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 			if err := specgen.AddProcessCapabilityBounding(c); err != nil {
 				return err
 			}
+
 			if err := specgen.AddProcessCapabilityEffective(c); err != nil {
 				return err
 			}
+
 			if err := specgen.AddProcessCapabilityPermitted(c); err != nil {
 				return err
 			}
+
 			if addInheritableCapabilities {
 				if err := specgen.AddProcessCapabilityInheritable(c); err != nil {
 					return err
@@ -676,17 +717,21 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 			}
 		}
 	}
+
 	if dropAll {
 		for _, c := range capabilitiesList {
 			if err := specgen.DropProcessCapabilityBounding(c); err != nil {
 				return err
 			}
+
 			if err := specgen.DropProcessCapabilityEffective(c); err != nil {
 				return err
 			}
+
 			if err := specgen.DropProcessCapabilityPermitted(c); err != nil {
 				return err
 			}
+
 			if addInheritableCapabilities {
 				if err := specgen.DropProcessCapabilityInheritable(c); err != nil {
 					return err
@@ -699,20 +744,25 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
+
 		capPrefixed := toCAPPrefixed(cap)
 		// Validate capability
 		if !inStringSlice(capabilitiesList, capPrefixed) {
 			return fmt.Errorf("unknown capability %q to add", capPrefixed)
 		}
+
 		if err := specgen.AddProcessCapabilityBounding(capPrefixed); err != nil {
 			return err
 		}
+
 		if err := specgen.AddProcessCapabilityEffective(capPrefixed); err != nil {
 			return err
 		}
+
 		if err := specgen.AddProcessCapabilityPermitted(capPrefixed); err != nil {
 			return err
 		}
+
 		if addInheritableCapabilities {
 			if err := specgen.AddProcessCapabilityInheritable(capPrefixed); err != nil {
 				return err
@@ -724,16 +774,20 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		if strings.EqualFold(cap, "ALL") {
 			continue
 		}
+
 		capPrefixed := toCAPPrefixed(cap)
 		if err := specgen.DropProcessCapabilityBounding(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
+
 		if err := specgen.DropProcessCapabilityEffective(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
+
 		if err := specgen.DropProcessCapabilityPermitted(capPrefixed); err != nil {
 			return fmt.Errorf("failed to drop cap %s %w", capPrefixed, err)
 		}
+
 		if addInheritableCapabilities {
 			if err := specgen.DropProcessCapabilityInheritable(capPrefixed); err != nil {
 				return err
@@ -752,18 +806,22 @@ func inStringSlice(ss []string, str string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
 // getOCICapabilitiesList returns a list of all available capabilities.
 func getOCICapabilitiesList() []string {
 	caps := make([]string, 0, len(capability.List()))
+
 	for _, cap := range capability.List() {
 		if cap > validate.LastCap() {
 			continue
 		}
+
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
+
 	return caps
 }
 
@@ -806,6 +864,7 @@ func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *type
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -820,7 +879,9 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		if err := cgmgr.VerifyMemoryIsEnough(memoryLimit, containerMinMemory); err != nil {
 			return err
 		}
+
 		specgen.SetLinuxResourcesMemoryLimit(memoryLimit)
+
 		if resources.MemorySwapLimitInBytes != 0 {
 			if resources.MemorySwapLimitInBytes > 0 && resources.MemorySwapLimitInBytes < resources.MemoryLimitInBytes {
 				return fmt.Errorf(
@@ -830,6 +891,7 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 					resources.MemoryLimitInBytes,
 				)
 			}
+
 			memoryLimit = resources.MemorySwapLimitInBytes
 		}
 		// If node doesn't have memory swap, then skip setting
@@ -855,9 +917,11 @@ func (c *container) SpecSetLinuxContainerResources(resources *types.LinuxContain
 		if specgen.Config.Linux.Resources.Unified == nil {
 			specgen.Config.Linux.Resources.Unified = make(map[string]string, len(resources.Unified))
 		}
+
 		for key, value := range resources.Unified {
 			specgen.Config.Linux.Resources.Unified[key] = value
 		}
 	}
+
 	return nil
 }

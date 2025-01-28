@@ -24,6 +24,7 @@ import (
 func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs []string, result cnitypes.Result, retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	overallStart := time.Now()
 	// Give a network Start call a full 5 minutes, independent of the context of the request.
 	// This is to prevent the CNI plugin from taking an unbounded amount of time,
@@ -35,6 +36,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	if initialDeadline, ok := ctx.Deadline(); ok {
 		startTimeout += time.Until(initialDeadline)
 	}
+
 	startCtx, startCancel := context.WithTimeout(context.Background(), startTimeout)
 	defer startCancel()
 
@@ -60,6 +62,7 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 	}()
 
 	podSetUpStart := time.Now()
+
 	_, err = s.config.CNIPlugin().SetUpPodWithContext(startCtx, podNetwork)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create pod network sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
@@ -115,16 +118,19 @@ func (s *Server) networkStart(ctx context.Context, sb *sandbox.Sandbox) (podIPs 
 				// found a new IPv4 address, do the portmap
 				foundIPv4 = true
 			}
+
 			err = s.hostportManager.Add(sbID, mapping)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to add hostport mapping for sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 			}
 		}
 	}
+
 	log.Debugf(ctx, "Found POD IPs: %v", podIPs)
 
 	// metric about the whole network setup operation
 	metrics.Instance().MetricOperationsLatencySet("network_setup_overall", overallStart)
+
 	return podIPs, result, err
 }
 
@@ -141,6 +147,7 @@ func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]stri
 	if err != nil {
 		return nil, err
 	}
+
 	podNetworkStatus, err := s.config.CNIPlugin().GetPodNetworkStatus(podNetwork)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get network status for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
@@ -164,6 +171,7 @@ func (s *Server) getSandboxIPs(ctx context.Context, sb *sandbox.Sandbox) ([]stri
 func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if sb.HostNetwork() || sb.NetworkStopped() {
 		return nil
 	}
@@ -185,6 +193,7 @@ func (s *Server) networkStop(ctx context.Context, sb *sandbox.Sandbox) error {
 	if err != nil {
 		return err
 	}
+
 	if err := s.config.CNIPlugin().TearDownPodWithContext(stopCtx, podNetwork); err != nil {
 		retErr := fmt.Errorf("failed to destroy network for pod sandbox %s(%s): %w", sb.Name(), sb.ID(), err)
 
@@ -209,6 +218,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 	defer span.End()
 
 	var egress, ingress int64
+
 	if val, ok := sb.Annotations()["kubernetes.io/egress-bandwidth"]; ok {
 		egressQ, err := resource.ParseQuantity(val)
 		if err != nil {
@@ -217,6 +227,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 			egress = iegress
 		}
 	}
+
 	if val, ok := sb.Annotations()["kubernetes.io/ingress-bandwidth"]; ok {
 		ingressQ, err := resource.ParseQuantity(val)
 		if err != nil {
@@ -234,6 +245,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 			bwConfig.IngressRate = uint64(ingress)
 			bwConfig.IngressBurst = math.MaxUint32*8 - 1 // 4GB burst limit
 		}
+
 		if egress > 0 {
 			bwConfig.EgressRate = uint64(egress)
 			bwConfig.EgressBurst = math.MaxUint32*8 - 1 // 4GB burst limit
@@ -246,6 +258,7 @@ func (s *Server) newPodNetwork(ctx context.Context, sb *sandbox.Sandbox) (ocicni
 	if podAnnotations == nil {
 		podAnnotations = make(map[string]string)
 	}
+
 	return ocicni.PodNetwork{
 		Name:      sb.KubeName(),
 		Namespace: sb.Namespace(),
@@ -271,13 +284,16 @@ func (s *Server) networkGC(ctx context.Context, validPods []*sandbox.Sandbox) er
 
 	return s.config.CNIPluginGC(ctx, func() ([]*ocicni.PodNetwork, error) {
 		validPodNetworks := make([]*ocicni.PodNetwork, len(validPods))
+
 		for i := range validPods {
 			podNetwork, err := s.newPodNetwork(ctx, validPods[i])
 			if err != nil {
 				return nil, err
 			}
+
 			validPodNetworks[i] = &podNetwork
 		}
+
 		return validPodNetworks, nil
 	})
 }
@@ -286,11 +302,15 @@ func (s *Server) networkGC(ctx context.Context, validPods []*sandbox.Sandbox) er
 func (s *Server) waitForCNIPlugin(ctx context.Context, sboxName string) error {
 	if err := s.config.CNIPluginReadyOrError(); err != nil {
 		watcher := s.config.CNIPluginAddWatcher()
+
 		log.Infof(ctx, "CNI plugin not ready. Waiting to create %s", sboxName)
+
 		if ready := <-watcher; !ready {
 			return fmt.Errorf("server shutdown before CNI plugin was ready: %w", err)
 		}
+
 		log.Infof(ctx, "CNI plugin is now ready. Continuing to create %s", sboxName)
 	}
+
 	return nil
 }

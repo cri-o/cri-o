@@ -53,6 +53,8 @@ func beforeEach() {
 	sbox.SetContainers(memorystore.New[*oci.Container]())
 	testSandbox, err = sbox.GetSandbox()
 	Expect(err).ToNot(HaveOccurred())
+
 	builder = sandbox.NewBuilder()
+
 	Expect(testSandbox).NotTo(BeNil())
 }

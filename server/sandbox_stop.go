@@ -18,11 +18,13 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 	defer span.End()
 	// platform dependent call
 	log.Infof(ctx, "Stopping pod sandbox: %s", req.PodSandboxId)
+
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		if errors.Is(err, sandbox.ErrIDEmpty) {
 			return nil, err
 		}
+
 		if errors.Is(err, errSandboxNotCreated) {
 			return nil, fmt.Errorf("StopPodSandbox failed as the sandbox is not created: %s", req.PodSandboxId)
 		}
@@ -33,8 +35,10 @@ func (s *Server) StopPodSandbox(ctx context.Context, req *types.StopPodSandboxRe
 
 		log.Warnf(ctx, "Could not get sandbox %s, it's probably been stopped already: %v", req.PodSandboxId, err)
 		log.Debugf(ctx, "StopPodSandboxResponse %s", req.PodSandboxId)
+
 		return &types.StopPodSandboxResponse{}, nil
 	}
+
 	if err := s.stopPodSandbox(ctx, sb); err != nil {
 		return nil, err
 	}

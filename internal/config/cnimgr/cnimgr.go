@@ -33,11 +33,13 @@ func New(defaultNetwork, networkDir string, pluginDirs ...string) (*CNIManager, 
 	if err != nil {
 		return nil, fmt.Errorf("initialize CNI plugin: %w", err)
 	}
+
 	mgr := &CNIManager{
 		plugin:    plugin,
 		lastError: errors.New("plugin status uninitialized"),
 	}
 	go mgr.pollUntilReady()
+
 	return mgr, nil
 }
 
@@ -49,11 +51,14 @@ func (c *CNIManager) pollUntilReady() {
 func (c *CNIManager) pollFunc() (bool, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
 	if c.shutdown {
 		return true, nil
 	}
+
 	if err := c.plugin.Status(); err != nil {
 		c.lastError = err
+
 		return false, nil
 	}
 	// on startup, GC might have been attempted before the plugin was actually
@@ -64,10 +69,12 @@ func (c *CNIManager) pollFunc() (bool, error) {
 	if err := c.doGC(context.Background()); err != nil {
 		logrus.Warnf("Garbage collect stale network resources during plugin startup failed: %v", err)
 	}
+
 	c.lastError = nil
 	for _, watcher := range c.watchers {
 		watcher <- true
 	}
+
 	return true, nil
 }
 
@@ -76,6 +83,7 @@ func (c *CNIManager) pollFunc() (bool, error) {
 func (c *CNIManager) ReadyOrError() error {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
+
 	return c.lastError
 }
 
@@ -90,6 +98,7 @@ func (c *CNIManager) Plugin() ocicni.CNIPlugin {
 func (c *CNIManager) AddWatcher() chan bool {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
 	watcher := make(chan bool, 1)
 	c.watchers = append(c.watchers, watcher)
 
@@ -101,6 +110,7 @@ func (c *CNIManager) AddWatcher() chan bool {
 func (c *CNIManager) Shutdown() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
 	c.shutdown = true
 	for _, watcher := range c.watchers {
 		watcher <- false
@@ -114,12 +124,14 @@ func (c *CNIManager) Shutdown() {
 func (c *CNIManager) GC(ctx context.Context, validPodList PodNetworkLister) error {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+
 	c.validPodList = validPodList
 	if c.lastError != nil {
 		// on startup, GC might be attempted before the plugin is actually ready
 		// so defer until it is (see pollFunc)
 		return nil
 	}
+
 	return c.doGC(ctx)
 }
 
@@ -127,6 +139,7 @@ func (c *CNIManager) doGC(ctx context.Context) error {
 	if c.validPodList == nil {
 		return nil
 	}
+
 	validPods, err := c.validPodList()
 	if err != nil {
 		return err
@@ -134,5 +147,6 @@ func (c *CNIManager) doGC(ctx context.Context) error {
 	// give a GC call 30s
 	stopCtx, stopCancel := context.WithTimeout(ctx, 30*time.Second)
 	defer stopCancel()
+
 	return c.plugin.GC(stopCtx, validPods)
 }

@@ -26,6 +26,7 @@ func NewServerStream(stream grpc.ServerStream) *ServerStream {
 	if existing, ok := stream.(*ServerStream); ok {
 		return existing
 	}
+
 	return &ServerStream{ServerStream: stream, NewContext: stream.Context()}
 }
 
@@ -76,6 +77,7 @@ func UnaryInterceptor() grpc.UnaryServerInterceptor {
 		}
 
 		span.End()
+
 		return resp, err
 	}
 }

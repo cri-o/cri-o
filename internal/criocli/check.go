@@ -57,6 +57,7 @@ func crioCheck(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("unable to open storage: %w", err)
 	}
+
 	defer func() {
 		if _, err := store.Shutdown(true); err != nil {
 			logrus.Errorf("Unable to shutdown storage: %v", err)
@@ -81,6 +82,7 @@ func crioCheck(c *cli.Context) error {
 		if err != nil {
 			return fmt.Errorf("unable to parse age duration: %w", err)
 		}
+
 		checkOptions.LayerUnreferencedMaximumAge = &age
 	}
 
@@ -110,6 +112,7 @@ func crioCheck(c *cli.Context) error {
 	if !c.Bool("repair") {
 		if seenStorageErrors {
 			logrus.Warnf("Errors found while checking storage directory %s for errors", graphRoot)
+
 			return fmt.Errorf(
 				"%d layer errors, %d read-only layer errors, %d image errors, %d read-only image errors, %d container errors",
 				len(report.Layers),
@@ -119,6 +122,7 @@ func crioCheck(c *cli.Context) error {
 				len(report.Containers),
 			)
 		}
+
 		return nil
 	}
 
@@ -126,6 +130,7 @@ func crioCheck(c *cli.Context) error {
 	if force {
 		logrus.Warn("The `force` option has been set, repair will attempt to remove damaged containers")
 	}
+
 	logrus.Infof("Attempting to repair storage directory %s", graphRoot)
 
 	errs := store.Repair(report, &storage.RepairOptions{
@@ -143,7 +148,9 @@ func crioCheck(c *cli.Context) error {
 			if force {
 				logrus.Warn("The `force` option has been set, storage directory will be forcefully removed")
 			}
+
 			logrus.Infof("Wiping storage directory %s", graphRoot)
+
 			return lib.RemoveStorageDirectory(config, store, force)
 		}
 
@@ -159,6 +166,7 @@ func crioCheck(c *cli.Context) error {
 				len(report.ROImages),
 			)
 		}
+
 		return fmt.Errorf(
 			"%d read-only layer errors, %d read-only image errors, %d container errors",
 			len(report.ROLayers),

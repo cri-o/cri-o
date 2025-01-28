@@ -26,16 +26,19 @@ func Tracer() trace.Tracer {
 // InitTracing configures opentelemetry exporter and tracer provider.
 func InitTracing(ctx context.Context, collectorAddress string, samplingRate int) (*sdktrace.TracerProvider, []otelgrpc.Option, error) {
 	var tp *sdktrace.TracerProvider
+
 	hostname, err := os.Hostname()
 	if err != nil {
 		return nil, nil, fmt.Errorf("get hostname: %w", err)
 	}
+
 	res := resource.NewWithAttributes(
 		semconv.SchemaURL,
 		semconv.ServiceNameKey.String(tracingServiceName),
 		semconv.HostNameKey.String(hostname),
 		semconv.ProcessPIDKey.Int64(int64(os.Getpid())),
 	)
+
 	exporter, err := otlptracegrpc.New(ctx,
 		otlptracegrpc.WithEndpoint(collectorAddress),
 		otlptracegrpc.WithInsecure(),
@@ -58,8 +61,10 @@ func InitTracing(ctx context.Context, collectorAddress string, samplingRate int)
 		sdktrace.WithResource(res),
 	)
 	tmp := propagation.NewCompositeTextMapPropagator(propagation.TraceContext{}, propagation.Baggage{})
+
 	otel.SetTracerProvider(tp)
 	otel.SetTextMapPropagator(tmp)
 	opts := []otelgrpc.Option{otelgrpc.WithPropagators(tmp), otelgrpc.WithTracerProvider(tp)}
+
 	return tp, opts, nil
 }

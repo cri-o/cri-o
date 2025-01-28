@@ -44,6 +44,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 	}
 
 	configFile := filepath.Join(ctr.BundlePath(), "config.json")
+
 	specgen, err := generate.NewFromFile(configFile)
 	if err != nil {
 		return "", fmt.Errorf("not able to read config for container %q: %w", ctr.ID(), err)
@@ -67,10 +68,12 @@ func (c *ContainerServer) ContainerCheckpoint(
 	if err = c.runtime.PauseContainer(ctx, ctr); err != nil {
 		return "", fmt.Errorf("failed to pause container %q before checkpointing: %w", ctr.ID(), err)
 	}
+
 	defer func() {
 		if err := c.runtime.UpdateContainerStatus(ctx, ctr); err != nil {
 			log.Errorf(ctx, "Failed to update container status: %q: %v", ctr.ID(), err)
 		}
+
 		if ctr.State().Status == oci.ContainerStatePaused {
 			err := c.runtime.UnpauseContainer(ctx, ctr)
 			if err != nil {
@@ -92,10 +95,12 @@ func (c *ContainerServer) ContainerCheckpoint(
 	if err := c.runtime.CheckpointContainer(ctx, ctr, specgen.Config, opts.KeepRunning); err != nil {
 		return "", fmt.Errorf("failed to checkpoint container %s: %w", ctr.ID(), err)
 	}
+
 	if opts.TargetFile != "" {
 		if err := c.exportCheckpoint(ctx, ctr, specgen.Config, opts.TargetFile); err != nil {
 			return "", fmt.Errorf("failed to write file system changes of container %s: %w", ctr.ID(), err)
 		}
+
 		defer func() {
 			// clean up checkpoint directory
 			if err := os.RemoveAll(ctr.CheckpointPath()); err != nil {
@@ -103,6 +108,7 @@ func (c *ContainerServer) ContainerCheckpoint(
 			}
 		}()
 	}
+
 	if !opts.KeepRunning {
 		if err := c.storageRuntimeServer.StopContainer(ctx, ctr.ID()); err != nil {
 			return "", fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
@@ -145,6 +151,7 @@ func skipBindMount(mountPath string, specgen *rspec.Spec) bool {
 		if m.Type != bindMount {
 			continue
 		}
+
 		if m.Destination == mountPath {
 			return true
 		}
@@ -160,18 +167,22 @@ func (c *ContainerServer) getDiff(ctx context.Context, id string, specgen *rspec
 	if err != nil {
 		return nil, err
 	}
+
 	changes, err := c.store.Changes("", layerID)
 	if err == nil {
 		for _, c := range changes {
 			if skipBindMount(c.Path, specgen) {
 				continue
 			}
+
 			if containerMounts[c.Path] {
 				continue
 			}
+
 			rchanges = append(rchanges, c)
 		}
 	}
+
 	return rchanges, err
 }
 
@@ -188,10 +199,12 @@ type ExternalBindMount struct {
 func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	// save spec
 	jsonPath := filepath.Join(ctr.BundlePath(), "config.json")
+
 	g, err := generate.NewFromFile(jsonPath)
 	if err != nil {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
+
 	if _, err := metadata.WriteJSONFile(g.Config, ctr.Dir(), metadata.SpecDumpFile); err != nil {
 		return fmt.Errorf("generating spec for container %q failed: %w", ctr.ID(), err)
 	}
@@ -200,10 +213,12 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	if id := ctr.ImageID(); id != nil {
 		rootFSImageRef = id.IDStringForOutOfProcessConsumptionOnly()
 	}
+
 	rootFSImageName := ""
 	if someNameOfTheImage := ctr.SomeNameOfTheImage(); someNameOfTheImage != nil {
 		rootFSImageName = someNameOfTheImage.StringForOutOfProcessConsumptionOnly()
 	}
+
 	config := &metadata.ContainerConfig{
 		ID:              ctr.ID(),
 		Name:            ctr.Name(),
@@ -216,6 +231,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 			if runtimeHandler != "" {
 				return runtimeHandler
 			}
+
 			return c.config.DefaultRuntime
 		}(),
 		CheckpointedAt: time.Now(),
@@ -236,13 +252,16 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 	// way it is possible to know if a missing bind mount needs to be a file or a
 	// directory.
 	var externalBindMounts []ExternalBindMount //nolint:prealloc
+
 	for _, m := range g.Config.Mounts {
 		if containerMounts[m.Destination] {
 			continue
 		}
+
 		if m.Type != bindMount {
 			continue
 		}
+
 		fileInfo, err := os.Stat(m.Source)
 		if err != nil {
 			return fmt.Errorf("unable to stat() %q: %w", m.Source, err)
@@ -257,6 +276,7 @@ func (c *ContainerServer) prepareCheckpointExport(ctr *oci.Container) error {
 					if fileInfo.Mode().IsDir() {
 						return "directory"
 					}
+
 					return "file"
 				}(),
 				Permissions: uint32(fileInfo.Mode().Perm()),
@@ -292,10 +312,12 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 	if err != nil {
 		return fmt.Errorf("error exporting root file-system diff for %q: %w", id, err)
 	}
+
 	mountPoint, err := c.StorageImageServer().GetStore().Mount(id, specgen.Linux.MountLabel)
 	if err != nil {
 		return fmt.Errorf("not able to get mountpoint for container %q: %w", id, err)
 	}
+
 	addToTarFiles, err := crutils.CRCreateRootFsDiffTar(&rootFsChanges, mountPoint, dest)
 	if err != nil {
 		return err
@@ -308,17 +330,23 @@ func (c *ContainerServer) exportCheckpoint(ctx context.Context, ctr *oci.Contain
 		if err != nil {
 			return fmt.Errorf("error opening log file %q: %w", specgen.Annotations[annotations.LogPath], err)
 		}
+
 		defer src.Close()
+
 		destLogPath := filepath.Join(dest, annotations.LogPath)
+
 		destLog, err := os.Create(destLogPath)
 		if err != nil {
 			return fmt.Errorf("error opening log file %q: %w", destLogPath, err)
 		}
+
 		defer destLog.Close()
+
 		_, err = io.Copy(destLog, src)
 		if err != nil {
 			return fmt.Errorf("copying log file to %q failed: %w", destLogPath, err)
 		}
+
 		addToTarFiles = append(addToTarFiles, annotations.LogPath)
 	}
 

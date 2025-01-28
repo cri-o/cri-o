@@ -29,6 +29,7 @@ func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecR
 func (s *StreamService) Exec(ctx context.Context, containerID string, cmd []string, stdin io.Reader, stdout, stderr io.WriteCloser, tty bool, resizeChan <-chan remotecommand.TerminalSize) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	c, err := s.runtimeServer.ContainerServer.GetContainerFromShortID(ctx, containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)

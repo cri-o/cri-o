@@ -30,6 +30,7 @@ func (s *SpoofedNamespace) Path() string {
 	if s.EmptyPath {
 		return ""
 	}
+
 	return filepath.Join("tmp", string(s.NsType))
 }
 
@@ -57,10 +58,12 @@ func ContainerWithPid(pid int) (*oci.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	imageID, err := storage.ParseStorageImageIDFromOutOfProcessData("2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812")
 	if err != nil {
 		return nil, err
 	}
+
 	testContainer, err := oci.NewContainer("testid", "testname", "",
 		"/container/logs", map[string]string{},
 		map[string]string{}, map[string]string{}, "image",
@@ -70,6 +73,7 @@ func ContainerWithPid(pid int) (*oci.Container, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	cstate := &oci.ContainerState{}
 	cstate.State = specs.State{
 		Pid: pid,

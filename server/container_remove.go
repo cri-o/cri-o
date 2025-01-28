@@ -33,6 +33,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 		if errors.Is(err, truncindex.ErrNotExist) {
 			return &types.RemoveContainerResponse{}, nil
 		}
+
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
 
@@ -46,12 +47,14 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 
 	s.generateCRIEvent(ctx, c, types.ContainerEventType_CONTAINER_DELETED_EVENT)
 	log.Infof(ctx, "Removed container %s: %s", c.ID(), c.Description())
+
 	return &types.RemoveContainerResponse{}, nil
 }
 
 func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, c *oci.Container) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	if !sb.Stopped() {
 		if err := s.stopContainer(ctx, c, stopTimeoutFromContext(ctx)); err != nil {
 			return fmt.Errorf("failed to stop container for removal %w", err)
@@ -84,9 +87,11 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 
 	s.ContainerServer.ReleaseContainerName(ctx, c.Name())
 	s.removeContainer(ctx, c)
+
 	if err := s.ContainerServer.CtrIDIndex().Delete(c.ID()); err != nil {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %w", c.Name(), sb.ID(), err)
 	}
+
 	sb.RemoveContainer(ctx, c)
 
 	return nil

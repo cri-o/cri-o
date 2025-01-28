@@ -34,9 +34,11 @@ func validateLabels(labels map[string]string) error {
 			if len(k) > 10 {
 				k = k[:10]
 			}
+
 			return fmt.Errorf("label key and value greater than maximum size (%d bytes), key: %s", maxLabelSize, k)
 		}
 	}
+
 	return nil
 }
 
@@ -49,35 +51,44 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 			if item.Key == "" {
 				continue
 			}
+
 			envs = append(envs, item.Key+"="+item.Value)
 		}
+
 		if imageConfig != nil {
 			for _, imageEnv := range imageConfig.Config.Env {
 				var found bool
+
 				parts := strings.SplitN(imageEnv, "=", 2)
 				if len(parts) != 2 {
 					continue
 				}
+
 				imageEnvKey := parts[0]
 				if imageEnvKey == "" {
 					continue
 				}
+
 				for _, kubeEnv := range envs {
 					kubeEnvKey := strings.SplitN(kubeEnv, "=", 2)[0]
 					if kubeEnvKey == "" {
 						continue
 					}
+
 					if imageEnvKey == kubeEnvKey {
 						found = true
+
 						break
 					}
 				}
+
 				if !found {
 					envs = append(envs, imageEnv)
 				}
 			}
 		}
 	}
+
 	return envs
 }
 
@@ -85,6 +96,7 @@ func mergeEnvs(imageConfig *v1.Image, kubeEnvs []*types.KeyValue) []string {
 func getDecryptionKeys(keysPath string) (*encconfig.DecryptConfig, error) {
 	if _, err := os.Stat(keysPath); os.IsNotExist(err) {
 		logrus.Debugf("Skipping non-existing decryption_keys_path: %s", keysPath)
+
 		return &encconfig.DecryptConfig{}, nil
 	}
 
@@ -138,6 +150,7 @@ func getSourceMount(source string, mountinfos []*mount.Info) (path, optional str
 			}
 		}
 	}
+
 	if res == nil {
 		return "", "", fmt.Errorf("could not find source mount of %s", source)
 	}
@@ -164,14 +177,18 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 
 	if cachedID := s.resourceStore.Get(name); cachedID != "" {
 		log.Infof(ctx, "Found %s %s with ID %s in resource cache; using it", resourceType, name, cachedID)
+
 		return cachedID, nil
 	}
+
 	watcher, stage := s.resourceStore.WatcherForResource(name)
 	if watcher == nil {
 		return "", fmt.Errorf("error attempting to watch for %s %s: no longer found", resourceType, name)
 	}
+
 	log.Infof(ctx, "Creation of %s %s not yet finished. Currently at stage %v. Waiting up to %v for it to finish", resourceType, name, stage, resourceCreationWaitTime)
 	metrics.Instance().MetricResourcesStalledAtStage(stage)
+
 	var err error
 	select {
 	// We should wait as long as we can (within reason), thus stalling the kubelet's sync loop.
@@ -196,6 +213,7 @@ func (s *Server) getResourceOrWait(ctx context.Context, name, resourceType strin
 		case <-time.After(resourceCreationWaitTime):
 		case <-ctx.Done():
 		}
+
 		err = fmt.Errorf("the requested %s %s is now ready and will be provided to the kubelet on next retry", resourceType, name)
 	}
 
@@ -216,6 +234,7 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 	if err != nil {
 		return err
 	}
+
 	allowed = append(allowed, s.config.Workloads.AllowedAnnotations(toFind)...)
 
 	return s.config.Workloads.FilterDisallowedAnnotations(allowed, toFilter)
@@ -227,10 +246,12 @@ func (s *Server) FilterDisallowedAnnotations(toFind, toFilter map[string]string,
 func stopTimeoutFromContext(ctx context.Context) int64 {
 	timeout := int64(defaultStopTimeout)
 	deadline, ok := ctx.Deadline()
+
 	if ok {
 		timeout = time.Until(deadline).Milliseconds() / 1000
 	}
 
 	log.Debugf(ctx, "Using stop timeout: %v", timeout)
+
 	return timeout
 }

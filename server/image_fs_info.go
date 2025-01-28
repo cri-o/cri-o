@@ -16,7 +16,9 @@ func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {
 	rootPath := store.GraphRoot()
 	imagePath := store.ImageStore()
 	storageDriver := store.GraphDriverName()
+
 	var graphRootPath string
+
 	if imagePath == "" {
 		graphRootPath = path.Join(rootPath, storageDriver+"-images")
 	} else {
@@ -34,23 +36,27 @@ func getStorageFsInfo(store storage.Store) (*types.ImageFsInfoResponse, error) {
 			ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
 		}, nil
 	}
+
 	resp := &types.ImageFsInfoResponse{
 		ContainerFilesystems: []*types.FilesystemUsage{graphUsage},
 	}
 
 	imageRoot := path.Join(imagePath, storageDriver+"-images")
+
 	imageUsage, err := getUsage(imageRoot)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get usage for %s: %w", imageRoot, err)
 	}
 
 	resp.ImageFilesystems = []*types.FilesystemUsage{imageUsage}
+
 	return resp, nil
 }
 
 // ImageFsInfo returns information of the filesystem that is used to store images.
 func (s *Server) ImageFsInfo(context.Context, *types.ImageFsInfoRequest) (*types.ImageFsInfoResponse, error) {
 	store := s.ContainerServer.StorageImageServer().GetStore()
+
 	fsUsage, err := getStorageFsInfo(store)
 	if err != nil {
 		return nil, fmt.Errorf("get image fs info %w", err)
@@ -64,6 +70,7 @@ func getUsage(containerPath string) (*types.FilesystemUsage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("get disk usage for path %s: %w", containerPath, err)
 	}
+
 	return &types.FilesystemUsage{
 		Timestamp:  time.Now().UnixNano(),
 		FsId:       &types.FilesystemIdentifier{Mountpoint: containerPath},

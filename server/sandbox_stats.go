@@ -12,6 +12,7 @@ import (
 func (s *Server) PodSandboxStats(ctx context.Context, req *types.PodSandboxStatsRequest) (*types.PodSandboxStatsResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
 	if err != nil {
 		return nil, err

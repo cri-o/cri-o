@@ -18,6 +18,7 @@ func (c *Config) SetCNIPlugin(plugin ocicni.CNIPlugin) error {
 	if c.cniManager == nil {
 		c.cniManager = &cnimgr.CNIManager{}
 	}
+
 	return c.cniManager.SetCNIPlugin(plugin)
 }
 

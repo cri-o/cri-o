@@ -20,18 +20,22 @@ import (
 func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest) (*types.ImageStatusResponse, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
 	img := req.Image
 	if img == nil || img.Image == "" {
 		return nil, errors.New("no image specified")
 	}
 
 	log.Infof(ctx, "Checking image status: %s", img.Image)
+
 	status, err := s.storageImageStatus(ctx, *img)
 	if err != nil {
 		return nil, err
 	}
+
 	if status == nil {
 		log.Infof(ctx, "Image %s not found", img.Image)
+
 		return &types.ImageStatusResponse{}, nil
 	}
 
@@ -55,19 +59,24 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 			Pinned: status.Pinned,
 		},
 	}
+
 	if req.Verbose {
 		info, err := createImageInfo(status)
 		if err != nil {
 			return nil, fmt.Errorf("creating image info: %w", err)
 		}
+
 		resp.Info = info
 	}
+
 	uid, username := getUserFromImage(status.User)
 	if uid != nil {
 		resp.Image.Uid = &types.Int64Value{Value: *uid}
 	}
+
 	resp.Image.Username = username
 	log.Infof(ctx, "Image status: %v", resp)
+
 	return resp, nil
 }
 
@@ -79,11 +88,15 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 		if err != nil {
 			if errors.Is(err, istorage.ErrNoSuchImage) {
 				log.Infof(ctx, "Image %s not found", spec.Image)
+
 				return nil, nil
 			}
+
 			log.Warnf(ctx, "Error getting status from %s: %v", spec.Image, err)
+
 			return nil, err
 		}
+
 		return status, nil
 	}
 
@@ -91,26 +104,34 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	if err != nil {
 		return nil, err
 	}
+
 	var lastErr error
+
 	for _, name := range potentialMatches {
 		status, err := s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if err != nil {
 			if errors.Is(err, istorage.ErrNoSuchImage) {
 				log.Debugf(ctx, "Can't find %s", name)
+
 				continue
 			}
+
 			log.Warnf(ctx, "Error getting status from %s: %v", name, err)
 			lastErr = err
+
 			continue
 		}
+
 		return status, nil
 	}
+
 	if lastErr != nil {
 		return nil, lastErr
 	}
 	// CandidatesForPotentiallyShortImageName returns at least one value if it doesn't fail.
 	// So, if we got here, there was at least one ErrNoSuchImage, and no other errors.
 	log.Infof(ctx, "Image %s not found", spec.Image)
+
 	return nil, nil
 }
 
@@ -141,9 +162,11 @@ func createImageInfo(result *pkgstorage.ImageResult) (map[string]string, error) 
 		result.Labels,
 		result.OCIConfig,
 	}
+
 	bytes, err := json.Marshal(info)
 	if err != nil {
 		return nil, fmt.Errorf("marshal data: %v: %w", info, err)
 	}
+
 	return map[string]string{"info": string(bytes)}, nil
 }

@@ -45,8 +45,10 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 			// This code block assumes every container has a conmon client created already.
 			panic("Attempted to create a new runtime without creating a pod first")
 		}
+
 		return impl, nil
 	}
+
 	runRoot := config.DefaultRuntimeRoot
 	if handler.RuntimeRoot != "" {
 		runRoot = handler.RuntimeRoot
@@ -74,6 +76,7 @@ func newRuntimePod(r *Runtime, handler *config.RuntimeHandler, c *Container) (Ru
 	if err != nil {
 		return nil, err
 	}
+
 	logrus.Debugf("Running conmonrs with PID: %d", client.PID())
 
 	// TODO FIXME we need to move conmon-rs to the new cgroup
@@ -113,13 +116,16 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 			return fmt.Errorf("create container for platform: %w", err)
 		}
 	}
+
 	if c.Spoofed() {
 		return nil
 	}
+
 	var maxSize uint64
 	if r.oci.config.LogSizeMax >= 0 {
 		maxSize = uint64(r.oci.config.LogSizeMax)
 	}
+
 	createConfig := &conmonClient.CreateContainerConfig{
 		ID:           c.ID(),
 		BundlePath:   c.bundlePath,
@@ -144,6 +150,7 @@ func (r *runtimePod) CreateContainer(ctx context.Context, c *Container, cgroupPa
 	if err := c.state.SetInitPid(int(resp.PID)); err != nil {
 		return fmt.Errorf("set init PID: %w", err)
 	}
+
 	return nil
 }
 
@@ -181,6 +188,7 @@ func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd []
 	if timeout < 0 {
 		return nil, errors.New("timeout cannot be negative")
 	}
+
 	res, err := r.client.ExecSyncContainer(ctx, &conmonClient.ExecSyncConfig{
 		ID:       c.ID(),
 		Command:  cmd,
@@ -190,12 +198,14 @@ func (r *runtimePod) ExecSyncContainer(ctx context.Context, c *Container, cmd []
 	if err != nil {
 		return nil, err
 	}
+
 	if res.TimedOut {
 		return &types.ExecSyncResponse{
 			Stderr:   []byte(conmonconfig.TimedOutMessage),
 			ExitCode: -1,
 		}, nil
 	}
+
 	return &types.ExecSyncResponse{
 		ExitCode: res.ExitCode,
 		Stdout:   res.Stdout,
@@ -221,6 +231,7 @@ func (r *runtimePod) DeleteContainer(ctx context.Context, c *Container) error {
 			return fmt.Errorf("failed to shutdown client: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -263,9 +274,11 @@ func (r *runtimePod) AttachContainer(ctx context.Context, c *Container, inputStr
 	if inputStream != nil {
 		stdin = &conmonClient.In{ReadCloser: io.NopCloser(inputStream)}
 	}
+
 	if outputStream != nil {
 		stdout = &conmonClient.Out{WriteCloser: outputStream}
 	}
+
 	if errorStream != nil {
 		stderr = &conmonClient.Out{WriteCloser: errorStream}
 	}

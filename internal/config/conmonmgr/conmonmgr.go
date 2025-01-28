@@ -28,10 +28,12 @@ func New(conmonPath string) (*ConmonManager, error) {
 	if !path.IsAbs(conmonPath) {
 		return nil, fmt.Errorf("conmon path is not absolute: %s", conmonPath)
 	}
+
 	out, err := cmdrunner.CombinedOutput(conmonPath, "--version")
 	if err != nil {
 		return nil, fmt.Errorf("get conmon version: %w", err)
 	}
+
 	fields := strings.Fields(string(out))
 	if len(fields) < 3 {
 		return nil, fmt.Errorf("conmon version output too short: expected three fields, got %d in %s", len(fields), out)
@@ -44,6 +46,7 @@ func New(conmonPath string) (*ConmonManager, error) {
 
 	c.initializeSupportsSync()
 	c.initializeSupportsLogGlobalSizeMax(conmonPath)
+
 	return c, nil
 }
 
@@ -52,7 +55,9 @@ func (c *ConmonManager) parseConmonVersion(versionString string) error {
 	if err != nil {
 		return err
 	}
+
 	c.conmonVersion = parsedVersion
+
 	return nil
 }
 
@@ -64,6 +69,7 @@ func (c *ConmonManager) initializeSupportsLogGlobalSizeMax(conmonPath string) {
 		helpOutput, err := cmdrunner.CombinedOutput(conmonPath, "--help")
 		c.supportsLogGlobalSizeMax = err == nil && bytes.Contains(helpOutput, []byte("--log-global-size-max"))
 	}
+
 	verb := "does not"
 	if c.supportsLogGlobalSizeMax {
 		verb = "does"
@@ -79,6 +85,7 @@ func (c *ConmonManager) SupportsLogGlobalSizeMax() bool {
 func (c *ConmonManager) initializeSupportsSync() {
 	c.supportsSync = c.conmonVersion.GTE(versionSupportsSync)
 	verb := "does not"
+
 	if c.supportsSync {
 		verb = "does"
 	}

@@ -11,6 +11,7 @@ import (
 
 func main() {
 	var bumpType string
+
 	var versionFile string
 
 	// Define command-line flags for bump type and version file
@@ -48,6 +49,7 @@ func getCurrentVersion(versionFile string) (string, error) {
 
 	// Find the version string using regex
 	re := regexp.MustCompile(versionPattern)
+
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
 		return "", fmt.Errorf("unable to find version in %q", versionFile)
@@ -82,7 +84,9 @@ func incrementVersionPart(part string) string {
 	if err != nil {
 		return "0"
 	}
+
 	num++
+
 	return strconv.Itoa(num)
 }
 

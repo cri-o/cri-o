@@ -39,6 +39,7 @@ var _ = AfterSuite(func() {
 func beforeEach() {
 	// Setup test vars
 	var err error
+
 	createdAt := time.Now()
 	sbox := sandbox.NewBuilder()
 	sbox.SetID("sandboxID")

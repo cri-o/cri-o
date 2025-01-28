@@ -38,6 +38,7 @@ func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageRefere
 		if err != nil {
 			panic("internal error, reference.WithDigest was not passed a digest, which should not be possible")
 		}
+
 		rawNamed = canonical
 	}
 	// Ideally this would be better encapsulated, e.g. in internal/storage/internal, but
@@ -47,6 +48,7 @@ func RegistryImageReferenceFromRaw(rawNamed reference.Named) RegistryImageRefere
 	if reference.IsNameOnly(rawNamed) {
 		panic(fmt.Sprintf("internal error, NewRegistryImageReference with a NameOnly %q", rawNamed.String()))
 	}
+
 	return RegistryImageReference{privateNamed: rawNamed}
 }
 
@@ -63,7 +65,9 @@ func ParseRegistryImageReferenceFromOutOfProcessData(input string) (RegistryImag
 	if err != nil {
 		return RegistryImageReference{}, err
 	}
+
 	ref = reference.TagNameOnly(ref)
+
 	return RegistryImageReferenceFromRaw(ref), nil
 }
 
@@ -81,6 +85,7 @@ func (ref RegistryImageReference) ensureInitialized() {
 // RegistryImageReference intentionally does not implement String(). Use typed values wherever possible.
 func (ref RegistryImageReference) StringForOutOfProcessConsumptionOnly() string {
 	ref.ensureInitialized()
+
 	return ref.privateNamed.String()
 }
 
@@ -93,6 +98,7 @@ func (ref RegistryImageReference) Format(f fmt.State, verb rune) {
 // Registry returns the host[:port] part of the reference.
 func (ref RegistryImageReference) Registry() string {
 	ref.ensureInitialized()
+
 	return reference.Domain(ref.privateNamed)
 }
 
@@ -104,5 +110,6 @@ func (ref RegistryImageReference) Registry() string {
 func (ref RegistryImageReference) Raw() reference.Named {
 	// See the comment in RegistryImageReferenceFromRaw about better encapsulation.
 	ref.ensureInitialized()
+
 	return ref.privateNamed
 }
