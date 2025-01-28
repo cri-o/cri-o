@@ -423,6 +423,7 @@ func (c *Container) State() *ContainerState {
 }
 
 // StateNoLock returns the state of a container without using a lock.
+// It has been known to cause segfaults in the past so it really should be used sparingly.
 func (c *Container) StateNoLock() *ContainerState {
 	return c.state
 }
@@ -504,6 +505,8 @@ func (c *Container) exitFilePath() string {
 
 // Living checks if a container's init PID exists and it's running, without calling
 // a given runtime directly to check the state, which is expensive.
+// This can't be used for runtimeVM because it uses the VM's pid as a container pid,
+// and the VM doesn't necessarily stop when the container stops.
 func (c *Container) Living() error {
 	_, _, err := c.pid()
 	if err != nil {
