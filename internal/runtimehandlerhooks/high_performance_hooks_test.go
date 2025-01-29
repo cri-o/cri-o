@@ -572,7 +572,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			expectedOrigBannedCPUSet, err := mapHexCharToCPUSet(expectedOrigBannedCPUs)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, irqBannedCPUsFromFile.Equals(expectedOrigBannedCPUSet), "got=%s; want=%s", irqBannedCPUsFromFile, expectedOrigBannedCPUSet)
+			ExpectWithOffset(1, irqBannedCPUsFromFile.Equals(expectedOrigBannedCPUSet)).To(BeTrue(), "got=%s; want=%s", irqBannedCPUsFromFile, expectedOrigBannedCPUSet)
 
 			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())

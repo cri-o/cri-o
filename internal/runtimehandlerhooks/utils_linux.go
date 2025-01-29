@@ -285,6 +285,7 @@ func toMask(size int, set cpuset.CPUSet) string {
 	}
 
 	maskString := mapByteToHexChar(byteArray)
+
 	maskStringWithComma := maskString[0:8]
 
 	for i := 8; i+8 <= len(maskString); i += 8 {
