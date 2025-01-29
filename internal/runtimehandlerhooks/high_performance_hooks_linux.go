@@ -987,6 +987,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	currentMaskArray, err := mapHexCharToByte(strings.TrimSpace(string(content)))
 	if err != nil {
 		log.Errorf(ctx, "Restore irqbalance config: failed to map hex char to byte: %v", err)
+
 		return err
 	}
 
@@ -1000,7 +1001,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 	if err != nil {
 		// Ignore returning error as given irqBalanceConfigFile may not exist.
-		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
+		log.Errorf(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
 
 		return nil
 	}
