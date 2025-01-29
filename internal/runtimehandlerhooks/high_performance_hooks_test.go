@@ -392,7 +392,9 @@ var _ = Describe("high_performance_hooks", func() {
 
 			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(expectedBan))
+			expectedBanCPUs, err := cpuset.Parse(expectedBan)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bannedCPUs.Equals(expectedBanCPUs)).To(BeTrue())
 
 			// Also test that injection via injectHousekeepingEnv works correctly.
 			specgen := generate.NewFromSpec(&specs.Spec{Process: &specs.Process{}})
@@ -414,11 +416,12 @@ var _ = Describe("high_performance_hooks", func() {
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			bannedCPUSet, err := cpuset.Parse(bannedCPUFlags)
+			Expect(err).ToNot(HaveOccurred())
 			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUSet)
 			Expect(err).ToNot(HaveOccurred())
 			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
+			Expect(bannedCPUs.Equals(bannedCPUSet)).To(BeTrue())
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -871,7 +874,7 @@ var _ = Describe("high_performance_hooks", func() {
 
 			expectedOrigBannedCPUSet, err := mapHexCharToCPUSet(expectedOrigBannedCPUs)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, irqBannedCPUsFromFile.Equals(expectedOrigBannedCPUSet), "got=%s; want=%s", irqBannedCPUsFromFile, expectedOrigBannedCPUSet)
+			ExpectWithOffset(1, irqBannedCPUsFromFile.Equals(expectedOrigBannedCPUSet)).To(BeTrue(), "got=%s; want=%s", irqBannedCPUsFromFile, expectedOrigBannedCPUSet)
 
 			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
