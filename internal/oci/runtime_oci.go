@@ -977,6 +977,11 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 				"Detected process (%d) blocked in uninterruptible sleep for more than %d seconds for container %s",
 				c.state.InitPid, int(time.Since(startTime)/time.Second), c.ID(),
 			)
+		} else {
+			log.Warnf(ctx,
+				"Detected process (%d) in state %s blocked for more than %d seconds for container %s. One of the child processes might be in uninterruptible sleep.",
+				c.state.InitPid, state, int(time.Since(startTime)/time.Second), c.ID(),
+			)
 		}
 	})
 	defer blockedTimer.Stop()
