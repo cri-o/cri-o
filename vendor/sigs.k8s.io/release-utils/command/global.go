@@ -30,6 +30,7 @@ func SetGlobalVerbose(to bool) {
 	if to {
 		i = 1
 	}
+
 	atomic.StoreInt32(&atomicInt, i)
 }
 

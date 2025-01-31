@@ -27,11 +27,13 @@ func Default(key, def string) string {
 	if !ok || value == "" {
 		return def
 	}
+
 	return value
 }
 
 // IsSet returns true if an environment variable is set.
 func IsSet(key string) bool {
 	_, ok := internal.Impl.LookupEnv(key)
+
 	return ok
 }
