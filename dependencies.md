@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
+_Generated on Fri, 31 Jan 2025 21:19:57 UTC for commit [c6da27b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fe40da85f683019342aa8545b676d09ecce56d57
+[0]: https://github.com/cri-o/cri-o/commit/c6da27be1be59aeb401b6e927180c141b7940326
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/image/v5                         | v5.33.1                            | v5.34.0                            | true   | true             |
 | github.com/containers/storage                          | v1.56.1                            | v1.57.1                            | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250130172659-0215d958da89 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250131161802-41f23f1d2a96 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 | sigs.k8s.io/release-utils                              | v0.9.0                             | v0.10.0                            | true   | true             |
 
@@ -110,7 +111,7 @@ _Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
 | cloud.google.com/go/policytroubleshooter                                                | v1.10.10                              | v1.11.3                             | false  | true             |
 | cloud.google.com/go/privatecatalog                                                      | v0.9.12                               | v0.10.4                             | false  | true             |
 | cloud.google.com/go/profiler                                                            | v0.4.0                                | v0.4.2                              | false  | true             |
-| cloud.google.com/go/pubsub                                                              | v1.42.0                               | v1.46.0                             | false  | true             |
+| cloud.google.com/go/pubsub                                                              | v1.42.0                               | v1.47.0                             | false  | true             |
 | cloud.google.com/go/pubsublite                                                          | v1.8.2                                |                                     | false  | true             |
 | cloud.google.com/go/recaptchaenterprise/v2                                              | v2.14.3                               | v2.19.4                             | false  | true             |
 | cloud.google.com/go/recommendationengine                                                | v0.8.12                               | v0.9.3                              | false  | true             |
@@ -213,27 +214,27 @@ _Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
 | github.com/armon/go-socks5                                                              | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                       | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
 | github.com/aws/aws-sdk-go                                                               | v1.55.5                               | v1.55.6                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2                                                            | v1.30.3                               | v1.35.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2                                                            | v1.30.3                               | v1.36.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                                   | v1.6.2                                | v1.6.8                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.27                              | v1.29.3                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.27                              | v1.17.56                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.11                              | v1.16.26                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.56                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.15                               | v1.3.30                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.15                               | v2.6.30                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                     | v1.27.27                              | v1.29.4                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                                | v1.17.27                              | v1.17.57                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                           | v1.16.11                              | v1.16.27                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                         | v1.16.9                               | v1.17.57                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/configsources                                     | v1.3.15                               | v1.3.31                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                      | v2.6.15                               | v2.6.31                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                               | v1.8.0                                | v1.8.2                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/internal/v4a                                               | v1.3.9                                | v1.3.30                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecr                                                | v1.20.2                               | v1.40.0                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ecrpublic                                          | v1.18.2                               | v1.31.0                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/internal/v4a                                               | v1.3.9                                | v1.3.31                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecr                                                | v1.20.2                               | v1.40.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ecrpublic                                          | v1.18.2                               | v1.31.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding                           | v1.11.3                               | v1.12.2                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.3.11                               | v1.5.4                              | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.17                              | v1.12.11                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.9                               | v1.18.11                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.35.3                               | v1.37.15                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.55.1                               | v1.75.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.22.4                               | v1.24.13                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.26.4                               | v1.28.12                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.30.3                               | v1.33.11                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/checksum                                  | v1.3.11                               | v1.5.5                              | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                             | v1.11.17                              | v1.12.12                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/internal/s3shared                                  | v1.17.9                               | v1.18.12                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                                | v1.35.3                               | v1.37.16                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/s3                                                 | v1.55.1                               | v1.75.2                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sso                                                | v1.22.4                               | v1.24.14                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ssooidc                                            | v1.26.4                               | v1.28.13                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/sts                                                | v1.30.3                               | v1.33.12                            | false  | true             |
 | github.com/aws/smithy-go                                                                | v1.20.3                               | v1.22.2                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                               | v0.0.0-20231024185945-8841054dbdb8    | v0.0.0-20250127194757-14dfc70fe71c  | false  | true             |
 | github.com/benbjohnson/clock                                                            | v1.1.0                                | v1.3.5                              | false  | true             |
@@ -301,7 +302,7 @@ _Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
 | github.com/containers/common                                                            | v0.61.1                               |                                     | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.6                                |                                     | true   | true             |
-| github.com/containers/image/v5                                                          | v5.33.1                               |                                     | true   | true             |
+| github.com/containers/image/v5                                                          | v5.33.1                               | v5.34.0                             | true   | true             |
 | github.com/containers/kubensmnt                                                         | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                                          | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                                          | v1.2.1                                |                                     | true   | true             |
@@ -456,7 +457,7 @@ _Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250130172659-0215d958da89  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250131161802-41f23f1d2a96  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
@@ -608,7 +609,7 @@ _Generated on Fri, 31 Jan 2025 10:18:15 UTC for commit [fe40da8][0]._
 | github.com/spf13/cobra                                                                  | v1.8.1                                |                                     | false  | true             |
 | github.com/spf13/pflag                                                                  | v1.0.5                                | v1.0.6                              | false  | true             |
 | github.com/spf13/viper                                                                  | v1.19.0                               |                                     | false  | true             |
-| github.com/spiffe/go-spiffe/v2                                                          | v2.3.0                                | v2.4.0                              | false  | true             |
+| github.com/spiffe/go-spiffe/v2                                                          | v2.3.0                                | v2.5.0                              | false  | true             |
 | github.com/stefanberger/go-pkcs11uri                                                    | v0.0.0-20230803200340-78284954bff6    |                                     | false  | true             |
 | github.com/stoewer/go-strcase                                                           | v1.3.0                                |                                     | false  | true             |
 | github.com/stretchr/objx                                                                | v0.5.2                                |                                     | false  | true             |
