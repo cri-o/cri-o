@@ -1,13 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 31 Jan 2025 21:19:57 UTC for commit [c6da27b][0]._
+_Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c6da27be1be59aeb401b6e927180c141b7940326
+[0]: https://github.com/cri-o/cri-o/commit/adfec0a4b167a951b07c6fdc5f06a55231db611a
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
+| github.com/containers/common                           | v0.61.1                            | v0.62.0                            | true   | true             |
 | github.com/containers/image/v5                         | v5.33.1                            | v5.34.0                            | true   | true             |
 | github.com/containers/storage                          | v1.56.1                            | v1.57.1                            | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
@@ -299,7 +300,7 @@ _Generated on Fri, 31 Jan 2025 21:19:57 UTC for commit [c6da27b][0]._
 | github.com/containerd/zfs                                                               | v1.1.0                                | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                      | v1.2.3                                |                                     | true   | true             |
 | github.com/containernetworking/plugins                                                  | v1.6.2                                |                                     | true   | true             |
-| github.com/containers/common                                                            | v0.61.1                               |                                     | true   | true             |
+| github.com/containers/common                                                            | v0.61.1                               | v0.62.0                             | true   | true             |
 | github.com/containers/conmon                                                            | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                         | v0.6.6                                |                                     | true   | true             |
 | github.com/containers/image/v5                                                          | v5.33.1                               | v5.34.0                             | true   | true             |
@@ -397,7 +398,7 @@ _Generated on Fri, 31 Jan 2025 21:19:57 UTC for commit [c6da27b][0]._
 | github.com/golang/protobuf                                                              | v1.5.4                                |                                     | false  | true             |
 | github.com/golang/snappy                                                                | v0.0.4                                |                                     | false  | true             |
 | github.com/google/btree                                                                 | v1.0.1                                | v1.1.3                              | false  | true             |
-| github.com/google/cel-go                                                                | v0.22.0                               | v0.23.1                             | false  | true             |
+| github.com/google/cel-go                                                                | v0.22.0                               | v0.23.2                             | false  | true             |
 | github.com/google/certificate-transparency-go                                           | v1.2.1                                | v1.3.1                              | false  | true             |
 | github.com/google/gnostic-models                                                        | v0.6.9-0.20230804172637-c7be7c783f49  | v0.6.9                              | false  | true             |
 | github.com/google/go-cmp                                                                | v0.6.0                                |                                     | true   | true             |
