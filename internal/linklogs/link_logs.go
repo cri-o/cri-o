@@ -5,8 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
+	"strings"
 
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -30,13 +31,22 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 		return errors.New("empty dir vol name is invalid")
 	}
 
-	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	emptyDirLoggingVolumePath, err := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	if err != nil {
+		return fmt.Errorf("failed to get empty dir path: %w", err)
+	}
+
 	if _, err := os.Stat(emptyDirLoggingVolumePath); err != nil {
 		return fmt.Errorf("failed to find %v: %w", emptyDirLoggingVolumePath, err)
 	}
 
 	podLogsDirectory := namespace + "_" + kubeName + "_" + kubePodUID
-	podLogsPath := filepath.Join(kubeletPodLogsRootDir, podLogsDirectory)
+
+	podLogsPath, err := securejoin.SecureJoin(kubeletPodLogsRootDir, podLogsDirectory)
+	if err != nil {
+		return fmt.Errorf("failed to join %v and %v: %w", kubeletPodLogsRootDir, podLogsDirectory, err)
+	}
+
 	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, emptyDirLoggingVolumePath)
 
 	if err := unix.Mount(podLogsPath, emptyDirLoggingVolumePath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
@@ -52,7 +62,11 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 
 // UnmountPodLogs unmounts the pod log directory from the specified empty dir volume.
 func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) error {
-	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	emptyDirLoggingVolumePath, err := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	if err != nil {
+		return fmt.Errorf("failed to get empty dir path: %w", err)
+	}
+
 	log.Infof(ctx, "Unmounting %s for linked logs", emptyDirLoggingVolumePath)
 
 	if _, err := os.Stat(emptyDirLoggingVolumePath); !os.IsNotExist(err) {
@@ -65,15 +79,31 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 }
 
 func LinkContainerLogs(ctx context.Context, kubePodUID, emptyDirVolName, id string, metadata *types.ContainerMetadata) error {
-	emptyDirLoggingVolumePath := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	emptyDirLoggingVolumePath, err := podEmptyDirPath(kubePodUID, emptyDirVolName)
+	if err != nil {
+		return fmt.Errorf("failed to get empty dir path: %w", err)
+	}
+
 	// Symlink a relative path so the location is legitimate inside and outside the container.
 	from := fmt.Sprintf("%s/%d.log", metadata.Name, metadata.Attempt)
-	to := filepath.Join(emptyDirLoggingVolumePath, id+".log")
+
+	to, err := securejoin.SecureJoin(emptyDirLoggingVolumePath, id+".log")
+	if err != nil {
+		return fmt.Errorf("failed to join %v and %v: %w", emptyDirLoggingVolumePath, id+".log", err)
+	}
+
 	log.Infof(ctx, "Symlinking from %s to %s for linked logs", from, to)
 
 	return os.Symlink(from, to)
 }
 
-func podEmptyDirPath(podUID, emptyDirVolName string) string {
-	return filepath.Join(kubeletPodsRootDir, podUID, "volumes", kubeletEmptyDirLogDir, emptyDirVolName)
+func podEmptyDirPath(podUID, emptyDirVolName string) (string, error) {
+	relativePath := strings.Join([]string{podUID, "volumes", kubeletEmptyDirLogDir, emptyDirVolName}, "/")
+
+	dirPath, err := securejoin.SecureJoin(kubeletPodsRootDir, relativePath)
+	if err != nil {
+		return "", fmt.Errorf("failed to join %v and %v: %w", kubeletPodsRootDir, relativePath, err)
+	}
+
+	return dirPath, err
 }

@@ -62,6 +62,54 @@ function create_test_rro_mounts() {
 	echo "$directory"
 }
 
+function setup_log_linking_test() {
+	local pod_uid=$1
+	local pod_name pod_namespace pod_log_dir pod_empty_dir_volume_path pod_id ctr_name ctr_attempt ctr_id
+
+	pod_name=$(jq -r '.metadata.name' "$TESTDATA/sandbox_config.json")
+	pod_namespace=$(jq -r '.metadata.namespace' "$TESTDATA/sandbox_config.json")
+	pod_log_dir="/var/log/pods/${pod_namespace}_${pod_name}_${pod_uid}"
+	pod_empty_dir_volume_path="/var/lib/kubelet/pods/$pod_uid/volumes/kubernetes.io~empty-dir/logging-volume"
+
+	# Create directories and set up pod/container.
+	mkdir -p "$pod_log_dir" "$pod_empty_dir_volume_path"
+	jq --arg pod_log_dir "$pod_log_dir" --arg pod_uid "$pod_uid" '.annotations["io.kubernetes.cri-o.LinkLogs"] = "logging-volume"
+	| .log_directory = $pod_log_dir | .metadata.uid = $pod_uid' \
+		"$TESTDATA/sandbox_config.json" > "$TESTDIR/sandbox_config.json"
+	pod_id=$(crictl runp "$TESTDIR/sandbox_config.json")
+
+	# Touch the log file.
+	ctr_name=$(jq -r '.metadata.name' "$TESTDATA/container_config.json")
+	ctr_attempt=$(jq -r '.metadata.attempt' "$TESTDATA/container_config.json")
+	mkdir -p "$pod_log_dir/$ctr_name"
+	touch "$pod_log_dir/$ctr_name/$ctr_attempt.log"
+
+	jq --arg host_path "$pod_empty_dir_volume_path" --arg ctr_path "/mnt/logging-volume" --arg log_path "$ctr_name/$ctr_attempt.log" \
+		'.command = ["sh", "-c", "echo Hello log linking && sleep 1000"]
+		| .log_path = $log_path
+		| .mounts = [ { host_path: $host_path, container_path: $ctr_path } ]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDIR/sandbox_config.json")
+}
+
+function assert_log_linking() {
+	local pod_empty_dir_volume_path=$1
+	local ctr_name=$2
+	local ctr_attempt=$3
+	local ctr_id=$4
+	local should_succeed=$5
+
+	if $should_succeed; then
+		[ -f "$pod_empty_dir_volume_path/$ctr_name/$ctr_attempt.log" ]
+		[ -f "$pod_empty_dir_volume_path/$ctr_id.log" ]
+		grep -E "Hello log linking" "$pod_empty_dir_volume_path/$ctr_name/$ctr_attempt.log"
+		grep -E "Hello log linking" "$pod_empty_dir_volume_path/$ctr_id.log"
+	else
+		[ ! -f "$pod_empty_dir_volume_path/$ctr_name/$ctr_attempt.log" ]
+		[ ! -f "$pod_empty_dir_volume_path/$ctr_id.log" ]
+	fi
+}
+
 @test "ctr not found correct error message" {
 	start_crio
 	run ! crictl inspect "container_not_exist"
@@ -1386,6 +1434,32 @@ function create_test_rro_mounts() {
 	crictl rmp -fa
 	[ ! -f "$mounted_log_path" ]
 	[ ! -f "$linked_log_path" ]
+}
+
+@test "ctr log linking with malicious paths" {
+	if [[ $RUNTIME_TYPE == vm ]]; then
+		skip "not applicable to vm runtime type"
+	fi
+	setup_crio
+	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.LinkLogs
+	start_crio_no_setup
+
+	read -r pod_empty_dir_volume_path ctr_name ctr_attempt ctr_id <<< "$(setup_log_linking_test "../../../malicious")"
+	assert_log_linking "$pod_empty_dir_volume_path" "$ctr_name" "$ctr_attempt" "$ctr_id" false
+	crictl rmp -fa
+}
+
+@test "ctr log linking with invalid paths" {
+	if [[ $RUNTIME_TYPE == vm ]]; then
+		skip "not applicable to vm runtime type"
+	fi
+	setup_crio
+	create_runtime_with_allowed_annotation logs io.kubernetes.cri-o.LinkLogs
+	start_crio_no_setup
+
+	read -r pod_empty_dir_volume_path ctr_name ctr_attempt ctr_id <<< "$(setup_log_linking_test "invalid path")"
+	assert_log_linking "$pod_empty_dir_volume_path" "$ctr_name" "$ctr_attempt" "$ctr_id" false
+	crictl rmp -fa
 }
 
 @test "ctr stop loop kill retry attempts" {
