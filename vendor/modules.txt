@@ -352,7 +352,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/storage v1.56.1-0.20250109030507-3d75bd3f5064
+# github.com/containers/storage v1.56.1-0.20250123153752-b78c0cb4aa19
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
@@ -1018,7 +1018,7 @@ github.com/uptrace/opentelemetry-go-extra/otelutil
 # github.com/urfave/cli/v2 v2.27.5
 ## explicit; go 1.18
 github.com/urfave/cli/v2
-# github.com/vbatts/tar-split v0.11.6
+# github.com/vbatts/tar-split v0.11.7
 ## explicit; go 1.17
 github.com/vbatts/tar-split/archive/tar
 github.com/vbatts/tar-split/tar/asm

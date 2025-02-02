@@ -24,7 +24,7 @@ require (
 	github.com/containers/image/v5 v5.33.1-0.20250109021632-8b4e15e0e60a
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.0
-	github.com/containers/storage v1.56.1-0.20250109030507-3d75bd3f5064
+	github.com/containers/storage v1.56.1-0.20250123153752-b78c0cb4aa19
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/ocicni v0.4.3
@@ -200,7 +200,7 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/ulikunitz/xz v0.5.12 // indirect
 	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
-	github.com/vbatts/tar-split v0.11.6 // indirect
+	github.com/vbatts/tar-split v0.11.7 // indirect
 	github.com/vbauerster/mpb/v8 v8.8.3 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
