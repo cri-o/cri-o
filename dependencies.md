@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
+_Generated on Mon, 03 Feb 2025 18:08:00 UTC for commit [b7dd2f3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/1c8917d362261d1793b7db27fa8d97f2ca826f43
+[0]: https://github.com/cri-o/cri-o/commit/b7dd2f355a611c8126b97e499ff63a572a1668a6
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
 | github.com/containers/image/v5                         | v5.33.1                            | v5.34.0                            | true   | true             |
 | github.com/containers/storage                          | v1.56.1                            | v1.57.1                            | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250201072944-a806d74ce32e | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250203162059-122ad95da651 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 | sigs.k8s.io/release-utils                              | v0.10.0                            | v0.11.0                            | true   | true             |
 
@@ -458,7 +458,7 @@ _Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250201072944-a806d74ce32e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250203162059-122ad95da651  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
@@ -480,7 +480,7 @@ _Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250130223922-f11475ccc38e  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250203165043-1d2601515bd6  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -709,7 +709,7 @@ _Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
 | golang.org/x/mod                                                                        | v0.22.0                               |                                     | false  | true             |
 | golang.org/x/net                                                                        | v0.34.0                               |                                     | false  | true             |
 | golang.org/x/oauth2                                                                     | v0.24.0                               | v0.25.0                             | false  | true             |
-| golang.org/x/sync                                                                       | v0.10.0                               |                                     | false  | true             |
+| golang.org/x/sync                                                                       | v0.10.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.29.0                               |                                     | true   | true             |
 | golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250117155846-04cd7bae618c  | false  | true             |
 | golang.org/x/term                                                                       | v0.28.0                               |                                     | false  | true             |
