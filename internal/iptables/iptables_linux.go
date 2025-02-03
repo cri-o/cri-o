@@ -19,13 +19,13 @@ limitations under the License.
 package iptables
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"os"
 	"time"
 
 	"golang.org/x/sys/unix"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -34,22 +34,16 @@ type locker struct {
 	lock14 *net.UnixListener
 }
 
-func (l *locker) Close() error {
-	errList := []error{}
-
+func (l *locker) Close() (err error) {
 	if l.lock16 != nil {
-		if err := l.lock16.Close(); err != nil {
-			errList = append(errList, err)
-		}
+		err = errors.Join(l.lock16.Close())
 	}
 
 	if l.lock14 != nil {
-		if err := l.lock14.Close(); err != nil {
-			errList = append(errList, err)
-		}
+		err = errors.Join(err, l.lock14.Close())
 	}
 
-	return utilerrors.NewAggregate(errList)
+	return err
 }
 
 func grabIptablesLocks(lockfilePath14x, lockfilePath16x string) (iptablesLocker, error) {

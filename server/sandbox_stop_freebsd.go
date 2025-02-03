@@ -9,7 +9,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	errorUtils "k8s.io/apimachinery/pkg/util/errors"
+	"golang.org/x/sync/errgroup"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
@@ -30,17 +30,18 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 		return nil
 	}
 
-	funcs := []func() error{}
+	errorGroup := &errgroup.Group{}
+
 	for _, ctr := range sb.Containers().List() {
 		if ctr.State().Status == oci.ContainerStateStopped {
 			continue
 		}
 
-		funcs = append(funcs, func() error {
+		errorGroup.Go(func() error {
 			return s.stopContainer(ctx, ctr, stopTimeoutFromContext(ctx))
 		})
 	}
-	if err := errorUtils.AggregateGoroutines(funcs...); err != nil {
+	if err := errorGroup.Wait(); err != nil {
 		return fmt.Errorf("stop containers in parallel: %w", err)
 	}
 
