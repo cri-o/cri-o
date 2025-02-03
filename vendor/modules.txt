@@ -238,7 +238,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.6.1
 ## explicit; go 1.23
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/common v0.61.0
+# github.com/containers/common v0.61.1
 ## explicit; go 1.22.6
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
@@ -263,7 +263,7 @@ github.com/containers/conmon/runner/config
 ## explicit; go 1.23
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
-# github.com/containers/image/v5 v5.33.1-0.20250109021632-8b4e15e0e60a
+# github.com/containers/image/v5 v5.33.1
 ## explicit; go 1.22.6
 github.com/containers/image/v5/copy
 github.com/containers/image/v5/directory
@@ -352,7 +352,7 @@ github.com/containers/ocicrypt/keywrap/pkcs7
 github.com/containers/ocicrypt/spec
 github.com/containers/ocicrypt/utils
 github.com/containers/ocicrypt/utils/keyprovider
-# github.com/containers/storage v1.56.1-0.20250123153752-b78c0cb4aa19
+# github.com/containers/storage v1.56.1
 ## explicit; go 1.22.0
 github.com/containers/storage
 github.com/containers/storage/drivers
