@@ -1701,7 +1701,7 @@ sigs.k8s.io/release-sdk/git
 sigs.k8s.io/release-sdk/github
 sigs.k8s.io/release-sdk/github/internal
 sigs.k8s.io/release-sdk/regex
-# sigs.k8s.io/release-utils v0.9.0
+# sigs.k8s.io/release-utils v0.10.0
 ## explicit; go 1.23
 sigs.k8s.io/release-utils/command
 sigs.k8s.io/release-utils/env

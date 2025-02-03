@@ -76,10 +76,12 @@ func PackagesAvailable(packages ...string) (bool, error) {
 		cmd  string
 		args []string
 	}
+
 	type packageChecker struct {
 		manager  string
 		verifier *packageVerifier
 	}
+
 	var checker *packageChecker
 
 	for _, x := range []struct {
@@ -107,18 +109,23 @@ func PackagesAvailable(packages ...string) (bool, error) {
 		if !command.Available(x.verifierCmd) {
 			logrus.Debugf("Skipping not available package verifier %s",
 				x.verifierCmd)
+
 			continue
 		}
 
 		// Find a working package manager
 		packageManager := ""
+
 		for _, mgr := range x.possiblePackageManagers {
 			if command.Available(mgr) {
 				packageManager = mgr
+
 				break
 			}
+
 			logrus.Debugf("Skipping not available package manager %s", mgr)
 		}
+
 		if packageManager == "" {
 			return false, fmt.Errorf(
 				"unable to find working package manager for verifier `%s`",
@@ -130,19 +137,24 @@ func PackagesAvailable(packages ...string) (bool, error) {
 			manager:  packageManager,
 			verifier: &packageVerifier{x.verifierCmd, x.verifierArgs},
 		}
+
 		break
 	}
+
 	if checker == nil {
 		return false, errors.New("unable to find working package manager")
 	}
+
 	logrus.Infof("Assuming %q as package manager", checker.manager)
 
 	missingPkgs := []string{}
+
 	for _, pkg := range packages {
 		logrus.Infof("Checking if %q has been installed", pkg)
 
 		args := checker.verifier.args
 		args = append(args, pkg)
+
 		if err := command.New(checker.verifier.cmd, args...).
 			RunSilentSuccess(); err != nil {
 			logrus.Infof("Adding %s to missing packages", pkg)
@@ -158,6 +170,7 @@ func PackagesAvailable(packages ...string) (bool, error) {
 		// manager
 		logrus.Infof("Install them with: sudo %s install %s",
 			checker.manager, strings.Join(missingPkgs, " "))
+
 		return false, nil
 	}
 
@@ -216,10 +229,12 @@ func readInput(question string) (string, error) {
 	inputChannel := make(chan string, 1)
 	signalChannel := make(chan os.Signal, 1)
 	signal.Notify(signalChannel, syscall.SIGINT, syscall.SIGTERM)
+
 	defer func() {
 		signal.Stop(signalChannel)
 		close(signalChannel)
 	}()
+
 	go func() {
 		scanner := bufio.NewScanner(os.Stdin)
 		scanner.Scan()
@@ -370,6 +385,7 @@ func AddTagPrefix(tag string) string {
 	if strings.HasPrefix(tag, TagPrefix) {
 		return tag
 	}
+
 	return TagPrefix + tag
 }
 
@@ -388,15 +404,18 @@ func SemverToTagString(tag semver.Version) string {
 // CopyFileLocal copies a local file from one local location to another.
 func CopyFileLocal(src, dst string, required bool) error {
 	logrus.Infof("Trying to copy file %s to %s (required: %v)", src, dst, required)
+
 	srcStat, err := os.Stat(src)
 	if err != nil && required {
 		return fmt.Errorf("source %s is required but does not exist: %w", src, err)
 	}
+
 	if os.IsNotExist(err) && !required {
 		logrus.Infof(
 			"File %s does not exist but is also not required",
 			filepath.Base(src),
 		)
+
 		return nil
 	}
 
@@ -416,11 +435,15 @@ func CopyFileLocal(src, dst string, required bool) error {
 	if err != nil {
 		return fmt.Errorf("create destination file %s: %w", dst, err)
 	}
+
 	defer destination.Close()
+
 	if _, err := io.Copy(destination, source); err != nil {
 		return fmt.Errorf("copy source %s to destination %s: %w", src, dst, err)
 	}
+
 	logrus.Infof("Copied %s", filepath.Base(dst))
+
 	return nil
 }
 
@@ -434,10 +457,12 @@ func CopyDirContentsLocal(src, dst string) error {
 			return fmt.Errorf("create destination directory %s: %w", dst, err)
 		}
 	}
+
 	files, err := os.ReadDir(src)
 	if err != nil {
 		return fmt.Errorf("reading source dir %s: %w", src, err)
 	}
+
 	for _, file := range files {
 		srcPath := filepath.Join(src, file.Name())
 		dstPath := filepath.Join(dst, file.Name())
@@ -454,6 +479,7 @@ func CopyDirContentsLocal(src, dst string) error {
 					return fmt.Errorf("creating destination dir %s: %w", dstPath, err)
 				}
 			}
+
 			if err := CopyDirContentsLocal(srcPath, dstPath); err != nil {
 				return fmt.Errorf("copy %s to %s: %w", srcPath, dstPath, err)
 			}
@@ -463,19 +489,24 @@ func CopyDirContentsLocal(src, dst string) error {
 			}
 		}
 	}
+
 	return nil
 }
 
 // RemoveAndReplaceDir removes a directory and its contents then recreates it.
 func RemoveAndReplaceDir(path string) error {
 	logrus.Infof("Removing %s", path)
+
 	if err := os.RemoveAll(path); err != nil {
 		return fmt.Errorf("remove %s: %w", path, err)
 	}
+
 	logrus.Infof("Creating %s", path)
+
 	if err := os.MkdirAll(path, os.FileMode(0o755)); err != nil {
 		return fmt.Errorf("create %s: %w", path, err)
 	}
+
 	return nil
 }
 
@@ -498,6 +529,7 @@ func IsDir(path string) bool {
 	if info.IsDir() {
 		return true
 	}
+
 	return false
 }
 
@@ -505,6 +537,7 @@ func IsDir(path string) bool {
 func WrapText(originalText string, lineSize int) (wrappedText string) {
 	words := strings.Fields(strings.TrimSpace(originalText))
 	wrappedText = words[0]
+
 	spaceLeft := lineSize - len(wrappedText)
 	for _, word := range words[1:] {
 		if len(word)+1 > spaceLeft {
@@ -534,6 +567,7 @@ func StripSensitiveData(logData []byte) []byte {
 	logData = regexpOauthToken.ReplaceAllLiteral(logData, []byte("__SANITIZED__:x-oauth-basic"))
 	// Remove GitHub tokens
 	logData = regexpGitToken.ReplaceAllLiteral(logData, []byte("//git:__SANITIZED__:@github.com"))
+
 	return logData
 }
 
@@ -546,6 +580,7 @@ func CleanLogFile(logPath string) (err error) {
 	if err != nil {
 		return fmt.Errorf("creating temp file for sanitizing log: %w", err)
 	}
+
 	defer func() {
 		err = tempFile.Close()
 		os.Remove(tempFile.Name())
@@ -564,11 +599,13 @@ func CleanLogFile(logPath string) (err error) {
 			StripSensitiveData(chunk),
 		)
 		chunk = append(chunk, []byte{10}...)
+
 		_, err := tempFile.Write(chunk)
 		if err != nil {
 			return fmt.Errorf("while writing buffer to file: %w", err)
 		}
 	}
+
 	if err := logFile.Close(); err != nil {
 		return fmt.Errorf("closing log file: %w", err)
 	}
