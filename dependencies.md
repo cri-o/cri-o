@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
+_Generated on Mon, 03 Feb 2025 13:50:17 UTC for commit [1c8917d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/adfec0a4b167a951b07c6fdc5f06a55231db611a
+[0]: https://github.com/cri-o/cri-o/commit/1c8917d362261d1793b7db27fa8d97f2ca826f43
 
 ## Outdated Dependencies
 
@@ -12,9 +12,9 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | github.com/containers/image/v5                         | v5.33.1                            | v5.34.0                            | true   | true             |
 | github.com/containers/storage                          | v1.56.1                            | v1.57.1                            | true   | true             |
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250131161802-41f23f1d2a96 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250201072944-a806d74ce32e | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
-| sigs.k8s.io/release-utils                              | v0.9.0                             | v0.10.0                            | true   | true             |
+| sigs.k8s.io/release-utils                              | v0.10.0                            | v0.11.0                            | true   | true             |
 
 ## All Dependencies
 
@@ -162,7 +162,7 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | github.com/Azure/azure-sdk-for-go/sdk/internal                                          | v1.10.0                               |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys                          | v1.1.0                                | v1.3.0                              | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/internal                        | v1.0.0                                | v1.1.0                              | false  | true             |
-| github.com/Azure/go-ansiterm                                                            | v0.0.0-20230124172434-306776ec8161    | v0.0.0-20250102033503-faa5f7b0171c  | false  | true             |
+| github.com/Azure/go-ansiterm                                                            | v0.0.0-20250102033503-faa5f7b0171c    |                                     | false  | true             |
 | github.com/Azure/go-autorest                                                            | v14.2.0+incompatible                  |                                     | false  | true             |
 | github.com/Azure/go-autorest/autorest                                                   | v0.11.29                              | v0.11.30                            | false  | true             |
 | github.com/Azure/go-autorest/autorest/adal                                              | v0.9.23                               | v0.9.24                             | false  | true             |
@@ -408,7 +408,7 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | github.com/google/go-intervals                                                          | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                                        | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                                | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250128161936-077ca0a936bf  | false  | true             |
+| github.com/google/pprof                                                                 | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250202011525-fc3143867406  | false  | true             |
 | github.com/google/renameio                                                              | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                               | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                                | v0.1.8                                | v0.1.9                              | false  | true             |
@@ -458,7 +458,7 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250131161802-41f23f1d2a96  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250201072944-a806d74ce32e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
@@ -519,7 +519,7 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | github.com/moby/sys/symlink                                                             | v0.2.0                                | v0.3.0                              | false  | true             |
 | github.com/moby/sys/user                                                                | v0.3.0                                |                                     | true   | true             |
 | github.com/moby/sys/userns                                                              | v0.1.0                                |                                     | true   | true             |
-| github.com/moby/term                                                                    | v0.5.0                                | v0.5.2                              | false  | true             |
+| github.com/moby/term                                                                    | v0.5.2                                |                                     | false  | true             |
 | github.com/modern-go/concurrent                                                         | v0.0.0-20180306012644-bacd9c7ef1dd    |                                     | false  | true             |
 | github.com/modern-go/reflect2                                                           | v1.0.2                                |                                     | false  | true             |
 | github.com/montanaflynn/stats                                                           | v0.0.0-20171201202039-1bf9dbcd8cbe    | v0.7.1                              | false  | true             |
@@ -757,7 +757,7 @@ _Generated on Sat, 01 Feb 2025 04:36:57 UTC for commit [adfec0a][0]._
 | sigs.k8s.io/json                                                                        | v0.0.0-20241010143419-9aa6b5e7a4b3    | v0.0.0-20241014173422-cfa47c3a1cc8  | false  | true             |
 | sigs.k8s.io/knftables                                                                   | v0.0.18                               |                                     | false  | true             |
 | sigs.k8s.io/release-sdk                                                                 | v0.12.1                               |                                     | true   | true             |
-| sigs.k8s.io/release-utils                                                               | v0.9.0                                | v0.10.0                             | true   | true             |
+| sigs.k8s.io/release-utils                                                               | v0.10.0                               | v0.11.0                             | true   | true             |
 | sigs.k8s.io/structured-merge-diff/v4                                                    | v4.4.2                                | v4.5.0                              | false  | true             |
 | sigs.k8s.io/yaml                                                                        | v1.4.0                                |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                      | v0.4.0                                | v0.5.0                              | false  | true             |
