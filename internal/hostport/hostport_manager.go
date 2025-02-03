@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base32"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -31,7 +32,6 @@ import (
 	"github.com/vishvananda/netlink"
 	"golang.org/x/sys/unix"
 	v1 "k8s.io/api/core/v1"
-	utilerrors "k8s.io/apimachinery/pkg/util/errors"
 	utilexec "k8s.io/utils/exec"
 	utilnet "k8s.io/utils/net"
 
@@ -202,20 +202,12 @@ func (hm *hostportManager) Add(id string, podPortMapping *PodPortMapping) (err e
 }
 
 func (hm *hostportManager) Remove(id string, podPortMapping *PodPortMapping) (err error) {
-	var errors []error
 	// Remove may not have the IP information, so we try to clean us much as possible
 	// and warn about the possible errors
-	err = hm.removeForFamily(id, podPortMapping, hm.ip4tables)
-	if err != nil {
-		errors = append(errors, err)
-	}
-
-	err = hm.removeForFamily(id, podPortMapping, hm.ip6tables)
-	if err != nil {
-		errors = append(errors, err)
-	}
-
-	return utilerrors.NewAggregate(errors)
+	return errors.Join(
+		hm.removeForFamily(id, podPortMapping, hm.ip4tables),
+		hm.removeForFamily(id, podPortMapping, hm.ip6tables),
+	)
 }
 
 func (hm *hostportManager) removeForFamily(id string, podPortMapping *PodPortMapping, ipt utiliptables.Interface) (err error) {
