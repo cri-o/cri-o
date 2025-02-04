@@ -2,7 +2,7 @@ name: nixpkgs
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * 0" # At 00:00 on Sunday
+    - cron: "0 0 1 * *" # At first day of month
 env:
   NIX_VERSION: "2.25.4"
 permissions:
