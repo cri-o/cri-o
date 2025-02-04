@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 04 Feb 2025 14:27:01 UTC for commit [c4e711b][0]._
+_Generated on Tue, 04 Feb 2025 18:30:59 UTC for commit [6601c98][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/c4e711bb838f65a733300aaa18b828e4dad29b09
+[0]: https://github.com/cri-o/cri-o/commit/6601c985f1098967c463908cf709e7407b4a64a6
 
 ## Outdated Dependencies
 
@@ -483,7 +483,7 @@ _Generated on Tue, 04 Feb 2025 14:27:01 UTC for commit [c4e711b][0]._
 | github.com/lestrrat-go/jwx                                                              | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                           | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                             | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250203214735-6695895f8b2c  | false  | true             |
+| github.com/letsencrypt/boulder                                                          | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250204164546-eda496606ddd  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                     | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                     | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                    | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -714,17 +714,17 @@ _Generated on Tue, 04 Feb 2025 14:27:01 UTC for commit [c4e711b][0]._
 | golang.org/x/oauth2                                                                     | v0.24.0                               | v0.26.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.10.0                               | v0.11.0                             | true   | true             |
 | golang.org/x/sys                                                                        | v0.29.0                               | v0.30.0                             | true   | true             |
-| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250117155846-04cd7bae618c  | false  | true             |
-| golang.org/x/term                                                                       | v0.28.0                               |                                     | false  | true             |
-| golang.org/x/text                                                                       | v0.21.0                               |                                     | false  | true             |
+| golang.org/x/telemetry                                                                  | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250204155029-60cba7f74efa  | false  | true             |
+| golang.org/x/term                                                                       | v0.28.0                               | v0.29.0                             | false  | true             |
+| golang.org/x/text                                                                       | v0.21.0                               | v0.22.0                             | false  | true             |
 | golang.org/x/time                                                                       | v0.7.0                                | v0.10.0                             | false  | true             |
 | golang.org/x/tools                                                                      | v0.28.0                               | v0.29.0                             | false  | true             |
 | golang.org/x/xerrors                                                                    | v0.0.0-20231012003039-104605ab7028    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                                   | v0.195.0                              | v0.219.0                            | false  | true             |
 | google.golang.org/appengine                                                             | v1.6.8                                |                                     | false  | true             |
-| google.golang.org/genproto                                                              | v0.0.0-20240823204242-4ba0660f739c    | v0.0.0-20250127172529-29210b9bc287  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250127172529-29210b9bc287  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250127172529-29210b9bc287  | false  | true             |
+| google.golang.org/genproto                                                              | v0.0.0-20240823204242-4ba0660f739c    | v0.0.0-20250204164813-702378808489  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                               | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250204164813-702378808489  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250204164813-702378808489  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.70.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.5.1                                |                                     | false  | true             |
 | google.golang.org/protobuf                                                              | v1.36.4                               |                                     | true   | true             |
