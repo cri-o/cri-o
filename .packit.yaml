@@ -26,10 +26,9 @@ packages:
         # Remove downstream patches (if any)
         - sed -ri "/^Patch[0-9].*/d" .packit_rpm/cri-o.spec
   fedora-40:
-    # v1.28.x
+    # v1.29.x
     # Propose minor and patch releases downstream
-    # TODO: Use mask '\d+\.\d+\' after f40 switches to v1.29.x
-    version_update_mask: '\d+\'
+    version_update_mask: '\d+\.\d+\.'
     specfile_path: .packit_rpm/cri-o.spec
     files_to_sync:
       - .packit.yaml
