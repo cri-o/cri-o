@@ -38,16 +38,17 @@ const (
 )
 
 const (
-	annotationTrue       = "true"
-	annotationDisable    = "disable"
-	annotationEnable     = "enable"
-	schedDomainDir       = "/proc/sys/kernel/sched_domain"
-	cgroupMountPoint     = "/sys/fs/cgroup"
-	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
-	irqBalancedName      = "irqbalance"
-	sysCPUDir            = "/sys/devices/system/cpu"
-	sysCPUSaveDir        = "/var/run/crio/cpu"
-	milliCPUToCPU        = 1000
+	annotationTrue             = "true"
+	annotationDisable          = "disable"
+	annotationEnable           = "enable"
+	schedDomainDir             = "/proc/sys/kernel/sched_domain"
+	cgroupMountPoint           = "/sys/fs/cgroup"
+	irqBalanceBannedCpusLegacy = "IRQBALANCE_BANNED_CPUS"
+	irqBalanceBannedCPUs       = "IRQBALANCE_BANNED_CPULIST"
+	irqBalancedName            = "irqbalance"
+	sysCPUDir                  = "/sys/devices/system/cpu"
+	sysCPUSaveDir              = "/var/run/crio/cpu"
+	milliCPUToCPU              = 1000
 )
 
 const (
@@ -602,7 +603,7 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 		}
 		// run irqbalance in daemon mode, so this won't cause delay
 		cmd := cmdrunner.Command(irqBalancedName, "--oneshot")
-		additionalEnv := irqBalanceBannedCpus + "=" + newIRQBalanceSetting
+		additionalEnv := irqBalanceBannedCPUs + "=" + newIRQBalanceSetting.String()
 		cmd.Env = append(os.Environ(), additionalEnv)
 
 		return cmd.Run()
@@ -615,30 +616,30 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 	return nil
 }
 
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus string, enable bool) (string, error) {
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus string, enable bool) (cpuset.CPUSet, error) {
 	h.irqSMPAffinityFileLock.Lock()
 	defer h.irqSMPAffinityFileLock.Unlock()
 
 	content, err := os.ReadFile(h.irqSMPAffinityFile)
 	if err != nil {
-		return "", err
+		return cpuset.CPUSet{}, err
 	}
 
 	currentIRQSMPSetting := strings.TrimSpace(string(content))
 
-	newIRQSMPSetting, newIRQBalanceSetting, err := calcIRQSMPAffinityMask(cpus, currentIRQSMPSetting, enable)
+	newIRQSMPSetting, newIRQBalanceSetting, err := calcIRQSMPAffinityMask(cpus, currentIRQSMPSetting, calculateCPUSizeFromMask(currentIRQSMPSetting), enable)
 	if err != nil {
-		return "", err
+		return cpuset.CPUSet{}, err
 	}
 
 	if err := os.WriteFile(h.irqSMPAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
-		return "", err
+		return cpuset.CPUSet{}, err
 	}
 
 	return newIRQBalanceSetting, nil
 }
 
-func (h *HighPerformanceHooks) updateIrqBalanceConfigFile(newIRQBalanceSetting string) error {
+func (h *HighPerformanceHooks) updateIrqBalanceConfigFile(newIRQBalanceSetting cpuset.CPUSet) error {
 	h.irqBalanceConfigFileLock.Lock()
 	defer h.irqBalanceConfigFileLock.Unlock()
 
@@ -983,11 +984,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return err
 	}
 
-	current := strings.TrimSpace(string(content))
-	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
-
-	currentMaskArray, err := mapHexCharToByte(s)
+	currentMaskArray, err := mapHexCharToByte(string(content))
 	if err != nil {
 		return err
 	}
@@ -999,9 +996,9 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return nil
 	}
 
-	bannedCPUMasks, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+	bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 	if err != nil {
-		// Ignore returning err as given irqBalanceConfigFile may not exist.
+		// Ignore returning error as given irqBalanceConfigFile may not exist.
 		log.Infof(ctx, "Restore irqbalance config: failed to get current CPU ban list, ignoring")
 
 		return nil
@@ -1017,7 +1014,7 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 
 		defer irqBannedCPUsConfig.Close()
 
-		_, err = irqBannedCPUsConfig.WriteString(bannedCPUMasks)
+		_, err = irqBannedCPUsConfig.WriteString(bannedCPUs.String())
 		if err != nil {
 			return err
 		}
@@ -1032,17 +1029,20 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 		return err
 	}
 
-	origBannedCPUMasks := strings.TrimSpace(string(content))
+	origBannedCPUs, err := mapHexCharToCPUSet(strings.TrimSpace(string(content)))
+	if err != nil {
+		return err
+	}
 
-	if bannedCPUMasks == origBannedCPUMasks {
+	if bannedCPUs.Equals(origBannedCPUs) {
 		log.Infof(ctx, "Restore irqbalance config: nothing to do")
 
 		return nil
 	}
 
-	log.Infof(ctx, "Restore irqbalance banned CPU list in %q to %q", irqBalanceConfigFile, origBannedCPUMasks)
+	log.Infof(ctx, "Restore irqbalance banned CPU list in %q to %q", irqBalanceConfigFile, origBannedCPUs)
 
-	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, origBannedCPUMasks); err != nil {
+	if err := updateIrqBalanceConfigFile(irqBalanceConfigFile, origBannedCPUs); err != nil {
 		return err
 	}
 
