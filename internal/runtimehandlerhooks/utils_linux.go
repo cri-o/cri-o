@@ -132,11 +132,11 @@ func isAllBitSet(in []byte) bool {
 // the current mask string, as well as bool set. It then returns an updated mask string and inverted mask, with those
 // CPUs enabled or disable in the mask.
 func calcIRQSMPAffinityMask(containerCPUSet cpuset.CPUSet, current string, size int, set bool) (string, cpuset.CPUSet, error) {
+	var updatedSMPAffinityCPUs cpuset.CPUSet
+
 	if size == 0 {
 		return "", cpuset.New(), fmt.Errorf("cannot compute IRQ SMP affinity mask: cpu size is 0")
 	}
-
-	var updatedSMPAffinityCPUs cpuset.CPUSet
 
 	// only ascii string supported
 	if !isASCII(current) {
@@ -194,7 +194,7 @@ func updateIrqBalanceConfigFile(irqBalanceConfigFile string, newIRQBalanceSettin
 
 	for i, line := range lines {
 		// Comment out the old deprecated variable
-		if strings.HasPrefix(line, irqBalanceBannedCpusLegacy+"=") {
+		if strings.HasPrefix(line, irqBalanceBannedCPUsLegacy+"=") {
 			lines[i] = "#" + line
 		}
 
@@ -230,7 +230,7 @@ func retrieveIrqBannedCPUList(irqBalanceConfigFile string) (cpuset.CPUSet, error
 		// try to read from the legacy variable first and merge both values.
 		// after the first iteration, it'll comment this line, so
 		// it will not enter this flow again (because the prefix won't match).
-		if strings.HasPrefix(line, irqBalanceBannedCpusLegacy+"=") {
+		if strings.HasPrefix(line, irqBalanceBannedCPUsLegacy+"=") {
 			list := strings.Trim(strings.Split(line, "=")[1], "\"")
 
 			setFromOldValue, err = mapHexCharToCPUSet(list)
