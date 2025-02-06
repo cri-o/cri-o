@@ -747,8 +747,8 @@ github.com/containers/ocicrypt v1.1.10 h1:r7UR6o8+lyhkEywetubUUgcKFjOWOaWz8cEBrC
 github.com/containers/ocicrypt v1.1.10/go.mod h1:YfzSSr06PTHQwSTUKqDSjish9BeW1E4HUmreluQcMd8=
 github.com/containers/podman/v4 v4.9.3 h1:3tEnvIqijxBYtILRdHcbn0UNHAyUiQ1Y5hcvkYmutZA=
 github.com/containers/podman/v4 v4.9.3/go.mod h1:J2qLop+mWjAOxh0QQyYPdnPA3jI6ay2eU0OKakgMniQ=
-github.com/containers/storage v1.51.1-0.20241210064209-75435e49ced3 h1:gxrr8HDgDQI8kXGi08/PeQhQpT/SiirchFkolq454qU=
-github.com/containers/storage v1.51.1-0.20241210064209-75435e49ced3/go.mod h1:1vrhsjgb/mfuIOGk1TIX6890/LGWhC8Kqzps3Bh0CRA=
+github.com/containers/storage v1.51.1-0.20250123153027-e1bc50e6f958 h1:jcI4WOwt+Q4t2tGCVk03i/wbmIDfLTHkt+iKbpMZpuA=
+github.com/containers/storage v1.51.1-0.20250123153027-e1bc50e6f958/go.mod h1:W+4hYMT3FHhVMqf+J//T3+uDRfqKh5IPx+6m4xb8EhY=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/cpuguy83/go-md2man v1.0.10 h1:BSKMNlYxDvnunlTymqtgONjNnaRV1sTpcovwwjF22jk=
