@@ -80,8 +80,8 @@ github.com/containerd/go-runc v1.1.0 h1:OX4f+/i2y5sUT7LhmcJH7GYrjjhHa1QI4e8yO0gG
 github.com/containerd/go-runc v1.1.0/go.mod h1:xJv2hFF7GvHtTJd9JqTS2UVxMkULUYw4JN5XAUZqH5U=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
-github.com/containerd/nri v0.9.0 h1:jribDJs/oQ95vLO4Yn19HKFYriZGWKiG6nKWjl9Y/x4=
-github.com/containerd/nri v0.9.0/go.mod h1:sDRoMy5U4YolsWthg7TjTffAwPb6LEr//83O+D3xVU4=
+github.com/containerd/nri v0.9.1-0.20250205193013-895502851bc5 h1:qmPtFFfcr9448P0m50+hii5VI/8k7g+SscCTtdfFZO4=
+github.com/containerd/nri v0.9.1-0.20250205193013-895502851bc5/go.mod h1:sDRoMy5U4YolsWthg7TjTffAwPb6LEr//83O+D3xVU4=
 github.com/containerd/otelttrpc v0.1.0 h1:UOX68eVTE8H/T45JveIg+I22Ev2aFj4qPITCmXsskjw=
 github.com/containerd/otelttrpc v0.1.0/go.mod h1:XhoA2VvaGPW1clB2ULwrBZfXVuEWuyOd2NUD1IM0yTg=
 github.com/containerd/stargz-snapshotter/estargz v0.15.1 h1:eXJjw9RbkLFgioVaTG+G/ZW/0kEe2oEKCdS/ZxIyoCU=

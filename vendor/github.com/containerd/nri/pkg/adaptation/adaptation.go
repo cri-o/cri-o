@@ -30,6 +30,8 @@ import (
 	"github.com/containerd/nri/pkg/api"
 	"github.com/containerd/nri/pkg/log"
 	"github.com/containerd/ttrpc"
+	"github.com/tetratelabs/wazero"
+	"github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1"
 )
 
 const (
@@ -129,7 +131,21 @@ func New(name, version string, syncFn SyncFn, updateFn UpdateFn, opts ...Option)
 		return nil, fmt.Errorf("failed to create NRI adaptation, nil UpdateFn")
 	}
 
-	wasmPlugins, err := api.NewPluginPlugin(context.Background())
+	wasmWithCloseOnContextDone := func(ctx context.Context) (wazero.Runtime, error) {
+		var (
+			cfg = wazero.NewRuntimeConfig().WithCloseOnContextDone(true)
+			r   = wazero.NewRuntimeWithConfig(ctx, cfg)
+		)
+		if _, err := wasi_snapshot_preview1.Instantiate(ctx, r); err != nil {
+			return nil, err
+		}
+		return r, nil
+	}
+
+	wasmPlugins, err := api.NewPluginPlugin(
+		context.Background(),
+		api.WazeroRuntime(wasmWithCloseOnContextDone),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize WASM service: %w", err)
 	}

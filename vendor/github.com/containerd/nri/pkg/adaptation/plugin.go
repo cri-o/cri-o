@@ -336,6 +336,7 @@ func (p *plugin) start(name, version string) (err error) {
 // close a plugin shutting down its multiplexed ttrpc connections.
 func (p *plugin) close() {
 	if p.impl.isWasm() {
+		p.closed = true
 		return
 	}
 
