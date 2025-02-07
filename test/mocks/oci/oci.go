@@ -150,7 +150,7 @@ func (m *MockRuntimeImpl) IsContainerAlive(arg0 *oci.Container) bool {
 }
 
 // IsContainerAlive indicates an expected call of IsContainerAlive.
-func (mr *MockRuntimeImplMockRecorder) IsContainerAlive(arg0 any) *gomock.Call {
+func (mr *MockRuntimeImplMockRecorder) IsContainerAlive(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsContainerAlive", reflect.TypeOf((*MockRuntimeImpl)(nil).IsContainerAlive), arg0)
 }
