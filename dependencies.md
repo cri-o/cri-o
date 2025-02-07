@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 07 Feb 2025 08:08:30 UTC for commit [2c8d91a][0]._
+_Generated on Fri, 07 Feb 2025 11:02:16 UTC for commit [b49a38f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2c8d91ab9e04a3d06161fe31c12bee6ea34c3000
+[0]: https://github.com/cri-o/cri-o/commit/b49a38f0501ed87df39ad3ebc804786454214c10
 
 ## Outdated Dependencies
 
@@ -10,7 +10,6 @@ _Generated on Fri, 07 Feb 2025 08:08:30 UTC for commit [2c8d91a][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250206204727-eb1cf792de5b | true   | true             |
-| google.golang.org/protobuf                             | v1.36.4                            | v1.36.5                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -640,7 +639,7 @@ _Generated on Fri, 07 Feb 2025 08:08:30 UTC for commit [2c8d91a][0]._
 | github.com/urfave/cli/v2                                                                | v2.27.5                               |                                     | true   | true             |
 | github.com/uwu-tools/magex                                                              | v0.10.1                               |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                             | v0.11.7                               | v0.12.1                             | false  | true             |
-| github.com/vbauerster/mpb/v8                                                            | v8.9.1                                |                                     | false  | true             |
+| github.com/vbauerster/mpb/v8                                                            | v8.9.1                                | v8.9.2                              | false  | true             |
 | github.com/veraison/go-cose                                                             | v1.3.0                                |                                     | false  | true             |
 | github.com/vishvananda/netlink                                                          | v1.3.0                                |                                     | true   | true             |
 | github.com/vishvananda/netns                                                            | v0.0.4                                | v0.0.5                              | false  | true             |
@@ -727,7 +726,7 @@ _Generated on Fri, 07 Feb 2025 08:08:30 UTC for commit [2c8d91a][0]._
 | google.golang.org/genproto/googleapis/rpc                                               | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250204164813-702378808489  | false  | true             |
 | google.golang.org/grpc                                                                  | v1.70.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                           | v1.5.1                                |                                     | false  | true             |
-| google.golang.org/protobuf                                                              | v1.36.4                               | v1.36.5                             | true   | true             |
+| google.golang.org/protobuf                                                              | v1.36.5                               |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                          | v2.2.6                                | v2.4.0                              | false  | true             |
 | gopkg.in/check.v1                                                                       | v1.0.0-20201130134442-10cb98267c6c    |                                     | false  | true             |
 | gopkg.in/evanphx/json-patch.v4                                                          | v4.12.0                               |                                     | false  | true             |
