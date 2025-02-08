@@ -80,6 +80,7 @@ type RuntimeImpl interface {
 	ReopenContainerLog(context.Context, *Container) error
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
+	IsContainerAlive(*Container) bool
 }
 
 // New creates a new Runtime with options provided.
@@ -503,4 +504,13 @@ func (r *Runtime) RestoreContainer(ctx context.Context, c *Container, cgroupPare
 	}
 
 	return impl.RestoreContainer(ctx, c, cgroupParent, mountLabel)
+}
+
+func (r *Runtime) IsContainerAlive(c *Container) (bool, error) {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return false, err
+	}
+
+	return impl.IsContainerAlive(c), nil
 }

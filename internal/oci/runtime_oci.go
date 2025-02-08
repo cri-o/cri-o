@@ -1577,3 +1577,7 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 	}
 	return nil
 }
+
+func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
+	return c.Living() == nil
+}
