@@ -21,7 +21,6 @@ import (
 	"github.com/containers/image/v5/internal/imagedestination/stubs"
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/internal/putblobdigest"
-	"github.com/containers/image/v5/internal/set"
 	"github.com/containers/image/v5/internal/signature"
 	"github.com/containers/image/v5/internal/tmpdir"
 	"github.com/containers/image/v5/manifest"
@@ -84,6 +83,9 @@ type storageImageDestination struct {
 	indexToAddedLayerInfo map[int]addedLayerInfo                                // Mapping from layer (by index) to blob to add to the image
 	blobAdditionalLayer   map[digest.Digest]storage.AdditionalLayer             // Mapping from layer blobsums to their corresponding additional layer
 	diffOutputs           map[digest.Digest]*graphdriver.DriverWithDifferOutput // Mapping from digest to differ output
+
+	// Config
+	configDigest digest.Digest // "" if N/A or not known yet.
 }
 
 // addedLayerInfo records data about a layer to use in this image.
@@ -170,7 +172,17 @@ func (s *storageImageDestination) PutBlobWithOptions(ctx context.Context, stream
 		return info, err
 	}
 
-	if options.IsConfig || options.LayerIndex == nil {
+	if options.IsConfig {
+		s.lock.Lock()
+		defer s.lock.Unlock()
+		if s.configDigest != "" {
+			return private.UploadedBlob{}, fmt.Errorf("after config %q, refusing to record another config %q",
+				s.configDigest.String(), info.Digest.String())
+		}
+		s.configDigest = info.Digest
+		return info, nil
+	}
+	if options.LayerIndex == nil {
 		return info, nil
 	}
 
@@ -776,22 +788,14 @@ func (s *storageImageDestination) Commit(ctx context.Context, unparsedToplevel t
 		options.CreationDate = *inspect.Created
 	}
 
-	// Set up to save the non-layer blobs as data items.  Since we only share layers, they should all be in files, so
-	// we just need to screen out the ones that are actually layers to get the list of non-layers.
-	dataBlobs := set.New[digest.Digest]()
-	for blob := range s.filenames {
-		dataBlobs.Add(blob)
-	}
-	for _, layerBlob := range layerBlobs {
-		dataBlobs.Delete(layerBlob.Digest)
-	}
-	for _, blob := range dataBlobs.Values() {
-		v, err := os.ReadFile(s.filenames[blob])
+	// Set up to save the config as a data item.  Since we only share layers, the config should be in a file.
+	if s.configDigest != "" {
+		v, err := os.ReadFile(s.filenames[s.configDigest])
 		if err != nil {
-			return fmt.Errorf("copying non-layer blob %q to image: %w", blob, err)
+			return fmt.Errorf("copying config blob %q to image: %w", s.configDigest, err)
 		}
 		options.BigData = append(options.BigData, storage.ImageBigDataOption{
-			Key:    blob.String(),
+			Key:    s.configDigest.String(),
 			Data:   v,
 			Digest: digest.Canonical.FromBytes(v),
 		})
