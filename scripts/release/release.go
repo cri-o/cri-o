@@ -144,6 +144,7 @@ func updateVersionAndCreatePR(
 		headBranchName,
 		title,
 		body,
+		false,
 	)
 	if err != nil {
 		return fmt.Errorf("unable to create pull request: %w", err)
