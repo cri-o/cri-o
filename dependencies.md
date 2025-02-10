@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 10 Feb 2025 14:22:07 UTC for commit [6168738][0]._
+_Generated on Mon, 10 Feb 2025 17:32:56 UTC for commit [687ebc3][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6168738d3d9bedc056646a1e987e8ec440af7a8e
+[0]: https://github.com/cri-o/cri-o/commit/687ebc335aaa60b869b33db72876cd9acacde8d7
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250206204727-eb1cf792de5b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250210152506-fb341f8ebb60 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 | sigs.k8s.io/release-sdk                                | v0.12.1                            | v0.12.2                            | true   | true             |
 
@@ -458,7 +458,7 @@ _Generated on Mon, 10 Feb 2025 14:22:07 UTC for commit [6168738][0]._
 | github.com/jpillora/backoff                                                             | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                             | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                     | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250206204727-eb1cf792de5b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                                  | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250210152506-fb341f8ebb60  | true   | true             |
 | github.com/kevinburke/ssh_config                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                             | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                               | v1.0.0                                |                                     | false  | true             |
@@ -710,7 +710,7 @@ _Generated on Mon, 10 Feb 2025 14:22:07 UTC for commit [6168738][0]._
 | golang.org/x/exp                                                                        | v0.0.0-20250103183323-7d7fa50e5329    | v0.0.0-20250207012021-f9890c6ad9f3  | false  | true             |
 | golang.org/x/lint                                                                       | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                        | v0.22.0                               | v0.23.0                             | false  | true             |
-| golang.org/x/net                                                                        | v0.34.0                               |                                     | false  | true             |
+| golang.org/x/net                                                                        | v0.34.0                               | v0.35.0                             | false  | true             |
 | golang.org/x/oauth2                                                                     | v0.25.0                               | v0.26.0                             | false  | true             |
 | golang.org/x/sync                                                                       | v0.11.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                                        | v0.30.0                               |                                     | true   | true             |
