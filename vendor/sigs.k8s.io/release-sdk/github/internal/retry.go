@@ -18,6 +18,7 @@ package internal
 
 import (
 	"crypto/rand"
+	"errors"
 	"math/big"
 	"strings"
 	"time"
@@ -71,35 +72,44 @@ func GithubErrChecker(maxTries int, sleeper func(time.Duration)) func(error) boo
 		if err == nil {
 			return false
 		}
+
 		if try >= maxTries {
 			logrus.Errorf("Max retries (%d) reached, not retrying anymore: %v", maxTries, err)
+
 			return false
 		}
 
 		try++
 
-		if err, ok := err.(*github.RateLimitError); ok {
+		rateLimitError := &github.RateLimitError{}
+		if errors.As(err, &rateLimitError) {
 			waitDuration := defaultGithubSleep
-			until := time.Until(err.Rate.Reset.Time)
+			until := time.Until(rateLimitError.Rate.Reset.Time)
+
 			if until > 0 {
 				waitDuration = until
 			}
+
 			logrus.
 				WithField("err", err).
 				Infof("Hit the rate limit on try %d, sleeping for %s", try, waitDuration)
 			sleeper(waitDuration)
+
 			return true
 		}
 
-		if aerr, ok := err.(*github.AbuseRateLimitError); ok {
+		abuseRateLimitError := &github.AbuseRateLimitError{}
+		if errors.As(err, &abuseRateLimitError) {
 			waitDuration := defaultGithubSleep
-			if d := aerr.RetryAfter; d != nil {
+			if d := abuseRateLimitError.RetryAfter; d != nil {
 				waitDuration = *d
 			}
+
 			logrus.
-				WithField("err", aerr).
+				WithField("err", abuseRateLimitError).
 				Infof("Hit the abuse rate limit on try %d, sleeping for %s", try, waitDuration)
 			sleeper(waitDuration)
+
 			return true
 		}
 
@@ -107,13 +117,16 @@ func GithubErrChecker(maxTries int, sleeper func(time.Duration)) func(error) boo
 			rtime, err := rand.Int(rand.Reader, big.NewInt(30))
 			if err != nil {
 				logrus.Error(err)
+
 				return false
 			}
+
 			waitDuration := time.Duration(rtime.Int64()*int64(time.Second)) + defaultGithubSleep
 			logrus.
 				WithField("err", err).
 				Infof("Hit the GitHub secondary rate limit on try %d, sleeping for %s", try, waitDuration)
 			sleeper(waitDuration)
+
 			return true
 		}
 

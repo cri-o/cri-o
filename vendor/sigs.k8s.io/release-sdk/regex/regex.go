@@ -23,5 +23,5 @@ import (
 const branchRegexStr = `master|main|release-(\d+)\.(\d+)(\.(\d+))*$`
 
 // BranchRegex returns a *regexp.Regexp which evaluates the structure of a
-// Kubernetes release branch
+// Kubernetes release branch.
 var BranchRegex = regexp.MustCompile(branchRegexStr)
