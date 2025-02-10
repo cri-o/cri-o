@@ -9,8 +9,6 @@ run:
     - test
     # needs btrfs headers installed
     - exclude_graphdriver_btrfs
-    # needs devmapper headers installed
-    - exclude_graphdriver_devicemapper
   concurrency: 6
   timeout: 10m
 linters:

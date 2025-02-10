@@ -24,9 +24,6 @@ BUILDTAGS ?= containers_image_ostree_stub \
 			 $(shell hack/seccomp_tag.sh) \
 			 $(shell hack/selinux_tag.sh) \
 			 $(shell hack/libsubid_tag.sh)
-# Device mapper is deprecated; keep this tag until the dm code
-# is removed from the c/storage vendored here.
-BUILDTAGS += exclude_graphdriver_devicemapper
 CRICTL_CONFIG_DIR=${DESTDIR}/etc
 CONTAINER_RUNTIME ?= podman
 PWD := $(shell pwd)
@@ -239,7 +236,7 @@ bin/crio.cross.%:
 	TARGET="$*"; \
 	GOOS="$${TARGET%%.*}" \
 	GOARCH="$${TARGET##*.}" \
-	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion exclude_graphdriver_devicemapper" -o "$@" ./cmd/crio
+	$(GO_BUILD) $(GO_LDFLAGS) -tags "containers_image_openpgp btrfs_noversion" -o "$@" ./cmd/crio
 
 .PHONY: bin/metrics-exporter
 bin/metrics-exporter: ## Build the metrics exporter.

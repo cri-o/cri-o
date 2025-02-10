@@ -23,7 +23,7 @@ go install golang.org/x/vuln/cmd/govulncheck@${GOVULNCHECK_VERSION}
 # Generate the report.
 report=$(mktemp)
 trap 'rm "$report"' EXIT
-"$GOPATH_BIN"/govulncheck -json -tags=test,exclude_graphdriver_devicemapper ./... >"$report"
+"$GOPATH_BIN"/govulncheck -json -tags=test ./... >"$report"
 
 # Parse vulnerabilities from the report.
 modvulns=$(jq -Sr '.vulnerability.modules[]? | select(.path != "stdlib") | [.path, "affected package(s): \(.packages[].path)", "found version: \(.found_version)", "fixed version: \(.fixed_version)"]' <"$report")
