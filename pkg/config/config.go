@@ -17,7 +17,6 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/hooks"
-	conmonconfig "github.com/containers/conmon/runner/config"
 	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/types"
 	"github.com/containers/storage"
@@ -929,46 +928,7 @@ func DefaultConfig() (*Config, error) {
 			GRPCMaxSendMsgSize: defaultGRPCMaxMsgSize,
 			GRPCMaxRecvMsgSize: defaultGRPCMaxMsgSize,
 		},
-		RuntimeConfig: RuntimeConfig{
-			AllowedDevices:     []string{"/dev/fuse", "/dev/net/tun"},
-			DecryptionKeysPath: "/etc/crio/keys/",
-			DefaultRuntime:     DefaultRuntime,
-			Runtimes: Runtimes{
-				DefaultRuntime: defaultRuntimeHandler(),
-			},
-			SELinux:                     selinuxEnabled(),
-			ApparmorProfile:             apparmor.DefaultProfile,
-			BlockIOConfigFile:           DefaultBlockIOConfigFile,
-			BlockIOReload:               DefaultBlockIOReload,
-			IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
-			RdtConfigFile:               rdt.DefaultRdtConfigFile,
-			CgroupManagerName:           cgroupManager.Name(),
-			PidsLimit:                   DefaultPidsLimit,
-			ContainerExitsDir:           containerExitsDir,
-			ContainerAttachSocketDir:    conmonconfig.ContainerAttachSocketDir,
-			MinimumMappableUID:          -1,
-			MinimumMappableGID:          -1,
-			LogSizeMax:                  DefaultLogSizeMax,
-			CtrStopTimeout:              defaultCtrStopTimeout,
-			DefaultCapabilities:         capabilities.Default(),
-			LogLevel:                    "info",
-			HooksDir:                    []string{hooks.DefaultDir},
-			CDISpecDirs:                 cdi.DefaultSpecDirs,
-			NamespacesDir:               defaultNamespacesDir,
-			DropInfraCtr:                true,
-			IrqBalanceConfigRestoreFile: DefaultIrqBalanceConfigRestoreFile,
-			seccompConfig:               seccomp.New(),
-			apparmorConfig:              apparmor.New(),
-			blockioConfig:               blockio.New(),
-			cgroupManager:               cgroupManager,
-			deviceConfig:                device.New(),
-			namespaceManager:            nsmgr.New(defaultNamespacesDir, ""),
-			rdtConfig:                   rdt.New(),
-			ulimitsConfig:               ulimits.New(),
-			HostNetworkDisableSELinux:   true,
-			DisableHostPortMapping:      false,
-			EnableCriuSupport:           true,
-		},
+		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		ImageConfig: ImageConfig{
 			DefaultTransport:    "docker://",
 			PauseImage:          DefaultPauseImage,
@@ -993,6 +953,50 @@ func DefaultConfig() (*Config, error) {
 		},
 		NRI: nri.New(),
 	}, nil
+}
+
+// DefaultRuntimeConfig returns the default Runtime configs.
+func DefaultRuntimeConfig(cgroupManager cgmgr.CgroupManager) *RuntimeConfig {
+	return &RuntimeConfig{
+		AllowedDevices:     []string{"/dev/fuse", "/dev/net/tun"},
+		DecryptionKeysPath: "/etc/crio/keys/",
+		DefaultRuntime:     DefaultRuntime,
+		Runtimes: Runtimes{
+			DefaultRuntime: defaultRuntimeHandler(cgroupManager.IsSystemd()),
+		},
+		SELinux:                     selinuxEnabled(),
+		ApparmorProfile:             apparmor.DefaultProfile,
+		BlockIOConfigFile:           DefaultBlockIOConfigFile,
+		BlockIOReload:               DefaultBlockIOReload,
+		IrqBalanceConfigFile:        DefaultIrqBalanceConfigFile,
+		RdtConfigFile:               rdt.DefaultRdtConfigFile,
+		CgroupManagerName:           cgroupManager.Name(),
+		PidsLimit:                   DefaultPidsLimit,
+		ContainerExitsDir:           containerExitsDir,
+		ContainerAttachSocketDir:    ContainerAttachSocketDir,
+		MinimumMappableUID:          -1,
+		MinimumMappableGID:          -1,
+		LogSizeMax:                  DefaultLogSizeMax,
+		CtrStopTimeout:              defaultCtrStopTimeout,
+		DefaultCapabilities:         capabilities.Default(),
+		LogLevel:                    "info",
+		HooksDir:                    []string{hooks.DefaultDir},
+		CDISpecDirs:                 cdi.DefaultSpecDirs,
+		NamespacesDir:               defaultNamespacesDir,
+		DropInfraCtr:                true,
+		IrqBalanceConfigRestoreFile: DefaultIrqBalanceConfigRestoreFile,
+		seccompConfig:               seccomp.New(),
+		apparmorConfig:              apparmor.New(),
+		blockioConfig:               blockio.New(),
+		cgroupManager:               cgroupManager,
+		deviceConfig:                device.New(),
+		namespaceManager:            nsmgr.New(defaultNamespacesDir, ""),
+		rdtConfig:                   rdt.New(),
+		ulimitsConfig:               ulimits.New(),
+		HostNetworkDisableSELinux:   true,
+		DisableHostPortMapping:      false,
+		EnableCriuSupport:           true,
+	}
 }
 
 // Validate is the main entry point for library configuration validation.
@@ -1323,7 +1327,7 @@ func (c *RuntimeConfig) ValidateDefaultRuntime() error {
 	// The default config sets crun and its path in the runtimes map, so check for that
 	// first. If it does not exist then we add runc + its path to the runtimes map.
 	if _, ok := c.Runtimes[DefaultRuntime]; !ok {
-		c.Runtimes[DefaultRuntime] = defaultRuntimeHandler()
+		c.Runtimes[DefaultRuntime] = defaultRuntimeHandler(c.cgroupManager.IsSystemd())
 	}
 	// Set the DefaultRuntime to runc so we don't fail further along in the code
 	c.DefaultRuntime = DefaultRuntime
@@ -1331,7 +1335,18 @@ func (c *RuntimeConfig) ValidateDefaultRuntime() error {
 	return nil
 }
 
-func defaultRuntimeHandler() *RuntimeHandler {
+// getDefaultMonitorGroup checks which defaultmonitor group to use
+// for cgroupfs it is empty.
+func getDefaultMonitorGroup(isSystemd bool) string {
+	monitorGroup := ""
+	if isSystemd {
+		monitorGroup = defaultMonitorCgroup
+	}
+
+	return monitorGroup
+}
+
+func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 	return &RuntimeHandler{
 		RuntimeType: DefaultRuntimeType,
 		RuntimeRoot: DefaultRuntimeRoot,
@@ -1343,7 +1358,7 @@ func defaultRuntimeHandler() *RuntimeHandler {
 			"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
 		},
 		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
-		MonitorCgroup:      defaultMonitorCgroup,
+		MonitorCgroup:      getDefaultMonitorGroup(isSystemd),
 	}
 }
 
@@ -1477,8 +1492,9 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 	if len(c.ConmonEnv) != 0 {
 		handler.MonitorEnv = c.ConmonEnv
 	}
-	// If empty, assume default
-	if handler.MonitorCgroup == "" {
+
+	// If systemd and empty, assume default
+	if c.cgroupManager.IsSystemd() && handler.MonitorCgroup == "" {
 		handler.MonitorCgroup = defaultMonitorCgroup
 	}
 
@@ -1486,10 +1502,16 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 		if err := c.ValidateConmonPath("conmon", handler); err != nil {
 			return err
 		}
-
+		// if cgroupManager is cgroupfs
 		if !c.cgroupManager.IsSystemd() {
+			// handler.MonitorCgroup having value "" is valid
+			// but the default value system.slice is not
+			if handler.MonitorCgroup == defaultMonitorCgroup {
+				handler.MonitorCgroup = ""
+			}
+
 			if handler.MonitorCgroup != utils.PodCgroupName && handler.MonitorCgroup != "" {
-				return errors.New("cgroupfs manager conmon cgroup should be 'pod' or empty")
+				return fmt.Errorf("cgroupfs manager conmon cgroup should be 'pod' or empty, but got: '%s'", handler.MonitorCgroup)
 			}
 
 			return nil

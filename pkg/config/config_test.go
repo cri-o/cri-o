@@ -11,6 +11,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
@@ -534,6 +535,20 @@ var _ = t.Describe("Config", func() {
 
 			// Then
 			Expect(err).To(HaveOccurred())
+		})
+		It("should not fail on cgroupfs as cgroup manager and conmon_cgroup as empty", func() {
+			handler := &config.RuntimeHandler{}
+
+			// Given
+			cgm, _ := cgmgr.SetCgroupManager("cgroupfs") //nolint:errcheck
+			runtimeConfig := *config.DefaultRuntimeConfig(cgm)
+
+			// When
+			err := runtimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+
+			// Then
+			Expect(handler.MonitorCgroup).To(Equal(""))
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail on invalid InfraCtrCPUSet", func() {
