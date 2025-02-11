@@ -27,11 +27,11 @@ import (
 
 const (
 	// UserForkName is the name we will give to the user's remote when adding
-	// it to repos
+	// it to repos.
 	UserForkName = "userfork"
 )
 
-// PrepareFork prepares a branch from a repo fork
+// PrepareFork prepares a branch from a repo fork.
 func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string, useSSH, updateRepo bool, opts *gogit.CloneOptions) (repo *git.Repo, err error) {
 	// checkout the upstream repository
 	logrus.Infof("Cloning/updating repository %s/%s", upstreamOrg, upstreamRepo)
@@ -67,9 +67,10 @@ func PrepareFork(branchName, upstreamOrg, upstreamRepo, myOrg, myRepo string, us
 	return repo, nil
 }
 
-// VerifyFork does a pre-check of a fork to see if we can create a PR from it
+// VerifyFork does a pre-check of a fork to see if we can create a PR from it.
 func VerifyFork(branchName, forkOwner, forkRepo, parentOwner, parentRepo string) error {
 	logrus.Infof("Checking if a PR can be created from %s/%s", forkOwner, forkRepo)
+
 	gh := New()
 
 	// check if the specified repo is a fork of the parent
@@ -104,5 +105,6 @@ func VerifyFork(branchName, forkOwner, forkRepo, parentOwner, parentRepo string)
 			branchName, forkOwner, forkRepo,
 		)
 	}
+
 	return nil
 }
