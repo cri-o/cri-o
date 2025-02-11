@@ -6,6 +6,6 @@
 package ociartifact
 
 // SetOCIArtifactImpl sets the OCI artifact implementation.
-func (o *OCIArtifact) SetImpl(impl Impl) {
-	o.impl = impl
+func (s *Store) SetImpl(impl Impl) {
+	s.impl = impl
 }

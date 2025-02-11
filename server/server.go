@@ -33,6 +33,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	nriIf "github.com/cri-o/cri-o/internal/nri"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/resourcestore"
 	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/signals"
@@ -1101,4 +1102,9 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 			log.Errorf(ctx, "Watcher error: %v", err)
 		}
 	}
+}
+
+// ArtifactStore returns a new artifact store instance.
+func (s *Server) ArtifactStore() *ociartifact.Store {
+	return ociartifact.NewStore(s.Store().GraphRoot(), s.Config().SystemContext)
 }
