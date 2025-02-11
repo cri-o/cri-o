@@ -2,10 +2,12 @@ package server
 
 import (
 	"context"
+	"errors"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
 )
 
@@ -26,8 +28,15 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 			}
 
 			resp := &types.ListImagesResponse{}
+
 			if status != nil {
-				resp.Images = append(resp.Images, ConvertImage(status))
+				return &types.ListImagesResponse{Images: []*types.Image{ConvertImage(status)}}, nil
+			}
+
+			if artifact, err := s.ArtifactStore().Status(ctx, filterImage.Image); err == nil {
+				resp.Images = append(resp.Images, artifact.CRIImage())
+			} else if !errors.Is(err, ociartifact.ErrNotFound) {
+				log.Errorf(ctx, "Unable to get filtered artifact: %v", err)
 			}
 
 			return resp, nil
@@ -44,6 +53,15 @@ func (s *Server) ListImages(ctx context.Context, req *types.ListImagesRequest) (
 	for i := range results {
 		image := ConvertImage(&results[i])
 		resp.Images = append(resp.Images, image)
+	}
+
+	artifacts, err := s.ArtifactStore().List(ctx)
+	if err != nil {
+		log.Warnf(ctx, "Unable to list artifacts: %v", err)
+	}
+
+	for _, a := range artifacts {
+		resp.Images = append(resp.Images, a.CRIImage())
 	}
 
 	return resp, nil
