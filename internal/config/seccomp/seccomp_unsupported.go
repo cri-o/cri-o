@@ -38,6 +38,7 @@ func (c *Config) Setup(
 	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
+	graphRoot string,
 ) (*Notifier, string, error) {
 	return nil, "", nil
 }

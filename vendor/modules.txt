@@ -214,6 +214,9 @@ github.com/containerd/nri/pkg/stub
 ## explicit; go 1.21
 github.com/containerd/otelttrpc
 github.com/containerd/otelttrpc/internal
+# github.com/containerd/platforms v0.2.1
+## explicit; go 1.20
+github.com/containerd/platforms
 # github.com/containerd/stargz-snapshotter/estargz v0.16.3
 ## explicit; go 1.22.0
 github.com/containerd/stargz-snapshotter/estargz
@@ -244,19 +247,35 @@ github.com/containernetworking/cni/pkg/version
 github.com/containernetworking/plugins/pkg/ns
 # github.com/containers/common v0.62.0
 ## explicit; go 1.22.8
+github.com/containers/common/internal
+github.com/containers/common/internal/attributedstring
+github.com/containers/common/libimage
+github.com/containers/common/libimage/define
+github.com/containers/common/libimage/filter
+github.com/containers/common/libimage/manifests
+github.com/containers/common/libimage/platform
+github.com/containers/common/libnetwork/types
 github.com/containers/common/pkg/apparmor
 github.com/containers/common/pkg/apparmor/internal/supported
 github.com/containers/common/pkg/capabilities
 github.com/containers/common/pkg/cgroups
+github.com/containers/common/pkg/cgroupv2
+github.com/containers/common/pkg/config
 github.com/containers/common/pkg/crutils
 github.com/containers/common/pkg/detach
+github.com/containers/common/pkg/download
+github.com/containers/common/pkg/filters
 github.com/containers/common/pkg/hooks
 github.com/containers/common/pkg/hooks/0.1.0
 github.com/containers/common/pkg/hooks/1.0.0
+github.com/containers/common/pkg/manifests
 github.com/containers/common/pkg/resize
+github.com/containers/common/pkg/retry
 github.com/containers/common/pkg/seccomp
 github.com/containers/common/pkg/signal
 github.com/containers/common/pkg/subscriptions
+github.com/containers/common/pkg/supplemented
+github.com/containers/common/pkg/timetype
 github.com/containers/common/pkg/timezone
 github.com/containers/common/pkg/umask
 github.com/containers/common/version
@@ -429,6 +448,9 @@ github.com/cyphar/filepath-securejoin
 # github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc
 ## explicit
 github.com/davecgh/go-spew/spew
+# github.com/disiqueira/gotree/v3 v3.0.2
+## explicit; go 1.13
+github.com/disiqueira/gotree/v3
 # github.com/distribution/reference v0.6.0
 ## explicit; go 1.20
 github.com/distribution/reference
@@ -707,6 +729,9 @@ github.com/intel/goresctrl/pkg/utils
 # github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99
 ## explicit
 github.com/jbenet/go-context/io
+# github.com/jinzhu/copier v0.4.0
+## explicit; go 1.13
+github.com/jinzhu/copier
 # github.com/josharian/intern v1.0.0
 ## explicit; go 1.5
 github.com/josharian/intern

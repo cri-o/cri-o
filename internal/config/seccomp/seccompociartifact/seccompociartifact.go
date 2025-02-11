@@ -2,12 +2,13 @@ package seccompociartifact
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/containers/image/v5/types"
 
-	"github.com/cri-o/cri-o/internal/config/ociartifact"
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -18,9 +19,9 @@ type SeccompOCIArtifact struct {
 }
 
 // New creates a new seccomp OCI artifact handler.
-func New() *SeccompOCIArtifact {
+func New(root string, systemContext *types.SystemContext) *SeccompOCIArtifact {
 	return &SeccompOCIArtifact{
-		impl: ociartifact.New(),
+		impl: ociartifact.NewStore(root, systemContext),
 	}
 }
 
@@ -37,7 +38,6 @@ const (
 // the provided annotations.
 func (s *SeccompOCIArtifact) TryPull(
 	ctx context.Context,
-	sys *types.SystemContext,
 	containerName string,
 	podAnnotations, imageAnnotations map[string]string,
 ) (profile []byte, err error) {
@@ -67,18 +67,17 @@ func (s *SeccompOCIArtifact) TryPull(
 		return nil, nil
 	}
 
-	pullOptions := &ociartifact.PullOptions{
-		SystemContext:          sys,
-		EnforceConfigMediaType: requiredConfigMediaType,
-		CachePath:              "/var/lib/crio/seccomp-oci-artifacts",
-	}
-
-	artifact, err := s.impl.Pull(ctx, profileRef, pullOptions)
+	artifactData, err := s.impl.PullData(ctx, profileRef, &ociartifact.PullOptions{EnforceConfigMediaType: requiredConfigMediaType})
 	if err != nil {
 		return nil, fmt.Errorf("pull OCI artifact: %w", err)
 	}
 
-	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(artifact.Data))
+	if len(artifactData) == 0 {
+		return nil, errors.New("artifact data is empty")
+	}
 
-	return artifact.Data, nil
+	profileData := artifactData[0].Data()
+	log.Infof(ctx, "Retrieved OCI artifact seccomp profile of len: %d", len(profileData))
+
+	return profileData, nil
 }

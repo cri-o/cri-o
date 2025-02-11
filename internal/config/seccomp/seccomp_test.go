@@ -117,6 +117,7 @@ var _ = t.Describe("Config", func() {
 				nil,
 				&generator,
 				field,
+				"",
 			)
 
 			// Then
@@ -145,6 +146,7 @@ var _ = t.Describe("Config", func() {
 				nil,
 				&generator,
 				field,
+				"",
 			)
 
 			// Then
@@ -172,6 +174,7 @@ var _ = t.Describe("Config", func() {
 				nil,
 				&generator,
 				field,
+				"",
 			)
 
 			// Then

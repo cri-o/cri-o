@@ -476,6 +476,7 @@ var _ = t.Describe("ContainerRestore", func() {
 						),
 					runtimeServerMock.EXPECT().StartContainer(gomock.Any()).
 						Return(emptyDir, nil),
+					storeMock.EXPECT().GraphRoot().Return(""),
 				)
 
 				// When

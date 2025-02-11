@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/docker"
 	"github.com/containers/image/v5/docker/reference"
@@ -36,6 +37,7 @@ import (
 	crierrors "k8s.io/cri-api/pkg/errors"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	"github.com/cri-o/cri-o/pkg/config"
 )
@@ -871,15 +873,25 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		return RegistryImageReference{}, err
 	}
 
-	manifestBytes, err := copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
-		SourceCtx:        &srcSystemContext,
-		DestinationCtx:   options.DestinationCtx,
+	manifestBytes, err := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext).PullManifest(ctx, srcRef, &ociartifact.PullOptions{CopyOptions: &libimage.CopyOptions{
 		OciDecryptConfig: options.OciDecryptConfig,
-		ProgressInterval: options.ProgressInterval,
 		Progress:         options.Progress,
-	})
+	}})
 	if err != nil {
-		return RegistryImageReference{}, err
+		if !errors.Is(err, ociartifact.ErrIsAnImage) {
+			return RegistryImageReference{}, fmt.Errorf("unable to try pulling possible OCI artifact: %w", err)
+		}
+
+		manifestBytes, err = copy.Image(ctx, policyContext, destRef, srcRef, &copy.Options{
+			SourceCtx:        &srcSystemContext,
+			DestinationCtx:   options.DestinationCtx,
+			OciDecryptConfig: options.OciDecryptConfig,
+			ProgressInterval: options.ProgressInterval,
+			Progress:         options.Progress,
+		})
+		if err != nil {
+			return RegistryImageReference{}, err
+		}
 	}
 
 	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), digest.FromBytes(manifestBytes))
