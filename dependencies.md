@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
+_Generated on Wed, 12 Feb 2025 17:30:11 UTC for commit [bbf6daa][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/403bef82c95b9dd4dff2106e13b8677f17aacd1d
+[0]: https://github.com/cri-o/cri-o/commit/bbf6daa8e520a4fc00570d306047ebd03761e560
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250210190137-c9f5966f56d2 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250212142608-fbc8454d3d73 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -202,7 +202,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/alibabacloud-go/debug                                                    | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/alibabacloud-go/endpoint-util                                            | v1.1.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/openapi-util                                             | v0.1.0                                | v0.1.1                              | false  | true             |
-| github.com/alibabacloud-go/tea                                                      | v1.2.1                                | v1.2.2                              | false  | true             |
+| github.com/alibabacloud-go/tea                                                      | v1.2.1                                | v1.3.1                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                  | v1.1.3                                |                                     | false  | true             |
 | github.com/aliyun/credentials-go                                                    | v1.3.2                                | v1.4.3                              | false  | true             |
@@ -241,7 +241,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/blang/semver                                                             | v3.5.1+incompatible                   |                                     | false  | true             |
 | github.com/blang/semver/v4                                                          | v4.0.0                                |                                     | true   | true             |
 | github.com/buger/jsonparser                                                         | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                       | v3.81.0                               | v3.91.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                       | v3.81.0                               | v3.92.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                    | v0.13.1                               | v0.13.3                             | false  | true             |
 | github.com/buildkite/interpolate                                                    | v0.1.3                                | v0.1.5                              | false  | true             |
 | github.com/buildkite/roko                                                           | v1.2.0                                | v1.3.1                              | false  | true             |
@@ -261,7 +261,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/chzyer/logex                                                             | v1.2.1                                |                                     | false  | true             |
 | github.com/chzyer/readline                                                          | v1.5.1                                |                                     | false  | true             |
 | github.com/chzyer/test                                                              | v1.0.0                                |                                     | false  | true             |
-| github.com/cilium/ebpf                                                              | v0.16.0                               | v0.17.2                             | false  | true             |
+| github.com/cilium/ebpf                                                              | v0.16.0                               | v0.17.3                             | false  | true             |
 | github.com/clbanning/mxj/v2                                                         | v2.7.0                                |                                     | false  | true             |
 | github.com/client9/misspell                                                         | v0.3.4                                |                                     | false  | true             |
 | github.com/cloudflare/circl                                                         | v1.3.7                                | v1.6.0                              | false  | true             |
@@ -457,7 +457,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250210190137-c9f5966f56d2  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250212142608-fbc8454d3d73  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.8.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
@@ -479,7 +479,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250210202657-64f4aabbf33f  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250211234741-63a0e500ed53  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -599,7 +599,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | github.com/sirupsen/logrus                                                          | v1.9.3                                |                                     | true   | true             |
 | github.com/skeema/knownhosts                                                        | v1.3.0                                | v1.3.1                              | false  | true             |
 | github.com/skratchdot/open-golang                                                   | v0.0.0-20200116055534-eef842397966    |                                     | false  | true             |
-| github.com/smallstep/pkcs7                                                          | v0.1.1                                |                                     | false  | true             |
+| github.com/smallstep/pkcs7                                                          | v0.1.1                                | v0.2.0                              | false  | true             |
 | github.com/soheilhy/cmux                                                            | v0.1.5                                |                                     | true   | true             |
 | github.com/sourcegraph/conc                                                         | v0.3.0                                |                                     | false  | true             |
 | github.com/spf13/afero                                                              | v1.11.0                               | v1.12.0                             | false  | true             |
@@ -711,7 +711,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | golang.org/x/oauth2                                                                 | v0.26.0                               |                                     | false  | true             |
 | golang.org/x/sync                                                                   | v0.11.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                                    | v0.30.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250206143958-557cf9c30e9f  | false  | true             |
+| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250212145848-75305293b65a  | false  | true             |
 | golang.org/x/term                                                                   | v0.28.0                               | v0.29.0                             | false  | true             |
 | golang.org/x/text                                                                   | v0.21.0                               | v0.22.0                             | false  | true             |
 | golang.org/x/time                                                                   | v0.9.0                                | v0.10.0                             | false  | true             |
@@ -738,7 +738,7 @@ _Generated on Tue, 11 Feb 2025 00:43:45 UTC for commit [403bef8][0]._
 | gopkg.in/yaml.v3                                                                    | v3.0.1                                |                                     | false  | true             |
 | gotest.tools                                                                        | v2.2.0+incompatible                   |                                     | false  | true             |
 | gotest.tools/v3                                                                     | v3.5.1                                | v3.5.2                              | false  | true             |
-| honnef.co/go/tools                                                                  | v0.0.0-20190523083050-ea95bdfd59fc    | v0.5.1                              | false  | true             |
+| honnef.co/go/tools                                                                  | v0.0.0-20190523083050-ea95bdfd59fc    | v0.6.0                              | false  | true             |
 | k8s.io/api                                                                          | v0.32.1                               |                                     | true   | true             |
 | k8s.io/apimachinery                                                                 | v0.32.1                               |                                     | true   | true             |
 | k8s.io/apiserver                                                                    | v0.32.1                               |                                     | false  | true             |
