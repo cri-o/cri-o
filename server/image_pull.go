@@ -260,8 +260,10 @@ func (s *Server) pullImageCandidate(ctx context.Context, sourceCtx *imageTypes.S
 // the cancel function will be called.
 func consumeImagePullProgress(ctx context.Context, cancel context.CancelFunc, pullProgressTimeout time.Duration, progress <-chan imageTypes.ProgressProperties, remoteCandidateName storage.RegistryImageReference) {
 	timer := time.AfterFunc(pullProgressTimeout, func() {
-		log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", pullProgressTimeout)
-		cancel()
+		if pullProgressTimeout != 0 {
+			log.Warnf(ctx, "Timed out on waiting up to %s for image pull progress updates", pullProgressTimeout)
+			cancel()
+		}
 	})
 	timer.Stop()       // don't start the timer immediately
 	defer timer.Stop() // ensure that the timer is stopped when we exit the progress loop
