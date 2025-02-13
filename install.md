@@ -24,7 +24,8 @@ It is assumed you are running a Linux machine.
     - [RHEL 8](#rhel-8)
     - [Debian - Raspbian - Ubuntu](#debian---raspbian---ubuntu)
       - [Debian up to buster - Raspbian - Ubuntu up to 18.04](#debian-up-to-buster---raspbian---ubuntu-up-to-1804)
-      - [Debian bullseye or higher - Ubuntu 20.04 or higher](#debian-bullseye-or-higher---ubuntu-2004-or-higher)
+      - [Debian up to bullseye - Ubuntu up to 22.04](#debian-up-to-bullseye---ubuntu-up-to-2204)
+      - [Debian bookworm or higher - Ubuntu 24.04 or higher](#debian-bookworm-or-higher---ubuntu-2404-or-higher)
   - [Get Source Code](#get-source-code)
   - [Build](#build)
     - [Install with Ansible](#install-with-ansible)
@@ -164,7 +165,7 @@ chmod +x create_crio_sysext.sh
 - iproute
 - iptables
 
-Latest version of `runc` is expected to be installed on the system. It is picked
+Latest version of `crun` is expected to be installed on the system. It is picked
 up as the default runtime by CRI-O.
 
 ### Build and Run Dependencies
@@ -190,7 +191,7 @@ yum install -y \
   libselinux-devel \
   pkgconfig \
   make \
-  runc
+  crun
 ```
 
 **Please note**:
@@ -227,7 +228,9 @@ subscription-manager repos --enable=codeready-builder-for-rhel-8-x86_64-rpms
 Follow [this guide to subscribe to the repositories](https://access.redhat.com/solutions/265523)
 if not already subscribed.
 
-This requires Go version 1.18 or greater. Follow [these instructions to install Go](https://go.dev/doc/install)
+This requires Go version as mentioned in the
+[go.mod](https://github.com/cri-o/cri-o/blob/main/go.mod) file.
+Follow [these instructions to install Go](https://go.dev/doc/install)
 
 Install dependencies:
 
@@ -239,7 +242,7 @@ yum install -y \
   glib2-devel \
   glibc-devel \
   glibc-static \
-  runc
+  crun
 ```
 
 Install go-md2man:
@@ -295,7 +298,7 @@ apt install -y  \
   make
 ```
 
-##### Debian bullseye or higher - Ubuntu 20.04 or higher
+##### Debian up to bullseye - Ubuntu up to 22.04
 
 ```shell
 apt-get update -qq && apt-get install -y \
@@ -319,14 +322,39 @@ apt-get update -qq && apt-get install -y \
   make
 ```
 
+##### Debian bookworm or higher - Ubuntu 24.04 or higher
+
+```shell
+apt update -qq && apt install -y \
+  libbtrfs-dev \
+  golang-github-containers-common \
+  git \
+  libassuan-dev \
+  libglib2.0-dev \
+  libc6-dev \
+  libgpgme-dev \
+  libgpg-error-dev \
+  libseccomp-dev \
+  libsystemd-dev \
+  libselinux1-dev \
+  pkg-config \
+  go-md2man \
+  crun \
+  libudev-dev \
+  software-properties-common \
+  gcc \
+  make
+```
+
 **Caveats and Notes:**
 
 If using an older release or a long-term support release, be careful to
 double-check that the version of `runc` is new enough (running `runc --version`
 should produce `spec: 1.0.0` or greater), or else build your own.
 
-Be careful to double-check that the version of golang is new enough, version
-1.12.x or higher is required. If needed, newer golang versions are available at
+Be careful to check the golang version inside the
+[go.mod](https://github.com/cri-o/cri-o/blob/main/go.mod) file.
+If needed, newer golang versions are available at
 [the official download website](https://golang.org/dl).
 
 ### Get Source Code
