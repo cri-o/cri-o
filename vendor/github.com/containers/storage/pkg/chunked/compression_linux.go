@@ -17,6 +17,12 @@ import (
 	"github.com/vbatts/tar-split/archive/tar"
 )
 
+const (
+	// maxTocSize is the maximum size of a blob that we will attempt to process.
+	// It is used to prevent DoS attacks from layers that embed a very large TOC file.
+	maxTocSize = (1 << 20) * 50
+)
+
 var typesToTar = map[string]byte{
 	TypeReg:     tar.TypeReg,
 	TypeLink:    tar.TypeLink,
@@ -48,25 +54,21 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 	if blobSize <= footerSize {
 		return nil, 0, errors.New("blob too small")
 	}
-	chunk := ImageSourceChunk{
-		Offset: uint64(blobSize - footerSize),
-		Length: uint64(footerSize),
-	}
-	parts, errs, err := blobStream.GetBlobAt([]ImageSourceChunk{chunk})
+
+	footer := make([]byte, footerSize)
+	streamsOrErrors, err := getBlobAt(blobStream, ImageSourceChunk{Offset: uint64(blobSize - footerSize), Length: uint64(footerSize)})
 	if err != nil {
 		return nil, 0, err
 	}
-	var reader io.ReadCloser
-	select {
-	case r := <-parts:
-		reader = r
-	case err := <-errs:
-		return nil, 0, err
-	}
-	defer reader.Close()
-	footer := make([]byte, footerSize)
-	if _, err := io.ReadFull(reader, footer); err != nil {
-		return nil, 0, err
+
+	for soe := range streamsOrErrors {
+		if soe.stream != nil {
+			_, err = io.ReadFull(soe.stream, footer)
+			_ = soe.stream.Close()
+		}
+		if soe.err != nil && err == nil {
+			err = soe.err
+		}
 	}
 
 	/* Read the ToC offset:
@@ -85,48 +87,54 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 
 	size := int64(blobSize - footerSize - tocOffset)
 	// set a reasonable limit
-	if size > (1<<20)*50 {
+	if size > maxTocSize {
 		return nil, 0, errors.New("manifest too big")
 	}
 
-	chunk = ImageSourceChunk{
-		Offset: uint64(tocOffset),
-		Length: uint64(size),
-	}
-	parts, errs, err = blobStream.GetBlobAt([]ImageSourceChunk{chunk})
+	streamsOrErrors, err = getBlobAt(blobStream, ImageSourceChunk{Offset: uint64(tocOffset), Length: uint64(size)})
 	if err != nil {
 		return nil, 0, err
 	}
 
-	var tocReader io.ReadCloser
-	select {
-	case r := <-parts:
-		tocReader = r
-	case err := <-errs:
-		return nil, 0, err
-	}
-	defer tocReader.Close()
+	var manifestUncompressed []byte
 
-	r, err := pgzip.NewReader(tocReader)
-	if err != nil {
-		return nil, 0, err
-	}
-	defer r.Close()
+	for soe := range streamsOrErrors {
+		if soe.stream != nil {
+			err1 := func() error {
+				defer soe.stream.Close()
 
-	aTar := archivetar.NewReader(r)
+				r, err := pgzip.NewReader(soe.stream)
+				if err != nil {
+					return err
+				}
+				defer r.Close()
 
-	header, err := aTar.Next()
-	if err != nil {
-		return nil, 0, err
-	}
-	// set a reasonable limit
-	if header.Size > (1<<20)*50 {
-		return nil, 0, errors.New("manifest too big")
-	}
+				aTar := archivetar.NewReader(r)
 
-	manifestUncompressed := make([]byte, header.Size)
-	if _, err := io.ReadFull(aTar, manifestUncompressed); err != nil {
-		return nil, 0, err
+				header, err := aTar.Next()
+				if err != nil {
+					return err
+				}
+				// set a reasonable limit
+				if header.Size > maxTocSize {
+					return errors.New("manifest too big")
+				}
+
+				manifestUncompressed = make([]byte, header.Size)
+				if _, err := io.ReadFull(aTar, manifestUncompressed); err != nil {
+					return err
+				}
+				return nil
+			}()
+			if err == nil {
+				err = err1
+			}
+		} else if err == nil {
+			err = soe.err
+		}
+	}
+	if manifestUncompressed == nil {
+		return nil, 0, errors.New("manifest not found")
 	}
 
 	manifestDigester := digest.Canonical.Digester()
@@ -149,7 +157,7 @@ func readEstargzChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, 
 // readZstdChunkedManifest reads the zstd:chunked manifest from the seekable stream blobStream.  The blob total size must
 // be specified.
 // This function uses the io.github.containers.zstd-chunked. annotations when specified.
-func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, annotations map[string]string) ([]byte, []byte, int64, error) {
+func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, annotations map[string]string) (_ []byte, _ []byte, _ int64, retErr error) {
 	footerSize := int64(internal.FooterSizeSupported)
 	if blobSize <= footerSize {
 		return nil, nil, 0, errors.New("blob too small")
@@ -211,10 +219,10 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, ann
 	}
 
 	// set a reasonable limit
-	if length > (1<<20)*50 {
+	if length > maxTocSize {
 		return nil, nil, 0, errors.New("manifest too big")
 	}
-	if lengthUncompressed > (1<<20)*50 {
+	if lengthUncompressed > maxTocSize {
 		return nil, nil, 0, errors.New("manifest too big")
 	}
 
@@ -233,26 +241,30 @@ func readZstdChunkedManifest(blobStream ImageSourceSeekable, blobSize int64, ann
 		chunks = append(chunks, chunkTarSplit)
 	}
 
-	parts, errs, err := blobStream.GetBlobAt(chunks)
+	streamsOrErrors, err := getBlobAt(blobStream, chunks...)
 	if err != nil {
 		return nil, nil, 0, err
 	}
 
-	readBlob := func(len uint64) ([]byte, error) {
-		var reader io.ReadCloser
-		select {
-		case r := <-parts:
-			reader = r
-		case err := <-errs:
-			return nil, err
+	defer func() {
+		err := ensureAllBlobsDone(streamsOrErrors)
+		if retErr == nil {
+			retErr = err
 		}
+	}()
+
+	readBlob := func(len uint64) ([]byte, error) {
+		soe, ok := <-streamsOrErrors
+		if !ok {
+			return nil, errors.New("stream closed")
+		}
+		if soe.err != nil {
+			return nil, soe.err
+		}
+		defer soe.stream.Close()
 
 		blob := make([]byte, len)
-		if _, err := io.ReadFull(reader, blob); err != nil {
-			reader.Close()
-			return nil, err
-		}
-		if err := reader.Close(); err != nil {
+		if _, err := io.ReadFull(soe.stream, blob); err != nil {
 			return nil, err
 		}
 		return blob, nil
