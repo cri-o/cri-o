@@ -66,6 +66,9 @@ var _ = t.Describe("Sandbox", func() {
 			sbox.SetProcessLabel(processLabel)
 			sbox.SetMountLabel(mountLabel)
 			sbox.SetCreatedAt(createdAt)
+			sbox.SetUsernsMode("")
+			sbox.SetPodLinuxOverhead(nil)
+			sbox.SetPodLinuxResources(nil)
 			sbox.SetContainers(memorystore.New[*oci.Container]())
 
 			sandbox, err := sbox.GetSandbox()

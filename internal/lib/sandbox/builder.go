@@ -123,35 +123,138 @@ type Builder interface {
 
 	// SetCreatedAt sets the created at time.
 	SetCreatedAt(createdAt time.Time)
+
+	// Validate validates the sandbox.
+	Validate() error
+}
+
+type sandboxValidations uint64
+
+const (
+	validationSetID sandboxValidations = 1 << iota
+	validationSetCRISandbox
+	validationSetCreatedAt
+	validationSetName
+	validationSetLogDir
+	validationSetShmPath
+	validationSetNamespace
+	validationSetKubeName
+	validationSetProcessLabel
+	validationSetMountLabel
+	validationSetCgroupParent
+	validationSetPrivileged
+	validationSetRuntimeHandler
+	validationSetResolvPath
+	validationSetHostname
+	validationSetPortMappings
+	validationSetHostNetwork
+	validationSetUsernsMode
+	validationSetPodLinuxOverhead
+	validationSetPodLinuxResources
+)
+
+// setValidation sets the given validation flag.
+func (v *sandboxValidations) setValidation(flag sandboxValidations) {
+	*v |= flag
+}
+
+// isValidationSet returns true if the given validation flag is set.
+func (v *sandboxValidations) isValidationSet(flag sandboxValidations) bool {
+	return *v&flag != 0
 }
 
 // sandboxBuilder is the hidden default type behind the Sandbox interface.
 type sandboxBuilder struct {
-	config     *types.PodSandboxConfig
-	infra      container.Container
-	sandboxRef *Sandbox
+	config      *types.PodSandboxConfig
+	infra       container.Container
+	sandboxRef  *Sandbox
+	validations sandboxValidations
 }
 
 // NewBuilder creates a new, empty Sandbox instance.
 func NewBuilder() Builder {
 	return &sandboxBuilder{
-		config:     nil,
-		sandboxRef: new(Sandbox),
+		config:      nil,
+		sandboxRef:  new(Sandbox),
+		validations: 0,
 	}
 }
 
 // GetSandbox gets the sandbox and deletes the config and sandbox.
 // TODO: Add validations before returning the sandbox.
 func (b *sandboxBuilder) GetSandbox() (*Sandbox, error) {
-	if b.sandboxRef.criSandbox == nil {
-		return nil, errors.New("cri-o sandbox not initialized")
+	if err := b.Validate(); err != nil {
+		return nil, err
 	}
 
 	sandboxRef := b.sandboxRef
 	b.config = nil
 	b.sandboxRef = nil
+	b.validations = 0
 
 	return sandboxRef, nil
+}
+
+// allValidations represents all required validation flags combined.
+const allValidations sandboxValidations = validationSetCRISandbox |
+	validationSetCreatedAt |
+	validationSetID |
+	validationSetName |
+	validationSetLogDir |
+	validationSetShmPath |
+	validationSetNamespace |
+	validationSetKubeName |
+	validationSetProcessLabel |
+	validationSetMountLabel |
+	validationSetCgroupParent |
+	validationSetPrivileged |
+	validationSetRuntimeHandler |
+	validationSetResolvPath |
+	validationSetHostname |
+	validationSetPortMappings |
+	validationSetHostNetwork |
+	validationSetUsernsMode |
+	validationSetPodLinuxOverhead |
+	validationSetPodLinuxResources
+
+// If not all validations are set, check which ones are missing.
+var requiredValidations = map[string]sandboxValidations{
+	"cri-o sandbox":                validationSetCRISandbox,
+	"createdAt time":               validationSetCreatedAt,
+	"sandbox id":                   validationSetID,
+	"sandbox name":                 validationSetName,
+	"sandbox logDir":               validationSetLogDir,
+	"sandbox shmPath":              validationSetShmPath,
+	"sandbox setNamespace":         validationSetNamespace,
+	"sandbox setKubeName":          validationSetKubeName,
+	"sandbox setProcessLabel":      validationSetProcessLabel,
+	"sandbox setMountLabel":        validationSetMountLabel,
+	"sandbox setCgroupParent":      validationSetCgroupParent,
+	"sandbox setPrivileged":        validationSetPrivileged,
+	"sandbox setRuntimeHandler":    validationSetRuntimeHandler,
+	"sandbox setResolvPath":        validationSetResolvPath,
+	"sandbox setHostname":          validationSetHostname,
+	"sandbox setPortMappings":      validationSetPortMappings,
+	"sandbox setHostNetwork":       validationSetHostNetwork,
+	"sandbox setUsernsMode":        validationSetUsernsMode,
+	"sandbox setPodLinuxOverhead":  validationSetPodLinuxOverhead,
+	"sandbox setPodLinuxResources": validationSetPodLinuxResources,
+}
+
+// Validate validates the sandbox.
+func (b *sandboxBuilder) Validate() error {
+	// Quick check if all validations are set
+	if b.validations == allValidations {
+		return nil
+	}
+
+	for field, flag := range requiredValidations {
+		if !b.validations.isValidationSet(flag) {
+			return errors.New(field + " not set")
+		}
+	}
+
+	return nil
 }
 
 // SetConfig sets the sandbox configuration and validates it.
@@ -194,6 +297,8 @@ func (b *sandboxBuilder) SetConfig(config *types.PodSandboxConfig) error {
 
 // GenerateNameAndID sets the sandbox name and ID.
 func (b *sandboxBuilder) GenerateNameAndID() error {
+	b.validations.setValidation(validationSetName)
+
 	if b.config == nil {
 		return errors.New("config is nil")
 	}
@@ -212,13 +317,14 @@ func (b *sandboxBuilder) GenerateNameAndID() error {
 
 	id := stringid.GenerateNonCryptoID()
 	b.SetID(id)
-	b.sandboxRef.name = strings.Join([]string{
+	name := strings.Join([]string{
 		"k8s",
 		b.config.Metadata.Name,
 		b.config.Metadata.Namespace,
 		b.config.Metadata.Uid,
 		strconv.FormatUint(uint64(b.config.Metadata.Attempt), 10),
 	}, "_")
+	b.SetName(name)
 
 	return nil
 }
@@ -254,6 +360,8 @@ func (b *sandboxBuilder) SetDNSConfig(dnsConfig *types.DNSConfig) {
 // SetCRISandbox sets the CRISandbox.
 // TODO: Consider breaking this to separate Create and Update functions.
 func (b *sandboxBuilder) SetCRISandbox(id string, labels, annotations map[string]string, metadata *types.PodSandboxMetadata) error {
+	b.validations.setValidation(validationSetCRISandbox)
+
 	if b.sandboxRef.createdAt.IsZero() {
 		return errors.New("createdAt time is Zero")
 	}
@@ -280,21 +388,25 @@ func (b *sandboxBuilder) SetCRISandbox(id string, labels, annotations map[string
 
 // SetNamespace sets the namespace for the sidecar container.
 func (b *sandboxBuilder) SetNamespace(namespace string) {
+	b.validations.setValidation(validationSetNamespace)
 	b.sandboxRef.namespace = namespace
 }
 
 // SetName sets the name for the sidecar container.
 func (b *sandboxBuilder) SetName(name string) {
+	b.validations.setValidation(validationSetName)
 	b.sandboxRef.name = name
 }
 
 // SetKubeName sets the Kubernetes name for the sidecar container.
 func (b *sandboxBuilder) SetKubeName(kubeName string) {
+	b.validations.setValidation(validationSetKubeName)
 	b.sandboxRef.kubeName = kubeName
 }
 
 // SetLogDir sets the log directory for the sidecar container.
 func (b *sandboxBuilder) SetLogDir(logDir string) {
+	b.validations.setValidation(validationSetLogDir)
 	b.sandboxRef.logDir = logDir
 }
 
@@ -305,66 +417,79 @@ func (b *sandboxBuilder) SetContainers(containers memorystore.Storer[*oci.Contai
 
 // SetProcessLabel sets the process label for the sidecar container.
 func (b *sandboxBuilder) SetProcessLabel(processLabel string) {
+	b.validations.setValidation(validationSetProcessLabel)
 	b.sandboxRef.processLabel = processLabel
 }
 
 // SetMountLabel sets the mount label for the sidecar container.
 func (b *sandboxBuilder) SetMountLabel(mountLabel string) {
+	b.validations.setValidation(validationSetMountLabel)
 	b.sandboxRef.mountLabel = mountLabel
 }
 
 // SetShmPath sets the shared memory path for the sidecar container.
 func (b *sandboxBuilder) SetShmPath(shmPath string) {
+	b.validations.setValidation(validationSetShmPath)
 	b.sandboxRef.shmPath = shmPath
 }
 
 // SetCgroupParent sets the cgroup parent for the sidecar container.
 func (b *sandboxBuilder) SetCgroupParent(cgroupParent string) {
+	b.validations.setValidation(validationSetCgroupParent)
 	b.sandboxRef.cgroupParent = cgroupParent
 }
 
 // SetPrivileged sets the privileged flag for the sidecar container.
 func (b *sandboxBuilder) SetPrivileged(privileged bool) {
+	b.validations.setValidation(validationSetPrivileged)
 	b.sandboxRef.privileged = privileged
 }
 
 // SetRuntimeHandler sets the runtime handler for the sidecar container.
 func (b *sandboxBuilder) SetRuntimeHandler(runtimeHandler string) {
+	b.validations.setValidation(validationSetRuntimeHandler)
 	b.sandboxRef.runtimeHandler = runtimeHandler
 }
 
 // SetResolvPath sets the resolv path for the sidecar container.
 func (b *sandboxBuilder) SetResolvPath(resolvPath string) {
+	b.validations.setValidation(validationSetResolvPath)
 	b.sandboxRef.resolvPath = resolvPath
 }
 
 // SetHostname sets the hostname for the sidecar container.
 func (b *sandboxBuilder) SetHostname(hostname string) {
+	b.validations.setValidation(validationSetHostname)
 	b.sandboxRef.hostname = hostname
 }
 
 // SetPortMappings sets the port mappings for the sidecar container.
 func (b *sandboxBuilder) SetPortMappings(portMappings []*hostport.PortMapping) {
+	b.validations.setValidation(validationSetPortMappings)
 	b.sandboxRef.portMappings = portMappings
 }
 
 // SetHostNetwork sets the host network flag for the sidecar container.
 func (b *sandboxBuilder) SetHostNetwork(hostNetwork bool) {
+	b.validations.setValidation(validationSetHostNetwork)
 	b.sandboxRef.hostNetwork = hostNetwork
 }
 
 // SetUsernsMode sets the user namespace mode for the sidecar container.
 func (b *sandboxBuilder) SetUsernsMode(usernsMode string) {
+	b.validations.setValidation(validationSetUsernsMode)
 	b.sandboxRef.usernsMode = usernsMode
 }
 
 // SetPodLinuxOverhead sets the pod Linux overhead for the sidecar container.
 func (b *sandboxBuilder) SetPodLinuxOverhead(podLinuxOverhead *types.LinuxContainerResources) {
+	b.validations.setValidation(validationSetPodLinuxOverhead)
 	b.sandboxRef.podLinuxOverhead = podLinuxOverhead
 }
 
 // SetPodLinuxResources sets the pod Linux resources for the sidecar container.
 func (b *sandboxBuilder) SetPodLinuxResources(podLinuxResources *types.LinuxContainerResources) {
+	b.validations.setValidation(validationSetPodLinuxResources)
 	b.sandboxRef.podLinuxResources = podLinuxResources
 }
 
@@ -385,10 +510,13 @@ func (b *sandboxBuilder) SetSeccompProfilePath(profilePath string) {
 
 // SetCreatedAt sets the created at time.
 func (b *sandboxBuilder) SetCreatedAt(createdAt time.Time) {
+	b.validations.setValidation(validationSetCreatedAt)
 	b.sandboxRef.createdAt = createdAt
 }
 
 func (b *sandboxBuilder) SetID(id string) {
+	b.validations.setValidation(validationSetID)
+
 	if b.sandboxRef.criSandbox != nil {
 		b.sandboxRef.criSandbox.Id = id
 	} else {
