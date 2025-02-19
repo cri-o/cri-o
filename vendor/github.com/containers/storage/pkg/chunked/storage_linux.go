@@ -258,6 +258,10 @@ func GetDiffer(ctx context.Context, store storage.Store, blobSize int64, annotat
 		return nil, err
 	}
 
+	if !parseBooleanPullOption(&storeOpts, "enable_partial_images", false) {
+		return nil, errors.New("enable_partial_images not configured")
+	}
+
 	if _, ok := annotations[internal.ManifestChecksumKey]; ok {
 		return makeZstdChunkedDiffer(ctx, store, blobSize, annotations, iss, &storeOpts)
 	}
@@ -1493,6 +1497,100 @@ func makeEntriesFlat(mergedEntries []internal.FileMetadata) ([]internal.FileMeta
 	return new, nil
 }
 
+type streamOrErr struct {
+	stream io.ReadCloser
+	err    error
+}
+
+// ensureAllBlobsDone ensures that all blobs are closed and returns the first error encountered.
+func ensureAllBlobsDone(streamsOrErrors chan streamOrErr) (retErr error) {
+	for soe := range streamsOrErrors {
+		if soe.stream != nil {
+			_ = soe.stream.Close()
+		} else if retErr == nil {
+			retErr = soe.err
+		}
+	}
+	return
+}
+
+// getBlobAtConverterGoroutine reads from the streams and errs channels, then sends
+// either a stream or an error to the stream channel.  The streams channel is closed when
+// there are no more streams and errors to read.
+// It ensures that no more than maxStreams streams are returned, and that every item from the
+// streams and errs channels is consumed.
+func getBlobAtConverterGoroutine(stream chan streamOrErr, streams chan io.ReadCloser, errs chan error, maxStreams int) {
+	tooManyStreams := false
+	streamsSoFar := 0
+
+	err := errors.New("Unexpected error in getBlobAtGoroutine")
+
+	defer func() {
+		if err != nil {
+			stream <- streamOrErr{err: err}
+		}
+		close(stream)
+	}()
+
+loop:
+	for {
+		select {
+		case p, ok := <-streams:
+			if !ok {
+				streams = nil
+				break loop
+			}
+			if streamsSoFar >= maxStreams {
+				tooManyStreams = true
+				_ = p.Close()
+				continue
+			}
+			streamsSoFar++
+			stream <- streamOrErr{stream: p}
+		case err, ok := <-errs:
+			if !ok {
+				errs = nil
+				break loop
+			}
+			stream <- streamOrErr{err: err}
+		}
+	}
+	if streams != nil {
+		for p := range streams {
+			if streamsSoFar >= maxStreams {
+				tooManyStreams = true
+				_ = p.Close()
+				continue
+			}
+			streamsSoFar++
+			stream <- streamOrErr{stream: p}
+		}
+	}
+	if errs != nil {
+		for err := range errs {
+			stream <- streamOrErr{err: err}
+		}
+	}
+	if tooManyStreams {
+		stream <- streamOrErr{err: fmt.Errorf("too many streams returned, got more than %d", maxStreams)}
+	}
+	err = nil
+}
+
+// getBlobAt provides a much more convenient way to consume data returned by ImageSourceSeekable.GetBlobAt.
+// GetBlobAt returns two channels, forcing a caller to `select` on both of them — and in Go, reading a closed channel
+// always succeeds in select.
+// Instead, getBlobAt provides a single channel with all events, which can be consumed conveniently using `range`.
+func getBlobAt(is ImageSourceSeekable, chunksToRequest ...ImageSourceChunk) (chan streamOrErr, error) {
+	streams, errs, err := is.GetBlobAt(chunksToRequest)
+	if err != nil {
+		return nil, err
+	}
+	stream := make(chan streamOrErr)
+	go getBlobAtConverterGoroutine(stream, streams, errs, len(chunksToRequest))
+	return stream, nil
+}
+
 func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, differOpts *graphdriver.DifferOptions) (graphdriver.DriverWithDifferOutput, error) {
 	defer c.layersCache.release()
 	defer func() {
@@ -1550,10 +1648,6 @@ func (c *chunkedDiffer) ApplyDiff(dest string, options *archive.TarOptions, diff
 			chunkedLayerDataKey: lcdBigData,
 		},
 		TOCDigest: c.contentDigest,
-	}
-
-	if !parseBooleanPullOption(c.storeOpts, "enable_partial_images", false) {
-		return output, errors.New("enable_partial_images not configured")
 	}
 
 	// When the hard links deduplication is used, file attributes are ignored because setting them
