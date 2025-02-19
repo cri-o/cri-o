@@ -479,6 +479,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **auto_reload_registries**=false
  If true, CRI-O will automatically reload the mirror registry when there is an update to the 'registries.conf.d' directory. Default value is set to 'false'.
 
+**pull_progress_timeout**="10s"
+The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.
+
 ## CRIO.NETWORK TABLE
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
 
