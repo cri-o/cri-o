@@ -1,14 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 21 Feb 2025 18:34:55 UTC for commit [cf6e4f2][0]._
+_Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/cf6e4f214fdf73fb52eebc8150453090f417fa23
+[0]: https://github.com/cri-o/cri-o/commit/5140e212b97febcc60e74c023dbf04cfb7ccb17a
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
+| github.com/google/go-cmp                               | v0.6.0                             | v0.7.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250221175455-b90c537f791b | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.4                             | v1.2.5                             | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.5                            | v1.21.0                            | true   | true             |
@@ -402,7 +403,7 @@ _Generated on Fri, 21 Feb 2025 18:34:55 UTC for commit [cf6e4f2][0]._
 | github.com/google/cel-go                                                            | v0.22.0                               | v0.23.2                             | false  | true             |
 | github.com/google/certificate-transparency-go                                       | v1.2.1                                | v1.3.1                              | false  | true             |
 | github.com/google/gnostic-models                                                    | v0.6.9-0.20230804172637-c7be7c783f49  | v0.6.9                              | false  | true             |
-| github.com/google/go-cmp                                                            | v0.6.0                                |                                     | true   | true             |
+| github.com/google/go-cmp                                                            | v0.6.0                                | v0.7.0                              | true   | true             |
 | github.com/google/go-containerregistry                                              | v0.20.3                               |                                     | false  | true             |
 | github.com/google/go-github/v55                                                     | v55.0.0                               |                                     | false  | true             |
 | github.com/google/go-github/v60                                                     | v60.0.0                               |                                     | false  | true             |
