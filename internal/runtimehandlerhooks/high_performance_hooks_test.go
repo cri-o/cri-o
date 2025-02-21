@@ -12,6 +12,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/utils/cpuset"
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
@@ -119,21 +120,27 @@ var _ = Describe("high_performance_hooks", func() {
 
 			Expect(strings.Trim(string(content), "\n")).To(Equal(expectedSmp))
 
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(bannedCPUs).To(Equal(expectedBan))
+			Expect(toMask(calculateCPUSizeFromMask(expectedBan), bannedCPUs)).To(Equal(expectedBan))
 		}
 
 		JustBeforeEach(func() {
 			// set irqbalanace config file with no banned cpus
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUFlags)
+
+			bannedCPUSet, err := mapHexCharToCPUSet(bannedCPUFlags)
 			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUSet)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal(bannedCPUFlags))
+
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(bannedCPUs.Equals(bannedCPUSet)).To(BeTrue())
+
 			// set container CPUs
 			container.SetSpec(
 				&specs.Spec{
@@ -548,25 +555,38 @@ var _ = Describe("high_performance_hooks", func() {
 
 			content, err := os.ReadFile(irqBannedCPUConfigFile)
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, strings.Trim(string(content), "\n")).To(Equal(expectedOrigBannedCPUs))
-
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+			irqBannedCPUsFromFile, err := cpuset.Parse(strings.Trim(string(content), "\n"))
 			ExpectWithOffset(1, err).ToNot(HaveOccurred())
-			ExpectWithOffset(1, bannedCPUs).To(Equal(expectedBannedCPUs))
+
+			expectedOrigBannedCPUSet, err := mapHexCharToCPUSet(expectedOrigBannedCPUs)
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
+			ExpectWithOffset(1, irqBannedCPUsFromFile.Equals(expectedOrigBannedCPUSet)).To(BeTrue(), "got=%s; want=%s", irqBannedCPUsFromFile, expectedOrigBannedCPUSet)
+
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
+			ExpectWithOffset(1, err).ToNot(HaveOccurred())
+			expectedBannedCPUSet, err := mapHexCharToCPUSet(expectedBannedCPUs)
+			Expect(err).ToNot(HaveOccurred())
+			ExpectWithOffset(1, bannedCPUs.Equals(expectedBannedCPUSet)).To(BeTrue(), "got=%s; want=%s", bannedCPUs, expectedBannedCPUSet)
 		}
 
 		JustBeforeEach(func() {
-			// create tests affinity file
+			// create tests for the affinity file
 			err = os.WriteFile(irqSmpAffinityFile, []byte("ffffffff,ffffffff"), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 			// set irqbalanace config file with banned cpus mask
 			err = os.WriteFile(irqBalanceConfigFile, []byte(""), 0o644)
 			Expect(err).ToNot(HaveOccurred())
-			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, "0000ffff,ffffcfcc")
+
+			bannedCPUSet, err := mapHexCharToCPUSet("0000ffff,ffffcfcc")
 			Expect(err).ToNot(HaveOccurred())
-			bannedCPUs, err := retrieveIrqBannedCPUMasks(irqBalanceConfigFile)
+
+			err = updateIrqBalanceConfigFile(irqBalanceConfigFile, bannedCPUSet)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(bannedCPUs).To(Equal("0000ffff,ffffcfcc"))
+
+			bannedCPUs, err := retrieveIrqBannedCPUList(irqBalanceConfigFile)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(bannedCPUs.Equals(bannedCPUSet)).To(BeTrue())
 		})
 
 		Context("when banned cpu config file doesn't exist", func() {
@@ -584,7 +604,7 @@ var _ = Describe("high_performance_hooks", func() {
 			BeforeEach(func() {
 				// create banned cpu config file
 				os.Remove(irqBannedCPUConfigFile)
-				err = os.WriteFile(irqBannedCPUConfigFile, []byte("00000000,00000000"), 0o644)
+				err = os.WriteFile(irqBannedCPUConfigFile, []byte(""), 0o644)
 				Expect(err).ToNot(HaveOccurred())
 			})
 
