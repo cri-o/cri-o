@@ -9,8 +9,20 @@ import (
 )
 
 type containerEventConn struct {
-	wg  sync.WaitGroup
-	err error
+	ch   chan struct{}
+	once sync.Once
+	err  error
+}
+
+func (c *containerEventConn) done() {
+	// only ever close the channel once, even if multiple messages are sent
+	c.once.Do(func() {
+		close(c.ch)
+	})
+}
+
+func (c *containerEventConn) wait() {
+	<-c.ch
 }
 
 // GetContainerEvents sends the stream of container events to clients.
@@ -25,14 +37,13 @@ func (s *Server) GetContainerEvents(_ *types.GetEventsRequest, ces types.Runtime
 	})
 
 	conn := &containerEventConn{
-		wg: sync.WaitGroup{},
+		ch:   make(chan struct{}),
+		once: sync.Once{},
 	}
-
 	s.containerEventClients.Store(ces, conn)
-	conn.wg.Add(1)
 
 	// wait here until we don't want to send events to this client anymore
-	conn.wg.Wait()
+	conn.wait()
 	s.containerEventClients.Delete(ces)
 
 	return conn.err
@@ -47,7 +58,7 @@ func (s *Server) broadcastEvents() {
 				continue
 			}
 
-			conn.wg.Done()
+			conn.done()
 		}
 	}()
 
@@ -71,7 +82,7 @@ func (s *Server) broadcastEvents() {
 					conn.err = err
 				}
 				// notify our waiting client connection that we are done
-				conn.wg.Done()
+				conn.done()
 			}
 		}
 	}
