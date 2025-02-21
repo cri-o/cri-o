@@ -7,23 +7,35 @@ import (
 	. "github.com/onsi/gomega"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/hostport"
 	libsandbox "github.com/cri-o/cri-o/internal/lib/sandbox"
 )
 
 var _ = Describe("Sandbox:Builder", func() {
+	BeforeEach(func() {
+		builder = libsandbox.NewBuilder()
+		builder.SetCreatedAt(time.Now())
+		builder.SetLogDir("test")
+		builder.SetShmPath("test")
+		builder.SetNamespace("")
+		builder.SetKubeName("")
+		builder.SetMountLabel("test")
+		builder.SetProcessLabel("test")
+		builder.SetCgroupParent("")
+		builder.SetPrivileged(false)
+		builder.SetRuntimeHandler("")
+		builder.SetResolvPath("")
+		builder.SetHostname("")
+		builder.SetPortMappings([]*hostport.PortMapping{})
+		builder.SetHostNetwork(false)
+		builder.SetUsernsMode("")
+		builder.SetPodLinuxOverhead(nil)
+		builder.SetPodLinuxResources(nil)
+		err := builder.SetCRISandbox(builder.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+		Expect(err).ToNot(HaveOccurred())
+	})
+
 	t.Describe("SetConfig", func() {
-		BeforeEach(func() {
-			builder = libsandbox.NewBuilder()
-			builder.SetCreatedAt(time.Now())
-			err := builder.SetCRISandbox(builder.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
-			Expect(err).ToNot(HaveOccurred())
-		})
-
-		AfterEach(func() {
-			_, err := builder.GetSandbox()
-			Expect(err).ToNot(HaveOccurred())
-		})
-
 		It("should succeed", func() {
 			// Given
 			config := &types.PodSandboxConfig{
@@ -44,6 +56,9 @@ var _ = Describe("Sandbox:Builder", func() {
 			Expect(builder.Name()).To(ContainSubstring("name"))
 			Expect(builder.Name()).To(ContainSubstring("uid"))
 			Expect(builder.Name()).To(ContainSubstring("namespace"))
+
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with empty config", func() {
@@ -116,7 +131,8 @@ var _ = Describe("Sandbox:Builder", func() {
 	})
 	t.Describe("SetConfig", func() {
 		BeforeEach(func() {
-			builder = libsandbox.NewBuilder()
+			builder.SetID("id")
+			builder.SetName("")
 		})
 
 		It("should succeed", func() {
@@ -124,13 +140,14 @@ var _ = Describe("Sandbox:Builder", func() {
 			config := &types.PodSandboxConfig{
 				Metadata: &types.PodSandboxMetadata{Name: "name"},
 			}
-
 			// When
 			err := builder.SetConfig(config)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
 			Expect(builder.Config()).To(Equal(config))
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with nil config", func() {
@@ -141,6 +158,9 @@ var _ = Describe("Sandbox:Builder", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(builder.Config()).To(BeNil())
+
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with empty config", func() {
@@ -153,6 +173,9 @@ var _ = Describe("Sandbox:Builder", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(builder.Config()).To(BeNil())
+
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with an empty name", func() {
@@ -167,6 +190,9 @@ var _ = Describe("Sandbox:Builder", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(builder.Config()).To(BeNil())
+
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("should fail with config already set", func() {
@@ -183,6 +209,9 @@ var _ = Describe("Sandbox:Builder", func() {
 			// Then
 			Expect(err).To(HaveOccurred())
 			Expect(builder.Config()).NotTo(BeNil())
+
+			_, err = builder.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
 		})
 	})
 })
