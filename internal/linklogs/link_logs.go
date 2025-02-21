@@ -9,7 +9,6 @@ import (
 
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/opencontainers/selinux/go-selinux/label"
-	"golang.org/x/sys/unix"
 	"k8s.io/apimachinery/pkg/util/validation"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
@@ -49,7 +48,7 @@ func MountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName, namespace, k
 
 	log.Infof(ctx, "Mounting from %s to %s for linked logs", podLogsPath, emptyDirLoggingVolumePath)
 
-	if err := unix.Mount(podLogsPath, emptyDirLoggingVolumePath, "bind", unix.MS_BIND|unix.MS_RDONLY, ""); err != nil {
+	if err := mountLogPath(podLogsPath, emptyDirLoggingVolumePath); err != nil {
 		return fmt.Errorf("failed to mount %v to %v: %w", podLogsPath, emptyDirLoggingVolumePath, err)
 	}
 
@@ -70,7 +69,7 @@ func UnmountPodLogs(ctx context.Context, kubePodUID, emptyDirVolName string) err
 	log.Infof(ctx, "Unmounting %s for linked logs", emptyDirLoggingVolumePath)
 
 	if _, err := os.Stat(emptyDirLoggingVolumePath); !os.IsNotExist(err) {
-		if err := unix.Unmount(emptyDirLoggingVolumePath, unix.MNT_DETACH); err != nil {
+		if err := unmountLogPath(emptyDirLoggingVolumePath); err != nil {
 			return fmt.Errorf("failed to unmounts logs: %w", err)
 		}
 	}

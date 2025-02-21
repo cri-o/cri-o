@@ -17,7 +17,6 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
-	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
 	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -521,38 +520,6 @@ func (c *container) ReadOnly(serverIsReadOnly bool) bool {
 	}
 
 	return serverIsReadOnly
-}
-
-// SelinuxLabel returns the container's SelinuxLabel
-// it takes the sandbox's label, which it falls back upon.
-func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
-	selinuxConfig := c.config.Linux.SecurityContext.SelinuxOptions
-
-	labels := map[string]string{}
-
-	labelOptions, err := label.DupSecOpt(sboxLabel)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, r := range labelOptions {
-		k := strings.Split(r, ":")[0]
-		labels[k] = r
-	}
-
-	if selinuxConfig != nil {
-		for _, r := range utils.GetLabelOptions(selinuxConfig) {
-			k := strings.Split(r, ":")[0]
-			labels[k] = r
-		}
-	}
-
-	ret := []string{}
-	for _, v := range labels {
-		ret = append(ret, v)
-	}
-
-	return ret, nil
 }
 
 // AddUnifiedResourcesFromAnnotations adds the cgroup-v2 resources specified in the io.kubernetes.cri-o.UnifiedCgroup annotation.
