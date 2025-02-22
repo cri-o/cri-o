@@ -70,6 +70,13 @@ func (p *pluginType) StopContainer(ctx context.Context, req *StopContainerReques
 	return p.ttrpcImpl.StopContainer(ctx, req)
 }
 
+func (p *pluginType) UpdatePodSandbox(ctx context.Context, req *UpdatePodSandboxRequest) (*UpdatePodSandboxResponse, error) {
+	if p.wasmImpl != nil {
+		return p.wasmImpl.UpdatePodSandbox(ctx, req)
+	}
+	return p.ttrpcImpl.UpdatePodSandbox(ctx, req)
+}
+
 func (p *pluginType) StateChange(ctx context.Context, req *StateChangeEvent) (err error) {
 	if p.wasmImpl != nil {
 		_, err = p.wasmImpl.StateChange(ctx, req)

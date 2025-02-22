@@ -336,6 +336,7 @@ func (p *plugin) start(name, version string) (err error) {
 // close a plugin shutting down its multiplexed ttrpc connections.
 func (p *plugin) close() {
 	if p.impl.isWasm() {
+		p.closed = true
 		return
 	}
 
@@ -629,6 +630,27 @@ func (p *plugin) stopContainer(ctx context.Context, req *StopContainerRequest) (
 	}
 
 	return rpl, nil
+}
+
+func (p *plugin) updatePodSandbox(ctx context.Context, req *UpdatePodSandboxRequest) (*UpdatePodSandboxResponse, error) {
+	if !p.events.IsSet(Event_UPDATE_POD_SANDBOX) {
+		return nil, nil
+	}
+
+	ctx, cancel := context.WithTimeout(ctx, getPluginRequestTimeout())
+	defer cancel()
+
+	if _, err := p.impl.UpdatePodSandbox(ctx, req); err != nil {
+		if isFatalError(err) {
+			log.Errorf(ctx, "closing plugin %s, failed to handle event %d: %v",
+				p.name(), Event_UPDATE_POD_SANDBOX, err)
+			p.close()
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &UpdatePodSandboxResponse{}, nil
 }
 
 // Relay other pod or container state change events to the plugin.
