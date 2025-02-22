@@ -12,7 +12,7 @@ require (
 	github.com/containerd/containerd v1.7.27
 	github.com/containerd/containerd/api v1.8.0
 	github.com/containerd/fifo v1.1.0
-	github.com/containerd/nri v0.9.0
+	github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24
 	github.com/containerd/otelttrpc v0.1.0
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
