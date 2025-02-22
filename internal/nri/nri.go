@@ -39,6 +39,9 @@ type API interface {
 	// RunPodSandbox relays pod creation events to NRI.
 	RunPodSandbox(context.Context, PodSandbox) error
 
+	// UpdatePodSandbox relays the corresponding request to the plugins.
+	UpdatePodSandbox(context.Context, PodSandbox, *nri.LinuxResources, *nri.LinuxResources) error
+
 	// StopPodSandbox relays pod shutdown events to NRI.
 	StopPodSandbox(context.Context, PodSandbox) error
 
@@ -165,6 +168,26 @@ func (l *local) RunPodSandbox(ctx context.Context, pod PodSandbox) error {
 	}
 
 	err := l.nri.RunPodSandbox(ctx, request)
+
+	return err
+}
+
+func (l *local) UpdatePodSandbox(ctx context.Context, pod PodSandbox, overhead, resources *nri.LinuxResources) error {
+	if !l.IsEnabled() {
+		return nil
+	}
+
+	l.Lock()
+	defer l.Unlock()
+
+	podNri := podSandboxToNRI(pod)
+	request := &nri.UpdatePodSandboxRequest{
+		Pod:                    podNri,
+		OverheadLinuxResources: overhead,
+		LinuxResources:         resources,
+	}
+
+	_, err := l.nri.UpdatePodSandbox(ctx, request)
 
 	return err
 }
