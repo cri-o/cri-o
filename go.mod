@@ -76,7 +76,7 @@ require (
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
-	k8s.io/cri-api v0.32.3
+	k8s.io/cri-api v0.33.0-beta.0.0.20250315060746-0df2b7e54ab6
 	k8s.io/cri-client v0.32.3
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.32.3
@@ -144,7 +144,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
+	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-containerregistry v0.20.3 // indirect
 	github.com/google/go-github/v60 v60.0.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
