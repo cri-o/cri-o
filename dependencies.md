@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
+_Generated on Mon, 24 Feb 2025 14:12:21 UTC for commit [258f946][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5140e212b97febcc60e74c023dbf04cfb7ccb17a
+[0]: https://github.com/cri-o/cri-o/commit/258f9467bfbe2ea2c784b6c76249c07b5d100581
 
 ## Outdated Dependencies
 
@@ -15,6 +15,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | github.com/prometheus/client_golang                    | v1.20.5                            | v1.21.0                            | true   | true             |
 | golang.org/x/net                                       | v0.34.0                            | v0.35.0                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
+| tags.cncf.io/container-device-interface                | v0.8.0                             | v0.8.1                             | true   | true             |
 
 ## All Dependencies
 
@@ -147,7 +148,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | cloud.google.com/go/websecurityscanner                                              | v1.7.2                                | v1.7.3                              | false  | true             |
 | cloud.google.com/go/workflows                                                       | v1.13.2                               | v1.13.3                             | false  | true             |
 | code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5    | v0.29.0                             | false  | true             |
-| cuelabs.dev/go/oci/ociregistry                                                      | v0.0.0-20240404174027-a39bec0462d2    | v0.0.0-20241125120445-2c00c104c6e1  | false  | true             |
+| cuelabs.dev/go/oci/ociregistry                                                      | v0.0.0-20240404174027-a39bec0462d2    | v0.0.0-20250224124241-b27552d3e05c  | false  | true             |
 | cuelang.org/go                                                                      | v0.9.2                                | v0.12.0                             | false  | true             |
 | dario.cat/mergo                                                                     | v1.0.1                                |                                     | false  | true             |
 | filippo.io/edwards25519                                                             | v1.1.0                                |                                     | false  | true             |
@@ -215,7 +216,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | github.com/antlr4-go/antlr/v4                                                       | v4.13.0                               | v4.13.1                             | false  | true             |
 | github.com/armon/go-socks5                                                          | v0.0.0-20160902184237-e75332964ef5    |                                     | false  | true             |
 | github.com/asaskevich/govalidator                                                   | v0.0.0-20230301143203-a9d515a09cc2    |                                     | false  | true             |
-| github.com/avast/retry-go/v4                                                        | v4.6.0                                |                                     | false  | true             |
+| github.com/avast/retry-go/v4                                                        | v4.6.0                                | v4.6.1                              | false  | true             |
 | github.com/aws/aws-sdk-go                                                           | v1.55.5                               | v1.55.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                        | v1.32.8                               | v1.36.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                               | v1.6.3                                | v1.6.10                             | false  | true             |
@@ -275,7 +276,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | github.com/codahale/rfc6979                                                         | v0.0.0-20141003034818-6a90f24967eb    |                                     | false  | true             |
 | github.com/colega/zeropool                                                          | v0.0.0-20230505084239-6fb4a4f75381    |                                     | false  | true             |
 | github.com/common-nighthawk/go-figure                                               | v0.0.0-20210622060536-734e95fb86be    |                                     | false  | true             |
-| github.com/container-orchestrated-devices/container-device-interface                | v0.6.0                                | v0.8.0                              | false  | true             |
+| github.com/container-orchestrated-devices/container-device-interface                | v0.6.0                                | v0.8.1                              | false  | true             |
 | github.com/containerd/aufs                                                          | v1.0.0                                |                                     | false  | true             |
 | github.com/containerd/btrfs/v2                                                      | v2.0.0                                |                                     | false  | true             |
 | github.com/containerd/cgroups                                                       | v1.1.0                                |                                     | true   | true             |
@@ -342,7 +343,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | github.com/docker/libtrust                                                          | v0.0.0-20160708172513-aabc10ec26b7    |                                     | false  | true             |
 | github.com/dustin/go-humanize                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/eggsampler/acme/v3                                                       | v3.6.0                                | v3.6.1                              | false  | true             |
-| github.com/elazarl/goproxy                                                          | v1.4.0                                | v1.7.0                              | false  | true             |
+| github.com/elazarl/goproxy                                                          | v1.4.0                                | v1.7.1                              | false  | true             |
 | github.com/emicklei/go-restful/v3                                                   | v3.11.0                               | v3.12.1                             | false  | true             |
 | github.com/emicklei/proto                                                           | v1.12.1                               | v1.14.0                             | false  | true             |
 | github.com/emirpasic/gods                                                           | v1.18.1                               |                                     | false  | true             |
@@ -707,7 +708,7 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | go.uber.org/zap                                                                     | v1.27.0                               |                                     | false  | true             |
 | goa.design/goa                                                                      | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                         | v0.40.0                               |                                     | false  | true             |
-| golang.org/x/crypto                                                                 | v0.32.0                               | v0.33.0                             | false  | true             |
+| golang.org/x/crypto                                                                 | v0.32.0                               | v0.34.0                             | false  | true             |
 | golang.org/x/exp                                                                    | v0.0.0-20250103183323-7d7fa50e5329    | v0.0.0-20250218142911-aa4b98e5adaa  | false  | true             |
 | golang.org/x/lint                                                                   | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                    | v0.22.0                               | v0.23.0                             | false  | true             |
@@ -764,5 +765,5 @@ _Generated on Fri, 21 Feb 2025 21:24:34 UTC for commit [5140e21][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                | v4.4.2                                | v4.5.0                              | false  | true             |
 | sigs.k8s.io/yaml                                                                    | v1.4.0                                |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                  | v0.4.0                                | v0.5.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                             | v0.8.0                                |                                     | true   | true             |
+| tags.cncf.io/container-device-interface                                             | v0.8.0                                | v0.8.1                              | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                                    | v0.8.0                                |                                     | false  | true             |
