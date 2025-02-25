@@ -1028,6 +1028,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 			imgResult.Annotations,
 			specgen,
 			securityContext.Seccomp,
+			s.Store().GraphRoot(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)

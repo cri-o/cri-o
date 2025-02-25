@@ -860,6 +860,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 			nil,
 			g,
 			securityContext.Seccomp,
+			s.Store().GraphRoot(),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("setup seccomp: %w", err)
