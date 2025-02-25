@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 25 Feb 2025 08:07:29 UTC for commit [6b984c3][0]._
+_Generated on Tue, 25 Feb 2025 15:14:08 UTC for commit [406bff9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6b984c3371775d908f18ec5fadf340a02ff044d9
+[0]: https://github.com/cri-o/cri-o/commit/406bff949405518905d35b76ccec8dc3d6d970c9
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Tue, 25 Feb 2025 08:07:29 UTC for commit [6b984c3][0]._
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
 | github.com/google/go-cmp                               | v0.6.0                             | v0.7.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250224183428-e3eb9e4f2815 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250225135436-e09ae2cc0ba2 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.4                             | v1.2.5                             | true   | true             |
 | github.com/prometheus/client_golang                    | v1.20.5                            | v1.21.0                            | true   | true             |
 | golang.org/x/net                                       | v0.34.0                            | v0.35.0                            | true   | true             |
@@ -207,7 +207,7 @@ _Generated on Tue, 25 Feb 2025 08:07:29 UTC for commit [6b984c3][0]._
 | github.com/alibabacloud-go/debug                                                    | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/alibabacloud-go/endpoint-util                                            | v1.1.1                                |                                     | false  | true             |
 | github.com/alibabacloud-go/openapi-util                                             | v0.1.0                                | v0.1.1                              | false  | true             |
-| github.com/alibabacloud-go/tea                                                      | v1.2.1                                | v1.3.1                              | false  | true             |
+| github.com/alibabacloud-go/tea                                                      | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/alibabacloud-go/tea-utils                                                | v1.4.5                                |                                     | false  | true             |
 | github.com/alibabacloud-go/tea-xml                                                  | v1.1.3                                |                                     | false  | true             |
 | github.com/aliyun/credentials-go                                                    | v1.3.2                                | v1.4.3                              | false  | true             |
@@ -462,7 +462,7 @@ _Generated on Tue, 25 Feb 2025 08:07:29 UTC for commit [6b984c3][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250224183428-e3eb9e4f2815  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250225135436-e09ae2cc0ba2  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
@@ -574,7 +574,7 @@ _Generated on Tue, 25 Feb 2025 08:07:29 UTC for commit [6b984c3][0]._
 | github.com/redis/go-redis/v9                                                        | v9.7.0                                | v9.7.1                              | false  | true             |
 | github.com/rivo/uniseg                                                              | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                        | v1.2.0                                |                                     | false  | true             |
-| github.com/rogpeppe/go-internal                                                     | v1.13.1                               | v1.14.0                             | false  | true             |
+| github.com/rogpeppe/go-internal                                                     | v1.13.1                               | v1.14.1                             | false  | true             |
 | github.com/rs/cors                                                                  | v1.11.1                               |                                     | false  | true             |
 | github.com/russross/blackfriday                                                     | v1.6.0                                |                                     | false  | true             |
 | github.com/russross/blackfriday/v2                                                  | v2.1.0                                |                                     | false  | true             |
