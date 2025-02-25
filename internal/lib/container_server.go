@@ -282,6 +282,8 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	sbox.SetNamespaceOptions(&nsOpts)
 	sbox.SetSeccompProfilePath(spp)
 	sbox.SetCreatedAt(created)
+	sbox.SetNamespace(m.Annotations[annotations.Namespace])
+	sbox.SetKubeName(m.Annotations[annotations.KubeName])
 
 	sb, err = sbox.GetSandbox()
 	if err != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
+	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
@@ -720,6 +721,23 @@ var _ = Describe("high_performance_hooks", func() {
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
 		sbox.SetCreatedAt(createdAt)
+		sbox.SetID("sandboxID")
+		sbox.SetName("sandboxName")
+		sbox.SetLogDir("test")
+		sbox.SetShmPath("test")
+		sbox.SetNamespace("")
+		sbox.SetKubeName("")
+		sbox.SetMountLabel("test")
+		sbox.SetProcessLabel("test")
+		sbox.SetCgroupParent("")
+		sbox.SetRuntimeHandler("")
+		sbox.SetResolvPath("")
+		sbox.SetHostname("")
+		sbox.SetPortMappings([]*hostport.PortMapping{})
+		sbox.SetHostNetwork(false)
+		sbox.SetUsernsMode("")
+		sbox.SetPodLinuxOverhead(nil)
+		sbox.SetPodLinuxResources(nil)
 		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
 			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
 		}, &types.PodSandboxMetadata{})
