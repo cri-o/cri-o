@@ -536,6 +536,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.BigFilesTemporaryDir, c.BigFilesTemporaryDir),
 		},
 		{
+			templateString: templateStringCrioImagePullProgressTimeout,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.PullProgressTimeout, c.PullProgressTimeout),
+		},
+		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
 			group:          crioNetworkConfig,
 			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
@@ -1467,6 +1472,13 @@ const templateStringCrioImageImageVolumes = `# Controls how image volumes are ha
 
 const templateStringCrioImageBigFilesTemporaryDir = `# Temporary directory to use for storing big files
 {{ $.Comment }}big_files_temporary_dir = "{{ .BigFilesTemporaryDir }}"
+
+`
+
+const templateStringCrioImagePullProgressTimeout = `# The timeout for an image pull to make progress until the pull operation
+# gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10.
+# Can be set to 0 to disable the timeout as well as the progress output.
+{{ $.Comment }}pull_progress_timeout = "{{ .PullProgressTimeout }}"
 
 `
 

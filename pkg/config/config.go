@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/containers/common/pkg/hooks"
@@ -533,6 +534,11 @@ type ImageConfig struct {
 	Registries []string `toml:"registries"`
 	// Temporary directory for big files
 	BigFilesTemporaryDir string `toml:"big_files_temporary_dir"`
+	// PullProgressTimeout is the timeout for an image pull to make progress
+	// until the pull operation gets canceled. This value will be also used for
+	// calculating the pull progress interval to pullProgressTimeout / 10.
+	// Can be set to 0 to disable the timeout as well as the progress output.
+	PullProgressTimeout time.Duration `toml:"pull_progress_timeout"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table
@@ -892,11 +898,12 @@ func DefaultConfig() (*Config, error) {
 			DisableHostPortMapping:      false,
 		},
 		ImageConfig: ImageConfig{
-			DefaultTransport:   "docker://",
-			PauseImage:         DefaultPauseImage,
-			PauseCommand:       "/pause",
-			ImageVolumes:       ImageVolumesMkdir,
-			SignaturePolicyDir: "/etc/crio/policies",
+			DefaultTransport:    "docker://",
+			PauseImage:          DefaultPauseImage,
+			PauseCommand:        "/pause",
+			ImageVolumes:        ImageVolumesMkdir,
+			SignaturePolicyDir:  "/etc/crio/policies",
+			PullProgressTimeout: 10 * time.Second,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,

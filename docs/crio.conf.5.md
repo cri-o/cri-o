@@ -466,6 +466,9 @@ CRI-O reads its configured registries defaults from the system wide containers-r
 **separate_pull_cgroup**=""
   [EXPERIMENTAL] If its value is set, then images are pulled into the specified cgroup.  If its value is set to "pod", then the pod's cgroup is used.  It is currently supported only with the systemd cgroup manager.
 
+**pull_progress_timeout**="10s"
+The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.
+
 ## CRIO.NETWORK TABLE
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
 
