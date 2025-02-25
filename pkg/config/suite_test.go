@@ -2,12 +2,15 @@ package config_test
 
 import (
 	"errors"
+	"flag"
 	"os/exec"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"github.com/urfave/cli/v2"
 
+	"github.com/cri-o/cri-o/internal/criocli"
 	"github.com/cri-o/cri-o/pkg/config"
 	. "github.com/cri-o/cri-o/test/framework"
 )
@@ -22,6 +25,7 @@ var (
 	t            *TestFramework
 	sut          *config.Config
 	validDirPath string
+	cliCtx       *cli.Context
 )
 
 const (
@@ -53,6 +57,14 @@ var _ = AfterSuite(func() {
 
 func beforeEach() {
 	sut = defaultConfig()
+	app := cli.NewApp()
+
+	var err error
+	app.Flags, app.Metadata, err = criocli.GetFlagsAndMetadata()
+	Expect(err).ToNot(HaveOccurred())
+
+	flagSet := flag.NewFlagSet("test", flag.ExitOnError)
+	cliCtx = cli.NewContext(app, flagSet, nil)
 }
 
 func defaultConfig() *config.Config {
