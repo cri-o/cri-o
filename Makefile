@@ -217,7 +217,7 @@ build-static: ## Build the static binaries.
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /:/mnt \
 		$(NIX_IMAGE) cp -rfT /nix /mnt/nix
 	$(CONTAINER_RUNTIME) run --network=host --rm --privileged -ti -v /nix:/nix -v ${PWD}:${PWD} -w ${PWD} \
-		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/
+		$(NIX_IMAGE) nix --print-build-logs --option cores 8 --option max-jobs 8 build --file nix/ --extra-experimental-features nix-command
 	mkdir -p bin
 	cp -r result/bin bin/static
 
