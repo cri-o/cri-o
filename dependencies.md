@@ -1,22 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
+_Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/54166d8053c0b5333ffb0a8792d6427e08d05f9c
+[0]: https://github.com/cri-o/cri-o/commit/5991aec3baf922445791cb6dbb9ed4522e251c16
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containerd/containerd                       | v1.7.25                            | v1.7.26                            | true   | true             |
-| github.com/cyphar/filepath-securejoin                  | v0.3.6                             | v0.4.1                             | true   | true             |
-| github.com/google/go-cmp                               | v0.6.0                             | v0.7.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250227072514-6e236fd44caa | true   | true             |
-| github.com/opencontainers/runc                         | v1.2.4                             | v1.2.5                             | true   | true             |
-| github.com/prometheus/client_golang                    | v1.20.5                            | v1.21.0                            | true   | true             |
-| golang.org/x/net                                       | v0.34.0                            | v0.35.0                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
-| tags.cncf.io/container-device-interface                | v0.8.0                             | v0.8.1                             | true   | true             |
 
 ## All Dependencies
 
@@ -188,7 +182,7 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/OneOfOne/xxhash                                                          | v1.2.8                                |                                     | false  | true             |
 | github.com/PaesslerAG/gval                                                          | v1.0.0                                | v1.2.4                              | false  | true             |
 | github.com/PaesslerAG/jsonpath                                                      | v0.1.1                                |                                     | false  | true             |
-| github.com/ProtonMail/go-crypto                                                     | v1.1.5                                |                                     | false  | true             |
+| github.com/ProtonMail/go-crypto                                                     | v1.1.5                                | v1.1.6                              | false  | true             |
 | github.com/PuerkitoBio/purell                                                       | v1.1.1                                | v1.2.1                              | false  | true             |
 | github.com/PuerkitoBio/urlesc                                                       | v0.0.0-20170810143723-de5bf2ad4578    |                                     | false  | true             |
 | github.com/ThalesIgnite/crypto11                                                    | v1.2.5                                | v1.3.0                              | false  | true             |
@@ -323,7 +317,7 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/creack/pty                                                               | v1.1.24                               |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                             | v0.4.3                                |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                         | v0.0.0-20231217050601-ba74d44ecf5f    | v0.0.0-20241213102144-19d51d7fe467  | false  | true             |
-| github.com/cyphar/filepath-securejoin                                               | v0.3.6                                | v0.4.1                              | true   | true             |
+| github.com/cyphar/filepath-securejoin                                               | v0.4.1                                |                                     | true   | true             |
 | github.com/danieljoos/wincred                                                       | v1.2.1                                | v1.2.2                              | false  | true             |
 | github.com/davecgh/go-spew                                                          | v1.1.2-0.20180830191138-d8f796af33cc  |                                     | false  | true             |
 | github.com/decred/dcrd/dcrec/secp256k1/v4                                           | v4.2.0                                | v4.4.0                              | false  | true             |
@@ -365,8 +359,8 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/go-jose/go-jose/v3                                                       | v3.0.3                                | v3.0.4                              | false  | true             |
 | github.com/go-jose/go-jose/v4                                                       | v4.0.5                                |                                     | false  | true             |
 | github.com/go-kit/kit                                                               | v0.8.0                                | v0.13.0                             | false  | true             |
-| github.com/go-kit/log                                                               | v0.2.1                                |                                     | false  | true             |
-| github.com/go-logfmt/logfmt                                                         | v0.5.1                                | v0.6.0                              | false  | true             |
+| github.com/go-kit/log                                                               | v0.1.0                                | v0.2.1                              | false  | true             |
+| github.com/go-logfmt/logfmt                                                         | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/go-logr/logr                                                             | v1.4.2                                |                                     | true   | true             |
 | github.com/go-logr/stdr                                                             | v1.2.2                                |                                     | false  | true             |
 | github.com/go-logr/zapr                                                             | v1.3.0                                |                                     | false  | true             |
@@ -405,7 +399,7 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/google/cel-go                                                            | v0.22.0                               | v0.24.1                             | false  | true             |
 | github.com/google/certificate-transparency-go                                       | v1.2.1                                | v1.3.1                              | false  | true             |
 | github.com/google/gnostic-models                                                    | v0.6.9-0.20230804172637-c7be7c783f49  | v0.6.9                              | false  | true             |
-| github.com/google/go-cmp                                                            | v0.6.0                                | v0.7.0                              | true   | true             |
+| github.com/google/go-cmp                                                            | v0.7.0                                |                                     | true   | true             |
 | github.com/google/go-containerregistry                                              | v0.20.3                               |                                     | false  | true             |
 | github.com/google/go-github/v55                                                     | v55.0.0                               |                                     | false  | true             |
 | github.com/google/go-github/v60                                                     | v60.0.0                               |                                     | false  | true             |
@@ -544,7 +538,7 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.1.0                              | false  | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.0                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                      | v1.2.4                                | v1.2.5                              | true   | true             |
+| github.com/opencontainers/runc                                                      | v1.2.5                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                              | v1.2.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20241108202711-f7e3563b0271  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.11.1                               |                                     | true   | true             |
@@ -566,9 +560,9 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | github.com/poy/onpar                                                                | v1.1.2                                |                                     | false  | true             |
 | github.com/pquerna/cachecontrol                                                     | v0.1.0                                | v0.2.0                              | false  | true             |
 | github.com/proglottis/gpgme                                                         | v0.1.4                                |                                     | false  | true             |
-| github.com/prometheus/client_golang                                                 | v1.20.5                               | v1.21.0                             | true   | true             |
+| github.com/prometheus/client_golang                                                 | v1.21.0                               |                                     | true   | true             |
 | github.com/prometheus/client_model                                                  | v0.6.1                                |                                     | false  | true             |
-| github.com/prometheus/common                                                        | v0.57.0                               | v0.62.0                             | false  | true             |
+| github.com/prometheus/common                                                        | v0.62.0                               |                                     | false  | true             |
 | github.com/prometheus/procfs                                                        | v0.15.1                               |                                     | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20250218085312-1ee4910263ac  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
@@ -709,17 +703,17 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | go.uber.org/zap                                                                     | v1.27.0                               |                                     | false  | true             |
 | goa.design/goa                                                                      | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                         | v0.40.0                               |                                     | false  | true             |
-| golang.org/x/crypto                                                                 | v0.32.0                               | v0.35.0                             | false  | true             |
+| golang.org/x/crypto                                                                 | v0.33.0                               | v0.35.0                             | false  | true             |
 | golang.org/x/exp                                                                    | v0.0.0-20250103183323-7d7fa50e5329    | v0.0.0-20250218142911-aa4b98e5adaa  | false  | true             |
 | golang.org/x/lint                                                                   | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                    | v0.22.0                               | v0.23.0                             | false  | true             |
-| golang.org/x/net                                                                    | v0.34.0                               | v0.35.0                             | true   | true             |
+| golang.org/x/net                                                                    | v0.35.0                               |                                     | true   | true             |
 | golang.org/x/oauth2                                                                 | v0.26.0                               | v0.27.0                             | false  | true             |
 | golang.org/x/sync                                                                   | v0.11.0                               |                                     | true   | true             |
 | golang.org/x/sys                                                                    | v0.30.0                               |                                     | true   | true             |
 | golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250221144447-d58820209c11  | false  | true             |
-| golang.org/x/term                                                                   | v0.28.0                               | v0.29.0                             | false  | true             |
-| golang.org/x/text                                                                   | v0.21.0                               | v0.22.0                             | false  | true             |
+| golang.org/x/term                                                                   | v0.29.0                               |                                     | false  | true             |
+| golang.org/x/text                                                                   | v0.22.0                               |                                     | false  | true             |
 | golang.org/x/time                                                                   | v0.9.0                                | v0.10.0                             | false  | true             |
 | golang.org/x/tools                                                                  | v0.29.0                               | v0.30.0                             | false  | true             |
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
@@ -766,5 +760,5 @@ _Generated on Thu, 27 Feb 2025 08:25:34 UTC for commit [54166d8][0]._
 | sigs.k8s.io/structured-merge-diff/v4                                                | v4.4.2                                | v4.5.0                              | false  | true             |
 | sigs.k8s.io/yaml                                                                    | v1.4.0                                |                                     | true   | true             |
 | software.sslmate.com/src/go-pkcs12                                                  | v0.4.0                                | v0.5.0                              | false  | true             |
-| tags.cncf.io/container-device-interface                                             | v0.8.0                                | v0.8.1                              | true   | true             |
+| tags.cncf.io/container-device-interface                                             | v0.8.1                                |                                     | true   | true             |
 | tags.cncf.io/container-device-interface/specs-go                                    | v0.8.0                                |                                     | false  | true             |
