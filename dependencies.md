@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
+_Generated on Thu, 27 Feb 2025 17:42:02 UTC for commit [2f61124][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/5991aec3baf922445791cb6dbb9ed4522e251c16
+[0]: https://github.com/cri-o/cri-o/commit/2f61124d55b245100b3becadbd27b40500afe07c
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containerd/containerd                       | v1.7.25                            | v1.7.26                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250227072514-6e236fd44caa | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250227172632-96ed706d20c6 | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -185,7 +184,7 @@ _Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
 | github.com/ProtonMail/go-crypto                                                     | v1.1.5                                | v1.1.6                              | false  | true             |
 | github.com/PuerkitoBio/purell                                                       | v1.1.1                                | v1.2.1                              | false  | true             |
 | github.com/PuerkitoBio/urlesc                                                       | v0.0.0-20170810143723-de5bf2ad4578    |                                     | false  | true             |
-| github.com/ThalesIgnite/crypto11                                                    | v1.2.5                                | v1.3.0                              | false  | true             |
+| github.com/ThalesIgnite/crypto11                                                    | v1.2.5                                | v1.4.0                              | false  | true             |
 | github.com/VividCortex/ewma                                                         | v1.2.0                                |                                     | false  | true             |
 | github.com/acarl005/stripansi                                                       | v0.0.0-20180116102854-5a71ef0e047d    |                                     | false  | true             |
 | github.com/agnivade/levenshtein                                                     | v1.1.1                                | v1.2.1                              | false  | true             |
@@ -277,7 +276,7 @@ _Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
 | github.com/containerd/cgroups                                                       | v1.1.0                                |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                    | v3.0.3                                | v3.0.5                              | false  | true             |
 | github.com/containerd/console                                                       | v1.0.4                                |                                     | false  | true             |
-| github.com/containerd/containerd                                                    | v1.7.25                               | v1.7.26                             | true   | true             |
+| github.com/containerd/containerd                                                    | v1.7.26                               |                                     | true   | true             |
 | github.com/containerd/containerd/api                                                | v1.8.0                                |                                     | true   | true             |
 | github.com/containerd/continuity                                                    | v0.4.4                                | v0.4.5                              | false  | true             |
 | github.com/containerd/cri-containerd                                                | v1.19.0                               |                                     | false  | true             |
@@ -354,7 +353,7 @@ _Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
 | github.com/go-git/gcfg                                                              | v1.5.1-0.20230307220236-3a3c6141e376  |                                     | false  | true             |
 | github.com/go-git/go-billy/v5                                                       | v5.6.2                                |                                     | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                                | v4.3.2-0.20231010084843-55a94097c399  |                                     | false  | true             |
-| github.com/go-git/go-git/v5                                                         | v5.13.2                               |                                     | false  | true             |
+| github.com/go-git/go-git/v5                                                         | v5.13.2                               | v5.14.0                             | false  | true             |
 | github.com/go-ini/ini                                                               | v1.67.0                               |                                     | false  | true             |
 | github.com/go-jose/go-jose/v3                                                       | v3.0.3                                | v3.0.4                              | false  | true             |
 | github.com/go-jose/go-jose/v4                                                       | v4.0.5                                |                                     | false  | true             |
@@ -457,7 +456,7 @@ _Generated on Thu, 27 Feb 2025 12:35:52 UTC for commit [5991aec][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250227072514-6e236fd44caa  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250227172632-96ed706d20c6  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
