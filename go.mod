@@ -82,7 +82,7 @@ require (
 	sigs.k8s.io/release-sdk v0.12.1
 	sigs.k8s.io/release-utils v0.8.5
 	sigs.k8s.io/yaml v1.4.0
-	tags.cncf.io/container-device-interface v0.8.0
+	tags.cncf.io/container-device-interface v0.8.1
 )
 
 require (
