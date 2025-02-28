@@ -1,7 +1,7 @@
 { stdenv
 , pkgs
 }:
-with pkgs; buildGo123Module /* use go 1.23 */ {
+with pkgs; buildGo124Module /* use go 1.24 */ {
   name = "cri-o";
   # Use Pure to avoid exuding the .git directory
   src = nix-gitignore.gitignoreSourcePure [ ../.gitignore ] ./..;
