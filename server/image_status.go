@@ -75,7 +75,6 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	}
 
 	resp.Image.Username = username
-	log.Infof(ctx, "Image status: %v", resp)
 
 	return resp, nil
 }
