@@ -1,16 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
+_Generated on Mon, 03 Mar 2025 18:23:37 UTC for commit [086f182][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/90d77fc97bcbef24674ec0370784d110f7e14a20
+[0]: https://github.com/cri-o/cri-o/commit/086f182d7d883326159b165d9b5958ae2ff53e14
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containers/image/v5                         | v5.34.0                            | v5.34.1                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250301145124-3f13023f5f91 | true   | true             |
-| github.com/opencontainers/runtime-spec                 | v1.2.0                             | v1.2.1                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250303163746-545022f2956e | true   | true             |
+| github.com/opencontainers/image-spec                   | v1.1.0                             | v1.1.1                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -186,7 +185,7 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | github.com/ProtonMail/go-crypto                                                     | v1.1.5                                | v1.1.6                              | false  | true             |
 | github.com/PuerkitoBio/purell                                                       | v1.1.1                                | v1.2.1                              | false  | true             |
 | github.com/PuerkitoBio/urlesc                                                       | v0.0.0-20170810143723-de5bf2ad4578    |                                     | false  | true             |
-| github.com/ThalesIgnite/crypto11                                                    | v1.2.5                                | v1.4.0                              | false  | true             |
+| github.com/ThalesIgnite/crypto11                                                    | v1.2.5                                | v1.4.1                              | false  | true             |
 | github.com/VividCortex/ewma                                                         | v1.2.0                                |                                     | false  | true             |
 | github.com/acarl005/stripansi                                                       | v0.0.0-20180116102854-5a71ef0e047d    |                                     | false  | true             |
 | github.com/agnivade/levenshtein                                                     | v1.1.1                                | v1.2.1                              | false  | true             |
@@ -303,7 +302,7 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | github.com/containers/common                                                        | v0.62.0                               |                                     | true   | true             |
 | github.com/containers/conmon                                                        | v2.0.20+incompatible                  |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                     | v0.6.6                                |                                     | true   | true             |
-| github.com/containers/image/v5                                                      | v5.34.0                               | v5.34.1                             | true   | true             |
+| github.com/containers/image/v5                                                      | v5.34.1                               |                                     | true   | true             |
 | github.com/containers/kubensmnt                                                     | v1.2.0                                |                                     | true   | true             |
 | github.com/containers/libtrust                                                      | v0.0.0-20230121012942-c1716e8a8d01    |                                     | false  | true             |
 | github.com/containers/ocicrypt                                                      | v1.2.1                                |                                     | true   | true             |
@@ -458,7 +457,7 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250301145124-3f13023f5f91  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250303163746-545022f2956e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
@@ -538,9 +537,9 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | github.com/onsi/gomega                                                              | v1.36.2                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.2.0                              | false  | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
-| github.com/opencontainers/image-spec                                                | v1.1.0                                |                                     | true   | true             |
+| github.com/opencontainers/image-spec                                                | v1.1.0                                | v1.1.1                              | true   | true             |
 | github.com/opencontainers/runc                                                      | v1.2.5                                |                                     | true   | true             |
-| github.com/opencontainers/runtime-spec                                              | v1.2.0                                | v1.2.1                              | true   | true             |
+| github.com/opencontainers/runtime-spec                                              | v1.2.1                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20241108202711-f7e3563b0271  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.11.1                               |                                     | true   | true             |
 | github.com/opentracing/opentracing-go                                               | v1.2.0                                |                                     | false  | true             |
@@ -614,7 +613,7 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | github.com/stretchr/objx                                                            | v0.5.2                                |                                     | false  | true             |
 | github.com/stretchr/testify                                                         | v1.10.0                               |                                     | true   | true             |
 | github.com/subosito/gotenv                                                          | v1.6.0                                |                                     | false  | true             |
-| github.com/sylabs/sif/v2                                                            | v2.20.2                               | v2.21.0                             | false  | true             |
+| github.com/sylabs/sif/v2                                                            | v2.20.2                               | v2.21.1                             | false  | true             |
 | github.com/syndtr/gocapability                                                      | v0.0.0-20200815063812-42c35b437635    |                                     | true   | true             |
 | github.com/syndtr/goleveldb                                                         | v1.0.1-0.20220721030215-126854af5e6d  |                                     | false  | true             |
 | github.com/tchap/go-patricia/v2                                                     | v2.3.2                                |                                     | false  | true             |
@@ -720,9 +719,9 @@ _Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                               | v0.218.0                              | v0.223.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697    | v0.0.0-20250227231956-55c901821b1e  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250227231956-55c901821b1e  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250227231956-55c901821b1e  | false  | true             |
+| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697    | v0.0.0-20250303144028-a0af3efb3deb  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250303144028-a0af3efb3deb  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250115164207-1a7da9e5054f    | v0.0.0-20250303144028-a0af3efb3deb  | false  | true             |
 | google.golang.org/grpc                                                              | v1.70.0                               |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.5                               |                                     | true   | true             |
