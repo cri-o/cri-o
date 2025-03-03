@@ -268,7 +268,7 @@ func (r *runtime) UpdatePod(pod string) error {
 		Resources:    &cri.LinuxContainerResources{},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to stop pod %s: %w", pod, err)
+		return fmt.Errorf("failed to update pod %s: %w", pod, err)
 	}
 
 	return nil
