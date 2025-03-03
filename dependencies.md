@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
+_Generated on Mon, 03 Mar 2025 13:26:32 UTC for commit [90d77fc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8a6210ef692f418ecb9c76179929d7a718e3c28e
+[0]: https://github.com/cri-o/cri-o/commit/90d77fc97bcbef24674ec0370784d110f7e14a20
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/containers/image/v5                         | v5.34.0                            | v5.34.1                            | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250228174946-4018079b5512 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250301145124-3f13023f5f91 | true   | true             |
 | github.com/opencontainers/runtime-spec                 | v1.2.0                             | v1.2.1                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
@@ -407,7 +407,7 @@ _Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
 | github.com/google/go-intervals                                                      | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                                    | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                            | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                             | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250208200701-d0013a598941  | false  | true             |
+| github.com/google/pprof                                                             | v0.0.0-20241210010833-40e02aabc2ad    | v0.0.0-20250302191652-9094ed2288e7  | false  | true             |
 | github.com/google/renameio                                                          | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                           | v0.6.0                                |                                     | false  | true             |
 | github.com/google/s2a-go                                                            | v0.1.9                                |                                     | false  | true             |
@@ -415,7 +415,7 @@ _Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
 | github.com/google/trillian                                                          | v1.7.1                                |                                     | false  | true             |
 | github.com/google/uuid                                                              | v1.6.0                                |                                     | true   | true             |
 | github.com/google/wire                                                              | v0.6.0                                |                                     | false  | true             |
-| github.com/googleapis/enterprise-certificate-proxy                                  | v0.3.4                                |                                     | false  | true             |
+| github.com/googleapis/enterprise-certificate-proxy                                  | v0.3.4                                | v0.3.5                              | false  | true             |
 | github.com/googleapis/gax-go/v2                                                     | v2.14.1                               |                                     | false  | true             |
 | github.com/gorilla/mux                                                              | v1.8.1                                |                                     | false  | true             |
 | github.com/gorilla/websocket                                                        | v1.5.0                                | v1.5.3                              | false  | true             |
@@ -458,7 +458,7 @@ _Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250228174946-4018079b5512  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250301145124-3f13023f5f91  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
@@ -480,7 +480,7 @@ _Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250227215100-a2141cb695de  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250228232437-10d9ef9af709  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -705,7 +705,7 @@ _Generated on Fri, 28 Feb 2025 20:11:00 UTC for commit [8a6210e][0]._
 | goa.design/goa                                                                      | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                         | v0.40.0                               |                                     | false  | true             |
 | golang.org/x/crypto                                                                 | v0.33.0                               | v0.35.0                             | false  | true             |
-| golang.org/x/exp                                                                    | v0.0.0-20250103183323-7d7fa50e5329    | v0.0.0-20250218142911-aa4b98e5adaa  | false  | true             |
+| golang.org/x/exp                                                                    | v0.0.0-20250103183323-7d7fa50e5329    | v0.0.0-20250228200357-dead58393ab7  | false  | true             |
 | golang.org/x/lint                                                                   | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                    | v0.22.0                               | v0.23.0                             | false  | true             |
 | golang.org/x/net                                                                    | v0.35.0                               |                                     | true   | true             |
