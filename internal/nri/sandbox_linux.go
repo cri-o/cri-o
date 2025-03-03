@@ -20,3 +20,12 @@ func podSandboxToNRI(pod PodSandbox) *nri.PodSandbox {
 
 	return nriPod
 }
+
+func createUpdatePodSandboxRequest(pod PodSandbox) *nri.UpdatePodSandboxRequest {
+	podNri := podSandboxToNRI(pod)
+	return &nri.UpdatePodSandboxRequest{
+		Pod:                    podNri,
+		OverheadLinuxResources: podNri.Linux.PodOverhead,
+		LinuxResources:         podNri.Linux.PodResources,
+	}
+}
