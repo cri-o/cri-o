@@ -37,6 +37,7 @@ var _ = t.Describe("ImageList", func() {
 					Return([]storage.ImageResult{
 						{ID: imageID, Size: &size, User: "10"},
 					}, nil),
+				storeMock.EXPECT().GraphRoot().Return(""),
 			)
 
 			// When

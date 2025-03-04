@@ -236,6 +236,7 @@ func (c *Config) Setup(
 	sandboxAnnotations, imageAnnotations map[string]string,
 	specGenerator *generate.Generator,
 	profileField *types.SecurityProfile,
+	graphRoot string,
 ) (*Notifier, string, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
@@ -244,7 +245,7 @@ func (c *Config) Setup(
 	// Specifically set profile fields always have a higher priority than OCI artifact annotations
 	// TODO(sgrunert): allow merging OCI artifact profiles with security context ones.
 	if profileField == nil || profileField.ProfileType == types.SecurityProfile_Unconfined {
-		ociArtifactProfile, err := seccompociartifact.New().TryPull(ctx, sys, containerName, sandboxAnnotations, imageAnnotations)
+		ociArtifactProfile, err := seccompociartifact.New(graphRoot, sys).TryPull(ctx, containerName, sandboxAnnotations, imageAnnotations)
 		if err != nil {
 			return nil, "", fmt.Errorf("try to pull OCI artifact seccomp profile: %w", err)
 		}

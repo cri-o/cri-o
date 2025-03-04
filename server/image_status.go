@@ -8,11 +8,13 @@ import (
 	"strings"
 
 	istorage "github.com/containers/image/v5/storage"
+	"github.com/containers/storage"
 	json "github.com/json-iterator/go"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	pkgstorage "github.com/cri-o/cri-o/internal/storage"
 )
 
@@ -34,7 +36,17 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	}
 
 	if status == nil {
-		log.Infof(ctx, "Image %s not found", img.Image)
+		if artifact, err := s.ArtifactStore().Status(ctx, img.Image); err == nil {
+			return &types.ImageStatusResponse{
+				Image: artifact.CRIImage(),
+			}, nil
+		}
+
+		if errors.Is(err, ociartifact.ErrNotFound) {
+			log.Infof(ctx, "Neither image nor artfiact %s found", img.Image)
+		} else {
+			log.Errorf(ctx, "Unable to get artifact: %v", err)
+		}
 
 		return &types.ImageStatusResponse{}, nil
 	}
@@ -85,7 +97,7 @@ func (s *Server) storageImageStatus(ctx context.Context, spec types.ImageSpec) (
 	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(spec.Image); id != nil {
 		status, err := s.ContainerServer.StorageImageServer().ImageStatusByID(s.config.SystemContext, *id)
 		if err != nil {
-			if errors.Is(err, istorage.ErrNoSuchImage) {
+			if errors.Is(err, istorage.ErrNoSuchImage) || errors.Is(err, storage.ErrImageUnknown) {
 				log.Infof(ctx, "Image %s not found", spec.Image)
 
 				return nil, nil

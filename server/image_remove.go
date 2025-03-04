@@ -69,7 +69,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 
 		status, statusErr = s.ContainerServer.StorageImageServer().ImageStatusByName(s.config.SystemContext, name)
 		if statusErr != nil {
-			log.Errorf(ctx, "Error getting image status %s: %v", name, statusErr)
+			log.Warnf(ctx, "Error getting image status %s: %v", name, statusErr)
 
 			continue
 		}
@@ -105,6 +105,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 
 	if !deleted && untagErr != nil {
 		return untagErr
+	}
+
+	if err := s.ArtifactStore().Remove(ctx, imageRef); err != nil {
+		log.Errorf(ctx, "Unable to remove artifact: %v", err)
 	}
 
 	if errors.Is(statusErr, storagetypes.ErrNotAnImage) {

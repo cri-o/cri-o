@@ -13,7 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
-	ociartifact "github.com/cri-o/cri-o/internal/config/ociartifact"
+	ociartifact "github.com/cri-o/cri-o/internal/ociartifact"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -41,17 +41,17 @@ func (m *MockImpl) EXPECT() *MockImplMockRecorder {
 	return m.recorder
 }
 
-// Pull mocks base method.
-func (m *MockImpl) Pull(arg0 context.Context, arg1 string, arg2 *ociartifact.PullOptions) (*ociartifact.Artifact, error) {
+// PullData mocks base method.
+func (m *MockImpl) PullData(arg0 context.Context, arg1 string, arg2 *ociartifact.PullOptions) ([]ociartifact.ArtifactData, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Pull", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*ociartifact.Artifact)
+	ret := m.ctrl.Call(m, "PullData", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]ociartifact.ArtifactData)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// Pull indicates an expected call of Pull.
-func (mr *MockImplMockRecorder) Pull(arg0, arg1, arg2 any) *gomock.Call {
+// PullData indicates an expected call of PullData.
+func (mr *MockImplMockRecorder) PullData(arg0, arg1, arg2 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Pull", reflect.TypeOf((*MockImpl)(nil).Pull), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PullData", reflect.TypeOf((*MockImpl)(nil).PullData), arg0, arg1, arg2)
 }
