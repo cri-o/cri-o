@@ -12,7 +12,7 @@ require (
 	github.com/containerd/containerd v1.7.26
 	github.com/containerd/containerd/api v1.8.0
 	github.com/containerd/fifo v1.1.0
-	github.com/containerd/nri v0.9.0
+	github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24
 	github.com/containerd/otelttrpc v0.1.0
 	github.com/containerd/ttrpc v1.2.7
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
@@ -144,7 +144,7 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49 // indirect
+	github.com/google/gnostic-models v0.6.9 // indirect
 	github.com/google/go-containerregistry v0.20.3 // indirect
 	github.com/google/go-github/v60 v60.0.0 // indirect
 	github.com/google/go-intervals v0.0.2 // indirect
@@ -239,8 +239,14 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.32.2 // indirect
 	k8s.io/component-base v0.32.2 // indirect
-	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f // indirect
+	k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7 // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 	tags.cncf.io/container-device-interface/specs-go v0.8.0 // indirect
+)
+
+// TODO: Replace once version is cut. - https://github.com/kubernetes/kubernetes/pull/128123
+replace (
+	k8s.io/cri-api => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20250223122702-3656c969cb13
+	k8s.io/cri-client => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-client v0.0.0-20250223122702-3656c969cb13
 )

@@ -209,6 +209,26 @@ func (p *plugin) RunPodSandbox(_ context.Context, pod *api.PodSandbox) error {
 	return nil
 }
 
+func (p *plugin) UpdatePodSandbox(_ context.Context, pod *api.PodSandbox) error {
+	if !p.inNamespace(pod.GetNamespace()) {
+		return nil
+	}
+
+	p.Lock()
+	defer p.Unlock()
+
+	p.pods[pod.GetId()] = pod
+
+	p.emitEvent(
+		&event{
+			kind: "UpdatePodSandbox",
+			pod:  pod,
+		},
+	)
+
+	return nil
+}
+
 func (p *plugin) StopPodSandbox(_ context.Context, pod *api.PodSandbox) error {
 	if !p.inNamespace(pod.GetNamespace()) {
 		return nil
@@ -615,6 +635,10 @@ var (
 
 func RunPodEvent(pod string) *event {
 	return PodEvent("RunPodSandbox", pod)
+}
+
+func UpdatePodEvent(pod string) *event {
+	return PodEvent("UpdatePodSandbox", pod)
 }
 
 func StopPodEvent(pod string) *event {
