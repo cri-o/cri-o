@@ -345,6 +345,21 @@ func (mr *MockStoreMockRecorder) CreateLayer(id, parent, names, mountLabel, writ
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateLayer", reflect.TypeOf((*MockStore)(nil).CreateLayer), id, parent, names, mountLabel, writeable, options)
 }
 
+// Dedup mocks base method.
+func (m *MockStore) Dedup(arg0 storage.DedupArgs) (graphdriver.DedupResult, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Dedup", arg0)
+	ret0, _ := ret[0].(graphdriver.DedupResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Dedup indicates an expected call of Dedup.
+func (mr *MockStoreMockRecorder) Dedup(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Dedup", reflect.TypeOf((*MockStore)(nil).Dedup), arg0)
+}
+
 // Delete mocks base method.
 func (m *MockStore) Delete(id string) error {
 	m.ctrl.T.Helper()
