@@ -44,7 +44,7 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 
 		if errors.Is(err, ociartifact.ErrNotFound) {
 			log.Infof(ctx, "Neither image nor artfiact %s found", img.Image)
-		} else {
+		} else if err != nil {
 			log.Errorf(ctx, "Unable to get artifact: %v", err)
 		}
 

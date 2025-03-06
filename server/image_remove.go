@@ -9,6 +9,7 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/log"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
 )
 
@@ -107,7 +108,7 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		return untagErr
 	}
 
-	if err := s.ArtifactStore().Remove(ctx, imageRef); err != nil {
+	if err := s.ArtifactStore().Remove(ctx, imageRef); err != nil && !errors.Is(err, ociartifact.ErrNotFound) {
 		log.Errorf(ctx, "Unable to remove artifact: %v", err)
 	}
 
