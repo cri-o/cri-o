@@ -201,7 +201,7 @@ github.com/containerd/go-runc
 # github.com/containerd/log v0.1.0
 ## explicit; go 1.20
 github.com/containerd/log
-# github.com/containerd/nri v0.9.0
+# github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24
 ## explicit; go 1.21
 github.com/containerd/nri/pkg/adaptation
 github.com/containerd/nri/pkg/api
@@ -653,8 +653,8 @@ github.com/golang/groupcache/lru
 # github.com/golang/protobuf v1.5.4
 ## explicit; go 1.17
 github.com/golang/protobuf/proto
-# github.com/google/gnostic-models v0.6.9-0.20230804172637-c7be7c783f49
-## explicit; go 1.18
+# github.com/google/gnostic-models v0.6.9
+## explicit; go 1.21
 github.com/google/gnostic-models/compiler
 github.com/google/gnostic-models/extensions
 github.com/google/gnostic-models/jsonschema
@@ -1678,12 +1678,12 @@ k8s.io/component-base/metrics/prometheusextension
 k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
-# k8s.io/cri-api v0.32.2
+# k8s.io/cri-api v0.32.2 => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20250223122702-3656c969cb13
 ## explicit; go 1.23.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
-# k8s.io/cri-client v0.32.2
+# k8s.io/cri-client v0.32.2 => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-client v0.0.0-20250223122702-3656c969cb13
 ## explicit; go 1.23.0
 k8s.io/cri-client/pkg
 k8s.io/cri-client/pkg/internal
@@ -1697,8 +1697,8 @@ k8s.io/klog/v2/internal/dbg
 k8s.io/klog/v2/internal/serialize
 k8s.io/klog/v2/internal/severity
 k8s.io/klog/v2/internal/sloghandler
-# k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
-## explicit; go 1.20
+# k8s.io/kube-openapi v0.0.0-20241212222426-2c72e554b1e7
+## explicit; go 1.21
 k8s.io/kube-openapi/pkg/cached
 k8s.io/kube-openapi/pkg/common
 k8s.io/kube-openapi/pkg/handler3
@@ -1760,3 +1760,5 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# k8s.io/cri-api => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-api v0.0.0-20250223122702-3656c969cb13
+# k8s.io/cri-client => github.com/felipeagger/kubernetes/staging/src/k8s.io/cri-client v0.0.0-20250223122702-3656c969cb13

@@ -69,6 +69,16 @@ func (a *nriAPI) runPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) err
 	return err
 }
 
+func (a *nriAPI) updatePodSandbox(ctx context.Context, criPod *sandbox.Sandbox) error {
+	if !a.isEnabled() {
+		return nil
+	}
+
+	pod := nriPodSandbox(ctx, criPod)
+
+	return a.nri.UpdatePodSandbox(ctx, pod)
+}
+
 func (a *nriAPI) stopPodSandbox(ctx context.Context, criPod *sandbox.Sandbox) error {
 	if !a.isEnabled() {
 		return nil
