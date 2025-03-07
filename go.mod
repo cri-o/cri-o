@@ -24,7 +24,7 @@ require (
 	github.com/containers/image/v5 v5.34.1
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
-	github.com/containers/storage v1.57.1
+	github.com/containers/storage v1.57.2
 	github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09
 	github.com/creack/pty v1.1.24
 	github.com/cri-o/ocicni v0.4.3
