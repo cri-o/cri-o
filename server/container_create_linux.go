@@ -23,6 +23,8 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
+	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -196,6 +198,8 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		return nil, nil, fmt.Errorf("ensure image volumes path: %w", err)
 	}
 
+	namespace := ctr.SandboxConfig().Metadata.Namespace
+
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
@@ -203,7 +207,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		}
 
 		if m.Image != nil && m.Image.Image != "" {
-			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m)
+			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m, namespace)
 			if err != nil {
 				return nil, nil, fmt.Errorf("mount image: %w", err)
 			}
@@ -382,7 +386,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
-func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount) (*oci.ContainerVolume, error) {
+func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, namespace string) (*oci.ContainerVolume, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
 		return nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
@@ -400,6 +404,12 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}
 
 	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
+
+	// Check the signature of the image
+	if err := s.verifyImageSignature(ctx, namespace, m, status); err != nil {
+		return nil, err
+	}
+
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
@@ -760,4 +770,35 @@ func addShmMount(ctr ctrfactory.Container, sb *sandbox.Sandbox) {
 		Source:      sb.ShmPath(),
 		Options:     []string{"rw", "bind"},
 	})
+}
+
+// verifyImageSignature checks the signature of the image specified in the mount.
+func (s *Server) verifyImageSignature(ctx context.Context, namespace string, m *types.Mount, status *storage.ImageResult) error {
+	systemCtx, err := s.contextForNamespace(namespace)
+	if err != nil {
+		return fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	if systemCtx.SignaturePolicyPath != "" {
+		// This will likely fail in a container restore case.
+		// This is okay; in part because container restores are an alpha feature,
+		// and it is meaningless to try to verify an image that isn't even an image
+		// (like a checkpointed file is).
+		if m.Image.UserSpecifiedImage == "" {
+			return errors.New("user specified image not specified, cannot verify image signature")
+		}
+
+		var userSpecifiedImageRef references.RegistryImageReference
+
+		userSpecifiedImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(m.Image.UserSpecifiedImage)
+		if err != nil {
+			return fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", m.Image.UserSpecifiedImage, err)
+		}
+
+		if err := s.ContainerServer.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
