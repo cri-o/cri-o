@@ -30,7 +30,7 @@ IMAGE=quay.io/crio/artifact:v1
 		'.mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: $IMAGE },
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
 			readonly: true
 		}]' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
@@ -83,7 +83,7 @@ IMAGE=quay.io/crio/artifact:v1
 		'.mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: $IMAGE },
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
 			readonly: true
 		}]' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
@@ -104,7 +104,7 @@ IMAGE=quay.io/crio/artifact:v1
 		'.mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: $IMAGE },
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
 			readonly: true
 		}]' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
@@ -127,7 +127,7 @@ IMAGE=quay.io/crio/artifact:v1
 		'.mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: $IMAGE },
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
 			image_sub_path: "dir",
 			readonly: true
 		}]' \
@@ -154,7 +154,7 @@ IMAGE=quay.io/crio/artifact:v1
 		'.mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: $IMAGE },
+			image: { image: $IMAGE, user_specified_image: $IMAGE },
 			image_sub_path: "foo-bar",
 			readonly: true
 		}]' \
