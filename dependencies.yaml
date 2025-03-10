@@ -16,9 +16,8 @@ dependencies:
         match: GO_VERSION
       - path: nix/derivation.nix
         match: buildGo124Module
-      # TODO: move go.mod to 1.24 once we have full prow CI support
-      # - path: go.mod
-      #   match: go
+      - path: go.mod
+        match: go
 
   # For a new minor (1.x.0) release, move the "development version"
   # below to the "supported versions" section (by omitting the patch version)

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"testing"
 
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -35,7 +34,7 @@ func TestAddOCIBindsForDev(t *testing.T) {
 
 	sut := &Server{}
 
-	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	_, binds, err := sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -87,7 +86,7 @@ func TestAddOCIBindsForSys(t *testing.T) {
 
 	sut := &Server{}
 
-	_, binds, err := sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	_, binds, err := sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -137,7 +136,7 @@ func TestAddOCIBindsRROMounts(t *testing.T) {
 		t.Fatalf("Should set container configuration, got: %v", err)
 	}
 
-	ctx := context.TODO()
+	ctx := t.Context()
 
 	sut := &Server{}
 
@@ -210,7 +209,7 @@ func TestAddOCIBindsRROMountsError(t *testing.T) {
 		},
 	}
 
-	ctx := context.TODO()
+	ctx := t.Context()
 
 	for _, tc := range cases {
 		t.Run(tc.description, func(t *testing.T) {
@@ -271,7 +270,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 
 	sut := &Server{}
 
-	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, true, false, false, "")
+	_, _, err = sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, true, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -311,7 +310,7 @@ func TestAddOCIBindsCGroupRW(t *testing.T) {
 
 	var hasCgroupRO bool
 
-	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	_, _, err = sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err != nil {
 		t.Error(err)
 	}
@@ -364,12 +363,12 @@ func TestAddOCIBindsErrorWithoutIDMap(t *testing.T) {
 
 	sut := &Server{}
 
-	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, false, false, "")
+	_, _, err = sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, false, false, false, "")
 	if err == nil {
 		t.Errorf("Should have failed to create id mapped mount with no id map support")
 	}
 
-	_, _, err = sut.addOCIBindMounts(context.Background(), ctr, "", "", nil, false, false, false, true, false, "")
+	_, _, err = sut.addOCIBindMounts(t.Context(), ctr, "", "", nil, false, false, false, true, false, "")
 	if err != nil {
 		t.Errorf("%v", err)
 	}
