@@ -1678,8 +1678,8 @@ k8s.io/component-base/metrics/prometheusextension
 k8s.io/component-base/tracing
 k8s.io/component-base/tracing/api/v1
 k8s.io/component-base/version
-# k8s.io/cri-api v0.32.2
-## explicit; go 1.23.0
+# k8s.io/cri-api v0.32.2 => github.com/saschagrunert/cri-api v0.0.0-20250310080858-ad861b89fb8f
+## explicit; go 1.24.0
 k8s.io/cri-api/pkg/apis
 k8s.io/cri-api/pkg/apis/runtime/v1
 k8s.io/cri-api/pkg/errors
@@ -1760,3 +1760,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v0.8.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# k8s.io/cri-api => github.com/saschagrunert/cri-api v0.0.0-20250310080858-ad861b89fb8f

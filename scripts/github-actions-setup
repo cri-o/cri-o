@@ -100,9 +100,9 @@ install_conmonrs() {
 
 install_critools() {
     install_from_github_org_repo \
-        kubernetes-sigs \
+        saschagrunert \
         cri-tools \
-        master \
+        image-volume-subpath \
         sudo -E PATH="$PATH" make BINDIR=/usr/bin install
 
     sudo critest --version
