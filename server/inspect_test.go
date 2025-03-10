@@ -45,7 +45,7 @@ func TestGetInfo(t *testing.T) {
 }
 
 func TestGetContainerInfo(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{
@@ -184,7 +184,7 @@ func TestGetContainerInfo(t *testing.T) {
 }
 
 func TestGetContainerInfoCtrNotFound(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	s := &Server{}
 	getContainerFunc := func(ctx context.Context, id string) *oci.Container {
 		return nil
@@ -207,7 +207,7 @@ func TestGetContainerInfoCtrNotFound(t *testing.T) {
 }
 
 func TestGetContainerInfoCtrStateNil(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{}
@@ -254,7 +254,7 @@ func TestGetContainerInfoCtrStateNil(t *testing.T) {
 }
 
 func TestGetContainerInfoSandboxNotFound(t *testing.T) {
-	ctx := context.TODO()
+	ctx := t.Context()
 	s := &Server{}
 	created := time.Now()
 	labels := map[string]string{}
