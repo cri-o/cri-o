@@ -112,8 +112,8 @@ github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01 h1:Qzk5C6cYgle
 github.com/containers/libtrust v0.0.0-20230121012942-c1716e8a8d01/go.mod h1:9rfv8iPl1ZP7aqh9YA68wnZv2NUDbXdcdPHVz0pFbPY=
 github.com/containers/ocicrypt v1.2.1 h1:0qIOTT9DoYwcKmxSt8QJt+VzMY18onl9jUXsxpVhSmM=
 github.com/containers/ocicrypt v1.2.1/go.mod h1:aD0AAqfMp0MtwqWgHM1bUwe1anx0VazI108CRrSKINQ=
-github.com/containers/storage v1.57.1 h1:hKPoFsuBcB3qTzBxa4IFpZMRzUuL5Xhv/BE44W0XHx8=
-github.com/containers/storage v1.57.1/go.mod h1:i/Hb4lu7YgFr9G0K6BMjqW0BLJO1sFsnWQwj2UoWCUM=
+github.com/containers/storage v1.57.2 h1:2roCtTyE9pzIaBDHibK72DTnYkPmwWaq5uXxZdaWK4U=
+github.com/containers/storage v1.57.2/go.mod h1:i/Hb4lu7YgFr9G0K6BMjqW0BLJO1sFsnWQwj2UoWCUM=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09 h1:OoRAFlvDGCUqDLampLQjk0yeeSGdF9zzst/3G9IkBbc=
 github.com/coreos/go-systemd/v22 v22.5.1-0.20231103132048-7d375ecc2b09/go.mod h1:m2r/smMKsKwgMSAoFKHaa68ImdCSNuKE1MxvQ64xuCQ=
 github.com/cpuguy83/go-md2man/v2 v2.0.4/go.mod h1:tgQtvFlXSQOSOSIRvRPT7W67SCa46tRHOmNcaadrF8o=
@@ -754,6 +754,7 @@ gopkg.in/warnings.v0 v0.1.2/go.mod h1:jksf8JmL6Qr/oQM2OXTHunEvvTAsrWBLb6OOjuVWRN
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.2/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
 gopkg.in/yaml.v2 v2.2.8/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
+gopkg.in/yaml.v2 v2.4.0 h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=
 gopkg.in/yaml.v2 v2.4.0/go.mod h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=
 gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
 gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b/go.mod h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=
@@ -797,7 +798,7 @@ sigs.k8s.io/structured-merge-diff/v4 v4.4.2 h1:MdmvkGuXi/8io6ixD5wud3vOLwc1rj0aN
 sigs.k8s.io/structured-merge-diff/v4 v4.4.2/go.mod h1:N8f93tFZh9U6vpxwRArLiikrE5/2tiu1w1AGfACIGE4=
 sigs.k8s.io/yaml v1.4.0 h1:Mk1wCc2gy/F0THH0TAp1QYyJNzRm2KCLy3o5ASXVI5E=
 sigs.k8s.io/yaml v1.4.0/go.mod h1:Ejl7/uTz7PSA4eKMyQCUTnhZYNmLIl+5c2lQPGR2BPY=
-tags.cncf.io/container-device-interface v0.8.1 h1:c0jN4Mt6781jD67NdPajmZlD1qrqQyov/Xfoab37lj0=
-tags.cncf.io/container-device-interface v0.8.1/go.mod h1:Apb7N4VdILW0EVdEMRYXIDVRZfNJZ+kmEUss2kRRQ6Y=
-tags.cncf.io/container-device-interface/specs-go v0.8.0 h1:QYGFzGxvYK/ZLMrjhvY0RjpUavIn4KcmRmVP/JjdBTA=
-tags.cncf.io/container-device-interface/specs-go v0.8.0/go.mod h1:BhJIkjjPh4qpys+qm4DAYtUyryaTDg9zris+AczXyws=
+tags.cncf.io/container-device-interface v1.0.0 h1:fbwPQiWZNpXUb9Os6t6JW52rsOppTFUbeJOpNtN1TmI=
+tags.cncf.io/container-device-interface v1.0.0/go.mod h1:mmi2aRGmOjK/6NR3TXjLpEIarOJ9qwgZjQ3nTIRwAaA=
+tags.cncf.io/container-device-interface/specs-go v1.0.0 h1:8gLw29hH1ZQP9K1YtAzpvkHCjjyIxHZYzBAvlQ+0vD8=
+tags.cncf.io/container-device-interface/specs-go v1.0.0/go.mod h1:u86hoFWqnh3hWz3esofRFKbI261bUlvUfLKGrDhJkgQ=
