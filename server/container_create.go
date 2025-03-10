@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -818,10 +819,30 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	idMapSupport := s.ContainerServer.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
 	rroSupport := s.ContainerServer.Runtime().RuntimeSupportsRROMounts(sb.RuntimeHandler())
 
-	containerVolumes, ociMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root)
+	var cleanupSafeMounts []*safeMountInfo
+
+	runtime.LockOSThread()
+
+	cleanupFunc := func() {
+		runtime.UnlockOSThread()
+
+		for _, s := range cleanupSafeMounts {
+			s.Close()
+		}
+	}
+
+	defer func() {
+		if err != nil {
+			cleanupFunc()
+		}
+	}()
+
+	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root, containerInfo.RunDir)
 	if err != nil {
 		return nil, err
 	}
+
+	cleanupSafeMounts = safeMounts
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container device creation")
 
