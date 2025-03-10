@@ -1,4 +1,6 @@
-go 1.23.4
+go 1.24.0
+
+toolchain go1.24.1
 
 module github.com/cri-o/cri-o
 
@@ -86,6 +88,8 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 	tags.cncf.io/container-device-interface v0.8.1
 )
+
+replace k8s.io/cri-api => github.com/saschagrunert/cri-api v0.0.0-20250310080858-ad861b89fb8f
 
 require (
 	capnproto.org/go/capnp/v3 v3.0.1-alpha.2 // indirect

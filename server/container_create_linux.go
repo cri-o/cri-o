@@ -12,9 +12,11 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/device"
@@ -387,7 +389,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		return nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
 
-	log.Debugf(ctx, "Image ref to mount: %s", m.Image.Image)
+	log.Debugf(ctx, "Image ref to mount under sub path %q: %s", m.ImageSubPath, m.Image.Image)
 
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: m.Image.Image})
 	if err != nil {
@@ -410,6 +412,30 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}
 
 	log.Infof(ctx, "Image mounted to: %s", mountPoint)
+
+	// Kubernetes already verifies that ImageSubPath:
+	// - is a relative path
+	// - does not contain any '..'
+	//
+	// We cannot create non-existing paths within the image volume because
+	// they're mounted read-only.
+	mountPoint, err = securejoin.SecureJoin(mountPoint, m.ImageSubPath)
+	if err != nil {
+		return nil, fmt.Errorf("secure join final mount path: %w", err)
+	}
+
+	var st unix.Stat_t
+	if err := unix.Stat(mountPoint, &st); err != nil {
+		// This is a user-facing error message from a kubelet event,
+		// means we should make it as meaningful as possible.
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("sub path %q does not exist in image volume %q", m.ImageSubPath, m.Image.Image)
+		}
+
+		return nil, fmt.Errorf("unable to stat final mount path %q: %w", mountPoint, err)
+	}
+
+	log.Debugf(ctx, "Using final mount path: %s", mountPoint)
 
 	const overlay = "overlay"
 

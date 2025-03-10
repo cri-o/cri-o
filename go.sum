@@ -436,6 +436,8 @@ github.com/rogpeppe/go-internal v1.13.1 h1:KvO1DLK/DRN07sQ1LQKScxyZJuNnedQ5/wKSR
 github.com/rogpeppe/go-internal v1.13.1/go.mod h1:uMEvuHeurkdAXX61udpOXGD/AzZDWNMNyH2VO9fmH0o=
 github.com/russross/blackfriday/v2 v2.1.0 h1:JIOH55/0cWyOuilr9/qlrm0BSXldqnqwMsf35Ld67mk=
 github.com/russross/blackfriday/v2 v2.1.0/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
+github.com/saschagrunert/cri-api v0.0.0-20250310080858-ad861b89fb8f h1:iDvbPeU82hKqfJvSuZ7yutk8eNhfZDT9Lp3/eNqkvfQ=
+github.com/saschagrunert/cri-api v0.0.0-20250310080858-ad861b89fb8f/go.mod h1:AWeYLzfWgDAsuMDuL4Cdv4QN6w8I38Skhl7VL5Kt88Y=
 github.com/sebdah/goldie/v2 v2.5.5 h1:rx1mwF95RxZ3/83sdS4Yp7t2C5TCokvWP4TBRbAyEWY=
 github.com/sebdah/goldie/v2 v2.5.5/go.mod h1:oZ9fp0+se1eapSRjfYbsV/0Hqhbuu3bJVvKI/NNtssI=
 github.com/seccomp/libseccomp-golang v0.10.0 h1:aA4bp+/Zzi0BnWZ2F1wgNBs5gTpm+na2rWM6M9YjLpY=
@@ -775,8 +777,6 @@ k8s.io/client-go v0.32.2 h1:4dYCD4Nz+9RApM2b/3BtVvBHw54QjMFUl1OLcJG5yOA=
 k8s.io/client-go v0.32.2/go.mod h1:fpZ4oJXclZ3r2nDOv+Ux3XcJutfrwjKTCHz2H3sww94=
 k8s.io/component-base v0.32.2 h1:1aUL5Vdmu7qNo4ZsE+569PV5zFatM9hl+lb3dEea2zU=
 k8s.io/component-base v0.32.2/go.mod h1:PXJ61Vx9Lg+P5mS8TLd7bCIr+eMJRQTyXe8KvkrvJq0=
-k8s.io/cri-api v0.32.2 h1:7DuaOHpOcXweZeBUbRdK0iCroxctGp73VwgrA0u7kho=
-k8s.io/cri-api v0.32.2/go.mod h1:DCzMuTh2padoinefWME0G678Mc3QFbLMF2vEweGzBAI=
 k8s.io/cri-client v0.32.2 h1:vjowJUyu14IbmifqCKJHE9rK/BPSfkXvltqN42W1Zuo=
 k8s.io/cri-client v0.32.2/go.mod h1:fRZhmmZW16Qviln8hfy+e8dd2wP/n9B6TiGxLE3zBe0=
 k8s.io/klog/v2 v2.130.1 h1:n9Xl7H1Xvksem4KFG4PYbdQCQxqc/tTUyrgXaOhHSzk=
