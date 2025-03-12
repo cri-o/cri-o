@@ -93,7 +93,7 @@ DEBUG ?= 0
 ifeq ($(DEBUG),0)
 SHRINKFLAGS = -s -w
 else
-GCFLAGS = -gcflags '-N -l'
+GCFLAGS = -gcflags='all=-N -l'
 endif
 
 DATE_FMT = +'%Y-%m-%dT%H:%M:%SZ'
