@@ -245,7 +245,7 @@ github.com/containernetworking/cni/pkg/version
 # github.com/containernetworking/plugins v1.6.2
 ## explicit; go 1.23
 github.com/containernetworking/plugins/pkg/ns
-# github.com/containers/common v0.62.1
+# github.com/containers/common v0.62.2
 ## explicit; go 1.22.8
 github.com/containers/common/internal
 github.com/containers/common/internal/attributedstring
