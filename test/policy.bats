@@ -52,6 +52,26 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	assert_log "$RESTRICTIVE_POLICY"
 }
 
+@test "deny unsigned image if already pulled and container created during mounting phase" {
+    start_crio
+    crictl pull "$UNSIGNED_IMAGE"
+    POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+    CTR_CONFIG="$TESTDIR/config.json"
+    jq '.image.image = "'"$UNSIGNED_IMAGE"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+    crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+    stop_crio_no_clean
+
+    SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+    POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+    CTR_CONFIG="$TESTDIR/config.json" 
+    jq '.image.image = "'"$UNSIGNED_IMAGE"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+    run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+
+    [[ "$output" == *"SignatureValidationFailed"* ]]
+    assert_log "$RESTRICTIVE_POLICY"
+}
+
 @test "accept signed image with default policy" {
 	start_crio
 
