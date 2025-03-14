@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 
@@ -438,17 +439,13 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 
 func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (string, error) {
 	// Check if we need to anything at all
-	noop := true
-
-	for _, m := range mounts {
-		if m.Image != nil && m.Image.Image != "" {
-			noop = false
-
-			break
+	if !slices.ContainsFunc(mounts, func(m *types.Mount) bool {
+		if m.GetImage() != nil && m.GetImage().GetImage() != "" {
+			return true
 		}
-	}
 
-	if noop {
+		return false
+	}) {
 		return "", nil
 	}
 
