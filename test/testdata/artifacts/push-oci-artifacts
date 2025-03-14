@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if ! command -v oras &>/dev/null; then
+    echo "oras command not found. Please install it before proceeding."
+    exit 1
+fi
+
+REPOSITORY=quay.io/crio/artifact
+ARTIFACT_DIR=test/testdata/artifacts
+
+cd "$ARTIFACT_DIR"
+
+oras push "$REPOSITORY:singlefile" --artifact-type application/x.test.test.test.v1 artifact.txt
+oras push "$REPOSITORY:exec" --artifact-type application/x.test.test.test.v1 artifact.sh
+oras push "$REPOSITORY:multiplefiles" --artifact-type application/x.test.test.test.v1 artifact.txt artifact.sh

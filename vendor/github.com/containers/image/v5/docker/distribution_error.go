@@ -117,7 +117,7 @@ func handleErrorResponse(resp *http.Response) error {
 	case resp.StatusCode == http.StatusUnauthorized:
 		// Check for OAuth errors within the `WWW-Authenticate` header first
 		// See https://tools.ietf.org/html/rfc6750#section-3
-		for _, c := range parseAuthHeader(resp.Header) {
+		for c := range iterateAuthHeader(resp.Header) {
 			if c.Scheme == "bearer" {
 				var err errcode.Error
 				// codes defined at https://tools.ietf.org/html/rfc6750#section-3.1

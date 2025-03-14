@@ -593,3 +593,7 @@ release-branch-forward: ## Run the release branch fast forward script.
 .PHONY: upload-artifacts
 upload-artifacts: ## Upload the built artifacts.
 	./scripts/upload-artifacts
+
+.PHONY: push-oci-artifacts
+push-oci-artifacts: ## Push OCI Artifacts to quay.io/crio
+	./test/testdata/artifacts/push-oci-artifacts

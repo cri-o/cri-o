@@ -14,9 +14,14 @@ import (
 	"github.com/cri-o/cri-o/internal/storage/references"
 )
 
+const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
+
 // The actual test suite.
 var _ = t.Describe("ImageRemove", func() {
 	resolvedImageName, err := references.ParseRegistryImageReferenceFromOutOfProcessData("docker.io/library/image:latest")
+	Expect(err).ToNot(HaveOccurred())
+
+	storageID, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
 	Expect(err).ToNot(HaveOccurred())
 
 	// Prepare the sut
@@ -36,7 +41,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
 				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{}, nil),
+					Return(&storage.ImageResult{ID: storageID}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					resolvedImageName).Return(nil),
 				storeMock.EXPECT().GraphRoot().Return(""),
@@ -51,7 +56,6 @@ var _ = t.Describe("ImageRemove", func() {
 
 		// Given
 		It("should succeed with a full image id", func() {
-			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			parsedTestSHA256, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
 			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(
@@ -78,7 +82,7 @@ var _ = t.Describe("ImageRemove", func() {
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{resolvedImageName}, nil),
 				imageServerMock.EXPECT().ImageStatusByName(gomock.Any(), gomock.Any()).
-					Return(&storage.ImageResult{}, nil),
+					Return(&storage.ImageResult{ID: storageID}, nil),
 				imageServerMock.EXPECT().UntagImage(gomock.Any(),
 					resolvedImageName).Return(t.TestError),
 			)
@@ -120,7 +124,6 @@ var _ = t.Describe("ImageRemove", func() {
 		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
 		It("should succeed if image is not found", func() {
 			// Given
-			const testSHA256 = "2a03a6059f21e150ae84b0973863609494aad70f0a80eaeb64bddd8d92465812"
 			parsedTestSHA256, err := storage.ParseStorageImageIDFromOutOfProcessData(testSHA256)
 			Expect(err).ToNot(HaveOccurred())
 			gomock.InOrder(

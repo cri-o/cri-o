@@ -12,6 +12,7 @@ import (
 
 	"github.com/containers/storage/pkg/idtools"
 	"github.com/containers/storage/pkg/mount"
+	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/intel/goresctrl/pkg/blockio"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
@@ -24,7 +25,7 @@ import (
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -206,7 +207,17 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			return nil, nil, nil, errors.New("mount.ContainerPath is empty")
 		}
 
-		if m.Image != nil && m.Image.Image != "" {
+		if m.GetImage().GetImage() != "" {
+			// Try mountArtifact first, and fall back to mountImage if it fails with ErrNotFound
+			artifactVolumes, err := s.mountArtifact(ctx, specgen, m, mountLabel, skipRelabel, maybeRelabel)
+			if err == nil {
+				volumes = append(volumes, artifactVolumes...)
+
+				continue
+			}
+
+			log.Warnf(ctx, "Artifact mount failed with %s. Falling back to image mount", err)
+
 			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, runDir)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
@@ -386,6 +397,67 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	return volumes, ociMounts, safeMounts, nil
 }
 
+// mountArtifact binds artifact blobs to the container filesystem based on the provided mount configuration.
+func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator, m *types.Mount, mountLabel string, isSPC, maybeRelabel bool) ([]oci.ContainerVolume, error) {
+	artifact, err := s.ArtifactStore().Status(ctx, m.Image.Image)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get artifact status: %w", err)
+	}
+
+	paths, err := s.ArtifactStore().BlobMountPaths(ctx, artifact, s.config.SystemContext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get artifact blob mount paths: %w", err)
+	}
+
+	options := []string{"bind", "ro"}
+	volumes := make([]oci.ContainerVolume, 0, len(paths))
+	selinuxRelabel := true
+
+	if !m.SelinuxRelabel {
+		log.Debugf(ctx, "Skipping relabel for %s because kubelet did not request it", m.Image.GetImage())
+
+		selinuxRelabel = false
+	} else if isSPC {
+		log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", m.Image.GetImage())
+
+		selinuxRelabel = false
+	}
+
+	for _, path := range paths {
+		dest, err := securejoin.SecureJoin(m.ContainerPath, path.Name)
+		if err != nil {
+			return nil, fmt.Errorf("failed to join container path %q and artifact blob path %q: %w", m.ContainerPath, path.Name, err)
+		}
+
+		if selinuxRelabel {
+			if err := securityLabel(path.SourcePath, mountLabel, false, maybeRelabel); err != nil {
+				return nil, err
+			}
+		}
+
+		volumes = append(volumes, oci.ContainerVolume{
+			ContainerPath:     m.ContainerPath,
+			HostPath:          path.SourcePath,
+			Readonly:          m.Readonly,
+			RecursiveReadOnly: m.RecursiveReadOnly,
+			Propagation:       m.Propagation,
+			SelinuxRelabel:    m.SelinuxRelabel,
+			Image:             &types.ImageSpec{Image: artifact.Digest().Encoded()},
+		})
+
+		specgen.AddMount(rspec.Mount{
+			Type:        "bind",
+			Source:      path.SourcePath,
+			Destination: dest,
+			Options:     options,
+			UIDMappings: getOCIMappings(m.UidMappings),
+			GIDMappings: getOCIMappings(m.GidMappings),
+		})
+	}
+
+	return volumes, nil
+}
+
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
 func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, runDir string) (*oci.ContainerVolume, *safeMountInfo, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
@@ -401,6 +473,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 
 	if status == nil {
 		// Should not happen because the kubelet ensures the image.
+		// Or the image could be an artifact.
 		return nil, nil, fmt.Errorf("image %q does not exist locally", m.Image.Image)
 	}
 

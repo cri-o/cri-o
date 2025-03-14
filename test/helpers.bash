@@ -301,6 +301,18 @@ function requires_crictl() {
         skip "requires crictl version \"$1\" or newer"
 }
 
+function skip_if_selinux_disabled() {
+    if ! is_selinux_enabled; then
+        skip "selinux is disabled"
+    fi
+}
+
+function skip_if_vm_runtime() {
+    if [[ $RUNTIME_TYPE == vm ]]; then
+        skip "not applicable to vm runtime type"
+    fi
+}
+
 function cleanup_ctrs() {
     crictl rm -a -f
     rm -f "$HOOKSCHECK"
