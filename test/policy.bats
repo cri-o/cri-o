@@ -54,7 +54,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 }
 
 @test "allow signed image if already pulled and container created during mounting phase" {
-    start_crio
+	start_crio
 	crictl pull "$SIGNED_IMAGE"
 	stop_crio_no_clean
 
@@ -76,7 +76,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 }
 
 @test "deny unsigned image if already pulled and container created during mounting phase" {
-    start_crio
+	start_crio
 	crictl pull "$SIGNED_IMAGE"
 	crictl pull "$UNSIGNED_IMAGE"
 	stop_crio_no_clean
