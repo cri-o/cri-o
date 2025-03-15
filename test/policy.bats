@@ -65,7 +65,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 		'.image.image = "'"$SIGNED_IMAGE"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'" | .mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: "'"$SIGNED_IMAGE"'" },
+			image: { image: "'"$SIGNED_IMAGE"'", user_specified_image: "'"$SIGNED_IMAGE"'" },
 			readonly: true
 		}]' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
 
@@ -88,7 +88,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 		'.image.image = "'"$SIGNED_IMAGE"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'" | .mounts = [{
 			host_path: "",
 			container_path: $CONTAINER_PATH,
-			image: { image: "'"$UNSIGNED_IMAGE"'" },
+			image: { image: "'"$UNSIGNED_IMAGE"'", user_specified_image: "'"$UNSIGNED_IMAGE"'" },
 			readonly: true
 		}]' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
 
