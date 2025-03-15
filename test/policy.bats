@@ -192,7 +192,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	# the missing command executable
 	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
-}[[ "$output" == *"SignatureValidationFailed"* ]]
+}
 
 @test "deny unsigned image with restrictive policy on container creation2 (fresh pull)" {
 	start_crio
