@@ -17,6 +17,7 @@ function assert_log() {
 
 RESTRICTIVE_POLICY="$INTEGRATION_ROOT/policy-signature.json"
 
+CONTAINER_PATH=/volume
 REGISTRY="quay.io/crio"
 UNSIGNED_IMAGE="$REGISTRY/unsigned"
 SIGNED_IMAGE="$REGISTRY/signed"
@@ -52,24 +53,49 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	assert_log "$RESTRICTIVE_POLICY"
 }
 
+@test "allow signed image if already pulled and container created during mounting phase" {
+    start_crio
+	crictl pull "$SIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq --arg CONTAINER_PATH "$CONTAINER_PATH" \
+		'.image.image = "'"$SIGNED_IMAGE"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'" | .mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: "'"$SIGNED_IMAGE"'" },
+			readonly: true
+		}]' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
+}
+
 @test "deny unsigned image if already pulled and container created during mounting phase" {
     start_crio
-    crictl pull "$UNSIGNED_IMAGE"
-    POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
-    CTR_CONFIG="$TESTDIR/config.json"
-    jq '.image.image = "'"$UNSIGNED_IMAGE"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
-    crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
-    stop_crio_no_clean
+	crictl pull "$SIGNED_IMAGE"
+	crictl pull "$UNSIGNED_IMAGE"
+	stop_crio_no_clean
 
-    SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
-    POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
-    CTR_CONFIG="$TESTDIR/config.json" 
-    jq '.image.image = "'"$UNSIGNED_IMAGE"'" | .image.user_specified_image = "'"$UNSIGNED_IMAGE"'"' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	POD_ID=$(crictl runp "$TESTDATA/sandbox_config.json")
+	CTR_CONFIG="$TESTDIR/config.json"
+	jq --arg CONTAINER_PATH "$CONTAINER_PATH" \
+		'.image.image = "'"$SIGNED_IMAGE"'" | .image.user_specified_image = "'"$SIGNED_IMAGE"'" | .mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: "'"$UNSIGNED_IMAGE"'" },
+			readonly: true
+		}]' "$TESTDATA/container_config.json" > "$CTR_CONFIG"
 
-    run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
-
-    [[ "$output" == *"SignatureValidationFailed"* ]]
-    assert_log "$RESTRICTIVE_POLICY"
+	# Testing for container start failed not because of the signature, but of
+	# the missing command executable
+	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"SignatureValidationFailed"* ]]
 }
 
 @test "accept signed image with default policy" {
@@ -166,7 +192,7 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	# the missing command executable
 	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"unable to start container process"* || "$output" == *"No such file or directory"* ]]
-}
+}[[ "$output" == *"SignatureValidationFailed"* ]]
 
 @test "deny unsigned image with restrictive policy on container creation2 (fresh pull)" {
 	start_crio
