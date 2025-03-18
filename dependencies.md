@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 18 Mar 2025 07:02:29 UTC for commit [0c947fc][0]._
+_Generated on Tue, 18 Mar 2025 16:45:29 UTC for commit [0c7853b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0c947fc16dbf1e1424ea08899a543c0374b9931d
+[0]: https://github.com/cri-o/cri-o/commit/0c7853b02f5c41737aa34e3921219fdfcd4856c6
 
 ## Outdated Dependencies
 
@@ -501,7 +501,7 @@ _Generated on Tue, 18 Mar 2025 07:02:29 UTC for commit [0c947fc][0]._
 | github.com/mdlayher/packet                                                          | v1.1.2                                |                                     | false  | true             |
 | github.com/mdlayher/socket                                                          | v0.5.1                                |                                     | false  | true             |
 | github.com/mdlayher/vsock                                                           | v1.1.0                                | v1.2.1                              | false  | true             |
-| github.com/miekg/dns                                                                | v1.1.58                               | v1.1.63                             | false  | true             |
+| github.com/miekg/dns                                                                | v1.1.58                               | v1.1.64                             | false  | true             |
 | github.com/miekg/pkcs11                                                             | v1.1.1                                |                                     | false  | true             |
 | github.com/minio/sha256-simd                                                        | v1.0.0                                | v1.0.1                              | false  | true             |
 | github.com/mistifyio/go-zfs/v3                                                      | v3.0.1                                |                                     | false  | true             |
@@ -566,7 +566,7 @@ _Generated on Tue, 18 Mar 2025 07:02:29 UTC for commit [0c947fc][0]._
 | github.com/prometheus/client_golang                                                 | v1.21.1                               |                                     | true   | true             |
 | github.com/prometheus/client_model                                                  | v0.6.1                                |                                     | false  | true             |
 | github.com/prometheus/common                                                        | v0.62.0                               | v0.63.0                             | false  | true             |
-| github.com/prometheus/procfs                                                        | v0.15.1                               |                                     | false  | true             |
+| github.com/prometheus/procfs                                                        | v0.15.1                               | v0.16.0                             | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20250317170638-bcaa21031d50  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    |                                     | false  | true             |
 | github.com/redis/go-redis/v9                                                        | v9.7.0                                | v9.7.1                              | false  | true             |
@@ -753,7 +753,7 @@ _Generated on Tue, 18 Mar 2025 07:02:29 UTC for commit [0c947fc][0]._
 | k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250207200755-1244d31929d7  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                          | v0.32.3                               |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                 | v0.0.0-20241105132330-32ad38e42d3f    | v0.0.0-20250304201544-e5f78fe3ede9  | false  | true             |
+| k8s.io/kube-openapi                                                                 | v0.0.0-20241105132330-32ad38e42d3f    | v0.0.0-20250318142150-58bc1449e42a  | false  | true             |
 | k8s.io/kubelet                                                                      | v0.32.3                               |                                     | true   | true             |
 | k8s.io/utils                                                                        | v0.0.0-20241104100929-3ea5e8cea738    | v0.0.0-20241210054802-24370beab758  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                             | v0.31.0                               | v0.32.0                             | false  | true             |
