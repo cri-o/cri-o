@@ -322,10 +322,10 @@ uninstall: ## Uninstall all files.
 ##@ Verify targets:
 
 .PHONY: lint
-lint:  ${GOLANGCI_LINT} ## Run the golang linter, see also: .github/workflows/verify.yml.
+lint:  ${GOLANGCI_LINT} ## Run the golang linter, supposed to not run on CI.
 	${GOLANGCI_LINT} version
 	${GOLANGCI_LINT} linters
-	GL_DEBUG=gocritic ${GOLANGCI_LINT} run
+	GL_DEBUG=gocritic ${GOLANGCI_LINT} run --fix
 
 .PHONY: check-log-lines
 check-log-lines: ## Verify that all log lines start with a capitalized letter.
