@@ -9,3 +9,11 @@ import (
 func podSandboxToNRI(pod PodSandbox) *nri.PodSandbox {
 	return commonPodSandboxToNRI(pod)
 }
+
+func createUpdatePodSandboxRequest(pod PodSandbox) *nri.UpdatePodSandboxRequest {
+	podNri := commonPodSandboxToNRI(pod)
+
+	return &nri.UpdatePodSandboxRequest{
+		Pod: podNri,
+	}
+}
