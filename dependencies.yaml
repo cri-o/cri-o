@@ -2,18 +2,6 @@ dependencies:
   - name: go
     version: 1.24
     refPaths:
-      - path: .github/workflows/verify.yml
-        match: GO_VERSION
-      - path: .github/workflows/integration.yml
-        match: GO_VERSION
-      - path: .github/workflows/test.yml
-        match: GO_VERSION
-      - path: .github/workflows/release-branch-forward.yml
-        match: GO_VERSION
-      - path: .github/workflows/patch-release.yml
-        match: GO_VERSION
-      - path: .github/workflows/tag-reconciler.yml
-        match: GO_VERSION
       - path: nix/derivation.nix
         match: buildGo124Module
       - path: go.mod

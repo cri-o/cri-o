@@ -3,8 +3,6 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 0 1 * *"
-env:
-  GO_VERSION: "1.24"
 permissions:
   contents: read
 
@@ -21,7 +19,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
       - run: make release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
