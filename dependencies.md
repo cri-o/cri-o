@@ -1,15 +1,16 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
+_Generated on Tue, 18 Mar 2025 07:02:29 UTC for commit [0c947fc][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0fc386f764c2ba48d54ecab94d16221a3ac9fe06
+[0]: https://github.com/cri-o/cri-o/commit/0c947fc16dbf1e1424ea08899a543c0374b9931d
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/containerd/containerd                       | v1.7.26                            | v1.7.27                            | true   | true             |
+| github.com/BurntSushi/toml                             | v1.4.0                             | v1.5.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250317163123-ba5b0777b549 | true   | true             |
+| github.com/opencontainers/runc                         | v1.2.5                             | v1.2.6                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -39,7 +40,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | cloud.google.com/go/baremetalsolution                                               | v1.3.2                                | v1.3.5                              | false  | true             |
 | cloud.google.com/go/batch                                                           | v1.11.2                               | v1.12.1                             | false  | true             |
 | cloud.google.com/go/beyondcorp                                                      | v1.1.2                                | v1.1.5                              | false  | true             |
-| cloud.google.com/go/bigquery                                                        | v1.64.0                               | v1.66.2                             | false  | true             |
+| cloud.google.com/go/bigquery                                                        | v1.64.0                               | v1.67.0                             | false  | true             |
 | cloud.google.com/go/bigtable                                                        | v1.33.0                               | v1.35.0                             | false  | true             |
 | cloud.google.com/go/billing                                                         | v1.19.2                               | v1.20.3                             | false  | true             |
 | cloud.google.com/go/binaryauthorization                                             | v1.9.2                                | v1.9.4                              | false  | true             |
@@ -142,7 +143,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | cloud.google.com/go/webrisk                                                         | v1.10.2                               | v1.10.5                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                              | v1.7.2                                | v1.7.5                              | false  | true             |
 | cloud.google.com/go/workflows                                                       | v1.13.2                               | v1.13.5                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5    | v0.32.0                             | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5    | v0.33.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                      | v0.0.0-20240404174027-a39bec0462d2    | v0.0.0-20250304105642-27e071d2c9b1  | false  | true             |
 | cuelang.org/go                                                                      | v0.9.2                                | v0.12.0                             | false  | true             |
 | dario.cat/mergo                                                                     | v1.0.1                                |                                     | false  | true             |
@@ -168,7 +169,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | github.com/Azure/go-autorest/logger                                                 | v0.2.1                                | v0.2.2                              | false  | true             |
 | github.com/Azure/go-autorest/tracing                                                | v0.6.0                                | v0.6.1                              | false  | true             |
 | github.com/AzureAD/microsoft-authentication-library-for-go                          | v1.3.1                                | v1.4.1                              | false  | true             |
-| github.com/BurntSushi/toml                                                          | v1.4.0                                |                                     | true   | true             |
+| github.com/BurntSushi/toml                                                          | v1.4.0                                | v1.5.0                              | true   | true             |
 | github.com/DATA-DOG/go-sqlmock                                                      | v1.5.2                                |                                     | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp            | v1.25.0                               | v1.27.0                             | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric          | v0.48.1                               | v0.51.0                             | false  | true             |
@@ -277,7 +278,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | github.com/containerd/cgroups                                                       | v1.1.0                                |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                    | v3.0.3                                | v3.0.5                              | false  | true             |
 | github.com/containerd/console                                                       | v1.0.4                                |                                     | false  | true             |
-| github.com/containerd/containerd                                                    | v1.7.26                               | v1.7.27                             | true   | true             |
+| github.com/containerd/containerd                                                    | v1.7.27                               |                                     | true   | true             |
 | github.com/containerd/containerd/api                                                | v1.8.0                                |                                     | true   | true             |
 | github.com/containerd/continuity                                                    | v0.4.4                                | v0.4.5                              | false  | true             |
 | github.com/containerd/cri-containerd                                                | v1.19.0                               |                                     | false  | true             |
@@ -481,7 +482,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250314232856-6071bedb52a2  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250317213414-75a89f7a4a68  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -540,7 +541,7 @@ _Generated on Mon, 17 Mar 2025 19:56:48 UTC for commit [0fc386f][0]._
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.2.0                              | false  | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.1                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                      | v1.2.5                                |                                     | true   | true             |
+| github.com/opencontainers/runc                                                      | v1.2.5                                | v1.2.6                              | true   | true             |
 | github.com/opencontainers/runtime-spec                                              | v1.2.1                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20241108202711-f7e3563b0271  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.11.1                               |                                     | true   | true             |
