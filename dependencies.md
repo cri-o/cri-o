@@ -1,15 +1,15 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 18 Mar 2025 16:45:29 UTC for commit [0c7853b][0]._
+_Generated on Tue, 18 Mar 2025 19:35:34 UTC for commit [fb7a81b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0c7853b02f5c41737aa34e3921219fdfcd4856c6
+[0]: https://github.com/cri-o/cri-o/commit/fb7a81ba0addf61e282d55bcff835ef861d6004e
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
 | github.com/BurntSushi/toml                             | v1.4.0                             | v1.5.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250317163123-ba5b0777b549 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250318164346-d37d9feee93f | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.5                             | v1.2.6                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
@@ -460,7 +460,7 @@ _Generated on Tue, 18 Mar 2025 16:45:29 UTC for commit [0c7853b][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250317163123-ba5b0777b549  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250318164346-d37d9feee93f  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
 | github.com/kisielk/gotool                                                           | v1.0.0                                |                                     | false  | true             |
@@ -482,7 +482,7 @@ _Generated on Tue, 18 Mar 2025 16:45:29 UTC for commit [0c7853b][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.30                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250317213414-75a89f7a4a68  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250318173929-0a726370b9ce  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.2                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -753,7 +753,7 @@ _Generated on Tue, 18 Mar 2025 16:45:29 UTC for commit [0c7853b][0]._
 | k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250207200755-1244d31929d7  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                          | v0.32.3                               |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                 | v0.0.0-20241105132330-32ad38e42d3f    | v0.0.0-20250318142150-58bc1449e42a  | false  | true             |
+| k8s.io/kube-openapi                                                                 | v0.0.0-20241105132330-32ad38e42d3f    | v0.0.0-20250318190949-c8a335a9a2ff  | false  | true             |
 | k8s.io/kubelet                                                                      | v0.32.3                               |                                     | true   | true             |
 | k8s.io/utils                                                                        | v0.0.0-20241104100929-3ea5e8cea738    | v0.0.0-20241210054802-24370beab758  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                             | v0.31.0                               | v0.32.0                             | false  | true             |
