@@ -1,4 +1,4 @@
-go 1.24
+go 1.24.1
 
 module github.com/cri-o/cri-o
 
@@ -76,7 +76,7 @@ require (
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3
 	k8s.io/client-go v0.32.3
-	k8s.io/cri-api v0.32.3
+	k8s.io/cri-api v0.33.0-beta.0.0.20250313010358-ab383b81657e
 	k8s.io/cri-client v0.32.3
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.32.3

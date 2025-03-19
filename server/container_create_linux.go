@@ -15,7 +15,9 @@ import (
 	"github.com/intel/goresctrl/pkg/blockio"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
+	"golang.org/x/sys/unix"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	crierrors "k8s.io/cri-api/pkg/errors"
 
 	"github.com/cri-o/cri-o/internal/config/device"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -141,7 +143,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot string) ([]oci.ContainerVolume, []rspec.Mount, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -188,33 +190,36 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 	mountInfos, err := mount.GetMounts()
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	imageVolumesPath, err := s.ensureImageVolumesPath(ctx, mounts)
 	if err != nil {
-		return nil, nil, fmt.Errorf("ensure image volumes path: %w", err)
+		return nil, nil, nil, fmt.Errorf("ensure image volumes path: %w", err)
 	}
+
+	var safeMounts []*safeMountInfo
 
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
-			return nil, nil, errors.New("mount.ContainerPath is empty")
+			return nil, nil, nil, errors.New("mount.ContainerPath is empty")
 		}
 
 		if m.Image != nil && m.Image.Image != "" {
-			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m)
+			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, runDir)
 			if err != nil {
-				return nil, nil, fmt.Errorf("mount image: %w", err)
+				return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
 			}
 
 			volumes = append(volumes, *volume)
+			safeMounts = append(safeMounts, safeMount)
 
 			continue
 		}
 
 		if m.HostPath == "" {
-			return nil, nil, errors.New("mount.HostPath is empty")
+			return nil, nil, nil, errors.New("mount.HostPath is empty")
 		}
 
 		if m.HostPath == "/" && dest == "/" {
@@ -233,14 +238,14 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
-				return nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
+				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
 
 			for _, toReject := range absentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
 					// This can cause issues with node reboot.
-					return nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
+					return nil, nil, nil, fmt.Errorf("cannot mount %s: path does not exist and will cause issues as a directory", toReject)
 				}
 			}
 
@@ -253,7 +258,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				// create the missing bind mount source for restore and return an
 				// error to the user.
 				if err = os.MkdirAll(src, 0o755); err != nil {
-					return nil, nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
+					return nil, nil, nil, fmt.Errorf("failed to mkdir %s: %w", src, err)
 				}
 			}
 		}
@@ -268,17 +273,17 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			// setting the root propagation
 		case types.MountPropagation_PROPAGATION_BIDIRECTIONAL:
 			if err := ensureShared(src, mountInfos); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 			options = append(options, "rshared")
 
 			if err := specgen.SetLinuxRootPropagation("rshared"); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		case types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER:
 			if err := ensureSharedOrSlave(src, mountInfos); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 
 			options = append(options, "rslave")
@@ -286,7 +291,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			if specgen.Config.Linux.RootfsPropagation != "rshared" &&
 				specgen.Config.Linux.RootfsPropagation != "rslave" {
 				if err := specgen.SetLinuxRootPropagation("rslave"); err != nil {
-					return nil, nil, err
+					return nil, nil, nil, err
 				}
 			}
 		default:
@@ -300,14 +305,14 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		switch {
 		case m.RecursiveReadOnly && m.Readonly:
 			if !rroSupport {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"recursive read-only mount support is not available for hostPath %q",
 					m.HostPath,
 				)
 			}
 
 			if m.Propagation != types.MountPropagation_PROPAGATION_PRIVATE {
-				return nil, nil, fmt.Errorf(
+				return nil, nil, nil, fmt.Errorf(
 					"recursive read-only mount requires private propagation for hostPath %q, got: %s",
 					m.HostPath, m.Propagation,
 				)
@@ -315,7 +320,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 			options = append(options, "rro")
 		case m.RecursiveReadOnly:
-			return nil, nil, fmt.Errorf(
+			return nil, nil, nil, fmt.Errorf(
 				"recursive read-only mount conflicts with read-write mount for hostPath %q",
 				m.HostPath,
 			)
@@ -329,7 +334,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			if skipRelabel {
 				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
 			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
-				return nil, nil, err
+				return nil, nil, nil, err
 			}
 		} else {
 			log.Debugf(ctx, "Skipping relabel for %s because kubelet did not request it", src)
@@ -349,7 +354,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		gidMappings := getOCIMappings(m.GidMappings)
 
 		if (uidMappings != nil || gidMappings != nil) && !idMapSupport {
-			return nil, nil, errors.New("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
+			return nil, nil, nil, errors.New("idmap mounts specified but OCI runtime does not support them. Perhaps the OCI runtime is too old")
 		}
 
 		ociMounts = append(ociMounts, rspec.Mount{
@@ -378,25 +383,25 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		specgen.AddMount(m)
 	}
 
-	return volumes, ociMounts, nil
+	return volumes, ociMounts, safeMounts, nil
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
-func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount) (*oci.ContainerVolume, error) {
+func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, runDir string) (*oci.ContainerVolume, *safeMountInfo, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
-		return nil, fmt.Errorf("invalid mount specified: %+v", m)
+		return nil, nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
 
-	log.Debugf(ctx, "Image ref to mount: %s", m.Image.Image)
+	log.Debugf(ctx, "Image ref to mount under sub path %q: %s", m.ImageSubPath, m.Image.Image)
 
 	status, err := s.storageImageStatus(ctx, types.ImageSpec{Image: m.Image.Image})
 	if err != nil {
-		return nil, fmt.Errorf("get storage image status: %w", err)
+		return nil, nil, fmt.Errorf("get storage image status: %w", err)
 	}
 
 	if status == nil {
 		// Should not happen because the kubelet ensures the image.
-		return nil, fmt.Errorf("image %q does not exist locally", m.Image.Image)
+		return nil, nil, fmt.Errorf("image %q does not exist locally", m.Image.Image)
 	}
 
 	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
@@ -406,10 +411,31 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 
 	mountPoint, err := s.ContainerServer.Store().MountImage(imageID, options, "")
 	if err != nil {
-		return nil, fmt.Errorf("mount storage: %w", err)
+		return nil, nil, fmt.Errorf("mount storage: %w", err)
 	}
 
 	log.Infof(ctx, "Image mounted to: %s", mountPoint)
+
+	var safeMount *safeMountInfo
+	if m.ImageSubPath != "" {
+		// Kubernetes already verifies that ImageSubPath:
+		// - is a relative path
+		// - does not contain any '..'
+		//
+		// We cannot create non-existing paths within the image volume because
+		// they're mounted read-only.
+		safeMount, err = safeMountSubPath(mountPoint, m.ImageSubPath, runDir)
+		if err != nil {
+			if errors.Is(err, unix.ENOENT) {
+				return nil, nil, fmt.Errorf("sub path %q does not exist in image volume %q", m.ImageSubPath, m.Image.Image)
+			}
+
+			return nil, nil, fmt.Errorf("safe mount sub path: %w", err)
+		}
+
+		mountPoint = safeMount.mountPoint
+		log.Debugf(ctx, "Using final mount path: %s", mountPoint)
+	}
 
 	const overlay = "overlay"
 
@@ -433,7 +459,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		Propagation:       m.Propagation,
 		SelinuxRelabel:    m.SelinuxRelabel,
 		Image:             &types.ImageSpec{Image: imageID},
-	}, nil
+	}, safeMount, nil
 }
 
 func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (string, error) {
