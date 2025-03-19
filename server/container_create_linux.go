@@ -196,6 +196,8 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		return nil, nil, fmt.Errorf("ensure image volumes path: %w", err)
 	}
 
+	namespace := ctr.SandboxConfig().Metadata.Namespace
+
 	for _, m := range mounts {
 		dest := m.ContainerPath
 		if dest == "" {
@@ -203,7 +205,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		}
 
 		if m.Image != nil && m.Image.Image != "" {
-			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m)
+			volume, err := s.mountImage(ctx, specgen, imageVolumesPath, m, namespace)
 			if err != nil {
 				return nil, nil, fmt.Errorf("mount image: %w", err)
 			}
@@ -382,7 +384,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
-func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount) (*oci.ContainerVolume, error) {
+func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, namespace string) (*oci.ContainerVolume, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
 		return nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
@@ -400,6 +402,12 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}
 
 	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
+
+	// Check the signature of the image
+	if err := s.verifyImageSignature(ctx, namespace, m.Image.UserSpecifiedImage, status); err != nil {
+		return nil, err
+	}
+
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
