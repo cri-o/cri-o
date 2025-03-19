@@ -1,16 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 18 Mar 2025 19:35:34 UTC for commit [fb7a81b][0]._
+_Generated on Wed, 19 Mar 2025 00:05:58 UTC for commit [4f61470][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/fb7a81ba0addf61e282d55bcff835ef861d6004e
+[0]: https://github.com/cri-o/cri-o/commit/4f614702bcca4c857072bc1c44bd23f56ce23ea4
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/BurntSushi/toml                             | v1.4.0                             | v1.5.0                             | true   | true             |
 | github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250318164346-d37d9feee93f | true   | true             |
-| github.com/opencontainers/runc                         | v1.2.5                             | v1.2.6                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241104100929-3ea5e8cea738 | v0.0.0-20241210054802-24370beab758 | true   | true             |
 
 ## All Dependencies
@@ -169,7 +167,7 @@ _Generated on Tue, 18 Mar 2025 19:35:34 UTC for commit [fb7a81b][0]._
 | github.com/Azure/go-autorest/logger                                                 | v0.2.1                                | v0.2.2                              | false  | true             |
 | github.com/Azure/go-autorest/tracing                                                | v0.6.0                                | v0.6.1                              | false  | true             |
 | github.com/AzureAD/microsoft-authentication-library-for-go                          | v1.3.1                                | v1.4.1                              | false  | true             |
-| github.com/BurntSushi/toml                                                          | v1.4.0                                | v1.5.0                              | true   | true             |
+| github.com/BurntSushi/toml                                                          | v1.5.0                                |                                     | true   | true             |
 | github.com/DATA-DOG/go-sqlmock                                                      | v1.5.2                                |                                     | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp            | v1.25.0                               | v1.27.0                             | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric          | v0.48.1                               | v0.51.0                             | false  | true             |
@@ -541,7 +539,7 @@ _Generated on Tue, 18 Mar 2025 19:35:34 UTC for commit [fb7a81b][0]._
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.2.0                              | false  | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.1                                |                                     | true   | true             |
-| github.com/opencontainers/runc                                                      | v1.2.5                                | v1.2.6                              | true   | true             |
+| github.com/opencontainers/runc                                                      | v1.2.6                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                              | v1.2.1                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20241108202711-f7e3563b0271  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.11.1                               |                                     | true   | true             |
