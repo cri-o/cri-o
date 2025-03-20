@@ -2,6 +2,7 @@ package criocli
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -70,8 +71,22 @@ func crioWipe(c *cli.Context) error {
 			config.CleanShutdownFile,
 			store.GraphRoot(),
 		)
+
+		wipeMarkerFile := "/run/crio/crio-wipe-done"
+		if _, err := os.Stat(wipeMarkerFile); err == nil {
+			logrus.Infof("Unclean shutdown check already succeeded by previous crio wipe command")
+
+			return nil
+		}
+
 		// This will fail if there are any containers currently running.
-		return lib.RemoveStorageDirectory(config, store, false)
+		if err := lib.RemoveStorageDirectory(config, store, false); err != nil {
+			return fmt.Errorf("failed to remove storage directory %w", err)
+		}
+
+		if err = os.WriteFile(wipeMarkerFile, []byte("done"), 0o644); err != nil {
+			logrus.Warnf("Failed to create crio wipe marker file: %v", err)
+		}
 	}
 
 	// If crio is configured to wipe internally (and `--force` wasn't set)
