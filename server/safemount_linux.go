@@ -32,7 +32,7 @@ func (s *safeMountInfo) Close() {
 // when it's no longer needed.
 func safeMountSubPath(mountPoint, subpath, runDir string) (s *safeMountInfo, err error) {
 	file, err := securejoin.OpenInRoot(mountPoint, subpath)
-	if err != nil { // This is a user-facing error message from a kubelet event, means we should make it as meaningful as possible.
+	if err != nil {
 		return nil, err
 	}
 
