@@ -3,7 +3,9 @@ package ociartifact
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"io"
+	"os"
 
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker"
@@ -111,7 +113,14 @@ func (d *defaultImpl) CloseCopier(copier *libimage.Copier) error {
 }
 
 func (d *defaultImpl) List(dir string) ([]layout.ListResult, error) {
-	return layout.List(dir)
+	result, err := layout.List(dir)
+	// If the dir is empty, it returns os.ErrNotExist, but should return an empty list.
+	// This happens because the dir isn't initialized as an oci-layout dir until something is pulled.
+	if errors.Is(err, os.ErrNotExist) {
+		return []layout.ListResult{}, nil
+	}
+
+	return result, err
 }
 
 func (d *defaultImpl) DeleteImage(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) error {

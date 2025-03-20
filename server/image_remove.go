@@ -41,6 +41,10 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 	defer span.End()
 
 	if id := s.ContainerServer.StorageImageServer().HeuristicallyTryResolvingStringAsIDPrefix(imageRef); id != nil {
+		if err := s.volumeInUse(id.IDStringForOutOfProcessConsumptionOnly()); err != nil {
+			return err
+		}
+
 		if err := s.ContainerServer.StorageImageServer().DeleteImage(s.config.SystemContext, *id); err != nil {
 			if errors.Is(err, storagetypes.ErrImageUnknown) {
 				// The RemoveImage RPC is idempotent, and must not return an
@@ -75,21 +79,8 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 			continue
 		}
 
-		if status.MountPoint != "" {
-			containerList, err := s.ContainerServer.ListContainers()
-			if err != nil {
-				log.Errorf(ctx, "Error listing containers %s: %v", name, err)
-
-				continue
-			}
-
-			for _, container := range containerList {
-				for _, volume := range container.Volumes() {
-					if volume.HostPath == status.MountPoint {
-						return fmt.Errorf("image %q is mounted as volume to container with ID: %s", name, container.ID())
-					}
-				}
-			}
+		if err := s.volumeInUse(status.ID.IDStringForOutOfProcessConsumptionOnly()); err != nil {
+			return err
 		}
 
 		untagErr = s.ContainerServer.StorageImageServer().UntagImage(s.config.SystemContext, name)
@@ -108,6 +99,19 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		return untagErr
 	}
 
+	artifact, err := s.ArtifactStore().Status(ctx, imageRef)
+	if errors.Is(err, ociartifact.ErrNotFound) {
+		return nil
+	}
+
+	if err != nil {
+		return fmt.Errorf("failed to get artifact: %w", err)
+	}
+
+	if err := s.volumeInUse(artifact.Digest().Encoded()); err != nil {
+		return err
+	}
+
 	if err := s.ArtifactStore().Remove(ctx, imageRef); err != nil && !errors.Is(err, ociartifact.ErrNotFound) {
 		log.Errorf(ctx, "Unable to remove artifact: %v", err)
 	}
@@ -117,6 +121,25 @@ func (s *Server) removeImage(ctx context.Context, imageRef string) (untagErr err
 		// error if the image has already been removed. Ref:
 		// https://github.com/kubernetes/cri-api/blob/c20fa40/pkg/apis/runtime/v1/api.proto#L156-L157
 		return nil
+	}
+
+	return nil
+}
+
+// volumeInUse returns nil if it's not in use.
+// It doesn't check if it's used as a container image because the check is done in storage pkg instead.
+func (s *Server) volumeInUse(digest string) error {
+	containerList, err := s.ContainerServer.ListContainers()
+	if err != nil {
+		return fmt.Errorf("error listing containers: %w", err)
+	}
+
+	for _, container := range containerList {
+		for _, volume := range container.Volumes() {
+			if volume.Image.GetImage() == digest {
+				return fmt.Errorf("the image is in use by %s", container.ID())
+			}
+		}
 	}
 
 	return nil

@@ -72,16 +72,9 @@ func (s *Store) PullData(ctx context.Context, ref string, opts *PullOptions) ([]
 
 	log.Infof(ctx, "Pulling OCI artifact from ref: %s", ref)
 
-	name, err := s.impl.ParseNormalizedNamed(ref)
+	dockerRef, err := s.getImageReference(ref)
 	if err != nil {
-		return nil, fmt.Errorf("parse image name: %w", err)
-	}
-
-	name = reference.TagNameOnly(name) // make sure to add ":latest" if needed
-
-	dockerRef, err := s.impl.DockerNewReference(name)
-	if err != nil {
-		return nil, fmt.Errorf("create docker reference: %w", err)
+		return nil, fmt.Errorf("failed to get image reference: %w", err)
 	}
 
 	manifestBytes, err := s.PullManifest(ctx, dockerRef, opts)
@@ -429,4 +422,59 @@ func (s *Store) getByNameOrDigest(ctx context.Context, nameOrDigest string) (*Ar
 	}
 
 	return nil, false, fmt.Errorf("%w with name or digest of: %s", ErrNotFound, nameOrDigest)
+}
+
+func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, error) {
+	name, err := s.impl.ParseNormalizedNamed(nameOrDigest)
+	if err != nil {
+		return nil, fmt.Errorf("parse image name: %w", err)
+	}
+
+	name = reference.TagNameOnly(name) // make sure to add ":latest" if needed
+
+	ref, err := s.impl.DockerNewReference(name)
+	if err != nil {
+		return nil, fmt.Errorf("create docker reference: %w", err)
+	}
+
+	return ref, nil
+}
+
+// BlobMountPath represents a mapping of a source path in the blob directory to a file name in the artifact.
+type BlobMountPath struct {
+	// Source path of the blob, i.e. full path in the blob dir.
+	SourcePath string
+	// Name of the file in the artifact.
+	Name string
+}
+
+// BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
+func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]BlobMountPath, error) {
+	ref, err := layout.NewReference(s.rootPath, artifact.name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get an image reference: %w", err)
+	}
+
+	src, err := ref.NewImageSource(ctx, sys)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get an image source: %w", err)
+	}
+
+	defer src.Close()
+
+	mountPaths := make([]BlobMountPath, 0, len(artifact.Manifest().Layers))
+
+	for _, l := range artifact.Manifest().Layers {
+		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
+		}
+
+		mountPaths = append(mountPaths, BlobMountPath{
+			SourcePath: path,
+			Name:       l.Annotations[specs.AnnotationTitle],
+		})
+	}
+
+	return mountPaths, nil
 }
