@@ -629,6 +629,20 @@ func (g ginkgoErrors) BothRepeatAndUntilItFails() error {
 	}
 }
 
+func (g ginkgoErrors) ExpectFilenameNotPath(flag string, path string) error {
+	return GinkgoError{
+		Heading: fmt.Sprintf("%s expects a filename but was given a path: %s", flag, path),
+		Message: fmt.Sprintf("%s takes a filename, not a path.  Use --output-dir to specify a directory to collect all test outputs.", flag),
+	}
+}
+
+func (g ginkgoErrors) FlagAfterPositionalParameter() error {
+	return GinkgoError{
+		Heading: "Malformed arguments - detected a flag after the package liste",
+		Message: "Make sure all flags appear {{bold}}after{{/}} the Ginkgo subcommand and {{bold}}before{{/}} your list of packages (or './...').\n{{gray}}e.g. 'ginkgo run -p my_package' is valid but `ginkgo -p run my_package` is not.\n{{gray}}e.g. 'ginkgo -p -vet ./...' is valid but 'ginkgo -p ./... -vet' is not{{/}}",
+	}
+}
+
 /* Stack-Trace parsing errors */
 
 func (g ginkgoErrors) FailedToParseStackTrace(message string) error {
