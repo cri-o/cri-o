@@ -1553,3 +1553,11 @@ EOF
 		exit 1
 	fi
 }
+
+@test "ctr masked paths" {
+	start_crio
+	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
+
+	# verify that at least a default masked path exists
+	crictl inspect "$ctr_id" | jq -e '.info.runtimeSpec.linux.maskedPaths | index("/proc/acpi")'
+}
