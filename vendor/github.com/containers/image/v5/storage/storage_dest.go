@@ -515,7 +515,7 @@ func (s *storageImageDestination) tryReusingBlobAsPending(blobDigest digest.Dige
 				return false, private.ReusedBlob{}, fmt.Errorf(`looking for layers with digest %q: %w`, uncompressedDigest, err)
 			}
 			if found, reused := reusedBlobFromLayerLookup(layers, blobDigest, size, options); found {
-				s.lockProtected.blobDiffIDs[blobDigest] = uncompressedDigest
+				s.lockProtected.blobDiffIDs[reused.Digest] = uncompressedDigest
 				return true, reused, nil
 			}
 		}
