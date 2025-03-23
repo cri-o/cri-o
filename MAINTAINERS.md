@@ -16,7 +16,6 @@ describes the CRI-O governance.
 | Fabiano Fidêncio     | [fidencio](https://github.com/fidencio)             | Approver      | [Intel](https://github.com/intel)         |
 | Kir Kolyshkin        | [kolyshkin](https://github.com/kolyshkin)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Sohan Kunkerkar      | [sohankunkerkar](https://github.com/sohankunkerkar) | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Krzysztof Wilczyński | [kwilczynski](https://github.com/kwilczynski)       | Approver      | [Red Hat](https://www.github.com/redhat/) |
 | Skyler Clark         | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Qi Wang              | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
 | Krisztian Litkey     | [klihub](https://github.com/klihub)                 | Reviewer      | [Intel](https://github.com/intel)         |
