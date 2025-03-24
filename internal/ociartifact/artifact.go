@@ -3,6 +3,7 @@ package ociartifact
 import (
 	"fmt"
 
+	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
 	"github.com/opencontainers/go-digest"
 	critypes "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -10,7 +11,7 @@ import (
 
 // Artifact references an OCI artifact without its data.
 type Artifact struct {
-	name     string
+	namedRef reference.Named
 	manifest *manifest.OCI1
 	digest   digest.Digest
 }
@@ -22,9 +23,13 @@ type ArtifactData struct {
 	data   []byte
 }
 
-// Name returns the name of the artifact.
-func (a *Artifact) Name() string {
-	return a.name
+// Reference returns the reference of the artifact.
+func (a *Artifact) Reference() string {
+	return a.namedRef.String()
+}
+
+func (a *Artifact) CanonicalName() string {
+	return fmt.Sprintf("%s@%s", a.namedRef.Name(), a.digest)
 }
 
 // Manifest returns the manifest of the artifact.
@@ -39,11 +44,16 @@ func (a *Artifact) Digest() digest.Digest {
 
 // CRIImage returns an CRI image version of the artifact.
 func (a *Artifact) CRIImage() *critypes.Image {
+	var repoTags []string
+	if taggedRef, ok := a.namedRef.(reference.Tagged); ok {
+		repoTags = []string{taggedRef.String()}
+	}
+
 	return &critypes.Image{
 		Id:          a.Digest().Encoded(),
 		Size_:       a.size(),
-		RepoTags:    []string{a.Name()},
-		RepoDigests: []string{fmt.Sprintf("%s@%s", a.name, a.digest)},
+		RepoTags:    repoTags,
+		RepoDigests: []string{a.CanonicalName()},
 		Pinned:      true,
 	}
 }
