@@ -501,6 +501,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		safeMount, err = safeMountSubPath(mountPoint, m.ImageSubPath, runDir)
 		if err != nil {
 			if errors.Is(err, unix.ENOENT) {
+				// This is a user-facing error message from a kubelet event, means we should make it as meaningful as possible.
 				return nil, nil, fmt.Errorf("sub path %q does not exist in image volume %q", m.ImageSubPath, m.Image.Image)
 			}
 
