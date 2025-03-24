@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 24 Mar 2025 17:40:25 UTC for commit [e137827][0]._
+_Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/e1378273b8ea79788cff37e37d32032e65cade8b
+[0]: https://github.com/cri-o/cri-o/commit/37a3a5ed8d77a19b603d3bf9b8dfba3a497ada62
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Mon, 24 Mar 2025 17:40:25 UTC for commit [e137827][0]._
 |                                       MODULE                                        |                   VERSION                    |             NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-------------------------------------------------------------------------------------|----------------------------------------------|-------------------------------------|--------|------------------|
 | capnproto.org/go/capnp/v3                                                           | v3.0.1-alpha.2                               | v3.1.0-alpha.1                      | false  | true             |
-| cel.dev/expr                                                                        | v0.19.1                                      | v0.22.0                             | false  | true             |
+| cel.dev/expr                                                                        | v0.19.1                                      | v0.22.1                             | false  | true             |
 | chainguard.dev/go-grpc-kit                                                          | v0.17.7                                      | v0.17.10                            | false  | true             |
 | chainguard.dev/sdk                                                                  | v0.1.29                                      | v0.1.32                             | false  | true             |
 | cloud.google.com/go                                                                 | v0.116.0                                     | v0.120.0                            | false  | true             |
@@ -219,10 +219,10 @@ _Generated on Mon, 24 Mar 2025 17:40:25 UTC for commit [e137827][0]._
 | github.com/aws/aws-sdk-go                                                           | v1.55.5                                      | v1.55.6                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2                                                        | v1.32.8                                      | v1.36.3                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream                               | v1.6.3                                       | v1.6.10                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/config                                                 | v1.28.10                                     | v1.29.9                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/credentials                                            | v1.17.51                                     | v1.17.62                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/config                                                 | v1.28.10                                     | v1.29.10                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/credentials                                            | v1.17.51                                     | v1.17.63                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/feature/ec2/imds                                       | v1.16.23                                     | v1.16.30                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                     | v1.17.10                                     | v1.17.66                            | false  | true             |
+| github.com/aws/aws-sdk-go-v2/feature/s3/manager                                     | v1.17.10                                     | v1.17.67                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/configsources                                 | v1.3.27                                      | v1.3.34                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/endpoints/v2                                  | v2.6.27                                      | v2.6.34                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/internal/ini                                           | v1.8.1                                       | v1.8.3                              | false  | true             |
@@ -236,7 +236,7 @@ _Generated on Mon, 24 Mar 2025 17:40:25 UTC for commit [e137827][0]._
 | github.com/aws/aws-sdk-go-v2/service/kms                                            | v1.37.8                                      | v1.38.1                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                             | v1.58.3                                      | v1.78.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                            | v1.24.9                                      | v1.25.1                             | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/ssooidc                                        | v1.28.8                                      | v1.29.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/ssooidc                                        | v1.28.8                                      | v1.29.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sts                                            | v1.33.6                                      | v1.33.17                            | false  | true             |
 | github.com/aws/smithy-go                                                            | v1.22.1                                      | v1.22.3                             | false  | true             |
 | github.com/awslabs/amazon-ecr-credential-helper/ecr-login                           | v0.0.0-20231024185945-8841054dbdb8           | v0.9.1                              | false  | true             |
@@ -726,9 +726,9 @@ _Generated on Mon, 24 Mar 2025 17:40:25 UTC for commit [e137827][0]._
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9           | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                               | v0.218.0                                     | v0.227.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                       | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697           | v0.0.0-20250313205543-e70fdf4c4cb4  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a           | v0.0.0-20250313205543-e70fdf4c4cb4  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a           | v0.0.0-20250313205543-e70fdf4c4cb4  | false  | true             |
+| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697           | v0.0.0-20250324211829-b45e905df463  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a           | v0.0.0-20250324211829-b45e905df463  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a           | v0.0.0-20250324211829-b45e905df463  | false  | true             |
 | google.golang.org/grpc                                                              | v1.71.0                                      |                                     | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                       |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.5                                      | v1.36.6                             | true   | true             |
