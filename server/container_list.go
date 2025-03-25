@@ -38,7 +38,7 @@ func (s *Server) filterContainerList(ctx context.Context, filter *types.Containe
 	defer span.End()
 	// Filter using container id and pod id first.
 	if filter.Id != "" {
-		c, err := s.ContainerServer.GetContainerFromShortID(ctx, filter.Id)
+		c, err := s.GetContainerFromShortID(ctx, filter.Id)
 		if err != nil {
 			// If we don't find a container ID with a filter, it should not
 			// be considered an error.  Log a warning and return an empty struct

@@ -277,7 +277,7 @@ func (a *nriAPI) stopContainer(ctx context.Context, criPod *sandbox.Sandbox, cri
 			return nil
 		}
 
-		criPod = a.cri.ContainerServer.GetSandbox(sandboxID)
+		criPod = a.cri.GetSandbox(sandboxID)
 		if criPod == nil {
 			log.Errorf(ctx, "Failed to stop CRI container %q: can't find pod %q",
 				ctr.GetID(), sandboxID)
@@ -345,7 +345,7 @@ func (a *nriAPI) GetName() string {
 func (a *nriAPI) ListPodSandboxes(ctx context.Context) []nri.PodSandbox {
 	pods := []nri.PodSandbox{}
 
-	for _, pod := range a.cri.ContainerServer.ListSandboxes() {
+	for _, pod := range a.cri.ListSandboxes() {
 		if pod.Created() {
 			pods = append(pods, nriPodSandbox(ctx, pod))
 		}
@@ -381,7 +381,7 @@ func (a *nriAPI) GetPodSandbox(ctx context.Context, id string) (nri.PodSandbox, 
 		return nil, false
 	}
 
-	pod := a.cri.ContainerServer.GetSandbox(sandboxID)
+	pod := a.cri.GetSandbox(sandboxID)
 	if pod == nil {
 		return nil, false
 	}
@@ -390,7 +390,7 @@ func (a *nriAPI) GetPodSandbox(ctx context.Context, id string) (nri.PodSandbox, 
 }
 
 func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
-	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), id)
+	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), id)
 	if err != nil {
 		return nil, false
 	}
@@ -402,7 +402,7 @@ func (a *nriAPI) GetContainer(id string) (nri.Container, bool) {
 }
 
 func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) error {
-	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), u.GetContainerId())
+	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), u.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
 		log.Errorf(ctx, "Failed to update CRI container %q: %v", u.GetContainerId(), err)
@@ -425,13 +425,13 @@ func (a *nriAPI) UpdateContainer(ctx context.Context, u *api.ContainerUpdate) er
 		return fmt.Errorf("failed to update CRI container %q: %w", u.GetContainerId(), err)
 	}
 
-	a.cri.ContainerServer.UpdateContainerLinuxResources(ctr, resources)
+	a.cri.UpdateContainerLinuxResources(ctr, resources)
 
 	return nil
 }
 
 func (a *nriAPI) EvictContainer(ctx context.Context, e *api.ContainerEviction) error {
-	ctr, err := a.cri.ContainerServer.GetContainerFromShortID(context.TODO(), e.GetContainerId())
+	ctr, err := a.cri.GetContainerFromShortID(context.TODO(), e.GetContainerId())
 	if err != nil {
 		// We blindly assume container with given ID not found and ignore it.
 		log.Errorf(ctx, "Failed to evict CRI container %q: %v", e.GetContainerId(), err)
@@ -491,7 +491,7 @@ func (p *criPodSandbox) GetID() string {
 		return ""
 	}
 
-	return p.Sandbox.ID()
+	return p.ID()
 }
 
 func (p *criPodSandbox) GetName() string {
@@ -524,7 +524,7 @@ func (p *criPodSandbox) GetAnnotations() map[string]string {
 	}
 
 	anns := map[string]string{}
-	for key, value := range p.Sandbox.Annotations() {
+	for key, value := range p.Annotations() {
 		anns[key] = value
 	}
 
@@ -537,7 +537,7 @@ func (p *criPodSandbox) GetLabels() map[string]string {
 	}
 
 	labels := map[string]string{}
-	for key, value := range p.Sandbox.Labels() {
+	for key, value := range p.Labels() {
 		labels[key] = value
 	}
 
@@ -549,7 +549,7 @@ func (p *criPodSandbox) GetRuntimeHandler() string {
 		return ""
 	}
 
-	return p.Sandbox.RuntimeHandler()
+	return p.RuntimeHandler()
 }
 
 func (p *criPodSandbox) GetLinuxPodSandbox() nri.LinuxPodSandbox {
@@ -569,7 +569,7 @@ func (p *criPodSandbox) GetPodLinuxOverhead() *api.LinuxResources {
 		return nil
 	}
 
-	return api.FromCRILinuxResources(p.Sandbox.PodLinuxOverhead())
+	return api.FromCRILinuxResources(p.PodLinuxOverhead())
 }
 
 func (p *criPodSandbox) GetPodLinuxResources() *api.LinuxResources {
@@ -577,7 +577,7 @@ func (p *criPodSandbox) GetPodLinuxResources() *api.LinuxResources {
 		return nil
 	}
 
-	return api.FromCRILinuxResources(p.Sandbox.PodLinuxResources())
+	return api.FromCRILinuxResources(p.PodLinuxResources())
 }
 
 func (p *criPodSandbox) GetLinuxResources() *api.LinuxResources {
@@ -593,7 +593,7 @@ func (p *criPodSandbox) GetCgroupParent() string {
 		return ""
 	}
 
-	return p.Sandbox.CgroupParent()
+	return p.CgroupParent()
 }
 
 func (p *criPodSandbox) GetCgroupsPath() string {

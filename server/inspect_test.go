@@ -24,9 +24,9 @@ func TestGetInfo(t *testing.T) {
 		t.Fatal("error loading default config")
 	}
 
-	c.RootConfig.Storage = "afoobarstorage"
-	c.RootConfig.Root = "afoobarroot"
-	c.RuntimeConfig.CgroupManagerName = systemdCgroupManager
+	c.Storage = "afoobarstorage"
+	c.Root = "afoobarroot"
+	c.CgroupManagerName = systemdCgroupManager
 	c.APIConfig = config.APIConfig{}
 	s := &Server{config: *c}
 

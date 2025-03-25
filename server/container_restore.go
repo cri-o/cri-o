@@ -350,14 +350,14 @@ func (s *Server) CRImportCheckpoint(
 		return "", fmt.Errorf("setting container name and ID: %w", err)
 	}
 
-	if _, err = s.ContainerServer.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
 		return "", fmt.Errorf("kubelet may be retrying requests that are timing out in CRI-O due to system load: %w", err)
 	}
 
 	defer func() {
 		if retErr != nil {
 			log.Infof(ctx, "RestoreCtr: releasing container name %s", ctr.Name())
-			s.ContainerServer.ReleaseContainerName(ctx, ctr.Name())
+			s.ReleaseContainerName(ctx, ctr.Name())
 		}
 	}()
 	ctr.SetRestore(true)

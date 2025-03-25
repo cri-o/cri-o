@@ -8,8 +8,8 @@ import (
 
 // ListPodSandboxMetrics lists all pod sandbox metrics.
 func (s *Server) ListPodSandboxMetrics(ctx context.Context, req *types.ListPodSandboxMetricsRequest) (*types.ListPodSandboxMetricsResponse, error) {
-	sboxList := s.ContainerServer.ListSandboxes()
-	metricsList := s.ContainerServer.MetricsForPodSandboxList(sboxList)
+	sboxList := s.ListSandboxes()
+	metricsList := s.MetricsForPodSandboxList(sboxList)
 	responseMetricsList := make([]*types.PodSandboxMetrics, 0, len(metricsList))
 
 	for _, metrics := range metricsList {

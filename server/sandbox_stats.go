@@ -19,6 +19,6 @@ func (s *Server) PodSandboxStats(ctx context.Context, req *types.PodSandboxStats
 	}
 
 	return &types.PodSandboxStatsResponse{
-		Stats: s.ContainerServer.StatsForSandbox(sb),
+		Stats: s.StatsForSandbox(sb),
 	}, nil
 }

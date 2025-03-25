@@ -44,7 +44,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 				return nil
 			}
 
-			ctr, err := s.ContainerServer.GetContainerFromShortID(ctx, id)
+			ctr, err := s.GetContainerFromShortID(ctx, id)
 			if err != nil {
 				logrus.Warnf("Skipping not existing seccomp notifier container ID: %s", id)
 
@@ -107,7 +107,7 @@ func (s *Server) startSeccompNotifierWatcher(ctx context.Context) error {
 
 			notifier.AddSyscall(syscall)
 
-			ctr := s.ContainerServer.GetContainer(ctx, id)
+			ctr := s.GetContainer(ctx, id)
 			usedSyscalls := notifier.UsedSyscalls()
 
 			if notifier.StopContainers() {

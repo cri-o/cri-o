@@ -34,7 +34,7 @@ var _ = t.Describe("Config", func() {
 		sut.NamespacesDir = os.TempDir()
 		sut.Conmon = validConmonPath()
 		tmpDir := t.MustTempDir("cni-test")
-		sut.NetworkConfig.PluginDirs = []string{tmpDir}
+		sut.PluginDirs = []string{tmpDir}
 		sut.NetworkDir = os.TempDir()
 		sut.LogDir = "/"
 		sut.Listen = t.MustTempFile("crio.sock")
@@ -75,7 +75,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with invalid log_dir", func() {
 			// Given
-			sut.RootConfig.LogDir = "/dev/null"
+			sut.LogDir = "/dev/null"
 
 			// When
 			err := sut.Validate(true)
@@ -111,7 +111,7 @@ var _ = t.Describe("Config", func() {
 			// Given
 			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{RuntimePath: validDirPath}
 			sut.Conmon = validConmonPath()
-			sut.NetworkConfig.NetworkDir = invalidPath
+			sut.NetworkDir = invalidPath
 
 			// When
 			err := sut.Validate(true)
@@ -519,7 +519,7 @@ var _ = t.Describe("Config", func() {
 			sut.ConmonCgroup = "wrong"
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -531,7 +531,7 @@ var _ = t.Describe("Config", func() {
 			sut.ConmonCgroup = invalid
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -553,7 +553,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid InfraCtrCPUSet", func() {
 			// Given
-			sut.RuntimeConfig.InfraCtrCPUSet = "unparsable"
+			sut.InfraCtrCPUSet = "unparsable"
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, false)
@@ -568,7 +568,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -579,7 +579,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, true)
+			err := sut.TranslateMonitorFieldsForHandler(handler, true)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -591,7 +591,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, false)
+			err := sut.TranslateMonitorFieldsForHandler(handler, false)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -603,7 +603,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{}
 
 			// When
-			err := sut.RuntimeConfig.TranslateMonitorFieldsForHandler(handler, false)
+			err := sut.TranslateMonitorFieldsForHandler(handler, false)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -618,7 +618,7 @@ var _ = t.Describe("Config", func() {
 
 			// Given
 			cmdrunner.ResetPrependedCmd()
-			sut.RuntimeConfig.InfraCtrCPUSet = "0"
+			sut.InfraCtrCPUSet = "0"
 
 			// When
 			err = sut.RuntimeConfig.Validate(nil, false)
@@ -631,7 +631,7 @@ var _ = t.Describe("Config", func() {
 		It("should not configure a taskset prefix for cmdrunner for an empty InfraCtrCPUSet", func() {
 			// Given
 			cmdrunner.ResetPrependedCmd()
-			sut.RuntimeConfig.InfraCtrCPUSet = ""
+			sut.InfraCtrCPUSet = ""
 
 			// When
 			err := sut.RuntimeConfig.Validate(nil, false)
@@ -646,7 +646,7 @@ var _ = t.Describe("Config", func() {
 		It("should succeed with default config", func() {
 			// Given
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -659,7 +659,7 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -671,7 +671,7 @@ var _ = t.Describe("Config", func() {
 			sut.DefaultRuntime = invalidPath
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -683,7 +683,7 @@ var _ = t.Describe("Config", func() {
 			sut.DefaultRuntime = config.DefaultRuntime
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -694,7 +694,7 @@ var _ = t.Describe("Config", func() {
 			sut.Runtimes[config.DefaultRuntime] = &config.RuntimeHandler{RuntimePath: invalidPath}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -708,7 +708,7 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -722,7 +722,7 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -735,7 +735,7 @@ var _ = t.Describe("Config", func() {
 			}
 
 			// When
-			err := sut.RuntimeConfig.ValidateRuntimes()
+			err := sut.ValidateRuntimes()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -784,11 +784,11 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ValidateConmonPath", func() {
 		It("should succeed with valid file in $PATH", func() {
 			// Given
-			sut.RuntimeConfig.Conmon = ""
+			sut.Conmon = ""
 			handler := &config.RuntimeHandler{MonitorPath: ""}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(validConmonPath(), handler)
+			err := sut.ValidateConmonPath(validConmonPath(), handler)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -800,7 +800,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{MonitorPath: ""}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath(invalidPath, handler)
+			err := sut.ValidateConmonPath(invalidPath, handler)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -811,7 +811,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{MonitorPath: validConmonPath()}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
+			err := sut.ValidateConmonPath("", handler)
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -822,7 +822,7 @@ var _ = t.Describe("Config", func() {
 			handler := &config.RuntimeHandler{MonitorPath: invalidPath}
 
 			// When
-			err := sut.RuntimeConfig.ValidateConmonPath("", handler)
+			err := sut.ValidateConmonPath("", handler)
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -841,7 +841,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed on execution and writing permissions", func() {
 			// Given
-			sut.ImageConfig.SignaturePolicyDir = os.TempDir()
+			sut.SignaturePolicyDir = os.TempDir()
 
 			// When
 			err := sut.ImageConfig.Validate(true)
@@ -852,7 +852,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail when SignaturePolicyDir is not absolute", func() {
 			// Given
-			sut.ImageConfig.SignaturePolicyDir = "./wrong/path"
+			sut.SignaturePolicyDir = "./wrong/path"
 
 			// When
 			err := sut.ImageConfig.Validate(false)
@@ -863,7 +863,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail when PauseImage is invalid", func() {
 			// Given
-			sut.ImageConfig.PauseImage = "//NOT:a valid image reference!"
+			sut.PauseImage = "//NOT:a valid image reference!"
 
 			// When
 			err := sut.ImageConfig.Validate(false)
@@ -876,10 +876,10 @@ var _ = t.Describe("Config", func() {
 	t.Describe("ImageConfig.ParsePauseImage", func() {
 		It("should succeed with the default value", func() {
 			// Given
-			sut.ImageConfig.PauseImage = config.DefaultPauseImage
+			sut.PauseImage = config.DefaultPauseImage
 
 			// When
-			ref, err := sut.ImageConfig.ParsePauseImage()
+			ref, err := sut.ParsePauseImage()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -889,10 +889,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed with a name-only value", func() {
 			// Given
-			sut.ImageConfig.PauseImage = "registry.k8s.io/pause"
+			sut.PauseImage = "registry.k8s.io/pause"
 
 			// When
-			ref, err := sut.ImageConfig.ParsePauseImage()
+			ref, err := sut.ParsePauseImage()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -904,10 +904,10 @@ var _ = t.Describe("Config", func() {
 			// name with a registry
 
 			// Given
-			sut.ImageConfig.PauseImage = "short:notlatest"
+			sut.PauseImage = "short:notlatest"
 
 			// When
-			ref, err := sut.ImageConfig.ParsePauseImage()
+			ref, err := sut.ParsePauseImage()
 
 			// Then
 			Expect(err).ToNot(HaveOccurred())
@@ -916,10 +916,10 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with an invalid value", func() {
 			// Given
-			sut.ImageConfig.PauseImage = "//THIS is:very!invalid="
+			sut.PauseImage = "//THIS is:very!invalid="
 
 			// When
-			_, err := sut.ImageConfig.ParsePauseImage()
+			_, err := sut.ParsePauseImage()
 
 			// Then
 			Expect(err).To(HaveOccurred())
@@ -952,8 +952,8 @@ var _ = t.Describe("Config", func() {
 			tmpDir := t.MustTempDir("network")
 			Expect(os.RemoveAll(tmpDir)).ToNot(HaveOccurred())
 
-			sut.NetworkConfig.NetworkDir = tmpDir
-			sut.NetworkConfig.PluginDirs = []string{validDirPath}
+			sut.NetworkDir = tmpDir
+			sut.PluginDirs = []string{validDirPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -969,8 +969,8 @@ var _ = t.Describe("Config", func() {
 			Expect(err).ToNot(HaveOccurred())
 			file.Close()
 			defer os.Remove(tmpfile)
-			sut.NetworkConfig.NetworkDir = tmpfile
-			sut.NetworkConfig.PluginDirs = []string{}
+			sut.NetworkDir = tmpfile
+			sut.PluginDirs = []string{}
 
 			// When
 			err = sut.NetworkConfig.Validate(true)
@@ -981,8 +981,8 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid PluginDirs", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDirs = []string{invalidPath}
+			sut.NetworkDir = validDirPath
+			sut.PluginDirs = []string{invalidPath}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -993,9 +993,9 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed on having PluginDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDir = validDirPath
-			sut.NetworkConfig.PluginDirs = []string{}
+			sut.NetworkDir = validDirPath
+			sut.PluginDir = validDirPath
+			sut.PluginDirs = []string{}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -1006,9 +1006,9 @@ var _ = t.Describe("Config", func() {
 
 		It("should succeed in appending PluginDir to PluginDirs", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDir = validDirPath
-			sut.NetworkConfig.PluginDirs = []string{}
+			sut.NetworkDir = validDirPath
+			sut.PluginDir = validDirPath
+			sut.PluginDirs = []string{}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -1020,9 +1020,9 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail in validating invalid PluginDir", func() {
 			// Given
-			sut.NetworkConfig.NetworkDir = validDirPath
-			sut.NetworkConfig.PluginDir = invalidPath
-			sut.NetworkConfig.PluginDirs = []string{}
+			sut.NetworkDir = validDirPath
+			sut.PluginDir = invalidPath
+			sut.PluginDirs = []string{}
 
 			// When
 			err := sut.NetworkConfig.Validate(true)
@@ -1059,7 +1059,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail on invalid LogDir", func() {
 			// Given
-			sut.RootConfig.LogDir = "/dev/null"
+			sut.LogDir = "/dev/null"
 
 			// When
 			err := sut.RootConfig.Validate(true)
@@ -1070,7 +1070,7 @@ var _ = t.Describe("Config", func() {
 
 		It("should fail with non absolute log_dir", func() {
 			// Given
-			sut.RootConfig.LogDir = "test"
+			sut.LogDir = "test"
 
 			// When
 			err := sut.Validate(true)
@@ -1088,12 +1088,12 @@ var _ = t.Describe("Config", func() {
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			sut.RootConfig.RunRoot = ""
-			sut.RootConfig.Root = ""
-			sut.RootConfig.Storage = ""
-			sut.RootConfig.StorageOptions = make([]string, 0)
+			sut.RunRoot = ""
+			sut.Root = ""
+			sut.Storage = ""
+			sut.StorageOptions = make([]string, 0)
 			// this must be set in case pinns isn't downloaded to the $PATH
-			sut.RuntimeConfig.PinnsPath = alwaysPresentPath
+			sut.PinnsPath = alwaysPresentPath
 
 			// When
 			err = sut.Validate(true)
@@ -1115,10 +1115,10 @@ var _ = t.Describe("Config", func() {
 			defaultStore, err := storage.GetStore(storage.StoreOptions{})
 			Expect(err).ToNot(HaveOccurred())
 
-			sut.RootConfig.RunRoot = alwaysPresentPath
-			sut.RootConfig.Root = alwaysPresentPath
+			sut.RunRoot = alwaysPresentPath
+			sut.Root = alwaysPresentPath
 			// this must be set in case pinns isn't downloaded to the $PATH
-			sut.RuntimeConfig.PinnsPath = alwaysPresentPath
+			sut.PinnsPath = alwaysPresentPath
 
 			// When
 			err = sut.Validate(true)

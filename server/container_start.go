@@ -22,7 +22,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	log.Infof(ctx, "Starting container: %s", req.ContainerId)
 
-	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -33,7 +33,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 		// into the restore code.
 		log.Debugf(ctx, "Restoring container %q", req.ContainerId)
 
-		ctr, err := s.ContainerServer.ContainerRestore(
+		ctr, err := s.ContainerRestore(
 			ctx,
 			&metadata.ContainerConfig{
 				ID: c.ID(),
@@ -41,12 +41,12 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			&lib.ContainerCheckpointOptions{},
 		)
 		if err != nil {
-			ociContainer, err1 := s.ContainerServer.GetContainerFromShortID(ctx, c.ID())
+			ociContainer, err1 := s.GetContainerFromShortID(ctx, c.ID())
 			if err1 != nil {
 				return nil, fmt.Errorf("failed to find container %s: %w", c.ID(), err1)
 			}
 
-			s.ContainerServer.ReleaseContainerName(ctx, ociContainer.Name())
+			s.ReleaseContainerName(ctx, ociContainer.Name())
 
 			err2 := s.ContainerServer.StorageRuntimeServer().DeleteContainer(ctx, c.ID())
 			if err2 != nil {
@@ -102,7 +102,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 			}
 		}
 
-		if err := s.ContainerServer.ContainerStateToDisk(ctx, c); err != nil {
+		if err := s.ContainerStateToDisk(ctx, c); err != nil {
 			log.Warnf(ctx, "Unable to write containers %s state to disk: %v", c.ID(), err)
 		}
 	}()

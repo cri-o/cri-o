@@ -652,7 +652,7 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 	// is a super set of the default capabilities. If drop is set to "ALL"
 	// then we first want to clear the entire list (including defaults)
 	// so the user may selectively add *only* the capabilities they need.
-	if !(addAll || dropAll) {
+	if !addAll && !dropAll {
 		caps.AddCapabilities = append(caps.AddCapabilities, defaultCaps...)
 	}
 

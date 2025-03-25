@@ -199,7 +199,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	knownPods := []*sandbox.Sandbox{}
 
 	for sbID := range pods {
-		sb, err := s.ContainerServer.LoadSandbox(ctx, sbID)
+		sb, err := s.LoadSandbox(ctx, sbID)
 		// If we were able to restore a sandbox, add the pod id to the list of deletedPods, to be able to call CNI DEL
 		// on the sandbox network. Otherwise, exclude pods for which we weren't able to restore a sandbox from the
 		// knownPods list so that any potential stale resource associated to them is cleaned up in the network plugin GC
@@ -223,9 +223,9 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 			}
 			// Release the infra container name and the pod name for future use
 			if strings.Contains(n, oci.InfraContainerName) {
-				s.ContainerServer.ReleaseContainerName(ctx, n)
+				s.ReleaseContainerName(ctx, n)
 			} else {
-				s.ContainerServer.ReleasePodName(n)
+				s.ReleasePodName(n)
 			}
 		}
 		// Go through the containers and delete any container that was under the deleted pod
@@ -241,7 +241,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 					log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 				}
 				// Release the container name for future use
-				s.ContainerServer.ReleaseContainerName(ctx, n)
+				s.ReleaseContainerName(ctx, n)
 			}
 			// Remove the container from the list of podContainers, or else we'll retry the delete later,
 			// causing a useless debug message.
@@ -252,7 +252,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	// Go through all the containers and check if it can be restored. If an error occurs, delete the container and
 	// release the name associated with you.
 	for containerID := range podContainers {
-		err := s.ContainerServer.LoadContainer(ctx, containerID)
+		err := s.LoadContainer(ctx, containerID)
 		if err == nil || errors.Is(err, lib.ErrIsNonCrioContainer) {
 			delete(containersAndTheirImages, containerID)
 
@@ -266,7 +266,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 				log.Warnf(ctx, "Unable to delete container %s: %v", n, err)
 			}
 			// Release the container name
-			s.ContainerServer.ReleaseContainerName(ctx, n)
+			s.ReleaseContainerName(ctx, n)
 		}
 	}
 
@@ -301,7 +301,7 @@ func (s *Server) restore(ctx context.Context) []storage.StorageImageID {
 	}()
 
 	// Restore sandbox IPs
-	for _, sb := range s.ContainerServer.ListSandboxes() {
+	for _, sb := range s.ListSandboxes() {
 		ips, err := s.getSandboxIPs(ctx, sb)
 		if err != nil {
 			log.Warnf(ctx, "Could not restore sandbox IP for %v: %v", sb.ID(), err)
@@ -426,7 +426,7 @@ func New(
 
 	// Check for hostport mapping
 	var hostportManager hostport.HostPortManager
-	if config.RuntimeConfig.DisableHostPortMapping {
+	if config.DisableHostPortMapping {
 		hostportManager = hostport.NewNoopHostportManager()
 	} else {
 		hostportManager = hostport.NewHostportManager(ctx)
@@ -551,7 +551,7 @@ func New(
 		}
 	}()
 
-	log.Debugf(ctx, "Sandboxes: %v", s.ContainerServer.ListSandboxes())
+	log.Debugf(ctx, "Sandboxes: %v", s.ListSandboxes())
 
 	s.startReloadWatcher(ctx)
 
@@ -692,7 +692,7 @@ func (s *Server) wipeIfAppropriate(ctx context.Context, imagesToDelete []storage
 			}
 		}
 
-		for _, sb := range s.ContainerServer.ListSandboxes() {
+		for _, sb := range s.ListSandboxes() {
 			if err := s.removePodSandbox(ctx, sb); err != nil {
 				log.Warnf(ctx, "Failed to remove sandbox %s: %v", sb.ID(), err)
 			}
@@ -715,40 +715,40 @@ func (s *Server) addSandbox(ctx context.Context, sb *sandbox.Sandbox) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	return s.ContainerServer.AddSandbox(ctx, sb)
+	return s.AddSandbox(ctx, sb)
 }
 
 func (s *Server) getSandbox(ctx context.Context, id string) *sandbox.Sandbox {
 	_, span := log.StartSpan(ctx)
 	defer span.End()
 
-	return s.ContainerServer.GetSandbox(id)
+	return s.GetSandbox(id)
 }
 
 func (s *Server) removeSandbox(ctx context.Context, id string) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	return s.ContainerServer.RemoveSandbox(ctx, id)
+	return s.RemoveSandbox(ctx, id)
 }
 
 func (s *Server) addContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	s.ContainerServer.AddContainer(ctx, c)
+	s.AddContainer(ctx, c)
 }
 
 func (s *Server) addInfraContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	s.ContainerServer.AddInfraContainer(ctx, c)
+	s.AddInfraContainer(ctx, c)
 }
 
 func (s *Server) getInfraContainer(ctx context.Context, id string) *oci.Container {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	return s.ContainerServer.GetInfraContainer(ctx, id)
+	return s.GetInfraContainer(ctx, id)
 }
 
 func (s *Server) removeContainer(ctx context.Context, c *oci.Container) {
@@ -760,7 +760,7 @@ func (s *Server) removeContainer(ctx context.Context, c *oci.Container) {
 func (s *Server) removeInfraContainer(ctx context.Context, c *oci.Container) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
-	s.ContainerServer.RemoveInfraContainer(ctx, c)
+	s.RemoveInfraContainer(ctx, c)
 }
 
 func (s *Server) getPodSandboxFromRequest(ctx context.Context, podSandboxID string) (*sandbox.Sandbox, error) {
@@ -846,13 +846,13 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 	containerID := filepath.Base(event.Name)
 	log.Debugf(ctx, "Container or sandbox exited: %v", containerID)
-	c := s.ContainerServer.GetContainer(ctx, containerID)
+	c := s.GetContainer(ctx, containerID)
 	nriCtr := c
 	resource := "container"
 
 	var sb *sandbox.Sandbox
 	if c == nil {
-		sb = s.ContainerServer.GetSandbox(containerID)
+		sb = s.GetSandbox(containerID)
 		if sb == nil {
 			return
 		}
@@ -860,12 +860,12 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		c = sb.InfraContainer()
 		resource = "sandbox infra"
 	} else {
-		sb = s.ContainerServer.GetSandbox(c.Sandbox())
+		sb = s.GetSandbox(c.Sandbox())
 	}
 
 	log.Debugf(ctx, "%s exited and found: %v", resource, containerID)
 
-	if err := s.ContainerServer.ContainerStateToDisk(ctx, c); err != nil {
+	if err := s.ContainerStateToDisk(ctx, c); err != nil {
 		log.Warnf(ctx, "Unable to write %s %s state to disk: %v", resource, c.ID(), err)
 	}
 
@@ -974,7 +974,7 @@ func (s *Server) generateCRIEvent(ctx context.Context, container *oci.Container,
 		return
 	}
 
-	if !s.ContainerServer.HasSandbox(container.Sandbox()) {
+	if !s.HasSandbox(container.Sandbox()) {
 		return
 	}
 

@@ -427,14 +427,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		}
 	}()
 
-	if _, err := s.ContainerServer.ReservePodName(sboxID, sboxName); err != nil {
-		reservedID, getErr := s.ContainerServer.PodIDForName(sboxName)
+	if _, err := s.ReservePodName(sboxID, sboxName); err != nil {
+		reservedID, getErr := s.PodIDForName(sboxName)
 		if getErr != nil {
 			return nil, fmt.Errorf("failed to get ID of pod with reserved name (%s), after failing to reserve name with %w: %w", sboxName, getErr, getErr)
 		}
 		// if we're able to find the sandbox, and it's created, this is actually a duplicate request
 		// Just return that sandbox
-		if reservedSbox := s.ContainerServer.GetSandbox(reservedID); reservedSbox != nil && reservedSbox.Created() {
+		if reservedSbox := s.GetSandbox(reservedID); reservedSbox != nil && reservedSbox.Created() {
 			return &types.RunPodSandboxResponse{PodSandboxId: reservedID}, nil
 		}
 
@@ -447,7 +447,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: releasing pod sandbox name: "+sboxName, func() error {
-		s.ContainerServer.ReleasePodName(sboxName)
+		s.ReleasePodName(sboxName)
 
 		return nil
 	})
@@ -523,7 +523,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	}
 
 	resourceCleaner.Add(ctx, "runSandbox: releasing container name: "+containerName, func() error {
-		s.ContainerServer.ReleaseContainerName(ctx, containerName)
+		s.ReleaseContainerName(ctx, containerName)
 
 		return nil
 	})
@@ -1197,14 +1197,14 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 		log.Infof(ctx, "RunSandbox: writing container %s state to disk", container.ID())
 
-		if err := s.ContainerServer.ContainerStateToDisk(ctx, container); err != nil {
+		if err := s.ContainerStateToDisk(ctx, container); err != nil {
 			return fmt.Errorf("failed to write container state %s in pod sandbox %s: %w", container.Name(), sb.ID(), err)
 		}
 
 		return nil
 	})
 
-	if err := s.ContainerServer.ContainerStateToDisk(ctx, container); err != nil {
+	if err := s.ContainerStateToDisk(ctx, container); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", container.ID(), err)
 	}
 
@@ -1272,7 +1272,7 @@ func (s *Server) configureGeneratorForSysctls(ctx context.Context, g *generate.G
 
 	sysctlsToReturn := make(map[string]string)
 
-	defaultSysctls, err := s.config.RuntimeConfig.Sysctls()
+	defaultSysctls, err := s.config.Sysctls()
 	if err != nil {
 		log.Warnf(ctx, "Sysctls invalid: %v", err)
 	}

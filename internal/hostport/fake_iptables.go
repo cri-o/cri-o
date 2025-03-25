@@ -271,7 +271,6 @@ func (f *fakeIPTables) Protocol() utiliptables.Protocol {
 	return f.protocol
 }
 
-//nolint:interfacer
 func saveChain(chain *fakeChain, data *bytes.Buffer) {
 	for _, rule := range chain.rules {
 		fmt.Fprintf(data, "-A %s %s\n", chain.name, rule)

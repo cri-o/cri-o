@@ -415,10 +415,10 @@ func main() {
 		}()
 
 		hookSync := make(chan error, 2)
-		if crioServer.ContainerServer.Hooks == nil {
+		if crioServer.Hooks == nil {
 			hookSync <- err // so we don't block during cleanup
 		} else {
-			go crioServer.ContainerServer.Hooks.Monitor(ctx, hookSync)
+			go crioServer.Hooks.Monitor(ctx, hookSync)
 
 			err = <-hookSync
 			if err != nil {

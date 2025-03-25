@@ -728,7 +728,7 @@ func (c *ContainerServer) RemoveContainer(ctx context.Context, ctr *oci.Containe
 	}
 
 	sb.RemoveContainer(ctx, ctr)
-	c.StatsServer.RemoveStatsForContainer(ctr)
+	c.RemoveStatsForContainer(ctr)
 
 	if err := ctr.RemoveManagedPIDNamespace(); err != nil {
 		log.Errorf(ctx, "Failed to remove container %s PID namespace: %v", ctr.ID(), err)
@@ -821,7 +821,7 @@ func (c *ContainerServer) RemoveSandbox(ctx context.Context, id string) error {
 		return err
 	}
 
-	c.StatsServer.RemoveStatsForSandbox(sb)
+	c.RemoveStatsForSandbox(sb)
 	c.state.sandboxes.Delete(id)
 
 	return nil

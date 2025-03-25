@@ -20,13 +20,13 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, err
 	}
 
 	state := c.State()
-	if !(state.Status == oci.ContainerStateRunning || state.Status == oci.ContainerStateCreated) {
+	if state.Status != oci.ContainerStateRunning && state.Status != oci.ContainerStateCreated {
 		return nil, fmt.Errorf("container %s is not running or created state: %s", c.ID(), state.Status)
 	}
 
@@ -50,7 +50,7 @@ func (s *Server) UpdateContainerResources(ctx context.Context, req *types.Update
 		}
 
 		// update memory store with updated resources
-		s.ContainerServer.UpdateContainerLinuxResources(c, resources)
+		s.UpdateContainerLinuxResources(c, resources)
 
 		if err := s.nri.postUpdateContainer(ctx, c); err != nil {
 			log.Errorf(ctx, "NRI container post-update failed: %v", err)

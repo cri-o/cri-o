@@ -25,7 +25,7 @@ func (s *Server) RemoveContainer(ctx context.Context, req *types.RemoveContainer
 	defer span.End()
 	log.Infof(ctx, "Removing container: %s", req.ContainerId)
 	// save container description to print
-	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// The RemoveContainer RPC is idempotent, and must not return an error
 		// if the container has already been removed. Ref:
@@ -85,7 +85,7 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s: %w", c.Name(), sb.ID(), err)
 	}
 
-	s.ContainerServer.ReleaseContainerName(ctx, c.Name())
+	s.ReleaseContainerName(ctx, c.Name())
 	s.removeContainer(ctx, c)
 
 	if err := s.ContainerServer.CtrIDIndex().Delete(c.ID()); err != nil {

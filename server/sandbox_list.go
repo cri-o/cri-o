@@ -15,7 +15,7 @@ func (s *Server) ListPodSandbox(ctx context.Context, req *types.ListPodSandboxRe
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	podList := s.filterSandboxList(ctx, req.Filter, s.ContainerServer.ListSandboxes())
+	podList := s.filterSandboxList(ctx, req.Filter, s.ListSandboxes())
 	respList := make([]*types.PodSandbox, 0, len(podList))
 
 	for _, sb := range podList {

@@ -15,11 +15,11 @@ import (
 
 // CheckpointContainer checkpoints a container.
 func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointContainerRequest) (*types.CheckpointContainerResponse, error) {
-	if !s.config.RuntimeConfig.CheckpointRestore() {
+	if !s.config.CheckpointRestore() {
 		return nil, errors.New("checkpoint/restore support not available")
 	}
 
-	_, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	_, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}
@@ -35,7 +35,7 @@ func (s *Server) CheckpointContainer(ctx context.Context, req *types.CheckpointC
 		KeepRunning: true,
 	}
 
-	_, err = s.ContainerServer.ContainerCheckpoint(ctx, config, opts)
+	_, err = s.ContainerCheckpoint(ctx, config, opts)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,7 @@ func (s *Server) StopContainer(ctx context.Context, req *types.StopContainerRequ
 	defer span.End()
 	log.Infof(ctx, "Stopping container: %s (timeout: %ds)", req.ContainerId, req.Timeout)
 
-	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		// The StopContainer RPC is idempotent, and must not return an error if
 		// the container has already been stopped. Ref:
@@ -68,7 +68,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 		return fmt.Errorf("failed to unmount container %s: %w", ctr.ID(), err)
 	}
 
-	if err := s.ContainerServer.ContainerStateToDisk(ctx, ctr); err != nil {
+	if err := s.ContainerStateToDisk(ctx, ctr); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", ctr.ID(), err)
 	}
 

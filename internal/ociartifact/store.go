@@ -376,7 +376,7 @@ func (s *Store) readBlob(ctx context.Context, src types.ImageSource, layer *mani
 }
 
 func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
-	expectedDigest := layer.BlobInfo.Digest
+	expectedDigest := layer.Digest
 	if err := expectedDigest.Validate(); err != nil {
 		return fmt.Errorf("invalid digest %q: %w", expectedDigest, err)
 	}
@@ -389,10 +389,10 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	sum := hash.Sum(nil)
 
 	layerBytesHex := hex.EncodeToString(sum)
-	if layerBytesHex != layer.BlobInfo.Digest.Hex() {
+	if layerBytesHex != layer.Digest.Hex() {
 		return fmt.Errorf(
 			"%s mismatch between real layer bytes (%s) and manifest descriptor (%s)",
-			digestAlgorithm, layerBytesHex, layer.BlobInfo.Digest.Hex(),
+			digestAlgorithm, layerBytesHex, layer.Digest.Hex(),
 		)
 	}
 
