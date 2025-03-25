@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
+_Generated on Tue, 25 Mar 2025 15:32:24 UTC for commit [cea179d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/37a3a5ed8d77a19b603d3bf9b8dfba3a497ada62
+[0]: https://github.com/cri-o/cri-o/commit/cea179d10ed8907d78e3b3b9b214c18b52963682
 
 ## Outdated Dependencies
 
 |                         MODULE                         |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250324014039-f6a1c6d0e071 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250325065915-7a704453b6f4 | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.0                            | v2.23.3                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.2                            | v1.36.3                            | true   | true             |
 | github.com/opencontainers/selinux                      | v1.11.1                            | v1.12.0                            | true   | true             |
@@ -146,7 +146,7 @@ _Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 | cloud.google.com/go/webrisk                                                         | v1.10.2                                      | v1.10.5                             | false  | true             |
 | cloud.google.com/go/websecurityscanner                                              | v1.7.2                                       | v1.7.5                              | false  | true             |
 | cloud.google.com/go/workflows                                                       | v1.13.2                                      | v1.14.0                             | false  | true             |
-| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5           | v0.33.0                             | false  | true             |
+| code.cloudfoundry.org/bytefmt                                                       | v0.0.0-20211005130812-5bb3c17173e5           | v0.34.0                             | false  | true             |
 | cuelabs.dev/go/oci/ociregistry                                                      | v0.0.0-20240404174027-a39bec0462d2           | v0.0.0-20250304105642-27e071d2c9b1  | false  | true             |
 | cuelang.org/go                                                                      | v0.9.2                                       | v0.12.0                             | false  | true             |
 | dario.cat/mergo                                                                     | v1.0.1                                       |                                     | false  | true             |
@@ -330,9 +330,9 @@ _Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 | github.com/dimchansky/utfbom                                                        | v1.1.1                                       |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                     | v3.0.2                                       |                                     | false  | true             |
 | github.com/distribution/reference                                                   | v0.6.0                                       |                                     | false  | true             |
-| github.com/docker/cli                                                               | v28.0.1+incompatible                         | v28.0.2+incompatible                | false  | true             |
+| github.com/docker/cli                                                               | v28.0.1+incompatible                         | v28.0.3+incompatible                | false  | true             |
 | github.com/docker/distribution                                                      | v2.8.3+incompatible                          |                                     | true   | true             |
-| github.com/docker/docker                                                            | v28.0.1+incompatible                         | v28.0.2+incompatible                | false  | true             |
+| github.com/docker/docker                                                            | v28.0.1+incompatible                         | v28.0.3+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                         | v0.9.2                                       | v0.9.3                              | false  | true             |
 | github.com/docker/go-connections                                                    | v0.5.0                                       |                                     | false  | true             |
 | github.com/docker/go-events                                                         | v0.0.0-20190806004212-e31b211e4f1c           | v0.0.0-20250114142523-c867878c5e32  | false  | true             |
@@ -461,7 +461,7 @@ _Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                       |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                      |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                       |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20250324014039-f6a1c6d0e071  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225           | v0.0.0-20250325065915-7a704453b6f4  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                       |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                       |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                       | v1.9.0                              | false  | true             |
@@ -559,7 +559,7 @@ _Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 | github.com/pjbgf/sha1cd                                                             | v0.3.2                                       |                                     | false  | true             |
 | github.com/pkg/browser                                                              | v0.0.0-20240102092130-5ac0b6a4141c           |                                     | false  | true             |
 | github.com/pkg/errors                                                               | v0.9.1                                       |                                     | false  | true             |
-| github.com/pkg/sftp                                                                 | v1.13.7                                      | v1.13.8                             | false  | true             |
+| github.com/pkg/sftp                                                                 | v1.13.7                                      | v1.13.9                             | false  | true             |
 | github.com/planetscale/vtprotobuf                                                   | v0.6.1-0.20240319094008-0393e58bdf10         |                                     | false  | true             |
 | github.com/pmezard/go-difflib                                                       | v1.0.1-0.20181226105442-5d4384ee4fb2         |                                     | false  | true             |
 | github.com/poy/onpar                                                                | v1.1.2                                       |                                     | false  | true             |
@@ -702,7 +702,7 @@ _Generated on Mon, 24 Mar 2025 21:39:32 UTC for commit [37a3a5e][0]._
 | go.opentelemetry.io/otel/sdk/metric                                                 | v1.34.0                                      | v1.35.0                             | false  | true             |
 | go.opentelemetry.io/otel/trace                                                      | v1.35.0                                      |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                      | v1.5.0                                       |                                     | false  | true             |
-| go.step.sm/crypto                                                                   | v0.57.0                                      | v0.59.1                             | false  | true             |
+| go.step.sm/crypto                                                                   | v0.57.0                                      | v0.59.2                             | false  | true             |
 | go.uber.org/atomic                                                                  | v1.7.0                                       | v1.11.0                             | false  | true             |
 | go.uber.org/goleak                                                                  | v1.3.0                                       |                                     | false  | true             |
 | go.uber.org/mock                                                                    | v0.5.0                                       |                                     | true   | true             |
