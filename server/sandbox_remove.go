@@ -81,7 +81,7 @@ func (s *Server) removePodSandbox(ctx context.Context, sb *sandbox.Sandbox) erro
 		return fmt.Errorf("unable to remove managed namespaces: %w", err)
 	}
 
-	s.ContainerServer.ReleasePodName(sb.Name())
+	s.ReleasePodName(sb.Name())
 
 	if err := s.removeSandbox(ctx, sb.ID()); err != nil {
 		log.Warnf(ctx, "Failed to remove sandbox: %v", err)

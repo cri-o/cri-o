@@ -350,11 +350,7 @@ func (h *HighPerformanceHooks) setCPULoadBalancingV2(ctx context.Context, c *oci
 	// potentially the parent manager, and pod manager.
 	// So we can begin by constructing all the parents of the pod manager
 	podManagerPath := podManager.Path("")
-	systemd := false
-
-	if strings.HasSuffix(podManagerPath, ".slice") {
-		systemd = true
-	}
+	systemd := strings.HasSuffix(podManagerPath, ".slice")
 
 	// The desired structure here, assuming systemd cgroup manager, is something like the following:
 	// /sys/fs/cgroup/kubepods.slice/kubepods-podID.slice/crio-ID.scope

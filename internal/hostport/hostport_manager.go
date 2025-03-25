@@ -39,8 +39,6 @@ import (
 )
 
 // HostPortManager is an interface for adding and removing hostport for a given pod sandbox.
-//
-//nolint:golint // no reason to change the type name now "type name will be used as hostport.HostPortManager by other packages"
 type HostPortManager interface {
 	// Add implements port mappings.
 	// id should be a unique identifier for a pod, e.g. podSandboxID.
@@ -498,8 +496,6 @@ func getPodFullName(pod *PodPortMapping) string {
 }
 
 // Join all words with spaces, terminate with newline and write to buf.
-//
-//nolint:interfacer
 func writeLine(buf *bytes.Buffer, words ...string) {
 	buf.WriteString(strings.Join(words, " ") + "\n")
 }

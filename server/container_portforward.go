@@ -46,7 +46,7 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		return fmt.Errorf("PodSandbox with ID starting with %s not found: %w", podSandboxID, err)
 	}
 
-	sb := s.runtimeServer.ContainerServer.GetSandbox(sandboxID)
+	sb := s.runtimeServer.GetSandbox(sandboxID)
 	if sb == nil {
 		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}

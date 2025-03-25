@@ -500,7 +500,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 	pSpec := *c.Spec().Process
 	pSpec.Args = cmd
 
-	any, err := typeurl.MarshalAny(&pSpec)
+	anyType, err := typeurl.MarshalAny(&pSpec)
 	if err != nil {
 		return execError, errdefs.FromGRPC(err)
 	}
@@ -512,7 +512,7 @@ func (r *runtimeVM) execContainerCommon(ctx context.Context, c *Container, cmd [
 		Stdout:   execIO.Config().Stdout,
 		Stderr:   execIO.Config().Stderr,
 		Terminal: execIO.Config().Terminal,
-		Spec:     protobuf.FromAny(any),
+		Spec:     protobuf.FromAny(anyType),
 	}
 
 	// Create the "exec" process
@@ -608,14 +608,14 @@ func (r *runtimeVM) UpdateContainer(ctx context.Context, c *Container, res *rspe
 	defer c.opLock.Unlock()
 
 	// Convert resources into protobuf Any type
-	any, err := typeurl.MarshalAny(res)
+	anyType, err := typeurl.MarshalAny(res)
 	if err != nil {
 		return err
 	}
 
 	if _, err := r.task.Update(r.ctx, &task.UpdateTaskRequest{
 		ID:        c.ID(),
-		Resources: protobuf.FromAny(any),
+		Resources: protobuf.FromAny(anyType),
 	}); err != nil {
 		return errdefs.FromGRPC(err)
 	}

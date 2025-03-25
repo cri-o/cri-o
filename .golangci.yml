@@ -1,4 +1,5 @@
 ---
+version: "2"
 run:
   build-tags:
     - apparmor
@@ -10,9 +11,8 @@ run:
     # needs btrfs headers installed
     - exclude_graphdriver_btrfs
   concurrency: 6
-  timeout: 10m
 linters:
-  disable-all: true
+  default: none
   enable:
     - asasalint
     - asciicheck
@@ -31,7 +31,6 @@ linters:
     - exptostd
     - fatcontext
     - forcetypeassert
-    - gci
     - ginkgolinter
     - gocheckcompilerdirectives
     - gochecknoinits
@@ -40,14 +39,10 @@ linters:
     - gocritic
     - gocyclo
     - godot
-    - gofmt
-    - gofumpt
     - goheader
-    - goimports
     - gomoddirectives
     - gomodguard
     - goprintffuncname
-    - gosimple
     - gosmopolitan
     - govet
     - grouper
@@ -78,12 +73,10 @@ linters:
     - spancheck
     - sqlclosecheck
     - staticcheck
-    - stylecheck
     - tagalign
     - testableexamples
     - testifylint
     - tparallel
-    - typecheck
     - unconvert
     - unparam
     - unused
@@ -124,28 +117,53 @@ linters:
     # - thelper
     # - varnamelen
     # - wrapcheck
-linters-settings:
-  gci:
-    sections:
-      - standard
-      - default
-      - localmodule
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  revive:
-    rules:
-      - name: argument-limit
-        disabled: false
-        arguments: [22]
-  gocritic:
-    enable-all: true
-    disabled-checks:
-      - filepathJoin
-      - whyNoLint
-  gocyclo:
-    min-complexity: 177
-  nakedret:
-    max-func-lines: 15
-  goconst:
-    min-occurrences: 6
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    goconst:
+      min-occurrences: 6
+    gocritic:
+      enable-all: true
+      disabled-checks:
+        - filepathJoin
+        - whyNoLint
+    gocyclo:
+      min-complexity: 177
+    nakedret:
+      max-func-lines: 15
+    revive:
+      rules:
+        - name: argument-limit
+          arguments:
+            - 22
+          disabled: false
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gci
+    - gofmt
+    - gofumpt
+    - goimports
+  settings:
+    gci:
+      sections:
+        - standard
+        - default
+        - localmodule
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

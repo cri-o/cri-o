@@ -497,14 +497,14 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		}
 	}()
 
-	if _, err = s.ContainerServer.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
-		reservedID, getErr := s.ContainerServer.ContainerIDForName(ctr.Name())
+	if _, err = s.ReserveContainerName(ctr.ID(), ctr.Name()); err != nil {
+		reservedID, getErr := s.ContainerIDForName(ctr.Name())
 		if getErr != nil {
 			return nil, fmt.Errorf("failed to get ID of container with reserved name (%s), after failing to reserve name with %w: %w", ctr.Name(), getErr, getErr)
 		}
 		// if we're able to find the container, and it's created, this is actually a duplicate request
 		// Just return that container
-		if reservedCtr := s.ContainerServer.GetContainer(ctx, reservedID); reservedCtr != nil && reservedCtr.Created() {
+		if reservedCtr := s.GetContainer(ctx, reservedID); reservedCtr != nil && reservedCtr.Created() {
 			return &types.CreateContainerResponse{ContainerId: reservedID}, nil
 		}
 
@@ -519,7 +519,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container creating")
 
 	resourceCleaner.Add(ctx, "createCtr: releasing container name "+ctr.Name(), func() error {
-		s.ContainerServer.ReleaseContainerName(ctx, ctr.Name())
+		s.ReleaseContainerName(ctx, ctr.Name())
 
 		return nil
 	})
@@ -575,7 +575,7 @@ func (s *Server) CreateContainer(ctx context.Context, req *types.CreateContainer
 		return nil
 	})
 
-	if err := s.ContainerServer.ContainerStateToDisk(ctx, newContainer); err != nil {
+	if err := s.ContainerStateToDisk(ctx, newContainer); err != nil {
 		log.Warnf(ctx, "Unable to write containers %s state to disk: %v", newContainer.ID(), err)
 	}
 
@@ -791,7 +791,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		processLabel, mountLabel = "", ""
 	}
 
-	if hostNet && s.config.RuntimeConfig.HostNetworkDisableSELinux {
+	if hostNet && s.config.HostNetworkDisableSELinux {
 		processLabel = ""
 	}
 
@@ -837,7 +837,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.RuntimeConfig.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root, containerInfo.RunDir)
+	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, mountLabel, s.config.BindMountPrefix, s.config.AbsentMountSourcesToReject, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport, s.ContainerServer.Config().Root, containerInfo.RunDir)
 	if err != nil {
 		return nil, err
 	}
@@ -929,7 +929,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	var nsTargetCtr *oci.Container
 	if target := securityContext.NamespaceOptions.TargetId; target != "" {
-		nsTargetCtr = s.ContainerServer.GetContainer(ctx, target)
+		nsTargetCtr = s.GetContainer(ctx, target)
 	}
 
 	if err := ctr.SpecAddNamespaces(sb, nsTargetCtr, &s.config); err != nil {
@@ -1077,7 +1077,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		specgen.Config.Linux.IntelRdt = &rspec.LinuxIntelRdt{ClosID: rdt.ResctrlPrefix + rdtClass}
 	}
 	// compute the runtime path for a given container
-	platform := containerInfo.Config.Platform.OS + "/" + containerInfo.Config.Platform.Architecture
+	platform := containerInfo.Config.OS + "/" + containerInfo.Config.Architecture
 
 	runtimePath, err := s.ContainerServer.Runtime().PlatformRuntimePath(sb.RuntimeHandler(), platform)
 	if err != nil {
@@ -1190,7 +1190,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		setupSystemd(specgen.Mounts(), *specgen)
 	}
 
-	if s.ContainerServer.Hooks != nil {
+	if s.Hooks != nil {
 		newAnnotations := map[string]string{}
 		for key, value := range containerConfig.Annotations {
 			newAnnotations[key] = value
@@ -1200,7 +1200,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 			newAnnotations[key] = value
 		}
 
-		if _, err := s.ContainerServer.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.Mounts) > 0); err != nil {
+		if _, err := s.Hooks.Hooks(specgen.Config, newAnnotations, len(containerConfig.Mounts) > 0); err != nil {
 			return nil, err
 		}
 	}

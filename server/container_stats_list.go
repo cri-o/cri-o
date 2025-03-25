@@ -39,6 +39,6 @@ func (s *Server) ListContainerStats(ctx context.Context, req *types.ListContaine
 	}
 
 	return &types.ListContainerStatsResponse{
-		Stats: s.ContainerServer.StatsForContainers(ctrList),
+		Stats: s.StatsForContainers(ctrList),
 	}, nil
 }

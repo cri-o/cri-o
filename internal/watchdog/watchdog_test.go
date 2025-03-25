@@ -126,10 +126,7 @@ var _ = t.Describe("Watchdog", func() {
 		err := sut.Start(ctx)
 
 		// Wait for check1 to become true
-		for {
-			if check1 == true {
-				break
-			}
+		for check1 != true {
 			time.Sleep(time.Millisecond)
 		}
 

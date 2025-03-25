@@ -703,7 +703,7 @@ type tomlConfig struct {
 
 // SetSystemContext configures the SystemContext used by containers/image library.
 func (t *tomlConfig) SetSystemContext(c *Config) {
-	c.SystemContext.BigFilesTemporaryDir = c.ImageConfig.BigFilesTemporaryDir
+	c.SystemContext.BigFilesTemporaryDir = c.BigFilesTemporaryDir
 }
 
 func (t *tomlConfig) toConfig(c *Config) {
@@ -779,9 +779,9 @@ func (c *Config) UpdateFromDropInFile(ctx context.Context, path string) error {
 		return fmt.Errorf("unable to decode configuration %v: %w", path, err)
 	}
 
-	storageOpts = append(storageOpts, t.Crio.RootConfig.StorageOptions...)
+	storageOpts = append(storageOpts, t.Crio.StorageOptions...)
 	storageOpts = removeDupStorageOpts(storageOpts)
-	t.Crio.RootConfig.StorageOptions = storageOpts
+	t.Crio.StorageOptions = storageOpts
 	// inherits storage configurations from storage.conf
 	if t.Crio.Root == "" {
 		t.Crio.Root = graphRoot
@@ -1026,7 +1026,7 @@ func (c *Config) Validate(onExecution bool) error {
 		return fmt.Errorf("validating runtime config: %w", err)
 	}
 
-	c.RuntimeConfig.seccompConfig.SetNotifierPath(
+	c.seccompConfig.SetNotifierPath(
 		filepath.Join(filepath.Dir(c.Listen), "seccomp"),
 	)
 
@@ -1517,7 +1517,7 @@ func (c *RuntimeConfig) TranslateMonitorFieldsForHandler(handler *RuntimeHandler
 			return nil
 		}
 
-		if !(handler.MonitorCgroup == utils.PodCgroupName || strings.HasSuffix(handler.MonitorCgroup, ".slice")) {
+		if handler.MonitorCgroup != utils.PodCgroupName && !strings.HasSuffix(handler.MonitorCgroup, ".slice") {
 			return errors.New("conmon cgroup should be 'pod' or a systemd slice")
 		}
 	}

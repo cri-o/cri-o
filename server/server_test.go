@@ -236,7 +236,7 @@ var _ = t.Describe("Server", func() {
 		})
 		It("should succeed with hostport mapping disabled", func() {
 			mockNewServer()
-			serverConfig.RuntimeConfig.DisableHostPortMapping = true
+			serverConfig.DisableHostPortMapping = true
 
 			server, err := server.New(context.Background(), libMock)
 			Expect(err).ToNot(HaveOccurred())

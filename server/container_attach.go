@@ -29,7 +29,7 @@ func (s *StreamService) Attach(ctx context.Context, containerID string, inputStr
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c, err := s.runtimeServer.ContainerServer.GetContainerFromShortID(ctx, containerID)
+	c, err := s.runtimeServer.GetContainerFromShortID(ctx, containerID)
 	if err != nil {
 		return status.Errorf(codes.NotFound, "could not find container %q: %v", containerID, err)
 	}
@@ -39,7 +39,7 @@ func (s *StreamService) Attach(ctx context.Context, containerID string, inputStr
 	}
 
 	cState := c.State()
-	if !(cState.Status == oci.ContainerStateRunning || cState.Status == oci.ContainerStateCreated) {
+	if cState.Status != oci.ContainerStateRunning && cState.Status != oci.ContainerStateCreated {
 		return errors.New("container is not created or running")
 	}
 

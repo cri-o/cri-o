@@ -28,7 +28,7 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	c, err := s.ContainerServer.GetContainerFromShortID(ctx, req.ContainerId)
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "could not find container %q: %v", req.ContainerId, err)
 	}

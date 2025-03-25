@@ -119,7 +119,7 @@ const (
 func (t *nriTest) StartPlugins(waitSync bool) []*event {
 	events := []*event{}
 
-	t.T.Helper()
+	t.Helper()
 
 	for i, p := range t.plugins {
 		require.NoError(t, p.Start(), "start test %s plugin #%d (%s)", t.namespace, i, p.Name())
@@ -137,7 +137,7 @@ func (t *nriTest) StartPlugins(waitSync bool) []*event {
 }
 
 func (t *nriTest) Cleanup() {
-	t.T.Helper()
+	t.Helper()
 
 	for _, p := range t.plugins {
 		if p != nil {
@@ -149,7 +149,7 @@ func (t *nriTest) Cleanup() {
 }
 
 func (t *nriTest) purgePodsAndContainers() {
-	t.T.Helper()
+	t.Helper()
 
 	var (
 		readyPods   []string
