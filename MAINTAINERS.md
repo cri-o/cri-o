@@ -5,21 +5,20 @@ describes the CRI-O governance.
 
 ## Maintainers
 
-| Maintainer           | GitHub ID                                           | Project Roles | Affiliation                               |
-| -------------------- | --------------------------------------------------- | ------------- | ----------------------------------------- |
-| Mrunal Patel         | [mrunalp](https://github.com/mrunalp)               | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Nalin Dahyabhai      | [nalind](https://github.com/nalind)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Giuseppe Scrivano    | [giuseppe](https://github.com/giuseppe)             | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Urvashi Mohnani      | [umohnani8](https://github.com/umohnani8)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Sascha Grunert       | [saschagrunert](https://github.com/saschagrunert)   | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Peter Hunt           | [pehunt](https://github.com/pehunt)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Fabiano Fidêncio     | [fidencio](https://github.com/fidencio)             | Approver      | [Intel](https://github.com/intel)         |
-| Kir Kolyshkin        | [kolyshkin](https://github.com/kolyshkin)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Sohan Kunkerkar      | [sohankunkerkar](https://github.com/sohankunkerkar) | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Krzysztof Wilczyński | [kwilczynski](https://github.com/kwilczynski)       | Approver      | [Red Hat](https://www.github.com/redhat/) |
-| Skyler Clark         | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
-| Qi Wang              | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
-| Krisztian Litkey     | [klihub](https://github.com/klihub)                 | Reviewer      | [Intel](https://github.com/intel)         |
+| Maintainer        | GitHub ID                                           | Project Roles | Affiliation                               |
+| ----------------- | --------------------------------------------------- | ------------- | ----------------------------------------- |
+| Mrunal Patel      | [mrunalp](https://github.com/mrunalp)               | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Nalin Dahyabhai   | [nalind](https://github.com/nalind)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Giuseppe Scrivano | [giuseppe](https://github.com/giuseppe)             | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Urvashi Mohnani   | [umohnani8](https://github.com/umohnani8)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Sascha Grunert    | [saschagrunert](https://github.com/saschagrunert)   | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Peter Hunt        | [pehunt](https://github.com/pehunt)                 | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Fabiano Fidêncio  | [fidencio](https://github.com/fidencio)             | Approver      | [Intel](https://github.com/intel)         |
+| Kir Kolyshkin     | [kolyshkin](https://github.com/kolyshkin)           | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Sohan Kunkerkar   | [sohankunkerkar](https://github.com/sohankunkerkar) | Approver      | [Red Hat](https://www.github.com/redhat/) |
+| Skyler Clark      | [wgahnagl](https://github.com/wgahnagl)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
+| Qi Wang           | [QiWang19](https://github.com/QiWang19)             | Reviewer      | [Red Hat](https://www.github.com/redhat/) |
+| Krisztian Litkey  | [klihub](https://github.com/klihub)                 | Reviewer      | [Intel](https://github.com/intel)         |
 
 ## Alumni
 
