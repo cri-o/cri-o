@@ -47,6 +47,21 @@ func (m *MockImpl) EXPECT() *MockImplMockRecorder {
 	return m.recorder
 }
 
+// CandidatesForPotentiallyShortImageName mocks base method.
+func (m *MockImpl) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CandidatesForPotentiallyShortImageName", systemContext, imageName)
+	ret0, _ := ret[0].([]reference.Named)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CandidatesForPotentiallyShortImageName indicates an expected call of CandidatesForPotentiallyShortImageName.
+func (mr *MockImplMockRecorder) CandidatesForPotentiallyShortImageName(systemContext, imageName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CandidatesForPotentiallyShortImageName", reflect.TypeOf((*MockImpl)(nil).CandidatesForPotentiallyShortImageName), systemContext, imageName)
+}
+
 // CloseCopier mocks base method.
 func (m *MockImpl) CloseCopier(arg0 *libimage.Copier) error {
 	m.ctrl.T.Helper()

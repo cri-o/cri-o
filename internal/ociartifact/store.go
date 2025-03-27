@@ -49,6 +49,16 @@ func NewStore(rootPath string, systemContext *types.SystemContext) *Store {
 	}
 }
 
+type unknownRef struct{}
+
+func (unknownRef) String() string {
+	return "unknown"
+}
+
+func (u unknownRef) Name() string {
+	return u.String()
+}
+
 // PullOptions can be used to customize the pull behavior.
 type PullOptions struct {
 	// EnforceConfigMediaType can be set to enforce a specific manifest config
@@ -223,7 +233,7 @@ func (s *Store) Remove(ctx context.Context, nameOrDigest string) error {
 	}
 
 	if nameIsDigest {
-		nameOrDigest = artifact.name
+		nameOrDigest = artifact.Reference()
 	}
 
 	imageReference, err := s.impl.LayoutNewReference(s.rootPath, nameOrDigest)
@@ -284,12 +294,18 @@ func (s *Store) buildArtifact(ctx context.Context, item *layout.ListResult) (*Ar
 	}
 
 	artifact := &Artifact{
-		name:     "unknown",
+		namedRef: unknownRef{},
 		manifest: mani,
 		digest:   digest.FromBytes(manifestBytes),
 	}
+
 	if val, ok := item.ManifestDescriptor.Annotations[specs.AnnotationRefName]; ok {
-		artifact.name = val
+		namedRef, err := reference.ParseNormalizedNamed(val)
+		if err != nil {
+			log.Warnf(ctx, "Failed to parse annotation ref %s with the error %s", val, err)
+		}
+
+		artifact.namedRef = namedRef
 	}
 
 	return artifact, nil
@@ -302,7 +318,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 	}
 
 	if nameIsDigest {
-		nameOrDigest = artifact.name
+		nameOrDigest = artifact.Reference()
 	}
 
 	imageReference, err := s.impl.LayoutNewReference(s.rootPath, nameOrDigest)
@@ -399,8 +415,8 @@ func verifyDigest(layer *manifest.LayerInfo, layerBytes []byte) error {
 	return nil
 }
 
-func (s *Store) getByNameOrDigest(ctx context.Context, nameOrDigest string) (*Artifact, bool, error) {
-	if nameOrDigest == "" {
+func (s *Store) getByNameOrDigest(ctx context.Context, strRef string) (*Artifact, bool, error) {
+	if strRef == "" {
 		return nil, false, errors.New("empty name or digest")
 	}
 
@@ -409,19 +425,26 @@ func (s *Store) getByNameOrDigest(ctx context.Context, nameOrDigest string) (*Ar
 		return nil, false, fmt.Errorf("list artifacts: %w", err)
 	}
 
-	for _, artifact := range artifacts {
-		if artifact.name == nameOrDigest {
-			return artifact, false, nil
+	// if strRef is a just digest or short digest
+	if idx := slices.IndexFunc(artifacts, func(a *Artifact) bool { return strings.HasPrefix(a.digest.Encoded(), strRef) }); len(strRef) >= 3 && idx != -1 {
+		return artifacts[idx], true, nil
+	}
+
+	// if strRef is named reference
+	candidates, err := s.impl.CandidatesForPotentiallyShortImageName(s.systemContext, strRef)
+	if err != nil {
+		return nil, false, fmt.Errorf("get candidates for potentially short image name: %w", err)
+	}
+
+	for _, candidate := range candidates {
+		for _, artifact := range artifacts {
+			if candidate.String() == artifact.Reference() || candidate.String() == artifact.CanonicalName() {
+				return artifact, false, nil
+			}
 		}
 	}
 
-	for _, artifact := range artifacts {
-		if artifact.digest.Encoded() == nameOrDigest || strings.HasPrefix(artifact.digest.Encoded(), nameOrDigest) {
-			return artifact, true, nil
-		}
-	}
-
-	return nil, false, fmt.Errorf("%w with name or digest of: %s", ErrNotFound, nameOrDigest)
+	return nil, false, fmt.Errorf("%w with name or digest of: %s", ErrNotFound, strRef)
 }
 
 func (s *Store) getImageReference(nameOrDigest string) (types.ImageReference, error) {
@@ -450,7 +473,7 @@ type BlobMountPath struct {
 
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
 func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *types.SystemContext) ([]BlobMountPath, error) {
-	ref, err := layout.NewReference(s.rootPath, artifact.name)
+	ref, err := layout.NewReference(s.rootPath, artifact.Reference())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}

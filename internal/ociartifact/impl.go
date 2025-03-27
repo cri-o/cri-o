@@ -13,6 +13,7 @@ import (
 	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/oci/layout"
+	"github.com/containers/image/v5/pkg/shortnames"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
 )
@@ -37,6 +38,7 @@ type Impl interface {
 	CloseCopier(*libimage.Copier) error
 	List(string) ([]layout.ListResult, error)
 	DeleteImage(context.Context, types.ImageReference, *types.SystemContext) error
+	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error)
 }
 
 // defaultImpl is the default implementation for the OCI artifact handling.
@@ -125,4 +127,19 @@ func (d *defaultImpl) List(dir string) ([]layout.ListResult, error) {
 
 func (d *defaultImpl) DeleteImage(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) error {
 	return ref.DeleteImage(ctx, sys)
+}
+
+// CandidatesForPotentiallyShortImageName resolves locally an artifact name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
+// It will only return an empty slice if err != nil.
+func (d *defaultImpl) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]reference.Named, error) {
+	// Always resolve unqualified names to all candidates. We should use a more secure mode once we settle on a shortname alias table.
+	sc := types.SystemContext{}
+	if systemContext != nil {
+		sc = *systemContext // A shallow copy
+	}
+
+	disabled := types.ShortNameModeDisabled
+	sc.ShortNameMode = &disabled
+
+	return shortnames.ResolveLocally(&sc, imageName)
 }
