@@ -83,6 +83,10 @@ const (
 
 	// DisableFIPSAnnotation is used to disable FIPS mode for a pod within a FIPS-enabled Kubernetes cluster.
 	DisableFIPSAnnotation = "io.kubernetes.cri-o.DisableFIPS"
+
+	// StopSignalAnnotation represents the stop signal used for the image
+	// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
+	StopSignalAnnotation = "org.opencontainers.image.stopSignal"
 )
 
 var AllAllowedAnnotations = []string{
