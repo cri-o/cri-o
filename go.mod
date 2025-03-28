@@ -1,4 +1,5 @@
 go 1.24.1
+toolchain go1.24.1
 
 module github.com/cri-o/cri-o
 
@@ -18,10 +19,10 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.2.3
 	github.com/containernetworking/plugins v1.6.2
-	github.com/containers/common v0.62.2
+	github.com/containers/common v0.62.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.6
-	github.com/containers/image/v5 v5.34.3-0.20250314011931-36a971d8ff51
+	github.com/containers/image/v5 v5.34.3
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
@@ -68,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/mock v0.5.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	golang.org/x/sync v0.12.0
 	golang.org/x/sys v0.31.0
 	google.golang.org/grpc v1.71.0
