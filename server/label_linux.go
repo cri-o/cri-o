@@ -16,7 +16,7 @@ func securityLabel(path, secLabel string, shared, maybeRelabel bool) error {
 		if err != nil {
 			logrus.Errorf("Canonicalize label failed %s: %v", secLabel, err)
 		} else {
-			currentLabel, err := label.FileLabel(path)
+			currentLabel, err := selinux.FileLabel(path)
 			if err == nil && currentLabel == canonicalSecLabel {
 				logrus.Debugf(
 					"Skipping relabel for %s, as TrySkipVolumeSELinuxLabel is true and the label of the top level of the volume is already correct",

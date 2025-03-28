@@ -3,7 +3,7 @@ package container
 import (
 	"strings"
 
-	"github.com/opencontainers/selinux/go-selinux/label"
+	"github.com/opencontainers/selinux/go-selinux"
 
 	"github.com/cri-o/cri-o/utils"
 )
@@ -15,7 +15,7 @@ func (c *container) SelinuxLabel(sboxLabel string) ([]string, error) {
 
 	labels := map[string]string{}
 
-	labelOptions, err := label.DupSecOpt(sboxLabel)
+	labelOptions, err := selinux.DupSecOpt(sboxLabel)
 	if err != nil {
 		return nil, err
 	}
