@@ -1584,6 +1584,7 @@ EOF
 @test "container stops with custom SIGINT stop signal" {
 	start_crio
 
+	crictl --version
 	# Start a container that traps SIGTERM and writes to a file when received
 	jq '.command = ["sh", "-c", "trap '"'"'echo SIGINT; exit 0'"'"' INT; while true; do sleep 1; done"] |
       .stop_signal = 10' \
