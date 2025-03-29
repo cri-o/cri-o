@@ -1001,7 +1001,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 			}
 
 		case <-time.After(time.Until(targetTime)):
-			log.Warnf(ctx, "Stopping container %s with stop signal timed out. Killing...", c.ID())
+			log.Warnf(ctx, "Stopping container %s with stop signal(%s) timed out. Killing...", c.ID(), c.GetStopSignal())
 
 			goto killContainer
 

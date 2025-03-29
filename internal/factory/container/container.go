@@ -302,7 +302,7 @@ func (c *container) SpecAddAnnotations(ctx context.Context, sb SandboxIFace, con
 
 	if configStopSignal != "" {
 		// this key is defined in image-spec conversion document at https://github.com/opencontainers/image-spec/pull/492/files#diff-8aafbe2c3690162540381b8cdb157112R57
-		c.spec.AddAnnotation("org.opencontainers.image.stopSignal", configStopSignal)
+		c.spec.AddAnnotation(annotations.StopSignalAnnotation, configStopSignal)
 	}
 
 	return nil
