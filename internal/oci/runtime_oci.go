@@ -30,6 +30,7 @@ import (
 	"k8s.io/client-go/tools/remotecommand"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kclock "k8s.io/utils/clock"
+	"k8s.io/utils/cpuset"
 	utilexec "k8s.io/utils/exec"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
@@ -441,7 +442,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return nil
 	}
 
-	processFile, err := prepareProcessExec(c, cmd, tty)
+	processFile, err := r.prepareProcessExec(ctx, c, cmd, tty)
 	if err != nil {
 		return err
 	}
@@ -609,7 +610,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		args = append(args, "-s")
 	}
 
-	processFile, err := prepareProcessExec(c, command, c.terminal)
+	processFile, err := r.prepareProcessExec(ctx, c, command, c.terminal)
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
@@ -1452,7 +1453,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible for removing the returned file, if prepareProcessExec succeeds.
-func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
+func (r *runtimeOCI) prepareProcessExec(ctx context.Context, c *Container, cmd []string, tty bool) (processFile string, retErr error) {
 	f, err := os.CreateTemp("", "exec-process-")
 	if err != nil {
 		return "", err
@@ -1478,6 +1479,22 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 		pspec.Terminal = true
 	}
 
+	switch r.handler.ExecCPUAffinity {
+	case config.ExecCPUAffinityTypeFirstExclusive:
+		cpuAffinity, err := r.execCPUAffinityFirstExclusive(c)
+		if err != nil {
+			return "", err
+		}
+
+		if cpuAffinity == nil {
+			log.Warnf(ctx, "")
+		}
+	case config.ExecCPUAffinityTypeDefault:
+		// Don't set ExecCPUAffinity, which means using runtime default.
+	default:
+		return "", fmt.Errorf("unknown ExecCPUAffinity type: %s", r.handler.ExecCPUAffinity)
+	}
+
 	processJSON, err := json.Marshal(pspec)
 	if err != nil {
 		return "", err
@@ -1488,6 +1505,21 @@ func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile strin
 	}
 
 	return processFile, nil
+}
+
+func (r *runtimeOCI) execCPUAffinityFirstExclusive(c *Container) (*rspec.CPUAffinity, error) {
+	// When the container has both shared and exclusive CPUSet (or only shared), returns one of the CPUs in the shared.
+	if c.IsRequestingSharedCPU() {
+		return &rspec.CPUAffinity{Initial: r.config.SharedCPUSet}, nil
+	}
+	// When the container's CPUs is configured, use the first CPU of them.
+	if cs, err := cpuset.Parse(c.GetCPUsSpec()); err == nil && cs.Size() > 0 {
+		return &rspec.CPUAffinity{Initial: strconv.Itoa(cs.List()[0])}, nil
+	} else if err != nil {
+		return nil, fmt.Errorf("failed to parse cpuset: %w", err)
+	}
+	// No CPUSet configured.
+	return nil, nil
 }
 
 // ReadConmonPidFile attempts to read conmon's pid from its pid file

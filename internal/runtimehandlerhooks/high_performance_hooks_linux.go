@@ -73,7 +73,7 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 	}
 
 	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
-		if isContainerCPUsSpecEmpty(specgen.Config) {
+		if c.GetCPUsSpec() == "" {
 			return fmt.Errorf("no cpus found for container %q", c.Name())
 		}
 
@@ -1106,7 +1106,8 @@ func convertAnnotationToLatency(annotation string) (maxLatency string, err error
 
 func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, sharedCPUs string) ([]cgroups.Manager, error) {
 	cSpec := c.Spec()
-	if isContainerCPUsSpecEmpty(&cSpec) {
+
+	if c.GetCPUsSpec() == "" {
 		return nil, fmt.Errorf("no cpus found for container %q", c.Name())
 	}
 
@@ -1168,13 +1169,6 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 	// here we return the containerManagers with the child cgroup inside
 	// this is required in case load-balancing disablement is requested for the pod
 	return containerManagers, nil
-}
-
-func isContainerCPUsSpecEmpty(spec *specs.Spec) bool {
-	return spec.Linux == nil ||
-		spec.Linux.Resources == nil ||
-		spec.Linux.Resources.CPU == nil ||
-		spec.Linux.Resources.CPU.Cpus == ""
 }
 
 func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, containerManagers []cgroups.Manager, sharedCPUs string) error {

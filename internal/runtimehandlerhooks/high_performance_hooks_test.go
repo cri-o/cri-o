@@ -717,6 +717,7 @@ var _ = Describe("high_performance_hooks", func() {
 			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
+		c.SetSpec(g.Config)
 
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
