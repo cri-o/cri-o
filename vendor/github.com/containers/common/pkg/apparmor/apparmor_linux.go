@@ -29,7 +29,13 @@ var profileDirectory = "/etc/apparmor.d"
 // for the existence of the `apparmor_parser` binary, which will be required to
 // apply profiles.
 func IsEnabled() bool {
-	return supported.NewAppArmorVerifier().IsSupported() == nil
+	if err := supported.NewAppArmorVerifier().IsSupported(); err != nil {
+		if errors.Is(err, supported.ErrRootlessNotSupported) {
+			return true
+		}
+		return false
+	}
+	return true
 }
 
 // profileData holds information about the given profile for generation.

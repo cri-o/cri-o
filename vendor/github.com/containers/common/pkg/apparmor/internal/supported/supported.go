@@ -23,8 +23,9 @@ type ApparmorVerifier struct {
 }
 
 var (
-	singleton *ApparmorVerifier
-	once      sync.Once
+	singleton               *ApparmorVerifier
+	once                    sync.Once
+	ErrRootlessNotSupported = errors.New("AppArmor is not supported on rootless containers")
 )
 
 // NewAppArmorVerifier can be used to retrieve a new ApparmorVerifier instance.
@@ -42,7 +43,7 @@ func NewAppArmorVerifier() *ApparmorVerifier {
 // - the `apparmor_parser` binary is not discoverable
 func (a *ApparmorVerifier) IsSupported() error {
 	if a.impl.UnshareIsRootless() {
-		return errors.New("AppAmor is not supported on rootless containers")
+		return ErrRootlessNotSupported
 	}
 	if !a.impl.RuncIsEnabled() {
 		return errors.New("AppArmor not supported by the host system")
