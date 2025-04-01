@@ -338,7 +338,7 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	// We should not take whether the server currently has DropInfraCtr specified, but rather
 	// whether the server used to.
 	wasSpoofed := false
-	if spoofed, ok := m.Annotations[annotations.SpoofedContainer]; ok && spoofed == "true" {
+	if spoofed, ok := m.Annotations[annotations.SpoofedContainer]; ok && spoofed == annotations.True {
 		wasSpoofed = true
 	}
 
@@ -572,8 +572,8 @@ func restoreVolumes(m *rspec.Spec, ctr *oci.Container) error {
 	return nil
 }
 
-func isTrue(annotaton string) bool {
-	return annotaton == "true"
+func isTrue(annotation string) bool {
+	return annotation == annotations.True
 }
 
 // ContainerStateToDisk writes the container's state information to a JSON file

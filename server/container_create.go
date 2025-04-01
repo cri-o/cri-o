@@ -796,7 +796,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	}
 
 	maybeRelabel := false
-	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == "true" {
+	if val, present := sb.Annotations()[crioann.TrySkipVolumeSELinuxLabelAnnotation]; present && val == crioann.True {
 		maybeRelabel = true
 	}
 
@@ -813,7 +813,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		skipRelabel = true
 	}
 
-	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == "true"
+	cgroup2RW := node.CgroupIsV2() && sb.Annotations()[crioann.Cgroup2RWAnnotation] == crioann.True
 
 	s.resourceStore.SetStageForResource(ctx, ctr.Name(), "container volume configuration")
 	idMapSupport := s.ContainerServer.Runtime().RuntimeSupportsIDMap(sb.RuntimeHandler())
@@ -1156,7 +1156,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		ctr.DisableFips(),
 	)
 
-	if ctr.DisableFips() && sb.Annotations()[crioann.DisableFIPSAnnotation] == "true" {
+	if ctr.DisableFips() && sb.Annotations()[crioann.DisableFIPSAnnotation] == crioann.True {
 		if err := disableFipsForContainer(ctr, containerInfo.RunDir); err != nil {
 			return nil, fmt.Errorf("failed to disable FIPS for container %s: %w", containerID, err)
 		}
