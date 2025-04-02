@@ -498,6 +498,12 @@ func (g *Generator) SetProcessArgs(args []string) {
 	g.Config.Process.Args = args
 }
 
+// SetProcessExecCPUAffinity sets g.Config.Process.ExecCPUAffinity.
+func (g *Generator) SetProcessExecCPUAffinity(execCPUAffinity *rspec.CPUAffinity) {
+	g.initConfigProcess()
+	g.Config.Process.ExecCPUAffinity = execCPUAffinity
+}
+
 // ClearProcessEnv clears g.Config.Process.Env.
 func (g *Generator) ClearProcessEnv() {
 	if g.Config == nil || g.Config.Process == nil {
