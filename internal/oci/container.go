@@ -877,25 +877,3 @@ func (c *Container) KillExecPIDs() {
 func (c *Container) RuntimeUser() *types.ContainerUser {
 	return c.runtimeUser
 }
-
-func (c *Container) IsRequestingSharedCPU() bool {
-	// CPUSharedAnnotation should be contained in sandbox annotations,
-	// by it should be passed to container as well by SpecAddAnnotations.
-	key := fmt.Sprintf("%s/%s", ann.CPUSharedAnnotation, c.name)
-	v, ok := c.Spec().Annotations[key]
-
-	return ok && v == ann.Enable
-}
-
-// GetCPUsSpec returns spec.Linux.Resources.CPU.Cpus.
-// It returns empty string if one of the attributes is nil.
-func (c *Container) GetCPUsSpec() string {
-	if c.spec == nil ||
-		c.spec.Linux == nil ||
-		c.spec.Linux.Resources == nil ||
-		c.spec.Linux.Resources.CPU == nil {
-		return ""
-	}
-
-	return c.spec.Linux.Resources.CPU.Cpus
-}

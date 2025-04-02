@@ -49,7 +49,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	sb := s.getSandbox(ctx, ctr.Sandbox())
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), s.config.Runtimes[sb.RuntimeHandler()], sb.Annotations())
 	if err != nil {
 		return fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	}

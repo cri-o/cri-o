@@ -1321,7 +1321,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		makeOCIConfigurationRootless(specgen)
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), s.config.Runtimes[sb.RuntimeHandler()], sb.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	}

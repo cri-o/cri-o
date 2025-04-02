@@ -1166,7 +1166,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), s.config.Runtimes[sb.RuntimeHandler()], sb.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	}
