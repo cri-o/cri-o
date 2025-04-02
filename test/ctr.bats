@@ -1504,7 +1504,7 @@ EOF
 	CRICTL_TIMEOUT=10m crictl stop -t 10 "$ctr_id"
 	crictl rmp -f "$pod_id"
 
-	grep -q "Stopping container ${ctr_id} with stop signal timed out." "$CRIO_LOG"
+	grep -q "Stopping container ${ctr_id} with stop signal(15) timed out." "$CRIO_LOG"
 
 	readarray -t attempts < "$FAKE_RUNTIME_ATTEMPTS_LOG"
 
@@ -1560,4 +1560,45 @@ EOF
 
 	# verify that at least a default masked path exists
 	crictl inspect "$ctr_id" | jq -e '.info.runtimeSpec.linux.maskedPaths | index("/proc/acpi")'
+}
+
+@test "container stops with default SIGTERM stop signal" {
+	start_crio
+
+	# Start a container that traps SIGTERM and writes to a file when received
+	jq '.command = ["sh", "-c", "trap '"'"'echo SIGTERM; exit 0'"'"' TERM; while true; do sleep 1; done"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	crictl inspect "$ctr_id"
+
+	# Stop the container
+	crictl stop -t 3 "$ctr_id"
+
+	# Verify container exited with status 0
+	output=$(crictl inspect "$ctr_id" | jq -r '.status.state')
+	[[ "$output" == "CONTAINER_EXITED" ]]
+	output=$(run crictl inspect "$ctr_id" | jq -r '.status.exitCode')
+	[[ "$output" == "0" ]]
+}
+
+@test "container stops with custom SIGINT stop signal" {
+	start_crio
+
+	crictl --version
+	# Start a container that traps SIGTERM and writes to a file when received
+	jq '.command = ["sh", "-c", "trap '"'"'echo SIGINT; exit 0'"'"' INT; while true; do sleep 1; done"] |
+      .stop_signal = 10' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	grep -q "Override stop signal to SIGINT" "$CRIO_LOG"
+
+	crictl inspect "$ctr_id"
+	# Stop the container
+	crictl stop -t 3 "$ctr_id"
+
+	# Verify container exited with status 0
+	output=$(crictl inspect "$ctr_id" | jq -r '.status.state')
+	[[ "$output" == "CONTAINER_EXITED" ]]
+	output=$(run crictl inspect "$ctr_id" | jq -r '.status.exitCode')
+	[[ "$output" == "0" ]]
 }

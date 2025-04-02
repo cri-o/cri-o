@@ -12,6 +12,11 @@
       include_tasks: "build/kata.yml"
       when: "build_kata | default(False) | bool"
 
+    - name: clone build and install cri-tools
+      include_tasks: "build/cri-tools.yml"
+      vars:
+        force_clone: true
+
     - name: build and install cri-o
       include_tasks: "build/cri-o.yml"
 
