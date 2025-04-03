@@ -875,7 +875,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		}
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), s.config.Runtimes[sb.RuntimeHandler()], sb.Annotations())
 	if err != nil {
 		log.Warnf(ctx, "Failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	} else if hooks != nil {

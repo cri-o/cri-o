@@ -28,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
@@ -39,9 +40,6 @@ const (
 )
 
 const (
-	annotationTrue       = "true"
-	annotationDisable    = "disable"
-	annotationEnable     = "enable"
 	schedDomainDir       = "/proc/sys/kernel/sched_domain"
 	cgroupMountPoint     = "/sys/fs/cgroup"
 	irqBalanceBannedCpus = "IRQBALANCE_BANNED_CPUS"
@@ -66,6 +64,7 @@ type HighPerformanceHooks struct {
 	irqBalanceConfigFile string
 	cpusetLock           sync.Mutex
 	sharedCPUs           string
+	execCPUAffinity      config.ExecCPUAffinityType
 }
 
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
@@ -75,33 +74,62 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		return nil
 	}
 
+	cpusString := specgen.Config.Linux.Resources.CPU.Cpus
+
+	exclusiveCPUSet, err := cpuset.Parse(cpusString)
+	if err != nil {
+		return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
+	}
+
+	sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
+	if err != nil {
+		return fmt.Errorf("failed to parse shared cpus: %w", err)
+	}
+
+	h.setExecCPUAffinity(ctx, specgen, &exclusiveCPUSet, &sharedCPUSet)
+
 	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
 		if isContainerCPUsSpecEmpty(specgen.Config) {
 			return fmt.Errorf("no cpus found for container %q", c.Name())
 		}
 
-		cpusString := specgen.Config.Linux.Resources.CPU.Cpus
-
-		exclusiveCPUs, err := cpuset.Parse(cpusString)
-		if err != nil {
-			return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
-		}
-
-		if h.sharedCPUs == "" {
+		if sharedCPUSet.IsEmpty() {
 			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
 		}
 
-		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
-		if err != nil {
-			return fmt.Errorf("failed to parse shared cpus: %w", err)
-		}
 		// We must inject the environment variables in the PreCreate stage,
 		// because in the PreStart stage the process is already constructed.
 		// by the low-level runtime and the environment variables are already finalized.
-		injectCpusetEnv(specgen, &exclusiveCPUs, &sharedCPUSet)
+		injectCpusetEnv(specgen, &exclusiveCPUSet, &sharedCPUSet)
 	}
 
 	return nil
+}
+
+// setExecCPUAffinity sets ExecCPUAffinity in the container spec.
+func (h *HighPerformanceHooks) setExecCPUAffinity(ctx context.Context, specgen *generate.Generator, exclusiveCPUSet, sharedCPUSet *cpuset.CPUSet) {
+	var cpuAffinity *specs.CPUAffinity
+
+	switch h.execCPUAffinity {
+	case config.ExecCPUAffinityTypeFirstExclusive:
+		switch {
+		case sharedCPUSet != nil && !sharedCPUSet.IsEmpty():
+			cpuAffinity = &specs.CPUAffinity{Initial: sharedCPUSet.String()}
+		case exclusiveCPUSet != nil && !exclusiveCPUSet.IsEmpty():
+			// List() is sorted.
+			cpuAffinity = &specs.CPUAffinity{Initial: strconv.Itoa(exclusiveCPUSet.List()[0])}
+		default:
+			// This shouldn't happen because it should have exclusiveCPUSet.
+			log.Errorf(ctx, "ExecCPUAffinityType %s is set, but no CPUSet is available. Falling back to default.", h.execCPUAffinity)
+		}
+	case config.ExecCPUAffinityTypeDefault:
+		// Don't set ExecCPUAffinity, which means using runtime default.
+	default:
+		// This shouldn't happen because there's config validation.
+		log.Errorf(ctx, "Unknown ExecCPUAffinityType %s is used. Falling back to default.", h.execCPUAffinity)
+	}
+
+	specgen.SetProcessExecCPUAffinity(cpuAffinity)
 }
 
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {
@@ -247,30 +275,30 @@ func (*HighPerformanceHooks) PostStop(ctx context.Context, c *oci.Container, s *
 }
 
 func shouldCPULoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue {
+	if annotations[crioannotations.CPULoadBalancingAnnotation] == crioannotations.True {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPULoadBalancingAnnotation))
 	}
 
-	return annotations[crioannotations.CPULoadBalancingAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPULoadBalancingAnnotation] == annotationDisable
+	return annotations[crioannotations.CPULoadBalancingAnnotation] == crioannotations.True ||
+		annotations[crioannotations.CPULoadBalancingAnnotation] == crioannotations.Disable
 }
 
 func shouldCPUQuotaBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
+	if annotations[crioannotations.CPUQuotaAnnotation] == crioannotations.True {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
 	}
 
-	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
+	return annotations[crioannotations.CPUQuotaAnnotation] == crioannotations.True ||
+		annotations[crioannotations.CPUQuotaAnnotation] == crioannotations.Disable
 }
 
 func shouldIRQLoadBalancingBeDisabled(ctx context.Context, annotations fields.Set) bool {
-	if annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue {
+	if annotations[crioannotations.IRQLoadBalancingAnnotation] == crioannotations.True {
 		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.IRQLoadBalancingAnnotation))
 	}
 
-	return annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationTrue ||
-		annotations[crioannotations.IRQLoadBalancingAnnotation] == annotationDisable
+	return annotations[crioannotations.IRQLoadBalancingAnnotation] == crioannotations.True ||
+		annotations[crioannotations.IRQLoadBalancingAnnotation] == crioannotations.Disable
 }
 
 func shouldCStatesBeConfigured(annotations fields.Set) (present bool, value string) {
@@ -286,14 +314,14 @@ func shouldFreqGovernorBeConfigured(annotations fields.Set) (present bool, value
 }
 
 func annotationValueDeprecationWarning(annotation string) string {
-	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, "true")
+	return fmt.Sprintf("The usage of the annotation %q with value %q will be deprecated under 1.21", annotation, crioannotations.True)
 }
 
 func requestedSharedCPUs(annotations fields.Set, cName string) bool {
 	key := crioannotations.CPUSharedAnnotation + "/" + cName
 	v, ok := annotations[key]
 
-	return ok && v == annotationEnable
+	return ok && v == crioannotations.Enable
 }
 
 // setCPULoadBalancing relies on the cpuset cgroup to disable load balancing for containers.
@@ -1034,19 +1062,6 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	return nil
 }
 
-func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec, s *sandbox.Sandbox, annotations fields.Set) bool {
-	if !shouldRunHooks(ctx, cid, cSpec, s) {
-		return false
-	}
-
-	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
-		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
-	}
-
-	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
-}
-
 func shouldRunHooks(ctx context.Context, id string, cSpec *specs.Spec, s *sandbox.Sandbox) bool {
 	if isCgroupParentBurstable(s) {
 		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStart.", id)
@@ -1098,10 +1113,10 @@ func isContainerRequestWholeCPU(cSpec *specs.Spec) bool {
 // cpu-c-states.crio.io: "max_latency:10" (use a max latency of 10us).
 func convertAnnotationToLatency(annotation string) (maxLatency string, err error) {
 	//nolint:gocritic // this would not be better as a switch statement
-	if annotation == annotationEnable {
+	if annotation == crioannotations.Enable {
 		// Enable all c-states.
 		return "0", nil
-	} else if annotation == annotationDisable {
+	} else if annotation == crioannotations.Disable {
 		// Disable all c-states.
 		return "n/a", nil
 	} else if strings.HasPrefix(annotation, "max_latency:") {
