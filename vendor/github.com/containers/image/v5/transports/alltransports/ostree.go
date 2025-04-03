@@ -1,4 +1,5 @@
 //go:build containers_image_ostree && linux
+// +build containers_image_ostree,linux
 
 package alltransports
 
