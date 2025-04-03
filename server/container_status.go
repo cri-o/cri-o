@@ -46,14 +46,20 @@ func (s *Server) ContainerStatus(ctx context.Context, req *types.ContainerStatus
 		imageID = c.ImageID().IDStringForOutOfProcessConsumptionOnly()
 	}
 
+	img, err := s.ContainerServer.StorageImageServer().GetStore().Image(imageID)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "could not find the imageid in image store  %q: %v", imageID, err)
+	}
+
 	resp := &types.ContainerStatusResponse{
 		Status: &types.ContainerStatus{
-			Id:          containerID,
-			Metadata:    c.Metadata(),
-			Labels:      c.Labels(),
-			Annotations: c.Annotations(),
-			ImageId:     imageID,
-			ImageRef:    imageRef,
+			Id:              containerID,
+			Metadata:        c.Metadata(),
+			Labels:          c.Labels(),
+			Annotations:     c.Annotations(),
+			ImageId:         imageID,
+			ImageRef:        imageRef,
+			ImagePullSource: img.PullSource,
 			Image: &types.ImageSpec{
 				Image: imageNameInSpec,
 			},

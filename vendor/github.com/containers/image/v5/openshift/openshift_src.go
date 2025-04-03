@@ -58,6 +58,11 @@ func (s *openshiftImageSource) Reference() types.ImageReference {
 	return s.client.ref
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *openshiftImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}
+
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *openshiftImageSource) Close() error {
 	var err error

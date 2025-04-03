@@ -69,6 +69,7 @@ type ImageResult struct {
 	Annotations         map[string]string
 	Pinned              bool // pinned image to prevent it from garbage collection
 	MountPoint          string
+	PullSource          string
 }
 
 type indexInfo struct {
@@ -397,6 +398,7 @@ func (svc *imageService) buildImageResult(image *storage.Image, cacheItem imageC
 		Annotations:         cacheItem.annotations,
 		Pinned:              imagePinned,
 		MountPoint:          mountPoint,
+		PullSource:          image.PullSource,
 	}, nil
 }
 

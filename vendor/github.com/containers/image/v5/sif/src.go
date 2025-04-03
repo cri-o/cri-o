@@ -171,6 +171,11 @@ func (s *sifImageSource) Reference() types.ImageReference {
 	return s.ref
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *sifImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}
+
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *sifImageSource) Close() error {
 	return os.RemoveAll(s.workDir)

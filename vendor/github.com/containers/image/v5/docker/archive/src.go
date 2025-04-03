@@ -39,3 +39,8 @@ func newImageSource(sys *types.SystemContext, ref archiveReference) (private.Ima
 func (s *archiveImageSource) Reference() types.ImageReference {
 	return s.ref
 }
+
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *archiveImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}

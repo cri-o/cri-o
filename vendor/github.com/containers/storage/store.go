@@ -18,6 +18,7 @@ import (
 
 	// register all of the built-in drivers
 	_ "github.com/containers/storage/drivers/register"
+	"golang.org/x/sync/errgroup"
 
 	drivers "github.com/containers/storage/drivers"
 	"github.com/containers/storage/internal/dedup"
@@ -30,7 +31,6 @@ import (
 	"github.com/containers/storage/pkg/stringutils"
 	"github.com/containers/storage/pkg/system"
 	"github.com/containers/storage/types"
-	"github.com/hashicorp/go-multierror"
 	digest "github.com/opencontainers/go-digest"
 	"github.com/opencontainers/selinux/go-selinux/label"
 	"github.com/sirupsen/logrus"
@@ -701,6 +701,9 @@ type ImageOptions struct {
 	// Flags is a set of named flags and their values to store with the image.  Currently these can only
 	// be set when the image record is created, but that could change in the future.
 	Flags map[string]interface{}
+	// PullSource store the source from where the image is being pulled.
+	// This field comes handy when mutiple mirrors are configured for an image.
+	PullSource string
 }
 
 type ImageBigDataOption struct {
@@ -1612,6 +1615,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 						Digest:       i.Digest,
 						Digests:      copySlicePreferringNil(i.Digests),
 						NamesHistory: copySlicePreferringNil(i.NamesHistory),
+						PullSource:   i.PullSource,
 					}
 					for _, key := range i.BigDataNames {
 						data, err := store.BigData(id, key)
@@ -1652,6 +1656,7 @@ func (s *store) CreateImage(id string, names []string, layer, metadata string, i
 				options.Flags = make(map[string]interface{})
 			}
 			maps.Copy(options.Flags, iOptions.Flags)
+			options.PullSource = iOptions.PullSource
 		}
 
 		if options.CreationDate.IsZero() {
@@ -2454,6 +2459,7 @@ func (s *store) updateNames(id string, names []string, op updateNameOperation) e
 				Metadata:     i.Metadata,
 				NamesHistory: copySlicePreferringNil(i.NamesHistory),
 				Flags:        copyMapPreferringNil(i.Flags),
+				PullSource:   i.PullSource,
 			}
 			for _, key := range i.BigDataNames {
 				data, err := store.BigData(id, key)
@@ -2744,7 +2750,7 @@ func (s *store) DeleteContainer(id string) error {
 			}
 		}
 
-		var wg multierror.Group
+		var wg errgroup.Group
 
 		middleDir := s.graphDriverName + "-containers"
 
@@ -2759,7 +2765,7 @@ func (s *store) DeleteContainer(id string) error {
 		})
 
 		if multierr := wg.Wait(); multierr != nil {
-			return multierr.ErrorOrNil()
+			return multierr
 		}
 		return s.containerStore.Delete(id)
 	})

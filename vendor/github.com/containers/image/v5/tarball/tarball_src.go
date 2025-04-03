@@ -232,3 +232,8 @@ func (is *tarballImageSource) GetManifest(ctx context.Context, instanceDigest *d
 func (is *tarballImageSource) Reference() types.ImageReference {
 	return &is.reference
 }
+
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (is *tarballImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}

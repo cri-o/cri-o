@@ -202,6 +202,11 @@ func (s *dockerImageSource) Reference() types.ImageReference {
 	return s.logicalRef
 }
 
+// PhysicalReference returns the reference used to pull this source
+func (s *dockerImageSource) PhysicalReference() types.ImageReference {
+	return s.physicalRef
+}
+
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *dockerImageSource) Close() error {
 	return s.c.Close()

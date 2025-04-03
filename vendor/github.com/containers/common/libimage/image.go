@@ -14,6 +14,7 @@ import (
 	"github.com/containerd/platforms"
 	"github.com/containers/common/libimage/platform"
 	"github.com/containers/image/v5/docker/reference"
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	storageTransport "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/types"
@@ -160,6 +161,12 @@ func (i *Image) Digest() digest.Digest {
 // set, its value is also in this list.
 func (i *Image) Digests() []digest.Digest {
 	return i.storageImage.Digests
+}
+
+// PullSource is the source from where the image is being pulled.
+// This field comes handy when multiple mirrors are configured for an image.
+func (i *Image) PullSource() string {
+	return i.storageImage.PullSource
 }
 
 // hasDigest returns whether the specified value matches any digest of the
@@ -1002,7 +1009,7 @@ func (i *Image) Manifest(ctx context.Context) (rawManifest []byte, mimeType stri
 	if err != nil {
 		return nil, "", err
 	}
-	return src.GetManifest(ctx, nil)
+	return image.UnparsedInstance(src, nil).Manifest(ctx)
 }
 
 // getImageID creates an image object and uses the hex value of the config

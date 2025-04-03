@@ -54,3 +54,8 @@ func newImageSource(ctx context.Context, sys *types.SystemContext, ref daemonRef
 func (s *daemonImageSource) Reference() types.ImageReference {
 	return s.ref
 }
+
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *daemonImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}

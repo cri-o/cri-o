@@ -32,6 +32,11 @@ func (i *memoryImage) Reference() types.ImageReference {
 	return nil
 }
 
+func (i *memoryImage) PhysicalReference() types.ImageReference {
+	// It would really be inappropriate to return the ImageReference of the image this was based on.
+	return nil
+}
+
 // Size returns the size of the image as stored, if known, or -1 if not.
 func (i *memoryImage) Size() (int64, error) {
 	return -1, nil

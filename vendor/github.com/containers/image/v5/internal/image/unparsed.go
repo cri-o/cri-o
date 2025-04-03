@@ -47,6 +47,11 @@ func (i *UnparsedImage) Reference() types.ImageReference {
 	return i.src.Reference()
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (i *UnparsedImage) PhysicalReference() types.ImageReference {
+	return i.src.PhysicalReference()
+}
+
 // Manifest is like ImageSource.GetManifest, but the result is cached; it is OK to call this however often you need.
 func (i *UnparsedImage) Manifest(ctx context.Context) ([]byte, string, error) {
 	if i.cachedManifest == nil {

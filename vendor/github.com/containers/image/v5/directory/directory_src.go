@@ -45,6 +45,11 @@ func (s *dirImageSource) Reference() types.ImageReference {
 	return s.ref
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *dirImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}
+
 // Close removes resources associated with an initialized ImageSource, if any.
 func (s *dirImageSource) Close() error {
 	return nil

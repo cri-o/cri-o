@@ -109,6 +109,11 @@ func (s *ociArchiveImageSource) Reference() types.ImageReference {
 	return s.ref
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *ociArchiveImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}
+
 // Close removes resources associated with an initialized ImageSource, if any.
 // Close deletes the temporary directory at dst
 func (s *ociArchiveImageSource) Close() error {

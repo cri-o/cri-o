@@ -201,7 +201,16 @@ message PortMapping {
     Protocol protocol = 1;
     // Port number within the container. Default: 0 (not specified).
     int32 container_port = 2;
-    // Port number on the host. Default: 0 (not specified).
+    // Port number on the host to map the container port to.
+    //
+    // * Valid host port range is 1-65535.
+    // * The value 0 has explicit semantic meaning: it indicates NO host port should be allocated.
+    // * The value 0 does NOT indicate dynamic port allocation. Future implementations
+    //   of dynamic allocation will use different values/semantics.
+    // * Implementations MUST handle the case where this field is explicitly set to 0,
+    //   This field SHOULD be omitted when no port is required.
+    //
+    // Default: If omitted, container port will not be exposed on the host.
     int32 host_port = 3;
     // Host IP.
     string host_ip = 4;
@@ -1337,6 +1346,9 @@ message ContainerStatus {
     string image_id = 17;
     // User identities initially attached to the container
     ContainerUser user = 18;
+    // Actual source of the pulled image when multiple mirrors are
+    // configured for this image.
+    string image_pull_source = 19;
 }
 
 message ContainerStatusResponse {
@@ -1505,6 +1517,9 @@ message Image {
     // It must only be treated as a recommendation -- the client can still request that the image be deleted,
     // and the runtime must oblige.
     bool pinned = 8;
+    // Actual source of the pulled image when multiple mirrors are
+    // configured for this image.
+    string pull_source = 9;
 }
 
 message ListImagesResponse {

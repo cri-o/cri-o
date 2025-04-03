@@ -16,6 +16,7 @@ import (
 	"github.com/containers/image/v5/internal/private"
 	"github.com/containers/image/v5/pkg/tlsclientconfig"
 	"github.com/containers/image/v5/types"
+	"github.com/containers/storage/pkg/fileutils"
 	"github.com/docker/go-connections/tlsconfig"
 	"github.com/opencontainers/go-digest"
 	imgspecv1 "github.com/opencontainers/image-spec/specs-go/v1"
@@ -90,6 +91,11 @@ func newImageSource(sys *types.SystemContext, ref ociReference) (private.ImageSo
 // Reference returns the reference used to set up this source.
 func (s *ociImageSource) Reference() types.ImageReference {
 	return s.ref
+}
+
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *ociImageSource) PhysicalReference() types.ImageReference {
+	return nil
 }
 
 // Close removes resources associated with an initialized ImageSource, if any.
@@ -213,4 +219,27 @@ func getBlobSize(resp *http.Response) int64 {
 		size = -1
 	}
 	return size
+}
+
+// GetLocalBlobPath returns the local path to the blob file with the given digest.
+// The returned path is checked for existence so when a non existing digest is
+// given an error will be returned.
+//
+// Important: The returned path must be treated as read only, writing the file will
+// corrupt the oci layout as the digest no longer matches.
+func GetLocalBlobPath(ctx context.Context, src types.ImageSource, digest digest.Digest) (string, error) {
+	s, ok := src.(*ociImageSource)
+	if !ok {
+		return "", errors.New("caller error: GetLocalBlobPath called with a non-oci: source")
+	}
+
+	path, err := s.ref.blobPath(digest, s.sharedBlobDir)
+	if err != nil {
+		return "", err
+	}
+	if err := fileutils.Exists(path); err != nil {
+		return "", err
+	}
+
+	return path, nil
 }

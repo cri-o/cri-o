@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"math"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,7 +27,6 @@ import (
 	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
 	"github.com/opencontainers/runc/libcontainer/configs"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/exp/maps"
 	"golang.org/x/sys/unix"
 )
 
@@ -503,7 +504,7 @@ func (c *CgroupControl) AddPid(pid int) error {
 		return fs2.CreateCgroupPath(path, c.config)
 	}
 
-	names := maps.Keys(handlers)
+	names := slices.Collect(maps.Keys(handlers))
 
 	for _, c := range c.additionalControllers {
 		if !c.symlink {
@@ -843,11 +844,16 @@ func UserOwnsCurrentSystemdCgroup() (bool, error) {
 		if err != nil {
 			return false, err
 		}
+
 		s := st.Sys()
 		if s == nil {
-			return false, fmt.Errorf("stat cgroup path %s", cgroupPath)
+			return false, fmt.Errorf("stat cgroup path is nil %s", cgroupPath)
 		}
 
+		//nolint:errcheck // This cast should never fail, if it does we get a interface
+		// conversion panic and a stack trace on how we ended up here which is more
+		// valuable than returning a human friendly error test as we don't know how it
+		// happened.
 		if int(s.(*syscall.Stat_t).Uid) != uid {
 			return false, nil
 		}

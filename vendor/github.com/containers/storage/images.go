@@ -94,6 +94,10 @@ type Image struct {
 	ReadOnly bool `json:"-"`
 
 	Flags map[string]interface{} `json:"flags,omitempty"`
+
+	// PullSource is the source from where the image is being pulled.
+	// This field comes handy when multiple mirrors are configured for an image.
+	PullSource string `json:"pull-source,omitempty"`
 }
 
 // roImageStore provides bookkeeping for information about Images.
@@ -194,6 +198,7 @@ func copyImage(i *Image) *Image {
 		Created:         i.Created,
 		ReadOnly:        i.ReadOnly,
 		Flags:           copyMapPreferringNil(i.Flags),
+		PullSource:      i.PullSource,
 	}
 }
 
@@ -725,6 +730,7 @@ func (r *imageStore) create(id string, names []string, layer string, options Ima
 		BigDataDigests: make(map[string]digest.Digest),
 		Created:        options.CreationDate,
 		Flags:          newMapFrom(options.Flags),
+		PullSource:     options.PullSource,
 	}
 	if image.Created.IsZero() {
 		image.Created = time.Now().UTC()

@@ -6,6 +6,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/types"
 	"github.com/opencontainers/go-digest"
@@ -19,6 +20,7 @@ type ImageData struct {
 	Digest       digest.Digest                 `json:"Digest"`
 	RepoTags     []string                      `json:"RepoTags"`
 	RepoDigests  []string                      `json:"RepoDigests"`
+	PullSource   string                        `json:"PullSource"`
 	Parent       string                        `json:"Parent"`
 	Comment      string                        `json:"Comment"`
 	Created      *time.Time                    `json:"Created"`
@@ -123,6 +125,7 @@ func (i *Image) Inspect(ctx context.Context, options *InspectOptions) (*ImageDat
 		ID:           i.ID(),
 		RepoTags:     repoTags,
 		RepoDigests:  repoDigests,
+		PullSource:   i.PullSource(),
 		Created:      ociImage.Created,
 		Author:       ociImage.Author,
 		Architecture: ociImage.Architecture,
@@ -159,7 +162,7 @@ func (i *Image) Inspect(ctx context.Context, options *InspectOptions) (*ImageDat
 	if err != nil {
 		return nil, err
 	}
-	manifestRaw, manifestType, err := src.GetManifest(ctx, nil)
+	manifestRaw, manifestType, err := image.UnparsedInstance(src, nil).Manifest(ctx)
 	if err != nil {
 		return nil, err
 	}

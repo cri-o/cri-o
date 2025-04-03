@@ -101,6 +101,11 @@ func (s *storageImageSource) Reference() types.ImageReference {
 	return s.imageRef
 }
 
+// PhysicalReference returns the reference used to pull this source, if the source is registry
+func (s *storageImageSource) PhysicalReference() types.ImageReference {
+	return nil
+}
+
 // Close cleans up any resources we tied up while reading the image.
 func (s *storageImageSource) Close() error {
 	return nil

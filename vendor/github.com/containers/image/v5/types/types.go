@@ -272,6 +272,9 @@ type ImageSource interface {
 	// The Digest field is guaranteed to be provided; Size may be -1.
 	// WARNING: The list may contain duplicates, and they are semantically relevant.
 	LayerInfosForCopy(ctx context.Context, instanceDigest *digest.Digest) ([]BlobInfo, error)
+
+	// PhysicalReference returns the reference used to pull this source, if the source is registry
+	PhysicalReference() ImageReference
 }
 
 // ImageDestination is a service, possibly remote (= slow), to store components of a single image.
@@ -378,6 +381,8 @@ type UnparsedImage interface {
 	Manifest(ctx context.Context) ([]byte, string, error)
 	// Signatures is like ImageSource.GetSignatures, but the result is cached; it is OK to call this however often you need.
 	Signatures(ctx context.Context) ([][]byte, error)
+	// PhysicalReference returns the reference used to pull this source
+	PhysicalReference() ImageReference
 }
 
 // Image is the primary API for inspecting properties of images.
