@@ -242,7 +242,9 @@ func (w *Writer) ensureManifestItemLocked(layerDescriptors []manifest.Schema2Des
 	}
 
 	knownRepoTags := set.New[string]()
-	knownRepoTags.AddSeq(slices.Values(item.RepoTags))
+	for _, repoTag := range item.RepoTags {
+		knownRepoTags.Add(repoTag)
+	}
 	for _, tag := range repoTags {
 		// For github.com/docker/docker consumers, this works just as well as
 		//   refString := ref.String()

@@ -18,10 +18,10 @@ require (
 	github.com/containerd/typeurl v1.0.3-0.20220422153119-7f6e6d160d67
 	github.com/containernetworking/cni v1.2.3
 	github.com/containernetworking/plugins v1.6.2
-	github.com/containers/common v0.62.2
+	github.com/containers/common v0.62.3
 	github.com/containers/conmon v2.0.20+incompatible
 	github.com/containers/conmon-rs v0.6.6
-	github.com/containers/image/v5 v5.34.3-0.20250314011931-36a971d8ff51
+	github.com/containers/image/v5 v5.34.3
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
 	github.com/containers/storage v1.57.3-0.20250310120440-ab85543c3c6a
@@ -43,10 +43,10 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
 	github.com/moby/sys/mountinfo v0.7.2
-	github.com/moby/sys/user v0.3.0
+	github.com/moby/sys/user v0.4.0
 	github.com/moby/sys/userns v0.1.0
 	github.com/onsi/ginkgo/v2 v2.23.3
-	github.com/onsi/gomega v1.36.3
+	github.com/onsi/gomega v1.37.0
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runc v1.2.6
@@ -68,10 +68,10 @@ require (
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/trace v1.35.0
 	go.uber.org/mock v0.5.0
-	golang.org/x/net v0.37.0
+	golang.org/x/net v0.38.0
 	golang.org/x/sync v0.12.0
 	golang.org/x/sys v0.31.0
-	google.golang.org/grpc v1.71.0
+	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 	k8s.io/api v0.32.3
 	k8s.io/apimachinery v0.32.3

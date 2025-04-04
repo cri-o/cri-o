@@ -1,9 +1,6 @@
 package set
 
-import (
-	"iter"
-	"maps"
-)
+import "golang.org/x/exp/maps"
 
 // FIXME:
 // - Docstrings
@@ -31,8 +28,8 @@ func (s *Set[E]) Add(v E) {
 	s.m[v] = struct{}{} // Possibly writing the same struct{}{} presence marker again.
 }
 
-func (s *Set[E]) AddSeq(seq iter.Seq[E]) {
-	for v := range seq {
+func (s *Set[E]) AddSlice(slice []E) {
+	for _, v := range slice {
 		s.Add(v)
 	}
 }
@@ -50,6 +47,6 @@ func (s *Set[E]) Empty() bool {
 	return len(s.m) == 0
 }
 
-func (s *Set[E]) All() iter.Seq[E] {
+func (s *Set[E]) Values() []E {
 	return maps.Keys(s.m)
 }
