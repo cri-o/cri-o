@@ -935,7 +935,7 @@ func DefaultConfig() (*Config, error) {
 			PauseCommand:        "/pause",
 			ImageVolumes:        ImageVolumesMkdir,
 			SignaturePolicyDir:  "/etc/crio/policies",
-			PullProgressTimeout: 10 * time.Second,
+			PullProgressTimeout: 30 * time.Second,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,
