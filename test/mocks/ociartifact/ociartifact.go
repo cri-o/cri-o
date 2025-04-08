@@ -253,21 +253,6 @@ func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ManifestFromBlob", reflect.TypeOf((*MockImpl)(nil).ManifestFromBlob), arg0, arg1)
 }
 
-// MarshalJSON mocks base method.
-func (m *MockImpl) MarshalJSON(arg0 any) ([]byte, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarshalJSON", arg0)
-	ret0, _ := ret[0].([]byte)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// MarshalJSON indicates an expected call of MarshalJSON.
-func (mr *MockImplMockRecorder) MarshalJSON(arg0 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarshalJSON", reflect.TypeOf((*MockImpl)(nil).MarshalJSON), arg0)
-}
-
 // NewCopier mocks base method.
 func (m *MockImpl) NewCopier(arg0 *libimage.CopyOptions, arg1 *types.SystemContext, arg2 *types.ImageReference) (*libimage.Copier, error) {
 	m.ctrl.T.Helper()
@@ -341,4 +326,19 @@ func (m *MockImpl) ReadAll(arg0 io.Reader) ([]byte, error) {
 func (mr *MockImplMockRecorder) ReadAll(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ReadAll", reflect.TypeOf((*MockImpl)(nil).ReadAll), arg0)
+}
+
+// ToJSON mocks base method.
+func (m *MockImpl) ToJSON(arg0 any) ([]byte, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ToJSON", arg0)
+	ret0, _ := ret[0].([]byte)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ToJSON indicates an expected call of ToJSON.
+func (mr *MockImplMockRecorder) ToJSON(arg0 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ToJSON", reflect.TypeOf((*MockImpl)(nil).ToJSON), arg0)
 }
