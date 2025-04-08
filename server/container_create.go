@@ -1084,7 +1084,18 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		return nil, err
 	}
 
-	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, containerImageConfig.Config.StopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
+	// Determine the stop signal for the container. If a custom stop signal is provided
+	// via CRI API, use it. Otherwise, fall back to the image's default stop signal as
+	// defined in its configuration.
+	// https://github.com/kubernetes/enhancements/issues/4960
+	stopSignal := containerImageConfig.Config.StopSignal
+
+	if signal := ctr.Config().GetStopSignal(); signal != types.Signal_RUNTIME_DEFAULT {
+		log.Debugf(ctx, "Override stop signal to %s", signal)
+		stopSignal = signal.String()
+	}
+
+	err = ctr.SpecAddAnnotations(ctx, sb, containerVolumes, mountPoint, stopSignal, imgResult, s.config.CgroupManager().IsSystemd(), seccompRef, runtimePath)
 	if err != nil {
 		return nil, err
 	}
@@ -1220,7 +1231,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		Attempt: metadata.Attempt,
 	}
 
-	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, someNameOfTheImage, &imageID, someRepoDigest, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, containerImageConfig.Config.StopSignal)
+	ociContainer, err := oci.NewContainer(containerID, containerName, containerInfo.RunDir, logPath, labels, crioAnnotations, ctr.Config().Annotations, userRequestedImage, someNameOfTheImage, &imageID, someRepoDigest, criMetadata, sb.ID(), containerConfig.Tty, containerConfig.Stdin, containerConfig.StdinOnce, sb.RuntimeHandler(), containerInfo.Dir, created, stopSignal)
 	if err != nil {
 		return nil, err
 	}
