@@ -13,11 +13,7 @@ import (
 func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*types.Metric {
 	cpuMetrics := []*containerMetric{
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_user_seconds_total",
-				Help:      "Cumulative user CPU time consumed in seconds.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerCpuUserSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      cpu.UsageInUsermode / uint64(time.Second),
@@ -25,11 +21,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				}}
 			},
 		}, {
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_system_seconds_total",
-				Help:      "Cumulative system CPU time consumed in seconds.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerCpuSystemSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      cpu.UsageInKernelmode / uint64(time.Second),
@@ -37,11 +29,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				}}
 			},
 		}, {
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_usage_seconds_total",
-				Help:      "Cumulative CPU time consumed in seconds.",
-				LabelKeys: append(baseLabelKeys, "cpu"),
-			},
+			desc: containerCpuUsageSecondsTotal,
 			valueFunc: func() metricValues {
 				if len(cpu.PerCPUUsage) == 0 && cpu.TotalUsageNano > 0 {
 					return metricValues{{
@@ -64,11 +52,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				return metricValues
 			},
 		}, {
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_cfs_periods_total",
-				Help:      "Number of elapsed enforcement period intervals.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerCpuCfsPeriodsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      cpu.ThrottlingActivePeriods,
@@ -76,11 +60,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				}}
 			},
 		}, {
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_cfs_throttled_periods_total",
-				Help:      "Number of throttled period intervals.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerCpuCfsThrottledPeriodsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      cpu.ThrottledPeriods,
@@ -88,11 +68,7 @@ func generateSandboxCPUMetrics(sb *sandbox.Sandbox, cpu *cgmgr.CPUStats) []*type
 				}}
 			},
 		}, {
-			desc: &types.MetricDescriptor{
-				Name:      "container_cpu_cfs_throttled_seconds_total",
-				Help:      "Total time duration the container has been throttled.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerCpuCfsThrottledSecondsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      cpu.ThrottledTime / uint64(time.Second),

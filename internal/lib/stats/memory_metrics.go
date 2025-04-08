@@ -11,71 +11,43 @@ import (
 func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) []*types.Metric {
 	memoryMetrics := []*containerMetric{
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_cache",
-				Help:      "Number of bytes of page cache memory.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryCache,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.Cache, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_rss",
-				Help:      "Size of RSS in bytes.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryRss,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.RssBytes, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_kernel_usage",
-				Help:      "Size of kernel memory allocated in bytes.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryKernelUsage,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.KernelUsage, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_mapped_file",
-				Help:      "Size of memory mapped files in bytes.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryMappedFile,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.FileMapped, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_swap",
-				Help:      "Container swap usage in bytes.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemorySwap,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.SwapUsage, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_failcnt",
-				Help:      "Number of memory usage hits limits",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryFailcnt,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.Failcnt, metricType: types.MetricType_COUNTER}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_usage_bytes",
-				Help:      "Current memory usage in bytes, including all memory regardless of when it was accessed",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryUsageBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      mem.Usage,
@@ -84,11 +56,7 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_max_usage_bytes",
-				Help:      "Maximum memory usage recorded in bytes",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryMaxUsageBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{
 					value:      mem.MaxUsage,
@@ -97,21 +65,13 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_working_set_bytes",
-				Help:      "Current working set in bytes.",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerMemoryWorkingSetBytes,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.WorkingSetBytes, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_memory_failures_total",
-				Help:      "Cumulative count of memory allocation failures.",
-				LabelKeys: append(baseLabelKeys, "failure_type", "scope"),
-			},
+			desc: containerMemoryFailuresTotal,
 			valueFunc: func() metricValues {
 				metrics := make([]metricValue, 0)
 				pgfaultMetrics := metricValues{
@@ -152,11 +112,7 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 func GenerateSandboxOOMMetrics(sb *sandbox.Sandbox, c *oci.Container, oomCount uint64) []*types.Metric {
 	oomMetrics := []*containerMetric{
 		{
-			desc: &types.MetricDescriptor{
-				Name:      "container_oom_events_total",
-				Help:      "Count of out of memory events observed for the container",
-				LabelKeys: baseLabelKeys,
-			},
+			desc: containerOomEventsTotal,
 			valueFunc: func() metricValues {
 				return metricValues{{value: oomCount, metricType: types.MetricType_COUNTER}}
 			},
