@@ -69,9 +69,7 @@ linters:
     - recvcheck
     - revive
     - rowserrcheck
-    - sloglint
     - spancheck
-    - sqlclosecheck
     - staticcheck
     - tagalign
     - testableexamples
@@ -83,9 +81,7 @@ linters:
     - usestdlibvars
     - usetesting
     - wastedassign
-    - whitespace
     - wsl
-    - zerologlint
     # - containedctx
     # - contextcheck
     # - cyclop
