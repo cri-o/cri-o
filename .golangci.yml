@@ -139,16 +139,11 @@ linters:
             - 22
           disabled: false
   exclusions:
-    generated: lax
+    generated: strict
     presets:
       - comments
-      - common-false-positives
       - legacy
       - std-error-handling
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
 formatters:
   enable:
     - gci
@@ -162,8 +157,4 @@ formatters:
         - default
         - localmodule
   exclusions:
-    generated: lax
-    paths:
-      - third_party$
-      - builtin$
-      - examples$
+    generated: strict
