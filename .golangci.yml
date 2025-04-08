@@ -142,7 +142,6 @@ linters:
     generated: strict
     presets:
       - comments
-      - legacy
       - std-error-handling
 formatters:
   enable:
