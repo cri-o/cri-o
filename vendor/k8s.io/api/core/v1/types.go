@@ -2437,9 +2437,9 @@ type SecretKeySelector struct {
 	Optional *bool `json:"optional,omitempty" protobuf:"varint,3,opt,name=optional"`
 }
 
-// EnvFromSource represents the source of a set of ConfigMaps
+// EnvFromSource represents the source of a set of ConfigMaps or Secrets
 type EnvFromSource struct {
-	// An optional identifier to prepend to each key in the ConfigMap. Must be a C_IDENTIFIER.
+	// Optional text to prepend to the name of each environment variable. Must be a C_IDENTIFIER.
 	// +optional
 	Prefix string `json:"prefix,omitempty" protobuf:"bytes,1,opt,name=prefix"`
 	// The ConfigMap to select from
@@ -3308,6 +3308,11 @@ type PodCondition struct {
 	// Type is the type of the condition.
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
 	Type PodConditionType `json:"type" protobuf:"bytes,1,opt,name=type,casttype=PodConditionType"`
+	// If set, this represents the .metadata.generation that the pod condition was set based upon.
+	// This is an alpha field. Enable PodObservedGenerationTracking to be able to use this field.
+	// +featureGate=PodObservedGenerationTracking
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,7,opt,name=observedGeneration"`
 	// Status is the status of the condition.
 	// Can be True, False, Unknown.
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
@@ -3792,7 +3797,7 @@ type PodSpec struct {
 	// Init containers may not have Lifecycle actions, Readiness probes, Liveness probes, or Startup probes.
 	// The resourceRequirements of an init container are taken into account during scheduling
 	// by finding the highest request/limit for each resource type, and then using the max of
-	// of that value or the sum of the normal containers. Limits are applied to init containers
+	// that value or the sum of the normal containers. Limits are applied to init containers
 	// in a similar fashion.
 	// Init containers cannot currently be added or removed.
 	// Cannot be updated.
@@ -4841,6 +4846,11 @@ type EphemeralContainer struct {
 // state of a system, especially if the node that hosts the pod cannot contact the control
 // plane.
 type PodStatus struct {
+	// If set, this represents the .metadata.generation that the pod status was set based upon.
+	// This is an alpha field. Enable PodObservedGenerationTracking to be able to use this field.
+	// +featureGate=PodObservedGenerationTracking
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty" protobuf:"varint,17,opt,name=observedGeneration"`
 	// The phase of a Pod is a simple, high-level summary of where the Pod is in its lifecycle.
 	// The conditions array, the reason and message fields, and the individual container status
 	// arrays contain more detail about the pod's status.
@@ -5888,6 +5898,11 @@ type ServiceAccountList struct {
 //	     Ports: [{"name": "a", "port": 93}, {"name": "b", "port": 76}]
 //	   },
 //	]
+//
+// Endpoints is a legacy API and does not contain information about all Service features.
+// Use discoveryv1.EndpointSlice for complete information about Service endpoints.
+//
+// Deprecated: This API is deprecated in v1.33+. Use discoveryv1.EndpointSlice.
 type Endpoints struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard object's metadata.
@@ -5920,6 +5935,8 @@ type Endpoints struct {
 //
 //	a: [ 10.10.1.1:8675, 10.10.2.2:8675 ],
 //	b: [ 10.10.1.1:309, 10.10.2.2:309 ]
+//
+// Deprecated: This API is deprecated in v1.33+.
 type EndpointSubset struct {
 	// IP addresses which offer the related ports that are marked as ready. These endpoints
 	// should be considered safe for load balancers and clients to utilize.
@@ -5939,6 +5956,7 @@ type EndpointSubset struct {
 }
 
 // EndpointAddress is a tuple that describes single IP address.
+// Deprecated: This API is deprecated in v1.33+.
 // +structType=atomic
 type EndpointAddress struct {
 	// The IP of this endpoint.
@@ -5957,6 +5975,7 @@ type EndpointAddress struct {
 }
 
 // EndpointPort is a tuple that describes a single port.
+// Deprecated: This API is deprecated in v1.33+.
 // +structType=atomic
 type EndpointPort struct {
 	// The name of this port.  This must match the 'name' field in the
@@ -5998,6 +6017,7 @@ type EndpointPort struct {
 // +k8s:prerelease-lifecycle-gen:introduced=1.0
 
 // EndpointsList is a list of endpoints.
+// Deprecated: This API is deprecated in v1.33+.
 type EndpointsList struct {
 	metav1.TypeMeta `json:",inline"`
 	// Standard list metadata.
