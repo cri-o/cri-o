@@ -41,7 +41,7 @@ func (ss *StatsServer) updateSandbox(sb *sandbox.Sandbox) *types.PodSandboxStats
 	}
 
 	// Network metrics are collected at pod level only.
-	if slices.Contains(ss.Config().IncludedPodMetrics, "network") {
+	if slices.Contains(ss.Config().IncludedPodMetrics, NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sandboxMetrics.metric.Metrics = podMetrics
 	}
@@ -193,7 +193,7 @@ func (ss *StatsServer) updatePodSandboxMetrics(sb *sandbox.Sandbox) *SandboxMetr
 		sm = NewSandboxMetrics(sb)
 	}
 	// Network metrics are collected at the pod level.
-	if slices.Contains(ss.Config().IncludedPodMetrics, "network") {
+	if slices.Contains(ss.Config().IncludedPodMetrics, NetworkMetrics) {
 		podMetrics := ss.GenerateNetworkMetrics(sb)
 		sm.metric.Metrics = podMetrics
 	}
@@ -236,15 +236,15 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 
 	for _, m := range ss.Config().IncludedPodMetrics {
 		switch m {
-		case "cpu":
+		case CPUMetrics:
 			if cpuMetrics := generateSandboxCPUMetrics(sb, cgstats.CPU); cpuMetrics != nil {
 				metrics = append(metrics, cpuMetrics...)
 			}
-		case "memory":
+		case MemoryMetrics:
 			if memoryMetrics := generateSandboxMemoryMetrics(sb, cgstats.Memory); memoryMetrics != nil {
 				metrics = append(metrics, memoryMetrics...)
 			}
-		case "oom":
+		case OOMMetrics:
 			cm, err := ss.Config().CgroupManager().ContainerCgroupManager(sb.CgroupParent(), c.ID())
 			if err != nil {
 				log.Errorf(ss.ctx, "Unable to fetch cgroup manager for container %s: %v", c.ID(), err)
@@ -261,7 +261,7 @@ func (ss *StatsServer) containerMetricsFromCgStats(sb *sandbox.Sandbox, c *oci.C
 
 			oomMetrics := GenerateSandboxOOMMetrics(sb, c, oomCount)
 			metrics = append(metrics, oomMetrics...)
-		case "network":
+		case NetworkMetrics:
 			continue // Network metrics are collected at the pod level only.
 		default:
 			log.Warnf(ss.ctx, "Unknown metric: %s", m)
