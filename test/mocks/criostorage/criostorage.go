@@ -15,9 +15,7 @@ import (
 
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
-	types0 "github.com/containers/storage/types"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
-	references "github.com/cri-o/cri-o/internal/storage/references"
 	gomock "go.uber.org/mock/gomock"
 )
 
@@ -46,10 +44,10 @@ func (m *MockImageServer) EXPECT() *MockImageServerMockRecorder {
 }
 
 // CandidatesForPotentiallyShortImageName mocks base method.
-func (m *MockImageServer) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]references.RegistryImageReference, error) {
+func (m *MockImageServer) CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]storage0.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CandidatesForPotentiallyShortImageName", systemContext, imageName)
-	ret0, _ := ret[0].([]references.RegistryImageReference)
+	ret0, _ := ret[0].([]storage0.RegistryImageReference)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -118,7 +116,7 @@ func (mr *MockImageServerMockRecorder) ImageStatusByID(systemContext, id any) *g
 }
 
 // ImageStatusByName mocks base method.
-func (m *MockImageServer) ImageStatusByName(systemContext *types.SystemContext, name references.RegistryImageReference) (*storage0.ImageResult, error) {
+func (m *MockImageServer) ImageStatusByName(systemContext *types.SystemContext, name storage0.RegistryImageReference) (*storage0.ImageResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ImageStatusByName", systemContext, name)
 	ret0, _ := ret[0].(*storage0.ImageResult)
@@ -133,7 +131,7 @@ func (mr *MockImageServerMockRecorder) ImageStatusByName(systemContext, name any
 }
 
 // IsRunningImageAllowed mocks base method.
-func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage references.RegistryImageReference, imageID storage0.StorageImageID) error {
+func (m *MockImageServer) IsRunningImageAllowed(ctx context.Context, systemContext *types.SystemContext, userSpecifiedImage storage0.RegistryImageReference, imageID storage0.StorageImageID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsRunningImageAllowed", ctx, systemContext, userSpecifiedImage, imageID)
 	ret0, _ := ret[0].(error)
@@ -162,10 +160,10 @@ func (mr *MockImageServerMockRecorder) ListImages(systemContext any) *gomock.Cal
 }
 
 // PullImage mocks base method.
-func (m *MockImageServer) PullImage(ctx context.Context, imageName references.RegistryImageReference, options *storage0.ImageCopyOptions) (references.RegistryImageReference, error) {
+func (m *MockImageServer) PullImage(ctx context.Context, imageName storage0.RegistryImageReference, options *storage0.ImageCopyOptions) (storage0.RegistryImageReference, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "PullImage", ctx, imageName, options)
-	ret0, _ := ret[0].(references.RegistryImageReference)
+	ret0, _ := ret[0].(storage0.RegistryImageReference)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -177,7 +175,7 @@ func (mr *MockImageServerMockRecorder) PullImage(ctx, imageName, options any) *g
 }
 
 // UntagImage mocks base method.
-func (m *MockImageServer) UntagImage(systemContext *types.SystemContext, name references.RegistryImageReference) error {
+func (m *MockImageServer) UntagImage(systemContext *types.SystemContext, name storage0.RegistryImageReference) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UntagImage", systemContext, name)
 	ret0, _ := ret[0].(error)
@@ -227,7 +225,7 @@ func (m *MockRuntimeServer) EXPECT() *MockRuntimeServerMockRecorder {
 }
 
 // CreateContainer mocks base method.
-func (m *MockRuntimeServer) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID storage0.StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *types0.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreateContainer(systemContext *types.SystemContext, podName, podID, userRequestedImage string, imageID storage0.StorageImageID, containerName, containerID, metadataName string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateContainer", systemContext, podName, podID, userRequestedImage, imageID, containerName, containerID, metadataName, attempt, idMappingsOptions, labelOptions, privileged)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
@@ -242,7 +240,7 @@ func (mr *MockRuntimeServerMockRecorder) CreateContainer(systemContext, podName,
 }
 
 // CreatePodSandbox mocks base method.
-func (m *MockRuntimeServer) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage references.RegistryImageReference, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *types0.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
+func (m *MockRuntimeServer) CreatePodSandbox(systemContext *types.SystemContext, podName, podID string, pauseImage storage0.RegistryImageReference, imageAuthFile, containerName, metadataName, uid, namespace string, attempt uint32, idMappingsOptions *storage.IDMappingOptions, labelOptions []string, privileged bool) (storage0.ContainerInfo, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreatePodSandbox", systemContext, podName, podID, pauseImage, imageAuthFile, containerName, metadataName, uid, namespace, attempt, idMappingsOptions, labelOptions, privileged)
 	ret0, _ := ret[0].(storage0.ContainerInfo)
