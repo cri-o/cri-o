@@ -3,7 +3,6 @@ package types
 import (
 	"context"
 	"io"
-	"net/url"
 	"time"
 
 	"github.com/containers/image/v5/docker/reference"
@@ -656,8 +655,6 @@ type SystemContext struct {
 	// Note that this requires writing blobs to temporary files, and takes more time than the default behavior,
 	// when the digest for a blob is unknown.
 	DockerRegistryPushPrecomputeDigests bool
-	// DockerProxyURL specifies proxy configuration schema (like socks5://username:password@ip:port)
-	DockerProxyURL *url.URL
 
 	// === docker/daemon.Transport overrides ===
 	// A directory containing a CA certificate (ending with ".crt"),
