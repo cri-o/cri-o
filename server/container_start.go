@@ -70,7 +70,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), s.config.Runtimes[sandbox.RuntimeHandler()], sandbox.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
 	}

@@ -612,13 +612,13 @@ var _ = Describe("high_performance_hooks", func() {
 
 		Context("with enable annotation", func() {
 			It("should result in latency: 0", func() {
-				verifyConvertAnnotationToLatency("enable", "0", false)
+				verifyConvertAnnotationToLatency(crioannotations.Enable, "0", false)
 			})
 		})
 
 		Context("with disable annotation", func() {
 			It("should result in latency: n/a", func() {
-				verifyConvertAnnotationToLatency("disable", latencyNA, false)
+				verifyConvertAnnotationToLatency(crioannotations.Disable, latencyNA, false)
 			})
 		})
 
@@ -717,6 +717,7 @@ var _ = Describe("high_performance_hooks", func() {
 			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
+		c.SetSpec(g.Config)
 
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
@@ -739,7 +740,7 @@ var _ = Describe("high_performance_hooks", func() {
 		sbox.SetPodLinuxOverhead(nil)
 		sbox.SetPodLinuxResources(nil)
 		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
-			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): crioannotations.Enable,
 		}, &types.PodSandboxMetadata{})
 		Expect(err).ToNot(HaveOccurred())
 		sbox.SetPrivileged(false)

@@ -441,7 +441,7 @@ func (r *runtimeOCI) ExecContainer(ctx context.Context, c *Container, cmd []stri
 		return nil
 	}
 
-	processFile, err := prepareProcessExec(c, cmd, tty)
+	processFile, err := r.prepareProcessExec(c, cmd, tty)
 	if err != nil {
 		return err
 	}
@@ -609,7 +609,7 @@ func (r *runtimeOCI) ExecSyncContainer(ctx context.Context, c *Container, comman
 		args = append(args, "-s")
 	}
 
-	processFile, err := prepareProcessExec(c, command, c.terminal)
+	processFile, err := r.prepareProcessExec(c, command, c.terminal)
 	if err != nil {
 		return nil, &ExecSyncError{
 			ExitCode: -1,
@@ -1452,7 +1452,7 @@ func (r *runtimeOCI) ReopenContainerLog(ctx context.Context, c *Container) error
 
 // prepareProcessExec returns the path of the process.json used in runc exec -p
 // caller is responsible for removing the returned file, if prepareProcessExec succeeds.
-func prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
+func (r *runtimeOCI) prepareProcessExec(c *Container, cmd []string, tty bool) (processFile string, retErr error) {
 	f, err := os.CreateTemp("", "exec-process-")
 	if err != nil {
 		return "", err

@@ -896,7 +896,7 @@ github.com/opencontainers/runc/libcontainer/utils
 ## explicit
 github.com/opencontainers/runtime-spec/specs-go
 github.com/opencontainers/runtime-spec/specs-go/features
-# github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271
+# github.com/opencontainers/runtime-tools v0.9.1-0.20241108202711-f7e3563b0271 => github.com/bitoku/runtime-tools v0.0.0-20250402172745-440f182898c7
 ## explicit; go 1.19
 github.com/opencontainers/runtime-tools/generate
 github.com/opencontainers/runtime-tools/generate/seccomp
@@ -1773,3 +1773,4 @@ tags.cncf.io/container-device-interface/pkg/parser
 # tags.cncf.io/container-device-interface/specs-go v1.0.0
 ## explicit; go 1.19
 tags.cncf.io/container-device-interface/specs-go
+# github.com/opencontainers/runtime-tools => github.com/bitoku/runtime-tools v0.0.0-20250402172745-440f182898c7

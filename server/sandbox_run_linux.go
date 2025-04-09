@@ -1123,7 +1123,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		log.Debugf(ctx, "Dropping infra container for pod %s", sboxID)
 		container = oci.NewSpoofedContainer(sboxID, containerName, labels, sboxID, created, podContainer.RunDir)
 
-		g.AddAnnotation(annotations.SpoofedContainer, "true")
+		g.AddAnnotation(annotations.SpoofedContainer, annotations.True)
 
 		if err := s.config.CgroupManager().CreateSandboxCgroup(cgroupParent, sboxID); err != nil {
 			return nil, fmt.Errorf("create dropped infra %s cgroup: %w", sboxID, err)
@@ -1165,7 +1165,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 		return nil, err
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
+	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), s.config.Runtimes[sb.RuntimeHandler()], sb.Annotations())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
 	}
