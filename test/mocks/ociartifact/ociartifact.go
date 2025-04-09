@@ -12,7 +12,7 @@ package ociartifactmock
 import (
 	context "context"
 	io "io"
-	fs "io/fs"
+	os "os"
 	reflect "reflect"
 
 	reference "github.com/containers/image/v5/docker/reference"
@@ -122,7 +122,7 @@ func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 any) *gomock.Call {
 }
 
 // MkdirAll mocks base method.
-func (m *MockImpl) MkdirAll(arg0 string, arg1 fs.FileMode) error {
+func (m *MockImpl) MkdirAll(arg0 string, arg1 os.FileMode) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "MkdirAll", arg0, arg1)
 	ret0, _ := ret[0].(error)
@@ -196,10 +196,10 @@ func (mr *MockImplMockRecorder) ReadAll(arg0 any) *gomock.Call {
 }
 
 // ReadDir mocks base method.
-func (m *MockImpl) ReadDir(arg0 string) ([]fs.DirEntry, error) {
+func (m *MockImpl) ReadDir(arg0 string) ([]os.DirEntry, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ReadDir", arg0)
-	ret0, _ := ret[0].([]fs.DirEntry)
+	ret0, _ := ret[0].([]os.DirEntry)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -240,7 +240,7 @@ func (mr *MockImplMockRecorder) RemoveAll(arg0 any) *gomock.Call {
 }
 
 // WriteFile mocks base method.
-func (m *MockImpl) WriteFile(arg0 string, arg1 []byte, arg2 fs.FileMode) error {
+func (m *MockImpl) WriteFile(arg0 string, arg1 []byte, arg2 os.FileMode) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
