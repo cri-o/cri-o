@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"iter"
 	"maps"
 	"reflect"
 	"slices"
@@ -329,16 +328,19 @@ func prepareImageConfigForDest(ctx context.Context, sys *types.SystemContext, sr
 		}
 		wantedPlatforms := platform.WantedPlatforms(sys)
 
-		if !slices.ContainsFunc(wantedPlatforms, func(wantedPlatform imgspecv1.Platform) bool {
+		options := newOrderedSet()
+		match := false
+		for _, wantedPlatform := range wantedPlatforms {
 			// For a transitional period, this might trigger warnings because the Variant
 			// field was added to OCI config only recently. If this turns out to be too noisy,
 			// revert this check to only look for (OS, Architecture).
-			return platform.MatchesPlatform(ociConfig.Platform, wantedPlatform)
-		}) {
-			options := newOrderedSet()
-			for _, p := range wantedPlatforms {
-				options.append(fmt.Sprintf("%s+%s+%q", p.OS, p.Architecture, p.Variant))
+			if platform.MatchesPlatform(ociConfig.Platform, wantedPlatform) {
+				match = true
+				break
 			}
+			options.append(fmt.Sprintf("%s+%s+%q", wantedPlatform.OS, wantedPlatform.Architecture, wantedPlatform.Variant))
+		}
+		if !match {
 			logrus.Infof("Image operating system mismatch: image uses OS %q+architecture %q+%q, expecting one of %q",
 				ociConfig.OS, ociConfig.Architecture, ociConfig.Variant, strings.Join(options.list, ", "))
 		}
@@ -418,7 +420,7 @@ func (ic *imageCopier) compareImageDestinationManifestEqual(ctx context.Context,
 		}
 	}
 
-	algos, err := algorithmsByNames(compressionAlgos.All())
+	algos, err := algorithmsByNames(compressionAlgos.Values())
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +555,7 @@ func (ic *imageCopier) copyLayers(ctx context.Context) ([]compressiontypes.Algor
 	if srcInfosUpdated || layerDigestsDiffer(srcInfos, destInfos) {
 		ic.manifestUpdates.LayerInfos = destInfos
 	}
-	algos, err := algorithmsByNames(compressionAlgos.All())
+	algos, err := algorithmsByNames(compressionAlgos.Values())
 	if err != nil {
 		return nil, err
 	}
@@ -989,10 +991,10 @@ func computeDiffID(stream io.Reader, decompressor compressiontypes.DecompressorF
 	return digest.Canonical.FromReader(stream)
 }
 
-// algorithmsByNames returns slice of Algorithms from a sequence of Algorithm Names
-func algorithmsByNames(names iter.Seq[string]) ([]compressiontypes.Algorithm, error) {
+// algorithmsByNames returns slice of Algorithms from slice of Algorithm Names
+func algorithmsByNames(names []string) ([]compressiontypes.Algorithm, error) {
 	result := []compressiontypes.Algorithm{}
-	for name := range names {
+	for _, name := range names {
 		algo, err := compression.AlgorithmByName(name)
 		if err != nil {
 			return nil, err
