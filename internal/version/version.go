@@ -13,10 +13,10 @@ import (
 	"text/tabwriter"
 
 	"github.com/blang/semver/v4"
-	"github.com/containers/common/pkg/apparmor"
 	"github.com/containers/common/pkg/seccomp"
 	"github.com/google/renameio"
 	json "github.com/json-iterator/go"
+	libctraa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/sirupsen/logrus"
 )
 
@@ -206,7 +206,7 @@ func Get(verbose bool) (*Info, error) {
 		BuildTags:       buildTags,
 		LDFlags:         ldFlags,
 		SeccompEnabled:  seccomp.IsEnabled(),
-		AppArmorEnabled: apparmor.IsEnabled(),
+		AppArmorEnabled: libctraa.IsEnabled(),
 		Dependencies:    dependencies,
 	}, nil
 }
