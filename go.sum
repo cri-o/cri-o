@@ -80,8 +80,8 @@ github.com/containerd/go-runc v1.1.0 h1:OX4f+/i2y5sUT7LhmcJH7GYrjjhHa1QI4e8yO0gG
 github.com/containerd/go-runc v1.1.0/go.mod h1:xJv2hFF7GvHtTJd9JqTS2UVxMkULUYw4JN5XAUZqH5U=
 github.com/containerd/log v0.1.0 h1:TCJt7ioM2cr/tfR8GPbGf9/VRAX8D2B4PjzCpfX540I=
 github.com/containerd/log v0.1.0/go.mod h1:VRRf09a7mHDIRezVKTRCrOq78v577GXq3bSa3EhrzVo=
-github.com/containerd/nri v0.9.0 h1:jribDJs/oQ95vLO4Yn19HKFYriZGWKiG6nKWjl9Y/x4=
-github.com/containerd/nri v0.9.0/go.mod h1:sDRoMy5U4YolsWthg7TjTffAwPb6LEr//83O+D3xVU4=
+github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24 h1:HxqJhfoAj8kjIxjKwqSz3J8pLi0+paREi+xBnForGd8=
+github.com/containerd/nri v0.9.1-0.20250219030224-e597e7849f24/go.mod h1:sDRoMy5U4YolsWthg7TjTffAwPb6LEr//83O+D3xVU4=
 github.com/containerd/otelttrpc v0.1.0 h1:UOX68eVTE8H/T45JveIg+I22Ev2aFj4qPITCmXsskjw=
 github.com/containerd/otelttrpc v0.1.0/go.mod h1:XhoA2VvaGPW1clB2ULwrBZfXVuEWuyOd2NUD1IM0yTg=
 github.com/containerd/platforms v0.2.1 h1:zvwtM3rz2YHPQsF2CHYM8+KtB5dvhISiXh5ZpSBQv6A=
