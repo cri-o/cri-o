@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 
+	modelSpec "github.com/CloudNativeAI/model-spec/specs-go/v1"
 	"github.com/containers/common/libimage"
 	"github.com/containers/image/v5/docker/reference"
 	"github.com/containers/image/v5/manifest"
@@ -342,7 +343,7 @@ func (s *Store) artifactData(ctx context.Context, nameOrDigest string, maxArtifa
 	layerInfos := s.impl.LayerInfos(artifact.manifest)
 	for i := range layerInfos {
 		layer := &layerInfos[i]
-		title := layer.Annotations[specs.AnnotationTitle]
+		title := artifactName(layer.Annotations)
 
 		layerBytes, err := s.readBlob(ctx, imageSource, layer, maxArtifactSize)
 		if err != nil {
@@ -493,11 +494,30 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
 		}
 
+		name := artifactName(l.Annotations)
+		if name == "" {
+			log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+
+			continue
+		}
+
 		mountPaths = append(mountPaths, BlobMountPath{
 			SourcePath: path,
-			Name:       l.Annotations[specs.AnnotationTitle],
+			Name:       name,
 		})
 	}
 
 	return mountPaths, nil
+}
+
+func artifactName(annotations map[string]string) string {
+	if name, ok := annotations[specs.AnnotationTitle]; ok {
+		return name
+	}
+
+	if name, ok := annotations[modelSpec.AnnotationFilepath]; ok {
+		return name
+	}
+
+	return ""
 }
