@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 14 Apr 2025 10:12:12 UTC for commit [8b8a095][0]._
+_Generated on Mon, 14 Apr 2025 13:55:16 UTC for commit [d10897e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/8b8a095d9ecaf675ddf05b35a3585fb4b78510bb
+[0]: https://github.com/cri-o/cri-o/commit/d10897e95e24ebfe50913bf7fa1eeaa3cfc405f3
 
 ## Outdated Dependencies
 
@@ -182,6 +182,7 @@ _Generated on Mon, 14 Apr 2025 10:12:12 UTC for commit [8b8a095][0]._
 | github.com/Azure/go-autorest/tracing                                                | v0.6.0                                        | v0.6.1                              | false  | true             |
 | github.com/AzureAD/microsoft-authentication-library-for-go                          | v1.3.1                                        | v1.4.2                              | false  | true             |
 | github.com/BurntSushi/toml                                                          | v1.5.0                                        |                                     | true   | true             |
+| github.com/CloudNativeAI/model-spec                                                 | v0.0.3                                        |                                     | true   | true             |
 | github.com/DATA-DOG/go-sqlmock                                                      | v1.5.2                                        |                                     | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp            | v1.25.0                                       | v1.27.0                             | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric          | v0.48.1                                       | v0.51.0                             | false  | true             |
