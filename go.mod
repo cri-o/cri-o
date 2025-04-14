@@ -4,6 +4,7 @@ module github.com/cri-o/cri-o
 
 require (
 	github.com/BurntSushi/toml v1.5.0
+	github.com/CloudNativeAI/model-spec v0.0.3
 	github.com/Microsoft/go-winio v0.6.2
 	github.com/blang/semver/v4 v4.0.0
 	github.com/checkpoint-restore/checkpointctl v1.3.0
