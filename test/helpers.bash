@@ -800,3 +800,7 @@ function remove_random_storage_layer() {
 function is_using_crun() {
     runtime --version | grep -q crun
 }
+
+function get_runtime() {
+    runtime --version | head -n1 | awk '{print $1;}'
+}
