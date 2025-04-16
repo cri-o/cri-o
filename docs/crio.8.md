@@ -383,7 +383,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 
 **--profile-port**="": Port for the pprof profiler. (default: 6060)
 
-**--pull-progress-timeout**="": The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output. (default: 30s)
+**--pull-progress-timeout**="": The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to --pull-progress-timeout / 10. Can be set to 0 to disable the timeout as well as the progress output. (default: 0s)
 
 **--rdt-config-file**="": Path to the RDT configuration file for configuring the resctrl pseudo-filesystem.
 
