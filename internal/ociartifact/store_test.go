@@ -64,7 +64,7 @@ var _ = t.Describe("OCIArtifact", func() {
 			getBlobErr             error
 			newImageSourceErrs     [3]error
 			layoutNewReferenceErrs [2]error
-			marshalJSONErr         error
+			toJSONErr              error
 			oci1FromManifestErr    error
 			getManifestErrs        [2]error
 			listErr                error
@@ -81,7 +81,7 @@ var _ = t.Describe("OCIArtifact", func() {
 				getBlobErr:             nil,
 				newImageSourceErrs:     [3]error{nil, nil, nil},
 				layoutNewReferenceErrs: [2]error{nil, nil},
-				marshalJSONErr:         nil,
+				toJSONErr:              nil,
 				oci1FromManifestErr:    nil,
 				getManifestErrs:        [2]error{nil, nil},
 				listErr:                nil,
@@ -159,11 +159,11 @@ var _ = t.Describe("OCIArtifact", func() {
 			}
 
 			res = append(res,
-				implMock.EXPECT().MarshalJSON(gomock.Any()).Return(nil, opts.marshalJSONErr),
+				implMock.EXPECT().ToJSON(gomock.Any()).Return(nil, opts.toJSONErr),
 				implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil),
 			)
 
-			if opts.marshalJSONErr != nil {
+			if opts.toJSONErr != nil {
 				return res
 			}
 
@@ -296,9 +296,9 @@ var _ = t.Describe("OCIArtifact", func() {
 			Expect(data).To(BeNil())
 		})
 
-		It("should fail if MarshalJSON fails", func() {
+		It("should fail if JSON fails", func() {
 			mockOptions := defaultMockOptions()
-			mockOptions.marshalJSONErr = errTest
+			mockOptions.toJSONErr = errTest
 			gomock.InOrder(mockCalls(mockOptions)...)
 
 			data, err := sut.PullData(context.Background(), "", nil)

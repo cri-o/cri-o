@@ -30,7 +30,7 @@ type Impl interface {
 	GetBlob(context.Context, types.ImageSource, types.BlobInfo, types.BlobInfoCache) (io.ReadCloser, int64, error)
 	ReadAll(io.Reader) ([]byte, error)
 	OCI1FromManifest([]byte) (*manifest.OCI1, error)
-	MarshalJSON(any) ([]byte, error)
+	ToJSON(any) ([]byte, error)
 	ManifestFromBlob([]byte, string) (manifest.Manifest, error)
 	ManifestConfigMediaType(manifest.Manifest) string
 	NewCopier(*libimage.CopyOptions, *types.SystemContext, *types.ImageReference) (*libimage.Copier, error)
@@ -89,7 +89,7 @@ func (*defaultImpl) OCI1FromManifest(manifestBlob []byte) (*manifest.OCI1, error
 	return manifest.OCI1FromManifest(manifestBlob)
 }
 
-func (*defaultImpl) MarshalJSON(v any) ([]byte, error) {
+func (*defaultImpl) ToJSON(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
