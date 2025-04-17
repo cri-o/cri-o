@@ -71,7 +71,7 @@ func crioWipe(c *cli.Context) error {
 			store.GraphRoot(),
 		)
 
-		wipeMarkerFile := "/run/crio/crio-wipe-done"
+		const wipeMarkerFile = "/run/crio/crio-wipe-done"
 		if _, err := os.Stat(wipeMarkerFile); err == nil {
 			logrus.Infof("Unclean shutdown check already succeeded by previous crio wipe command")
 
