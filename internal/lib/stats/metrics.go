@@ -202,6 +202,11 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 				LabelKeys: baseLabelKeys,
 			},
 			{
+				Name:      "container_spec_memory_limit_bytes",
+				Help:      "Memory limit for the container in bytes.",
+				LabelKeys: baseLabelKeys,
+			},
+			{
 				Name:      "container_memory_failcnt",
 				Help:      "Number of memory usage hits limits",
 				LabelKeys: baseLabelKeys,

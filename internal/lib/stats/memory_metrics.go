@@ -62,6 +62,16 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 		},
 		{
 			desc: &types.MetricDescriptor{
+				Name:      "container_spec_memory_limit_bytes",
+				Help:      "Memory limit for the container in bytes.",
+				LabelKeys: baseLabelKeys,
+			},
+			valueFunc: func() metricValues {
+				return metricValues{{value: mem.Limit, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: &types.MetricDescriptor{
 				Name:      "container_memory_failcnt",
 				Help:      "Number of memory usage hits limits",
 				LabelKeys: baseLabelKeys,
