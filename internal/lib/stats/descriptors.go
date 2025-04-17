@@ -1,0 +1,146 @@
+package statsserver
+
+import types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+// CPU metrics.
+var (
+	containerCpuUserSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_user_seconds_total",
+		Help:      "Cumulative user CPU time consumed in seconds.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerCpuSystemSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_system_seconds_total",
+		Help:      "Cumulative system CPU time consumed in seconds.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerCpuUsageSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_usage_seconds_total",
+		Help:      "Cumulative CPU time consumed in seconds.",
+		LabelKeys: append(baseLabelKeys, "cpu"),
+	}
+	containerCpuCfsPeriodsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_cfs_periods_total",
+		Help:      "Number of elapsed enforcement period intervals.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerCpuCfsThrottledPeriodsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_cfs_throttled_periods_total",
+		Help:      "Number of throttled period intervals.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerCpuCfsThrottledSecondsTotal = &types.MetricDescriptor{
+		Name:      "container_cpu_cfs_throttled_seconds_total",
+		Help:      "Total time duration the container has been throttled.",
+		LabelKeys: baseLabelKeys,
+	}
+)
+
+// Memory metrics.
+var (
+	containerMemoryCache = &types.MetricDescriptor{
+		Name:      "container_memory_cache",
+		Help:      "Number of bytes of page cache memory.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryRss = &types.MetricDescriptor{
+		Name:      "container_memory_rss",
+		Help:      "Size of RSS in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryKernelUsage = &types.MetricDescriptor{
+		Name:      "container_memory_kernel_usage",
+		Help:      "Size of kernel memory allocated in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryMappedFile = &types.MetricDescriptor{
+		Name:      "container_memory_mapped_file",
+		Help:      "Size of memory mapped files in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemorySwap = &types.MetricDescriptor{
+		Name:      "container_memory_swap",
+		Help:      "Container swap usage in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryFailcnt = &types.MetricDescriptor{
+		Name:      "container_memory_failcnt",
+		Help:      "Number of memory usage hits limits",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryUsageBytes = &types.MetricDescriptor{
+		Name:      "container_memory_usage_bytes",
+		Help:      "Current memory usage in bytes, including all memory regardless of when it was accessed",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryMaxUsageBytes = &types.MetricDescriptor{
+		Name:      "container_memory_max_usage_bytes",
+		Help:      "Maximum memory usage recorded in bytes",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryWorkingSetBytes = &types.MetricDescriptor{
+		Name:      "container_memory_working_set_bytes",
+		Help:      "Current working set in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
+	containerMemoryFailuresTotal = &types.MetricDescriptor{
+		Name:      "container_memory_failures_total",
+		Help:      "Cumulative count of memory allocation failures.",
+		LabelKeys: append(baseLabelKeys, "failure_type", "scope"),
+	}
+)
+
+var networkLabelKeys = append(baseLabelKeys, "interface")
+
+// Network metrics.
+var (
+	containerNetworkReceiveBytesTotal = &types.MetricDescriptor{
+		Name:      "container_network_receive_bytes_total",
+		Help:      "Cumulative count of bytes received",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkReceivePacketsTotal = &types.MetricDescriptor{
+		Name:      "container_network_receive_packets_total",
+		Help:      "Cumulative count of packets received",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkReceivePacketsDroppedTotal = &types.MetricDescriptor{
+		Name:      "container_network_receive_packets_dropped_total",
+		Help:      "Cumulative count of packets dropped while receiving",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkReceiveErrorsTotal = &types.MetricDescriptor{
+		Name:      "container_network_receive_errors_total",
+		Help:      "Cumulative count of errors encountered while receiving",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkTransmitBytesTotal = &types.MetricDescriptor{
+		Name:      "container_network_transmit_bytes_total",
+		Help:      "Cumulative count of bytes transmitted",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkTransmitPacketsTotal = &types.MetricDescriptor{
+		Name:      "container_network_transmit_packets_total",
+		Help:      "Cumulative count of packets transmitted",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkTransmitPacketsDroppedTotal = &types.MetricDescriptor{
+		Name:      "container_network_transmit_packets_dropped_total",
+		Help:      "Cumulative count of packets dropped while transmitting",
+		LabelKeys: networkLabelKeys,
+	}
+	containerNetworkTransmitErrorsTotal = &types.MetricDescriptor{
+		Name:      "container_network_transmit_errors_total",
+		Help:      "Cumulative count of errors encountered while transmitting",
+		LabelKeys: networkLabelKeys,
+	}
+)
+
+// OOM metrics.
+var (
+	containerOomEventsTotal = &types.MetricDescriptor{
+		Name:      "container_oom_events_total",
+		Help:      "Count of out of memory events observed for the container",
+		LabelKeys: baseLabelKeys,
+	}
+)
