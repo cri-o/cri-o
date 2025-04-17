@@ -247,3 +247,6 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.6.0 // indirect
 	tags.cncf.io/container-device-interface/specs-go v1.0.0 // indirect
 )
+
+// TODO(bitoku): fix it
+replace github.com/opencontainers/runtime-tools => github.com/bitoku/runtime-tools v0.0.0-20250402172745-440f182898c7
