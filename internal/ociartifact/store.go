@@ -1,11 +1,14 @@
 package ociartifact
 
 import (
+	"archive/tar"
+	"compress/gzip"
 	"context"
 	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -17,6 +20,7 @@ import (
 	"github.com/containers/image/v5/oci/layout"
 	"github.com/containers/image/v5/pkg/blobinfocache"
 	"github.com/containers/image/v5/types"
+	"github.com/klauspost/compress/zstd"
 	"github.com/opencontainers/go-digest"
 	specs "github.com/opencontainers/image-spec/specs-go/v1"
 
@@ -517,35 +521,113 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		return nil, fmt.Errorf("failed to get an image reference: %w", err)
 	}
 
+	extractDir := filepath.Join(s.rootPath, "extracted", artifact.Digest().Encoded())
+	if err := os.MkdirAll(extractDir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create artifact dir: %w", err)
+	}
+
 	src, err := ref.NewImageSource(ctx, sys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image source: %w", err)
 	}
-
 	defer src.Close()
 
 	mountPaths := make([]BlobMountPath, 0, len(artifact.Manifest().Layers))
+	bic := blobinfocache.DefaultCache(s.systemContext)
 
 	for _, l := range artifact.Manifest().Layers {
-		path, err := layout.GetLocalBlobPath(ctx, src, l.Digest)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get a local blob path: %w", err)
-		}
+		func() {
+			blob, _, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: l.Digest}, bic)
+			if err != nil {
+				log.Errorf(ctx, "Failed to get blob: %v", err)
 
-		name := artifactName(l.Annotations)
-		if name == "" {
-			log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+				return
+			}
+			defer blob.Close()
 
-			continue
-		}
+			content, err := s.processLayerContent(l.MediaType, blob)
+			if err != nil {
+				log.Errorf(ctx, "Failed to process layer: %v", err)
 
-		mountPaths = append(mountPaths, BlobMountPath{
-			SourcePath: path,
-			Name:       name,
-		})
+				return
+			}
+
+			name := artifactName(l.Annotations)
+			if name == "" {
+				log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
+
+				return
+			}
+
+			filePath := filepath.Join(extractDir, name)
+			if err := os.WriteFile(filePath, content, 0o644); err != nil {
+				log.Errorf(ctx, "Failed to write file: %v", err)
+			}
+
+			mountPaths = append(mountPaths, BlobMountPath{
+				SourcePath: filePath,
+				Name:       name,
+			})
+		}()
 	}
 
 	return mountPaths, nil
+}
+
+// processLayerContent decompresses and processes layer content based on media type.
+// Supports gzip, zstd, and uncompressed tar formats. Returns raw bytes for non-tar content.
+// Instead of relying on the exact media type like "application/vnd.oci.image.layer.v1.tar+zstd",
+// it would be helpful to stick with more generic patterns like ".tar+gzip" or ".tar+zstd".
+func (s *Store) processLayerContent(mediaType string, r io.Reader) ([]byte, error) {
+	switch {
+	case strings.HasSuffix(mediaType, ".tar+gzip"):
+		gr, err := gzip.NewReader(r)
+		if err != nil {
+			return nil, fmt.Errorf("gzip decompress failed: %w", err)
+		}
+		defer gr.Close()
+
+		return s.extractSingleFileFromTar(gr)
+
+	case strings.HasSuffix(mediaType, ".tar+zstd"):
+		zr, err := zstd.NewReader(r)
+		if err != nil {
+			return nil, fmt.Errorf("zstd decompress failed: %w", err)
+		}
+		defer zr.Close()
+
+		return s.extractSingleFileFromTar(zr)
+
+	case strings.HasSuffix(mediaType, ".tar"):
+		return s.extractSingleFileFromTar(r)
+
+	default:
+		data, err := io.ReadAll(r)
+		if err != nil {
+			return nil, fmt.Errorf("reading blob content: %w", err)
+		}
+
+		return data, nil
+	}
+}
+
+func (s *Store) extractSingleFileFromTar(r io.Reader) ([]byte, error) {
+	tr := tar.NewReader(r)
+
+	for {
+		hdr, err := tr.Next()
+		if err == io.EOF {
+			return nil, errors.New("no files found in tar archive")
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf("reading tar header: %w", err)
+		}
+
+		if hdr.Typeflag == tar.TypeReg {
+			return io.ReadAll(tr)
+		}
+	}
 }
 
 func artifactName(annotations map[string]string) string {
