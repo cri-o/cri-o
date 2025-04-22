@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 22 Apr 2025 13:15:45 UTC for commit [670fec8][0]._
+_Generated on Tue, 22 Apr 2025 16:26:00 UTC for commit [a77066b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/670fec841122e84f60a3cf8dc506a7595004d81d
+[0]: https://github.com/cri-o/cri-o/commit/a77066b79f36fb2a2500bbdba7bf10a462e7e9c6
 
 ## Outdated Dependencies
 
@@ -423,7 +423,7 @@ _Generated on Tue, 22 Apr 2025 13:15:45 UTC for commit [670fec8][0]._
 | github.com/google/go-intervals                                                      | v0.0.2                                        |                                     | false  | true             |
 | github.com/google/go-querystring                                                    | v1.1.0                                        |                                     | false  | true             |
 | github.com/google/gofuzz                                                            | v1.2.0                                        |                                     | false  | true             |
-| github.com/google/pprof                                                             | v0.0.0-20241210010833-40e02aabc2ad            | v0.0.0-20250418163039-24c5476c6587  | false  | true             |
+| github.com/google/pprof                                                             | v0.0.0-20241210010833-40e02aabc2ad            | v0.0.0-20250422154841-e1f9c1950416  | false  | true             |
 | github.com/google/renameio                                                          | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                           | v0.6.0                                        |                                     | false  | true             |
 | github.com/google/s2a-go                                                            | v0.1.9                                        |                                     | false  | true             |
@@ -738,9 +738,9 @@ _Generated on Tue, 22 Apr 2025 13:15:45 UTC for commit [670fec8][0]._
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9            | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                               | v0.218.0                                      | v0.229.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                        | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697            | v0.0.0-20250421163800-61c742ae3ef0  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250421163800-61c742ae3ef0  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250421163800-61c742ae3ef0  | false  | true             |
+| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
 | google.golang.org/grpc                                                              | v1.71.0                                       | v1.72.0                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                        |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.6                                       |                                     | true   | true             |
