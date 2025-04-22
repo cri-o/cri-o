@@ -85,6 +85,7 @@ function start_crio_with_stopped_pod() {
 
 	rm "$CONTAINER_VERSION_FILE"
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	rm -f "/run/crio/crio-wipe-done"
 	run_crio_wipe
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
@@ -97,6 +98,7 @@ function start_crio_with_stopped_pod() {
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
 	run_crio_wipe
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
@@ -109,6 +111,7 @@ function start_crio_with_stopped_pod() {
 	stop_crio_no_clean
 
 	rm "$CONTAINER_VERSION_FILE_PERSIST"
+	rm -f "/run/crio/crio-wipe-done"
 	run_crio_wipe
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
@@ -123,6 +126,7 @@ function start_crio_with_stopped_pod() {
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean
+	rm -f "/run/crio/crio-wipe-done"
 
 	run_podman_with_args run --name test -d quay.io/crio/fedora-crio-ci:latest top
 
@@ -137,6 +141,7 @@ function start_crio_with_stopped_pod() {
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
 
 	run_crio_wipe
 
@@ -160,6 +165,7 @@ function start_crio_with_stopped_pod() {
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
 
 	run_crio_wipe
 
@@ -179,6 +185,7 @@ function start_crio_with_stopped_pod() {
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
 	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
 
 	run ! "$CRIO_BINARY_PATH" --config "$CRIO_CONFIG" -d "$CRIO_CONFIG_DIR" wipe
 }
@@ -187,6 +194,7 @@ function start_crio_with_stopped_pod() {
 	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
 	stop_crio_no_clean "-9" || true
 
+	rm -f "/run/crio/crio-wipe-done"
 	run_crio_wipe
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
@@ -201,6 +209,7 @@ function start_crio_with_stopped_pod() {
 
 	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE.supported"
 
+	rm -f "/run/crio/crio-wipe-done"
 	run_crio_wipe
 
 	CONTAINER_INTERNAL_WIPE=false start_crio_no_setup
@@ -375,4 +384,25 @@ function start_crio_with_stopped_pod() {
 		echo "The CRI-O internal repair storage directory wipe did not work" >&3
 		return 1
 	fi
+}
+
+@test "crio-wipe should create /run/crio/crio-wipe-done and not wipe again" {
+	CONTAINER_INTERNAL_WIPE=false start_crio_with_stopped_pod
+	stop_crio_no_clean
+
+	rm "$CONTAINER_CLEAN_SHUTDOWN_FILE"
+	rm "$CONTAINER_VERSION_FILE"
+	rm -f "/run/crio/crio-wipe-done"
+
+	run_crio_wipe
+
+	ls -l /run/crio/crio-wipe-done
+
+	run cat /run/crio/crio-wipe-done
+	[[ "$output" == "done" ]]
+
+	run_crio_wipe
+	[[ ! "$output" == *"Wiping storage directory"* ]]
+
+	ls -l /run/crio/crio-wipe-done
 }
