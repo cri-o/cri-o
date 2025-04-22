@@ -209,12 +209,16 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		}
 
 		if m.GetImage().GetImage() != "" {
-			// Try mountArtifact first, and fall back to mountImage if it fails with ErrNotFound
-			artifactVolumes, err := s.mountArtifact(ctx, specgen, m, mountLabel, skipRelabel, maybeRelabel)
-			if err == nil {
-				volumes = append(volumes, artifactVolumes...)
+			if s.config.OCIArtifactMountSupport {
+				// Try mountArtifact first, and fall back to mountImage if it fails with ErrNotFound
+				artifactVolumes, err := s.mountArtifact(ctx, specgen, m, mountLabel, skipRelabel, maybeRelabel)
+				if err == nil {
+					volumes = append(volumes, artifactVolumes...)
 
-				continue
+					continue
+				}
+			} else {
+				log.Debugf(ctx, "Skipping artifact mount because OCI artifact mount support is disabled")
 			}
 
 			log.Warnf(ctx, "Artifact mount failed with %s. Falling back to image mount", err)

@@ -549,6 +549,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.PullProgressTimeout, c.PullProgressTimeout),
 		},
 		{
+			templateString: templateStringOCIArtifactMountSupport,
+			group:          crioImageConfig,
+			isDefaultValue: simpleEqual(dc.OCIArtifactMountSupport, c.OCIArtifactMountSupport),
+		},
+		{
 			templateString: templateStringCrioNetworkCniDefaultNetwork,
 			group:          crioNetworkConfig,
 			isDefaultValue: simpleEqual(dc.CNIDefaultNetwork, c.CNIDefaultNetwork),
@@ -797,6 +802,11 @@ const templateStringCrioInternalRepair = `# InternalRepair is whether CRI-O shou
 # If it was, CRI-O also attempts to repair the storage.
 {{ $.Comment }}internal_repair = {{ .InternalRepair }}
 
+`
+
+const templateStringOCIArtifactMountSupport = `# OCIArtifactMountSupport is whether CRI-O should support OCI artifacts.
+# If set to false, mounting OCI Artifacts will result in an error.
+{{ $.Comment }}oci_artifact_mount_support = {{ .OCIArtifactMountSupport }}
 `
 
 const templateStringCrioAPI = `# The crio.api table contains settings for the kubelet/gRPC interface.

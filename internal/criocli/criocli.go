@@ -433,6 +433,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.InternalRepair = ctx.Bool("internal-repair")
 	}
 
+	if ctx.IsSet("oci-artifact-mount-support") {
+		config.OCIArtifactMountSupport = ctx.Bool("oci-artifact-mount-support")
+	}
+
 	if ctx.IsSet("enable-metrics") {
 		config.EnableMetrics = ctx.Bool("enable-metrics")
 	}
@@ -1265,6 +1269,12 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Usage:   "If true, CRI-O will check if the container and image storage was corrupted after a sudden restart, and attempt to repair the storage if it was.",
 			EnvVars: []string{"CONTAINER_INTERNAL_REPAIR"},
 			Value:   defConf.InternalRepair,
+		},
+		&cli.BoolFlag{
+			Name:    "oci-artifact-mount-support",
+			Usage:   "If true, CRI-O can mount OCI artifacts as volumes.",
+			EnvVars: []string{"CONTAINER_OCI_ARTIFACT_SUPPORT"},
+			Value:   defConf.OCIArtifactMountSupport,
 		},
 		&cli.StringFlag{
 			Name:    "infra-ctr-cpuset",

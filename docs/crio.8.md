@@ -93,6 +93,7 @@ crio
 [--nri-plugin-dir]=[value]
 [--nri-plugin-registration-timeout]=[value]
 [--nri-plugin-request-timeout]=[value]
+[--oci-artifact-mount-support]
 [--pause-command]=[value]
 [--pause-image-auth-file]=[value]
 [--pause-image]=[value]
@@ -362,6 +363,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--nri-plugin-registration-timeout**="": Timeout for a plugin to register itself with NRI. (default: 5s)
 
 **--nri-plugin-request-timeout**="": Timeout for a plugin to handle an NRI request. (default: 2s)
+
+**--oci-artifact-mount-support**: If true, CRI-O can mount OCI artifacts as volumes.
 
 **--pause-command**="": Path to the pause executable in the pause image. (default: "/pause")
 

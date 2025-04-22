@@ -574,6 +574,8 @@ type ImageConfig struct {
 	// calculating the pull progress interval to pullProgressTimeout / 10.
 	// Can be set to 0 to disable the timeout as well as the progress output.
 	PullProgressTimeout time.Duration `toml:"pull_progress_timeout"`
+	// OCIArtifactMountSupport is used to determine if CRI-O should support OCI Artifacts.
+	OCIArtifactMountSupport bool `toml:"oci_artifact_mount_support"`
 }
 
 // NetworkConfig represents the "crio.network" TOML config table.
@@ -930,12 +932,13 @@ func DefaultConfig() (*Config, error) {
 		},
 		RuntimeConfig: *DefaultRuntimeConfig(cgroupManager),
 		ImageConfig: ImageConfig{
-			DefaultTransport:    "docker://",
-			PauseImage:          DefaultPauseImage,
-			PauseCommand:        "/pause",
-			ImageVolumes:        ImageVolumesMkdir,
-			SignaturePolicyDir:  "/etc/crio/policies",
-			PullProgressTimeout: 0,
+			DefaultTransport:        "docker://",
+			PauseImage:              DefaultPauseImage,
+			PauseCommand:            "/pause",
+			ImageVolumes:            ImageVolumesMkdir,
+			SignaturePolicyDir:      "/etc/crio/policies",
+			PullProgressTimeout:     0,
+			OCIArtifactMountSupport: true,
 		},
 		NetworkConfig: NetworkConfig{
 			NetworkDir: cniConfigDir,

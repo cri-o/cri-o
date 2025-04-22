@@ -497,6 +497,10 @@ If true, CRI-O will automatically reload the mirror registry when there is an up
 **pull_progress_timeout**="0s"
 The timeout for an image pull to make progress until the pull operation gets canceled. This value will be also used for calculating the pull progress interval to pull_progress_timeout / 10. Can be set to 0 to disable the timeout as well as the progress output.
 
+**oci_artifact_mount_support**=true
+This option is whether CRI-O enables OCI Artifact mount.
+If true, CRI-O can mount OCI artifacts as volumes.
+
 ## CRIO.NETWORK TABLE
 
 The `crio.network` table containers settings pertaining to the management of CNI plugins.
