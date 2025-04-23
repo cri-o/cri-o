@@ -1,6 +1,7 @@
 package statsserver
 
 import (
+	"math"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
@@ -38,6 +39,17 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 			desc: containerMemorySwap,
 			valueFunc: func() metricValues {
 				return metricValues{{value: mem.SwapUsage, metricType: types.MetricType_GAUGE}}
+			},
+		},
+		{
+			desc: containerSpecMemoryLimitBytes,
+			valueFunc: func() metricValues {
+				limit := mem.Limit
+				if limit == math.MaxUint64 {
+					// For unlimited memory, use the system's memory limit
+					limit = cgmgr.MemLimitGivenSystem(limit)
+				}
+				return metricValues{{value: limit, metricType: types.MetricType_GAUGE}}
 			},
 		},
 		{
