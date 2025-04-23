@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 
 	modelSpec "github.com/CloudNativeAI/model-spec/specs-go/v1"
 	"github.com/containers/common/libimage"
@@ -511,7 +512,16 @@ type BlobMountPath struct {
 	// Source path of the blob, i.e. full path in the blob dir.
 	SourcePath string
 	// Name of the file in the artifact.
-	Name string
+	Name        string
+	cleanupFunc func()
+	cleanupOnce *sync.Once
+}
+
+// Cleanup triggers the deletion of the extracted directory.
+func (b *BlobMountPath) Cleanup() {
+	if b.cleanupFunc != nil && b.cleanupOnce != nil {
+		b.cleanupOnce.Do(b.cleanupFunc)
+	}
 }
 
 // BlobMountPaths retrieves the local file paths for all blobs in the provided artifact and returns them as BlobMountPath slices.
@@ -526,6 +536,17 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 		return nil, fmt.Errorf("failed to create artifact dir: %w", err)
 	}
 
+	cleanupFunc := func() { os.RemoveAll(extractDir) }
+	cleanupOnce := &sync.Once{}
+
+	// Cleanup on function exit if we encounter an error
+	cleanup := true
+	defer func() {
+		if cleanup {
+			os.RemoveAll(extractDir)
+		}
+	}()
+
 	src, err := ref.NewImageSource(ctx, sys)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get an image source: %w", err)
@@ -536,41 +557,48 @@ func (s *Store) BlobMountPaths(ctx context.Context, artifact *Artifact, sys *typ
 	bic := blobinfocache.DefaultCache(s.systemContext)
 
 	for _, l := range artifact.Manifest().Layers {
-		func() {
+		err = func() error {
 			blob, _, err := s.impl.GetBlob(ctx, src, types.BlobInfo{Digest: l.Digest}, bic)
 			if err != nil {
-				log.Errorf(ctx, "Failed to get blob: %v", err)
-
-				return
+				return fmt.Errorf("failed to get blob: %w", err)
 			}
 			defer blob.Close()
 
 			content, err := s.processLayerContent(l.MediaType, blob)
 			if err != nil {
-				log.Errorf(ctx, "Failed to process layer: %v", err)
-
-				return
+				return fmt.Errorf("failed to process layer: %w", err)
 			}
 
 			name := artifactName(l.Annotations)
 			if name == "" {
 				log.Warnf(ctx, "Unable to find name for artifact layer which makes it not mountable")
 
-				return
+				return nil
 			}
 
 			filePath := filepath.Join(extractDir, name)
 			if err := os.WriteFile(filePath, content, 0o644); err != nil {
 				log.Errorf(ctx, "Failed to write file: %v", err)
+				os.Remove(filePath)
+				return err
 			}
 
 			mountPaths = append(mountPaths, BlobMountPath{
-				SourcePath: filePath,
-				Name:       name,
+				SourcePath:  filePath,
+				Name:        name,
+				cleanupFunc: cleanupFunc,
+				cleanupOnce: cleanupOnce,
 			})
+			return nil
 		}()
+		// If any layer extraction fails, abort the entire operation.
+		if err != nil {
+			return nil, fmt.Errorf("failed to extract artifact layer: %w", err)
+		}
 	}
-
+	// Disable cleanup on success.
+	// mountArtifact() will handle the cleanup.
+	cleanup = false
 	return mountPaths, nil
 }
 

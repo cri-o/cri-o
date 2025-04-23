@@ -285,4 +285,27 @@ EOF
 	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
 	run crictl exec "$ctr_id" sha256sum /root/artifact/cri-o/bin/crio
 	[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+
+@test "should extract mounted image artifact files correctly" {
+	start_crio
+	IMAGE="quay.io/sohankunkerkar/test-artifact:v1"
+	crictl pull "$IMAGE"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg IMAGE "$IMAGE" \
+		'.mounts = [{
+			container_path: "/root/artifacts",
+			image: { image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	run crictl exec --sync "$ctr_id" cat /root/artifacts/zstd.txt
+	[ "$output" == "This is a zstd-compressed file" ]
+
+	# Cleanup
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl rmi "$IMAGE"
 }

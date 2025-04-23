@@ -422,6 +422,15 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 		return nil, fmt.Errorf("failed to get artifact blob mount paths: %w", err)
 	}
 
+	// Cleanup extracted folder after use.
+	defer func() {
+		// All paths share the same cleanup function and sync.Once, so calling
+		// Cleanup() on any path will clean up the entire extraction directory.
+		for _, path := range paths {
+			path.Cleanup()
+		}
+	}()
+
 	options := []string{"bind", "ro"}
 	volumes := make([]oci.ContainerVolume, 0, len(paths))
 	selinuxRelabel := true
