@@ -289,7 +289,7 @@ func (s *Store) buildArtifact(ctx context.Context, item *layout.ListResult) (*Ar
 		return nil, fmt.Errorf("convert manifest: %w", err)
 	}
 
-	manifestBytes, err := s.impl.MarshalJSON(mani)
+	manifestBytes, err := s.impl.ToJSON(mani)
 	if err != nil {
 		return nil, fmt.Errorf("marshal manifest: %w", err)
 	}
