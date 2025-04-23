@@ -204,3 +204,27 @@ ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 	crictl rm "$ctr_id"
 	crictl rmi "$ARTIFACT_IMAGE"
 }
+
+@test "should extract mounted image artifact files correctly" {
+	start_crio
+	IMAGE="quay.io/sohankunkerkar/test-artifact:v1"
+	crictl pull "$IMAGE"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg IMAGE "$IMAGE" \
+		'.mounts = [{
+			container_path: "/root/artifacts",
+			image: { image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	run crictl exec --sync "$ctr_id" cat /root/artifacts/zstd.txt
+	[ "$output" == "This is a zstd-compressed file" ]
+
+	# Cleanup
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl rmi "$IMAGE"
+}
