@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
+_Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/728f130283a6b4125faf6b3af223789a29b4300b
+[0]: https://github.com/cri-o/cri-o/commit/17ac08c0c9976930f7d66896307bf46249223b1c
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424015914-8b49564c0161 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424150122-706c2e2d68c3 | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
@@ -145,7 +145,7 @@ _Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
 | cloud.google.com/go/securitycenter                                                  | v1.35.2                                       | v1.36.2                             | false  | true             |
 | cloud.google.com/go/servicedirectory                                                | v1.12.2                                       | v1.12.6                             | false  | true             |
 | cloud.google.com/go/shell                                                           | v1.8.2                                        | v1.8.6                              | false  | true             |
-| cloud.google.com/go/spanner                                                         | v1.73.0                                       | v1.79.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                         | v1.73.0                                       | v1.80.0                             | false  | true             |
 | cloud.google.com/go/speech                                                          | v1.25.2                                       | v1.27.1                             | false  | true             |
 | cloud.google.com/go/storage                                                         | v1.45.0                                       | v1.52.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                 | v1.11.2                                       | v1.12.4                             | false  | true             |
@@ -479,7 +479,7 @@ _Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424015914-8b49564c0161  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424150122-706c2e2d68c3  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -611,7 +611,7 @@ _Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
 | github.com/sergi/go-diff                                                            | v1.3.2-0.20230802210424-5b0b94c5c0d3          |                                     | false  | true             |
 | github.com/shibumi/go-pathspec                                                      | v1.3.0                                        |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                                       | v2.4.1                                        | v2.5.0                              | false  | true             |
-| github.com/sigstore/fulcio                                                          | v1.6.6                                        | v1.7.0                              | false  | true             |
+| github.com/sigstore/fulcio                                                          | v1.6.6                                        | v1.7.1                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                                  | v0.4.0                                        | v0.4.1                              | false  | true             |
 | github.com/sigstore/rekor                                                           | v1.3.9                                        | v1.3.10                             | false  | true             |
 | github.com/sigstore/sigstore                                                        | v1.9.1                                        | v1.9.3                              | false  | true             |
