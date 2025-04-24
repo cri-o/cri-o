@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 23 Apr 2025 19:51:36 UTC for commit [2f2b3ab][0]._
+_Generated on Thu, 24 Apr 2025 10:02:17 UTC for commit [728f130][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2f2b3abcd49a39436bbd2e96f4c09078f7fea2be
+[0]: https://github.com/cri-o/cri-o/commit/728f130283a6b4125faf6b3af223789a29b4300b
 
 ## Outdated Dependencies
 
@@ -14,22 +14,23 @@ _Generated on Wed, 23 Apr 2025 19:51:36 UTC for commit [2f2b3ab][0]._
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250423192142-6102976d2de6 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424015914-8b49564c0161 | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
 | github.com/prometheus/client_golang                    | v1.22.0-rc.0                                  | v1.22.0                            | true   | true             |
+| github.com/seccomp/libseccomp-golang                   | v0.10.0                                       | v0.11.0                            | true   | true             |
 | go.uber.org/mock                                       | v0.5.0                                        | v0.5.1                             | true   | true             |
 | golang.org/x/net                                       | v0.38.0                                       | v0.39.0                            | true   | true             |
 | golang.org/x/sync                                      | v0.12.0                                       | v0.13.0                            | true   | true             |
 | golang.org/x/sys                                       | v0.31.0                                       | v0.32.0                            | true   | true             |
 | google.golang.org/grpc                                 | v1.71.0                                       | v1.72.0                            | true   | true             |
-| k8s.io/api                                             | v0.32.3                                       | v0.32.4                            | true   | true             |
-| k8s.io/apimachinery                                    | v0.32.3                                       | v0.32.4                            | true   | true             |
-| k8s.io/client-go                                       | v0.32.3                                       | v0.32.4                            | true   | true             |
-| k8s.io/cri-api                                         | v0.33.0-beta.0.0.20250324233632-87ee4e17aba6  | v0.34.0-alpha.0                    | true   | true             |
-| k8s.io/cri-client                                      | v0.31.0-alpha.0.0.20250321074236-bc20b67fdb8f | v0.32.4                            | true   | true             |
-| k8s.io/kubelet                                         | v0.32.3                                       | v0.32.4                            | true   | true             |
+| k8s.io/api                                             | v0.32.3                                       | v0.33.0                            | true   | true             |
+| k8s.io/apimachinery                                    | v0.32.3                                       | v0.33.0                            | true   | true             |
+| k8s.io/client-go                                       | v0.32.3                                       | v0.33.0                            | true   | true             |
+| k8s.io/cri-api                                         | v0.33.0-beta.0.0.20250324233632-87ee4e17aba6  | v0.33.0                            | true   | true             |
+| k8s.io/cri-client                                      | v0.31.0-alpha.0.0.20250321074236-bc20b67fdb8f | v0.33.0                            | true   | true             |
+| k8s.io/kubelet                                         | v0.32.3                                       | v0.33.0                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241210054802-24370beab758            | v0.0.0-20250321185631-1f6e0b77f77e | true   | true             |
 
 ## All Dependencies
@@ -478,7 +479,7 @@ _Generated on Wed, 23 Apr 2025 19:51:36 UTC for commit [2f2b3ab][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250423192142-6102976d2de6  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424015914-8b49564c0161  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -604,7 +605,7 @@ _Generated on Wed, 23 Apr 2025 19:51:36 UTC for commit [2f2b3ab][0]._
 | github.com/sassoftware/relic                                                        | v7.2.1+incompatible                           |                                     | false  | true             |
 | github.com/sassoftware/relic/v7                                                     | v7.6.2                                        |                                     | false  | true             |
 | github.com/sebdah/goldie/v2                                                         | v2.5.5                                        |                                     | false  | true             |
-| github.com/seccomp/libseccomp-golang                                                | v0.10.0                                       |                                     | true   | true             |
+| github.com/seccomp/libseccomp-golang                                                | v0.10.0                                       | v0.11.0                             | true   | true             |
 | github.com/secure-systems-lab/go-securesystemslib                                   | v0.9.0                                        |                                     | false  | true             |
 | github.com/segmentio/ksuid                                                          | v1.0.4                                        |                                     | false  | true             |
 | github.com/sergi/go-diff                                                            | v1.3.2-0.20230802210424-5b0b94c5c0d3          |                                     | false  | true             |
@@ -763,18 +764,18 @@ _Generated on Wed, 23 Apr 2025 19:51:36 UTC for commit [2f2b3ab][0]._
 | gotest.tools                                                                        | v2.2.0+incompatible                           |                                     | false  | true             |
 | gotest.tools/v3                                                                     | v3.5.2                                        |                                     | false  | true             |
 | honnef.co/go/tools                                                                  | v0.0.0-20190523083050-ea95bdfd59fc            | v0.6.1                              | false  | true             |
-| k8s.io/api                                                                          | v0.32.3                                       | v0.32.4                             | true   | true             |
-| k8s.io/apimachinery                                                                 | v0.32.3                                       | v0.32.4                             | true   | true             |
-| k8s.io/apiserver                                                                    | v0.32.3                                       | v0.32.4                             | false  | true             |
-| k8s.io/client-go                                                                    | v0.32.3                                       | v0.32.4                             | true   | true             |
-| k8s.io/component-base                                                               | v0.32.3                                       | v0.32.4                             | false  | true             |
-| k8s.io/cri-api                                                                      | v0.33.0-beta.0.0.20250324233632-87ee4e17aba6  | v0.34.0-alpha.0                     | true   | true             |
-| k8s.io/cri-client                                                                   | v0.31.0-alpha.0.0.20250321074236-bc20b67fdb8f | v0.32.4                             | true   | true             |
+| k8s.io/api                                                                          | v0.32.3                                       | v0.33.0                             | true   | true             |
+| k8s.io/apimachinery                                                                 | v0.32.3                                       | v0.33.0                             | true   | true             |
+| k8s.io/apiserver                                                                    | v0.32.3                                       | v0.33.0                             | false  | true             |
+| k8s.io/client-go                                                                    | v0.32.3                                       | v0.33.0                             | true   | true             |
+| k8s.io/component-base                                                               | v0.32.3                                       | v0.33.0                             | false  | true             |
+| k8s.io/cri-api                                                                      | v0.33.0-beta.0.0.20250324233632-87ee4e17aba6  | v0.33.0                             | true   | true             |
+| k8s.io/cri-client                                                                   | v0.31.0-alpha.0.0.20250321074236-bc20b67fdb8f | v0.33.0                             | true   | true             |
 | k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7            | v2.0.0-20250207200755-1244d31929d7  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                                      |                                     | true   | true             |
-| k8s.io/kms                                                                          | v0.32.3                                       | v0.32.4                             | false  | true             |
+| k8s.io/kms                                                                          | v0.32.3                                       | v0.33.0                             | false  | true             |
 | k8s.io/kube-openapi                                                                 | v0.0.0-20250318190949-c8a335a9a2ff            |                                     | false  | true             |
-| k8s.io/kubelet                                                                      | v0.32.3                                       | v0.32.4                             | true   | true             |
+| k8s.io/kubelet                                                                      | v0.32.3                                       | v0.33.0                             | true   | true             |
 | k8s.io/utils                                                                        | v0.0.0-20241210054802-24370beab758            | v0.0.0-20250321185631-1f6e0b77f77e  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                             | v0.31.0                                       | v0.32.0                             | false  | true             |
 | sigs.k8s.io/json                                                                    | v0.0.0-20241010143419-9aa6b5e7a4b3            | v0.0.0-20241014173422-cfa47c3a1cc8  | false  | true             |
