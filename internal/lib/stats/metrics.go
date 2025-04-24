@@ -65,6 +65,7 @@ func (ss *StatsServer) PopulateMetricDescriptors(includedKeys []string) map[stri
 			containerMemoryKernelUsage,
 			containerMemoryMappedFile,
 			containerMemorySwap,
+			containerSpecMemoryLimitBytes,
 			containerMemoryFailcnt,
 			containerMemoryUsageBytes,
 			containerMemoryMaxUsageBytes,

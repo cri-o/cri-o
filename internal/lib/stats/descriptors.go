@@ -63,6 +63,11 @@ var (
 		Help:      "Container swap usage in bytes.",
 		LabelKeys: baseLabelKeys,
 	}
+	containerSpecMemoryLimitBytes = &types.MetricDescriptor{
+		Name:      "container_spec_memory_limit_bytes",
+		Help:      "Memory limit for the container in bytes.",
+		LabelKeys: baseLabelKeys,
+	}
 	containerMemoryFailcnt = &types.MetricDescriptor{
 		Name:      "container_memory_failcnt",
 		Help:      "Number of memory usage hits limits",
