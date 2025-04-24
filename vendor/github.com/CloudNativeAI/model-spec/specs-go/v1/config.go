@@ -38,7 +38,7 @@ type ModelConfig struct {
 	Precision string `json:"precision,omitempty"`
 
 	// The model quantization, such as awq, gptq, etc
-	Quantization string `json:"puantization,omitempty"`
+	Quantization string `json:"quantization,omitempty"`
 }
 
 // ModelFS describes a layer content addresses
