@@ -169,7 +169,18 @@ func (s *Store) PullManifest(
 	}
 
 	if slices.Contains(imageMimeTypes, mimeType) && slices.Contains(configMediaTypes, mediaType) {
-		return nil, ErrIsAnImage
+		ociManifest, err := manifest.OCI1FromManifest(manifestBytes)
+		// Unable to parse an OCI manifest, assume an image
+		if err != nil {
+			return nil, ErrIsAnImage
+		}
+
+		// No artifact type set, assume an image
+		if ociManifest.ArtifactType == "" {
+			return nil, ErrIsAnImage
+		}
+
+		log.Debugf(ctx, "Found artifact type: %s", ociManifest.ArtifactType)
 	}
 
 	log.Infof(ctx, "Pulling OCI artifact %s with manifest mime type %q and config media type %q", strRef, mimeType, mediaType)
