@@ -11,7 +11,7 @@ function teardown() {
 	cleanup_test
 }
 
-ARTIFACT_REPO=quay.io/crio/artifact
+ARTIFACT_REPO=quay.io/sohankunkerkar/artifact
 ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 
 @test "should be able to pull and list an OCI artifact" {
@@ -75,7 +75,7 @@ ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 	crictl inspecti "${imageId:0:12}"
 
 	# shortname
-	crictl inspecti crio/artifact:singlefile
+	crictl inspecti sohankunkerkar/artifact:singlefile
 }
 
 @test "should be able to remove an OCI artifact" {
