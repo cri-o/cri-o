@@ -87,6 +87,8 @@ type Container struct {
 	// To avoid race condition, it must be used with monitorProcessLock.
 	monitorProcess     *os.Process
 	monitorProcessLock sync.Mutex
+	cleanups           []func()
+	cleanupOnce        *sync.Once
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -965,4 +967,19 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		c.state.ContainerMonitorProcess = nil
 		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
 	}
+}
+
+func (c *Container) AddCleanup(cleanup func()) {
+	c.cleanups = append(c.cleanups, cleanup)
+}
+
+func (c *Container) Cleanup() {
+	if c.cleanupOnce == nil {
+		c.cleanupOnce = &sync.Once{}
+	}
+	c.cleanupOnce.Do(func() {
+		for _, cleanup := range c.cleanups {
+			cleanup()
+		}
+	})
 }

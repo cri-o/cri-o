@@ -694,6 +694,7 @@ func (r *runtimeVM) StopContainer(ctx context.Context, c *Container, timeout int
 		return err
 	}
 
+	c.Cleanup()
 	c.state.Finished = time.Now()
 
 	return nil
