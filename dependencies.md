@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
+_Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/17ac08c0c9976930f7d66896307bf46249223b1c
+[0]: https://github.com/cri-o/cri-o/commit/2da33c46b9112c3fa32ed2be7ad03a368e511a94
 
 ## Outdated Dependencies
 
@@ -14,7 +14,7 @@ _Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424150122-706c2e2d68c3 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250425080431-213f9ddd3061 | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
@@ -334,7 +334,7 @@ _Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 | github.com/coreos/go-oidc/v3                                                        | v3.12.0                                       | v3.14.1                             | false  | true             |
 | github.com/coreos/go-semver                                                         | v0.3.1                                        |                                     | false  | true             |
 | github.com/coreos/go-systemd/v22                                                    | v22.5.1-0.20231103132048-7d375ecc2b09         |                                     | true   | true             |
-| github.com/cpuguy83/go-md2man/v2                                                    | v2.0.6                                        |                                     | false  | true             |
+| github.com/cpuguy83/go-md2man/v2                                                    | v2.0.6                                        | v2.0.7                              | false  | true             |
 | github.com/creack/pty                                                               | v1.1.24                                       |                                     | true   | true             |
 | github.com/cri-o/ocicni                                                             | v0.4.3                                        |                                     | true   | true             |
 | github.com/cyberphone/json-canonicalization                                         | v0.0.0-20241213102144-19d51d7fe467            |                                     | false  | true             |
@@ -479,7 +479,7 @@ _Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250424150122-706c2e2d68c3  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250425080431-213f9ddd3061  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -502,7 +502,7 @@ _Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                                       | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec            | v0.0.0-20250422232522-dc8fa5a95ff2  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec            | v0.0.0-20250425003313-42138ff2da96  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                        | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -614,12 +614,12 @@ _Generated on Thu, 24 Apr 2025 18:15:09 UTC for commit [17ac08c][0]._
 | github.com/sigstore/fulcio                                                          | v1.6.6                                        | v1.7.1                              | false  | true             |
 | github.com/sigstore/protobuf-specs                                                  | v0.4.0                                        | v0.4.1                              | false  | true             |
 | github.com/sigstore/rekor                                                           | v1.3.9                                        | v1.3.10                             | false  | true             |
-| github.com/sigstore/sigstore                                                        | v1.9.1                                        | v1.9.3                              | false  | true             |
+| github.com/sigstore/sigstore                                                        | v1.9.1                                        | v1.9.4                              | false  | true             |
 | github.com/sigstore/sigstore-go                                                     | v0.6.1                                        | v0.7.2                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/aws                                  | v1.8.12                                       | v1.9.3                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/azure                                | v1.8.12                                       | v1.9.3                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                  | v1.8.12                                       | v1.9.3                              | false  | true             |
-| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                           | v1.8.12                                       | v1.9.3                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/aws                                  | v1.8.12                                       | v1.9.4                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/azure                                | v1.8.12                                       | v1.9.4                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/gcp                                  | v1.8.12                                       | v1.9.4                              | false  | true             |
+| github.com/sigstore/sigstore/pkg/signature/kms/hashivault                           | v1.8.12                                       | v1.9.4                              | false  | true             |
 | github.com/sigstore/timestamp-authority                                             | v1.2.2                                        | v1.2.6                              | false  | true             |
 | github.com/sirupsen/logrus                                                          | v1.9.3                                        |                                     | true   | true             |
 | github.com/skeema/knownhosts                                                        | v1.3.0                                        | v1.3.1                              | false  | true             |
