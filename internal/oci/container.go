@@ -83,6 +83,8 @@ type Container struct {
 	execPIDs              map[int]bool
 	runtimeUser           *types.ContainerUser
 	monitorProcess        *os.Process
+	cleanups              []func()
+	cleanupOnce           *sync.Once
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -954,4 +956,17 @@ func (c *Container) SetMonitorProcess(ctx context.Context) {
 		c.state.ContainerMonitorProcess = nil
 		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
 	}
+func (c *Container) AddCleanup(cleanup func()) {
+	c.cleanups = append(c.cleanups, cleanup)
+}
+
+func (c *Container) Cleanup() {
+	if c.cleanupOnce == nil {
+		c.cleanupOnce = &sync.Once{}
+	}
+	c.cleanupOnce.Do(func() {
+		for _, cleanup := range c.cleanups {
+			cleanup()
+		}
+	})
 }

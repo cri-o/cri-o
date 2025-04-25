@@ -807,7 +807,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}()
 
-	containerVolumes, ociMounts, safeMounts, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
+	containerVolumes, ociMounts, safeMounts, cleanups, err := s.addOCIBindMounts(ctx, ctr, &containerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport)
 	if err != nil {
 		return nil, err
 	}
@@ -1361,6 +1361,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 	for _, cv := range containerVolumes {
 		ociContainer.AddVolume(cv)
+	}
+
+	for _, cleanup := range cleanups {
+		ociContainer.AddCleanup(cleanup)
 	}
 
 	return ociContainer, nil
