@@ -54,6 +54,7 @@ func generateSandboxMemoryMetrics(sb *sandbox.Sandbox, mem *cgmgr.MemoryStats) [
 				if limit > maxMemorySize {
 					return metricValues{{value: 0, metricType: types.MetricType_GAUGE}}
 				}
+
 				return metricValues{{value: limit, metricType: types.MetricType_GAUGE}}
 			},
 		},
