@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
+_Generated on Mon, 28 Apr 2025 10:10:05 UTC for commit [436064b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/2da33c46b9112c3fa32ed2be7ad03a368e511a94
+[0]: https://github.com/cri-o/cri-o/commit/436064b4b5bb412ebe1f569c3d3a236738440d3d
 
 ## Outdated Dependencies
 
@@ -10,11 +10,12 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 |--------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                    | v0.0.3                                        | v0.0.4                             | true   | true             |
 | github.com/containernetworking/cni                     | v1.2.3                                        | v1.3.0                             | true   | true             |
+| github.com/containernetworking/plugins                 | v1.6.2                                        | v1.7.1                             | true   | true             |
 | github.com/containers/common                           | v0.62.2                                       | v0.63.0                            | true   | true             |
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250425080431-213f9ddd3061 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250428090507-4f703e376b5b | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
@@ -172,7 +173,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/AdaLogics/go-fuzz-headers                                                | v0.0.0-20230811130428-ced1acdcaa24            | v0.0.0-20240806141605-e8a1dd7889d6  | false  | true             |
 | github.com/AdamKorcz/go-118-fuzz-build                                              | v0.0.0-20230306123547-8075edf89bb0            | v0.0.0-20231105174938-2b5cbb29f3e2  | false  | true             |
 | github.com/AdamKorcz/go-fuzz-headers-1                                              | v0.0.0-20230919221257-8b5d3ce2d11d            |                                     | false  | true             |
-| github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/provider             | v0.14.0                                       | v0.17.0                             | false  | true             |
+| github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/provider             | v0.14.0                                       | v0.18.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                   | v68.0.0+incompatible                          |                                     | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azcore                                        | v1.17.0                                       | v1.18.0                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go/sdk/azidentity                                    | v1.8.0                                        | v1.9.0                              | false  | true             |
@@ -263,7 +264,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/blang/semver                                                             | v3.5.1+incompatible                           |                                     | false  | true             |
 | github.com/blang/semver/v4                                                          | v4.0.0                                        |                                     | true   | true             |
 | github.com/buger/jsonparser                                                         | v1.1.1                                        |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                       | v3.81.0                                       | v3.96.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                       | v3.81.0                                       | v3.97.0                             | false  | true             |
 | github.com/buildkite/go-pipeline                                                    | v0.13.1                                       | v0.13.3                             | false  | true             |
 | github.com/buildkite/interpolate                                                    | v0.1.3                                        | v0.1.5                              | false  | true             |
 | github.com/buildkite/roko                                                           | v1.2.0                                        | v1.3.1                              | false  | true             |
@@ -319,7 +320,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/containerd/typeurl/v2                                                    | v2.2.3                                        |                                     | false  | true             |
 | github.com/containerd/zfs                                                           | v1.1.0                                        | v1.2.0                              | false  | true             |
 | github.com/containernetworking/cni                                                  | v1.2.3                                        | v1.3.0                              | true   | true             |
-| github.com/containernetworking/plugins                                              | v1.6.2                                        |                                     | true   | true             |
+| github.com/containernetworking/plugins                                              | v1.6.2                                        | v1.7.1                              | true   | true             |
 | github.com/containers/common                                                        | v0.62.2                                       | v0.63.0                             | true   | true             |
 | github.com/containers/conmon                                                        | v2.0.20+incompatible                          |                                     | true   | true             |
 | github.com/containers/conmon-rs                                                     | v0.6.6                                        |                                     | true   | true             |
@@ -433,7 +434,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/google/renameio                                                          | v1.0.1                                        |                                     | true   | true             |
 | github.com/google/rpmpack                                                           | v0.6.0                                        |                                     | false  | true             |
 | github.com/google/s2a-go                                                            | v0.1.9                                        |                                     | false  | true             |
-| github.com/google/trillian                                                          | v1.7.1                                        |                                     | false  | true             |
+| github.com/google/trillian                                                          | v1.7.1                                        | v1.7.2                              | false  | true             |
 | github.com/google/uuid                                                              | v1.6.0                                        |                                     | true   | true             |
 | github.com/google/wire                                                              | v0.6.0                                        |                                     | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                  | v0.3.4                                        | v0.3.6                              | false  | true             |
@@ -479,7 +480,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250425080431-213f9ddd3061  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250428090507-4f703e376b5b  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -502,7 +503,7 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                                       | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                        |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243            | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec            | v0.0.0-20250425003313-42138ff2da96  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec            | v0.0.0-20250425222450-0038149c792d  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                        | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                        |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158           | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -688,11 +689,11 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | github.com/ysmood/got                                                               | v0.40.0                                       |                                     | false  | true             |
 | github.com/ysmood/gson                                                              | v0.7.3                                        |                                     | false  | true             |
 | github.com/ysmood/leakless                                                          | v0.9.0                                        |                                     | false  | true             |
-| github.com/yuin/goldmark                                                            | v1.4.13                                       | v1.7.10                             | false  | true             |
+| github.com/yuin/goldmark                                                            | v1.4.13                                       | v1.7.11                             | false  | true             |
 | github.com/zalando/go-keyring                                                       | v0.2.3                                        | v0.2.6                              | false  | true             |
 | github.com/zeebo/errs                                                               | v1.3.0                                        | v1.4.0                              | false  | true             |
 | github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c            | v0.0.0-20250418211859-7510c141e4b7  | false  | true             |
-| github.com/zmap/zlint/v3                                                            | v3.6.0                                        | v3.6.5                              | false  | true             |
+| github.com/zmap/zlint/v3                                                            | v3.6.0                                        | v3.6.6                              | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                             | v0.0.0-20220601114329-47893b162965            | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
 | go.etcd.io/bbolt                                                                    | v1.4.0                                        |                                     | false  | true             |
 | go.etcd.io/etcd/api/v3                                                              | v3.5.16                                       | v3.5.21                             | false  | true             |
@@ -744,9 +745,9 @@ _Generated on Fri, 25 Apr 2025 08:47:14 UTC for commit [2da33c4][0]._
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9            | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                               | v0.218.0                                      | v0.230.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                        | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250422160041-2d3770c4ea7f  | false  | true             |
+| google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697            | v0.0.0-20250425173222-7b384671a197  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250425173222-7b384671a197  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250425173222-7b384671a197  | false  | true             |
 | google.golang.org/grpc                                                              | v1.71.0                                       | v1.72.0                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                        |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.6                                       |                                     | true   | true             |
