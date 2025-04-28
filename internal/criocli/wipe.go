@@ -2,6 +2,7 @@ package criocli
 
 import (
 	"errors"
+	"fmt"
 	"os"
 
 	cstorage "github.com/containers/storage"
@@ -63,7 +64,18 @@ func crioWipe(c *cli.Context) error {
 	// Note: this is only needed if the node rebooted.
 	// If there wasn't time to sync, we should clear the storage directory
 	if shouldWipeContainers && lib.ShutdownWasUnclean(config) {
-		return lib.HandleUncleanShutdown(config, store)
+		wipeMarkerFile := "/run/crio/crio-wipe-done"
+		if _, err := os.Stat(wipeMarkerFile); err == nil {
+			logrus.Infof("Unclean shutdown check already succeeded by previous crio wipe command")
+
+			return nil
+		}
+		if err := lib.HandleUncleanShutdown(config, store); err != nil {
+			return fmt.Errorf("failed to handle unclean shutdown %w", err)
+		}
+		if err = os.WriteFile(wipeMarkerFile, []byte("done"), 0o644); err != nil {
+			logrus.Warnf("Failed to create crio wipe marker file: %v", err)
+		}
 	}
 
 	// If crio is configured to wipe internally (and `--force` wasn't set)
