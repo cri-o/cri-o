@@ -11,7 +11,7 @@ function teardown() {
 	cleanup_test
 }
 
-ARTIFACT_REPO=quay.io/crio/artifact
+ARTIFACT_REPO=quay.io/sohankunkerkar/artifact
 ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 
 @test "should be able to pull and list an OCI artifact" {
@@ -75,7 +75,7 @@ ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 	crictl inspecti "${imageId:0:12}"
 
 	# shortname
-	crictl inspecti crio/artifact:singlefile
+	crictl inspecti sohankunkerkar/artifact:singlefile
 }
 
 @test "should be able to remove an OCI artifact" {
@@ -203,4 +203,28 @@ ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 	crictl stop "$ctr_id"
 	crictl rm "$ctr_id"
 	crictl rmi "$ARTIFACT_IMAGE"
+}
+
+@test "should extract mounted image artifact files correctly" {
+	start_crio
+	IMAGE="quay.io/sohankunkerkar/test-artifact:v1"
+	crictl pull "$IMAGE"
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg IMAGE "$IMAGE" \
+		'.mounts = [{
+			container_path: "/root/artifacts",
+			image: { image: $IMAGE },
+			readonly: true
+		}]' \
+		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
+
+	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+
+	run crictl exec --sync "$ctr_id" cat /root/artifacts/zstd.txt
+	[ "$output" == "This is a zstd-compressed file" ]
+
+	# Cleanup
+	crictl stop "$ctr_id"
+	crictl rm "$ctr_id"
+	crictl rmi "$IMAGE"
 }

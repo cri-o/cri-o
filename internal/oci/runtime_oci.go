@@ -919,6 +919,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 		c.state.Finished = time.Now()
 		c.opLock.Unlock()
 		c.SetAsDoneStopping()
+		c.Cleanup()
 	}()
 
 	if c.state.Status == ContainerStatePaused {

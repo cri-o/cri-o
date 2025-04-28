@@ -43,6 +43,7 @@ require (
 	github.com/intel/goresctrl v0.8.0
 	github.com/json-iterator/go v1.1.12
 	github.com/kata-containers/kata-containers/src/runtime v0.0.0-20240208092920-b99f57452225
+	github.com/klauspost/compress v1.18.0
 	github.com/moby/sys/mountinfo v0.7.2
 	github.com/moby/sys/user v0.3.0
 	github.com/moby/sys/userns v0.1.0
@@ -162,7 +163,6 @@ require (
 	github.com/jinzhu/copier v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kevinburke/ssh_config v1.2.0 // indirect
-	github.com/klauspost/compress v1.18.0 // indirect
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/knqyf263/go-plugin v0.8.1-0.20241122101054-d8d42059d8f1 // indirect
 	github.com/letsencrypt/boulder v0.0.0-20240620165639-de9c06129bec // indirect
