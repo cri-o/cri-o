@@ -96,6 +96,7 @@ h
 --nri-plugin-dir
 --nri-plugin-registration-timeout
 --nri-plugin-request-timeout
+--oci-artifact-mount-support
 --pause-command
 --pause-image
 --pause-image-auth-file

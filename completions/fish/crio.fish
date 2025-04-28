@@ -131,6 +131,7 @@ complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-plugin-config-dir -r -
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-plugin-dir -r -d 'Directory to scan for pre-installed NRI plugins to start automatically.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-plugin-registration-timeout -r -d 'Timeout for a plugin to register itself with NRI.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l nri-plugin-request-timeout -r -d 'Timeout for a plugin to handle an NRI request.'
+complete -c crio -n '__fish_crio_no_subcommand' -f -l oci-artifact-mount-support -d 'If true, CRI-O can mount OCI artifacts as volumes.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-command -r -d 'Path to the pause executable in the pause image.'
 complete -c crio -n '__fish_crio_no_subcommand' -f -l pause-image -r -d 'Image which contains the pause executable.'
 complete -c crio -n '__fish_crio_no_subcommand' -l pause-image-auth-file -r -d 'Path to a config file containing credentials for --pause-image.'

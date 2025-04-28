@@ -204,3 +204,24 @@ ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
 	crictl rm "$ctr_id"
 	crictl rmi "$ARTIFACT_IMAGE"
 }
+
+@test "should return error when the OCP Artifact Mount is disabled" {
+	ARTIFACT_CONFIG="$CRIO_CONFIG_DIR/00-disable-artifact.conf"
+	cat << EOF > "$ARTIFACT_CONFIG"
+[crio.image]
+oci_artifact_mount_support = false
+EOF
+	start_crio
+	crictl pull $ARTIFACT_IMAGE
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg ARTIFACT_IMAGE "$ARTIFACT_IMAGE" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE },
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	run ! crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
+
+	rm -f "$ARTIFACT_CONFIG"
+}
