@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/ociartifact"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -217,11 +218,16 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 
 					continue
 				}
+
+				// Don't fallback to an image mount if we already encounter an ErrImageVolumeMountFailed error
+				if errors.Is(err, crierrors.ErrImageVolumeMountFailed) {
+					return nil, nil, nil, err
+				}
+
+				log.Warnf(ctx, "Artifact mount failed, falling back to image mount: %v", err)
 			} else {
 				log.Debugf(ctx, "Skipping artifact mount because OCI artifact mount support is disabled")
 			}
-
-			log.Warnf(ctx, "Artifact mount failed with %s. Falling back to image mount", err)
 
 			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, runDir)
 			if err != nil {
@@ -428,6 +434,12 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 		selinuxRelabel = false
 	}
 
+	paths, err = FilterMountPathsBySubPath(ctx, m.Image.Image, m.ImageSubPath, paths)
+	if err != nil {
+		// This error will get reported directly to the end user
+		return nil, err
+	}
+
 	for _, path := range paths {
 		dest, err := securejoin.SecureJoin(m.ContainerPath, path.Name)
 		if err != nil {
@@ -461,6 +473,34 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 	}
 
 	return volumes, nil
+}
+
+func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, paths []ociartifact.BlobMountPath) (filteredPaths []ociartifact.BlobMountPath, err error) {
+	if subPath == "" || subPath == "." {
+		return paths, nil
+	}
+
+	cleanSubPath := filepath.Clean(subPath) + "/"
+
+	if !slices.ContainsFunc(paths, func(val ociartifact.BlobMountPath) bool {
+		return strings.HasPrefix(val.Name, cleanSubPath)
+	}) {
+		return nil, fmt.Errorf("%w: sub path %q does not exist in OCI artifact volume %q", crierrors.ErrImageVolumeMountFailed, subPath, artifact)
+	}
+
+	for _, path := range paths {
+		if !strings.HasPrefix(path.Name, cleanSubPath) {
+			log.Debugf(ctx, "Skipping to mount artifact path %q because it's not a sub path of %q", path.Name, subPath)
+
+			continue
+		}
+
+		newPath := strings.TrimPrefix(path.Name, cleanSubPath)
+		log.Debugf(ctx, "Modifying artifact mount path from %q to %q because of user specified sub path %q", path.Name, newPath, cleanSubPath)
+		filteredPaths = append(filteredPaths, ociartifact.BlobMountPath{Name: newPath, SourcePath: path.SourcePath})
+	}
+
+	return filteredPaths, nil
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.

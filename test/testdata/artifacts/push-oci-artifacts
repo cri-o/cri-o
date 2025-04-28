@@ -14,3 +14,4 @@ cd "$ARTIFACT_DIR"
 oras push "$REPOSITORY:singlefile" --artifact-type application/x.test.test.test.v1 artifact.txt
 oras push "$REPOSITORY:exec" --artifact-type application/x.test.test.test.v1 artifact.sh
 oras push "$REPOSITORY:multiplefiles" --artifact-type application/x.test.test.test.v1 artifact.txt artifact.sh
+oras push "$REPOSITORY:subpath" --artifact-type application/x.test.test.test.v1 subpath/2:text/plain subpath/3:text/plain

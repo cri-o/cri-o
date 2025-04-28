@@ -13,6 +13,7 @@ function teardown() {
 
 ARTIFACT_REPO=quay.io/crio/artifact
 ARTIFACT_IMAGE="$ARTIFACT_REPO:singlefile"
+ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 
 @test "should be able to pull and list an OCI artifact" {
 	start_crio
@@ -224,4 +225,44 @@ EOF
 	run ! crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
 
 	rm -f "$ARTIFACT_CONFIG"
+}
+
+@test "should be able to mount OCI Artifact with sub path" {
+	start_crio
+	crictl pull $ARTIFACT_IMAGE_SUBPATH
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg ARTIFACT_IMAGE_SUBPATH "$ARTIFACT_IMAGE_SUBPATH" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE_SUBPATH },
+      image_sub_path: "subpath"
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+
+	# The artifact should get mounted with the correct sub path
+	run crictl exec --sync "$ctr_id" cat /root/artifact/2
+	[[ "$output" == "2" ]]
+
+	run crictl exec --sync "$ctr_id" cat /root/artifact/3
+	[[ "$output" == "3" ]]
+}
+
+@test "should fail to mount OCI Artifact with sub path if not existing" {
+	start_crio
+	crictl pull $ARTIFACT_IMAGE_SUBPATH
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg ARTIFACT_IMAGE_SUBPATH "$ARTIFACT_IMAGE_SUBPATH" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE_SUBPATH },
+      image_sub_path: "subpath-not-existing"
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	run ! crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
+
+	[[ "$output" == *"ImageVolumeMountFailed"*"does not exist in OCI artifact volume"* ]]
 }
