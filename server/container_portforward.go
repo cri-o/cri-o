@@ -51,7 +51,7 @@ func (s *StreamService) PortForward(ctx context.Context, podSandboxID string, po
 		return fmt.Errorf("could not find sandbox %s", podSandboxID)
 	}
 
-	if !sb.Ready(true) {
+	if !sb.Ready() {
 		return fmt.Errorf("sandbox %s is not running", podSandboxID)
 	}
 
