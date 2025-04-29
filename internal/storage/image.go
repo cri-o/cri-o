@@ -894,12 +894,12 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 		}
 	}
 
-	digest, err := manifest.Digest(manifestBytes)
+	manifestDigest, err := manifest.Digest(manifestBytes)
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("digesting image: %w", err)
 	}
 
-	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), digest)
+	canonicalRef, err := reference.WithDigest(reference.TrimNamed(imageName.Raw()), manifestDigest)
 	if err != nil {
 		return RegistryImageReference{}, fmt.Errorf("create canonical reference: %w", err)
 	}

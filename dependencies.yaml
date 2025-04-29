@@ -25,7 +25,7 @@ dependencies:
         match: ReleaseMinorVersions
 
   - name: golangci-lint
-    version: v2.0.1
+    version: v2.1.2
     refPaths:
       - path: .github/workflows/verify.yml
         match: GOLANGCI_LINT_VERSION

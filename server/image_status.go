@@ -36,7 +36,8 @@ func (s *Server) ImageStatus(ctx context.Context, req *types.ImageStatusRequest)
 	}
 
 	if status == nil {
-		if artifact, err := s.ArtifactStore().Status(ctx, img.Image); err == nil {
+		artifact, err := s.ArtifactStore().Status(ctx, img.Image)
+		if err == nil {
 			return &types.ImageStatusResponse{
 				Image: artifact.CRIImage(),
 			}, nil

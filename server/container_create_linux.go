@@ -567,7 +567,7 @@ func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mou
 
 	_, readErr := f.ReadDir(1)
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
-		return "", fmt.Errorf("unable to read dir names of image volumes path %s: %w", imageVolumesPath, err)
+		return "", fmt.Errorf("unable to read dir names of image volumes path %s: %w", imageVolumesPath, readErr)
 	}
 
 	if readErr == nil {
