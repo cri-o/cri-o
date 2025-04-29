@@ -10,7 +10,7 @@ on:
       - update-nixpkgs-*
   pull_request:
 env:
-  GOLANGCI_LINT_VERSION: v2.0.1
+  GOLANGCI_LINT_VERSION: v2.1.2
 permissions:
   contents: read
 

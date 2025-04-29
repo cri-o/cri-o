@@ -91,6 +91,7 @@ linters:
     # - exhaustive
     # - exhaustruct
     # - forbidigo
+    # - funcorder
     # - funlen
     # - gochecknoglobals
     # - gocognit
@@ -108,11 +109,15 @@ linters:
     # - nonamedreturns
     # - paralleltest
     # - predeclared
+    # - sloglint
+    # - sqlclosecheck
     # - tagliatelle
     # - testpackage
     # - thelper
     # - varnamelen
+    # - whitespace
     # - wrapcheck
+    # - zerologlint
   settings:
     errcheck:
       check-type-assertions: true

@@ -60,8 +60,8 @@ func (*defaultImpl) CloseImageSource(src types.ImageSource) error {
 	return src.Close()
 }
 
-func (*defaultImpl) LayoutNewReference(dir, image string) (types.ImageReference, error) {
-	return layout.NewReference(dir, image)
+func (*defaultImpl) LayoutNewReference(dir, imageRef string) (types.ImageReference, error) {
+	return layout.NewReference(dir, imageRef)
 }
 
 func (*defaultImpl) NewImageSource(ctx context.Context, ref types.ImageReference, sys *types.SystemContext) (types.ImageSource, error) {
