@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 29 Apr 2025 14:26:13 UTC for commit [f85046f][0]._
+_Generated on Wed, 30 Apr 2025 07:40:19 UTC for commit [2fe75a9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/f85046fd141d05e047c0baa1954b9c41a2ab348c
+[0]: https://github.com/cri-o/cri-o/commit/2fe75a93f6526cf5c649476692cdecfc982e13e8
 
 ## Outdated Dependencies
 
@@ -15,10 +15,11 @@ _Generated on Tue, 29 Apr 2025 14:26:13 UTC for commit [f85046f][0]._
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250429122921-8b3284651900 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250429212323-46af7cf817b9 | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
+| github.com/opencontainers/runc                         | v1.2.6                                        | v1.3.0                             | true   | true             |
 | github.com/prometheus/client_golang                    | v1.22.0-rc.0                                  | v1.22.0                            | true   | true             |
 | github.com/seccomp/libseccomp-golang                   | v0.10.0                                       | v0.11.0                            | true   | true             |
 | go.uber.org/mock                                       | v0.5.0                                        | v0.5.2                             | true   | true             |
@@ -480,7 +481,7 @@ _Generated on Tue, 29 Apr 2025 14:26:13 UTC for commit [f85046f][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250429122921-8b3284651900  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250429212323-46af7cf817b9  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -562,7 +563,7 @@ _Generated on Tue, 29 Apr 2025 14:26:13 UTC for commit [f85046f][0]._
 | github.com/open-policy-agent/opa                                                    | v0.68.0                                       | v1.3.0                              | false  | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                        |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.1                                        |                                     | true   | true             |
-| github.com/opencontainers/runc                                                      | v1.2.6                                        |                                     | true   | true             |
+| github.com/opencontainers/runc                                                      | v1.2.6                                        | v1.3.0                              | true   | true             |
 | github.com/opencontainers/runtime-spec                                              | v1.2.1                                        |                                     | true   | true             |
 | github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20241108202711-f7e3563b0271          |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.12.0                                       |                                     | true   | true             |
@@ -743,7 +744,7 @@ _Generated on Tue, 29 Apr 2025 14:26:13 UTC for commit [f85046f][0]._
 | golang.org/x/time                                                                   | v0.9.0                                        | v0.11.0                             | false  | true             |
 | golang.org/x/tools                                                                  | v0.30.0                                       | v0.32.0                             | false  | true             |
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9            | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
-| google.golang.org/api                                                               | v0.218.0                                      | v0.230.0                            | false  | true             |
+| google.golang.org/api                                                               | v0.218.0                                      | v0.231.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                        | v1.6.8                              | false  | true             |
 | google.golang.org/genproto                                                          | v0.0.0-20241118233622-e639e219e697            | v0.0.0-20250428153025-10db94c68c34  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250218202821-56aae31c358a            | v0.0.0-20250428153025-10db94c68c34  | false  | true             |
