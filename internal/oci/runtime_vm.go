@@ -1340,3 +1340,7 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 func (r *runtimeVM) IsContainerAlive(c *Container) bool {
 	return r.kill(c.ID(), "", 0, false) == nil
 }
+
+func (r *runtimeVM) StartWatchContainerMonitor(ctx context.Context, c *Container) error {
+	return nil
+}
