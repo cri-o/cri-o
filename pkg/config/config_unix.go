@@ -9,11 +9,17 @@ const (
 	containerExitsDir        = "/var/run/crio/exits"
 	ContainerAttachSocketDir = "/var/run/crio"
 
-	// CrioConfigPath is the default location for the conf file.
-	CrioConfigPath = "/etc/crio/crio.conf"
+	// CrioConfigPathEtc is the default location for the conf file.
+	CrioConfigPathEtc = "/etc/crio/crio.conf"
 
-	// CrioConfigDropInPath is the default location for the drop-in config files.
-	CrioConfigDropInPath = "/etc/crio/crio.conf.d"
+	// CrioConfigPathUsr is the second location for the conf file.
+	CrioConfigPathUsr = "/usr/lib/crio/crio.conf"
+
+	// CrioConfigDropInPathEtc is the default location for the drop-in config files.
+	CrioConfigDropInPathEtc = "/etc/crio/crio.conf.d"
+
+	// CrioConfigDropInPathUsr is the second default location for the drop-in config files.
+	CrioConfigDropInPathUsr = "/usr/lib/crio/crio.conf.d"
 
 	// CrioSocketPath is where the unix socket is located.
 	CrioSocketPath = "/var/run/crio/crio.sock"
