@@ -28,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
+	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -146,7 +147,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -212,7 +213,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if m.GetImage().GetImage() != "" {
 			if s.config.OCIArtifactMountSupport {
 				// Try mountArtifact first, and fall back to mountImage if it fails with ErrNotFound
-				artifactVolumes, err := s.mountArtifact(ctx, specgen, m, mountLabel, skipRelabel, maybeRelabel)
+				artifactVolumes, err := s.mountArtifact(ctx, specgen, m, ctrInfo.MountLabel, skipRelabel, maybeRelabel)
 				if err == nil {
 					volumes = append(volumes, artifactVolumes...)
 
@@ -355,7 +356,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if m.SelinuxRelabel {
 			if skipRelabel {
 				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
-			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
+			} else if err := securityLabel(src, ctrInfo.MountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, nil, err
 			}
 		} else {
