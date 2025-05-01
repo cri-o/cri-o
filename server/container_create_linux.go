@@ -146,7 +146,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -263,7 +263,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
 
-			for _, toReject := range absentMountSourcesToReject {
+			for _, toReject := range s.config.AbsentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
 					// This can cause issues with node reboot.
