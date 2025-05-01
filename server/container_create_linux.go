@@ -146,7 +146,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -253,9 +253,9 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
 
-		src := filepath.Join(bindMountPrefix, m.HostPath)
+		src := filepath.Join(s.config.BindMountPrefix, m.HostPath)
 
-		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
+		resolvedSrc, err := resolveSymbolicLink(s.config.BindMountPrefix, src)
 		if err == nil {
 			src = resolvedSrc
 		} else {
