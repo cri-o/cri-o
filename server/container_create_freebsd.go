@@ -18,6 +18,7 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -44,7 +45,7 @@ func addSysfsMounts(ctr ctrfactory.Container, containerConfig *types.ContainerCo
 func setOCIBindMountsPrivileged(g *generate.Generator) {
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -96,16 +97,16 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if m.HostPath == "/" && dest == "/" {
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
-		src := filepath.Join(bindMountPrefix, m.HostPath)
+		src := filepath.Join(s.config.BindMountPrefix, m.HostPath)
 
-		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
+		resolvedSrc, err := resolveSymbolicLink(s.config.BindMountPrefix, src)
 		if err == nil {
 			src = resolvedSrc
 		} else {
 			if !os.IsNotExist(err) {
 				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
-			for _, toReject := range absentMountSourcesToReject {
+			for _, toReject := range s.config.AbsentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
 					// This can cause issues with node reboot.
