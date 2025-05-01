@@ -147,7 +147,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -249,7 +249,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 
-		if isSubDirectoryOf(storageRoot, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
+		if isSubDirectoryOf(s.config.Root, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
 			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
