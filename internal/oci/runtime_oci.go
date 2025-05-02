@@ -64,6 +64,8 @@ const (
 	// run. This allows to short-circuit stop logic if the process
 	// has already been terminated.
 	stopProcessWatchSleep = 100 * time.Millisecond
+
+	conmonWatchInterval = 10 * time.Second
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -357,6 +359,7 @@ func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, e
 	if err != nil {
 		return nil, fmt.Errorf("failed to read conmon pid: %w", err)
 	}
+	log.Infof(context.TODO(), "Conmon PID: %d", conmonPid)
 
 	startTime, err := getPidStartTime(conmonPid)
 	if err != nil {
@@ -1788,15 +1791,22 @@ func (r *runtimeOCI) StartWatchContainerMonitor(ctx context.Context, c *Containe
 			c.watched = false
 		}()
 
+		ch := make(chan struct{})
 		// Wait until the conmon process exits
-		state, err := conmonProcess.Wait()
+		exited, err := r.waitConmon(conmonProcess, ch)
 		if err != nil {
-			log.Errorf(ctx, "Conmon process wait: %s", err)
-
+			log.Errorf(ctx, "Error waiting for conmon process: %v", err)
 			return
 		}
 
-		err = r.handleConmonExit(ctx, c, state)
+		close(ch) // TODO
+
+		// interrupted by doneCh
+		if !exited {
+			return
+		}
+
+		err = r.handleConmonExit(ctx, c)
 		if err != nil {
 			log.Errorf(ctx, "Error when handling conmon exit: %s", err)
 		}
@@ -1817,17 +1827,35 @@ func (r *runtimeOCI) StartWatchContainerMonitor(ctx context.Context, c *Containe
 // must be stopped, otherwise we can assume the conmon stopped unexpectedly.
 // Just checking the status is not enough because when CRI-O is at step 1,
 // the container is running, but the conmon might be stopped.
-func (r *runtimeOCI) handleConmonExit(ctx context.Context, container *Container, state *os.ProcessState) error {
+func (r *runtimeOCI) handleConmonExit(ctx context.Context, container *Container) error {
 	_, err := os.Stat(filepath.Join(r.config.ContainerExitsDir, container.ID()))
-
-	// The condition order is important. If we check the state first, then
-	// we might raise an error in the case where the exit file deleted while
-	// checking the condition, but it's an expected behavior.
-	if errors.Is(err, os.ErrNotExist) && container.State().Status != rspec.StateStopped {
-		log.Errorf(ctx, "Monitor for container %q stopped though the container is not stopped: %s", container.ID(), state)
-		// TODO(bitoku): should we stop the container?
+	if errors.Is(err, os.ErrNotExist) {
+		if container.State().Status != rspec.StateStopped {
+			log.Errorf(ctx, "Monitor for container %q stopped though the container is not stopped", container.ID())
+			// TODO(bitoku): should we stop the container?
+		}
 		return nil
 	}
 
 	return err
+}
+
+// waitConmon returns true if the conmon exits, and false if it's interrupted by doneCh.
+func (r *runtimeOCI) waitConmon(conmonProcess *os.Process, doneCh <-chan struct{}) (bool, error) {
+	timer := time.NewTimer(conmonWatchInterval)
+	for {
+		select {
+		case <-doneCh:
+			return false, nil
+		case <-timer.C:
+		}
+		err := conmonProcess.Signal(syscall.Signal(0))
+		if errors.Is(err, os.ErrProcessDone) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		timer.Reset(conmonWatchInterval)
+	}
 }
