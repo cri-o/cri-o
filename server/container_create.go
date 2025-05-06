@@ -1470,3 +1470,17 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 
 	return nil
 }
+
+type imageVolumesPath struct {
+	mounts string
+	work   string
+}
+
+func (s *Server) getImageVolumesPaths() *imageVolumesPath {
+	rootPath := filepath.Join(filepath.Dir(s.ContainerServer.Config().ContainerExitsDir), "image-volumes")
+
+	return &imageVolumesPath{
+		mounts: filepath.Join(rootPath, "mounts"),
+		work:   filepath.Join(rootPath, "work"),
+	}
+}

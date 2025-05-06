@@ -229,7 +229,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				log.Debugf(ctx, "Skipping artifact mount because OCI artifact mount support is disabled")
 			}
 
-			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, runDir)
+			volume, safeMount, err := s.mountImage(ctx, ctr.ID(), specgen, imageVolumesPath, m, runDir)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
 			}
@@ -504,7 +504,7 @@ func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, pa
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
-func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, runDir string) (*oci.ContainerVolume, *safeMountInfo, error) {
+func (s *Server) mountImage(ctx context.Context, containerID string, specgen *generate.Generator, imageVolumesPath *imageVolumesPath, m *types.Mount, runDir string) (*oci.ContainerVolume, *safeMountInfo, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
 		return nil, nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
@@ -556,19 +556,31 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 		log.Debugf(ctx, "Using final mount path: %s", mountPoint)
 	}
 
+	upperDirPath := filepath.Join(imageVolumesPath.work, containerID, imageID, "upper")
+	workDirPath := filepath.Join(imageVolumesPath.work, containerID, imageID, "work")
+
+	for _, dir := range []string{upperDirPath, workDirPath} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			return nil, nil, fmt.Errorf("create image volume path: %w", err)
+		}
+	}
+
+	mountOpt := fmt.Sprintf(
+		"lowerdir=%s:%s,upperdir=%s,workdir=%s",
+		mountPoint, imageVolumesPath.mounts, upperDirPath, workDirPath,
+	)
+
 	const overlay = "overlay"
 
 	specgen.AddMount(rspec.Mount{
 		Type:        overlay,
 		Source:      overlay,
 		Destination: m.ContainerPath,
-		Options: []string{
-			"lowerdir=" + mountPoint + ":" + imageVolumesPath,
-		},
+		Options:     []string{mountOpt},
 		UIDMappings: getOCIMappings(m.UidMappings),
 		GIDMappings: getOCIMappings(m.GidMappings),
 	})
-	log.Debugf(ctx, "Added overlay mount from %s to %s", mountPoint, imageVolumesPath)
+	log.Debugf(ctx, "Added overlay mount: %s", mountOpt)
 
 	return &oci.ContainerVolume{
 		ContainerPath:     m.ContainerPath,
@@ -581,7 +593,7 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}, safeMount, nil
 }
 
-func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (string, error) {
+func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mount) (*imageVolumesPath, error) {
 	// Check if we need to anything at all
 	if !slices.ContainsFunc(mounts, func(m *types.Mount) bool {
 		if m.GetImage() != nil && m.GetImage().GetImage() != "" {
@@ -590,31 +602,38 @@ func (s *Server) ensureImageVolumesPath(ctx context.Context, mounts []*types.Mou
 
 		return false
 	}) {
-		return "", nil
+		return nil, nil
 	}
 
-	imageVolumesPath := filepath.Join(filepath.Dir(s.ContainerServer.Config().ContainerExitsDir), "image-volumes")
-	log.Debugf(ctx, "Using image volumes path: %s", imageVolumesPath)
+	paths := s.getImageVolumesPaths()
 
-	if err := os.MkdirAll(imageVolumesPath, 0o700); err != nil {
-		return "", fmt.Errorf("create image volumes path: %w", err)
+	for _, p := range []string{paths.mounts, paths.work} {
+		if err := os.MkdirAll(p, 0o700); err != nil {
+			return nil, fmt.Errorf("create image volumes path: %w", err)
+		}
 	}
 
-	f, err := os.Open(imageVolumesPath)
+	log.Debugf(ctx, "Using image volumes mount path: %s", paths.mounts)
+
+	if err := os.MkdirAll(paths.mounts, 0o700); err != nil {
+		return nil, fmt.Errorf("create image volumes path: %w", err)
+	}
+
+	f, err := os.Open(paths.mounts)
 	if err != nil {
-		return "", fmt.Errorf("open image volumes path %s: %w", imageVolumesPath, err)
+		return nil, fmt.Errorf("open image volumes path %s: %w", paths.mounts, err)
 	}
 
 	_, readErr := f.ReadDir(1)
 	if readErr != nil && !errors.Is(readErr, io.EOF) {
-		return "", fmt.Errorf("unable to read dir names of image volumes path %s: %w", imageVolumesPath, readErr)
+		return nil, fmt.Errorf("unable to read dir names of image volumes path %s: %w", paths.mounts, readErr)
 	}
 
 	if readErr == nil {
-		return "", fmt.Errorf("image volumes path %s is not empty", imageVolumesPath)
+		return nil, fmt.Errorf("image volumes path %s is not empty", paths.mounts)
 	}
 
-	return imageVolumesPath, nil
+	return paths, nil
 }
 
 func getOCIMappings(m []*types.IDMapping) []rspec.LinuxIDMapping {
