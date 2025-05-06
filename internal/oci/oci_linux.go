@@ -70,8 +70,8 @@ func newPipe() (parent, child *os.File, _ error) {
 	return os.NewFile(uintptr(fds[1]), "parent"), os.NewFile(uintptr(fds[0]), "child"), nil
 }
 
-// ProcessMonitor handles monitoring multiple processes using a single epoll instance
-type ProcessMonitor struct {
+// EpollProcessMonitor handles monitoring multiple processes using a single epoll instance
+type EpollProcessMonitor struct {
 	epfd                   int
 	containerIdProcessInfo map[string]*ProcessInfo
 	pidfdProcessInfo       map[int]*ProcessInfo
@@ -79,22 +79,27 @@ type ProcessMonitor struct {
 	stopChan               chan struct{}
 }
 
+type monitorCallback func(context.Context, *Container)
+
 type ProcessInfo struct {
-	pid       int
 	pidfd     int
 	container *Container
+	callback  monitorCallback
 }
 
-// NewProcessMonitor creates a new process monitor
-func NewProcessMonitor() (*ProcessMonitor, error) {
+// NewEpollProcessMonitor creates a new process monitor
+func NewEpollProcessMonitor() (ProcessMonitor, error) {
 	epfd, err := syscall.EpollCreate1(syscall.EPOLL_CLOEXEC)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create epoll instance: %w", err)
 	}
 
-	pm := &ProcessMonitor{
-		epfd:     epfd,
-		stopChan: make(chan struct{}),
+	pm := &EpollProcessMonitor{
+		epfd:                   epfd,
+		containerIdProcessInfo: make(map[string]*ProcessInfo),
+		pidfdProcessInfo:       make(map[int]*ProcessInfo),
+		mu:                     sync.Mutex{},
+		stopChan:               make(chan struct{}),
 	}
 
 	go pm.monitor()
@@ -103,9 +108,10 @@ func NewProcessMonitor() (*ProcessMonitor, error) {
 }
 
 // monitor is the only goroutine that blocks on epoll_wait.
-func (pm *ProcessMonitor) monitor() {
+func (pm *EpollProcessMonitor) monitor() {
 	// Buffer for epoll events
 	events := make([]syscall.EpollEvent, 500)
+	ctx := context.Background()
 
 	for {
 		// Use a reasonable timeout instead of blocking indefinitely
@@ -133,18 +139,13 @@ func (pm *ProcessMonitor) monitor() {
 				log.Errorf(context.TODO(), "pidfd not found in pidfds map")
 				continue
 			}
-			go pm.process(pi)
+			go pm.handleExit(ctx, pi)
 		}
 	}
 }
 
 // AddProcess adds a process to be monitored.
-func (pm *ProcessMonitor) AddProcess(container *Container, pid int) error {
-	pidfd, err := unix.PidfdOpen(pid, 0)
-	if err != nil {
-		return fmt.Errorf("failed to open pidfd: %w", err)
-	}
-
+func (pm *EpollProcessMonitor) AddProcess(container *Container, pidfd int, callback monitorCallback) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
@@ -159,9 +160,9 @@ func (pm *ProcessMonitor) AddProcess(container *Container, pid int) error {
 	}
 
 	pi := &ProcessInfo{
-		pid:       pid,
 		pidfd:     pidfd,
 		container: container,
+		callback:  callback,
 	}
 
 	pm.containerIdProcessInfo[container.ID()] = pi
@@ -170,31 +171,31 @@ func (pm *ProcessMonitor) AddProcess(container *Container, pid int) error {
 	return nil
 }
 
-func (pm *ProcessMonitor) DeleteProcess(id string) error {
+func (pm *EpollProcessMonitor) DeleteProcess(container *Container) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
-	return pm.deleteProcess(id)
+	return pm.deleteProcess(container)
 }
 
-func (pm *ProcessMonitor) deleteProcess(id string) error {
-	pi, exists := pm.containerIdProcessInfo[id]
+func (pm *EpollProcessMonitor) deleteProcess(container *Container) error {
+	pi, exists := pm.containerIdProcessInfo[container.ID()]
 	if !exists {
-		return fmt.Errorf("container %d not found", id)
+		return fmt.Errorf("container %d not found", container.ID())
 	}
 
 	if err := syscall.EpollCtl(pm.epfd, syscall.EPOLL_CTL_DEL, pi.pidfd, nil); err != nil {
 		return fmt.Errorf("failed to remove pidfd from epoll: %w", err)
 	}
 
-	delete(pm.containerIdProcessInfo, id)
+	delete(pm.containerIdProcessInfo, container.ID())
 	delete(pm.pidfdProcessInfo, pi.pidfd)
 
 	return nil
 }
 
 // Close stops the monitor and releases resources.
-func (pm *ProcessMonitor) Close() error {
+func (pm *EpollProcessMonitor) Close() error {
 	// Signal the monitoring goroutine to stop
 	close(pm.stopChan)
 
@@ -214,15 +215,14 @@ func (pm *ProcessMonitor) Close() error {
 	return syscall.Close(pm.epfd)
 }
 
-func (pm *ProcessMonitor) process(pi *ProcessInfo) {
-	ctx := context.TODO()
+func (pm *EpollProcessMonitor) handleExit(ctx context.Context, pi *ProcessInfo) {
 	pm.mu.Lock()
-	err := pm.deleteProcess(pi.container.ID())
+	err := pm.deleteProcess(pi.container)
 	if err != nil {
 		log.Errorf(ctx, "failed to delete process from pidfds map: %v", err)
 		return
 	}
 	pm.mu.Unlock()
 
-	log.Errorf(ctx, "conmon process for container %s has exited unexpectedly", pi.container.ID())
+	pi.callback(ctx, pi.container)
 }

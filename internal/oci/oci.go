@@ -546,3 +546,23 @@ func (r *Runtime) StartWatchContainerMonitor(ctx context.Context, c *Container) 
 
 	return impl.StartWatchContainerMonitor(ctx, c)
 }
+
+type ProcessMonitor interface {
+	AddProcess(container *Container, pidfd int, callback monitorCallback) error
+	DeleteProcess(container *Container) error
+	Close() error
+}
+
+type NoopProcessMonitor struct{}
+
+func (n *NoopProcessMonitor) AddProcess(container *Container, pidfd int, callback monitorCallback) error {
+	return nil
+}
+
+func (n *NoopProcessMonitor) DeleteProcess(container *Container) error {
+	return nil
+}
+
+func (n *NoopProcessMonitor) Close() error {
+	return nil
+}
