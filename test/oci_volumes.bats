@@ -45,15 +45,26 @@ IMAGE=quay.io/crio/artifact:v1
 	run ! crictl rmi $IMAGE
 
 	# The kubelet garbage collection expects the image ID set in the container status mount
-	IMAGE_ID=$(crictl inspecti quay.io/crio/artifact:v1 | jq -e .status.id)
-	IMAGE_MOUNT_ID=$(crictl inspect "$CTR_ID" | jq -e '.status.mounts[0].image.image')
+	IMAGE_ID=$(crictl inspecti quay.io/crio/artifact:v1 | jq -re .status.id)
+	IMAGE_MOUNT_ID=$(crictl inspect "$CTR_ID" | jq -re '.status.mounts[0].image.image')
 	[[ "$IMAGE_ID" == "$IMAGE_MOUNT_ID" ]]
+
+	# Mount should be writeable
+	IMAGE_VOLUME_TEST_FILE=new-file
+	crictl exec "$CTR_ID" touch "$CONTAINER_PATH/$IMAGE_VOLUME_TEST_FILE"
+
+	# File should be part of the image volumes directory
+	WORKDIR="$TESTDIR/containers/image-volumes/work/$CTR_ID"
+	test -f "$WORKDIR/$IMAGE_ID/upper/$IMAGE_VOLUME_TEST_FILE"
 
 	# Remove the container
 	crictl rm -f "$CTR_ID"
 
 	# Image removal should work now
 	crictl rmi $IMAGE
+
+	# Image volumes directory should be cleaned up
+	run ! test -d "$WORKDIR"
 }
 
 @test "OCI image volume SELinux" {
@@ -137,6 +148,9 @@ IMAGE=quay.io/crio/artifact:v1
 
 	# Assert mount availability within the sub path
 	[[ $(crictl exec "$CTR_ID" cat "$CONTAINER_PATH/file") == 1 ]]
+
+	# Sub path should be writeable
+	crictl exec "$CTR_ID" touch "$CONTAINER_PATH/test-file"
 }
 
 @test "OCI image volume mount with invalid sub path" {

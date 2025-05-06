@@ -88,6 +88,11 @@ func (s *Server) removeContainerInPod(ctx context.Context, sb *sandbox.Sandbox, 
 	s.ReleaseContainerName(ctx, c.Name())
 	s.removeContainer(ctx, c)
 
+	imageVolumesWorkPath := filepath.Join(s.getImageVolumesPaths().work, c.ID())
+	if err := os.RemoveAll(imageVolumesWorkPath); err != nil {
+		log.Warnf(ctx, "Unable to remove image volumes working path %q: %v", imageVolumesWorkPath, err)
+	}
+
 	if err := s.ContainerServer.CtrIDIndex().Delete(c.ID()); err != nil {
 		return fmt.Errorf("failed to delete container %s in pod sandbox %s from index: %w", c.Name(), sb.ID(), err)
 	}
