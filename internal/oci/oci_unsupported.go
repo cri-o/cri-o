@@ -40,3 +40,25 @@ func (c *Container) SetSeccompProfilePath(pp string) {
 func (c *Container) SeccompProfilePath() string {
 	return ""
 }
+
+// ProcessMonitor handles monitoring multiple processes using a single epoll instance
+type ProcessMonitor struct{}
+
+// NewProcessMonitor creates a new process monitor
+func NewProcessMonitor() (*ProcessMonitor, error) {
+	return &ProcessMonitor{}, nil
+}
+
+// AddProcess adds a process to be monitored.
+func (pm *ProcessMonitor) AddProcess(container *Container, pid int) error {
+	return nil
+}
+
+func (pm *ProcessMonitor) DeleteProcess(id string) error {
+	return nil
+}
+
+// Close stops the monitor and releases resources.
+func (pm *ProcessMonitor) Close() error {
+	return nil
+}
