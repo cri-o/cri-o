@@ -1,21 +1,22 @@
 # CRI-O Dependency Report
 
-_Generated on Wed, 07 May 2025 12:09:42 UTC for commit [19e6588][0]._
+_Generated on Wed, 07 May 2025 16:59:00 UTC for commit [2efa8f6][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/19e658855e18f3cf86e3003fc9d6cbe8c31485fa
+[0]: https://github.com/cri-o/cri-o/commit/2efa8f63759205d97beadf81073c9c6bff3bd0c7
 
 ## Outdated Dependencies
 
 |                         MODULE                         |                    VERSION                    |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|-----------------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                    | v0.0.3                                        | v0.0.4                             | true   | true             |
+| github.com/containerd/containerd/api                   | v1.8.0                                        | v1.9.0                             | true   | true             |
 | github.com/containernetworking/cni                     | v1.2.3                                        | v1.3.0                             | true   | true             |
 | github.com/containernetworking/plugins                 | v1.6.2                                        | v1.7.1                             | true   | true             |
 | github.com/containers/common                           | v0.62.2                                       | v0.63.0                            | true   | true             |
 | github.com/containers/image/v5                         | v5.34.3-0.20250314011931-36a971d8ff51         | v5.35.0                            | true   | true             |
 | github.com/containers/storage                          | v1.57.3-0.20250310120440-ab85543c3c6a         | v1.58.0                            | true   | true             |
 | github.com/fsnotify/fsnotify                           | v1.8.0                                        | v1.9.0                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250507025610-d4d737a73e33 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250507161125-e3e0007bf738 | true   | true             |
 | github.com/moby/sys/user                               | v0.3.0                                        | v0.4.0                             | true   | true             |
 | github.com/onsi/ginkgo/v2                              | v2.23.3                                       | v2.23.4                            | true   | true             |
 | github.com/onsi/gomega                                 | v1.36.3                                       | v1.37.0                            | true   | true             |
@@ -301,7 +302,7 @@ _Generated on Wed, 07 May 2025 12:09:42 UTC for commit [19e6588][0]._
 | github.com/containerd/cgroups/v3                                                    | v3.0.5                                        |                                     | false  | true             |
 | github.com/containerd/console                                                       | v1.0.4                                        |                                     | false  | true             |
 | github.com/containerd/containerd                                                    | v1.7.27                                       |                                     | true   | true             |
-| github.com/containerd/containerd/api                                                | v1.8.0                                        |                                     | true   | true             |
+| github.com/containerd/containerd/api                                                | v1.8.0                                        | v1.9.0                              | true   | true             |
 | github.com/containerd/continuity                                                    | v0.4.4                                        | v0.4.5                              | false  | true             |
 | github.com/containerd/cri-containerd                                                | v1.19.0                                       |                                     | false  | true             |
 | github.com/containerd/errdefs                                                       | v1.0.0                                        |                                     | false  | true             |
@@ -481,7 +482,7 @@ _Generated on Wed, 07 May 2025 12:09:42 UTC for commit [19e6588][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                        |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                                       |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                        |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250507025610-d4d737a73e33  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225            | v0.0.0-20250507161125-e3e0007bf738  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                        |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                        |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                        | v1.9.0                              | false  | true             |
@@ -738,7 +739,7 @@ _Generated on Wed, 07 May 2025 12:09:42 UTC for commit [19e6588][0]._
 | golang.org/x/oauth2                                                                 | v0.28.0                                       | v0.30.0                             | false  | true             |
 | golang.org/x/sync                                                                   | v0.12.0                                       | v0.14.0                             | true   | true             |
 | golang.org/x/sys                                                                    | v0.31.0                                       | v0.33.0                             | true   | true             |
-| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457            | v0.0.0-20250506010939-b15a553ce495  | false  | true             |
+| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457            | v0.0.0-20250507143331-155ddd5254aa  | false  | true             |
 | golang.org/x/term                                                                   | v0.30.0                                       | v0.32.0                             | false  | true             |
 | golang.org/x/text                                                                   | v0.23.0                                       | v0.25.0                             | false  | true             |
 | golang.org/x/time                                                                   | v0.9.0                                        | v0.11.0                             | false  | true             |
