@@ -28,6 +28,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
+	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
 )
 
@@ -146,7 +147,7 @@ func clearReadOnly(m *rspec.Mount) {
 	m.Options = append(m.Options, "rw")
 }
 
-func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, mountLabel, bindMountPrefix string, absentMountSourcesToReject []string, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool, storageRoot, runDir string) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
+func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container, ctrInfo *storage.ContainerInfo, maybeRelabel, skipRelabel, cgroup2RW, idMapSupport, rroSupport bool) ([]oci.ContainerVolume, []rspec.Mount, []*safeMountInfo, error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
@@ -212,7 +213,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if m.GetImage().GetImage() != "" {
 			if s.config.OCIArtifactMountSupport {
 				// Try mountArtifact first, and fall back to mountImage if it fails with ErrNotFound
-				artifactVolumes, err := s.mountArtifact(ctx, specgen, m, mountLabel, skipRelabel, maybeRelabel)
+				artifactVolumes, err := s.mountArtifact(ctx, specgen, m, ctrInfo.MountLabel, skipRelabel, maybeRelabel)
 				if err == nil {
 					volumes = append(volumes, artifactVolumes...)
 
@@ -229,7 +230,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				log.Debugf(ctx, "Skipping artifact mount because OCI artifact mount support is disabled")
 			}
 
-			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, runDir)
+			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, ctrInfo.RunDir)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
 			}
@@ -248,14 +249,14 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 			log.Warnf(ctx, "Configuration specifies mounting host root to the container root.  This is dangerous (especially with privileged containers) and should be avoided.")
 		}
 
-		if isSubDirectoryOf(storageRoot, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
+		if isSubDirectoryOf(s.config.Root, m.HostPath) && m.Propagation == types.MountPropagation_PROPAGATION_PRIVATE {
 			log.Infof(ctx, "Mount propogration for the host path %s will be set to HostToContainer as it includes the container storage root", m.HostPath)
 			m.Propagation = types.MountPropagation_PROPAGATION_HOST_TO_CONTAINER
 		}
 
-		src := filepath.Join(bindMountPrefix, m.HostPath)
+		src := filepath.Join(s.config.BindMountPrefix, m.HostPath)
 
-		resolvedSrc, err := resolveSymbolicLink(bindMountPrefix, src)
+		resolvedSrc, err := resolveSymbolicLink(s.config.BindMountPrefix, src)
 		if err == nil {
 			src = resolvedSrc
 		} else {
@@ -263,7 +264,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				return nil, nil, nil, fmt.Errorf("failed to resolve symlink %q: %w", src, err)
 			}
 
-			for _, toReject := range absentMountSourcesToReject {
+			for _, toReject := range s.config.AbsentMountSourcesToReject {
 				if filepath.Clean(src) == toReject {
 					// special-case /etc/hostname, as we don't want it to be created as a directory
 					// This can cause issues with node reboot.
@@ -355,7 +356,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 		if m.SelinuxRelabel {
 			if skipRelabel {
 				log.Debugf(ctx, "Skipping relabel for %s because of super privileged container (type: spc_t)", src)
-			} else if err := securityLabel(src, mountLabel, false, maybeRelabel); err != nil {
+			} else if err := securityLabel(src, ctrInfo.MountLabel, false, maybeRelabel); err != nil {
 				return nil, nil, nil, err
 			}
 		} else {
