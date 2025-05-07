@@ -902,6 +902,11 @@ func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout in
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	err := r.processMonitor.DeleteProcess(c)
+	if err != nil {
+		log.Errorf(ctx, "Failed to delete monitoring for container %s: %v", c.ID(), err)
+	}
+
 	if c.Spoofed() {
 		c.state.Status = ContainerStateStopped
 		c.state.Finished = time.Now()

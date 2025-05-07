@@ -175,6 +175,8 @@ func (pm *EpollProcessMonitor) DeleteProcess(container *Container) error {
 	pm.mu.Lock()
 	defer pm.mu.Unlock()
 
+	log.Debugf(context.Background(), "DeleteMonitoringProcess: container %s", container.ID())
+
 	return pm.deleteProcess(container)
 }
 
@@ -202,7 +204,11 @@ func (pm *EpollProcessMonitor) Close() error {
 	// Close all pidfd's
 	pm.mu.Lock()
 	for pidfd, pi := range pm.pidfdProcessInfo {
-		err := syscall.Close(pidfd)
+		err := pm.deleteProcess(pi.container)
+		if err != nil {
+			return fmt.Errorf("failed to delete process from pidfds map: %w", err)
+		}
+		err = syscall.Close(pidfd)
 		if err != nil {
 			return fmt.Errorf("failed to close pidfd: %w", err)
 		}
@@ -217,12 +223,12 @@ func (pm *EpollProcessMonitor) Close() error {
 
 func (pm *EpollProcessMonitor) handleExit(ctx context.Context, pi *ProcessInfo) {
 	pm.mu.Lock()
+	defer pm.mu.Unlock()
 	err := pm.deleteProcess(pi.container)
 	if err != nil {
 		log.Errorf(ctx, "failed to delete process from pidfds map: %v", err)
 		return
 	}
-	pm.mu.Unlock()
 
 	pi.callback(ctx, pi.container)
 }
