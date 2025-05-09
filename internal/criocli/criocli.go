@@ -38,41 +38,74 @@ func GetAndMergeConfigFromContext(c *cli.Context) (*libconfig.Config, error) {
 		return nil, err
 	}
 
-	if err := mergeConfig(config, c); err != nil {
+	// Parse the default config path at /etc
+	if err := parseConfigFile(config, c, libconfig.CrioConfigPathEtc); err != nil {
+		return nil, err
+	}
+
+	// Parse the second default config path at /usr
+	if err := parseConfigFile(config, c, libconfig.CrioConfigPathUsr); err != nil {
+		return nil, err
+	}
+
+	// Parse the configuration file for config override
+	// Don't parse the config if the user explicitly set it to "".
+	if c.String("config") != "" {
+		if err := parseConfigFile(config, c, c.String("config")); err != nil {
+			return nil, err
+		}
+	}
+
+	if err := parseConfigFileDir(config, c, libconfig.CrioConfigDropInPathEtc); err != nil {
+		return nil, err
+	}
+
+	if err := parseConfigFileDir(config, c, libconfig.CrioConfigDropInPathUsr); err != nil {
+		return nil, err
+	}
+
+	// Parse the drop-in configuration files for config override
+	if err := parseConfigFileDir(config, c, c.String("config-dir")); err != nil {
+		return nil, err
+	}
+
+	// If "config-dir" is specified, config.UpdateFromPath() will set config.singleConfigPath as
+	// the last config file in "config-dir".
+	// We need correct it to the path specified by "config"
+	if c.String("config") != "" {
+		config.SetSingleConfigPath(c.String("config"))
+	}
+
+	if err := overrideFromCLI(config, c); err != nil {
 		return nil, err
 	}
 
 	return config, nil
 }
 
-func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
-	// Don't parse the config if the user explicitly set it to "".
-	path := ctx.String("config")
-	if path != "" {
-		if err := config.UpdateFromFile(ctx.Context, path); err != nil {
-			isNotExistErr := errors.Is(err, os.ErrNotExist)
-			if isNotExistErr {
-				log.Infof(ctx.Context, "Skipping not-existing config file %q", path)
-			}
+func parseConfigFile(config *libconfig.Config, ctx *cli.Context, path string) error {
+	if err := config.UpdateFromFile(ctx.Context, path); err != nil {
+		isNotExistErr := errors.Is(err, os.ErrNotExist)
+		if isNotExistErr {
+			log.Infof(ctx.Context, "Skipping not-existing config file %q", path)
+		}
 
-			if ctx.IsSet("config") || !isNotExistErr {
-				return fmt.Errorf("update config from file: %w", err)
-			}
+		if ctx.IsSet("config") || !isNotExistErr {
+			return fmt.Errorf("update config from file: %w", err)
 		}
 	}
+	return nil
+}
 
-	// Parse the drop-in configuration files for config override
-	if err := config.UpdateFromPath(ctx.Context, ctx.String("config-dir")); err != nil {
+func parseConfigFileDir(config *libconfig.Config, ctx *cli.Context, path string) error {
+	if err := config.UpdateFromPath(ctx.Context, path); err != nil {
 		return fmt.Errorf("update config from path: %w", err)
 	}
-	// If "config-dir" is specified, config.UpdateFromPath() will set config.singleConfigPath as
-	// the last config file in "config-dir".
-	// We need correct it to the path specified by "config"
-	if path != "" {
-		config.SetSingleConfigPath(path)
-	}
+	return nil
+}
 
-	// Override options set with the CLI.
+// Override options set with the CLI.
+func overrideFromCLI(config *libconfig.Config, ctx *cli.Context) error {
 	if ctx.IsSet("conmon") {
 		config.Conmon = ctx.String("conmon")
 	}
@@ -583,27 +616,28 @@ func GetFlagsAndMetadata() ([]cli.Flag, map[string]any, error) {
 func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:      "config",
-			Aliases:   []string{"c"},
-			Value:     libconfig.CrioConfigPath,
-			Usage:     "Path to configuration file",
+			Name:    "config",
+			Aliases: []string{"c"},
+			Value:   libconfig.CrioConfigPathEtc,
+			Usage: fmt.Sprintf("Path to configuration file"+`
+    Configuration will be checked at %s and %s`, libconfig.CrioConfigPathEtc, libconfig.CrioConfigPathUsr),
 			EnvVars:   []string{"CONTAINER_CONFIG"},
 			TakesFile: true,
 		},
 		&cli.StringFlag{
 			Name:    "config-dir",
 			Aliases: []string{"d"},
-			Value:   libconfig.CrioConfigDropInPath,
+			Value:   libconfig.CrioConfigDropInPathEtc,
 			Usage: fmt.Sprintf("Path to the configuration drop-in directory."+`
     This directory will be recursively iterated and each file gets applied
     to the configuration in their processing order. This means that a
     configuration file named '00-default' has a lower priority than a file
     named '01-my-overwrite'.
     The global config file, provided via '--config,-c' or per default in
-    %s, always has a lower priority than the files in the directory specified
+    %s or %s, always has a lower priority than the files in the directory specified
     by '--config-dir,-d'.
     Besides that, provided command line parameters have a higher priority
-    than any configuration file.`, libconfig.CrioConfigPath),
+    than any configuration file.`, libconfig.CrioConfigPathEtc, libconfig.CrioConfigPathUsr),
 			EnvVars:   []string{"CONTAINER_CONFIG_DIR"},
 			TakesFile: true,
 		},
