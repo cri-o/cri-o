@@ -996,7 +996,7 @@ func (c *dockerClient) getExternalBlob(ctx context.Context, urls []string) (io.R
 			continue
 		}
 		if resp.StatusCode != http.StatusOK {
-			err := fmt.Errorf("error fetching external blob from %q: %d (%s)", u, resp.StatusCode, http.StatusText(resp.StatusCode))
+			err := fmt.Errorf("error fetching external blob from %q: %w", u, newUnexpectedHTTPStatusError(resp))
 			remoteErrors = append(remoteErrors, err)
 			logrus.Debug(err)
 			resp.Body.Close()
