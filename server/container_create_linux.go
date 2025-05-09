@@ -26,7 +26,7 @@ import (
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	"github.com/cri-o/cri-o/internal/oci"
+	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -156,6 +156,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 	containerConfig := ctr.Config()
 	specgen := ctr.Spec()
 	mounts := containerConfig.Mounts
+	namespace := ctr.SandboxConfig().Metadata.Namespace
 
 	// Sort mounts in number of parts. This ensures that high level mounts don't
 	// shadow other mounts.
@@ -230,7 +231,7 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 				log.Debugf(ctx, "Skipping artifact mount because OCI artifact mount support is disabled")
 			}
 
-			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, ctrInfo.RunDir)
+			volume, safeMount, err := s.mountImage(ctx, specgen, imageVolumesPath, m, ctrInfo.RunDir, namespace)
 			if err != nil {
 				return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
 			}
@@ -505,7 +506,7 @@ func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, pa
 }
 
 // mountImage adds required image mounts to the provided spec generator and returns a corresponding ContainerVolume.
-func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, runDir string) (*oci.ContainerVolume, *safeMountInfo, error) {
+func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, imageVolumesPath string, m *types.Mount, runDir, namespace string) (*oci.ContainerVolume, *safeMountInfo, error) {
 	if m == nil || m.Image == nil || m.Image.Image == "" || m.ContainerPath == "" {
 		return nil, nil, fmt.Errorf("invalid mount specified: %+v", m)
 	}
@@ -524,6 +525,12 @@ func (s *Server) mountImage(ctx context.Context, specgen *generate.Generator, im
 	}
 
 	imageID := status.ID.IDStringForOutOfProcessConsumptionOnly()
+
+	// Check the signature of the image
+	if err := s.verifyImageSignature(ctx, namespace, m.Image.UserSpecifiedImage, status); err != nil {
+		return nil, nil, err
+	}
+
 	log.Debugf(ctx, "Image ID to mount: %v", imageID)
 
 	options := []string{"ro", "noexec", "nosuid", "nodev"}
