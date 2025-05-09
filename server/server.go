@@ -429,7 +429,10 @@ func New(
 	if config.DisableHostPortMapping {
 		hostportManager = hostport.NewNoopHostportManager()
 	} else {
-		hostportManager = hostport.NewHostportManager(ctx)
+		hostportManager, err = hostport.NewMetaHostportManager(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("%w (use --disable-hostport-mapping to disable HostPort handling)", err)
+		}
 	}
 
 	idMappings, err := getIDMappings(config)
