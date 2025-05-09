@@ -340,3 +340,39 @@ func (c *Config) applyProfileFromBytes(
 	specGenerator.Config.Linux.Seccomp = linuxSpecs
 	return notifier, nil
 }
+
+func (c *Config) IsNonBlockingSeccompProfile(ctx context.Context, profile *types.SecurityProfile) bool {
+	// only localhost profiles can be non blocking; unconfined requires also no action
+	if profile.GetProfileType() != types.SecurityProfile_Localhost || profile.GetLocalhostRef() == "" {
+		return false
+	}
+
+	localhostRef := filepath.FromSlash(profile.GetLocalhostRef())
+	fileBytes, err := os.ReadFile(localhostRef)
+	if err != nil {
+		log.Warnf(ctx, "Unable to load seccomp profile: %v", err)
+		return false
+	}
+
+	parsedSeccompProfile := &seccomp.Seccomp{}
+	if err := json.Unmarshal(fileBytes, parsedSeccompProfile); err != nil {
+		log.Warnf(ctx, "Unable to unmarshal seccomp profile: %v", err)
+		return false
+	}
+
+	allowedActions := []seccomp.Action{
+		seccomp.ActTrace,
+		seccomp.ActAllow,
+		seccomp.ActLog,
+		seccomp.ActNotify,
+	}
+
+	if slices.Contains(allowedActions, parsedSeccompProfile.DefaultAction) &&
+		!slices.ContainsFunc(parsedSeccompProfile.Syscalls, func(val *seccomp.Syscall) bool {
+			return !slices.Contains(allowedActions, val.Action)
+		}) {
+		return true
+	}
+
+	return false
+}

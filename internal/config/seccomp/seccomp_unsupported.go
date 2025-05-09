@@ -116,3 +116,7 @@ func (c *Config) Profile() *seccomp.Seccomp {
 func DefaultProfile() *seccomp.Seccomp {
 	return nil
 }
+
+func (c *Config) IsNonBlockingSeccompProfile(ctx context.Context, profile *types.SecurityProfile) bool {
+	return false
+}

@@ -1041,7 +1041,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		specgen.Config.Linux.Seccomp = nil
 	}
 
-	if !ctr.Privileged() {
+	if !ctr.Privileged() || s.config.Seccomp().IsNonBlockingSeccompProfile(ctx, securityContext.Seccomp) {
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.config.SystemContext,
