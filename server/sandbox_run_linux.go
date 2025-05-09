@@ -848,7 +848,7 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 
 	seccompRef := types.SecurityProfile_Unconfined.String()
 
-	if !privileged {
+	if !privileged || s.config.Seccomp().IsNonBlockingSeccompProfile(ctx, securityContext.Seccomp) {
 		_, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.config.SystemContext,
