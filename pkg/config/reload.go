@@ -247,6 +247,9 @@ func (c *Config) ReloadSeccompProfile(newConfig *Config) error {
 	c.SeccompProfile = newConfig.SeccompProfile
 	logConfig("seccomp_profile", c.SeccompProfile)
 
+	c.PrivilegedSeccompProfile = newConfig.PrivilegedSeccompProfile
+	logConfig("privileged_seccomp_profile", c.PrivilegedSeccompProfile)
+
 	return nil
 }
 

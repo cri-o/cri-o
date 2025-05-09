@@ -103,6 +103,7 @@ h
 --pids-limit
 --pinned-images
 --pinns-path
+--privileged-seccomp-profile
 --profile
 --profile-cpu
 --profile-mem

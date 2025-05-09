@@ -100,6 +100,7 @@ crio
 [--pids-limit]=[value]
 [--pinned-images]=[value]
 [--pinns-path]=[value]
+[--privileged-seccomp-profile]=[value]
 [--profile-cpu]=[value]
 [--profile-mem]=[value]
 [--profile-port]=[value]
@@ -377,6 +378,8 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--pinned-images**="": A list of images that will be excluded from the kubelet's garbage collection.
 
 **--pinns-path**="": The path to find the pinns binary, which is needed to manage namespace lifecycle. Will be searched for in $PATH if empty.
+
+**--privileged-seccomp-profile**="": Enable a seccomp profile for privileged containers from the local path.
 
 **--profile**: Enable pprof remote profiler on 127.0.0.1:6060.
 

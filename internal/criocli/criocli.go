@@ -205,6 +205,10 @@ func mergeConfig(config *libconfig.Config, ctx *cli.Context) error {
 		config.SeccompProfile = ctx.String("seccomp-profile")
 	}
 
+	if ctx.IsSet("privileged-seccomp-profile") {
+		config.PrivilegedSeccompProfile = ctx.String("privileged-seccomp-profile")
+	}
+
 	if ctx.IsSet("apparmor-profile") {
 		config.ApparmorProfile = ctx.String("apparmor-profile")
 	}
@@ -788,6 +792,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars:   []string{"CONTAINER_SECCOMP_PROFILE"},
 			TakesFile: true,
 		},
+		&cli.StringFlag{
+			Name:      "privileged-seccomp-profile",
+			Usage:     "Enable a seccomp profile for privileged containers from the local path.",
+			EnvVars:   []string{"CONTAINER_PRIVILEGED_SECCOMP_PROFILE"},
+			TakesFile: true,
+		},
+
 		&cli.StringFlag{
 			Name:    "apparmor-profile",
 			Usage:   "Name of the apparmor profile to be used as the runtime's default. This only takes effect if the user does not specify a profile via the Kubernetes Pod's metadata annotation.",

@@ -357,6 +357,10 @@ type RuntimeConfig struct {
 	// default for the runtime.
 	SeccompProfile string `toml:"seccomp_profile"`
 
+	// PrivilegedSeccompProfile can be set to enable a seccomp profile for
+	// privileged containers from the local path.
+	PrivilegedSeccompProfile string `toml:"privileged_seccomp_profile"`
+
 	// ApparmorProfile is the apparmor profile name which is used as the
 	// default for the runtime.
 	ApparmorProfile string `toml:"apparmor_profile"`
