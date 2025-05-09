@@ -64,6 +64,8 @@ const (
 	// run. This allows to short-circuit stop logic if the process
 	// has already been terminated.
 	stopProcessWatchSleep = 100 * time.Millisecond
+
+	conmonWatchInterval = 10 * time.Second
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -71,8 +73,9 @@ const (
 type runtimeOCI struct {
 	*Runtime
 
-	root    string
-	handler *config.RuntimeHandler
+	root           string
+	handler        *config.RuntimeHandler
+	processMonitor ProcessMonitor
 }
 
 // newRuntimeOCI creates a new runtimeOCI instance.
@@ -82,10 +85,16 @@ func newRuntimeOCI(r *Runtime, handler *config.RuntimeHandler) RuntimeImpl {
 		runRoot = handler.RuntimeRoot
 	}
 
+	processMonitor, err := NewEpollProcessMonitor()
+	if err != nil {
+		processMonitor = &NoopProcessMonitor{}
+	}
+
 	return &runtimeOCI{
-		Runtime: r,
-		root:    runRoot,
-		handler: handler,
+		Runtime:        r,
+		root:           runRoot,
+		handler:        handler,
+		processMonitor: processMonitor,
 	}
 }
 
@@ -339,7 +348,35 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return err
 	}
 
+	c.state.ContainerMonitorProcess, err = r.getConmonProcess(c)
+	if err != nil {
+		return err
+	}
+
+	if err := r.StartWatchContainerMonitor(ctx, c); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// getConmonProcess returns the pid and the start time of conmon.
+func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, error) {
+	conmonPid, err := ReadConmonPidFile(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read conmon pid: %w", err)
+	}
+	log.Infof(context.TODO(), "Conmon PID: %d", conmonPid)
+
+	startTime, err := getPidStartTime(conmonPid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conmon pid start time: %w", err)
+	}
+
+	return &ContainerMonitorProcess{
+		Pid:       conmonPid,
+		StartTime: startTime,
+	}, nil
 }
 
 // StartContainer starts a container.
@@ -864,6 +901,11 @@ func (r *runtimeOCI) UpdateContainer(ctx context.Context, c *Container, res *rsp
 func (r *runtimeOCI) StopContainer(ctx context.Context, c *Container, timeout int64) (retErr error) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
+	err := r.processMonitor.DeleteProcess(c)
+	if err != nil {
+		log.Errorf(ctx, "Failed to delete monitoring for container %s: %v", c.ID(), err)
+	}
 
 	if c.Spoofed() {
 		c.state.Status = ContainerStateStopped

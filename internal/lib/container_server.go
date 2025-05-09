@@ -554,7 +554,15 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	c.AddContainer(ctx, ctr)
 
-	return c.ctrIDIndex.Add(id)
+	if err := c.ctrIDIndex.Add(id); err != nil {
+		return err
+	}
+
+	if err := c.runtime.StartWatchContainerMonitor(ctx, ctr); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func restoreVolumes(m *rspec.Spec, ctr *oci.Container) error {

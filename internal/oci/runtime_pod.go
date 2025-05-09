@@ -311,3 +311,7 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 func (r *runtimePod) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
 }
+
+func (r *runtimePod) StartWatchContainerMonitor(ctx context.Context, c *Container) error {
+	return nil
+}
