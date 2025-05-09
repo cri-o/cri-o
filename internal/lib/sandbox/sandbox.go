@@ -59,15 +59,18 @@ type Sandbox struct {
 	nsOpts             *types.NamespaceOption
 	dnsConfig          *types.DNSConfig
 	stopMutex          sync.RWMutex
-	created            bool
-	stopped            bool
-	networkStopped     bool
-	privileged         bool
-	hostNetwork        bool
-	usernsMode         string
-	containerEnvPath   string
-	podLinuxOverhead   *types.LinuxContainerResources
-	podLinuxResources  *types.LinuxContainerResources
+	// stateMutex protects the use of created, stopped and networkStopped bools
+	// which are all fields that can change at runtime
+	stateMutex        sync.RWMutex
+	created           bool
+	stopped           bool
+	networkStopped    bool
+	privileged        bool
+	hostNetwork       bool
+	usernsMode        string
+	containerEnvPath  string
+	podLinuxOverhead  *types.LinuxContainerResources
+	podLinuxResources *types.LinuxContainerResources
 }
 
 // DefaultShmSize is the default shm size.
@@ -329,6 +332,9 @@ func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
+
 	if s.stopped {
 		return
 	}
@@ -344,16 +350,24 @@ func (s *Sandbox) SetStopped(ctx context.Context, createFile bool) {
 // Stopped returns whether the sandbox state has been
 // set to stopped.
 func (s *Sandbox) Stopped() bool {
+	s.stateMutex.RLock()
+	defer s.stateMutex.RUnlock()
+
 	return s.stopped
 }
 
 // SetCreated sets the created status of sandbox to true.
 func (s *Sandbox) SetCreated() {
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
 	s.created = true
 }
 
 // NetworkStopped returns whether the network has been stopped.
 func (s *Sandbox) NetworkStopped() bool {
+	s.stateMutex.RLock()
+	defer s.stateMutex.RUnlock()
+
 	return s.networkStopped
 }
 
@@ -367,6 +381,9 @@ func (s *Sandbox) NetworkStopped() bool {
 func (s *Sandbox) SetNetworkStopped(ctx context.Context, createFile bool) error {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
+
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
 
 	if s.networkStopped {
 		return nil
@@ -404,6 +421,7 @@ func (s *Sandbox) SetContainerEnvFile(ctx context.Context) error {
 	return nil
 }
 
+// This function assumes the state lock has been taken for this sandbox.
 func (s *Sandbox) createFileInInfraDir(ctx context.Context, filename string) error {
 	// If the sandbox is not yet created,
 	// this function is being called when
@@ -433,6 +451,9 @@ func (s *Sandbox) createFileInInfraDir(ctx context.Context, filename string) err
 }
 
 func (s *Sandbox) RestoreStopped() {
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
+
 	if s.fileExistsInInfraDir(sbStoppedFilename) {
 		s.stopped = true
 	}
@@ -459,11 +480,14 @@ func (s *Sandbox) fileExistsInInfraDir(filename string) bool {
 
 // Created returns the created status of sandbox.
 func (s *Sandbox) Created() bool {
+	s.stateMutex.RLock()
+	defer s.stateMutex.RUnlock()
+
 	return s.created
 }
 
 func (s *Sandbox) State() types.PodSandboxState {
-	if s.Ready(false) {
+	if s.Ready() {
 		return types.PodSandboxState_SANDBOX_READY
 	}
 
@@ -475,23 +499,9 @@ func (s *Sandbox) State() types.PodSandboxState {
 // `takeLock` should be set if we need to take the lock to get the infra container's state.
 // If there is no infra container, it is never considered ready.
 // If the infra container is spoofed, the pod is considered ready when it has been created, but not stopped.
-func (s *Sandbox) Ready(takeLock bool) bool {
-	podInfraContainer := s.InfraContainer()
-	if podInfraContainer == nil {
-		return false
-	}
+func (s *Sandbox) Ready() bool {
+	s.stateMutex.RLock()
+	defer s.stateMutex.RUnlock()
 
-	if podInfraContainer.Spoofed() {
-		return s.created && !s.stopped
-	}
-	// Assume the sandbox is ready, unless it has an infra container that
-	// isn't running
-	var cState *oci.ContainerState
-	if takeLock {
-		cState = podInfraContainer.State()
-	} else {
-		cState = podInfraContainer.StateNoLock()
-	}
-
-	return cState.Status == oci.ContainerStateRunning
+	return s.created && !s.stopped
 }
