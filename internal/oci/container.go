@@ -188,7 +188,7 @@ func NewSpoofedContainer(id, name string, labels map[string]string, sandbox stri
 			PodSandboxId: sandbox,
 			Metadata:     &types.ContainerMetadata{},
 			Annotations: map[string]string{
-				ann.SpoofedContainer: "true",
+				ann.SpoofedContainer: ann.True,
 			},
 			Image: &types.ImageSpec{},
 		},
