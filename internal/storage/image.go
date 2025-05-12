@@ -876,6 +876,7 @@ func pullImageImplementation(ctx context.Context, lookup *imageLookupService, st
 	manifestBytes, err := ociartifact.NewStore(store.GraphRoot(), &srcSystemContext).PullManifest(ctx, srcRef, &ociartifact.PullOptions{CopyOptions: &libimage.CopyOptions{
 		OciDecryptConfig: options.OciDecryptConfig,
 		Progress:         options.Progress,
+		RemoveSignatures: true, // signature is not supported for OCI layout dest
 	}})
 	if err != nil {
 		if !errors.Is(err, ociartifact.ErrIsAnImage) {

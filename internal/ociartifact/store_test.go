@@ -98,10 +98,11 @@ var _ = t.Describe("OCIArtifact", func() {
 				implMock.EXPECT().DockerReferenceString(gomock.Any()).Return(""),
 				implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, opts.newImageSourceErrs[0]),
 				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, opts.manifestMimeType, opts.getManifestErrs[0]),
+				implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil),
 			}
 
 			if opts.manifestMimeType != "" {
-				return append(res, implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil))
+				return res
 			}
 
 			res = append(res,
@@ -110,7 +111,7 @@ var _ = t.Describe("OCIArtifact", func() {
 			)
 
 			if opts.configMediaType != "" {
-				return append(res, implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil))
+				return res
 			}
 
 			res = append(res,
@@ -119,18 +120,16 @@ var _ = t.Describe("OCIArtifact", func() {
 			)
 
 			if opts.layoutNewReferenceErrs[0] != nil {
-				return append(res, implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil))
+				return res
 			}
 
 			res = append(res, implMock.EXPECT().Copy(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, opts.copyErr))
-
 			if opts.copyErr != nil {
-				return append(res, implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil))
+				return res
 			}
 
 			res = append(res,
 				implMock.EXPECT().CloseCopier(gomock.Any()).Return(nil),
-				implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil),
 				implMock.EXPECT().List(gomock.Any()).Return([]layout.ListResult{{Reference: testImageRef}}, opts.listErr),
 			)
 
@@ -139,7 +138,6 @@ var _ = t.Describe("OCIArtifact", func() {
 			}
 
 			res = append(res, implMock.EXPECT().NewImageSource(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, opts.newImageSourceErrs[1]))
-
 			if opts.newImageSourceErrs[1] != nil {
 				return res
 			}
@@ -147,7 +145,6 @@ var _ = t.Describe("OCIArtifact", func() {
 			res = append(res,
 				implMock.EXPECT().GetManifest(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, "", opts.getManifestErrs[1]),
 			)
-
 			if opts.getManifestErrs[1] != nil {
 				return append(res, implMock.EXPECT().CloseImageSource(gomock.Any()).Return(nil))
 			}

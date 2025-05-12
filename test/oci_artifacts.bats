@@ -266,3 +266,23 @@ EOF
 
 	[[ "$output" == *"ImageVolumeMountFailed"*"does not exist in OCI artifact volume"* ]]
 }
+
+@test "should pull multi-architecture image" {
+	start_crio
+
+	# TODO(bitoku): use an image in quay.io/crio once quay.io supports multiarch artifacts
+	# This version doesn't have to be updated. It's specified only to keep the test consistent.
+	MULTIARCH_ARTIFACT="ghcr.io/cri-o/bundle:v1.32.4"
+	crictl pull "$MULTIARCH_ARTIFACT"
+
+	jq --arg ARTIFACT_IMAGE "$MULTIARCH_ARTIFACT" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE },
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	run crictl exec "$ctr_id" sha256sum /root/artifact/cri-o/bin/crio
+	[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+}
