@@ -114,7 +114,7 @@ var _ = t.Describe("OCIArtifact", func() {
 			}
 
 			res = append(res,
-				implMock.EXPECT().NewCopier(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil, nil),
+				implMock.EXPECT().NewCopier(gomock.Any(), gomock.Any()).Return(nil, nil),
 				implMock.EXPECT().LayoutNewReference(gomock.Any(), gomock.Any()).Return(nil, opts.layoutNewReferenceErrs[0]),
 			)
 

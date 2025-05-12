@@ -185,7 +185,7 @@ func (s *Store) PullManifest(
 
 	log.Infof(ctx, "Pulling OCI artifact %s with manifest mime type %q and config media type %q", strRef, mimeType, mediaType)
 
-	copier, err := s.impl.NewCopier(opts.CopyOptions, s.systemContext, nil)
+	copier, err := s.impl.NewCopier(opts.CopyOptions, s.systemContext)
 	if err != nil {
 		return nil, fmt.Errorf("create libimage copier: %w", err)
 	}

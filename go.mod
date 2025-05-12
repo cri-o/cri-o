@@ -48,6 +48,7 @@ require (
 	github.com/moby/sys/userns v0.1.0
 	github.com/onsi/ginkgo/v2 v2.23.4
 	github.com/onsi/gomega v1.37.0
+	github.com/opencontainers/cgroups v0.0.1
 	github.com/opencontainers/go-digest v1.0.0
 	github.com/opencontainers/image-spec v1.1.1
 	github.com/opencontainers/runc v1.2.6
@@ -74,11 +75,11 @@ require (
 	golang.org/x/sys v0.33.0
 	google.golang.org/grpc v1.72.0
 	google.golang.org/protobuf v1.36.6
-	k8s.io/api v0.34.0-alpha.0
-	k8s.io/apimachinery v0.34.0-alpha.0
-	k8s.io/client-go v0.34.0-alpha.0
-	k8s.io/cri-api v0.34.0-alpha.0
-	k8s.io/cri-client v0.34.0-alpha.0
+	k8s.io/api v0.33.0
+	k8s.io/apimachinery v0.33.0
+	k8s.io/client-go v0.33.0
+	k8s.io/cri-api v0.33.0
+	k8s.io/cri-client v0.33.0
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/kubelet v0.33.0
 	k8s.io/utils v0.0.0-20241210054802-24370beab758
@@ -181,7 +182,6 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/mxk/go-flowrate v0.0.0-20140419014527-cca7078d478f // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/opencontainers/cgroups v0.0.1 // indirect
 	github.com/ostreedev/ostree-go v0.0.0-20210805093236-719684c64e4f // indirect
 	github.com/pjbgf/sha1cd v0.3.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
@@ -238,7 +238,7 @@ require (
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiserver v0.33.0 // indirect
-	k8s.io/component-base v0.34.0-alpha.0 // indirect
+	k8s.io/component-base v0.33.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
 	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
