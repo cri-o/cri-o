@@ -24,7 +24,7 @@ func appendDefaultMaskedPaths(additionalPaths []string) []string {
 // defaultLinuxMaskedPaths will be used to evaluate the default masked paths once.
 var defaultLinuxMaskedPaths = sync.OnceValue(func() []string {
 	maskedPaths := slices.Concat(
-		config.DefaultMaskedPaths,
+		config.DefaultMaskedPaths(),
 		[]string{"/proc/asound", "/proc/interrupts"},
 	)
 

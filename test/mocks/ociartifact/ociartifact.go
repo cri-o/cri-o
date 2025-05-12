@@ -254,18 +254,18 @@ func (mr *MockImplMockRecorder) ManifestFromBlob(arg0, arg1 any) *gomock.Call {
 }
 
 // NewCopier mocks base method.
-func (m *MockImpl) NewCopier(arg0 *libimage.CopyOptions, arg1 *types.SystemContext, arg2 *types.ImageReference) (*libimage.Copier, error) {
+func (m *MockImpl) NewCopier(arg0 *libimage.CopyOptions, arg1 *types.SystemContext) (*libimage.Copier, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "NewCopier", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "NewCopier", arg0, arg1)
 	ret0, _ := ret[0].(*libimage.Copier)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // NewCopier indicates an expected call of NewCopier.
-func (mr *MockImplMockRecorder) NewCopier(arg0, arg1, arg2 any) *gomock.Call {
+func (mr *MockImplMockRecorder) NewCopier(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCopier", reflect.TypeOf((*MockImpl)(nil).NewCopier), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "NewCopier", reflect.TypeOf((*MockImpl)(nil).NewCopier), arg0, arg1)
 }
 
 // NewImageSource mocks base method.

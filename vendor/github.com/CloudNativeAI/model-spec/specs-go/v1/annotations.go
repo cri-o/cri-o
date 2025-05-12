@@ -16,7 +16,36 @@
 
 package v1
 
+import "time"
+
 const (
 	// AnnotationFilepath is the annotation key for the file path of the layer.
 	AnnotationFilepath = "org.cnai.model.filepath"
+
+	// AnnotationFileMetadata is the annotation key for the file metadata of the layer.
+	AnnotationFileMetadata = "org.cnai.model.file.metadata"
 )
+
+// FileMetadata represents the metadata of file, which is the value definition of AnnotationFileMetadata.
+type FileMetadata struct {
+	// File name
+	Name string `json:"name"`
+
+	// File permission mode (e.g., Unix permission bits)
+	Mode uint32 `json:"mode"`
+
+	// User ID (identifier of the file owner)
+	Uid uint32 `json:"uid"`
+
+	// Group ID (identifier of the file's group)
+	Gid uint32 `json:"gid"`
+
+	// File size (in bytes)
+	Size int64 `json:"size"`
+
+	// File last modification time
+	ModTime time.Time `json:"mtime"`
+
+	// File type flag (e.g., regular file, directory, etc.)
+	Typeflag byte `json:"typeflag"`
+}

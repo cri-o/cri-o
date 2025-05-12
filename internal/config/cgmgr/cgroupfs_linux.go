@@ -11,6 +11,7 @@ import (
 
 	"github.com/containers/common/pkg/cgroups"
 	"github.com/containers/storage/pkg/unshare"
+	openctrCg "github.com/opencontainers/cgroups"
 	libctrCg "github.com/opencontainers/runc/libcontainer/cgroups"
 	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
 	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
@@ -207,7 +208,7 @@ func (*CgroupfsManager) MoveConmonToCgroup(cid, cgroupParent, conmonCgroup strin
 
 	cgroupPath := fmt.Sprintf("%s/crio-conmon-%s", cgroupParent, cid)
 
-	control, err := cgroups.New(cgroupPath, &cgcfgs.Resources{})
+	control, err := cgroups.New(cgroupPath, &openctrCg.Resources{})
 	if err != nil {
 		logrus.Warnf("Failed to add conmon to cgroupfs sandbox cgroup: %v", err)
 	}

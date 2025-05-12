@@ -33,7 +33,7 @@ type Impl interface {
 	ToJSON(any) ([]byte, error)
 	ManifestFromBlob([]byte, string) (manifest.Manifest, error)
 	ManifestConfigMediaType(manifest.Manifest) string
-	NewCopier(*libimage.CopyOptions, *types.SystemContext, *types.ImageReference) (*libimage.Copier, error)
+	NewCopier(*libimage.CopyOptions, *types.SystemContext) (*libimage.Copier, error)
 	Copy(context.Context, *libimage.Copier, types.ImageReference, types.ImageReference) ([]byte, error)
 	CloseCopier(*libimage.Copier) error
 	List(string) ([]layout.ListResult, error)
@@ -101,9 +101,8 @@ func (*defaultImpl) ManifestConfigMediaType(parsedManifest manifest.Manifest) st
 	return parsedManifest.ConfigInfo().MediaType
 }
 
-//nolint:gocritic // intentionally pointer
-func (*defaultImpl) NewCopier(options *libimage.CopyOptions, sc *types.SystemContext, reportResolvedReference *types.ImageReference) (*libimage.Copier, error) {
-	return libimage.NewCopier(options, sc, reportResolvedReference)
+func (*defaultImpl) NewCopier(options *libimage.CopyOptions, sc *types.SystemContext) (*libimage.Copier, error) {
+	return libimage.NewCopier(options, sc)
 }
 
 func (d *defaultImpl) Copy(ctx context.Context, copier *libimage.Copier, source, destination types.ImageReference) ([]byte, error) {
