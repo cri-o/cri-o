@@ -47,7 +47,16 @@ type fakeIPTables struct {
 
 func newFakeIPTables() *fakeIPTables {
 	return &fakeIPTables{
-		tables: make(map[string]*fakeTable),
+		tables: map[string]*fakeTable{
+			"filter": {
+				name:   utiliptables.TableFilter,
+				chains: make(map[string]*fakeChain),
+			},
+			"nat": {
+				name:   utiliptables.TableNAT,
+				chains: make(map[string]*fakeChain),
+			},
+		},
 		builtinChains: map[string]sets.Set[string]{
 			string(utiliptables.TableFilter): sets.New("INPUT", "FORWARD", "OUTPUT"),
 			string(utiliptables.TableNAT):    sets.New("PREROUTING", "INPUT", "OUTPUT", "POSTROUTING"),

@@ -163,10 +163,15 @@ chmod +x create_crio_sysext.sh
 
 - runc, crun or any other OCI compatible runtime
 - iproute
-- iptables
+- nftables (on newer distros)
+- iptables (on distros that don't support nftables, or for backward-compatibility)
 
 Latest version of `crun` is expected to be installed on the system. It is picked
 up as the default runtime by CRI-O.
+
+CRI-O will prefer nftables (if it is available) for new pod HostPort
+mappings, but will also attempt to clean up old iptables-based
+mappings when deleting a pod, if iptables is installed.
 
 ### Build and Run Dependencies
 
