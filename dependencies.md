@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 13 May 2025 17:35:27 UTC for commit [43f1c85][0]._
+_Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/43f1c858ba2594dc24c8ab64e5d1e77c538ac8af
+[0]: https://github.com/cri-o/cri-o/commit/0c8c22dc53226ecface2879d886d0d2478e56e10
 
 ## Outdated Dependencies
 
@@ -21,7 +21,7 @@ _Generated on Tue, 13 May 2025 17:35:27 UTC for commit [43f1c85][0]._
 | cel.dev/expr                                                                        | v0.20.0                               | v0.24.0                             | false  | true             |
 | chainguard.dev/go-grpc-kit                                                          | v0.17.7                               | v0.17.10                            | false  | true             |
 | chainguard.dev/sdk                                                                  | v0.1.29                               | v0.1.32                             | false  | true             |
-| cloud.google.com/go                                                                 | v0.118.3                              | v0.121.0                            | false  | true             |
+| cloud.google.com/go                                                                 | v0.118.3                              | v0.121.1                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                  | v1.8.3                                | v1.8.6                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                            | v1.9.3                                | v1.9.6                              | false  | true             |
 | cloud.google.com/go/aiplatform                                                      | v1.74.0                               | v1.86.0                             | false  | true             |
@@ -289,7 +289,7 @@ _Generated on Tue, 13 May 2025 17:35:27 UTC for commit [43f1c85][0]._
 | github.com/containerd/go-runc                                                       | v1.1.0                                |                                     | false  | true             |
 | github.com/containerd/imgcrypt                                                      | v1.1.8                                | v1.1.11                             | false  | true             |
 | github.com/containerd/log                                                           | v0.1.0                                |                                     | false  | true             |
-| github.com/containerd/nri                                                           | v0.9.0                                |                                     | true   | true             |
+| github.com/containerd/nri                                                           | v0.9.1-0.20250219030224-e597e7849f24  |                                     | true   | true             |
 | github.com/containerd/otelttrpc                                                     | v0.1.0                                |                                     | true   | true             |
 | github.com/containerd/platforms                                                     | v0.2.1                                |                                     | false  | true             |
 | github.com/containerd/protobuild                                                    | v0.3.0                                |                                     | false  | true             |
@@ -482,7 +482,7 @@ _Generated on Tue, 13 May 2025 17:35:27 UTC for commit [43f1c85][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250512215509-f0dfbfdb08df  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250513185640-4d28e010f663  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
