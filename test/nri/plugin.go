@@ -35,12 +35,14 @@ type plugin struct {
 }
 
 type event struct {
-	kind string
-	pods []*api.PodSandbox
-	ctrs []*api.Container
-	pod  *api.PodSandbox
-	ctr  *api.Container
-	err  error
+	kind      string
+	pods      []*api.PodSandbox
+	ctrs      []*api.Container
+	pod       *api.PodSandbox
+	ctr       *api.Container
+	overhead  *api.LinuxResources
+	resources *api.LinuxResources
+	err       error
 }
 
 func WithStubOptions(options ...stub.Option) PluginOption {
@@ -203,6 +205,29 @@ func (p *plugin) RunPodSandbox(_ context.Context, pod *api.PodSandbox) error {
 		&event{
 			kind: "RunPodSandbox",
 			pod:  pod,
+		},
+	)
+
+	return nil
+}
+
+func (p *plugin) UpdatePodSandbox(_ context.Context, pod *api.PodSandbox, overhead, resources *api.LinuxResources) error {
+	if !p.inNamespace(pod.GetNamespace()) {
+		return nil
+	}
+
+	p.Lock()
+	defer p.Unlock()
+
+	p.pods[pod.GetId()].Linux.PodOverhead = overhead
+	p.pods[pod.GetId()].Linux.PodResources = resources
+
+	p.emitEvent(
+		&event{
+			kind:      "UpdatePodSandbox",
+			pod:       pod,
+			overhead:  overhead,
+			resources: resources,
 		},
 	)
 
@@ -623,6 +648,17 @@ func StopPodEvent(pod string) *event {
 
 func RemovePodEvent(pod string) *event {
 	return PodEvent("RemovePodSandbox", pod)
+}
+
+func UpdatePodEvent(pod string, overhead, resources *api.LinuxResources) *event {
+	return &event{
+		kind: "UpdatePodSandbox",
+		pod: &api.PodSandbox{
+			Id: pod,
+		},
+		overhead:  overhead,
+		resources: resources,
+	}
 }
 
 func PodEvent(kind, pod string) *event {

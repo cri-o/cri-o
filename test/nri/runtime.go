@@ -254,6 +254,27 @@ func (r *runtime) CreatePod(namespace, name, uid string, options ...PodOption) (
 	return reply.PodSandboxId, nil
 }
 
+func (r *runtime) UpdatePod(pod string, overhead, resources *cri.LinuxContainerResources) error {
+	id, ok := r.pods[pod]
+	if !ok {
+		id = pod
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), requestTimeout)
+	defer cancel()
+
+	_, err := r.runtime.UpdatePodSandboxResources(ctx, &cri.UpdatePodSandboxResourcesRequest{
+		PodSandboxId: id,
+		Overhead:     overhead,
+		Resources:    resources,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update pod %s: %w", pod, err)
+	}
+
+	return nil
+}
+
 func (r *runtime) StopPod(pod string) error {
 	id, ok := r.pods[pod]
 	if !ok {

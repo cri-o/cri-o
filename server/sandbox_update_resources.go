@@ -2,14 +2,28 @@ package server
 
 import (
 	"context"
-	"errors"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+
+	"github.com/cri-o/cri-o/internal/log"
 )
 
-// UpdatePodSandboxResources updates Config of the pod sandbox.
+// UpdatePodSandboxResources updates the cgroup resources for the sandbox.
 func (s *Server) UpdatePodSandboxResources(ctx context.Context, req *types.UpdatePodSandboxResourcesRequest) (*types.UpdatePodSandboxResourcesResponse, error) {
-	// TODO: implement this function
-	// https://github.com/kubernetes/enhancements/blob/master/keps/sig-node/1287-in-place-update-pod-resources/README.md#cri-changes
-	return nil, errors.New("not implemented yet")
+	ctx, span := log.StartSpan(ctx)
+	defer span.End()
+
+	sb, err := s.getPodSandboxFromRequest(ctx, req.PodSandboxId)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
+	}
+
+	err = s.nri.updatePodSandbox(ctx, sb, req.GetOverhead(), req.GetResources())
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.UpdatePodSandboxResourcesResponse{}, nil
 }

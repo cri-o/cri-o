@@ -76,6 +76,8 @@ type Plugin interface {
 	// StopContainer relays the corresponding request to the plugin. The plugin
 	// can update any of the remaining containers in the runtime in response.
 	StopContainer(context.Context, *StopContainerRequest) (*StopContainerResponse, error)
+	// UpdatePodSandbox relays the corresponding request to the plugin.
+	UpdatePodSandbox(context.Context, *UpdatePodSandboxRequest) (*UpdatePodSandboxResponse, error)
 	// StateChange relays any remaining pod or container lifecycle/state change
 	// events the plugin has subscribed for. These can be used to trigger any
 	// plugin-specific processing which needs to occur in connection with any of
