@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 13 May 2025 06:22:49 UTC for commit [59ba9be][0]._
+_Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/59ba9bed869bb28e1e1ffcbe5595c95442d0cfd3
+[0]: https://github.com/cri-o/cri-o/commit/9def906a1570b7df13e671495a284240c891ad9a
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250512145909-842ec6a32e3b | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250513081809-299fb3b77b15 | true   | true             |
 | github.com/opencontainers/cgroups                      | v0.0.1                               | v0.0.2                             | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
@@ -460,7 +460,7 @@ _Generated on Tue, 13 May 2025 06:22:49 UTC for commit [59ba9be][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250512145909-842ec6a32e3b  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250513081809-299fb3b77b15  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -633,7 +633,7 @@ _Generated on Tue, 13 May 2025 06:22:49 UTC for commit [59ba9be][0]._
 | github.com/tink-crypto/tink-go-awskms/v2                                            | v2.1.0                                |                                     | false  | true             |
 | github.com/tink-crypto/tink-go-gcpkms/v2                                            | v2.2.0                                |                                     | false  | true             |
 | github.com/tink-crypto/tink-go/v2                                                   | v2.3.0                                | v2.4.0                              | false  | true             |
-| github.com/tinylib/msgp                                                             | v1.1.9                                | v1.2.5                              | false  | true             |
+| github.com/tinylib/msgp                                                             | v1.1.9                                | v1.3.0                              | false  | true             |
 | github.com/titanous/rocacheck                                                       | v0.0.0-20171023193734-afe73141d399    |                                     | false  | true             |
 | github.com/tj/assert                                                                | v0.0.3                                |                                     | false  | true             |
 | github.com/tjfoc/gmsm                                                               | v1.4.1                                |                                     | false  | true             |
@@ -647,7 +647,7 @@ _Generated on Tue, 13 May 2025 06:22:49 UTC for commit [59ba9be][0]._
 | github.com/urfave/cli/v2                                                            | v2.27.6                               |                                     | true   | true             |
 | github.com/uwu-tools/magex                                                          | v0.10.1                               |                                     | false  | true             |
 | github.com/vbatts/tar-split                                                         | v0.12.1                               |                                     | false  | true             |
-| github.com/vbauerster/mpb/v8                                                        | v8.9.3                                | v8.10.0                             | false  | true             |
+| github.com/vbauerster/mpb/v8                                                        | v8.9.3                                | v8.10.1                             | false  | true             |
 | github.com/veraison/go-cose                                                         | v1.3.0                                |                                     | false  | true             |
 | github.com/vishvananda/netlink                                                      | v1.3.1-0.20250303224720-0e7078ed04c8  | v1.3.1                              | true   | true             |
 | github.com/vishvananda/netns                                                        | v0.0.5                                |                                     | false  | true             |
