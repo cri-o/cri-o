@@ -1,15 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
+_Generated on Tue, 13 May 2025 17:35:27 UTC for commit [43f1c85][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9def906a1570b7df13e671495a284240c891ad9a
+[0]: https://github.com/cri-o/cri-o/commit/43f1c858ba2594dc24c8ab64e5d1e77c538ac8af
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250513081809-299fb3b77b15 | true   | true             |
-| github.com/opencontainers/cgroups                      | v0.0.1                               | v0.0.2                             | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250513150235-cd4c3e89e113 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241210054802-24370beab758   | v0.0.0-20250502105355-0f33e8f1c979 | true   | true             |
@@ -418,7 +417,7 @@ _Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
 | github.com/google/uuid                                                              | v1.6.0                                |                                     | true   | true             |
 | github.com/google/wire                                                              | v0.6.0                                |                                     | false  | true             |
 | github.com/googleapis/enterprise-certificate-proxy                                  | v0.3.6                                |                                     | false  | true             |
-| github.com/googleapis/gax-go/v2                                                     | v2.14.1                               |                                     | false  | true             |
+| github.com/googleapis/gax-go/v2                                                     | v2.14.1                               | v2.14.2                             | false  | true             |
 | github.com/gorilla/mux                                                              | v1.8.1                                |                                     | false  | true             |
 | github.com/gorilla/websocket                                                        | v1.5.4-0.20250319132907-e064f32e3674  |                                     | false  | true             |
 | github.com/gregjones/httpcache                                                      | v0.0.0-20190611155906-901d90724c79    |                                     | false  | true             |
@@ -460,7 +459,7 @@ _Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250513081809-299fb3b77b15  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250513150235-cd4c3e89e113  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -541,7 +540,7 @@ _Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
 | github.com/onsi/ginkgo/v2                                                           | v2.23.4                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                              | v1.37.0                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.4.2                              | false  | true             |
-| github.com/opencontainers/cgroups                                                   | v0.0.1                                | v0.0.2                              | true   | true             |
+| github.com/opencontainers/cgroups                                                   | v0.0.2                                |                                     | true   | true             |
 | github.com/opencontainers/go-digest                                                 | v1.0.0                                |                                     | true   | true             |
 | github.com/opencontainers/image-spec                                                | v1.1.1                                |                                     | true   | true             |
 | github.com/opencontainers/runc                                                      | v1.2.6                                | v1.3.0                              | true   | true             |
@@ -727,7 +726,7 @@ _Generated on Tue, 13 May 2025 12:28:50 UTC for commit [9def906][0]._
 | golang.org/x/time                                                                   | v0.11.0                               |                                     | false  | true             |
 | golang.org/x/tools                                                                  | v0.31.0                               | v0.33.0                             | false  | true             |
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
-| google.golang.org/api                                                               | v0.228.0                              | v0.232.0                            | false  | true             |
+| google.golang.org/api                                                               | v0.228.0                              | v0.233.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                | v1.6.8                              | false  | true             |
 | google.golang.org/genproto                                                          | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
