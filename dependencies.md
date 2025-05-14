@@ -1,16 +1,17 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
+_Generated on Wed, 14 May 2025 16:58:40 UTC for commit [edadf0e][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/0c8c22dc53226ecface2879d886d0d2478e56e10
+[0]: https://github.com/cri-o/cri-o/commit/edadf0ec64f232ffade6c2746f836987ec26649e
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250513150235-cd4c3e89e113 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250514142033-393cc611534e | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
+| google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
 | k8s.io/utils                                           | v0.0.0-20241210054802-24370beab758   | v0.0.0-20250502105355-0f33e8f1c979 | true   | true             |
 
 ## All Dependencies
@@ -24,7 +25,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | cloud.google.com/go                                                                 | v0.118.3                              | v0.121.1                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                  | v1.8.3                                | v1.8.6                              | false  | true             |
 | cloud.google.com/go/accesscontextmanager                                            | v1.9.3                                | v1.9.6                              | false  | true             |
-| cloud.google.com/go/aiplatform                                                      | v1.74.0                               | v1.86.0                             | false  | true             |
+| cloud.google.com/go/aiplatform                                                      | v1.74.0                               | v1.87.0                             | false  | true             |
 | cloud.google.com/go/analytics                                                       | v0.26.0                               | v0.28.1                             | false  | true             |
 | cloud.google.com/go/apigateway                                                      | v1.7.3                                | v1.7.6                              | false  | true             |
 | cloud.google.com/go/apigeeconnect                                                   | v1.7.3                                | v1.7.6                              | false  | true             |
@@ -32,7 +33,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | cloud.google.com/go/appengine                                                       | v1.9.3                                | v1.9.6                              | false  | true             |
 | cloud.google.com/go/area120                                                         | v0.9.3                                | v0.9.6                              | false  | true             |
 | cloud.google.com/go/artifactregistry                                                | v1.16.1                               | v1.17.1                             | false  | true             |
-| cloud.google.com/go/asset                                                           | v1.20.4                               | v1.21.0                             | false  | true             |
+| cloud.google.com/go/asset                                                           | v1.20.4                               | v1.21.1                             | false  | true             |
 | cloud.google.com/go/assuredworkloads                                                | v1.12.3                               | v1.12.6                             | false  | true             |
 | cloud.google.com/go/auth                                                            | v0.15.0                               | v0.16.1                             | false  | true             |
 | cloud.google.com/go/auth/oauth2adapt                                                | v0.2.8                                |                                     | false  | true             |
@@ -50,7 +51,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | cloud.google.com/go/clouddms                                                        | v1.8.4                                | v1.8.7                              | false  | true             |
 | cloud.google.com/go/cloudtasks                                                      | v1.13.3                               | v1.13.6                             | false  | true             |
 | cloud.google.com/go/compute                                                         | v1.34.0                               | v1.37.0                             | false  | true             |
-| cloud.google.com/go/compute/metadata                                                | v0.6.0                                |                                     | false  | true             |
+| cloud.google.com/go/compute/metadata                                                | v0.6.0                                | v0.7.0                              | false  | true             |
 | cloud.google.com/go/contactcenterinsights                                           | v1.17.1                               | v1.17.3                             | false  | true             |
 | cloud.google.com/go/container                                                       | v1.42.2                               | v1.42.4                             | false  | true             |
 | cloud.google.com/go/containeranalysis                                               | v0.13.3                               | v0.14.1                             | false  | true             |
@@ -59,12 +60,12 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | cloud.google.com/go/dataform                                                        | v0.10.3                               | v0.11.2                             | false  | true             |
 | cloud.google.com/go/datafusion                                                      | v1.8.3                                | v1.8.6                              | false  | true             |
 | cloud.google.com/go/datalabeling                                                    | v0.9.3                                | v0.9.6                              | false  | true             |
-| cloud.google.com/go/dataplex                                                        | v1.22.0                               | v1.25.2                             | false  | true             |
+| cloud.google.com/go/dataplex                                                        | v1.22.0                               | v1.25.3                             | false  | true             |
 | cloud.google.com/go/dataproc/v2                                                     | v2.11.0                               | v2.11.2                             | false  | true             |
 | cloud.google.com/go/dataqna                                                         | v0.9.3                                | v0.9.7                              | false  | true             |
 | cloud.google.com/go/datastore                                                       | v1.20.0                               |                                     | false  | true             |
 | cloud.google.com/go/datastream                                                      | v1.13.0                               | v1.14.1                             | false  | true             |
-| cloud.google.com/go/deploy                                                          | v1.26.2                               | v1.27.1                             | false  | true             |
+| cloud.google.com/go/deploy                                                          | v1.26.2                               | v1.27.2                             | false  | true             |
 | cloud.google.com/go/dialogflow                                                      | v1.66.0                               | v1.68.2                             | false  | true             |
 | cloud.google.com/go/dlp                                                             | v1.21.0                               | v1.22.1                             | false  | true             |
 | cloud.google.com/go/documentai                                                      | v1.35.2                               | v1.37.0                             | false  | true             |
@@ -459,7 +460,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250513150235-cd4c3e89e113  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250514142033-393cc611534e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -731,7 +732,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | google.golang.org/genproto                                                          | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
 | google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
 | google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250313205543-e70fdf4c4cb4    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
-| google.golang.org/grpc                                                              | v1.72.0                               |                                     | true   | true             |
+| google.golang.org/grpc                                                              | v1.72.0                               | v1.72.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.6                               |                                     | true   | true             |
 | gopkg.in/alecthomas/kingpin.v2                                                      | v2.2.6                                | v2.4.0                              | false  | true             |
@@ -754,7 +755,7 @@ _Generated on Tue, 13 May 2025 21:59:32 UTC for commit [0c8c22d][0]._
 | k8s.io/component-base                                                               | v0.33.0                               |                                     | false  | true             |
 | k8s.io/cri-api                                                                      | v0.33.0                               |                                     | true   | true             |
 | k8s.io/cri-client                                                                   | v0.33.0                               |                                     | true   | true             |
-| k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250207200755-1244d31929d7  | false  | true             |
+| k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250513215321-e3bc6f1e78b4  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                          | v0.33.0                               |                                     | false  | true             |
 | k8s.io/kube-openapi                                                                 | v0.0.0-20250318190949-c8a335a9a2ff    |                                     | false  | true             |
