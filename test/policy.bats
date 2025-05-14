@@ -1,6 +1,9 @@
 #!/usr/bin/env bats
 # vim:set ft=bash :
 
+# TODO(bitoku): These tests require test/default.yaml to be in /etc/containers/registries.d/default.yaml
+# Add check to ensure it.
+
 load helpers
 
 function setup() {
@@ -17,6 +20,7 @@ function assert_log() {
 
 RESTRICTIVE_POLICY="$INTEGRATION_ROOT/policy-signature.json"
 
+CONTAINER_PATH=/volume
 REGISTRY="quay.io/crio"
 UNSIGNED_IMAGE="$REGISTRY/unsigned"
 SIGNED_IMAGE="$REGISTRY/signed"
@@ -303,5 +307,46 @@ SANDBOX_CONFIG="$TESTDATA/sandbox_config.json"
 	# Testing for container start failed not because of the signature, but of
 	# the missing command executable
 	run ! crictl create "$POD_ID" "$CTR_CONFIG" "$TESTDATA/sandbox_config.json"
+	[[ "$output" == *"SignatureValidationFailed"* ]]
+}
+
+@test "allow signed image mount" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+	start_crio
+	crictl pull "$SIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	jq --arg CONTAINER_PATH "$CONTAINER_PATH" --arg SIGNED_IMAGE "$SIGNED_IMAGE" \
+		'.mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: $SIGNED_IMAGE, user_specified_image: $SIGNED_IMAGE },
+			readonly: true
+		}]' "$TESTDATA/container_config.json" > "$TESTDIR/container_config.json"
+
+	crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
+}
+
+@test "deny unsigned image mount" {
+	if [[ "$TEST_USERNS" == "1" ]]; then
+		skip "test fails in a user namespace"
+	fi
+	start_crio
+	crictl pull "$UNSIGNED_IMAGE"
+	stop_crio_no_clean
+
+	SIGNATURE_POLICY="$RESTRICTIVE_POLICY" start_crio
+	jq --arg CONTAINER_PATH "$CONTAINER_PATH" --arg UNSIGNED_IMAGE "$UNSIGNED_IMAGE" \
+		'.mounts = [{
+			host_path: "",
+			container_path: $CONTAINER_PATH,
+			image: { image: $UNSIGNED_IMAGE, user_specified_image: $UNSIGNED_IMAGE },
+			readonly: true
+		}]' "$TESTDATA/container_config.json" > "$TESTDIR/container_config.json"
+
+	run ! crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json"
 	[[ "$output" == *"SignatureValidationFailed"* ]]
 }

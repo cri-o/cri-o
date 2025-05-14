@@ -699,37 +699,8 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 	// == NEVER USE userRequestedImage (or even someNameOfTheImage) for anything but diagnostic logging past this point; it might
 	// resolve to a different image.
 
-	systemCtx, err := s.contextForNamespace(sb.Metadata().Namespace)
-	if err != nil {
-		return nil, fmt.Errorf("get context for namespace: %w", err)
-	}
-
-	// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
-	// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
-	if systemCtx.SignaturePolicyPath != "" {
-		// userSpecifiedImage is the input user provided in a Pod spec,
-		// and captures the intent of the user; from that,
-		// the signature policy is used to determine the relevant roots of trust and other requirements.
-		userSpecifiedImage := ctr.Config().GetImage().UserSpecifiedImage
-
-		// This will likely fail in a container restore case.
-		// This is okay; in part because container restores are an alpha feature,
-		// and it is meaningless to try to verify an image that isn't even an image
-		// (like a checkpointed file is).
-		if userSpecifiedImage == "" {
-			return nil, errors.New("user specified image not specified, cannot verify image signature")
-		}
-
-		var userSpecifiedImageRef references.RegistryImageReference
-
-		userSpecifiedImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
-		}
-
-		if err := s.ContainerServer.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, imageID); err != nil {
-			return nil, err
-		}
+	if err := s.verifyImageSignature(ctx, sb.Metadata().Namespace, ctr.Config().GetImage().UserSpecifiedImage, imgResult); err != nil {
+		return nil, err
 	}
 
 	labelOptions, err := ctr.SelinuxLabel(sb.ProcessLabel())
@@ -1466,6 +1437,39 @@ func configureTimezone(tz, containerRunDir, mountPoint, mountLabel, etcPath, con
 			Source:      localTimePath,
 			Options:     append(options, []string{"bind", "nodev", "nosuid", "noexec"}...),
 		})
+	}
+
+	return nil
+}
+
+// verifyImageSignature verifies the signature of a container image.
+func (s *Server) verifyImageSignature(ctx context.Context, namespace, userSpecifiedImage string, status *storage.ImageResult) error {
+	systemCtx, err := s.contextForNamespace(namespace)
+	if err != nil {
+		return fmt.Errorf("get context for namespace: %w", err)
+	}
+
+	// WARNING: This hard-codes an assumption that SignaturePolicyPath set specifically for the namespace is never less restrictive
+	// than the default system-wide policy, i.e. that if an image is successfully pulled, it always conforms to the system-wide policy.
+	if systemCtx.SignaturePolicyPath != "" {
+		// This will likely fail in a container restore case.
+		// This is okay; in part because container restores are an alpha feature,
+		// and it is meaningless to try to verify an image that isn't even an image
+		// (like a checkpointed file is).
+		if userSpecifiedImage == "" {
+			return errors.New("user specified image not specified, cannot verify image signature")
+		}
+
+		var userSpecifiedImageRef references.RegistryImageReference
+
+		userSpecifiedImageRef, err = references.ParseRegistryImageReferenceFromOutOfProcessData(userSpecifiedImage)
+		if err != nil {
+			return fmt.Errorf("unable to get userSpecifiedImageRef from user specified image %q: %w", userSpecifiedImage, err)
+		}
+
+		if err := s.ContainerServer.StorageImageServer().IsRunningImageAllowed(ctx, &systemCtx, userSpecifiedImageRef, status.ID); err != nil {
+			return err
+		}
 	}
 
 	return nil
