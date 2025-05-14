@@ -11,15 +11,15 @@ dependencies:
   # below to the "supported versions" section (by omitting the patch version)
   # and increment the minor version. The .github/workflows/tag-reconciler.yml
   # workflow should then automatically tag the .0 release if it does not
-  # automatically exist.
+  # already exist.
   - name: development version
-    version: 1.33.0
+    version: 1.34.0
     refPaths:
       - path: internal/version/version.go
         match: Version
 
   - name: supported versions
-    version: '{"1.32", "1.31", "1.30"}'
+    version: '{"1.33", "1.32", "1.31", "1.30"}'
     refPaths:
       - path: internal/version/version.go
         match: ReleaseMinorVersions
