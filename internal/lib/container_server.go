@@ -169,6 +169,8 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	}
 	c.StatsServer = statsserver.New(ctx, c)
 
+	go c.probeMonitorProcesses(make(chan struct{}))
+
 	return c, nil
 }
 
@@ -982,4 +984,23 @@ func CheckReportHasErrors(report cstorage.CheckReport) bool {
 	return len(report.Layers) > 0 || len(report.ROLayers) > 0 ||
 		len(report.Images) > 0 || len(report.ROImages) > 0 ||
 		len(report.Containers) > 0
+}
+
+func (c *ContainerServer) probeMonitorProcesses(canceled <-chan struct{}) {
+	ctx := context.Background()
+	timer := time.NewTimer(10 * time.Second)
+	for {
+		select {
+		case <-timer.C:
+		case <-canceled:
+			return
+		}
+		for _, ctr := range c.listContainers() {
+			err := c.runtime.ProbeMonitor(ctx, ctr)
+			if err != nil {
+				logrus.Errorf("Error handling container monitor for container %s: %v", ctr.ID(), err)
+			}
+		}
+		timer.Reset(10 * time.Second)
+	}
 }
