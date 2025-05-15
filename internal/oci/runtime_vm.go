@@ -1346,7 +1346,6 @@ func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {
 	return nil
 }
 
-func (r *runtimeVM) LoadMonitorProcess(ctx context.Context, c *Container) error {
+func (r *runtimeVM) LoadMonitorProcess(ctx context.Context, c *Container) {
 	// Not implemented
-	return nil
 }

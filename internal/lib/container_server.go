@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"sync"
@@ -34,6 +35,11 @@ import (
 	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
+const (
+	probeInterval = 10 * time.Second
+	probeJitter   = probeInterval / 10
+)
+
 // ContainerServer implements the ImageServer.
 type ContainerServer struct {
 	runtime              *oci.Runtime
@@ -50,6 +56,9 @@ type ContainerServer struct {
 	stateLock sync.Locker
 	state     *containerServerState
 	config    *libconfig.Config
+
+	// monitorCh is used to signal the monitor goroutine to exit.
+	monitorCh chan struct{}
 }
 
 // Runtime returns the oci runtime for the ContainerServer.
@@ -165,9 +174,12 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 			sandboxes:       memorystore.New[*sandbox.Sandbox](),
 			processLevels:   make(map[string]int),
 		},
-		config: config,
+		config:    config,
+		monitorCh: make(chan struct{}),
 	}
 	c.StatsServer = statsserver.New(ctx, c)
+
+	go c.probeMonitorProcesses()
 
 	return c, nil
 }
@@ -667,6 +679,8 @@ func recoverLogError() {
 func (c *ContainerServer) Shutdown() error {
 	defer recoverLogError()
 
+	close(c.monitorCh)
+
 	_, err := c.store.Shutdown(false)
 	if err != nil && !errors.Is(err, cstorage.ErrLayerUsedByContainer) {
 		return err
@@ -987,4 +1001,27 @@ func CheckReportHasErrors(report cstorage.CheckReport) bool {
 	return len(report.Layers) > 0 || len(report.ROLayers) > 0 ||
 		len(report.Images) > 0 || len(report.ROImages) > 0 ||
 		len(report.Containers) > 0
+}
+
+func (c *ContainerServer) probeMonitorProcesses() {
+	ctx := context.Background()
+	timer := time.NewTimer(probeInterval)
+
+	for {
+		select {
+		case <-timer.C:
+		case <-c.monitorCh:
+			return
+		}
+		log.Debugf(ctx, "Probe monitor processes")
+
+		for _, ctr := range c.listContainers() {
+			err := c.runtime.ProbeMonitor(ctx, ctr)
+			if err != nil {
+				log.Errorf(ctx, "Error handling container monitor for container %s: %v", ctr.ID(), err)
+			}
+		}
+
+		timer.Reset(probeInterval + time.Duration(rand.Int63n(probeJitter.Nanoseconds())))
+	}
 }

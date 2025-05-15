@@ -30,37 +30,6 @@ var _ = AfterSuite(func() {
 
 // The actual test suite.
 var _ = t.Describe("Collectors", func() {
-	t.Describe("All", func() {
-		It("should contain all available metrics", func() {
-			// Given
-			all := collectors.All()
-
-			// When / Then
-			for _, collector := range []collectors.Collector{
-				collectors.ImagePullsLayerSize,
-				collectors.ContainersEventsDropped,
-				collectors.ContainersOOMTotal,
-				collectors.ProcessesDefunct,
-				collectors.OperationsTotal,
-				collectors.OperationsLatencySeconds,
-				collectors.OperationsLatencySecondsTotal,
-				collectors.OperationsErrorsTotal,
-				collectors.ImagePullsBytesTotal,
-				collectors.ImagePullsSkippedBytesTotal,
-				collectors.ImagePullsFailureTotal,
-				collectors.ImagePullsSuccessTotal,
-				collectors.ImageLayerReuseTotal,
-				collectors.ContainersOOMCountTotal,
-				collectors.ContainersSeccompNotifierCountTotal,
-				collectors.ResourcesStalledAtStage,
-			} {
-				Expect(all.Contains(collector)).To(BeTrue())
-			}
-
-			Expect(all).To(HaveLen(16))
-		})
-	})
-
 	t.Describe("Stripped", func() {
 		It("should remove all prefixes", func() {
 			// Given

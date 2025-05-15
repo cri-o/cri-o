@@ -82,7 +82,7 @@ type RuntimeImpl interface {
 	RestoreContainer(context.Context, *Container, string, string) error
 	IsContainerAlive(*Container) bool
 	ProbeMonitor(context.Context, *Container) error
-	LoadMonitorProcess(context.Context, *Container) error
+	LoadMonitorProcess(context.Context, *Container)
 }
 
 // New creates a new Runtime with options provided.
@@ -552,5 +552,7 @@ func (r *Runtime) LoadMonitorProcess(ctx context.Context, c *Container) error {
 		return err
 	}
 
-	return impl.LoadMonitorProcess(ctx, c)
+	impl.LoadMonitorProcess(ctx, c)
+
+	return nil
 }
