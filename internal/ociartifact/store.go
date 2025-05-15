@@ -118,30 +118,40 @@ func (s *Store) PullManifest(
 
 	log.Debugf(ctx, "Checking if source reference is an OCI artifact: %v", strRef)
 
-	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
-	if err != nil {
-		return nil, fmt.Errorf("build image source: %w", err)
-	}
-
-	defer func() {
-		if err := s.impl.CloseImageSource(src); err != nil {
-			log.Warnf(ctx, "Unable to close image source: %v", err)
-		}
-	}()
-
-	manifestBytes, mimeType, err := s.impl.GetManifest(ctx, src, nil)
+	manifestBytes, mimeType, err := s.getManifestFromRef(ctx, ref)
 	if err != nil {
 		return nil, fmt.Errorf("get manifest: %w", err)
 	}
 
 	log.Debugf(ctx, "Manifest mime type of %s: %s", strRef, mimeType)
 
-	listMimeTypes := []string{
-		specs.MediaTypeImageIndex,
-		manifest.DockerV2ListMediaType,
-	}
-	if slices.Contains(listMimeTypes, mimeType) {
+	if mimeType == manifest.DockerV2ListMediaType {
 		return nil, ErrIsAnImage
+	}
+
+	// At this point we are not sure if the reference is for an image or an artifact.
+	// To verify whether the reference is an artifact or an image, it needs to parse
+	// the manifest and see its media type.
+	if mimeType == specs.MediaTypeImageIndex {
+		manifestList, err := s.impl.ListFromBlob(manifestBytes, mimeType)
+		if err != nil {
+			return nil, fmt.Errorf("parse manifest from blob: %w", err)
+		}
+
+		instanceDigest, err := s.impl.ChooseInstance(manifestList, s.systemContext)
+		if err != nil {
+			return nil, fmt.Errorf("choose instance: %w", err)
+		}
+
+		ref, err = s.getImageReference(fmt.Sprintf("%s@%s", s.impl.DockerReferenceName(ref), instanceDigest))
+		if err != nil {
+			return nil, fmt.Errorf("failed to get image reference: %w", err)
+		}
+
+		manifestBytes, mimeType, err = s.getManifestFromRef(ctx, ref)
+		if err != nil {
+			return nil, fmt.Errorf("get manifest: %w", err)
+		}
 	}
 
 	parsedManifest, err := s.impl.ManifestFromBlob(manifestBytes, mimeType)
@@ -150,7 +160,6 @@ func (s *Store) PullManifest(
 	}
 
 	mediaType := s.impl.ManifestConfigMediaType(parsedManifest)
-
 	if opts.EnforceConfigMediaType != "" && mediaType != opts.EnforceConfigMediaType {
 		return nil, fmt.Errorf("wrong config media type %q, requires %q", mediaType, opts.EnforceConfigMediaType)
 	}
@@ -204,6 +213,22 @@ func (s *Store) PullManifest(
 	}
 
 	return manifestBytes, nil
+}
+
+// getManifestFromRef retrieves the manifest from the given image reference.
+func (s *Store) getManifestFromRef(ctx context.Context, ref types.ImageReference) (manifestBytes []byte, mimeType string, err error) {
+	src, err := s.impl.NewImageSource(ctx, ref, s.systemContext)
+	if err != nil {
+		return nil, "", fmt.Errorf("build image source: %w", err)
+	}
+
+	defer func() {
+		if err := s.impl.CloseImageSource(src); err != nil {
+			log.Warnf(ctx, "Unable to close image source: %v", err)
+		}
+	}()
+
+	return s.impl.GetManifest(ctx, src, nil)
 }
 
 // List creates a slice of all available artifacts.
