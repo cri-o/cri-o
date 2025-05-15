@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 15 May 2025 15:22:24 UTC for commit [a4bbbec][0]._
+_Generated on Thu, 15 May 2025 18:30:34 UTC for commit [9d143f9][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/a4bbbec6edd76bbea2d28fd54559d6d7110fe354
+[0]: https://github.com/cri-o/cri-o/commit/9d143f94054fc5c8338673f35f7c0164490363b3
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250515121537-676e66ae4990 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250515151800-d21d2a0657c3 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
@@ -126,7 +126,7 @@ _Generated on Thu, 15 May 2025 15:22:24 UTC for commit [a4bbbec][0]._
 | cloud.google.com/go/securitycenter                                                  | v1.36.0                               | v1.36.2                             | false  | true             |
 | cloud.google.com/go/servicedirectory                                                | v1.12.3                               | v1.12.6                             | false  | true             |
 | cloud.google.com/go/shell                                                           | v1.8.3                                | v1.8.6                              | false  | true             |
-| cloud.google.com/go/spanner                                                         | v1.76.1                               | v1.81.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                         | v1.76.1                               | v1.81.1                             | false  | true             |
 | cloud.google.com/go/speech                                                          | v1.26.0                               | v1.27.1                             | false  | true             |
 | cloud.google.com/go/storage                                                         | v1.50.0                               | v1.54.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                 | v1.12.1                               | v1.12.4                             | false  | true             |
@@ -460,7 +460,7 @@ _Generated on Thu, 15 May 2025 15:22:24 UTC for commit [a4bbbec][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250515121537-676e66ae4990  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250515151800-d21d2a0657c3  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
