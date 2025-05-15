@@ -1012,7 +1012,17 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		specgen.Config.Linux.Seccomp = nil
 	}
 
-	if !ctr.Privileged() {
+	setupSeccompForPrivCtr := (ctr.Privileged() && s.config.PrivilegedSeccompProfile != "")
+
+	if !ctr.Privileged() || setupSeccompForPrivCtr {
+		if setupSeccompForPrivCtr {
+			// Inject a custom seccomp profile for a privileged container
+			securityContext.Seccomp = &types.SecurityProfile{
+				ProfileType:  types.SecurityProfile_Localhost,
+				LocalhostRef: s.config.PrivilegedSeccompProfile,
+			}
+		}
+
 		notifier, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.config.SystemContext,

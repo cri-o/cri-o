@@ -259,6 +259,11 @@ func initCrioTemplateConfig(c *Config) ([]*templateConfigValue, error) {
 			isDefaultValue: simpleEqual(dc.SeccompProfile, c.SeccompProfile),
 		},
 		{
+			templateString: templateStringCrioRuntimePrivilegedSeccompProfile,
+			group:          crioRuntimeConfig,
+			isDefaultValue: simpleEqual(dc.PrivilegedSeccompProfile, c.PrivilegedSeccompProfile),
+		},
+		{
 			templateString: templateStringCrioRuntimeApparmorProfile,
 			group:          crioRuntimeConfig,
 			isDefaultValue: simpleEqual(dc.ApparmorProfile, c.ApparmorProfile),
@@ -934,6 +939,12 @@ const templateStringCrioRuntimeSeccompProfile = `# Path to the seccomp.json prof
 # for the runtime. If not specified, then the internal default seccomp profile
 # will be used. This option supports live configuration reload.
 {{ $.Comment }}seccomp_profile = "{{ .SeccompProfile }}"
+
+`
+
+const templateStringCrioRuntimePrivilegedSeccompProfile = `# Enable a seccomp profile for privileged containers from the local path.
+# This option supports live configuration reload.
+{{ $.Comment }}privileged_seccomp_profile = "{{ .PrivilegedSeccompProfile }}"
 
 `
 

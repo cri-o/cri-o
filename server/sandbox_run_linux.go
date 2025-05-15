@@ -847,8 +847,17 @@ func (s *Server) runPodSandbox(ctx context.Context, req *types.RunPodSandboxRequ
 	g.AddAnnotation(annotations.PodLinuxResources, string(resourcesJSON))
 
 	seccompRef := types.SecurityProfile_Unconfined.String()
+	setupSeccompForPrivCtr := (privileged && s.config.PrivilegedSeccompProfile != "")
 
-	if !privileged {
+	if !privileged || setupSeccompForPrivCtr {
+		if setupSeccompForPrivCtr {
+			// Inject a custom seccomp profile for a privileged container
+			securityContext.Seccomp = &types.SecurityProfile{
+				ProfileType:  types.SecurityProfile_Localhost,
+				LocalhostRef: s.config.PrivilegedSeccompProfile,
+			}
+		}
+
 		_, ref, err := s.config.Seccomp().Setup(
 			ctx,
 			s.config.SystemContext,

@@ -136,3 +136,74 @@ function teardown() {
 	crictl exec --sync "$ctr_id" /usr/bin/gcc /clone-ns.c -o /usr/bin/clone-ns
 	crictl exec --sync "$ctr_id" /usr/bin/clone-ns with_flags
 }
+
+@test "ctr seccomp profile for privileged sandbox and container" {
+	# shellcheck disable=SC2030,SC2031
+	export CONTAINER_PRIVILEGED_SECCOMP_PROFILE="$TESTDIR/seccomp_profile1.json"
+	restart_crio
+
+	POD_JSON="$TESTDIR/sandbox.json"
+	CTR_JSON="$TESTDIR/container.json"
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/sandbox_config.json" > "$POD_JSON"
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/container_sleep.json" > "$CTR_JSON"
+
+	POD_ID=$(crictl runp "$POD_JSON")
+	CTR_ID=$(crictl create "$POD_ID" "$CTR_JSON" "$POD_JSON")
+	crictl start "$CTR_ID"
+
+	crictl inspectp "$POD_ID" | jq -e '.info.runtimeSpec.linux.seccomp != null'
+	crictl inspect "$CTR_ID" | jq -e '.info.runtimeSpec.linux.seccomp != null'
+	run ! crictl exec --sync "$CTR_ID" chmod 777 .
+}
+
+@test "ctr seccomp profile for privileged sandbox only " {
+	# shellcheck disable=SC2030,SC2031
+	export CONTAINER_PRIVILEGED_SECCOMP_PROFILE="$TESTDIR/seccomp_profile1.json"
+	restart_crio
+
+	POD_JSON="$TESTDIR/sandbox.json"
+	CTR_JSON="$TESTDATA/container_sleep.json"
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/sandbox_config.json" > "$POD_JSON"
+
+	POD_ID=$(crictl runp "$POD_JSON")
+	CTR_ID=$(crictl create "$POD_ID" "$CTR_JSON" "$POD_JSON")
+	crictl start "$CTR_ID"
+
+	crictl inspectp "$POD_ID" | jq -e '.info.runtimeSpec.linux.seccomp != null'
+	crictl inspect "$CTR_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+	crictl exec --sync "$CTR_ID" chmod 777 .
+}
+
+@test "ctr seccomp profile for privileged container but not existing" {
+	# shellcheck disable=SC2030,SC2031
+	export CONTAINER_PRIVILEGED_SECCOMP_PROFILE="not-existing"
+	restart_crio
+
+	jq '.linux.security_context.privileged = true' \
+		"$TESTDATA/sandbox_config.json" > "$TESTDIR/sandbox.json"
+
+	run ! crictl runp "$TESTDIR/sandbox.json"
+}
+
+@test "ctr privileged seccomp profile not existing and not required" {
+	# shellcheck disable=SC2030,SC2031
+	export CONTAINER_PRIVILEGED_SECCOMP_PROFILE="not-existing"
+	restart_crio
+
+	POD_JSON="$TESTDATA/sandbox_config.json"
+	CTR_JSON="$TESTDATA/container_sleep.json"
+
+	POD_ID=$(crictl runp "$POD_JSON")
+	CTR_ID=$(crictl create "$POD_ID" "$CTR_JSON" "$POD_JSON")
+	crictl start "$CTR_ID"
+
+	crictl inspectp "$POD_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+	crictl inspect "$CTR_ID" | jq -e '.info.runtimeSpec.linux.seccomp == null'
+	crictl exec --sync "$CTR_ID" chmod 777 .
+}
