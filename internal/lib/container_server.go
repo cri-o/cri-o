@@ -559,6 +559,11 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	c.AddContainer(ctx, ctr)
 
+	err = c.runtime.LoadMonitorProcess(ctx, ctr)
+	if err != nil {
+		return fmt.Errorf("failed to load monitor process for container %q: %w", ctr.ID(), err)
+	}
+
 	return c.ctrIDIndex.Add(id)
 }
 

@@ -77,6 +77,7 @@ type Container struct {
 	runtimePath           string // runtime path for a given platform
 	execPIDs              map[int]bool
 	runtimeUser           *types.ContainerUser
+	monitorProcess        *os.Process
 }
 
 func (c *Container) CRIAttributes() *types.ContainerAttributes {
@@ -115,7 +116,18 @@ type ContainerState struct {
 	// is the same as the corresponding PID on the host.
 	InitStartTime string `json:"initStartTime,omitempty"`
 	// Checkpoint/Restore related states
-	CheckpointedAt time.Time `json:"checkpointedTime,omitempty"`
+	CheckpointedAt          time.Time                `json:"checkpointedTime,omitempty"`
+	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
+}
+
+// ContainerMonitorProcess represents a process of conmon, conmon-rs, etc.
+// It's used to check the identity of the process.
+type ContainerMonitorProcess struct {
+	Pid int `json:"pid,omitempty"`
+	// The unix start time of the monitor's PID.
+	// This is used to track whether the PID we have stored
+	// is the same as the corresponding PID on the host.
+	StartTime string `json:"startTime,omitempty"`
 }
 
 // NewContainer creates a container object.
