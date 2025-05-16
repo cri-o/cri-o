@@ -397,6 +397,9 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sb.SetCreated()
+	if scontainer.State().Status == oci.ContainerStateStopped {
+		sb.SetStopped(ctx, true)
+	}
 	selinux.ReserveLabel(processLabel)
 
 	if err := c.ctrIDIndex.Add(scontainer.ID()); err != nil {
