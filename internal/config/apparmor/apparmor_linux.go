@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/containers/common/pkg/apparmor"
+	libctraa "github.com/opencontainers/runc/libcontainer/apparmor"
 	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	runtimeapi "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -23,7 +24,7 @@ type Config struct {
 // New creates a new default AppArmor configuration instance.
 func New() *Config {
 	return &Config{
-		enabled:        apparmor.IsEnabled(),
+		enabled:        libctraa.IsEnabled(),
 		defaultProfile: DefaultProfile,
 	}
 }
