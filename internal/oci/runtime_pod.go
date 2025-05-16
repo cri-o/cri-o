@@ -311,3 +311,13 @@ func (r *runtimePod) ReopenContainerLog(ctx context.Context, c *Container) error
 func (r *runtimePod) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
 }
+
+func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {
+	// Not implemented
+	return nil
+}
+
+func (r *runtimePod) LoadMonitorProcess(ctx context.Context, c *Container) error {
+	// Not implemented
+	return nil
+}
