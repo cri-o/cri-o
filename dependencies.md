@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 May 2025 14:50:57 UTC for commit [bd42e53][0]._
+_Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/bd42e53235a6c8df46952558859f23b582ec3895
+[0]: https://github.com/cri-o/cri-o/commit/b2bdf9f981e9ae5955c449453373163b7d88fc80
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250516111918-9e11b2e577c4 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250516171553-b9651eadab6e | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
@@ -466,7 +466,7 @@ _Generated on Fri, 16 May 2025 14:50:57 UTC for commit [bd42e53][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250516111918-9e11b2e577c4  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250516171553-b9651eadab6e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -602,7 +602,7 @@ _Generated on Fri, 16 May 2025 14:50:57 UTC for commit [bd42e53][0]._
 | github.com/shibumi/go-pathspec                                                      | v1.3.0                                |                                     | false  | true             |
 | github.com/sigstore/cosign/v2                                                       | v2.4.1                                | v2.5.0                              | false  | true             |
 | github.com/sigstore/fulcio                                                          | v1.6.6                                | v1.7.1                              | false  | true             |
-| github.com/sigstore/protobuf-specs                                                  | v0.4.1                                |                                     | false  | true             |
+| github.com/sigstore/protobuf-specs                                                  | v0.4.1                                | v0.4.2                              | false  | true             |
 | github.com/sigstore/rekor                                                           | v1.3.10                               |                                     | false  | true             |
 | github.com/sigstore/sigstore                                                        | v1.9.3                                | v1.9.4                              | false  | true             |
 | github.com/sigstore/sigstore-go                                                     | v0.6.1                                | v1.0.0                              | false  | true             |
