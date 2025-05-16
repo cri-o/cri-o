@@ -13,7 +13,7 @@ dependencies:
   # tag the .0 release if it does not already exist. If the .0 release is done,
   # increase the development version to the next minor (1.x.0).
   - name: development version
-    version: 1.33.0
+    version: 1.34.0
     refPaths:
       - path: internal/version/version.go
         match: Version
