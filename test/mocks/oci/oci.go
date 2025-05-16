@@ -245,6 +245,20 @@ func (mr *MockRuntimeImplMockRecorder) StartContainer(arg0, arg1 any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartContainer", reflect.TypeOf((*MockRuntimeImpl)(nil).StartContainer), arg0, arg1)
 }
 
+// StartWatchContainerMonitor mocks base method.
+func (m *MockRuntimeImpl) StartWatchContainerMonitor(arg0 context.Context, arg1 *oci.Container) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "StartWatchContainerMonitor", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// StartWatchContainerMonitor indicates an expected call of StartWatchContainerMonitor.
+func (mr *MockRuntimeImplMockRecorder) StartWatchContainerMonitor(arg0, arg1 any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "StartWatchContainerMonitor", reflect.TypeOf((*MockRuntimeImpl)(nil).StartWatchContainerMonitor), arg0, arg1)
+}
+
 // StopContainer mocks base method.
 func (m *MockRuntimeImpl) StopContainer(arg0 context.Context, arg1 *oci.Container, arg2 int64) error {
 	m.ctrl.T.Helper()

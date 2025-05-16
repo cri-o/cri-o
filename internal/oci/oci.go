@@ -81,6 +81,9 @@ type RuntimeImpl interface {
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
 	IsContainerAlive(*Container) bool
+	// StartWatchContainerMonitor starts goroutine to watch the container monitor process.
+	// It's called as many times as the number of containers.
+	StartWatchContainerMonitor(context.Context, *Container) error
 }
 
 // New creates a new Runtime with options provided.
@@ -533,4 +536,13 @@ func (r *Runtime) IsContainerAlive(c *Container) (bool, error) {
 	}
 
 	return impl.IsContainerAlive(c), nil
+}
+
+func (r *Runtime) StartWatchContainerMonitor(ctx context.Context, c *Container) error {
+	impl, err := r.RuntimeImpl(c)
+	if err != nil {
+		return err
+	}
+
+	return impl.StartWatchContainerMonitor(ctx, c)
 }

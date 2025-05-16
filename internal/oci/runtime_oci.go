@@ -64,6 +64,8 @@ const (
 	// run. This allows to short-circuit stop logic if the process
 	// has already been terminated.
 	stopProcessWatchSleep = 100 * time.Millisecond
+
+	conmonWatchInterval = 10 * time.Second
 )
 
 // runtimeOCI is the Runtime interface implementation relying on conmon to
@@ -339,7 +341,35 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return err
 	}
 
+	c.state.ContainerMonitorProcess, err = r.getConmonProcess(c)
+	if err != nil {
+		return err
+	}
+
+	if err := r.StartWatchContainerMonitor(ctx, c); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+// getConmonProcess returns the pid and the start time of conmon.
+func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, error) {
+	conmonPid, err := ReadConmonPidFile(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read conmon pid: %w", err)
+	}
+	log.Infof(context.TODO(), "Conmon PID: %d", conmonPid)
+
+	startTime, err := getPidStartTime(conmonPid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conmon pid start time: %w", err)
+	}
+
+	return &ContainerMonitorProcess{
+		Pid:       conmonPid,
+		StartTime: startTime,
+	}, nil
 }
 
 // StartContainer starts a container.
@@ -1724,4 +1754,108 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 
 func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
+}
+
+func (r *runtimeOCI) StartWatchContainerMonitor(ctx context.Context, c *Container) error {
+	if c.state.ContainerMonitorProcess == nil {
+		log.Debugf(ctx, "Skipping start watch container monitor for container %q: conmon process is nil. maybe the container have existed before cri-o update", c.ID())
+
+		return nil
+	}
+
+	// Check if the conmon process is the same process when the container was created.
+	conmonPid := c.state.ContainerMonitorProcess.Pid
+
+	startTime, err := getPidStartTime(conmonPid)
+	if err != nil {
+		return fmt.Errorf("failed to get conmon process start time: %w", err)
+	}
+
+	if c.state.ContainerMonitorProcess.StartTime != startTime {
+		return errors.New("conmon process has gone because the start time changed")
+	}
+
+	conmonProcess, err := os.FindProcess(conmonPid)
+	if err != nil {
+		return fmt.Errorf("couldn't find conmon process: %w", err)
+	}
+
+	go func() {
+		if c.watched {
+			// This shouldn't happen
+			log.Errorf(ctx, "Skipping start watch container monitor for container %q: conmon process is already watched", c.ID())
+		}
+
+		c.watched = true
+		defer func() {
+			c.watched = false
+		}()
+
+		ch := make(chan struct{})
+		// Wait until the conmon process exits
+		exited, err := r.waitConmon(conmonProcess, ch)
+		if err != nil {
+			log.Errorf(ctx, "Error waiting for conmon process: %v", err)
+			return
+		}
+
+		close(ch) // TODO
+
+		// interrupted by doneCh
+		if !exited {
+			return
+		}
+
+		err = r.handleConmonExit(ctx, c)
+		if err != nil {
+			log.Errorf(ctx, "Error when handling conmon exit: %s", err)
+		}
+	}()
+
+	return nil
+}
+
+// handleConmonExit handles when the monitor process exits.
+// When the container is killed, conmon generates an exit file for
+// the container, and CRI-O handles exit files as follows:
+//
+// 1. Catch event of the exit file creation
+// 2. Change the container state (the state is blocked while updating)
+// 3. Remove the exit file
+//
+// So when the conmon stopped, the exit file must exist OR the container
+// must be stopped, otherwise we can assume the conmon stopped unexpectedly.
+// Just checking the status is not enough because when CRI-O is at step 1,
+// the container is running, but the conmon might be stopped.
+func (r *runtimeOCI) handleConmonExit(ctx context.Context, container *Container) error {
+	_, err := os.Stat(filepath.Join(r.config.ContainerExitsDir, container.ID()))
+	if errors.Is(err, os.ErrNotExist) {
+		if container.State().Status != rspec.StateStopped {
+			log.Errorf(ctx, "Monitor for container %q stopped though the container is not stopped", container.ID())
+			// TODO(bitoku): should we stop the container?
+		}
+		return nil
+	}
+
+	return err
+}
+
+// waitConmon returns true if the conmon exits, and false if it's interrupted by doneCh.
+func (r *runtimeOCI) waitConmon(conmonProcess *os.Process, doneCh <-chan struct{}) (bool, error) {
+	timer := time.NewTimer(conmonWatchInterval)
+	for {
+		select {
+		case <-doneCh:
+			return false, nil
+		case <-timer.C:
+		}
+		err := conmonProcess.Signal(syscall.Signal(0))
+		if errors.Is(err, os.ErrProcessDone) {
+			return true, nil
+		}
+		if err != nil {
+			return false, err
+		}
+		timer.Reset(conmonWatchInterval)
+	}
 }
