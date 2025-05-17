@@ -4,6 +4,11 @@ set -xe
 TEST_USERNS=${TEST_USERNS:-}
 TEST_KEEP_ON_FAILURE=${TEST_KEEP_ON_FAILURE:-}
 
+if [ -n "$GOCOVERDIR" ]; then
+    # It's used to make coverage profiles. https://go.dev/doc/build-cover
+    mkdir -p "$GOCOVERDIR"
+fi
+
 cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"
 
 if [[ "$TEST_USERNS" == "1" ]]; then

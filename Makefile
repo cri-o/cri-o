@@ -210,7 +210,7 @@ test/nri/nri.test: $(wildcard test/nri/*.go) ## Build the NRI test binary.
 	$(GO_TEST) $(GCFLAGS) $(GO_LDFLAGS) --tags "test $(BUILDTAGS)" -c ./test/nri -o $@
 
 bin/crio: $(GO_FILES) ## Build the CRI-O main binary.
-	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" -o $@ ./cmd/crio
+	$(GO_BUILD) $(GCFLAGS) $(GO_LDFLAGS) -tags "$(BUILDTAGS)" $(GO_BUILDFLAGS) -o $@ ./cmd/crio
 
 .PHONY: build-static
 build-static: ## Build the static binaries.
@@ -420,7 +420,7 @@ clean: ## Clean the repository.
 	rm -f test/checkseccomp/checkseccomp
 	rm -f test/checkcriu/checkcriu
 	rm -f test/nri/nri.test
-	rm -rf ${BUILD_BIN_PATH}
+	rm -rf ${BUILD_PATH}
 
 .PHONY: nixpkgs
 nixpkgs: ## Update the NIX package dependencies.

@@ -38,7 +38,7 @@ jobs:
             ~/go/pkg/mod
           key: go-test-binaries-${{ matrix.run.arch }}-${{ hashFiles('**/go.sum') }}-${{ hashFiles('test') }}
       - run: scripts/github-actions-packages
-      - run: make all test-binaries
+      - run: GO_BUILDFLAGS="-cover" make all test-binaries
       - uses: actions/upload-artifact@6f51ac03b9356f520e9adb1b1b7802705f340c2b # v4.5.0
         with:
           name: test-binaries-${{ matrix.run.arch }}
@@ -175,7 +175,8 @@ jobs:
             userns: 1
             jobs: 2
             timeout: 120
-
+    env:
+      GOCOVERDIR: ${{ github.workspace }}/build/coverage/bats # It's used to make coverage profiles. https://go.dev/doc/build-cover
     name: ${{ matrix.run.name }}
     runs-on: ${{ matrix.run.runner }}
     timeout-minutes: ${{ matrix.run.timeout }}
@@ -218,3 +219,11 @@ jobs:
           RUNTIME_TYPE: ${{ matrix.run.runtimeType }}
           TEST_USERNS: ${{ matrix.run.userns }}
           CONTAINER_DEFAULT_RUNTIME: ${{ matrix.run.defaultRuntime }}
+      # Codecov
+      - run: sudo go tool covdata textfmt -i="$GOCOVERDIR" -o build/coverage/coverprofile
+      - uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e # v5.1.1
+        with:
+          files: build/coverage/coverprofile
+          verbose: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
