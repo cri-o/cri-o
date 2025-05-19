@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
+_Generated on Mon, 19 May 2025 12:47:00 UTC for commit [73d3d40][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b2bdf9f981e9ae5955c449453373163b7d88fc80
+[0]: https://github.com/cri-o/cri-o/commit/73d3d40f2dcbbf2288b534fa02e96e74d1d5abb1
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250516171553-b9651eadab6e | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250518131025-305a5f5e41d8 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
@@ -466,7 +466,7 @@ _Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250516171553-b9651eadab6e  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250518131025-305a5f5e41d8  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -489,7 +489,7 @@ _Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250515192130-bef73f3c8b9e  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250516232256-ac2dae70f223  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -543,7 +543,7 @@ _Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
 | github.com/nxadm/tail                                                               | v1.4.11                               |                                     | false  | true             |
 | github.com/oklog/ulid                                                               | v1.3.1                                |                                     | false  | true             |
 | github.com/oleiade/reflections                                                      | v1.1.0                                |                                     | false  | true             |
-| github.com/olekukonko/tablewriter                                                   | v0.0.5                                | v1.0.5                              | false  | true             |
+| github.com/olekukonko/tablewriter                                                   | v0.0.5                                | v1.0.6                              | false  | true             |
 | github.com/onsi/ginkgo/v2                                                           | v2.23.4                               |                                     | true   | true             |
 | github.com/onsi/gomega                                                              | v1.37.0                               |                                     | true   | true             |
 | github.com/open-policy-agent/opa                                                    | v0.68.0                               | v1.4.2                              | false  | true             |
@@ -678,7 +678,7 @@ _Generated on Fri, 16 May 2025 18:25:28 UTC for commit [b2bdf9f][0]._
 | github.com/ysmood/got                                                               | v0.40.0                               |                                     | false  | true             |
 | github.com/ysmood/gson                                                              | v0.7.3                                |                                     | false  | true             |
 | github.com/ysmood/leakless                                                          | v0.9.0                                |                                     | false  | true             |
-| github.com/yuin/goldmark                                                            | v1.4.13                               | v1.7.11                             | false  | true             |
+| github.com/yuin/goldmark                                                            | v1.4.13                               | v1.7.12                             | false  | true             |
 | github.com/zalando/go-keyring                                                       | v0.2.3                                | v0.2.6                              | false  | true             |
 | github.com/zeebo/errs                                                               | v1.4.0                                |                                     | false  | true             |
 | github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250418211859-7510c141e4b7  | false  | true             |
