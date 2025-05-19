@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 19 May 2025 12:47:00 UTC for commit [73d3d40][0]._
+_Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/73d3d40f2dcbbf2288b534fa02e96e74d1d5abb1
+[0]: https://github.com/cri-o/cri-o/commit/ba60b94b685417acc835c684df6755e98dee02ca
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250518131025-305a5f5e41d8 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250519161250-5b5c71510ecc | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
@@ -466,7 +466,7 @@ _Generated on Mon, 19 May 2025 12:47:00 UTC for commit [73d3d40][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250518131025-305a5f5e41d8  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250519161250-5b5c71510ecc  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -735,9 +735,9 @@ _Generated on Mon, 19 May 2025 12:47:00 UTC for commit [73d3d40][0]._
 | golang.org/x/xerrors                                                                | v0.0.0-20240716161551-93cc26a95ae9    | v0.0.0-20240903120638-7835f813f4da  | false  | true             |
 | google.golang.org/api                                                               | v0.228.0                              | v0.233.0                            | false  | true             |
 | google.golang.org/appengine                                                         | v1.6.7                                | v1.6.8                              | false  | true             |
-| google.golang.org/genproto                                                          | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
-| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
-| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250313205543-e70fdf4c4cb4    | v0.0.0-20250512202823-5a2f75b736a9  | false  | true             |
+| google.golang.org/genproto                                                          | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250519155744-55703ea1f237  | false  | true             |
+| google.golang.org/genproto/googleapis/api                                           | v0.0.0-20250303144028-a0af3efb3deb    | v0.0.0-20250519155744-55703ea1f237  | false  | true             |
+| google.golang.org/genproto/googleapis/rpc                                           | v0.0.0-20250313205543-e70fdf4c4cb4    | v0.0.0-20250519155744-55703ea1f237  | false  | true             |
 | google.golang.org/grpc                                                              | v1.72.0                               | v1.72.1                             | true   | true             |
 | google.golang.org/grpc/cmd/protoc-gen-go-grpc                                       | v1.5.1                                |                                     | false  | true             |
 | google.golang.org/protobuf                                                          | v1.36.6                               |                                     | true   | true             |
