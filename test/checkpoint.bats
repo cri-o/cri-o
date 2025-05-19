@@ -25,9 +25,17 @@ function teardown() {
 	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
 	BIND_MOUNT_FILE=$(mktemp)
 	BIND_MOUNT_DIR=$(mktemp -d)
-	jq ". +{mounts:[{\"container_path\":\"/etc/issue\",\"host_path\":\"$BIND_MOUNT_FILE\"},{\"container_path\":\"/data\",\"host_path\":\"$BIND_MOUNT_DIR\"}]}" "$TESTDATA"/container_sleep.json > "$TESTDATA"/checkpoint.json
+	jq ". +{mounts:[{\"container_path\":\"/etc/issue\",\"host_path\":\"$BIND_MOUNT_FILE\"}, \
+		{\"container_path\":\"/data\",\"host_path\":\"$BIND_MOUNT_DIR\"}]} \
+		|.command=[\"/bin/bash\"] \
+		|.args=[\"-c\",\"while true; do echo -n 'hello: '; date; sleep 0.5;done\"]" \
+		"$TESTDATA"/container_sleep.json > "$TESTDATA"/checkpoint.json
 	ctr_id=$(crictl create "$pod_id" "$TESTDATA"/checkpoint.json "$TESTDATA"/sandbox_config.json)
 	crictl start "$ctr_id"
+	LOG_CONTENT_BEFORE=$(crictl logs "$ctr_id")
+	LINES_BEFORE=$(echo "$LOG_CONTENT_BEFORE" | wc -l)
+	# Just remember the first line
+	LOG_CONTENT_BEFORE=$(echo "$LOG_CONTENT_BEFORE" | head -1)
 	crictl checkpoint --export="$TESTDIR"/cp.tar "$ctr_id"
 	crictl rm -f "$ctr_id"
 	crictl rmp -f "$pod_id"
@@ -49,6 +57,18 @@ function teardown() {
 	crictl start "$ctr_id"
 	restored=$(crictl inspect --output go-template --template "{{(index .info.restored)}}" "$ctr_id")
 	[[ "$restored" == "true" ]]
+	# Sleeping here for a second to verify that logging still works.
+	# The container creates a log line every 0.5 seconds. Waiting 1 second
+	# should give us at least one line.
+	sleep 1
+	LOG_CONTENT_AFTER=$(crictl logs "$ctr_id")
+	LINES_AFTER=$(echo "$LOG_CONTENT_AFTER" | wc -l)
+	if [ "$LINES_BEFORE" -ge "$LINES_AFTER" ]; then
+		echo "number of lines after checkpointing ($LINES_AFTER) " \
+			"should be larger than before checkpointing ($LINES_BEFORE)"
+		false
+	fi
+	[[ "$LOG_CONTENT_AFTER" == *"$LOG_CONTENT_BEFORE"* ]]
 	rm -f "$BIND_MOUNT_FILE"
 	rmdir "$BIND_MOUNT_DIR"
 }
