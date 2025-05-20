@@ -51,8 +51,8 @@ func (c *Config) LoadProfile(profile string) error {
 
 		if err := apparmor.InstallDefault(DefaultProfile); err != nil {
 			return fmt.Errorf(
-				"installing default AppArmor profile %q failed",
-				DefaultProfile,
+				"installing default AppArmor profile %q failed: %w",
+				DefaultProfile, err,
 			)
 		}
 
@@ -60,8 +60,8 @@ func (c *Config) LoadProfile(profile string) error {
 			c, err := apparmor.DefaultContent(DefaultProfile)
 			if err != nil {
 				return fmt.Errorf(
-					"retrieving default AppArmor profile %q content failed",
-					DefaultProfile,
+					"retrieving default AppArmor profile %q content failed: %w",
+					DefaultProfile, err,
 				)
 			}
 
