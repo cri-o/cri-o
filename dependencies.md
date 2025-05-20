@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
+_Generated on Tue, 20 May 2025 12:39:13 UTC for commit [e738af1][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/ba60b94b685417acc835c684df6755e98dee02ca
+[0]: https://github.com/cri-o/cri-o/commit/e738af12221029190523129c2705defeb889dfce
 
 ## Outdated Dependencies
 
 |                         MODULE                         |               VERSION                |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |--------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250519161250-5b5c71510ecc | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250520114722-29099d139b26 | true   | true             |
 | github.com/opencontainers/runc                         | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                         | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | google.golang.org/grpc                                 | v1.72.0                              | v1.72.1                            | true   | true             |
@@ -157,7 +157,7 @@ _Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
 | filippo.io/edwards25519                                                             | v1.1.0                                |                                     | false  | true             |
 | github.com/14rcole/gopopulate                                                       | v0.0.0-20180821133914-b175b219e774    |                                     | false  | true             |
 | github.com/AdaLogics/go-fuzz-headers                                                | v0.0.0-20230811130428-ced1acdcaa24    | v0.0.0-20240806141605-e8a1dd7889d6  | false  | true             |
-| github.com/AdamKorcz/go-118-fuzz-build                                              | v0.0.0-20230306123547-8075edf89bb0    | v0.0.0-20231105174938-2b5cbb29f3e2  | false  | true             |
+| github.com/AdamKorcz/go-118-fuzz-build                                              | v0.0.0-20230306123547-8075edf89bb0    | v0.0.0-20250520111509-a70c2aa677fa  | false  | true             |
 | github.com/AdamKorcz/go-fuzz-headers-1                                              | v0.0.0-20230919221257-8b5d3ce2d11d    |                                     | false  | true             |
 | github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/provider             | v0.14.0                               | v0.18.1                             | false  | true             |
 | github.com/Azure/azure-sdk-for-go                                                   | v68.0.0+incompatible                  |                                     | false  | true             |
@@ -284,7 +284,7 @@ _Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
 | github.com/containerd/btrfs/v2                                                      | v2.0.0                                |                                     | false  | true             |
 | github.com/containerd/cgroups                                                       | v1.1.0                                |                                     | true   | true             |
 | github.com/containerd/cgroups/v3                                                    | v3.0.5                                |                                     | false  | true             |
-| github.com/containerd/console                                                       | v1.0.4                                |                                     | false  | true             |
+| github.com/containerd/console                                                       | v1.0.4                                | v1.0.5                              | false  | true             |
 | github.com/containerd/containerd                                                    | v1.7.27                               |                                     | true   | true             |
 | github.com/containerd/containerd/api                                                | v1.9.0                                |                                     | true   | true             |
 | github.com/containerd/continuity                                                    | v0.4.4                                | v0.4.5                              | false  | true             |
@@ -466,7 +466,7 @@ _Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250519161250-5b5c71510ecc  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250520114722-29099d139b26  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -710,7 +710,7 @@ _Generated on Mon, 19 May 2025 19:49:16 UTC for commit [ba60b94][0]._
 | go.opentelemetry.io/otel/sdk/metric                                                 | v1.34.0                               | v1.35.0                             | false  | true             |
 | go.opentelemetry.io/otel/trace                                                      | v1.35.0                               |                                     | true   | true             |
 | go.opentelemetry.io/proto/otlp                                                      | v1.5.0                                | v1.6.0                              | false  | true             |
-| go.step.sm/crypto                                                                   | v0.60.0                               | v0.63.0                             | false  | true             |
+| go.step.sm/crypto                                                                   | v0.60.0                               | v0.64.0                             | false  | true             |
 | go.uber.org/atomic                                                                  | v1.7.0                                | v1.11.0                             | false  | true             |
 | go.uber.org/automaxprocs                                                            | v1.6.0                                |                                     | false  | true             |
 | go.uber.org/goleak                                                                  | v1.3.0                                |                                     | false  | true             |
