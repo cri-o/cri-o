@@ -25,10 +25,7 @@ func (s *Server) PodSandboxStatus(ctx context.Context, req *types.PodSandboxStat
 		return nil, status.Errorf(codes.NotFound, "could not find pod %q: %v", req.PodSandboxId, err)
 	}
 
-	rStatus := types.PodSandboxState_SANDBOX_NOTREADY
-	if sb.Ready(true) {
-		rStatus = types.PodSandboxState_SANDBOX_READY
-	}
+	rStatus := sb.State()
 
 	var linux *types.LinuxPodSandboxStatus
 	if sb.NamespaceOptions() != nil {
