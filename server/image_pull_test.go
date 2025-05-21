@@ -33,6 +33,9 @@ var _ = t.Describe("ImagePull", func() {
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().GetImageReferencesFromRegistry(
+					gomock.Any(), gomock.Any()).
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
 					Return(canonicalImageCandidate, nil),
 			)
@@ -69,6 +72,9 @@ var _ = t.Describe("ImagePull", func() {
 			gomock.InOrder(
 				imageServerMock.EXPECT().CandidatesForPotentiallyShortImageName(
 					gomock.Any(), "image").
+					Return([]storage.RegistryImageReference{imageCandidate}, nil),
+				imageServerMock.EXPECT().GetImageReferencesFromRegistry(
+					gomock.Any(), gomock.Any()).
 					Return([]storage.RegistryImageReference{imageCandidate}, nil),
 				imageServerMock.EXPECT().PullImage(gomock.Any(), imageCandidate, gomock.Any()).
 					Return(storage.RegistryImageReference{}, t.TestError),

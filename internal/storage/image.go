@@ -21,6 +21,7 @@ import (
 	cimage "github.com/containers/image/v5/image"
 	"github.com/containers/image/v5/manifest"
 	"github.com/containers/image/v5/pkg/shortnames"
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	"github.com/containers/image/v5/signature"
 	istorage "github.com/containers/image/v5/storage"
 	"github.com/containers/image/v5/transports"
@@ -171,6 +172,10 @@ type ImageServer interface {
 	// CandidatesForPotentiallyShortImageName resolves an image name into a set of fully-qualified image names (domain/repo/image:tag|@digest).
 	// It will only return an empty slice if err != nil.
 	CandidatesForPotentiallyShortImageName(systemContext *types.SystemContext, imageName string) ([]RegistryImageReference, error)
+
+	// GetImageReferencesFromRegistry resolves the given RegistryImageReference based on sysregistriesv2.Registry.
+	// It will return the same ref if there's the prefix in the registry, or the registry is nil.
+	GetImageReferencesFromRegistry(registry *sysregistriesv2.Registry, imageName RegistryImageReference) ([]RegistryImageReference, error)
 
 	// UpdatePinnedImagesList updates pinned and pause images list in imageService.
 	UpdatePinnedImagesList(imageList []string)
@@ -844,6 +849,8 @@ func (svc *imageService) PullImage(ctx context.Context, imageName RegistryImageR
 //
 // It returns a name@digest value referring to exactly the pulled image.
 func pullImageImplementation(ctx context.Context, lookup *imageLookupService, store storage.Store, imageName RegistryImageReference, options *ImageCopyOptions) (RegistryImageReference, error) {
+	log.Debugf(ctx, "Trying to pull %s", imageName)
+
 	srcRef, err := lookup.remoteImageReference(imageName)
 	if err != nil {
 		return RegistryImageReference{}, err
@@ -1034,6 +1041,24 @@ func (svc *imageService) CandidatesForPotentiallyShortImageName(systemContext *t
 		// This function will strip the tag if both tag and digest are specified, as it's supported
 		// by Docker (and thus CRI-O by example) but not c/image.
 		images[i] = references.RegistryImageReferenceFromRaw(resolved.PullCandidates[i].Value)
+	}
+
+	return images, nil
+}
+
+func (svc *imageService) GetImageReferencesFromRegistry(registry *sysregistriesv2.Registry, ref RegistryImageReference) ([]RegistryImageReference, error) {
+	if registry == nil {
+		return []RegistryImageReference{ref}, nil
+	}
+
+	pullSrcs, err := registry.PullSourcesFromReference(ref.Raw())
+	if err != nil {
+		return nil, err
+	}
+
+	images := make([]RegistryImageReference, len(pullSrcs))
+	for i, pullSrc := range pullSrcs {
+		images[i] = references.RegistryImageReferenceFromRaw(pullSrc.Reference)
 	}
 
 	return images, nil
