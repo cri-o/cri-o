@@ -97,6 +97,8 @@ type Server struct {
 // pullArguments are used to identify a pullOperation via an input image name and
 // possibly specified credentials.
 type pullArguments struct {
+	// image is a user-specified image.
+	// It can be a shortname and not reflected by registries.conf.
 	image         string
 	sandboxCgroup string
 	credentials   imageTypes.DockerAuthConfig

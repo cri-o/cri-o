@@ -395,3 +395,16 @@ EOF
 
 	crictl pull "$IMAGE_LIST_TAG"
 }
+
+@test "pull mirrored image when registries.conf is set" {
+	CONTAINER_REGISTRIES_CONF_DIR="$TESTDIR/containers/registries.conf.d"
+	mkdir -p "$CONTAINER_REGISTRIES_CONF_DIR"
+	cat << EOF > "$CONTAINER_REGISTRIES_CONF_DIR/99-registry.conf"
+[[registry]]
+prefix = "example.com"
+location = "quay.io/crio"
+EOF
+	CONTAINER_REGISTRIES_CONF_DIR=$CONTAINER_REGISTRIES_CONF_DIR start_crio
+	crictl pull "example.com/fedora-crio-ci:latest"
+	wait_for_log "Trying to pull quay.io/crio/fedora-crio-ci:latest"
+}
