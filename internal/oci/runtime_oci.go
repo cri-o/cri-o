@@ -339,7 +339,35 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return err
 	}
 
+	c.state.ContainerMonitorProcess, err = r.getConmonProcess(c)
+	if err != nil {
+		return err
+	}
+
+	c.monitorProcess, err = os.FindProcess(c.state.ContainerMonitorProcess.Pid)
+	if err != nil {
+		return fmt.Errorf("failed to find process %d: %w", c.state.ContainerMonitorProcess.Pid, err)
+	}
+
 	return nil
+}
+
+// getConmonProcess returns the pid and the start time of conmon.
+func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, error) {
+	conmonPid, err := ReadConmonPidFile(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read conmon pid: %w", err)
+	}
+
+	startTime, err := getPidStartTime(conmonPid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conmon pid start time: %w", err)
+	}
+
+	return &ContainerMonitorProcess{
+		Pid:       conmonPid,
+		StartTime: startTime,
+	}, nil
 }
 
 // StartContainer starts a container.
@@ -1724,4 +1752,66 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 
 func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
+}
+
+func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
+	if c.monitorProcess == nil {
+		// It's possible when the container has existed before crio was updated.
+		return nil
+	}
+
+	err := c.monitorProcess.Signal(syscall.Signal(0))
+	if !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+
+	if r.IsContainerAlive(c) {
+		metrics.Instance().MetricContainersStoppedMonitorCountInc(c.Name())
+		log.Errorf(ctx, "Conmon for container %s is stopped, although the container is running", c.ID())
+	}
+
+	return nil
+}
+
+// LoadMonitorProcess loads conmon process as os.Process in monitorProcess.
+// If the monitor process has gone, it sets nil to ContainerMonitorProcess.
+func (r *runtimeOCI) LoadMonitorProcess(ctx context.Context, c *Container) {
+	if !r.IsContainerAlive(c) {
+		// Don't monitor stopped containers.
+		return
+	}
+
+	if c.state.ContainerMonitorProcess == nil {
+		// We can't verify the conmon process when ContainerMonitorProcess is nil
+		// because without pidStartTime, we are not sure whether the process of
+		// the pid is actually the conmon process or a different process.
+		log.Debugf(ctx, "Skipping loading conmon process for container %s: the container may have existed before cri-o updated or cri-o couldn't verify conmon process", c.ID())
+
+		return
+	}
+
+	// Check if the conmon process is the same process when the container was created.
+	conmonPid := c.state.ContainerMonitorProcess.Pid
+
+	err := func() error {
+		startTime, err := getPidStartTime(conmonPid)
+		if err != nil {
+			return fmt.Errorf("get conmon process start time: %w", err)
+		}
+
+		if c.state.ContainerMonitorProcess.StartTime != startTime {
+			return errors.New("conmon process has gone because the start time changed")
+		}
+
+		c.monitorProcess, err = os.FindProcess(conmonPid)
+		if err != nil {
+			return fmt.Errorf("find conmon process: %w", err)
+		}
+
+		return nil
+	}()
+	if err != nil {
+		// The container is alive, but the monitor is stopped.
+		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
+	}
 }
