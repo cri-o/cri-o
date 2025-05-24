@@ -9,7 +9,7 @@ import (
 	"sync"
 
 	"github.com/containers/common/pkg/cgroups"
-	libctrcgroups "github.com/opencontainers/runc/libcontainer/cgroups"
+	libctrcgroups "github.com/opencontainers/cgroups"
 )
 
 var (
