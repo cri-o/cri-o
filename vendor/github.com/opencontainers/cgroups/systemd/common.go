@@ -15,8 +15,7 @@ import (
 	dbus "github.com/godbus/dbus/v5"
 	"github.com/sirupsen/logrus"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
 )
 
 const (
@@ -35,10 +34,10 @@ var (
 
 	// GenerateDeviceProps is a function to generate systemd device
 	// properties, used by Set methods. Unless
-	// [github.com/opencontainers/runc/libcontainer/cgroups/devices]
+	// [github.com/opencontainers/cgroups/devices]
 	// package is imported, it is set to nil, so cgroup managers can't
 	// configure devices.
-	GenerateDeviceProps func(r *configs.Resources, sdVer int) ([]systemdDbus.Property, error)
+	GenerateDeviceProps func(r *cgroups.Resources, sdVer int) ([]systemdDbus.Property, error)
 )
 
 // NOTE: This function comes from package github.com/coreos/go-systemd/util
@@ -90,14 +89,14 @@ func ExpandSlice(slice string) (string, error) {
 	return path, nil
 }
 
-func newProp(name string, units interface{}) systemdDbus.Property {
+func newProp(name string, units any) systemdDbus.Property {
 	return systemdDbus.Property{
 		Name:  name,
 		Value: dbus.MakeVariant(units),
 	}
 }
 
-func getUnitName(c *configs.Cgroup) string {
+func getUnitName(c *cgroups.Cgroup) string {
 	// by default, we create a scope unless the user explicitly asks for a slice.
 	if !strings.HasSuffix(c.Name, ".slice") {
 		return c.ScopePrefix + "-" + c.Name + ".scope"
@@ -267,7 +266,7 @@ func systemdVersionAtoi(str string) (int, error) {
 	// Unconditionally remove the leading prefix ("v).
 	str = strings.TrimLeft(str, `"v`)
 	// Match on the first integer we can grab.
-	for i := 0; i < len(str); i++ {
+	for i := range len(str) {
 		if str[i] < '0' || str[i] > '9' {
 			// First non-digit: cut the tail.
 			str = str[:i]
@@ -281,7 +280,9 @@ func systemdVersionAtoi(str string) (int, error) {
 	return ver, nil
 }
 
-func addCpuQuota(cm *dbusConnManager, properties *[]systemdDbus.Property, quota int64, period uint64) {
+// addCPUQuota adds CPUQuotaPeriodUSec and CPUQuotaPerSecUSec to the properties. The passed quota may be modified
+// along with round-up during calculation in order to write the same value to cgroupfs later.
+func addCPUQuota(cm *dbusConnManager, properties *[]systemdDbus.Property, quota *int64, period uint64) {
 	if period != 0 {
 		// systemd only supports CPUQuotaPeriodUSec since v242
 		sdVer := systemdVersion(cm)
@@ -293,10 +294,10 @@ func addCpuQuota(cm *dbusConnManager, properties *[]systemdDbus.Property, quota 
 				" (setting will still be applied to cgroupfs)", sdVer)
 		}
 	}
-	if quota != 0 || period != 0 {
+	if *quota != 0 || period != 0 {
 		// corresponds to USEC_INFINITY in systemd
 		cpuQuotaPerSecUSec := uint64(math.MaxUint64)
-		if quota > 0 {
+		if *quota > 0 {
 			if period == 0 {
 				// assume the default
 				period = defCPUQuotaPeriod
@@ -305,9 +306,11 @@ func addCpuQuota(cm *dbusConnManager, properties *[]systemdDbus.Property, quota 
 			// (integer percentage of CPU) internally.  This means that if a fractional percent of
 			// CPU is indicated by Resources.CpuQuota, we need to round up to the nearest
 			// 10ms (1% of a second) such that child cgroups can set the cpu.cfs_quota_us they expect.
-			cpuQuotaPerSecUSec = uint64(quota*1000000) / period
+			cpuQuotaPerSecUSec = uint64(*quota*1000000) / period
 			if cpuQuotaPerSecUSec%10000 != 0 {
 				cpuQuotaPerSecUSec = ((cpuQuotaPerSecUSec / 10000) + 1) * 10000
+				// Update the requested quota along with the round-up in order to write the same value to cgroupfs.
+				*quota = int64(cpuQuotaPerSecUSec) * int64(period) / 1000000
 			}
 		}
 		*properties = append(*properties,
@@ -351,7 +354,7 @@ func addCpuset(cm *dbusConnManager, props *[]systemdDbus.Property, cpus, mems st
 
 // generateDeviceProperties takes the configured device rules and generates a
 // corresponding set of systemd properties to configure the devices correctly.
-func generateDeviceProperties(r *configs.Resources, cm *dbusConnManager) ([]systemdDbus.Property, error) {
+func generateDeviceProperties(r *cgroups.Resources, cm *dbusConnManager) ([]systemdDbus.Property, error) {
 	if GenerateDeviceProps == nil {
 		if len(r.Devices) > 0 {
 			return nil, cgroups.ErrDevicesUnsupported
