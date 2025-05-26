@@ -2,6 +2,8 @@ package runtimehandlerhooks
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -14,6 +16,7 @@ import (
 	"github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"k8s.io/utils/cpuset"
 
 	"github.com/cri-o/cri-o/internal/hostport"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
@@ -35,6 +38,11 @@ const (
 	governorPowersave    = "powersave"
 	governorSchedutil    = "schedutil"
 	governorUserspace    = "userspace"
+
+	containerName = "container-name"
+
+	onStartup  = false
+	onTeardown = true
 )
 
 // The actual test suite.
@@ -42,7 +50,7 @@ var _ = Describe("high_performance_hooks", func() {
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", nil, nil, "",
-		&types.ContainerMetadata{}, "sandboxID", false, false,
+		&types.ContainerMetadata{Name: containerName}, "sandboxID", false, false,
 		false, "", "", time.Now(), "")
 	Expect(err).ToNot(HaveOccurred())
 
@@ -58,15 +66,235 @@ var _ = Describe("high_performance_hooks", func() {
 		Expect(err).ToNot(HaveOccurred())
 	})
 
+	Describe("getIRQLoadBalancingDisabledCPUs", func() {
+		verifyGetIRQLoadBalancingDisabledCPUs := func(annotations map[string]string, enableIRQSMPBalancing bool,
+			expected cpuset.CPUSet, expectedErr error,
+		) {
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), enableIRQSMPBalancing, annotations, container)
+			if expectedErr != nil {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(expectedErr.Error()))
+
+				return
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cpus.Equals(expected)).To(BeTrue(), fmt.Sprintf("got: %v, expected: %v", cpus, expected))
+		}
+
+		JustBeforeEach(func() {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "4,5,10,11,12,13,14",
+							},
+						},
+					},
+				},
+			)
+		})
+
+		Context("without annotation", func() {
+			It("should return no CPUs", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{},
+					onStartup,
+					cpuset.New(),
+					nil,
+				)
+			})
+		})
+
+		Context("with annotation set to 'disabled'", func() {
+			It("should return all CPUs", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationDisable,
+					},
+					onStartup,
+					cpuset.New(4, 5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context("with annotation set to 'true'", func() {
+			It("should return all CPUs", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationTrue,
+					},
+					onStartup,
+					cpuset.New(4, 5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context("with annotation set to ''", func() {
+			It("should return no CPU", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: "",
+					},
+					onStartup,
+					cpuset.New(),
+					nil,
+				)
+			})
+		})
+
+		Context("with annotation set to 'invalid'", func() {
+			It("should return no CPU", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: "invalid",
+					},
+					onStartup,
+					cpuset.New(),
+					nil,
+				)
+			})
+		})
+
+		Context("with annotation set to 'housekeeping' but no housekeeping-cpus annotation", func() {
+			It("should return an error", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationHousekeeping,
+					},
+					onStartup,
+					cpuset.New(),
+					errors.New("at least one annotation with prefix housekeeping-cpus.crio.io/ is required when "+
+						"irq-load-balancing.crio.io is set to 'housekeeping'"),
+				)
+			})
+		})
+
+		Context("with annotation set to 'housekeeping' and invalid housekeeping-cpus annotation", func() {
+			It("should return an error", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "invalid",
+					},
+					onStartup,
+					cpuset.New(),
+					errors.New("cannot parse CPU set \"invalid\" in \"housekeeping-cpus.crio.io/container-name\""),
+				)
+			})
+		})
+
+		Context("with annotation set to 'housekeeping' and housekeeping-cpus annotation for different container", func() {
+			It("should return all CPUs", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                      annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/other-container": "0",
+					},
+					onStartup,
+					cpuset.New(4, 5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context(fmt.Sprintf("with annotation set to 'housekeeping' and housekeeping-cpus '%s/%s: 0'",
+			crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return all but the first CPU", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0",
+					},
+					onStartup,
+					cpuset.New(5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context(fmt.Sprintf("with annotation set to 'housekeeping' and housekeeping-cpus '%s/%s: 0,2-4'",
+			crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return the correct CPUs", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,2-4",
+					},
+					onStartup,
+					cpuset.New(5, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context(fmt.Sprintf("with annotation set to 'housekeeping' and housekeeping-cpus '%s/%s: 0, 2-4'",
+			crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return an error on startup", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0, 2-4",
+					},
+					onStartup,
+					cpuset.New(),
+					errors.New("cannot parse CPU set \"0, 2-4\" in \"housekeeping-cpus.crio.io/container-name\""),
+				)
+			})
+
+			It("should return all CPUs on teardown", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0, 2-4",
+					},
+					onTeardown,
+					cpuset.New(4, 5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+
+		Context(fmt.Sprintf("with annotation set to 'housekeeping' and housekeeping-cpus '%s/%s: 0,2,7,8'",
+			crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return an error on startup", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,2,7,8",
+					},
+					onStartup,
+					cpuset.New(),
+					errors.New("irq-load-balancing CPU index \"8\" is too high - container \"container-name\" "+
+						"only has 7 CPUs"),
+				)
+			})
+
+			It("should return all CPUs on teardown", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,2,7,8",
+					},
+					onTeardown,
+					cpuset.New(4, 5, 10, 11, 12, 13, 14),
+					nil,
+				)
+			})
+		})
+	})
+
 	Describe("setIRQLoadBalancingUsingDaemonCommand", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
-			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-			}
-			err := h.setIRQLoadBalancing(context.TODO(), container, enabled)
+		verifySetIRQLoadBalancing := func(enabled bool, expected string, annotations map[string]string) {
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, annotations, container)
+			Expect(err).ToNot(HaveOccurred())
+			h := HighPerformanceHooks{irqSMPAffinityFile: irqSmpAffinityFile, irqBalanceConfigFile: irqBalanceConfigFile}
+			err = h.setIRQLoadBalancing(context.TODO(), enabled, cpus)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
@@ -100,7 +328,12 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should set the irq bit mask", func() {
-				verifySetIRQLoadBalancing(true, "00000000,00003033")
+				verifySetIRQLoadBalancing(
+					true,
+					"00000000,00003033",
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationDisable,
+					})
 			})
 		})
 
@@ -110,7 +343,28 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should clear the irq bit mask", func() {
-				verifySetIRQLoadBalancing(false, "00000000,00003003")
+				verifySetIRQLoadBalancing(
+					false,
+					"00000000,00003003",
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationDisable,
+					})
+			})
+		})
+
+		Context("with enabled equals to false and cpu ignore list specified", func() {
+			BeforeEach(func() {
+				flags = "00000000,00003033"
+			})
+
+			It("should clear the irq bit mask", func() {
+				verifySetIRQLoadBalancing(
+					false,
+					"00000000,00003013",
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeeping,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0",
+					})
 			})
 		})
 	})
@@ -118,12 +372,11 @@ var _ = Describe("high_performance_hooks", func() {
 	Describe("setIRQLoadBalancingUsingServiceRestart", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
-		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
-			h := &HighPerformanceHooks{
-				irqBalanceConfigFile: irqBalanceConfigFile,
-				irqSMPAffinityFile:   irqSmpAffinityFile,
-			}
-			err = h.setIRQLoadBalancing(context.TODO(), container, enabled)
+		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string, annotations map[string]string) {
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, annotations, container)
+			Expect(err).ToNot(HaveOccurred())
+			h := HighPerformanceHooks{irqSMPAffinityFile: irqSmpAffinityFile, irqBalanceConfigFile: irqBalanceConfigFile}
+			err = h.setIRQLoadBalancing(context.TODO(), enabled, cpus)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
@@ -171,7 +424,14 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should set the irq bit mask", func() {
-				verifySetIRQLoadBalancing(true, "00000000,00003033", "ffffffff,ffffcfcc")
+				verifySetIRQLoadBalancing(
+					true,
+					"00000000,00003033",
+					"ffffffff,ffffcfcc",
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationDisable,
+					},
+				)
 			})
 		})
 
@@ -182,7 +442,14 @@ var _ = Describe("high_performance_hooks", func() {
 			})
 
 			It("should clear the irq bit mask", func() {
-				verifySetIRQLoadBalancing(false, "00000000,00003003", "ffffffff,ffffcffc")
+				verifySetIRQLoadBalancing(
+					false,
+					"00000000,00003003",
+					"ffffffff,ffffcffc",
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation: annotationDisable,
+					},
+				)
 			})
 		})
 	})
@@ -715,18 +982,30 @@ var _ = Describe("high_performance_hooks", func() {
 				Linux: &specs.Linux{
 					Resources: &specs.LinuxResources{
 						CPU: &specs.LinuxCPU{
-							Cpus:   "1,2",
+							Cpus:   "1,2,3,4",
 							Shares: &shares,
 						},
 					},
 				},
 			},
 		}
+		cName := "cnt1"
 		c, err := oci.NewContainer("containerID", "", "", "",
 			make(map[string]string), make(map[string]string),
 			make(map[string]string), "pauseImage", nil, nil, "",
-			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
+			&types.ContainerMetadata{Name: cName}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
+		c.SetSpec(
+			&specs.Spec{
+				Linux: &specs.Linux{
+					Resources: &specs.LinuxResources{
+						CPU: &specs.LinuxCPU{
+							Cpus: "1,2,3,4",
+						},
+					},
+				},
+			},
+		)
 		Expect(err).ToNot(HaveOccurred())
 
 		sbox := sandbox.NewBuilder()
@@ -751,6 +1030,7 @@ var _ = Describe("high_performance_hooks", func() {
 		sbox.SetPodLinuxResources(nil)
 		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
 			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+			crioannotations.HousekeepingCPUsAnnotation + "/" + cName:                             "0-1",
 		}, &types.PodSandboxMetadata{})
 		Expect(err).ToNot(HaveOccurred())
 		sbox.SetPrivileged(false)
@@ -760,11 +1040,12 @@ var _ = Describe("high_performance_hooks", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
-			h := HighPerformanceHooks{sharedCPUs: "3,4"}
+			h := HighPerformanceHooks{sharedCPUs: "5,6"}
 			err := h.PreCreate(context.TODO(), g, sb, c)
 			Expect(err).ToNot(HaveOccurred())
 			env := g.Config.Process.Env
-			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
+			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-4", "OPENSHIFT_SHARED_CPUS=5-6",
+				"HOUSEKEEPING_CPUS=1-2"))
 		})
 	})
 	Describe("Make sure that correct runtime handler hooks are set", func() {
