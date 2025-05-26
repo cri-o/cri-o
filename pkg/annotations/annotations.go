@@ -29,7 +29,14 @@ const (
 	// CPUQuotaAnnotation indicates that CPU quota should be disabled for CPUs used by the container.
 	CPUQuotaAnnotation = "cpu-quota.crio.io"
 
-	// IRQLoadBalancingAnnotation indicates that IRQ load balancing should be disabled for CPUs used by the container.
+	// IRQLoadBalancingAnnotation controls IRQ load balancing for container CPUs.
+	// Set to "disable" to turn off IRQ balancing on all container CPUs.
+	// Alternatively, specify a JSON map: {<container name>: <relative CPU indices>, ...}.
+	// The indices act as an allow-list: IRQ balancing is enabled only on listed CPUs of listed containers, and disabled
+	// on all other static CPUs of the entire Pod.
+	// As the absolute CPU set is only known at runtime, CPU indices are relative. Example: if a container is allocated
+	// CPUs [2, 4, 6], and the relative index "1" is used, IRQ balancing will be enabled only on CPU 4.
+	// Indices are parsed according to CPU set List Format (see man 7 cpuset).
 	IRQLoadBalancingAnnotation = "irq-load-balancing.crio.io"
 
 	// OCISeccompBPFHookAnnotation is the annotation used by the OCI seccomp BPF hook for tracing container syscalls.
