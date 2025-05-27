@@ -862,6 +862,12 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 
 		c = sb.InfraContainer()
 		resource = "sandbox infra"
+		// We discovered the infra container stopped (potentially unexpectedly).
+		// Since sandboxes status is now being judged by the sb.stopped boolean,
+		// rather than the infra container's status, we have to manually set stopped here.
+		// It's likely we're doing double the work here, but that's better than missing it
+		// if the infra container crashed.
+		sb.SetStopped(ctx, true)
 	} else {
 		sb = s.GetSandbox(c.Sandbox())
 	}
