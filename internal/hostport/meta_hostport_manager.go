@@ -28,10 +28,6 @@ type hostportManagers struct {
 
 // NewMetaHostportManager creates a new HostPortManager.
 func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
-	mh := &metaHostportManager{
-		managers: make(map[utilnet.IPFamily]*hostportManagers),
-	}
-
 	iptv4, iptErr := newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv4)
 	nftv4, nftErr := newHostportManagerNFTables(knftables.IPv4Family)
 
@@ -39,15 +35,8 @@ func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
 		return nil, fmt.Errorf("can't create HostPortManager: no support for iptables (%w) or nftables (%w)", iptErr, nftErr)
 	}
 
-	mh.managers[utilnet.IPv4] = &hostportManagers{
-		iptables: iptv4,
-		nftables: nftv4,
-	}
-
-	// IPv6 may fail if there's no kernel support, or no ip6tables binaries. We leave
-	// mh.managers[utilnet.IPv6] nil if there's no IPv6 support.
+	// IPv6 may fail if there's no kernel support, or no ip6tables binaries.
 	iptv6, iptErr := newHostportManagerIPTables(ctx, utiliptables.ProtocolIPv6)
-
 	nftv6, nftErr := newHostportManagerNFTables(knftables.IPv6Family)
 
 	switch {
@@ -55,14 +44,45 @@ func NewMetaHostportManager(ctx context.Context) (HostPortManager, error) {
 		logrus.Infof("No kernel support for IPv6: %v", nftErr)
 	case iptv6 == nil:
 		logrus.Infof("No iptables support for IPv6: %v", iptErr)
-	default:
-		mh.managers[utilnet.IPv6] = &hostportManagers{
-			iptables: iptv6,
-			nftables: nftv6,
-		}
 	}
 
-	return mh, nil
+	return newMetaHostportManagerInternal(iptv4, iptv6, nftv4, nftv6), nil
+}
+
+// internal metaHostportManager constructor; requires that at least one of the
+// sub-managers is non-nil.
+func newMetaHostportManagerInternal(iptv4, iptv6 *hostportManagerIPTables, nftv4, nftv6 *hostportManagerNFTables) HostPortManager {
+	mh := &metaHostportManager{
+		managers: make(map[utilnet.IPFamily]*hostportManagers),
+	}
+
+	if iptv4 != nil || nftv4 != nil {
+		managers := &hostportManagers{}
+		if iptv4 != nil {
+			managers.iptables = iptv4
+		}
+
+		if nftv4 != nil {
+			managers.nftables = nftv4
+		}
+
+		mh.managers[utilnet.IPv4] = managers
+	}
+
+	if iptv6 != nil || nftv6 != nil {
+		managers := &hostportManagers{}
+		if iptv6 != nil {
+			managers.iptables = iptv6
+		}
+
+		if nftv6 != nil {
+			managers.nftables = nftv6
+		}
+
+		mh.managers[utilnet.IPv6] = managers
+	}
+
+	return mh
 }
 
 var netlinkFamily = map[utilnet.IPFamily]netlink.InetFamily{

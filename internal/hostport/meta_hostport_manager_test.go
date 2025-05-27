@@ -28,20 +28,12 @@ var _ = t.Describe("MetaHostportManager", func() {
 		ip6tables := newFakeIPTables()
 		ip6tables.protocol = utiliptables.ProtocolIPv6
 
-		manager := metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					iptables: &hostportManagerIPTables{
-						iptables: iptables,
-					},
-				},
-				utilnet.IPv6: {
-					iptables: &hostportManagerIPTables{
-						iptables: ip6tables,
-					},
-				},
-			},
-		}
+		manager := newMetaHostportManagerInternal(
+			&hostportManagerIPTables{iptables: iptables},
+			&hostportManagerIPTables{iptables: ip6tables},
+			nil,
+			nil,
+		)
 
 		// Add Hostports
 		for _, tc := range metaTestCases {
@@ -67,22 +59,13 @@ var _ = t.Describe("MetaHostportManager", func() {
 	It("should work when only nftables is available", func() {
 		nft4 := knftables.NewFake(knftables.IPv4Family, hostPortsTable)
 		nft6 := knftables.NewFake(knftables.IPv6Family, hostPortsTable)
-		manager := metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					nftables: &hostportManagerNFTables{
-						nft:    nft4,
-						family: knftables.IPv4Family,
-					},
-				},
-				utilnet.IPv6: {
-					nftables: &hostportManagerNFTables{
-						nft:    nft6,
-						family: knftables.IPv6Family,
-					},
-				},
-			},
-		}
+
+		manager := newMetaHostportManagerInternal(
+			nil,
+			nil,
+			&hostportManagerNFTables{nft: nft4, family: knftables.IPv4Family},
+			&hostportManagerNFTables{nft: nft6, family: knftables.IPv6Family},
+		)
 
 		// Add Hostports
 		for _, tc := range metaTestCases {
@@ -110,28 +93,13 @@ var _ = t.Describe("MetaHostportManager", func() {
 		ip6tables.protocol = utiliptables.ProtocolIPv6
 		nft4 := knftables.NewFake(knftables.IPv4Family, hostPortsTable)
 		nft6 := knftables.NewFake(knftables.IPv6Family, hostPortsTable)
-		manager := metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					iptables: &hostportManagerIPTables{
-						iptables: iptables,
-					},
-					nftables: &hostportManagerNFTables{
-						nft:    nft4,
-						family: knftables.IPv4Family,
-					},
-				},
-				utilnet.IPv6: {
-					iptables: &hostportManagerIPTables{
-						iptables: ip6tables,
-					},
-					nftables: &hostportManagerNFTables{
-						nft:    nft6,
-						family: knftables.IPv6Family,
-					},
-				},
-			},
-		}
+
+		manager := newMetaHostportManagerInternal(
+			&hostportManagerIPTables{iptables: iptables},
+			&hostportManagerIPTables{iptables: ip6tables},
+			&hostportManagerNFTables{nft: nft4, family: knftables.IPv4Family},
+			&hostportManagerNFTables{nft: nft6, family: knftables.IPv6Family},
+		)
 
 		// Add Hostports
 		for _, tc := range metaTestCases {
@@ -203,20 +171,13 @@ var _ = t.Describe("MetaHostportManager", func() {
 		iptables.protocol = utiliptables.ProtocolIPv4
 		ip6tables := newFakeIPTables()
 		ip6tables.protocol = utiliptables.ProtocolIPv6
-		manager := metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					iptables: &hostportManagerIPTables{
-						iptables: iptables,
-					},
-				},
-				utilnet.IPv6: {
-					iptables: &hostportManagerIPTables{
-						iptables: ip6tables,
-					},
-				},
-			},
-		}
+
+		manager := newMetaHostportManagerInternal(
+			&hostportManagerIPTables{iptables: iptables},
+			&hostportManagerIPTables{iptables: ip6tables},
+			nil,
+			nil,
+		)
 
 		// Add the legacy mappings.
 		for _, tc := range legacyIPTablesTestCases {
@@ -231,28 +192,13 @@ var _ = t.Describe("MetaHostportManager", func() {
 		// existing fakeIPTables state, but now with nftables support as well.
 		nft4 := knftables.NewFake(knftables.IPv4Family, hostPortsTable)
 		nft6 := knftables.NewFake(knftables.IPv6Family, hostPortsTable)
-		manager = metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					iptables: &hostportManagerIPTables{
-						iptables: iptables,
-					},
-					nftables: &hostportManagerNFTables{
-						nft:    nft4,
-						family: knftables.IPv4Family,
-					},
-				},
-				utilnet.IPv6: {
-					iptables: &hostportManagerIPTables{
-						iptables: ip6tables,
-					},
-					nftables: &hostportManagerNFTables{
-						nft:    nft6,
-						family: knftables.IPv6Family,
-					},
-				},
-			},
-		}
+
+		manager = newMetaHostportManagerInternal(
+			&hostportManagerIPTables{iptables: iptables},
+			&hostportManagerIPTables{iptables: ip6tables},
+			&hostportManagerNFTables{nft: nft4, family: knftables.IPv4Family},
+			&hostportManagerNFTables{nft: nft6, family: knftables.IPv6Family},
+		)
 
 		// Add the remaining hostports.
 		for _, tc := range metaTestCases {
@@ -289,19 +235,13 @@ var _ = t.Describe("MetaHostportManager", func() {
 		iptables := newFakeIPTables()
 		iptables.protocol = utiliptables.ProtocolIPv4
 		nft4 := knftables.NewFake(knftables.IPv4Family, hostPortsTable)
-		manager := metaHostportManager{
-			managers: map[utilnet.IPFamily]*hostportManagers{
-				utilnet.IPv4: {
-					iptables: &hostportManagerIPTables{
-						iptables: iptables,
-					},
-					nftables: &hostportManagerNFTables{
-						nft:    nft4,
-						family: knftables.IPv4Family,
-					},
-				},
-			},
-		}
+
+		manager := newMetaHostportManagerInternal(
+			&hostportManagerIPTables{iptables: iptables},
+			nil,
+			&hostportManagerNFTables{nft: nft4, family: knftables.IPv4Family},
+			nil,
+		)
 
 		// Add Hostports
 		for _, tc := range metaTestCases {
