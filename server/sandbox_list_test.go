@@ -96,8 +96,9 @@ var _ = t.Describe("ListPodSandbox", func() {
 			// Given
 			mockDirs(testManifest)
 			createDummyState()
-			_, err := sut.LoadSandbox(context.Background(), sandboxID)
+			sb, err := sut.LoadSandbox(context.Background(), sandboxID)
 			Expect(err).ToNot(HaveOccurred())
+			sb.SetStopped(context.Background(), false)
 
 			// When
 			response, err := sut.ListPodSandbox(context.Background(),
