@@ -3,7 +3,6 @@ package runtimehandlerhooks
 import (
 	"context"
 	"strings"
-	"sync"
 
 	"github.com/cri-o/cri-o/internal/log"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -15,16 +14,9 @@ func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handl
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	if strings.Contains(handler, HighPerformance) {
+	if highPerformanceAnnotationsSpecified(annotations) || strings.Contains(handler, HighPerformance) {
 		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-
-		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
-	}
-
-	if highPerformanceAnnotationsSpecified(annotations) {
-		log.Warnf(ctx, "The usage of the handler %q without adding high-performance feature annotations under allowed_annotations will be deprecated under 1.21", HighPerformance)
-
-		return &HighPerformanceHooks{irqBalanceConfigFile: config.IrqBalanceConfigFile, cpusetLock: sync.Mutex{}, sharedCPUs: config.SharedCPUSet}, nil
+		return HighPerformanceHooksInstance(config.IrqBalanceConfigFile, config.SharedCPUSet)
 	}
 
 	if cpuLoadBalancingAllowed(config) {
