@@ -59,7 +59,8 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string) {
-			err := setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
+			h := &HighPerformanceHooks{irqBalanceConfigFile: irqBalanceConfigFile}
+			err := h.setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
@@ -112,7 +113,8 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string) {
-			err = setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile, irqBalanceConfigFile)
+			h := &HighPerformanceHooks{irqBalanceConfigFile: irqBalanceConfigFile}
+			err = h.setIRQLoadBalancing(context.TODO(), container, enabled, irqSmpAffinityFile)
 			Expect(err).ToNot(HaveOccurred())
 
 			content, err := os.ReadFile(irqSmpAffinityFile)
