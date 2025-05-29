@@ -1117,3 +1117,5 @@ func (s *Server) watchAndReloadMirrorRegistriesConfiguration(ctx context.Context
 func (s *Server) ArtifactStore() *ociartifact.Store {
 	return ociartifact.NewStore(s.Store().GraphRoot(), s.Config().SystemContext)
 }
+
+// test
