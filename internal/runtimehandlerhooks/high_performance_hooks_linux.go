@@ -70,31 +70,6 @@ type HighPerformanceHooks struct {
 	sharedCPUs               string
 }
 
-var hph *HighPerformanceHooks
-var once sync.Once
-
-func HighPerformanceHooksInstance(irqBalanceConfigFile, sharedCPUSet string) (*HighPerformanceHooks, error) {
-	once.Do(func() {
-		hph = &HighPerformanceHooks{
-			irqBalanceConfigFile:     irqBalanceConfigFile,
-			cpusetLock:               sync.Mutex{},
-			irqSMPAffinityFileLock:   sync.Mutex{},
-			irqBalanceConfigFileLock: sync.Mutex{},
-			sharedCPUs:               sharedCPUSet,
-		}
-	})
-	// Sanity checks, this should never happen.
-	if irqBalanceConfigFile != hph.irqBalanceConfigFile {
-		return nil, fmt.Errorf("inconsistent setting for HighPerformanceHooks instance, "+
-			"cannot update irqBalanceConfigFile from %q to %q", hph.irqBalanceConfigFile, irqBalanceConfigFile)
-	}
-	if sharedCPUSet != hph.sharedCPUs {
-		return nil, fmt.Errorf("inconsistent setting for HighPerformanceHooks instance, "+
-			"cannot update sharedCPUs from %q to %q", hph.sharedCPUs, sharedCPUSet)
-	}
-	return hph, nil
-}
-
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
 	log.Infof(ctx, "Run %q runtime handler pre-create hook for the container %q", HighPerformance, c.ID())
 
