@@ -16,7 +16,7 @@
 
 - name: install conmon
   make:
-    target: "install"
+    target: "install.bin"
     chdir: "{{ ansible_env.GOPATH }}/src/github.com/containers/conmon"
     params:
       PREFIX: "/" # install conmon to the PATH so it can be downloaded to the test directory as needed
