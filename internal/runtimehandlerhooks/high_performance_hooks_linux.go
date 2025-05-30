@@ -1056,19 +1056,6 @@ func RestoreIrqBalanceConfig(ctx context.Context, irqBalanceConfigFile, irqBanne
 	return nil
 }
 
-func ShouldCPUQuotaBeDisabled(ctx context.Context, cid string, cSpec *specs.Spec, s *sandbox.Sandbox, annotations fields.Set) bool {
-	if !shouldRunHooks(ctx, cid, cSpec, s) {
-		return false
-	}
-
-	if annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue {
-		log.Warnf(ctx, "%s", annotationValueDeprecationWarning(crioannotations.CPUQuotaAnnotation))
-	}
-
-	return annotations[crioannotations.CPUQuotaAnnotation] == annotationTrue ||
-		annotations[crioannotations.CPUQuotaAnnotation] == annotationDisable
-}
-
 func shouldRunHooks(ctx context.Context, id string, cSpec *specs.Spec, s *sandbox.Sandbox) bool {
 	if isCgroupParentBurstable(s) {
 		log.Infof(ctx, "Container %q is a burstable pod. Skip PreStart.", id)
