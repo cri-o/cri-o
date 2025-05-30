@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/containers/image/v5/pkg/sysregistriesv2"
 	imageTypes "github.com/containers/image/v5/types"
 	encconfig "github.com/containers/ocicrypt/config"
 	"github.com/docker/distribution/registry/api/errcode"
@@ -140,8 +141,6 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 		return storage.RegistryImageReference{}, fmt.Errorf("get context for namespace: %w", err)
 	}
 
-	log.Debugf(ctx, "Using pull policy path for image %s: %q", pullArgs.image, sourceCtx.SignaturePolicyPath)
-
 	sourceCtx.DockerLogMirrorChoice = true // Add info level log of the pull source
 	if pullArgs.credentials.Username != "" {
 		sourceCtx.DockerAuthConfig = &pullArgs.credentials
@@ -189,15 +188,31 @@ func (s *Server) pullImage(ctx context.Context, pullArgs *pullArguments) (storag
 	lastErr := errors.New("internal error: pullImage failed but reported no error reason")
 
 	for _, remoteCandidateName := range remoteCandidates {
-		repoDigest, err := s.pullImageCandidate(ctx, &sourceCtx, remoteCandidateName, decryptConfig, cgroup)
-		if err == nil {
-			// Update metric for successful image pulls
-			metrics.Instance().MetricImagePullsSuccessesInc(remoteCandidateName)
+		registry, err := sysregistriesv2.FindRegistry(s.config.SystemContext, remoteCandidateName.Raw().String())
+		if err != nil {
+			lastErr = err
 
-			return repoDigest, nil
+			continue
 		}
 
-		lastErr = err
+		candidates, err := s.ContainerServer.StorageImageServer().GetImageReferencesFromRegistry(registry, remoteCandidateName)
+		if err != nil {
+			lastErr = err
+
+			continue
+		}
+
+		for _, candidate := range candidates {
+			repoDigest, err := s.pullImageCandidate(ctx, &sourceCtx, candidate, decryptConfig, cgroup)
+			if err == nil {
+				// Update metric for successful image pulls
+				metrics.Instance().MetricImagePullsSuccessesInc(candidate)
+
+				return repoDigest, nil
+			}
+
+			lastErr = err
+		}
 	}
 
 	return storage.RegistryImageReference{}, lastErr

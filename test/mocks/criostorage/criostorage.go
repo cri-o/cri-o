@@ -13,6 +13,7 @@ import (
 	context "context"
 	reflect "reflect"
 
+	sysregistriesv2 "github.com/containers/image/v5/pkg/sysregistriesv2"
 	types "github.com/containers/image/v5/types"
 	storage "github.com/containers/storage"
 	storage0 "github.com/cri-o/cri-o/internal/storage"
@@ -70,6 +71,21 @@ func (m *MockImageServer) DeleteImage(systemContext *types.SystemContext, id sto
 func (mr *MockImageServerMockRecorder) DeleteImage(systemContext, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteImage", reflect.TypeOf((*MockImageServer)(nil).DeleteImage), systemContext, id)
+}
+
+// GetImageReferencesFromRegistry mocks base method.
+func (m *MockImageServer) GetImageReferencesFromRegistry(registry *sysregistriesv2.Registry, imageName storage0.RegistryImageReference) ([]storage0.RegistryImageReference, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetImageReferencesFromRegistry", registry, imageName)
+	ret0, _ := ret[0].([]storage0.RegistryImageReference)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetImageReferencesFromRegistry indicates an expected call of GetImageReferencesFromRegistry.
+func (mr *MockImageServerMockRecorder) GetImageReferencesFromRegistry(registry, imageName any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetImageReferencesFromRegistry", reflect.TypeOf((*MockImageServer)(nil).GetImageReferencesFromRegistry), registry, imageName)
 }
 
 // GetStore mocks base method.
