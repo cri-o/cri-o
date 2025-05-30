@@ -456,8 +456,6 @@ func filterChains(chains map[utiliptables.Chain]string, filterChains []utiliptab
 }
 
 // Join all words with spaces, terminate with newline and write to buf.
-//
-//nolint:interfacer
 func writeLine(buf *bytes.Buffer, words ...string) {
 	buf.WriteString(strings.Join(words, " ") + "\n")
 }
