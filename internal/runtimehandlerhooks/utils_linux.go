@@ -103,29 +103,24 @@ func isAllBitSet(in []byte) bool {
 	return true
 }
 
-// UpdateIRQSmpAffinityMask take input cpus that need to change irq affinity mask and
-// the current mask string, return an update mask string and inverted mask, with those cpus
-// enabled or disable in the mask.
-func UpdateIRQSmpAffinityMask(cpus, current string, set bool) (cpuMask, bannedCPUMask string, err error) {
-	podcpuset, err := cpuset.Parse(cpus)
-	if err != nil {
-		return cpus, "", err
-	}
-
+// calcNewIRQSMPAffinityMask takes a CPU set as well as the current IRQ SMP setting from /proc/irq/default_smp_affinity.
+// It returns an updated mask string and inverted mask, with either CPUs enabled or disable in the mask depending on the
+// `set` parameter.
+func calcNewIRQSMPAffinityMask(podcpuset cpuset.CPUSet, currentIRQSMPSetting string, set bool) (cpuMask, bannedCPUMask string, err error) {
 	// only ascii string supported
-	if !isASCII(current) {
-		return cpus, "", fmt.Errorf("non ascii character detected: %s", current)
+	if !isASCII(currentIRQSMPSetting) {
+		return "", "", fmt.Errorf("non ascii character detected: %s", currentIRQSMPSetting)
 	}
 
 	// remove ","; now each element is "0-9,a-f"
-	s := strings.ReplaceAll(current, ",", "")
+	s := strings.ReplaceAll(currentIRQSMPSetting, ",", "")
 
 	// the index 0 corresponds to the cpu 0-7
 	// the LSb (right-most bit) represents the lowest cpu id from the byte
 	// and the MSb (left-most bit) represents the highest cpu id from the byte
 	currentMaskArray, err := mapHexCharToByte(s)
 	if err != nil {
-		return cpus, "", err
+		return "", "", err
 	}
 
 	invertedMaskArray := invertByteArray(currentMaskArray)
