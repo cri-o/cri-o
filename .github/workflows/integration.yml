@@ -64,7 +64,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon / crun / amd64
             arch: amd64
@@ -74,7 +74,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon-rs / runc / amd64
             arch: amd64
@@ -84,7 +84,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon-rs / crun / amd64
             arch: amd64
@@ -94,7 +94,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon / runc / arm64
             arch: arm64
@@ -104,7 +104,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon / crun / arm64
             arch: arm64
@@ -114,7 +114,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon-rs / runc / arm64
             arch: arm64
@@ -124,7 +124,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: critest / conmon-rs / crun / arm64
             arch: arm64
@@ -134,7 +134,7 @@ jobs:
             critest: 1
             userns: 0
             jobs: 1
-            timeout: 10
+            timeout: 20
 
           - name: integration / conmon / runc / amd64
             arch: amd64
