@@ -13,9 +13,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	libCtrMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/manager"
 	specs "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -524,7 +523,7 @@ func (h *HighPerformanceHooks) addOrRemoveCpusetFromManager(mgr cgroups.Manager,
 		return cgroups.WriteFile(mgr.Path(""), file, toWrite)
 	}
 	// otherwise, we should use the mgr directly, as it will go through systemd if necessary
-	return mgr.Set(&configs.Resources{
+	return mgr.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpusetCpus:  targetCpus.String(),
 	})
@@ -712,7 +711,7 @@ func trueContainerCgroupManager(expectedContainerCgroup string) (cgroups.Manager
 }
 
 func disableCPUQuotaForCgroup(mgr cgroups.Manager) error {
-	return mgr.Set(&configs.Resources{
+	return mgr.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpuQuota:    -1,
 	})
@@ -728,10 +727,10 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 		}
 	}
 
-	cg := &configs.Cgroup{
+	cg := &cgroups.Cgroup{
 		Name:   cgroup,
 		Parent: parent,
-		Resources: &configs.Resources{
+		Resources: &cgroups.Resources{
 			SkipDevices: true,
 		},
 		Systemd: systemd,
@@ -743,7 +742,7 @@ func libctrManager(cgroup, parent string, systemd bool) (cgroups.Manager, error)
 		ScopePrefix: cgmgr.CrioPrefix,
 	}
 
-	return libCtrMgr.New(cg)
+	return manager.New(cg)
 }
 
 // safe fetch of cgroup manager from managers slice.
@@ -1147,7 +1146,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		return nil, err
 	}
 
-	if err := ctrManager.Set(&configs.Resources{
+	if err := ctrManager.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpusetCpus:  exclusiveCPUs.Union(sharedCPUSet).String(),
 	}); err != nil {
@@ -1172,7 +1171,7 @@ func setSharedCPUs(c *oci.Container, containerManagers []cgroups.Manager, shared
 		}
 		// add the exclusive cpus under the child cgroup in case
 		// this makes the handling of load-balancing disablement simpler in case it required
-		if err := childCgroup.Set(&configs.Resources{
+		if err := childCgroup.Set(&cgroups.Resources{
 			SkipDevices: true,
 			CpusetCpus:  exclusiveCPUs.String(),
 		}); err != nil {
@@ -1216,7 +1215,7 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 		return fmt.Errorf("failed to calculate pod quota: %w", err)
 	}
 	// the Set function knows to handle -1 value for both v1 and v2
-	err = podManager.Set(&configs.Resources{
+	err = podManager.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpuQuota:    newPodQuota,
 	})
@@ -1231,12 +1230,12 @@ func injectQuotaGivenSharedCPUs(c *oci.Container, podManager cgroups.Manager, co
 		return fmt.Errorf("failed to calculate container %s quota: %w", c.ID(), err)
 	}
 
-	manager, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
+	mgr, err := getManagerByIndex(len(containerManagers)-1, containerManagers)
 	if err != nil {
 		return err
 	}
 
-	return manager.Set(&configs.Resources{
+	return mgr.Set(&cgroups.Resources{
 		SkipDevices: true,
 		CpuQuota:    ctrQuota,
 	})
