@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 30 May 2025 14:24:15 UTC for commit [3d8c8c9][0]._
+_Generated on Fri, 30 May 2025 18:25:33 UTC for commit [ee51635][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3d8c8c923d83590e82498725c4eb94b72812a059
+[0]: https://github.com/cri-o/cri-o/commit/ee51635d14c68be47f63a32b8766ea1567431574
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Fri, 30 May 2025 14:24:15 UTC for commit [3d8c8c9][0]._
 |-----------------------------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.4                               | v0.0.5                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250529090306-3da213a8c8e8 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250530154547-3f5dc8728488 | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                              | v0.61.0                            | true   | true             |
@@ -342,9 +342,9 @@ _Generated on Fri, 30 May 2025 14:24:15 UTC for commit [3d8c8c9][0]._
 | github.com/dimchansky/utfbom                                                        | v1.1.1                                |                                     | false  | true             |
 | github.com/disiqueira/gotree/v3                                                     | v3.0.2                                |                                     | false  | true             |
 | github.com/distribution/reference                                                   | v0.6.0                                |                                     | false  | true             |
-| github.com/docker/cli                                                               | v28.0.4+incompatible                  | v28.2.1+incompatible                | false  | true             |
+| github.com/docker/cli                                                               | v28.0.4+incompatible                  | v28.2.2+incompatible                | false  | true             |
 | github.com/docker/distribution                                                      | v2.8.3+incompatible                   |                                     | true   | true             |
-| github.com/docker/docker                                                            | v28.0.4+incompatible                  | v28.2.1+incompatible                | false  | true             |
+| github.com/docker/docker                                                            | v28.0.4+incompatible                  | v28.2.2+incompatible                | false  | true             |
 | github.com/docker/docker-credential-helpers                                         | v0.9.3                                |                                     | false  | true             |
 | github.com/docker/go-connections                                                    | v0.5.0                                |                                     | false  | true             |
 | github.com/docker/go-events                                                         | v0.0.0-20190806004212-e31b211e4f1c    | v0.0.0-20250114142523-c867878c5e32  | false  | true             |
@@ -473,7 +473,7 @@ _Generated on Fri, 30 May 2025 14:24:15 UTC for commit [3d8c8c9][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250529090306-3da213a8c8e8  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250530154547-3f5dc8728488  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -727,7 +727,7 @@ _Generated on Fri, 30 May 2025 14:24:15 UTC for commit [3d8c8c9][0]._
 | goa.design/goa                                                                      | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                         | v0.40.0                               | v0.41.0                             | false  | true             |
 | golang.org/x/crypto                                                                 | v0.38.0                               |                                     | false  | true             |
-| golang.org/x/exp                                                                    | v0.0.0-20241108190413-2d47ceb2692f    | v0.0.0-20250506013437-ce4c2cf36ca6  | false  | true             |
+| golang.org/x/exp                                                                    | v0.0.0-20241108190413-2d47ceb2692f    | v0.0.0-20250530174510-65e920069ea6  | false  | true             |
 | golang.org/x/lint                                                                   | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                    | v0.24.0                               |                                     | false  | true             |
 | golang.org/x/net                                                                    | v0.40.0                               |                                     | true   | true             |
