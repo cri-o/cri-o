@@ -564,6 +564,7 @@ type ImageConfig struct {
 	SignaturePolicyDir string `toml:"signature_policy_dir"`
 	// InsecureRegistries is a list of registries that must be contacted w/o
 	// TLS verification.
+	// Deprecated: use `insecure` in `registries.conf` instead.
 	InsecureRegistries []string `toml:"insecure_registries"`
 	// ImageVolumes controls how volumes specified in image config are handled
 	ImageVolumes ImageVolumesType `toml:"image_volumes"`

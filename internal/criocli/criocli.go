@@ -753,6 +753,7 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			Name:  "insecure-registry",
 			Value: cli.NewStringSlice(defConf.InsecureRegistries...),
 			Usage: "Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication." + `
+    This option is deprecated. Please use "insecure" in registries.conf instead.
     1. List of insecure registries can contain an element with CIDR notation to
        specify a whole subnet.
     2. Insecure registries accept HTTP or accept HTTPS with certificates from
