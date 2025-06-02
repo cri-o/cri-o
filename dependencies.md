@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 02 Jun 2025 15:03:13 UTC for commit [b4ccbcd][0]._
+_Generated on Mon, 02 Jun 2025 22:13:49 UTC for commit [c5c41f2][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b4ccbcd844a3d45c9d0458e6b9c3309e2825204f
+[0]: https://github.com/cri-o/cri-o/commit/c5c41f21fa802d1c19a4114e88ecd91a270e3a15
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Mon, 02 Jun 2025 15:03:13 UTC for commit [b4ccbcd][0]._
 |-----------------------------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.4                               | v0.0.5                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250602142412-c575048aa72f | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250602213321-dc0da567cde1 | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                              | v0.61.0                            | true   | true             |
@@ -473,7 +473,7 @@ _Generated on Mon, 02 Jun 2025 15:03:13 UTC for commit [b4ccbcd][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250602142412-c575048aa72f  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250602213321-dc0da567cde1  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
