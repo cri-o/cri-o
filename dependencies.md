@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
+_Generated on Mon, 02 Jun 2025 14:44:07 UTC for commit [2ae0202][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/b31fbf308d6d56959d6e6ae54a7f04570151fad4
+[0]: https://github.com/cri-o/cri-o/commit/2ae0202a397f225bb15fd60af9e35cd96f632e96
 
 ## Outdated Dependencies
 
@@ -10,7 +10,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 |-----------------------------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.4                               | v0.0.5                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250530195601-48f8496209ad | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250602142412-c575048aa72f | true   | true             |
 | github.com/opencontainers/runc                                              | v1.2.6                               | v1.3.0                             | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                              | v0.61.0                            | true   | true             |
@@ -423,7 +423,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 | github.com/google/go-intervals                                                      | v0.0.2                                |                                     | false  | true             |
 | github.com/google/go-querystring                                                    | v1.1.0                                |                                     | false  | true             |
 | github.com/google/gofuzz                                                            | v1.2.0                                |                                     | false  | true             |
-| github.com/google/pprof                                                             | v0.0.0-20250403155104-27863c87afa6    | v0.0.0-20250501235452-c0086092b71a  | false  | true             |
+| github.com/google/pprof                                                             | v0.0.0-20250403155104-27863c87afa6    | v0.0.0-20250602020802-c6617b811d0e  | false  | true             |
 | github.com/google/renameio                                                          | v1.0.1                                |                                     | true   | true             |
 | github.com/google/rpmpack                                                           | v0.6.0                                | v0.7.0                              | false  | true             |
 | github.com/google/s2a-go                                                            | v0.1.9                                |                                     | false  | true             |
@@ -473,7 +473,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250530195601-48f8496209ad  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250602142412-c575048aa72f  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -625,7 +625,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 | github.com/soheilhy/cmux                                                            | v0.1.5                                |                                     | true   | true             |
 | github.com/sourcegraph/conc                                                         | v0.3.0                                |                                     | false  | true             |
 | github.com/spf13/afero                                                              | v1.11.0                               | v1.14.0                             | false  | true             |
-| github.com/spf13/cast                                                               | v1.7.0                                | v1.8.0                              | false  | true             |
+| github.com/spf13/cast                                                               | v1.7.0                                | v1.9.2                              | false  | true             |
 | github.com/spf13/cobra                                                              | v1.9.1                                |                                     | false  | true             |
 | github.com/spf13/pflag                                                              | v1.0.6                                |                                     | false  | true             |
 | github.com/spf13/viper                                                              | v1.19.0                               | v1.20.1                             | false  | true             |
@@ -727,7 +727,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 | goa.design/goa                                                                      | v2.2.5+incompatible                   |                                     | false  | true             |
 | gocloud.dev                                                                         | v0.40.0                               | v0.41.0                             | false  | true             |
 | golang.org/x/crypto                                                                 | v0.38.0                               |                                     | false  | true             |
-| golang.org/x/exp                                                                    | v0.0.0-20241108190413-2d47ceb2692f    | v0.0.0-20250530174510-65e920069ea6  | false  | true             |
+| golang.org/x/exp                                                                    | v0.0.0-20241108190413-2d47ceb2692f    | v0.0.0-20250531010427-b6e5de432a8b  | false  | true             |
 | golang.org/x/lint                                                                   | v0.0.0-20190930215403-16217165b5de    | v0.0.0-20241112194109-818c5a804067  | false  | true             |
 | golang.org/x/mod                                                                    | v0.24.0                               |                                     | false  | true             |
 | golang.org/x/net                                                                    | v0.40.0                               |                                     | true   | true             |
@@ -768,7 +768,7 @@ _Generated on Fri, 30 May 2025 21:24:50 UTC for commit [b31fbf3][0]._
 | k8s.io/component-base                                                               | v0.33.0                               | v0.33.1                             | false  | true             |
 | k8s.io/cri-api                                                                      | v0.33.0                               | v0.33.1                             | true   | true             |
 | k8s.io/cri-client                                                                   | v0.33.0                               | v0.33.1                             | true   | true             |
-| k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250529191817-cc0d9c447938  | false  | true             |
+| k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250531010418-b22feca77200  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                          | v0.33.0                               | v0.33.1                             | false  | true             |
 | k8s.io/kube-openapi                                                                 | v0.0.0-20250318190949-c8a335a9a2ff    |                                     | false  | true             |
