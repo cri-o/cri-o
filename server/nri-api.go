@@ -11,6 +11,7 @@ import (
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
 	cri "k8s.io/cri-api/pkg/apis/runtime/v1"
+	"tags.cncf.io/container-device-interface/pkg/cdi"
 
 	"github.com/cri-o/cri-o/internal/config/cgmgr"
 	"github.com/cri-o/cri-o/internal/config/node"
@@ -179,6 +180,24 @@ func (a *nriAPI) createContainer(ctx context.Context, specgen *generate.Generato
 				return &rspec.LinuxIntelRdt{
 					ClosID: rdt.ResctrlPrefix + className,
 				}, nil
+			},
+		),
+		nrigen.WithCDIDeviceInjector(
+			func(s *rspec.Spec, devices []string) error {
+				if err := cdi.Refresh(); err != nil {
+					// We don't consider a refresh failure a fatal error.
+					// For instance, a dynamically generated invalid CDI Spec file for
+					// any particular vendor shouldn't prevent injection of devices of
+					// different vendors. CDI itself knows better and it will fail the
+					// injection if necessary.
+					log.Warnf(context.TODO(), "CDI registry has errors: %v", err)
+				}
+
+				if _, err := cdi.InjectDevices(s, devices...); err != nil {
+					return fmt.Errorf("CDI device injection failed: %w", err)
+				}
+
+				return nil
 			},
 		),
 	)
