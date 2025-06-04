@@ -68,6 +68,7 @@ type HighPerformanceHooks struct {
 	irqSMPAffinityFileLock   sync.Mutex
 	irqBalanceConfigFileLock sync.Mutex
 	sharedCPUs               string
+	irqSMPAffinityFile       string
 }
 
 func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.Generator, s *sandbox.Sandbox, c *oci.Container) error {
@@ -144,7 +145,7 @@ func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s
 	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
 		log.Infof(ctx, "Disable irq smp balancing for container %q", c.ID())
 
-		if err := h.setIRQLoadBalancing(ctx, c, false, IrqSmpAffinityProcFile); err != nil {
+		if err := h.setIRQLoadBalancing(ctx, c, false); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
@@ -198,7 +199,7 @@ func (h *HighPerformanceHooks) PreStop(ctx context.Context, c *oci.Container, s 
 
 	// enable the IRQ smp balancing for the container CPUs
 	if shouldIRQLoadBalancingBeDisabled(ctx, s.Annotations()) {
-		if err := h.setIRQLoadBalancing(ctx, c, true, IrqSmpAffinityProcFile); err != nil {
+		if err := h.setIRQLoadBalancing(ctx, c, true); err != nil {
 			return fmt.Errorf("set IRQ load balancing: %w", err)
 		}
 	}
@@ -571,7 +572,7 @@ func disableCPULoadBalancingV1(containerManagers []cgroups.Manager) error {
 	return nil
 }
 
-func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool, irqSmpAffinityFile string) error {
+func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.Container, enable bool) error {
 	lspec := c.Spec().Linux
 	if lspec == nil ||
 		lspec.Resources == nil ||
@@ -580,7 +581,7 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 		return fmt.Errorf("find container %s CPUs", c.ID())
 	}
 
-	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(lspec.Resources.CPU.Cpus, irqSmpAffinityFile, enable)
+	newIRQBalanceSetting, err := h.updateNewIRQSMPAffinityMask(lspec.Resources.CPU.Cpus, enable)
 	if err != nil {
 		return err
 	}
@@ -615,11 +616,11 @@ func (h *HighPerformanceHooks) setIRQLoadBalancing(ctx context.Context, c *oci.C
 	return nil
 }
 
-func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus, irqSMPAffinityFile string, enable bool) (string, error) {
+func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus string, enable bool) (string, error) {
 	h.irqSMPAffinityFileLock.Lock()
 	defer h.irqSMPAffinityFileLock.Unlock()
 
-	content, err := os.ReadFile(irqSMPAffinityFile)
+	content, err := os.ReadFile(h.irqSMPAffinityFile)
 	if err != nil {
 		return "", err
 	}
@@ -631,7 +632,7 @@ func (h *HighPerformanceHooks) updateNewIRQSMPAffinityMask(cpus, irqSMPAffinityF
 		return "", err
 	}
 
-	if err := os.WriteFile(irqSMPAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
+	if err := os.WriteFile(h.irqSMPAffinityFile, []byte(newIRQSMPSetting), 0o644); err != nil {
 		return "", err
 	}
 

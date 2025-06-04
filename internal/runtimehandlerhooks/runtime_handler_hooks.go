@@ -66,11 +66,11 @@ func NewMap(ctx context.Context, config *libconfig.Config) Map {
 					irqSMPAffinityFileLock:   sync.Mutex{},
 					irqBalanceConfigFileLock: sync.Mutex{},
 					sharedCPUs:               config.SharedCPUSet,
+					irqSMPAffinityFile:       IrqSmpAffinityProcFile,
 				}
 			}
 
 			rhh[name] = hphInstance
-
 			continue
 		}
 
