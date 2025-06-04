@@ -81,8 +81,8 @@ type RuntimeImpl interface {
 	CheckpointContainer(context.Context, *Container, *rspec.Spec, bool) error
 	RestoreContainer(context.Context, *Container, string, string) error
 	IsContainerAlive(*Container) bool
+	// ProbeMonitor is used to check the liveness of the container monitor process.
 	ProbeMonitor(context.Context, *Container) error
-	LoadMonitorProcess(context.Context, *Container)
 }
 
 // New creates a new Runtime with options provided.
@@ -544,15 +544,4 @@ func (r *Runtime) ProbeMonitor(ctx context.Context, c *Container) error {
 	}
 
 	return impl.ProbeMonitor(ctx, c)
-}
-
-func (r *Runtime) LoadMonitorProcess(ctx context.Context, c *Container) error {
-	impl, err := r.RuntimeImpl(c)
-	if err != nil {
-		return err
-	}
-
-	impl.LoadMonitorProcess(ctx, c)
-
-	return nil
 }

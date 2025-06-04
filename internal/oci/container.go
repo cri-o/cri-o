@@ -24,6 +24,7 @@ import (
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
 	"github.com/cri-o/cri-o/internal/config/nsmgr"
+	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	ann "github.com/cri-o/cri-o/pkg/annotations"
@@ -116,12 +117,13 @@ type ContainerState struct {
 	// is the same as the corresponding PID on the host.
 	InitStartTime string `json:"initStartTime,omitempty"`
 	// Checkpoint/Restore related states
-	CheckpointedAt          time.Time                `json:"checkpointedTime,omitempty"`
+	CheckpointedAt time.Time `json:"checkpointedTime,omitempty"`
+	// ContainerMonitorProcess is used to check the liveness of the container monitor.
+	// This is supposed to be immutable once set.
 	ContainerMonitorProcess *ContainerMonitorProcess `json:"containerMonitorProcess,omitempty"`
 }
 
 // ContainerMonitorProcess represents a process of conmon, conmon-rs, etc.
-// It's used to check the identity of the process.
 type ContainerMonitorProcess struct {
 	Pid int `json:"pid,omitempty"`
 	// The unix start time of the monitor's PID.
@@ -888,4 +890,47 @@ func (c *Container) KillExecPIDs() {
 // RuntimeUser returns the runtime user for the container.
 func (c *Container) RuntimeUser() *types.ContainerUser {
 	return c.runtimeUser
+}
+
+// SetMonitorProcess loads the container monitor process from the ContainerMonitorProcess field.
+// It doesn't return any error so that we can continue to load the container even if the monitor process
+// is not found.
+func (c *Container) SetMonitorProcess(ctx context.Context) {
+	if c.monitorProcess != nil {
+		return
+	}
+
+	if c.state.ContainerMonitorProcess == nil {
+		// We can't verify the conmon process when ContainerMonitorProcess is nil
+		// because without pidStartTime, we are not sure whether the process of
+		// the pid is actually the conmon process or a different process.
+		log.Debugf(ctx, "Skipping loading conmon process for container %s: the container may have existed before cri-o updated or cri-o couldn't verify conmon process", c.ID())
+
+		return
+	}
+
+	// Check if the conmon process is the same process when the container was created.
+	monitorPid := c.state.ContainerMonitorProcess.Pid
+
+	err := func() error {
+		startTime, err := getPidStartTime(monitorPid)
+		if err != nil {
+			return fmt.Errorf("get conmon process start time: %w", err)
+		}
+
+		if c.state.ContainerMonitorProcess.StartTime != startTime {
+			return errors.New("conmon process has gone because the start time changed")
+		}
+
+		c.monitorProcess, err = os.FindProcess(monitorPid)
+		if err != nil {
+			return fmt.Errorf("find conmon process: %w", err)
+		}
+
+		return nil
+	}()
+	if err != nil {
+		c.state.ContainerMonitorProcess = nil
+		log.Errorf(ctx, "Failed to load conmon process for container %s: %q", c.ID(), err)
+	}
 }

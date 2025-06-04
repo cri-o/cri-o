@@ -316,7 +316,3 @@ func (r *runtimePod) ProbeMonitor(ctx context.Context, c *Container) error {
 	// Not implemented
 	return nil
 }
-
-func (r *runtimePod) LoadMonitorProcess(ctx context.Context, c *Container) {
-	// Not implemented
-}

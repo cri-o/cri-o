@@ -571,11 +571,6 @@ func (c *ContainerServer) LoadContainer(ctx context.Context, id string) (retErr 
 
 	c.AddContainer(ctx, ctr)
 
-	err = c.runtime.LoadMonitorProcess(ctx, ctr)
-	if err != nil {
-		return fmt.Errorf("failed to load monitor process for container %q: %w", ctr.ID(), err)
-	}
-
 	return c.ctrIDIndex.Add(id)
 }
 
@@ -1003,15 +998,18 @@ func CheckReportHasErrors(report cstorage.CheckReport) bool {
 		len(report.Containers) > 0
 }
 
+// probeMonitorProcesses periodically probes the monitor processes of all containers.
+// This is used to detect the case where a container monitor process exits thought its container is running.
+// The way probing is delegated to each runtime implementation.
 func (c *ContainerServer) probeMonitorProcesses() {
 	ctx := context.Background()
 	timer := time.NewTimer(probeInterval)
 
 	for {
 		select {
-		case <-timer.C:
 		case <-c.monitorCh:
 			return
+		case <-timer.C:
 		}
 		log.Debugf(ctx, "Probe monitor processes")
 

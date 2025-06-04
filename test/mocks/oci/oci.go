@@ -161,18 +161,6 @@ func (mr *MockRuntimeImplMockRecorder) IsContainerAlive(arg0 any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsContainerAlive", reflect.TypeOf((*MockRuntimeImpl)(nil).IsContainerAlive), arg0)
 }
 
-// LoadMonitorProcess mocks base method.
-func (m *MockRuntimeImpl) LoadMonitorProcess(arg0 context.Context, arg1 *oci.Container) {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "LoadMonitorProcess", arg0, arg1)
-}
-
-// LoadMonitorProcess indicates an expected call of LoadMonitorProcess.
-func (mr *MockRuntimeImplMockRecorder) LoadMonitorProcess(arg0, arg1 any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadMonitorProcess", reflect.TypeOf((*MockRuntimeImpl)(nil).LoadMonitorProcess), arg0, arg1)
-}
-
 // PauseContainer mocks base method.
 func (m *MockRuntimeImpl) PauseContainer(arg0 context.Context, arg1 *oci.Container) error {
 	m.ctrl.T.Helper()
