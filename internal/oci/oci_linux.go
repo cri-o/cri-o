@@ -12,7 +12,10 @@ import (
 	"github.com/cri-o/cri-o/utils"
 )
 
-const InfraContainerName = "POD"
+const (
+	InfraContainerName = "POD"
+	termiosIoctl       = unix.TCGETS
+)
 
 func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	g := &generate.Generator{

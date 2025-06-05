@@ -10,7 +10,11 @@ import (
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 )
 
-const InfraContainerName = "POD"
+const (
+	InfraContainerName = "POD"
+	// We’ll never call this ioctl for windows and other non-linux platforms.
+	termiosIoctl = 0
+)
 
 func (r *Runtime) createContainerPlatform(c *Container, cgroupParent string, pid int) error {
 	return nil
