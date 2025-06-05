@@ -23,7 +23,7 @@ const (
 	AnnotationFilepath = "org.cnai.model.filepath"
 
 	// AnnotationFileMetadata is the annotation key for the file metadata of the layer.
-	AnnotationFileMetadata = "org.cnai.model.file.metadata"
+	AnnotationFileMetadata = "org.cnai.model.file.metadata+json"
 )
 
 // FileMetadata represents the metadata of file, which is the value definition of AnnotationFileMetadata.
