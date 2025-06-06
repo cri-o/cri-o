@@ -27,3 +27,15 @@ type RuntimeHandlerHooks interface {
 type HighPerformanceHook interface {
 	RuntimeHandlerHooks
 }
+
+// Map holds a list of RuntimeHandlerHooks for each registered runtime handler.
+type Map map[string]RuntimeHandlerHooks
+
+// Get gets the registered runtime handler's hook or nil if none is found.
+func (m Map) Get(name string) RuntimeHandlerHooks {
+	if r, ok := m[name]; ok {
+		return r
+	}
+	// Return nil to avoid the odd case where the runtime wasn't registered as we don't want to error.
+	return nil
+}
