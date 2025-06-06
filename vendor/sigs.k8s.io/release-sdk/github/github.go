@@ -27,7 +27,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/go-github/v60/github"
+	"github.com/google/go-github/v72/github"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
 
@@ -37,7 +37,7 @@ import (
 	"sigs.k8s.io/release-utils/util"
 
 	"sigs.k8s.io/release-sdk/git"
-	"sigs.k8s.io/release-sdk/github/internal"
+	ghinternal "sigs.k8s.io/release-sdk/github/internal"
 )
 
 const (
@@ -291,7 +291,7 @@ func NewEnterpriseWithToken(baseURL, uploadURL, token string) (*GitHub, error) {
 func (g *githubClient) GetCommit(
 	ctx context.Context, owner, repo, sha string,
 ) (*github.Commit, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		commit, resp, err := g.Git.GetCommit(ctx, owner, repo, sha)
 		if !shouldRetry(err) {
 			return commit, resp, err
@@ -302,7 +302,7 @@ func (g *githubClient) GetCommit(
 func (g *githubClient) GetPullRequest(
 	ctx context.Context, owner, repo string, number int,
 ) (*github.PullRequest, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		pr, resp, err := g.PullRequests.Get(ctx, owner, repo, number)
 		if !shouldRetry(err) {
 			return pr, resp, err
@@ -313,7 +313,7 @@ func (g *githubClient) GetPullRequest(
 func (g *githubClient) GetIssue(
 	ctx context.Context, owner, repo string, number int,
 ) (*github.Issue, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		issue, resp, err := g.Issues.Get(ctx, owner, repo, number)
 		if !shouldRetry(err) {
 			return issue, resp, err
@@ -324,7 +324,7 @@ func (g *githubClient) GetIssue(
 func (g *githubClient) GetRepoCommit(
 	ctx context.Context, owner, repo, sha string,
 ) (*github.RepositoryCommit, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		commit, resp, err := g.Repositories.GetCommit(ctx, owner, repo, sha, nil)
 		if !shouldRetry(err) {
 			return commit, resp, err
@@ -335,7 +335,7 @@ func (g *githubClient) GetRepoCommit(
 func (g *githubClient) ListCommits(
 	ctx context.Context, owner, repo string, opt *github.CommitsListOptions,
 ) ([]*github.RepositoryCommit, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		commits, resp, err := g.Repositories.ListCommits(ctx, owner, repo, opt)
 		if !shouldRetry(err) {
 			return commits, resp, err
@@ -347,7 +347,7 @@ func (g *githubClient) ListPullRequestsWithCommit(
 	ctx context.Context, owner, repo, sha string,
 	opt *github.ListOptions,
 ) ([]*github.PullRequest, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		prs, resp, err := g.PullRequests.ListPullRequestsWithCommit(
 			ctx, owner, repo, sha, opt,
 		)
@@ -360,7 +360,7 @@ func (g *githubClient) ListPullRequestsWithCommit(
 func (g *githubClient) ListReleases(
 	ctx context.Context, owner, repo string, opt *github.ListOptions,
 ) ([]*github.RepositoryRelease, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		releases, resp, err := g.Repositories.ListReleases(
 			ctx, owner, repo, opt,
 		)
@@ -373,7 +373,7 @@ func (g *githubClient) ListReleases(
 func (g *githubClient) GetReleaseByTag(
 	ctx context.Context, owner, repo, tag string,
 ) (*github.RepositoryRelease, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		release, resp, err := g.Repositories.GetReleaseByTag(ctx, owner, repo, tag)
 		if !shouldRetry(err) {
 			return release, resp, err
@@ -387,7 +387,7 @@ func (g *githubClient) DownloadReleaseAsset(
 	// TODO: Should we be getting this http client from somewhere else?
 	httpClient := http.DefaultClient
 
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		assetBody, redirectURL, err := g.Repositories.DownloadReleaseAsset(ctx, owner, repo, assetID, httpClient)
 		if !shouldRetry(err) {
 			return assetBody, redirectURL, err
@@ -398,7 +398,7 @@ func (g *githubClient) DownloadReleaseAsset(
 func (g *githubClient) ListTags(
 	ctx context.Context, owner, repo string, opt *github.ListOptions,
 ) ([]*github.RepositoryTag, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		tags, resp, err := g.Repositories.ListTags(ctx, owner, repo, opt)
 		if !shouldRetry(err) {
 			return tags, resp, err
@@ -421,7 +421,7 @@ func (g *githubClient) ListBranches(
 func (g *githubClient) ListMilestones(
 	ctx context.Context, owner, repo string, opts *github.MilestoneListOptions,
 ) (mstones []*github.Milestone, resp *github.Response, err error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		mstones, resp, err := g.Issues.ListMilestones(ctx, owner, repo, opts)
 		if !shouldRetry(err) {
 			return mstones, resp, err
@@ -437,11 +437,11 @@ func (g *githubClient) CreatePullRequest(
 		Head:                &headBranchName,
 		Base:                &baseBranchName,
 		Body:                &body,
-		MaintainerCanModify: github.Bool(true),
+		MaintainerCanModify: github.Ptr(true),
 		Draft:               &draft,
 	}
 
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		pr, _, err := g.PullRequests.Create(ctx, owner, repo, newPullRequest)
 		if !shouldRetry(err) {
 			return pr, err
@@ -568,7 +568,7 @@ func (g *githubClient) CreateComment(
 		Body: &message,
 	}
 
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		issueComment, resp, err := g.Issues.CreateComment(ctx, owner, repo, number, comment)
 		if !shouldRetry(err) {
 			return issueComment, resp, err
@@ -1266,7 +1266,7 @@ func (g *GitHub) CheckRateLimit(ctx context.Context) (*github.RateLimits, *githu
 func (g *githubClient) UpdateIssue(
 	ctx context.Context, owner, repo string, number int, issueRequest *github.IssueRequest,
 ) (*github.Issue, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		issue, resp, err := g.Issues.Edit(ctx, owner, repo, number, issueRequest)
 		if !shouldRetry(err) {
 			return issue, resp, err
@@ -1277,7 +1277,7 @@ func (g *githubClient) UpdateIssue(
 func (g *githubClient) AddLabels(
 	ctx context.Context, owner, repo string, number int, labels []string,
 ) ([]*github.Label, *github.Response, error) {
-	for shouldRetry := internal.DefaultGithubErrChecker(); ; {
+	for shouldRetry := ghinternal.DefaultGithubErrChecker(); ; {
 		appliedLabels, resp, err := g.Issues.AddLabelsToIssue(ctx, owner, repo, number, labels)
 		if !shouldRetry(err) {
 			return appliedLabels, resp, err
@@ -1303,14 +1303,14 @@ const (
 // State filters issues based on their state. Possible values are: open,
 // closed, all. Default is "open".
 func (g *GitHub) ListIssues(owner, repo string, state IssueState) ([]*github.Issue, error) {
-	options := &github.IssueListByRepoOptions{
+	opts := &github.IssueListByRepoOptions{
 		State:       string(state),
 		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
 	}
 	issues := []*github.Issue{}
 
 	for {
-		more, r, err := g.Client().ListIssues(context.Background(), owner, repo, options)
+		more, r, err := g.Client().ListIssues(context.Background(), owner, repo, opts)
 		if err != nil {
 			return issues, fmt.Errorf("getting issues from client: %w", err)
 		}
@@ -1321,7 +1321,7 @@ func (g *GitHub) ListIssues(owner, repo string, state IssueState) ([]*github.Iss
 			break
 		}
 
-		options.Page = r.NextPage
+		opts.ListOptions.Page = r.NextPage
 	}
 
 	return issues, nil
@@ -1354,8 +1354,8 @@ func (g *GitHub) ListComments(
 	since *time.Time,
 ) ([]*github.IssueComment, error) {
 	options := &github.IssueListCommentsOptions{
-		Sort:        github.String(string(sort)),
-		Direction:   github.String(string(direction)),
+		Sort:        github.Ptr(string(sort)),
+		Direction:   github.Ptr(string(direction)),
 		ListOptions: github.ListOptions{PerPage: g.Options().GetItemsPerPage()},
 	}
 
