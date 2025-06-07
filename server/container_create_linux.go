@@ -221,8 +221,10 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 					volumes = append(volumes, artifactVolumes...)
 
 					if cleanup != nil {
-						cleanups = append(cleanups, cleanup)
+						//nolint:staticcheck
+						cleanups = append(cleanups, cleanup...)
 					}
+
 					continue
 				}
 
@@ -416,8 +418,8 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 }
 
 // mountArtifact binds artifact blobs to the container filesystem based on the provided mount configuration.
-func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator, m *types.Mount, mountLabel string, isSPC, maybeRelabel bool) ([]oci.ContainerVolume, func(), error) {
-	artifact, err := s.ArtifactStore().Status(ctx, m.GetImage().GetImage())
+func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator, m *types.Mount, mountLabel string, isSPC, maybeRelabel bool) ([]oci.ContainerVolume, []func(), error) {
+	artifact, err := s.ArtifactStore().Status(ctx, m.Image.Image)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get artifact status: %w", err)
 	}
@@ -429,6 +431,7 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 
 	options := []string{"bind", "ro"}
 	volumes := make([]oci.ContainerVolume, 0, len(paths))
+	cleanups := []func(){}
 	selinuxRelabel := true
 
 	if !m.GetSelinuxRelabel() {
@@ -476,9 +479,13 @@ func (s *Server) mountArtifact(ctx context.Context, specgen *generate.Generator,
 			UIDMappings: getOCIMappings(m.GetUidMappings()),
 			GIDMappings: getOCIMappings(m.GetGidMappings()),
 		})
+		// Add cleanup function to call when this specific mount is no longer needed
+		cleanups = append(cleanups, func() {
+			path.Cleanup()
+		})
 	}
 
-	return volumes, paths[0].Cleanup, nil
+	return volumes, cleanups, nil
 }
 
 func FilterMountPathsBySubPath(ctx context.Context, artifact, subPath string, paths []ociartifact.BlobMountPath) (filteredPaths []ociartifact.BlobMountPath, err error) {
