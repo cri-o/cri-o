@@ -964,6 +964,7 @@ func (c *Container) Cleanup() {
 	if c.cleanupOnce == nil {
 		c.cleanupOnce = &sync.Once{}
 	}
+
 	c.cleanupOnce.Do(func() {
 		for _, cleanup := range c.cleanups {
 			cleanup()

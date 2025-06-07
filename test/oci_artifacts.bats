@@ -33,7 +33,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	mkdir -p "$CONTAINER_REGISTRIES_CONF_DIR"
 	printf 'unqualified-search-registries = ["quay.io"]' >> "$CONTAINER_REGISTRIES_CONF_DIR/99-registry.conf"
 
-	IMAGE=crio/artifact:singlefile
+	IMAGE=sohankunkerkar/artifact:singlefile
 	CONTAINER_REGISTRIES_CONF_DIR=$CONTAINER_REGISTRIES_CONF_DIR start_crio
 	cleanup_images
 	crictl pull $IMAGE
@@ -43,7 +43,7 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	[ "$output" != "" ]
 
 	# Should be available on the whole list
-	crictl images | grep -qE "quay.io/crio/artifact.*singlefile"
+	crictl images | grep -qE "quay.io/sohankunkerkar/artifact.*singlefile"
 }
 
 @test "should be able to inspect an OCI artifact" {
@@ -285,6 +285,7 @@ EOF
 	ctr_id=$(crictl run "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
 	run crictl exec "$ctr_id" sha256sum /root/artifact/cri-o/bin/crio
 	[[ "$output" == *"ae5d192303e5f9a357c6ea39308338956b62b8830fd05f0460796db2215c2b35"* ]]
+}
 
 @test "should extract mounted image artifact files correctly" {
 	start_crio
@@ -299,7 +300,7 @@ EOF
 		}]' \
 		"$TESTDATA"/container_sleep.json > "$TESTDIR/container.json"
 
-	ctr_id=$(crictl run "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container.json" "$TESTDATA/sandbox_config.json")
 
 	run crictl exec --sync "$ctr_id" cat /root/artifacts/zstd.txt
 	[ "$output" == "This is a zstd-compressed file" ]
