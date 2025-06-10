@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
-	"github.com/opencontainers/runc/libcontainer/cgroups/systemd"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/fs"
+	"github.com/opencontainers/cgroups/fs2"
+	"github.com/opencontainers/cgroups/systemd"
 )
 
 // New returns the instance of a cgroup manager, which is chosen
 // based on the local environment (whether cgroup v1 or v2 is used)
 // and the config (whether config.Systemd is set or not).
-func New(config *configs.Cgroup) (cgroups.Manager, error) {
+func New(config *cgroups.Cgroup) (cgroups.Manager, error) {
 	return NewWithPaths(config, nil)
 }
 
@@ -27,7 +26,7 @@ func New(config *configs.Cgroup) (cgroups.Manager, error) {
 //
 // For cgroup v2, the only key allowed is "" (empty string), and the value
 // is the unified cgroup path.
-func NewWithPaths(config *configs.Cgroup, paths map[string]string) (cgroups.Manager, error) {
+func NewWithPaths(config *cgroups.Cgroup, paths map[string]string) (cgroups.Manager, error) {
 	if config == nil {
 		return nil, errors.New("cgroups/manager.New: config must not be nil")
 	}

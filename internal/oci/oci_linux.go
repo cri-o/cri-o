@@ -44,6 +44,8 @@ func (r *runtimeOCI) createContainerPlatform(c *Container, cgroupParent string, 
 		return err
 	}
 
+	// Record conmon's cgroup path in the container, so we can properly
+	// clean it up when removing the container.
 	c.conmonCgroupfsPath = conmonCgroupfsPath
 
 	return nil

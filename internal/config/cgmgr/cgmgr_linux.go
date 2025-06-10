@@ -10,9 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	libctr "github.com/opencontainers/runc/libcontainer/cgroups"
-	libctrCgMgr "github.com/opencontainers/runc/libcontainer/cgroups/manager"
-	cgcfgs "github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/manager"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/sirupsen/logrus"
 
@@ -54,7 +53,7 @@ type CgroupManager interface {
 	ContainerCgroupAbsolutePath(string, string) (string, error)
 	// ContainerCgroupManager takes the cgroup parent, and container ID.
 	// It returns the raw libcontainer cgroup manager for that container.
-	ContainerCgroupManager(sbParent, containerID string) (libctr.Manager, error)
+	ContainerCgroupManager(sbParent, containerID string) (cgroups.Manager, error)
 	// RemoveContainerCgManager removes the cgroup manager for the container
 	RemoveContainerCgManager(containerID string)
 	// ContainerCgroupStats takes the sandbox parent, and container ID.
@@ -67,7 +66,7 @@ type CgroupManager interface {
 	SandboxCgroupPath(string, string, int64) (string, string, error)
 	// SandboxCgroupManager takes the cgroup parent, and sandbox ID.
 	// It returns the raw libcontainer cgroup manager for that sandbox.
-	SandboxCgroupManager(sbParent, sbID string) (libctr.Manager, error)
+	SandboxCgroupManager(sbParent, sbID string) (cgroups.Manager, error)
 	// RemoveSandboxCgroupManager removes the cgroup manager for the sandbox
 	RemoveSandboxCgManager(sbID string)
 	// MoveConmonToCgroup takes the container ID, cgroup parent, conmon's cgroup (from the config), conmon's PID, and some customized resources
@@ -114,8 +113,8 @@ func SetCgroupManager(cgroupManager string) (CgroupManager, error) {
 		return &CgroupfsManager{
 			memoryPath:    cgroupMemoryPathV1,
 			memoryMaxFile: cgroupMemoryMaxFileV1,
-			v1CtrCgMgr:    make(map[string]libctr.Manager),
-			v1SbCgMgr:     make(map[string]libctr.Manager),
+			v1CtrCgMgr:    make(map[string]cgroups.Manager),
+			v1SbCgMgr:     make(map[string]cgroups.Manager),
 		}, nil
 	default:
 		return nil, fmt.Errorf("invalid cgroup manager: %s", cgroupManager)
@@ -164,7 +163,7 @@ func VerifyMemoryIsEnough(memoryLimit, minMemory int64) error {
 func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 	parentCgroupFile := fmt.Sprintf("/proc/%d/cgroup", containerPid)
 
-	cgmap, err := libctr.ParseCgroupFile(parentCgroupFile)
+	cgmap, err := cgroups.ParseCgroupFile(parentCgroupFile)
 	if err != nil {
 		return err
 	}
@@ -174,8 +173,8 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 		// For cgroups V2, controller will be an empty string
 		dir = filepath.Join("/sys/fs/cgroup", controller, path)
 
-		if libctr.PathExists(dir) {
-			if err := libctr.WriteCgroupProc(dir, commandPid); err != nil {
+		if cgroups.PathExists(dir) {
+			if err := cgroups.WriteCgroupProc(dir, commandPid); err != nil {
 				return err
 			}
 		}
@@ -187,15 +186,15 @@ func MoveProcessToContainerCgroup(containerPid, commandPid int) error {
 // createSandboxCgroup takes the path of the sandbox parent and the desired containerCgroup
 // It creates a cgroup through cgroupfs (as opposed to systemd) at the location cgroupRoot/sbParent/containerCgroup.
 func createSandboxCgroup(sbParent, containerCgroup string) error {
-	cg := &cgcfgs.Cgroup{
+	cg := &cgroups.Cgroup{
 		Name:   containerCgroup,
 		Parent: sbParent,
-		Resources: &cgcfgs.Resources{
+		Resources: &cgroups.Resources{
 			SkipDevices: true,
 		},
 	}
 
-	mgr, err := libctrCgMgr.New(cg)
+	mgr, err := manager.New(cg)
 	if err != nil {
 		return err
 	}
@@ -218,7 +217,7 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 			return fmt.Errorf("failed to create cpuset for newly created cgroup: %w", err)
 		}
 
-		if err := libctr.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
+		if err := cgroups.WriteFile(path, "cpuset.sched_load_balance", "0"); err != nil {
 			return fmt.Errorf("failed to set sched_load_balance cpuset for newly created cgroup: %w", err)
 		}
 	}
@@ -227,15 +226,15 @@ func createSandboxCgroup(sbParent, containerCgroup string) error {
 }
 
 func removeSandboxCgroup(sbParent, containerCgroup string) error {
-	cg := &cgcfgs.Cgroup{
+	cg := &cgroups.Cgroup{
 		Name:   containerCgroup,
 		Parent: sbParent,
-		Resources: &cgcfgs.Resources{
+		Resources: &cgroups.Resources{
 			SkipDevices: true,
 		},
 	}
 
-	mgr, err := libctrCgMgr.New(cg)
+	mgr, err := manager.New(cg)
 	if err != nil {
 		return err
 	}

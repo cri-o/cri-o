@@ -15,9 +15,8 @@ import (
 	securejoin "github.com/cyphar/filepath-securejoin"
 	"github.com/sirupsen/logrus"
 
-	"github.com/opencontainers/runc/libcontainer/cgroups"
-	"github.com/opencontainers/runc/libcontainer/cgroups/fs2"
-	"github.com/opencontainers/runc/libcontainer/configs"
+	"github.com/opencontainers/cgroups"
+	"github.com/opencontainers/cgroups/fs2"
 )
 
 const (
@@ -26,14 +25,14 @@ const (
 
 type UnifiedManager struct {
 	mu      sync.Mutex
-	cgroups *configs.Cgroup
+	cgroups *cgroups.Cgroup
 	// path is like "/sys/fs/cgroup/user.slice/user-1001.slice/session-1.scope"
 	path  string
 	dbus  *dbusConnManager
 	fsMgr cgroups.Manager
 }
 
-func NewUnifiedManager(config *configs.Cgroup, path string) (*UnifiedManager, error) {
+func NewUnifiedManager(config *cgroups.Cgroup, path string) (*UnifiedManager, error) {
 	m := &UnifiedManager{
 		cgroups: config,
 		path:    path,
@@ -114,7 +113,7 @@ func unifiedResToSystemdProps(cm *dbusConnManager, res map[string]string) (props
 					return nil, fmt.Errorf("unified resource %q quota value conversion error: %w", k, err)
 				}
 			}
-			addCpuQuota(cm, &props, quota, period)
+			addCPUQuota(cm, &props, &quota, period)
 
 		case "cpu.weight":
 			if shouldSetCPUIdle(cm, strings.TrimSpace(res["cpu.idle"])) {
@@ -199,7 +198,7 @@ func unifiedResToSystemdProps(cm *dbusConnManager, res map[string]string) (props
 	return props, nil
 }
 
-func genV2ResourcesProperties(dirPath string, r *configs.Resources, cm *dbusConnManager) ([]systemdDbus.Property, error) {
+func genV2ResourcesProperties(dirPath string, r *cgroups.Resources, cm *dbusConnManager) ([]systemdDbus.Property, error) {
 	// We need this check before setting systemd properties, otherwise
 	// the container is OOM-killed and the systemd unit is removed
 	// before we get to fsMgr.Set().
@@ -255,7 +254,7 @@ func genV2ResourcesProperties(dirPath string, r *configs.Resources, cm *dbusConn
 		}
 	}
 
-	addCpuQuota(cm, &properties, r.CpuQuota, r.CpuPeriod)
+	addCPUQuota(cm, &properties, &r.CpuQuota, r.CpuPeriod)
 
 	if r.PidsLimit > 0 || r.PidsLimit == -1 {
 		properties = append(properties,
@@ -461,7 +460,7 @@ func (m *UnifiedManager) initPath() error {
 	return nil
 }
 
-func (m *UnifiedManager) Freeze(state configs.FreezerState) error {
+func (m *UnifiedManager) Freeze(state cgroups.FreezerState) error {
 	return m.fsMgr.Freeze(state)
 }
 
@@ -477,10 +476,13 @@ func (m *UnifiedManager) GetStats() (*cgroups.Stats, error) {
 	return m.fsMgr.GetStats()
 }
 
-func (m *UnifiedManager) Set(r *configs.Resources) error {
+func (m *UnifiedManager) Set(r *cgroups.Resources) error {
 	if r == nil {
 		return nil
 	}
+	// Use a copy since CpuQuota in r may be modified.
+	rCopy := *r
+	r = &rCopy
 	properties, err := genV2ResourcesProperties(m.fsMgr.Path(""), r, m.dbus)
 	if err != nil {
 		return err
@@ -499,11 +501,11 @@ func (m *UnifiedManager) GetPaths() map[string]string {
 	return paths
 }
 
-func (m *UnifiedManager) GetCgroups() (*configs.Cgroup, error) {
+func (m *UnifiedManager) GetCgroups() (*cgroups.Cgroup, error) {
 	return m.cgroups, nil
 }
 
-func (m *UnifiedManager) GetFreezerState() (configs.FreezerState, error) {
+func (m *UnifiedManager) GetFreezerState() (cgroups.FreezerState, error) {
 	return m.fsMgr.GetFreezerState()
 }
 
