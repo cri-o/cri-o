@@ -13,25 +13,22 @@ const (
 	IrqSmpAffinityProcFile = ""
 )
 
-// NewMap creates a new Map of runtime names to runtime hooks from Crio's configuration.
-func NewMap(ctx context.Context, config *libconfig.Config) Map {
+// NewHooksRetriever returns a pointer to a new retriever.
+func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetriever {
 	ctx, span := log.StartSpan(ctx)
 	defer span.End()
 
-	rhh := make(Map)
-
-	for name := range config.Runtimes {
-		rhh[name] = nil
+	rhh := &HooksRetriever{
+		config:               config,
+		highPerformanceHooks: nil,
 	}
 
 	return rhh
 }
 
-// GetRuntimeHandlerHooks returns RuntimeHandlerHooks implementation by the runtime handler name
-func GetRuntimeHandlerHooks(ctx context.Context, config *libconfig.Config, handler string, annotations map[string]string) (RuntimeHandlerHooks, error) {
-	ctx, span := log.StartSpan(ctx)
-	defer span.End()
-	return &DefaultCPULoadBalanceHooks{}, nil
+// Get always returns DefaultCPULoadBalanceHooks for non-linux architectures.
+func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+	return &DefaultCPULoadBalanceHooks{}
 }
 
 // RestoreIrqBalanceConfig restores irqbalance service with original banned cpu mask settings

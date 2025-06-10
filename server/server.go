@@ -92,8 +92,8 @@ type Server struct {
 
 	// NRI runtime interface
 	nri *nriAPI
-	// runtimeHooks holds the map of hooks for registered runtimes.
-	runtimeHooks runtimehandlerhooks.Map
+	// hooksRetriever allows getting the runtime hooks for the sandboxes.
+	hooksRetriever *runtimehandlerhooks.HooksRetriever
 }
 
 // pullArguments are used to identify a pullOperation via an input image name and
@@ -463,7 +463,7 @@ func New(
 		minimumMappableGID:       config.MinimumMappableGID,
 		pullOperationsInProgress: make(map[pullArguments]*pullOperation),
 		resourceStore:            resourcestore.New(),
-		runtimeHooks:             runtimehandlerhooks.NewMap(ctx, config),
+		hooksRetriever:           runtimehandlerhooks.NewHooksRetriever(ctx, config),
 	}
 
 	if s.config.EnablePodEvents {
@@ -888,7 +888,7 @@ func (s *Server) handleExit(ctx context.Context, event fsnotify.Event) {
 		}
 	}
 
-	if hooks := s.runtimeHooks.Get(sb.RuntimeHandler()); hooks != nil {
+	if hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations()); hooks != nil {
 		if err := hooks.PostStop(ctx, c, sb); err != nil {
 			log.Errorf(ctx, "Failed to run post-stop hook for container %s: %v", c.ID(), err)
 		}

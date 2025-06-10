@@ -69,7 +69,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 
-	hooks := s.runtimeHooks.Get(sandbox.RuntimeHandler())
+	hooks := s.hooksRetriever.Get(sandbox.RuntimeHandler(), sandbox.Annotations())
 
 	if err := s.nri.startContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI start failed for container %q: %v", c.ID(), err)
