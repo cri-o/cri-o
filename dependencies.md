@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
+_Generated on Thu, 12 Jun 2025 19:49:28 UTC for commit [c51883b][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/3dce7d856a218e5b674eeab3cbd96422507bb69e
+[0]: https://github.com/cri-o/cri-o/commit/c51883b6ecfab248a36aaac65a22c3cf33c5526c
 
 ## Outdated Dependencies
 
@@ -11,7 +11,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 | github.com/CloudNativeAI/model-spec                                         | v0.0.4                               | v0.0.5                             | true   | true             |
 | github.com/containers/common                                                | v0.63.0                              | v0.63.1                            | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250611123907-c8fcda0d7363 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250612140444-6bdc0cf4953e | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                              | v0.61.0                            | true   | true             |
 | go.opentelemetry.io/otel                                                    | v1.35.0                              | v1.36.0                            | true   | true             |
@@ -36,7 +36,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 |-------------------------------------------------------------------------------------|---------------------------------------|-------------------------------------|--------|------------------|
 | capnproto.org/go/capnp/v3                                                           | v3.0.1-alpha.2                        | v3.1.0-alpha.1                      | false  | true             |
 | cel.dev/expr                                                                        | v0.20.0                               | v0.24.0                             | false  | true             |
-| chainguard.dev/go-grpc-kit                                                          | v0.17.7                               | v0.17.10                            | false  | true             |
+| chainguard.dev/go-grpc-kit                                                          | v0.17.7                               | v0.17.11                            | false  | true             |
 | chainguard.dev/sdk                                                                  | v0.1.29                               | v0.1.34                             | false  | true             |
 | cloud.google.com/go                                                                 | v0.118.3                              | v0.121.2                            | false  | true             |
 | cloud.google.com/go/accessapproval                                                  | v1.8.3                                | v1.8.7                              | false  | true             |
@@ -248,7 +248,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 | github.com/aws/aws-sdk-go-v2/service/internal/checksum                              | v1.3.17                               | v1.7.3                              | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/presigned-url                         | v1.12.15                              | v1.12.16                            | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/internal/s3shared                              | v1.17.15                              | v1.18.16                            | false  | true             |
-| github.com/aws/aws-sdk-go-v2/service/kms                                            | v1.38.1                               | v1.40.1                             | false  | true             |
+| github.com/aws/aws-sdk-go-v2/service/kms                                            | v1.38.1                               | v1.41.0                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/s3                                             | v1.58.3                               | v1.80.2                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/sso                                            | v1.25.1                               | v1.25.4                             | false  | true             |
 | github.com/aws/aws-sdk-go-v2/service/ssooidc                                        | v1.29.2                               | v1.30.2                             | false  | true             |
@@ -476,7 +476,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250611123907-c8fcda0d7363  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250612140444-6bdc0cf4953e  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -499,7 +499,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20230707160741-6cc6ce580243    | v0.0.0-20240620175310-a78493c6e2bd  | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250611221909-1f36d654ba36  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20240620165639-de9c06129bec    | v0.0.0-20250612184732-48d5ad3c19f5  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -737,7 +737,7 @@ _Generated on Thu, 12 Jun 2025 02:03:38 UTC for commit [3dce7d8][0]._
 | golang.org/x/oauth2                                                                 | v0.29.0                               | v0.30.0                             | false  | true             |
 | golang.org/x/sync                                                                   | v0.14.0                               | v0.15.0                             | true   | true             |
 | golang.org/x/sys                                                                    | v0.33.0                               |                                     | true   | true             |
-| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250611175808-9627e99781a7  | false  | true             |
+| golang.org/x/telemetry                                                              | v0.0.0-20240521205824-bda55230c457    | v0.0.0-20250612144025-c15c6427ebaa  | false  | true             |
 | golang.org/x/term                                                                   | v0.32.0                               |                                     | false  | true             |
 | golang.org/x/text                                                                   | v0.25.0                               | v0.26.0                             | false  | true             |
 | golang.org/x/time                                                                   | v0.11.0                               | v0.12.0                             | false  | true             |
