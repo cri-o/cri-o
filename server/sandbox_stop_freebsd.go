@@ -8,7 +8,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
@@ -32,10 +31,7 @@ func (s *Server) stopPodSandbox(ctx context.Context, sb *sandbox.Sandbox) error 
 	}
 
 	// Get high-performance runtime hook to trigger preStop step for each container
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	}
+	hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
 
 	podInfraContainer := sb.InfraContainer()
 	containers := sb.Containers().List()
