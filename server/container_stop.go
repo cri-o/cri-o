@@ -12,7 +12,6 @@ import (
 
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 )
 
 // StopContainer stops a running container with a grace period (i.e., timeout).
@@ -49,11 +48,7 @@ func (s *Server) stopContainer(ctx context.Context, ctr *oci.Container, timeout 
 
 	sb := s.getSandbox(ctx, ctr.Sandbox())
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		return fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	}
-
+	hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
 	if hooks != nil {
 		if err := hooks.PreStop(ctx, ctr, sb); err != nil {
 			return fmt.Errorf("failed to run pre-stop hook for container %q: %w", ctr.ID(), err)

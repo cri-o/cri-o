@@ -36,7 +36,6 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/resourcestore"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 	"github.com/cri-o/cri-o/internal/storage"
 	"github.com/cri-o/cri-o/internal/storage/references"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -1313,10 +1312,7 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		makeOCIConfigurationRootless(specgen)
 	}
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sb.RuntimeHandler(), sb.Annotations())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sb.RuntimeHandler())
-	}
+	hooks := s.hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
 
 	if err := s.nri.createContainer(ctx, specgen, sb, ociContainer); err != nil {
 		return nil, err

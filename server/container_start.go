@@ -12,7 +12,6 @@ import (
 	"github.com/cri-o/cri-o/internal/lib"
 	"github.com/cri-o/cri-o/internal/log"
 	oci "github.com/cri-o/cri-o/internal/oci"
-	"github.com/cri-o/cri-o/internal/runtimehandlerhooks"
 )
 
 // StartContainer starts the container.
@@ -70,10 +69,7 @@ func (s *Server) StartContainer(ctx context.Context, req *types.StartContainerRe
 
 	sandbox := s.getSandbox(ctx, c.Sandbox())
 
-	hooks, err := runtimehandlerhooks.GetRuntimeHandlerHooks(ctx, &s.config, sandbox.RuntimeHandler(), sandbox.Annotations())
-	if err != nil {
-		return nil, fmt.Errorf("failed to get runtime handler %q hooks", sandbox.RuntimeHandler())
-	}
+	hooks := s.hooksRetriever.Get(sandbox.RuntimeHandler(), sandbox.Annotations())
 
 	if err := s.nri.startContainer(ctx, sandbox, c); err != nil {
 		log.Warnf(ctx, "NRI start failed for container %q: %v", c.ID(), err)
