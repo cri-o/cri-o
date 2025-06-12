@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -1294,13 +1295,32 @@ func (r *runtimeOCI) AttachContainer(ctx context.Context, c *Container, inputStr
 
 	defer controlFile.Close()
 
+	var (
+		lastSize         remotecommand.TerminalSize
+		controlFileLock  sync.Mutex
+		controlFileValid = true
+	)
+
 	utils.HandleResizing(resizeChan, func(size remotecommand.TerminalSize) {
 		log.Debugf(ctx, "Got a resize event: %+v", size)
+		controlFileLock.Lock()
+		defer controlFileLock.Unlock()
+
+		if !controlFileValid || size == lastSize {
+			return
+		}
 
 		_, err := fmt.Fprintf(controlFile, "%d %d %d\n", 1, size.Height, size.Width)
 		if err != nil {
 			log.Debugf(ctx, "Failed to write to control file to resize terminal: %v", err)
+
+			controlFileValid = false
+
+			return
 		}
+
+		lastSize = size
+		log.Debugf(ctx, "Resized to %dx%d", size.Width, size.Height)
 	})
 
 	attachSocketPath := filepath.Join(r.config.ContainerAttachSocketDir, c.ID(), "attach")
