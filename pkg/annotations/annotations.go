@@ -32,6 +32,8 @@ const (
 	// IRQLoadBalancingAnnotation controls IRQ load balancing for container CPUs.
 	// Set to "disable" to turn off IRQ balancing on all container CPUs.
 	// Set to "housekeeping" to use the housekeeping-cpus.crio.io annotation for CPU specification.
+	// Set to "housekeeping-full-pcpus-only" to use the housekeeping-cpus.crio.io CPUs as well as their thread siblings.
+	// This requires that all thread siblings be allocated to the pod, or it will result in a failure.
 	IRQLoadBalancingAnnotation = "irq-load-balancing.crio.io"
 
 	// HousekeepingCPUsAnnotation specifies CPUs for housekeeping.
@@ -41,7 +43,8 @@ const (
 	// CPUs [2, 4, 6], and the relative index "1" is used, the housekeeping CPU is CPU 4.
 	// Injects an environment variable (HousekeepingCPUsEnvVar) to matching containers.
 	//
-	// At the moment, this is used together with IRQLoadBalancingAnnotation == "housekeeping".
+	// At the moment, this is used together with IRQLoadBalancingAnnotation == "housekeeping" or
+	// "housekeeping-full-pcpus-only".
 	// The indices act as an allow-list: IRQ balancing is enabled only on housekeeping CPUs and disabled
 	// on all other static CPUs of the entire Pod.
 	HousekeepingCPUsAnnotation = "housekeeping-cpus.crio.io"

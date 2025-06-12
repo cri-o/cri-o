@@ -27,7 +27,8 @@ import (
 )
 
 const (
-	fixturesDir = "fixtures/"
+	fixturesDir    = "fixtures/"
+	fixturesCPUDir = "sys/devices/system/cpu"
 
 	latencyNA = "n/a"
 
@@ -47,6 +48,7 @@ const (
 
 // The actual test suite.
 var _ = Describe("high_performance_hooks", func() {
+	var oldSysCPUDir string
 	container, err := oci.NewContainer("containerID", "", "", "",
 		make(map[string]string), make(map[string]string),
 		make(map[string]string), "pauseImage", nil, nil, "",
@@ -59,18 +61,27 @@ var _ = Describe("high_performance_hooks", func() {
 	BeforeEach(func() {
 		err := os.MkdirAll(fixturesDir, os.ModePerm)
 		Expect(err).ToNot(HaveOccurred())
+		oldSysCPUDir = currentSysCPUDir
+		testCPUDir := filepath.Join(fixturesDir, fixturesCPUDir)
+		currentSysCPUDir = testCPUDir
+		createSysCPUThreadSiblingsDir(testCPUDir)
 	})
 
 	AfterEach(func() {
 		err := os.RemoveAll(fixturesDir)
 		Expect(err).ToNot(HaveOccurred())
+		currentSysCPUDir = oldSysCPUDir
 	})
 
 	Describe("getIRQLoadBalancingDisabledCPUs", func() {
 		verifyGetIRQLoadBalancingDisabledCPUs := func(annotations map[string]string, enableIRQSMPBalancing bool,
 			expected cpuset.CPUSet, expectedErr error,
 		) {
-			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), enableIRQSMPBalancing, annotations, container)
+			sb := createSandbox(func(sbox sandbox.Builder) {
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), enableIRQSMPBalancing, sb, container)
 			if expectedErr != nil {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal(expectedErr.Error()))
@@ -287,11 +298,81 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 
+	Describe("getIRQLoadBalancingDisabledCPUs with "+annotationHousekeepingFullPCPUsOnly, func() {
+		verifyGetIRQLoadBalancingDisabledCPUs := func(annotations map[string]string, enableIRQSMPBalancing bool,
+			expected cpuset.CPUSet, expectedErr error,
+		) {
+			sb := createSandbox(func(sbox sandbox.Builder) {
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), enableIRQSMPBalancing, sb, container)
+			if expectedErr != nil {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(expectedErr.Error()))
+
+				return
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(cpus.Equals(expected)).To(BeTrue(), fmt.Sprintf("got: %v, expected: %v", cpus, expected))
+		}
+
+		JustBeforeEach(func() {
+			// set container CPUs
+			container.SetSpec(
+				&specs.Spec{
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus: "1,2,3,4",
+							},
+						},
+					},
+				},
+			)
+		})
+
+		Context(fmt.Sprintf("with annotation set to '%s' and housekeeping-cpus '%s/%s: 1'",
+			annotationHousekeepingFullPCPUsOnly, crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return all but the first CPU", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeepingFullPCPUsOnly,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "1",
+					},
+					onStartup,
+					cpuset.New(1, 4), // idx 1 housek. -> CPU 2 IRQ, CPU 3 is threadsibling
+					nil,
+				)
+			})
+		})
+
+		Context(fmt.Sprintf("with annotation set to '%s' and housekeeping-cpus '%s/%s: 0,3'",
+			annotationHousekeepingFullPCPUsOnly, crioannotations.HousekeepingCPUsAnnotation, containerName), func() {
+			It("should return an error because all thread siblings must be allocated to the container", func() {
+				verifyGetIRQLoadBalancingDisabledCPUs(
+					map[string]string{
+						crioannotations.IRQLoadBalancingAnnotation:                       annotationHousekeepingFullPCPUsOnly,
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,3",
+					},
+					onStartup,
+					cpuset.New(),
+					errors.New("housekeeping-full-pcpus-only requires all thread siblings to be allocated to the same "+
+						"container, but thread siblings [0 5] are not assigned to the container"),
+				)
+			})
+		})
+	})
+
 	Describe("setIRQLoadBalancingUsingDaemonCommand", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expected string, annotations map[string]string) {
-			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, annotations, container)
+			sb := createSandbox(func(sbox sandbox.Builder) {
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, sb, container)
 			Expect(err).ToNot(HaveOccurred())
 			h := HighPerformanceHooks{irqSMPAffinityFile: irqSmpAffinityFile, irqBalanceConfigFile: irqBalanceConfigFile}
 			err = h.setIRQLoadBalancing(context.TODO(), enabled, cpus)
@@ -373,7 +454,11 @@ var _ = Describe("high_performance_hooks", func() {
 		irqSmpAffinityFile := filepath.Join(fixturesDir, "irq_smp_affinity")
 		irqBalanceConfigFile := filepath.Join(fixturesDir, "irqbalance")
 		verifySetIRQLoadBalancing := func(enabled bool, expectedSmp, expectedBan string, annotations map[string]string) {
-			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, annotations, container)
+			sb := createSandbox(func(sbox sandbox.Builder) {
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+			cpus, err := getIRQLoadBalancingDisabledCPUs(context.Background(), onStartup, sb, container)
 			Expect(err).ToNot(HaveOccurred())
 			h := HighPerformanceHooks{irqSMPAffinityFile: irqSmpAffinityFile, irqBalanceConfigFile: irqBalanceConfigFile}
 			err = h.setIRQLoadBalancing(context.TODO(), enabled, cpus)
@@ -1008,36 +1093,13 @@ var _ = Describe("high_performance_hooks", func() {
 		)
 		Expect(err).ToNot(HaveOccurred())
 
-		sbox := sandbox.NewBuilder()
-		createdAt := time.Now()
-		sbox.SetCreatedAt(createdAt)
-		sbox.SetID("sandboxID")
-		sbox.SetName("sandboxName")
-		sbox.SetLogDir("test")
-		sbox.SetShmPath("test")
-		sbox.SetNamespace("")
-		sbox.SetKubeName("")
-		sbox.SetMountLabel("test")
-		sbox.SetProcessLabel("test")
-		sbox.SetCgroupParent("")
-		sbox.SetRuntimeHandler("")
-		sbox.SetResolvPath("")
-		sbox.SetHostname("")
-		sbox.SetPortMappings([]*hostport.PortMapping{})
-		sbox.SetHostNetwork(false)
-		sbox.SetUsernsMode("")
-		sbox.SetPodLinuxOverhead(nil)
-		sbox.SetPodLinuxResources(nil)
-		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
-			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
-			crioannotations.HousekeepingCPUsAnnotation + "/" + cName:                             "0-1",
-		}, &types.PodSandboxMetadata{})
-		Expect(err).ToNot(HaveOccurred())
-		sbox.SetPrivileged(false)
-		sbox.SetHostNetwork(false)
-		sbox.SetCreatedAt(createdAt)
-		sb, err := sbox.GetSandbox()
-		Expect(err).ToNot(HaveOccurred())
+		sb := createSandbox(func(sbox sandbox.Builder) {
+			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
+				crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
+				crioannotations.HousekeepingCPUsAnnotation + "/" + cName:                             "0-1",
+			}, &types.PodSandboxMetadata{})
+			Expect(err).ToNot(HaveOccurred())
+		})
 
 		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
 			h := HighPerformanceHooks{sharedCPUs: "5,6"}
@@ -1045,7 +1107,356 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(err).ToNot(HaveOccurred())
 			env := g.Config.Process.Env
 			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-4", "OPENSHIFT_SHARED_CPUS=5-6",
-				"HOUSEKEEPING_CPUS=1-2"))
+				"HOUSEKEEPING_CPUS=1-2", "HOUSEKEEPING_CPUS_SIBLINGS=0,3"))
+		})
+	})
+
+	Describe("calculateHousekeepingCPUs", func() {
+		verifyCalculateHousekeepingCPUs := func(containerCPUs string, annotations map[string]string,
+			containerName string, expectedHousekeeping cpuset.CPUSet, expectedSiblings cpuset.CPUSet,
+			expectedErr error,
+		) {
+			cCPUs, err := cpuset.Parse(containerCPUs)
+			Expect(err).ToNot(HaveOccurred())
+
+			housekeepingCPUs, threadSiblings, err := calculateHousekeepingCPUs(cCPUs, annotations, containerName)
+			if expectedErr != nil {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal(expectedErr.Error()))
+
+				return
+			}
+			Expect(err).ToNot(HaveOccurred())
+			Expect(housekeepingCPUs.Equals(expectedHousekeeping)).To(BeTrue(),
+				fmt.Sprintf("housekeeping CPUs: got %v, expected %v", housekeepingCPUs, expectedHousekeeping))
+			Expect(threadSiblings.Equals(expectedSiblings)).To(BeTrue(),
+				fmt.Sprintf("thread siblings: got %v, expected %v", threadSiblings, expectedSiblings))
+		}
+
+		Context("without housekeeping annotation", func() {
+			It("should return empty CPU sets", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{},
+					containerName,
+					cpuset.New(),
+					cpuset.New(),
+					nil,
+				)
+			})
+		})
+
+		Context("with housekeeping annotation for different container", func() {
+			It("should return empty CPU sets", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/other-container": "0",
+					},
+					containerName,
+					cpuset.New(),
+					cpuset.New(),
+					nil,
+				)
+			})
+		})
+
+		Context("with valid housekeeping annotation for single CPU", func() {
+			It("should return correct housekeeping CPU and its siblings", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7", // Container CPUs
+					map[string]string{
+						// First CPU (index 0 = CPU 4)
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0",
+					},
+					containerName,
+					cpuset.New(4), // CPU 4 (first CPU in container set)
+					cpuset.New(5), // CPU 5 is sibling of CPU 4
+					nil,
+				)
+			})
+		})
+
+		Context("with valid housekeeping annotation for multiple CPUs", func() {
+			It("should return correct housekeeping CPUs and their siblings", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7", // Container CPUs
+					map[string]string{
+						// CPUs 4,6 (indices 0,2)
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,2",
+					},
+					containerName,
+					cpuset.New(4, 6), // CPUs 4,6
+					cpuset.New(5, 7), // Siblings: 5 (of 4) and 7 (of 6)
+					nil,
+				)
+			})
+		})
+
+		Context("with valid housekeeping annotation for range", func() {
+			It("should return correct housekeeping CPUs and their siblings", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7", // Container CPUs
+					map[string]string{
+						// CPUs 5,6 (indices 1,2)
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "1-2",
+					},
+					containerName,
+					cpuset.New(5, 6), // CPUs 5,6
+					cpuset.New(4, 7), // Siblings: 4 (of 5) and 7 (of 6)
+					nil,
+				)
+			})
+		})
+
+		Context("with invalid housekeeping annotation format", func() {
+			It("should return an error", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "invalid",
+					},
+					containerName,
+					cpuset.New(),
+					cpuset.New(),
+					errors.New("cannot parse CPU set \"invalid\" in "+
+						"\"housekeeping-cpus.crio.io/container-name\""),
+				)
+			})
+		})
+
+		Context("with housekeeping CPU index too high", func() {
+			It("should return an error", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7", // 4 CPUs (indices 0-3)
+					map[string]string{
+						// Index 4 is too high
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "4",
+					},
+					containerName,
+					cpuset.New(),
+					cpuset.New(),
+					errors.New("irq-load-balancing CPU index \"4\" is too high - "+
+						"container \"container-name\" only has 4 CPUs"),
+				)
+			})
+		})
+
+		Context("with non-hyperthreaded CPU (missing topology file)", func() {
+			BeforeEach(func() {
+				// Remove topology file for CPU 4 to simulate non-hyperthreaded CPU
+				siblingsFile := filepath.Join(currentSysCPUDir, "cpu4", "topology", "thread_siblings_list")
+				err := os.Remove(siblingsFile)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should handle missing topology gracefully", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{
+						// CPU 4 has no topology file
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0",
+					},
+					containerName,
+					cpuset.New(4), // CPU 4
+					cpuset.New(),  // No siblings since topology file is missing
+					nil,
+				)
+			})
+		})
+
+		Context("with empty topology file", func() {
+			BeforeEach(func() {
+				// Create empty topology file for CPU 5
+				siblingsFile := filepath.Join(currentSysCPUDir, "cpu5", "topology", "thread_siblings_list")
+				err := os.WriteFile(siblingsFile, []byte(""), 0o644)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should handle empty topology gracefully", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{
+						// CPU 5 has empty topology
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "1",
+					},
+					containerName,
+					cpuset.New(5), // CPU 5
+					cpuset.New(),  // No siblings since topology file is empty
+					nil,
+				)
+			})
+		})
+
+		Context("with invalid topology content", func() {
+			BeforeEach(func() {
+				// Create invalid topology file for CPU 6
+				siblingsFile := filepath.Join(currentSysCPUDir, "cpu6", "topology", "thread_siblings_list")
+				err := os.WriteFile(siblingsFile, []byte("invalid-topology"), 0o644)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should return an error for invalid topology", func() {
+				verifyCalculateHousekeepingCPUs(
+					"4,5,6,7",
+					map[string]string{
+						// CPU 6 has invalid topology
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "2",
+					},
+					containerName,
+					cpuset.New(),
+					cpuset.New(),
+					errors.New("failed to get thread siblings for housekeeping CPUs: "+
+						"failed to parse thread siblings \"invalid-topology\" for CPU 6: "+
+						"strconv.Atoi: parsing \"invalid\": invalid syntax"),
+				)
+			})
+		})
+	})
+
+	Describe("Environment Variable Injection with Housekeeping CPUs", func() {
+		verifyHousekeepingEnvInjection := func(containerCPUs string, annotations map[string]string,
+			containerName string, expectedHousekeeping, expectedSiblings []string,
+		) {
+			shares := uint64(2048)
+			g := &generate.Generator{
+				Config: &specs.Spec{
+					Process: &specs.Process{
+						Env: make([]string, 0),
+					},
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Cpus:   containerCPUs,
+								Shares: &shares,
+							},
+						},
+					},
+				},
+			}
+
+			c, err := oci.NewContainer("containerID", "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "pauseImage", nil, nil, "",
+				&types.ContainerMetadata{Name: containerName}, "sandboxID", false, false,
+				false, "", "", time.Now(), "")
+			Expect(err).ToNot(HaveOccurred())
+
+			c.SetSpec(g.Config)
+
+			sb := createSandbox(func(sbox sandbox.Builder) {
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), annotations, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			h := HighPerformanceHooks{}
+			err = h.PreCreate(context.TODO(), g, sb, c)
+			Expect(err).ToNot(HaveOccurred())
+
+			env := g.Config.Process.Env
+
+			if len(expectedHousekeeping) > 0 {
+				housekeepingEnv := "HOUSEKEEPING_CPUS=" + expectedHousekeeping[0]
+				Expect(env).To(ContainElement(housekeepingEnv))
+			} else {
+				Expect(env).ToNot(ContainElement(ContainSubstring("HOUSEKEEPING_CPUS=")))
+			}
+
+			if len(expectedSiblings) > 0 {
+				siblingsEnv := "HOUSEKEEPING_CPUS_SIBLINGS=" + expectedSiblings[0]
+				Expect(env).To(ContainElement(siblingsEnv))
+			} else {
+				Expect(env).ToNot(ContainElement(ContainSubstring("HOUSEKEEPING_CPUS_SIBLINGS")))
+			}
+		}
+
+		Context("without housekeeping annotation", func() {
+			It("should not inject housekeeping environment variables", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5,6,7",
+					map[string]string{},
+					containerName,
+					[]string{}, // no housekeeping CPUs expected
+					[]string{}, // no siblings expected
+				)
+			})
+		})
+
+		Context("with housekeeping annotation for different container", func() {
+			It("should not inject housekeeping environment variables", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5,6,7",
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/other-container": "0",
+					},
+					containerName,
+					[]string{}, // no housekeeping CPUs expected
+					[]string{}, // no siblings expected
+				)
+			})
+		})
+
+		Context("with valid housekeeping annotation for single CPU", func() {
+			It("should inject housekeeping CPU and siblings environment variables", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5,6,7", // Container CPUs
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0", // First CPU (index 0 = CPU 4)
+					},
+					containerName,
+					[]string{"4"}, // CPU 4 (first CPU in container set)
+					[]string{"5"}, // CPU 5 is sibling of CPU 4
+				)
+			})
+		})
+
+		Context("with valid housekeeping annotation for multiple CPUs", func() {
+			It("should inject housekeeping CPUs and siblings environment variables", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5,6,7", // Container CPUs
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,2", // CPUs 4,6 (indices 0,2)
+					},
+					containerName,
+					[]string{"4,6"}, // CPUs 4,6
+					[]string{"5,7"}, // Siblings: 5 (of 4) and 7 (of 6)
+				)
+			})
+		})
+
+		Context("with housekeeping annotation where CPUs are their own siblings", func() {
+			It("should inject housekeeping CPUs but not siblings (empty siblings)", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5", // Container CPUs (4 and 5 are siblings of each other)
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0,1", // Both CPUs 4,5
+					},
+					containerName,
+					[]string{"4-5"}, // CPUs 4,5
+					[]string{},      // No siblings since 4,5 are siblings of each other, after removing originals it's empty
+				)
+			})
+		})
+
+		Context("with non-hyperthreaded CPU (missing topology file)", func() {
+			BeforeEach(func() {
+				// Remove topology file for CPU 4 to simulate non-hyperthreaded CPU
+				siblingsFile := filepath.Join(currentSysCPUDir, "cpu4", "topology", "thread_siblings_list")
+				err := os.Remove(siblingsFile)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should inject housekeeping CPU but not siblings", func() {
+				verifyHousekeepingEnvInjection(
+					"4,5,6,7",
+					map[string]string{
+						crioannotations.HousekeepingCPUsAnnotation + "/" + containerName: "0", // CPU 4 has no topology file
+					},
+					containerName,
+					[]string{"4"}, // CPU 4
+					[]string{},    // No siblings since topology file is missing
+				)
+			})
 		})
 	})
 	Describe("Make sure that correct runtime handler hooks are set", func() {
@@ -1103,38 +1514,16 @@ var _ = Describe("high_performance_hooks", func() {
 			err = os.WriteFile(irqSmpAffinityFile, []byte(flags), 0o644)
 			Expect(err).ToNot(HaveOccurred())
 
-			sbox := sandbox.NewBuilder()
-			createdAt := time.Now()
-			sbox.SetCreatedAt(createdAt)
-			sbox.SetID("sandboxID")
-			sbox.SetName("sandboxName")
-			sbox.SetLogDir("test")
-			sbox.SetShmPath("test")
-			sbox.SetNamespace("")
-			sbox.SetKubeName("")
-			sbox.SetMountLabel("test")
-			sbox.SetProcessLabel("test")
-			sbox.SetCgroupParent("")
-			sbox.SetRuntimeHandler(runtimeName)
-			sbox.SetResolvPath("")
-			sbox.SetHostname("")
-			sbox.SetPortMappings([]*hostport.PortMapping{})
-			sbox.SetHostNetwork(false)
-			sbox.SetUsernsMode("")
-			sbox.SetPodLinuxOverhead(nil)
-			sbox.SetPodLinuxResources(nil)
-			err = sbox.SetCRISandbox(
-				sbox.ID(),
-				map[string]string{},
-				sandboxAnnotations,
-				&types.PodSandboxMetadata{},
-			)
-			Expect(err).ToNot(HaveOccurred())
-			sbox.SetPrivileged(false)
-			sbox.SetHostNetwork(false)
-			sbox.SetCreatedAt(createdAt)
-			sb, err = sbox.GetSandbox()
-			Expect(err).ToNot(HaveOccurred())
+			sb = createSandbox(func(sbox sandbox.Builder) {
+				sbox.SetRuntimeHandler(runtimeName)
+				err := sbox.SetCRISandbox(
+					sbox.ID(),
+					map[string]string{},
+					sandboxAnnotations,
+					&types.PodSandboxMetadata{},
+				)
+				Expect(err).ToNot(HaveOccurred())
+			})
 		})
 
 		Context("with runtime name high-performance and sandbox disable annotation", func() {
@@ -1370,3 +1759,77 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 })
+
+func createSandbox(setSandbox func(sandbox.Builder)) *sandbox.Sandbox {
+	sbox := sandbox.NewBuilder()
+	createdAt := time.Now()
+	sbox.SetCreatedAt(createdAt)
+	sbox.SetID("sandboxID")
+	sbox.SetName("sandboxName")
+	sbox.SetLogDir("test")
+	sbox.SetShmPath("test")
+	sbox.SetNamespace("")
+	sbox.SetKubeName("")
+	sbox.SetMountLabel("test")
+	sbox.SetProcessLabel("test")
+	sbox.SetCgroupParent("")
+	sbox.SetRuntimeHandler("")
+	sbox.SetResolvPath("")
+	sbox.SetHostname("")
+	sbox.SetPortMappings([]*hostport.PortMapping{})
+	sbox.SetHostNetwork(false)
+	sbox.SetUsernsMode("")
+	sbox.SetPodLinuxOverhead(nil)
+	sbox.SetPodLinuxResources(nil)
+	err := sbox.SetCRISandbox(sbox.ID(), make(map[string]string), make(map[string]string), &types.PodSandboxMetadata{})
+	Expect(err).ToNot(HaveOccurred())
+	sbox.SetPrivileged(false)
+	sbox.SetHostNetwork(false)
+
+	// Allow overwriting any settings via callback.
+	setSandbox(sbox)
+
+	sb, err := sbox.GetSandbox()
+	Expect(err).ToNot(HaveOccurred())
+
+	return sb
+}
+
+func createSysCPUThreadSiblingsDir(testCPUDir string) {
+	err := os.MkdirAll(testCPUDir, os.ModePerm)
+	Expect(err).ToNot(HaveOccurred())
+
+	// Create CPU directories and topology files for CPUs 0-7
+	for cpu := range 8 {
+		cpuTopologyDir := filepath.Join(testCPUDir, fmt.Sprintf("cpu%d", cpu), "topology")
+		err := os.MkdirAll(cpuTopologyDir, os.ModePerm)
+		Expect(err).ToNot(HaveOccurred())
+
+		// Create thread siblings based on hyperthreading simulation
+		// CPUs 0,1 are siblings; 2,3 are siblings; 4,5 are siblings; 6,7 are siblings
+		var siblings string
+
+		switch cpu {
+		case 0:
+			siblings = "0-1"
+		case 1:
+			siblings = "0-1"
+		case 2:
+			siblings = "2-3"
+		case 3:
+			siblings = "2-3"
+		case 4:
+			siblings = "4-5"
+		case 5:
+			siblings = "4-5"
+		case 6:
+			siblings = "6-7"
+		case 7:
+			siblings = "6-7"
+		}
+
+		siblingsFile := filepath.Join(cpuTopologyDir, "thread_siblings_list")
+		err = os.WriteFile(siblingsFile, []byte(siblings), 0o644)
+		Expect(err).ToNot(HaveOccurred())
+	}
+}
