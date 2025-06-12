@@ -8,6 +8,7 @@ import (
 
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/oci"
+	libconfig "github.com/cri-o/cri-o/pkg/config"
 )
 
 var (
@@ -24,4 +25,10 @@ type RuntimeHandlerHooks interface {
 
 type HighPerformanceHook interface {
 	RuntimeHandlerHooks
+}
+
+// HooksRetriever allows retrieving the runtime hooks for a given sandbox.
+type HooksRetriever struct {
+	config               *libconfig.Config
+	highPerformanceHooks RuntimeHandlerHooks
 }
