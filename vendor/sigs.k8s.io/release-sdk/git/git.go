@@ -566,13 +566,14 @@ func OpenRepo(repoPath string) (*Repo, error) {
 	}
 
 	logLevel := logrus.StandardLogger().Level
-	if logLevel == logrus.DebugLevel {
+	switch logLevel { //nolint:exhaustive
+	case logrus.DebugLevel:
 		logrus.Info("Setting verbose git output (debug)")
 
 		if err := setVerboseDebug(); err != nil {
 			return nil, fmt.Errorf("set debug output: %w", err)
 		}
-	} else if logLevel == logrus.TraceLevel {
+	case logrus.TraceLevel:
 		logrus.Info("Setting verbose git output (trace)")
 
 		if err := setVerboseTrace(); err != nil {
