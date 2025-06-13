@@ -1002,6 +1002,7 @@ func (r *runtimeOCI) StopLoopForContainer(c *Container, bm kwait.BackoffManager)
 
 		case <-time.After(time.Until(targetTime)):
 			log.Warnf(ctx, "Stopping container %s with stop signal(%s) timed out. Killing...", c.ID(), c.GetStopSignal())
+			c.SetStopKillLoopBegun()
 
 			goto killContainer
 
@@ -1025,10 +1026,12 @@ killContainer:
 		}
 
 		if err := c.Living(); err != nil {
+			log.Debugf(ctx, "Container is no longer alive")
 			stop()
 
 			return
 		}
+		log.Debugf(ctx, "Killing failed for some reasons, retrying...")
 		// Reschedule the timer so that the periodic reminder can continue.
 		blockedTimer.Reset(stopProcessBlockedInterval)
 	}, bm, true, ctx.Done())
