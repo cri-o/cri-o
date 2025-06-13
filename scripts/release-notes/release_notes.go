@@ -160,10 +160,10 @@ To verify the artifact signatures via [cosign](https://github.com/sigstore/cosig
 `+"```"+`console
 > export COSIGN_EXPERIMENTAL=1
 > cosign verify-blob cri-o.amd64.%s.tar.gz \
-    --certificate-identity https://github.com/cri-o/cri-o/.github/workflows/test.yml@refs/tags/%s \
+    --certificate-identity https://github.com/cri-o/packaging/.github/workflows/obs.yml@refs/heads/main \
     --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-    --certificate-github-workflow-repository cri-o/cri-o \
-    --certificate-github-workflow-ref refs/tags/%s \
+    --certificate-github-workflow-repository cri-o/packaging \
+    --certificate-github-workflow-ref refs/heads/main \
     --signature cri-o.amd64.%s.tar.gz.sig \
     --certificate cri-o.amd64.%s.tar.gz.cert
 `+"```"+`
@@ -225,7 +225,6 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion,
 		bundleVersion, bundleVersion, bundleVersion,
-		bundleVersion, bundleVersion,
 		startTag,
 	); err != nil {
 		return fmt.Errorf("writing tmplate to file: %w", err)
