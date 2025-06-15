@@ -36,6 +36,25 @@ var (
 	}
 )
 
+// HugeTLB metrics.
+var (
+	containerHugetlbFailcnt = &types.MetricDescriptor{
+		Name:      "container_hugetlb_failcnt",
+		Help:      "Number of hugepage usage hits limits",
+		LabelKeys: append(baseLabelKeys, "pagesize"),
+	}
+	containerHugetlbMaxUsageBytes = &types.MetricDescriptor{
+		Name:      "container_hugetlb_max_usage_bytes",
+		Help:      "Maximum hugepage usages recorded",
+		LabelKeys: append(baseLabelKeys, "pagesize"),
+	}
+	containerHugetlbUsageBytes = &types.MetricDescriptor{
+		Name:      "container_hugetlb_usage_bytes",
+		Help:      "Current hugepage usage",
+		LabelKeys: append(baseLabelKeys, "pagesize"),
+	}
+)
+
 // Memory metrics.
 var (
 	containerMemoryCache = &types.MetricDescriptor{
