@@ -1074,6 +1074,15 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.Cg
 		)
 	}
 
+	hugetlbStats := map[string]cgmgr.HugetlbStats{}
+	for _, hugetlb := range m.Hugetlb {
+		hugetlbStats[hugetlb.Pagesize] = cgmgr.HugetlbStats{
+			Usage:   hugetlb.Usage,
+			Max:     hugetlb.Max,
+			Failcnt: hugetlb.Failcnt,
+		}
+	}
+
 	return &cgmgr.CgroupStats{
 		Memory: &cgmgr.MemoryStats{
 			Usage:           memUsage,
@@ -1101,6 +1110,7 @@ func metricsV1ToCgroupStats(ctx context.Context, m *cgroupsV1.Metrics) *cgmgr.Cg
 			ThrottlingActivePeriods: m.CPU.Throttling.Periods,
 			ThrottledPeriods:        m.CPU.Throttling.ThrottledPeriods,
 		},
+		Hugetlb: hugetlbStats,
 		Pid: &cgmgr.PidsStats{
 			Current: m.Pids.Current,
 			Limit:   m.Pids.Limit,
@@ -1127,6 +1137,16 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.Cg
 				"Unable to account working set stats: total_inactive_file (%d) > memory usage (%d)",
 				m.Memory.InactiveFile, memUsage,
 			)
+		}
+	}
+
+	hugetlbStats := map[string]cgmgr.HugetlbStats{}
+	for _, hugetlb := range m.Hugetlb {
+		hugetlbStats[hugetlb.Pagesize] = cgmgr.HugetlbStats{
+			Usage: hugetlb.Current,
+			Max:   hugetlb.Max,
+			// containerd/cgroups does not support HugeTLB Failcnt stat for cgroups v2 yet
+			Failcnt: 0,
 		}
 	}
 
@@ -1157,6 +1177,7 @@ func metricsV2ToCgroupStats(ctx context.Context, m *cgroupsV2.Metrics) *cgmgr.Cg
 			ThrottledPeriods:        m.CPU.NrThrottled,
 			ThrottledTime:           m.CPU.ThrottledUsec * 1000,
 		},
+		Hugetlb: hugetlbStats,
 		Pid: &cgmgr.PidsStats{
 			Current: m.Pids.Current,
 			Limit:   m.Pids.Limit,
