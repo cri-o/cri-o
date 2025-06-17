@@ -375,6 +375,11 @@ func (c *ContainerServer) LoadSandbox(ctx context.Context, id string) (sb *sandb
 	}
 
 	sb.SetCreated()
+
+	if scontainer.State().Status == oci.ContainerStateStopped {
+		sb.SetStopped(ctx, true)
+	}
+
 	if err := label.ReserveLabel(processLabel); err != nil {
 		return sb, err
 	}
