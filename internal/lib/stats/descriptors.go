@@ -35,7 +35,14 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
-
+// CPU Load.
+var (
+	containerTasksState = &types.MetricDescriptor{
+		Name:      "container_tasks_state",
+		Help:      "Number of tasks in given state (sleeping, running, stopped, uninterruptible, or ioawaiting).",
+		LabelKeys: baseLabelKeys,
+	}
+)
 // Memory metrics.
 var (
 	containerMemoryCache = &types.MetricDescriptor{
