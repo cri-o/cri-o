@@ -29,7 +29,7 @@ func generateContainerTasksStateMetrics(c *oci.Container) []*types.Metric {
         },
     }
 
-    return computeContainerMetrics(c, metrics, "cpu_load")
+    return computeContainerMetrics(c, metrics, "container_tasks_state")
 }
 
 // Helper to convert containerMetric to []*types.Metric (similar to computeSandboxMetrics)
