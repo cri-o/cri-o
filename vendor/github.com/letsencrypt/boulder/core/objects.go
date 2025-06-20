@@ -109,9 +109,6 @@ type Registration struct {
 	// Agreement with terms of service
 	Agreement string `json:"agreement,omitempty"`
 
-	// InitialIP is the IP address from which the registration was created
-	InitialIP net.IP `json:"initialIp"`
-
 	// CreatedAt is the time the registration was created.
 	CreatedAt *time.Time `json:"createdAt,omitempty"`
 
@@ -125,10 +122,11 @@ type ValidationRecord struct {
 	URL string `json:"url,omitempty"`
 
 	// Shared
-	Hostname          string   `json:"hostname,omitempty"`
+	DnsName           string   `json:"hostname,omitempty"`
 	Port              string   `json:"port,omitempty"`
 	AddressesResolved []net.IP `json:"addressesResolved,omitempty"`
 	AddressUsed       net.IP   `json:"addressUsed,omitempty"`
+
 	// AddressesTried contains a list of addresses tried before the `AddressUsed`.
 	// Presently this will only ever be one IP from `AddressesResolved` since the
 	// only retry is in the case of a v6 failure with one v4 fallback. E.g. if
@@ -144,17 +142,11 @@ type ValidationRecord struct {
 	//   ...
 	// }
 	AddressesTried []net.IP `json:"addressesTried,omitempty"`
+
 	// ResolverAddrs is the host:port of the DNS resolver(s) that fulfilled the
 	// lookup for AddressUsed. During recursive A and AAAA lookups, a record may
 	// instead look like A:host:port or AAAA:host:port
 	ResolverAddrs []string `json:"resolverAddrs,omitempty"`
-	// UsedRSAKEX is a *temporary* addition to the validation record, so we can
-	// see how many servers that we reach out to during HTTP-01 and TLS-ALPN-01
-	// validation are only willing to negotiate RSA key exchange mechanisms. The
-	// field is not included in the serialized json to avoid cluttering the
-	// database and log lines.
-	// TODO(#7321): Remove this when we have collected sufficient data.
-	UsedRSAKEX bool `json:"-"`
 }
 
 // Challenge is an aggregate of all data needed for any challenges.
@@ -184,14 +176,6 @@ type Challenge struct {
 	// by all current challenges (http-01, tls-alpn-01, and dns-01).
 	Token string `json:"token,omitempty"`
 
-	// ProvidedKeyAuthorization used to carry the expected key authorization from
-	// the RA to the VA. However, since this field is never presented to the user
-	// via the ACME API, it should not be on this type.
-	//
-	// Deprecated: use vapb.PerformValidationRequest.ExpectedKeyAuthorization instead.
-	// TODO(#7514): Remove this.
-	ProvidedKeyAuthorization string `json:"keyAuthorization,omitempty"`
-
 	// Contains information about URLs used or redirected to and IPs resolved and
 	// used
 	ValidationRecord []ValidationRecord `json:"validationRecord,omitempty"`
@@ -215,7 +199,7 @@ func (ch Challenge) ExpectedKeyAuthorization(key *jose.JSONWebKey) (string, erro
 // RecordsSane checks the sanity of a ValidationRecord object before sending it
 // back to the RA to be stored.
 func (ch Challenge) RecordsSane() bool {
-	if ch.ValidationRecord == nil || len(ch.ValidationRecord) == 0 {
+	if len(ch.ValidationRecord) == 0 {
 		return false
 	}
 
@@ -224,7 +208,7 @@ func (ch Challenge) RecordsSane() bool {
 		for _, rec := range ch.ValidationRecord {
 			// TODO(#7140): Add a check for ResolverAddress == "" only after the
 			// core.proto change has been deployed.
-			if rec.URL == "" || rec.Hostname == "" || rec.Port == "" || rec.AddressUsed == nil ||
+			if rec.URL == "" || rec.DnsName == "" || rec.Port == "" || rec.AddressUsed == nil ||
 				len(rec.AddressesResolved) == 0 {
 				return false
 			}
@@ -238,7 +222,7 @@ func (ch Challenge) RecordsSane() bool {
 		}
 		// TODO(#7140): Add a check for ResolverAddress == "" only after the
 		// core.proto change has been deployed.
-		if ch.ValidationRecord[0].Hostname == "" || ch.ValidationRecord[0].Port == "" ||
+		if ch.ValidationRecord[0].DnsName == "" || ch.ValidationRecord[0].Port == "" ||
 			ch.ValidationRecord[0].AddressUsed == nil || len(ch.ValidationRecord[0].AddressesResolved) == 0 {
 			return false
 		}
@@ -248,7 +232,7 @@ func (ch Challenge) RecordsSane() bool {
 		}
 		// TODO(#7140): Add a check for ResolverAddress == "" only after the
 		// core.proto change has been deployed.
-		if ch.ValidationRecord[0].Hostname == "" {
+		if ch.ValidationRecord[0].DnsName == "" {
 			return false
 		}
 		return true
@@ -292,13 +276,13 @@ func (ch Challenge) StringID() string {
 type Authorization struct {
 	// An identifier for this authorization, unique across
 	// authorizations and certificates within this instance.
-	ID string `json:"id,omitempty" db:"id"`
+	ID string `json:"-" db:"id"`
 
 	// The identifier for which authorization is being given
 	Identifier identifier.ACMEIdentifier `json:"identifier,omitempty" db:"identifier"`
 
 	// The registration ID associated with the authorization
-	RegistrationID int64 `json:"regId,omitempty" db:"registrationID"`
+	RegistrationID int64 `json:"-" db:"registrationID"`
 
 	// The status of the validation of this authorization
 	Status AcmeStatus `json:"status,omitempty" db:"status"`
@@ -333,6 +317,11 @@ type Authorization struct {
 	// as part of the authorization, the identifier we store in the database
 	// can contain an asterisk.
 	Wildcard bool `json:"wildcard,omitempty" db:"-"`
+
+	// CertificateProfileName is the name of the profile associated with the
+	// order that first resulted in the creation of this authorization. Omitted
+	// from API responses.
+	CertificateProfileName string `json:"-"`
 }
 
 // FindChallengeByStringID will look for a challenge matching the given ID inside
@@ -352,14 +341,14 @@ func (authz *Authorization) FindChallengeByStringID(id string) int {
 // challenge is valid.
 func (authz *Authorization) SolvedBy() (AcmeChallenge, error) {
 	if len(authz.Challenges) == 0 {
-		return "", fmt.Errorf("Authorization has no challenges")
+		return "", fmt.Errorf("authorization has no challenges")
 	}
 	for _, chal := range authz.Challenges {
 		if chal.Status == StatusValid {
 			return chal.Type, nil
 		}
 	}
-	return "", fmt.Errorf("Authorization not solved by any challenge")
+	return "", fmt.Errorf("authorization not solved by any challenge")
 }
 
 // JSONBuffer fields get encoded and decoded JOSE-style, in base64url encoding
@@ -471,6 +460,7 @@ func (window SuggestedWindow) IsWithin(now time.Time) bool {
 // endpoint specified in draft-aaron-ari.
 type RenewalInfo struct {
 	SuggestedWindow SuggestedWindow `json:"suggestedWindow"`
+	ExplanationURL  string          `json:"explanationURL,omitempty"`
 }
 
 // RenewalInfoSimple constructs a `RenewalInfo` object and suggested window
@@ -483,8 +473,8 @@ func RenewalInfoSimple(issued time.Time, expires time.Time) RenewalInfo {
 	idealRenewal := expires.Add(-renewalOffset)
 	return RenewalInfo{
 		SuggestedWindow: SuggestedWindow{
-			Start: idealRenewal.Add(-24 * time.Hour),
-			End:   idealRenewal.Add(24 * time.Hour),
+			Start: idealRenewal.Add(-24 * time.Hour).Truncate(time.Second),
+			End:   idealRenewal.Add(24 * time.Hour).Truncate(time.Second),
 		},
 	}
 }
@@ -493,13 +483,15 @@ func RenewalInfoSimple(issued time.Time, expires time.Time) RenewalInfo {
 // window in the past. Per the draft-ietf-acme-ari-01 spec, clients should
 // attempt to renew immediately if the suggested window is in the past. The
 // passed `now` is assumed to be a timestamp representing the current moment in
-// time.
-func RenewalInfoImmediate(now time.Time) RenewalInfo {
+// time. The `explanationURL` is an optional URL that the subscriber can use to
+// learn more about why the renewal is suggested.
+func RenewalInfoImmediate(now time.Time, explanationURL string) RenewalInfo {
 	oneHourAgo := now.Add(-1 * time.Hour)
 	return RenewalInfo{
 		SuggestedWindow: SuggestedWindow{
-			Start: oneHourAgo,
-			End:   oneHourAgo.Add(time.Minute * 30),
+			Start: oneHourAgo.Truncate(time.Second),
+			End:   oneHourAgo.Add(time.Minute * 30).Truncate(time.Second),
 		},
+		ExplanationURL: explanationURL,
 	}
 }
