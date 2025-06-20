@@ -869,8 +869,10 @@ function assert_log_linking() {
 		[[ "$output" == *"20000 10000"* ]]
 
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu.weight")
-		# 512 shares are converted to cpu.weight 20
-		[[ "$output" == *"20"* ]]
+		# CPU shares of 512 is converted to cpu.weight of either 20 or 59,
+		# depending on crun/runc version (see https://github.com/kubernetes/kubernetes/issues/131216).
+		echo "got cpu.weight $output, want 20 or 59"
+		[ "$output" = "20" ] || [ "$output" = "59" ]
 	else
 		output=$(crictl exec --sync "$ctr_id" sh -c "cat /sys/fs/cgroup/cpu/cpu.shares")
 		[[ "$output" == *"512"* ]]
