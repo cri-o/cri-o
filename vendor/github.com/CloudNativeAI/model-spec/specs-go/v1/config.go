@@ -39,6 +39,9 @@ type ModelConfig struct {
 
 	// The model quantization, such as awq, gptq, etc
 	Quantization string `json:"quantization,omitempty"`
+
+	// Special capabilities that the model supports
+	Capabilities *ModelCapabilities `json:"capabilities,omitempty"`
 }
 
 // ModelFS describes a layer content addresses
@@ -87,6 +90,39 @@ type ModelDescriptor struct {
 
 	// The human-readable description of the software packaged in the model
 	Description string `json:"description,omitempty"`
+}
+
+// Modality defines the input and output types of the model
+// such as text, image, audio, video, etc.
+// It is used to define the input and output types of the model.
+type Modality string
+
+const (
+	TextModality      Modality = "text"
+	ImageModality     Modality = "image"
+	AudioModality     Modality = "audio"
+	VideoModality     Modality = "video"
+	EmbeddingModality Modality = "embedding"
+	OtherModality     Modality = "other"
+)
+
+// ModelCapabilities defines the special capabilities that the model supports
+type ModelCapabilities struct {
+	// The model supports the following input types
+	InputTypes []Modality `json:"input_types,omitempty"`
+
+	// The model supports the following output types
+	OutputTypes []Modality `json:"output_types,omitempty"`
+
+	// KnowledgeCutoff is the date of the datasets that the model was trained on, formatted as defined by RFC 3339
+	KnowledgeCutoff *time.Time `json:"knowledge_cutoff,omitempty"`
+
+	// Reasoning indicates whether the model can perform reasoning tasks
+	Reasoning *bool `json:"reasoning,omitempty"`
+
+	// ToolUsage indicates whether the model can use external tools
+	// such as a calculator, a search engine, etc.
+	ToolUsage *bool `json:"tool_usage,omitempty"`
 }
 
 // Model defines the basic information of a model.
