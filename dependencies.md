@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 20 Jun 2025 18:03:37 UTC for commit [9e63a3e][0]._
+_Generated on Mon, 23 Jun 2025 12:06:01 UTC for commit [19e0c14][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/9e63a3ec55882168dc5f6dfee707cc490bc56c9d
+[0]: https://github.com/cri-o/cri-o/commit/19e0c14e1d9e2b599ae4a495cce8e89108471bf3
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Fri, 20 Jun 2025 18:03:37 UTC for commit [9e63a3e][0]._
 | github.com/containers/common                                                | v0.63.0                              | v0.63.1                            | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.1                               | v5.2.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250619104537-6722ea2fd9f7 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250623023430-8c1f6e827d91 | true   | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.2                               | v0.0.3                             | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.27.6                              | v2.27.7                            | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
@@ -263,7 +263,7 @@ _Generated on Fri, 20 Jun 2025 18:03:37 UTC for commit [9e63a3e][0]._
 | github.com/blang/semver                                                             | v3.5.1+incompatible                   |                                     | false  | true             |
 | github.com/blang/semver/v4                                                          | v4.0.0                                |                                     | true   | true             |
 | github.com/buger/jsonparser                                                         | v1.1.1                                |                                     | false  | true             |
-| github.com/buildkite/agent/v3                                                       | v3.81.0                               | v3.99.0                             | false  | true             |
+| github.com/buildkite/agent/v3                                                       | v3.81.0                               | v3.100.0                            | false  | true             |
 | github.com/buildkite/go-pipeline                                                    | v0.13.1                               | v0.14.0                             | false  | true             |
 | github.com/buildkite/interpolate                                                    | v0.1.3                                | v0.1.5                              | false  | true             |
 | github.com/buildkite/roko                                                           | v1.2.0                                | v1.3.1                              | false  | true             |
@@ -479,7 +479,7 @@ _Generated on Fri, 20 Jun 2025 18:03:37 UTC for commit [9e63a3e][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250619104537-6722ea2fd9f7  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250623023430-8c1f6e827d91  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -588,7 +588,7 @@ _Generated on Fri, 20 Jun 2025 18:03:37 UTC for commit [9e63a3e][0]._
 | github.com/proglottis/gpgme                                                         | v0.1.4                                |                                     | false  | true             |
 | github.com/prometheus/client_golang                                                 | v1.22.0                               |                                     | true   | true             |
 | github.com/prometheus/client_model                                                  | v0.6.1                                | v0.6.2                              | false  | true             |
-| github.com/prometheus/common                                                        | v0.62.0                               | v0.64.0                             | false  | true             |
+| github.com/prometheus/common                                                        | v0.62.0                               | v0.65.0                             | false  | true             |
 | github.com/prometheus/procfs                                                        | v0.15.1                               | v0.16.1                             | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20250326144435-a5fe55684d52  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
