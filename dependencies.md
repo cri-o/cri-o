@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Mon, 23 Jun 2025 12:06:01 UTC for commit [19e0c14][0]._
+_Generated on Mon, 23 Jun 2025 18:36:19 UTC for commit [59d9da5][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/19e0c14e1d9e2b599ae4a495cce8e89108471bf3
+[0]: https://github.com/cri-o/cri-o/commit/59d9da55ba16b9e65db8d10c8c3d7d2cf39917b9
 
 ## Outdated Dependencies
 
@@ -12,7 +12,7 @@ _Generated on Mon, 23 Jun 2025 12:06:01 UTC for commit [19e0c14][0]._
 | github.com/containers/common                                                | v0.63.0                              | v0.63.1                            | true   | true             |
 | github.com/go-chi/chi/v5                                                    | v5.2.1                               | v5.2.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250623023430-8c1f6e827d91 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250623142603-4f245df4a0b2 | true   | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.2                               | v0.0.3                             | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.27.6                              | v2.27.7                            | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
@@ -479,7 +479,7 @@ _Generated on Mon, 23 Jun 2025 12:06:01 UTC for commit [19e0c14][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250623023430-8c1f6e827d91  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250623142603-4f245df4a0b2  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
