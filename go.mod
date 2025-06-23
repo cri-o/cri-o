@@ -1,4 +1,4 @@
-go 1.24.1
+go 1.24.3
 
 module github.com/cri-o/cri-o
 
