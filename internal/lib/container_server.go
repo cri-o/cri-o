@@ -179,7 +179,7 @@ func New(ctx context.Context, configIface libconfig.Iface) (*ContainerServer, er
 	}
 	c.StatsServer = statsserver.New(ctx, c)
 
-	go c.probeMonitorProcesses()
+	go c.probeMonitorProcesses(ctx)
 
 	return c, nil
 }
@@ -1001,8 +1001,7 @@ func CheckReportHasErrors(report cstorage.CheckReport) bool {
 // probeMonitorProcesses periodically probes the monitor processes of all containers.
 // This is used to detect the case where a container monitor process exits thought its container is running.
 // The way probing is delegated to each runtime implementation.
-func (c *ContainerServer) probeMonitorProcesses() {
-	ctx := context.Background()
+func (c *ContainerServer) probeMonitorProcesses(ctx context.Context) {
 	timer := time.NewTimer(probeInterval)
 
 	for {
