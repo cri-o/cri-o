@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Tue, 24 Jun 2025 06:13:08 UTC for commit [43ed0a1][0]._
+_Generated on Tue, 24 Jun 2025 13:40:55 UTC for commit [e6c7497][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/43ed0a1ce52da12d0be62b127d43b92b0bb0b47d
+[0]: https://github.com/cri-o/cri-o/commit/e6c74973999151e0b32869fb21692a66884d0d48
 
 ## Outdated Dependencies
 
@@ -10,9 +10,8 @@ _Generated on Tue, 24 Jun 2025 06:13:08 UTC for commit [43ed0a1][0]._
 |-----------------------------------------------------------------------------|--------------------------------------|------------------------------------|--------|------------------|
 | github.com/CloudNativeAI/model-spec                                         | v0.0.4                               | v0.0.6                             | true   | true             |
 | github.com/containers/common                                                | v0.63.0                              | v0.63.1                            | true   | true             |
-| github.com/go-chi/chi/v5                                                    | v5.2.1                               | v5.2.2                             | true   | true             |
 | github.com/go-logr/logr                                                     | v1.4.2                               | v1.4.3                             | true   | true             |
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250623231456-89dcc8fb2753 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225   | v0.0.0-20250624105934-9bdbd82690d4 | true   | true             |
 | github.com/opencontainers/cgroups                                           | v0.0.2                               | v0.0.3                             | true   | true             |
 | github.com/urfave/cli/v2                                                    | v2.27.6                              | v2.27.7                            | true   | true             |
 | github.com/vishvananda/netlink                                              | v1.3.1-0.20250303224720-0e7078ed04c8 | v1.3.1                             | true   | true             |
@@ -373,7 +372,7 @@ _Generated on Tue, 24 Jun 2025 06:13:08 UTC for commit [43ed0a1][0]._
 | github.com/fxamacker/cbor/v2                                                        | v2.7.0                                | v2.8.0                              | false  | true             |
 | github.com/gliderlabs/ssh                                                           | v0.3.8                                |                                     | false  | true             |
 | github.com/go-chi/chi                                                               | v4.1.2+incompatible                   |                                     | false  | true             |
-| github.com/go-chi/chi/v5                                                            | v5.2.1                                | v5.2.2                              | true   | true             |
+| github.com/go-chi/chi/v5                                                            | v5.2.2                                |                                     | true   | true             |
 | github.com/go-git/gcfg                                                              | v1.5.1-0.20230307220236-3a3c6141e376  |                                     | false  | true             |
 | github.com/go-git/go-billy/v5                                                       | v5.6.2                                |                                     | false  | true             |
 | github.com/go-git/go-git-fixtures/v4                                                | v4.3.2-0.20231010084843-55a94097c399  |                                     | false  | true             |
@@ -479,7 +478,7 @@ _Generated on Tue, 24 Jun 2025 06:13:08 UTC for commit [43ed0a1][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250623231456-89dcc8fb2753  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250624105934-9bdbd82690d4  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -592,7 +591,7 @@ _Generated on Tue, 24 Jun 2025 06:13:08 UTC for commit [43ed0a1][0]._
 | github.com/prometheus/procfs                                                        | v0.15.1                               | v0.16.1                             | false  | true             |
 | github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20231025115547-084445ff1adf    | v0.0.0-20250326144435-a5fe55684d52  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
-| github.com/redis/go-redis/v9                                                        | v9.7.3                                | v9.10.0                             | false  | true             |
+| github.com/redis/go-redis/v9                                                        | v9.7.3                                | v9.11.0                             | false  | true             |
 | github.com/rivo/uniseg                                                              | v0.4.7                                |                                     | false  | true             |
 | github.com/rogpeppe/fastuuid                                                        | v1.2.0                                |                                     | false  | true             |
 | github.com/rogpeppe/go-internal                                                     | v1.13.1                               | v1.14.1                             | false  | true             |
