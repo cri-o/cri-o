@@ -50,25 +50,29 @@ type Container struct {
 	dir        string
 	stopSignal string
 	// If set, _some_ name of the image imageID; it may have NO RELATIONSHIP to the users’ requested image name.
-	someNameOfTheImage    *references.RegistryImageReference
-	imageID               *storage.StorageImageID // nil for infra containers.
-	mountPoint            string
-	seccompProfilePath    string
-	conmonCgroupfsPath    string
-	crioAnnotations       fields.Set
-	state                 *ContainerState
-	opLock                sync.RWMutex
-	spec                  *specs.Spec
-	idMappings            *idtools.IDMappings
-	terminal              bool
-	stdin                 bool
-	stdinOnce             bool
-	created               bool
-	spoofed               bool
-	stopping              bool
-	stopLock              sync.Mutex
+	someNameOfTheImage *references.RegistryImageReference
+	imageID            *storage.StorageImageID // nil for infra containers.
+	mountPoint         string
+	seccompProfilePath string
+	conmonCgroupfsPath string
+	crioAnnotations    fields.Set
+	state              *ContainerState
+	opLock             sync.RWMutex
+	spec               *specs.Spec
+	idMappings         *idtools.IDMappings
+	terminal           bool
+	stdin              bool
+	stdinOnce          bool
+	created            bool
+	spoofed            bool
+	stopping           bool
+	stopLock           sync.Mutex
+	// stopTimeoutChan is used to update the stop timeout.
+	// After the container goes into the kill loop, the channel must not be used
+	// because it is not controlled by the timeout anymore.
 	stopTimeoutChan       chan int64
 	stopWatchers          []chan struct{}
+	stopKillLoopBegun     bool
 	pidns                 nsmgr.Namespace
 	restore               bool
 	restoreArchivePath    string
@@ -170,6 +174,7 @@ func NewContainer(id, name, bundlePath, logPath string, labels, crioAnnotations,
 		stopSignal:         stopSignal,
 		stopTimeoutChan:    make(chan int64, 10),
 		stopWatchers:       []chan struct{}{},
+		stopKillLoopBegun:  false,
 		execPIDs:           map[int]bool{},
 	}
 
@@ -642,6 +647,13 @@ func (c *Container) SetAsStopping() (setToStopping bool) {
 	return false
 }
 
+// SetStopKillLoopBegun sets the stopKillLoopBegun flag to true.
+func (c *Container) SetStopKillLoopBegun() {
+	c.stopLock.Lock()
+	defer c.stopLock.Unlock()
+	c.stopKillLoopBegun = true
+}
+
 func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 	c.stopLock.Lock()
 	if !c.stopping {
@@ -650,7 +662,16 @@ func (c *Container) WaitOnStopTimeout(ctx context.Context, timeout int64) {
 		return
 	}
 
-	c.stopTimeoutChan <- timeout
+	// Don't use the stopTimeoutChan when the container is in kill loop
+	// because values in the channel are no longer consumed.
+	if !c.stopKillLoopBegun {
+		// Use select and default not to block when the stopTimeoutChan is full.
+		// The channel is very unlikely to be full, but it could happen in theory.
+		select {
+		case c.stopTimeoutChan <- timeout:
+		default:
+		}
+	}
 
 	watcher := make(chan struct{}, 1)
 	c.stopWatchers = append(c.stopWatchers, watcher)
