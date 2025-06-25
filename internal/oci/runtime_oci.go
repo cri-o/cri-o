@@ -1755,11 +1755,12 @@ func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
 	if c.monitorProcess == nil {
 		// It's possible when the container has existed before crio was updated.
+		// TODO(atokubi): remove this conditional in 1.35 because we don't support
+		//  1.33->1.35 in place cri-o update without node reboot
 		return nil
 	}
 
-	err := c.monitorProcess.Signal(syscall.Signal(0))
-	if !errors.Is(err, os.ErrProcessDone) {
+	if err := c.monitorProcess.Signal(syscall.Signal(0)); !errors.Is(err, os.ErrProcessDone) {
 		return err
 	}
 
