@@ -728,6 +728,7 @@ var _ = Describe("high_performance_hooks", func() {
 			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
+		c.SetSpec(g.Config)
 
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
@@ -765,6 +766,81 @@ var _ = Describe("high_performance_hooks", func() {
 			Expect(err).ToNot(HaveOccurred())
 			env := g.Config.Process.Env
 			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
+		})
+
+		Describe("Exec CPU Affinity", func() {
+			var sbNoShared *sandbox.Sandbox
+			BeforeEach(func() {
+				sbox := sandbox.NewBuilder()
+				createdAt := time.Now()
+				sbox.SetCreatedAt(createdAt)
+				sbox.SetID("sandboxID")
+				sbox.SetName("sandboxName")
+				sbox.SetLogDir("test")
+				sbox.SetShmPath("test")
+				sbox.SetNamespace("")
+				sbox.SetKubeName("")
+				sbox.SetMountLabel("test")
+				sbox.SetProcessLabel("test")
+				sbox.SetCgroupParent("")
+				sbox.SetRuntimeHandler("")
+				sbox.SetResolvPath("")
+				sbox.SetHostname("")
+				sbox.SetPortMappings([]*hostport.PortMapping{})
+				sbox.SetHostNetwork(false)
+				sbox.SetUsernsMode("")
+				sbox.SetPodLinuxOverhead(nil)
+				sbox.SetPodLinuxResources(nil)
+				err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{}, &types.PodSandboxMetadata{})
+				Expect(err).ToNot(HaveOccurred())
+				sbox.SetPrivileged(false)
+				sbox.SetHostNetwork(false)
+				sbox.SetCreatedAt(createdAt)
+				sbNoShared, err = sbox.GetSandbox()
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should choose the first CPU as exec CPU in shared CPUs", func() {
+				h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst, sharedCPUs: "3,4"}
+				err := h.PreCreate(context.TODO(), g, sb, c)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("3"))
+			})
+
+			It("should choose the first CPU as exec CPU in exclusive CPUs when shared CPUs are not used", func() {
+				h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst, sharedCPUs: "3,4"}
+				err = h.PreCreate(context.TODO(), g, sbNoShared, c)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("1"))
+			})
+
+			It("should choose the first CPU as exec CPU in exclusive CPUs when shared CPUs is not set", func() {
+				h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst}
+				err := h.PreCreate(context.TODO(), g, sbNoShared, c)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("1"))
+			})
+
+			It("should fallback default when the exclusive CPUs are not set", func() {
+				h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst}
+				g := &generate.Generator{
+					Config: &specs.Spec{
+						Process: &specs.Process{
+							Env: make([]string, 0),
+						},
+						Linux: &specs.Linux{
+							Resources: &specs.LinuxResources{
+								CPU: &specs.LinuxCPU{
+									Shares: &shares,
+								},
+							},
+						},
+					},
+				}
+				err := h.PreCreate(context.TODO(), g, sbNoShared, c)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(g.Config.Process.ExecCPUAffinity).To(BeNil())
+			})
 		})
 	})
 	Describe("Make sure that correct runtime handler hooks are set", func() {
@@ -873,8 +949,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -912,8 +988,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should keep the current irq bit mask but return a high performance hooks", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				hph, ok := hooks.(*HighPerformanceHooks)
 				Expect(ok).To(BeTrue())
@@ -954,8 +1030,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -995,8 +1071,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should return a nil hook", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should return a nil hook", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).To(BeNil())
 			})
 		})
@@ -1018,8 +1094,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -1067,8 +1143,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
 				Expect(ok).To(BeTrue())
