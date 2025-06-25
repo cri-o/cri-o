@@ -86,7 +86,7 @@ require (
 	sigs.k8s.io/knftables v0.0.18
 	sigs.k8s.io/release-sdk v0.12.3
 	sigs.k8s.io/release-utils v0.11.1
-	sigs.k8s.io/yaml v1.4.0
+	sigs.k8s.io/yaml v1.5.0
 	tags.cncf.io/container-device-interface v1.0.1
 )
 
@@ -224,6 +224,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.36.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.6.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
+	go.yaml.in/yaml/v2 v2.4.2 // indirect
 	golang.org/x/crypto v0.39.0 // indirect
 	golang.org/x/mod v0.25.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
