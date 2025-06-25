@@ -150,8 +150,7 @@ var (
 	}
 )
 
-
-// other metrics
+// other metrics.
 var (
 	containerStartTimeSeconds = &types.MetricDescriptor{
 		Name:      "container_start_time_seconds",
