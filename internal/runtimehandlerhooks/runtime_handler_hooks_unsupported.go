@@ -27,7 +27,7 @@ func NewHooksRetriever(ctx context.Context, config *libconfig.Config) *HooksRetr
 }
 
 // Get always returns DefaultCPULoadBalanceHooks for non-linux architectures.
-func (hr *HooksRetriever) Get(runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
+func (hr *HooksRetriever) Get(ctx context.Context, runtimeName string, sandboxAnnotations map[string]string) RuntimeHandlerHooks {
 	return &DefaultCPULoadBalanceHooks{}
 }
 

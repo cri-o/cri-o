@@ -271,7 +271,23 @@ type RuntimeHandler struct {
 	// Default annotations specified for runtime handler if they're not overridden by
 	// the pod spec.
 	DefaultAnnotations map[string]string `toml:"default_annotations,omitempty"`
+
+	// ExecCPUAffinity specifies which CPU is used when exec-ing the container.
+	// The valid values are:
+	// "":
+	//   Use runtime default.
+	// "first":
+	//   When it has only exclusive cpuset, use the first CPU in the exclusive cpuset.
+	//   When it has both shared and exclusive cpusets, use first CPU in the shared cpuset.
+	ExecCPUAffinity ExecCPUAffinityType `toml:"exec_cpu_affinity,omitempty"`
 }
+
+type ExecCPUAffinityType string
+
+const (
+	ExecCPUAffinityTypeDefault ExecCPUAffinityType = ""
+	ExecCPUAffinityTypeFirst   ExecCPUAffinityType = "first"
+)
 
 // Multiple runtime Handlers in a map.
 type Runtimes map[string]*RuntimeHandler
@@ -1366,6 +1382,7 @@ func defaultRuntimeHandler(isSystemd bool) *RuntimeHandler {
 		},
 		ContainerMinMemory: units.BytesSize(defaultContainerMinMemoryCrun),
 		MonitorCgroup:      getDefaultMonitorGroup(isSystemd),
+		ExecCPUAffinity:    ExecCPUAffinityTypeDefault,
 	}
 }
 
@@ -1725,6 +1742,10 @@ func (r *RuntimeHandler) Validate(name string) error {
 		logrus.Errorf("Unable to set minimum container memory for runtime handler %q: %v", name, err)
 	}
 
+	if err := r.validateRuntimeExecCPUAffinity(); err != nil {
+		return err
+	}
+
 	return r.ValidateNoSyncLog()
 }
 
@@ -1901,6 +1922,16 @@ func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
 // RuntimeDefaultAnnotations returns the default annotations for this handler.
 func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
 	return r.DefaultAnnotations
+}
+
+// validateRuntimeExecCPUAffinity checks if the RuntimeHandler enforces proper CPU affinity settings.
+func (r *RuntimeHandler) validateRuntimeExecCPUAffinity() error {
+	switch r.ExecCPUAffinity {
+	case ExecCPUAffinityTypeDefault, ExecCPUAffinityTypeFirst:
+		return nil
+	}
+
+	return fmt.Errorf("invalid exec_cpu_affinity %q", r.ExecCPUAffinity)
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {
