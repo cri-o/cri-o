@@ -89,7 +89,7 @@ GO_FILES := $(shell find . -type f -name '*.go' -not -name '*_test.go')
 GINKGO_SKIP_PACKAGES = test/nri
 
 # Set DEBUG=1 to enable debug symbols in binaries
-DEBUG ?= 1
+DEBUG ?= 0
 ifeq ($(DEBUG),0)
 SHRINKFLAGS = -s -w
 else
