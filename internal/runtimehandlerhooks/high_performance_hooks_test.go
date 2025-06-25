@@ -706,65 +706,215 @@ var _ = Describe("high_performance_hooks", func() {
 		})
 	})
 	Describe("PreCreate Hook", func() {
+		baseSandboxBuilder := func() sandbox.Builder {
+			sbox := sandbox.NewBuilder()
+			createdAt := time.Now()
+			sbox.SetCreatedAt(createdAt)
+			sbox.SetID("sandboxID")
+			sbox.SetName("sandboxName")
+			sbox.SetLogDir("test")
+			sbox.SetShmPath("test")
+			sbox.SetNamespace("")
+			sbox.SetKubeName("")
+			sbox.SetMountLabel("test")
+			sbox.SetProcessLabel("test")
+			sbox.SetCgroupParent("")
+			sbox.SetRuntimeHandler("")
+			sbox.SetResolvPath("")
+			sbox.SetHostname("")
+			sbox.SetPortMappings([]*hostport.PortMapping{})
+			sbox.SetHostNetwork(false)
+			sbox.SetUsernsMode("")
+			sbox.SetPodLinuxOverhead(nil)
+			sbox.SetPodLinuxResources(nil)
+			sbox.SetPrivileged(false)
+			sbox.SetHostNetwork(false)
+			sbox.SetCreatedAt(createdAt)
+
+			return sbox
+		}
+
 		shares := uint64(2048)
-		g := &generate.Generator{
-			Config: &specs.Spec{
-				Process: &specs.Process{
-					Env: make([]string, 0),
-				},
-				Linux: &specs.Linux{
-					Resources: &specs.LinuxResources{
-						CPU: &specs.LinuxCPU{
-							Cpus:   "1,2",
-							Shares: &shares,
+		baseGenerator := func() *generate.Generator {
+			return &generate.Generator{
+				Config: &specs.Spec{
+					Process: &specs.Process{
+						Env: make([]string, 0),
+					},
+					Linux: &specs.Linux{
+						Resources: &specs.LinuxResources{
+							CPU: &specs.LinuxCPU{
+								Shares: &shares,
+							},
 						},
 					},
 				},
-			},
+			}
 		}
-		c, err := oci.NewContainer("containerID", "", "", "",
-			make(map[string]string), make(map[string]string),
-			make(map[string]string), "pauseImage", nil, nil, "",
-			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
-			false, "", "", time.Now(), "")
-		Expect(err).ToNot(HaveOccurred())
 
-		sbox := sandbox.NewBuilder()
-		createdAt := time.Now()
-		sbox.SetCreatedAt(createdAt)
-		sbox.SetID("sandboxID")
-		sbox.SetName("sandboxName")
-		sbox.SetLogDir("test")
-		sbox.SetShmPath("test")
-		sbox.SetNamespace("")
-		sbox.SetKubeName("")
-		sbox.SetMountLabel("test")
-		sbox.SetProcessLabel("test")
-		sbox.SetCgroupParent("")
-		sbox.SetRuntimeHandler("")
-		sbox.SetResolvPath("")
-		sbox.SetHostname("")
-		sbox.SetPortMappings([]*hostport.PortMapping{})
-		sbox.SetHostNetwork(false)
-		sbox.SetUsernsMode("")
-		sbox.SetPodLinuxOverhead(nil)
-		sbox.SetPodLinuxResources(nil)
-		err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
-			crioannotations.CPUSharedAnnotation + "/" + c.CRIContainer().GetMetadata().GetName(): annotationEnable,
-		}, &types.PodSandboxMetadata{})
-		Expect(err).ToNot(HaveOccurred())
-		sbox.SetPrivileged(false)
-		sbox.SetHostNetwork(false)
-		sbox.SetCreatedAt(createdAt)
-		sb, err := sbox.GetSandbox()
-		Expect(err).ToNot(HaveOccurred())
+		buildContainer := func(g *generate.Generator) (*oci.Container, error) {
+			c, err := oci.NewContainer("containerID", "", "", "",
+				make(map[string]string), make(map[string]string),
+				make(map[string]string), "pauseImage", nil, nil, "",
+				&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
+				false, "", "", time.Now(), "")
+			if err != nil {
+				return nil, err
+			}
+			c.SetSpec(g.Config)
 
-		It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
-			h := HighPerformanceHooks{sharedCPUs: "3,4"}
-			err := h.PreCreate(context.TODO(), g, sb, c)
+			return c, nil
+		}
+
+		var (
+			sbSharedAnnotation   *sandbox.Sandbox
+			sbNoSharedAnnotation *sandbox.Sandbox
+			genExclusiveCPUs     *generate.Generator
+			genNoExclusiveCPUs   *generate.Generator
+		)
+
+		BeforeEach(func() {
+			// initialize generator
+			genNoExclusiveCPUs = baseGenerator()
+
+			genExclusiveCPUs = baseGenerator()
+			genExclusiveCPUs.Config.Linux.Resources.CPU.Cpus = "1-2"
+
+			// initialize sandbox
+			sbox := baseSandboxBuilder()
+			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{}, &types.PodSandboxMetadata{})
+			sbNoSharedAnnotation, err = sbox.GetSandbox()
 			Expect(err).ToNot(HaveOccurred())
-			env := g.Config.Process.Env
-			Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
+
+			sbox = baseSandboxBuilder()
+			err = sbox.SetCRISandbox(sbox.ID(), make(map[string]string), map[string]string{
+				crioannotations.CPUSharedAnnotation + "/cnt1": annotationEnable,
+			}, &types.PodSandboxMetadata{})
+			Expect(err).ToNot(HaveOccurred())
+			sbSharedAnnotation, err = sbox.GetSandbox()
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		var (
+			g  *generate.Generator
+			c  *oci.Container
+			sb *sandbox.Sandbox
+		)
+		Context("sharedCPUs && FirstExecCPUAffinity", func() {
+			h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst, sharedCPUs: "3,4"}
+			Context("with exclusive & shared CPUs", func() {
+				BeforeEach(func() {
+					g = genExclusiveCPUs
+					sb = sbSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should inject env variable only to pod with cpu-shared.crio.io annotation", func() {
+					err = h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).ToNot(HaveOccurred())
+					env := g.Config.Process.Env
+					Expect(env).To(ContainElements("OPENSHIFT_ISOLATED_CPUS=1-2", "OPENSHIFT_SHARED_CPUS=3-4"))
+				})
+
+				It("should choose the first CPU in shared CPUs", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("3"))
+				})
+			})
+
+			Context("with exclusive & !shared CPUs", func() {
+				BeforeEach(func() {
+					g = genExclusiveCPUs
+					sb = sbNoSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should choose the first CPU in exclusive CPUs", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("1"))
+				})
+			})
+
+			Context("with !exclusive & shared CPUs", func() {
+				BeforeEach(func() {
+					g = genNoExclusiveCPUs
+					sb = sbSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should get an error", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("with !exclusive & !shared CPUs", func() {
+				BeforeEach(func() {
+					g = genNoExclusiveCPUs
+					sb = sbNoSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should not use ExecCPUAffinity", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(g.Config.Process.ExecCPUAffinity).To(BeNil())
+				})
+			})
+		})
+
+		Context("No shared CPUs and FirstExecCPUAffinity", func() {
+			h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeFirst}
+			Context("with shared CPUs", func() {
+				BeforeEach(func() {
+					g = genExclusiveCPUs
+					sb = sbSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should get an error", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).To(HaveOccurred())
+				})
+			})
+
+			Context("with exclusive CPUs", func() {
+				BeforeEach(func() {
+					g = genExclusiveCPUs
+					sb = sbNoSharedAnnotation
+					c, err = buildContainer(g)
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It("should choose the first CPU in exclusive CPUs", func() {
+					err := h.PreCreate(context.TODO(), g, sb, c)
+					Expect(err).ToNot(HaveOccurred())
+					Expect(g.Config.Process.ExecCPUAffinity.Initial).To(Equal("1"))
+				})
+			})
+		})
+
+		Context("DefaultExecCPUAffinity", func() {
+			h := HighPerformanceHooks{execCPUAffinity: config.ExecCPUAffinityTypeDefault, sharedCPUs: "3,4"}
+			BeforeEach(func() {
+				g = genExclusiveCPUs
+				sb = sbSharedAnnotation
+				c, err = buildContainer(g)
+				Expect(err).ToNot(HaveOccurred())
+			})
+
+			It("should not use ExecCPUAffinity", func() {
+				err := h.PreCreate(context.TODO(), g, sb, c)
+				Expect(err).ToNot(HaveOccurred())
+				Expect(g.Config.Process.ExecCPUAffinity).To(BeNil())
+			})
 		})
 	})
 	Describe("Make sure that correct runtime handler hooks are set", func() {
@@ -873,8 +1023,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -912,8 +1062,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should keep the current irq bit mask but return a high performance hooks", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				hph, ok := hooks.(*HighPerformanceHooks)
 				Expect(ok).To(BeTrue())
@@ -954,8 +1104,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -995,8 +1145,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should return a nil hook", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should return a nil hook", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).To(BeNil())
 			})
 		})
@@ -1018,8 +1168,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -1067,8 +1217,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
 				Expect(ok).To(BeTrue())
