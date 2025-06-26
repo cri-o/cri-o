@@ -132,6 +132,68 @@ ARTIFACT_IMAGE_SUBPATH="$ARTIFACT_REPO:subpath"
 	[[ "$output" == *"echo hello artifact" ]]
 }
 
+@test "should be able to mount artifact with multiple files and folders" {
+	start_crio
+	IMAGE="$ARTIFACT_REPO:multifile-folders"
+	crictl pull $IMAGE
+	pod_id=$(crictl runp "$TESTDATA"/sandbox_config.json)
+	jq --arg ARTIFACT_IMAGE "$IMAGE" \
+		'.mounts = [ {
+      container_path: "/root/artifact",
+      image: { image: $ARTIFACT_IMAGE },
+    } ] |
+    .command = ["sleep", "3600"]' \
+		"$TESTDATA"/container_config.json > "$TESTDIR/container_config.json"
+	ctr_id=$(crictl create "$pod_id" "$TESTDIR/container_config.json" "$TESTDATA/sandbox_config.json")
+	crictl start "$ctr_id"
+
+	# Test config files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/configs/app.conf
+	[[ "$output" == "config1: value1" ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/configs/db.conf
+	[[ "$output" == "config2: value2" ]]
+
+	# Test script files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/scripts/start.sh
+	[[ "$output" == *"Hello from script1"* ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/scripts/stop.sh
+	[[ "$output" == *"Hello from script2"* ]]
+
+	# Test data files
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/file1.txt
+	[[ "$output" == "data file 1" ]]
+
+	# Test nested directory structure
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/subdir/nested.txt
+	[[ "$output" == "nested data file" ]]
+
+	# Test symlink
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/subdir/symlink.txt
+	[[ "$output" == *"-> file1.txt"* ]]
+	run crictl exec --sync "$ctr_id" cat /root/artifact/data/subdir/symlink.txt
+	[[ "$output" == "data file 1" ]]
+
+	# Test directory listing
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/
+	[[ "$output" == *"configs"* ]]
+	[[ "$output" == *"scripts"* ]]
+	[[ "$output" == *"data"* ]]
+
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/
+	[[ "$output" == *"file1.txt"* ]]
+	[[ "$output" == *"subdir"* ]]
+
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/data/subdir/
+	[[ "$output" == *"nested.txt"* ]]
+	[[ "$output" == *"symlink.txt"* ]]
+
+	# Test executable permissions
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/start.sh
+	[[ "$output" == *"-rwxr-xr-x"* ]]
+	run crictl exec --sync "$ctr_id" ls -la /root/artifact/scripts/stop.sh
+	[[ "$output" == *"-rwxr-xr-x"* ]]
+}
+
 @test "should be able to relabel selinux label" {
 	skip_if_selinux_disabled
 	skip_if_vm_runtime
