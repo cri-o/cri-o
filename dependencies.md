@@ -1,14 +1,14 @@
 # CRI-O Dependency Report
 
-_Generated on Thu, 26 Jun 2025 13:16:06 UTC for commit [6afa2dd][0]._
+_Generated on Thu, 26 Jun 2025 17:50:20 UTC for commit [632435d][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/6afa2dd3db8ad29a79b1c38241bd4a4b812b6aeb
+[0]: https://github.com/cri-o/cri-o/commit/632435d44143c33e0af9ce6c186da69748d3c46f
 
 ## Outdated Dependencies
 
 |                                   MODULE                                    |              VERSION               |            NEW VERSION             | DIRECT | VALID TIMESTAMPS |
 |-----------------------------------------------------------------------------|------------------------------------|------------------------------------|--------|------------------|
-| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250626095649-1ff54a95d225 | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                      | v0.0.0-20240208092920-b99f57452225 | v0.0.0-20250626153708-8c57beb943df | true   | true             |
 | go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc | v0.60.0                            | v0.62.0                            | true   | true             |
 | k8s.io/utils                                                                | v0.0.0-20241210054802-24370beab758 | v0.0.0-20250604170112-4c0f3b243397 | true   | true             |
 
@@ -462,7 +462,7 @@ _Generated on Thu, 26 Jun 2025 13:16:06 UTC for commit [6afa2dd][0]._
 | github.com/jpillora/backoff                                                         | v1.0.0                                |                                     | false  | true             |
 | github.com/json-iterator/go                                                         | v1.1.12                               |                                     | true   | true             |
 | github.com/julienschmidt/httprouter                                                 | v1.3.0                                |                                     | false  | true             |
-| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250626095649-1ff54a95d225  | true   | true             |
+| github.com/kata-containers/kata-containers/src/runtime                              | v0.0.0-20240208092920-b99f57452225    | v0.0.0-20250626153708-8c57beb943df  | true   | true             |
 | github.com/kevinburke/ssh_config                                                    | v1.2.0                                |                                     | false  | true             |
 | github.com/keybase/go-keychain                                                      | v0.0.1                                |                                     | false  | true             |
 | github.com/kisielk/errcheck                                                         | v1.5.0                                | v1.9.0                              | false  | true             |
@@ -485,7 +485,7 @@ _Generated on Thu, 26 Jun 2025 13:16:06 UTC for commit [6afa2dd][0]._
 | github.com/lestrrat-go/jwx                                                          | v1.2.29                               | v1.2.31                             | false  | true             |
 | github.com/lestrrat-go/option                                                       | v1.0.1                                |                                     | false  | true             |
 | github.com/letsencrypt/borp                                                         | v0.0.0-20240620175310-a78493c6e2bd    |                                     | false  | true             |
-| github.com/letsencrypt/boulder                                                      | v0.0.0-20250303232957-28b49a82d48a    | v0.0.0-20250625233552-4e74a255825f  | false  | true             |
+| github.com/letsencrypt/boulder                                                      | v0.0.0-20250303232957-28b49a82d48a    | v0.0.0-20250626155044-30eac8373098  | false  | true             |
 | github.com/letsencrypt/challtestsrv                                                 | v1.2.1                                | v1.3.3                              | false  | true             |
 | github.com/letsencrypt/pkcs11key/v4                                                 | v4.0.0                                |                                     | false  | true             |
 | github.com/letsencrypt/validator/v10                                                | v10.0.0-20230215210743-a0c7dfc17158   | v10.0.0-20230304002924-2ed8f7d619ac | false  | true             |
@@ -574,7 +574,7 @@ _Generated on Thu, 26 Jun 2025 13:16:06 UTC for commit [6afa2dd][0]._
 | github.com/prometheus/client_model                                                  | v0.6.1                                | v0.6.2                              | false  | true             |
 | github.com/prometheus/common                                                        | v0.62.0                               | v0.65.0                             | false  | true             |
 | github.com/prometheus/procfs                                                        | v0.15.1                               | v0.16.1                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250626113818-078d4cace0eb  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250626171607-b31462545192  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
 | github.com/redis/go-redis/extra/rediscmd/v9                                         | v9.5.3                                | v9.11.0                             | false  | true             |
 | github.com/redis/go-redis/extra/redisotel/v9                                        | v9.5.3                                | v9.11.0                             | false  | true             |
@@ -765,7 +765,7 @@ _Generated on Thu, 26 Jun 2025 13:16:06 UTC for commit [6afa2dd][0]._
 | k8s.io/gengo/v2                                                                     | v2.0.0-20240826214909-a7b603a56eb7    | v2.0.0-20250604051438-85fd79dbfd9f  | false  | true             |
 | k8s.io/klog/v2                                                                      | v2.130.1                              |                                     | true   | true             |
 | k8s.io/kms                                                                          | v0.33.2                               |                                     | false  | true             |
-| k8s.io/kube-openapi                                                                 | v0.0.0-20250318190949-c8a335a9a2ff    | v0.0.0-20250610211856-8b98d1ed966a  | false  | true             |
+| k8s.io/kube-openapi                                                                 | v0.0.0-20250318190949-c8a335a9a2ff    | v0.0.0-20250626154229-37a77ce21b6d  | false  | true             |
 | k8s.io/kubelet                                                                      | v0.33.2                               |                                     | true   | true             |
 | k8s.io/utils                                                                        | v0.0.0-20241210054802-24370beab758    | v0.0.0-20250604170112-4c0f3b243397  | true   | true             |
 | sigs.k8s.io/apiserver-network-proxy/konnectivity-client                             | v0.31.2                               | v0.33.0                             | false  | true             |
