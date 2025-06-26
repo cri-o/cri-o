@@ -1562,7 +1562,20 @@ EOF
 	start_crio
 	ctr_id=$(crictl run "$TESTDATA"/container_redis.json "$TESTDATA"/sandbox_config.json)
 
-	# verify that at least a default masked path exists
+	# verify that no default masked path exist
+	INSPECT=$(crictl inspect "$ctr_id")
+	run ! jq "$INSPECT" -e '.info.runtimeSpec.linux.maskedPaths | index("/proc/acpi")'
+}
+
+@test "ctr masked defaults set if any are set" {
+	start_crio
+	# Start a container that traps SIGTERM and writes to a file when received
+	jq '.linux.security_context.masked_paths = ["/proc/asound"]' \
+		"$TESTDATA"/container_redis.json > "$TESTDIR/container_config.json"
+
+	ctr_id=$(crictl run "$TESTDIR"/container_config.json "$TESTDATA"/sandbox_config.json)
+
+	# verify that if client passes any masked paths, we append the defaults
 	crictl inspect "$ctr_id" | jq -e '.info.runtimeSpec.linux.maskedPaths | index("/proc/acpi")'
 }
 

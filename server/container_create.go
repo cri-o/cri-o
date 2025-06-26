@@ -884,8 +884,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 
 		specgen.SetLinuxCgroupsPath(s.config.CgroupManager().ContainerCgroupPath(sb.CgroupParent(), containerID))
 
-		securityContext.MaskedPaths = appendDefaultMaskedPaths(securityContext.MaskedPaths)
-		log.Debugf(ctx, "Using masked paths: %v", strings.Join(securityContext.MaskedPaths, ", "))
+		if len(securityContext.MaskedPaths) != 0 {
+			securityContext.MaskedPaths = appendDefaultMaskedPaths(securityContext.MaskedPaths)
+			log.Debugf(ctx, "Using masked paths: %v", strings.Join(securityContext.MaskedPaths, ", "))
+		}
 
 		err = ctr.SpecSetPrivileges(ctx, securityContext, &s.config)
 		if err != nil {
