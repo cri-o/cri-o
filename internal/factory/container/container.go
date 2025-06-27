@@ -13,12 +13,11 @@ import (
 	"time"
 
 	"github.com/containers/storage/pkg/stringid"
+	"github.com/moby/sys/capability"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
 	"github.com/opencontainers/runtime-tools/generate"
-	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
 	"github.com/sirupsen/logrus"
-	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -656,7 +655,10 @@ func (c *container) SpecSetupCapabilities(caps *types.Capability, defaultCaps ca
 		caps.AddCapabilities = append(caps.AddCapabilities, defaultCaps...)
 	}
 
-	capabilitiesList := getOCICapabilitiesList()
+	capabilitiesList, err := getOCICapabilitiesList()
+	if err != nil {
+		return fmt.Errorf("get OCI capabilities list: %w", err)
+	}
 
 	// Add/drop all capabilities if "all" is specified, so that
 	// following individual add/drop could still work. E.g.
@@ -778,18 +780,23 @@ func inStringSlice(ss []string, str string) bool {
 }
 
 // getOCICapabilitiesList returns a list of all available capabilities.
-func getOCICapabilitiesList() []string {
-	caps := make([]string, 0, len(capability.List()))
+func getOCICapabilitiesList() ([]string, error) {
+	caps := make([]string, 0, len(capability.ListKnown()))
 
-	for _, cap := range capability.List() {
-		if cap > validate.LastCap() {
+	lastCap, err := capability.LastCap()
+	if err != nil {
+		return nil, fmt.Errorf("get last capability: %w", err)
+	}
+
+	for _, cap := range capability.ListKnown() {
+		if cap > lastCap {
 			continue
 		}
 
 		caps = append(caps, "CAP_"+strings.ToUpper(cap.String()))
 	}
 
-	return caps
+	return caps, nil
 }
 
 func (c *container) SpecSetPrivileges(ctx context.Context, securityContext *types.LinuxContainerSecurityContext, cfg *config.Config) error {
