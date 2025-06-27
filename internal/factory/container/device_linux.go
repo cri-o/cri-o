@@ -49,8 +49,7 @@ func (c *container) SpecAddDevices(configuredDevices, annotationDevices []device
 		return err
 	}
 
-	// Finally, inject CDI devices
-	return c.specInjectCDIDevices()
+	return nil
 }
 
 func (c *container) specAddHostDevicesIfPrivileged(privilegedWithoutHostDevices bool) error {
@@ -185,7 +184,7 @@ func (c *container) specAddContainerConfigDevices(enableDeviceOwnershipFromSecur
 	return nil
 }
 
-func (c *container) specInjectCDIDevices() error {
+func (c *container) SpecInjectCDIDevices() error {
 	var (
 		cdiDevices = c.Config().CDIDevices
 		fromCRI    = map[string]struct{}{}
