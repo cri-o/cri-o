@@ -299,6 +299,7 @@ crio [GLOBAL OPTIONS] command [COMMAND OPTIONS] [ARGUMENTS...]
 **--infra-ctr-cpuset**="": CPU set to run infra containers, if not specified CRI-O will use all online CPUs to run infra containers.
 
 **--insecure-registry**="": Enable insecure registry communication, i.e., enable un-encrypted and/or untrusted communication.
+    This option is deprecated. Please use "insecure" in registries.conf instead.
     1. List of insecure registries can contain an element with CIDR notation to
        specify a whole subnet.
     2. Insecure registries accept HTTP or accept HTTPS with certificates from
