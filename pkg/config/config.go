@@ -271,6 +271,13 @@ type RuntimeHandler struct {
 	// Default annotations specified for runtime handler if they're not overridden by
 	// the pod spec.
 	DefaultAnnotations map[string]string `toml:"default_annotations,omitempty"`
+
+	// StreamWebsockets can be used to enable the WebSocket protocol for
+	// container exec, attach and port forward.
+	//
+	// conmon-rs (runtime_type = "pod") supports this configuration for exec
+	// and attach. Forwarding ports will be supported in future releases.
+	StreamWebsockets bool `toml:"stream_websockets,omitempty"`
 }
 
 // Multiple runtime Handlers in a map.
@@ -1901,6 +1908,11 @@ func (r *RuntimeHandler) RuntimeSupportsMountFlag(flag string) bool {
 // RuntimeDefaultAnnotations returns the default annotations for this handler.
 func (r *RuntimeHandler) RuntimeDefaultAnnotations() map[string]string {
 	return r.DefaultAnnotations
+}
+
+// RuntimeStreamWebsockets returns the configured websocket streaming option for this handler.
+func (r *RuntimeHandler) RuntimeStreamWebsockets() bool {
+	return r.StreamWebsockets
 }
 
 func validateAllowedAndGenerateDisallowedAnnotations(allowed []string) (disallowed []string, _ error) {

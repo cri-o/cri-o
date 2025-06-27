@@ -384,6 +384,10 @@ runtime type. Setting this option to true can cause data loss, e.g. when a machi
 **default_annotations**={}
 A mapping of keys to values of annotations set on containers run by this runtime handler, if not overridden by the pod spec.
 
+**stream_websockets**=false
+Enable the WebSocket protocol for container exec, attach and port forward.
+conmon-rs (`runtime_type = "pod"`) supports this configuration for exec and attach. Forwarding ports will be supported in future releases.
+
 ### CRIO.RUNTIME.WORKLOADS TABLE
 
 The "crio.runtime.workloads" table defines a list of workloads - a way to customize the behavior of a pod and container.

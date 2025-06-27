@@ -46,7 +46,7 @@ func NewRootStruct(s *Segment, sz ObjectSize) (Struct, error) {
 	if err != nil {
 		return st, err
 	}
-	if err := s.msg.SetRoot(st.ToPtr()); err != nil {
+	if err := s.Message().SetRoot(st.ToPtr()); err != nil {
 		return st, err
 	}
 	return st, nil
@@ -75,7 +75,7 @@ func (p Struct) Message() *Message {
 	if p.seg == nil {
 		return nil
 	}
-	return p.seg.msg
+	return p.seg.Message()
 }
 
 // IsValid returns whether the struct is valid.
