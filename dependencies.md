@@ -1,8 +1,8 @@
 # CRI-O Dependency Report
 
-_Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
+_Generated on Fri, 27 Jun 2025 17:31:59 UTC for commit [b25f4a8][0]._
 
-[0]: https://github.com/cri-o/cri-o/commit/db591b639745659265efc2d0fea586c53af74559
+[0]: https://github.com/cri-o/cri-o/commit/b25f4a806e8e44f4fbc483a50a479fb90b8958ff
 
 ## Outdated Dependencies
 
@@ -124,7 +124,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | cloud.google.com/go/securitycenter                                                  | v1.36.0                               | v1.36.2                             | false  | true             |
 | cloud.google.com/go/servicedirectory                                                | v1.12.3                               | v1.12.6                             | false  | true             |
 | cloud.google.com/go/shell                                                           | v1.8.3                                | v1.8.6                              | false  | true             |
-| cloud.google.com/go/spanner                                                         | v1.76.1                               | v1.82.0                             | false  | true             |
+| cloud.google.com/go/spanner                                                         | v1.76.1                               | v1.83.0                             | false  | true             |
 | cloud.google.com/go/speech                                                          | v1.26.0                               | v1.28.0                             | false  | true             |
 | cloud.google.com/go/storage                                                         | v1.50.0                               | v1.55.0                             | false  | true             |
 | cloud.google.com/go/storagetransfer                                                 | v1.12.1                               | v1.13.0                             | false  | true             |
@@ -174,7 +174,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp            | v1.27.0                               | v1.29.0                             | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric          | v0.49.0                               | v0.53.0                             | false  | true             |
 | github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping | v0.49.0                               | v0.53.0                             | false  | true             |
-| github.com/Masterminds/semver/v3                                                    | v3.3.1                                |                                     | false  | true             |
+| github.com/Masterminds/semver/v3                                                    | v3.3.1                                | v3.4.0                              | false  | true             |
 | github.com/Microsoft/cosesign1go                                                    | v1.2.0                                | v1.4.0                              | false  | true             |
 | github.com/Microsoft/didx509go                                                      | v0.0.3                                |                                     | false  | true             |
 | github.com/Microsoft/go-winio                                                       | v0.6.2                                |                                     | true   | true             |
@@ -403,7 +403,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/google/btree                                                             | v1.1.3                                |                                     | false  | true             |
 | github.com/google/cel-go                                                            | v0.23.2                               | v0.25.0                             | false  | true             |
 | github.com/google/certificate-transparency-go                                       | v1.3.1                                | v1.3.2                              | false  | true             |
-| github.com/google/gnostic-models                                                    | v0.6.9                                |                                     | false  | true             |
+| github.com/google/gnostic-models                                                    | v0.6.9                                | v0.7.0                              | false  | true             |
 | github.com/google/go-cmp                                                            | v0.7.0                                |                                     | true   | true             |
 | github.com/google/go-containerregistry                                              | v0.20.5                               | v0.20.6                             | false  | true             |
 | github.com/google/go-github/v55                                                     | v55.0.0                               |                                     | false  | true             |
@@ -517,7 +517,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/moby/locker                                                              | v1.0.1                                |                                     | false  | true             |
 | github.com/moby/spdystream                                                          | v0.5.0                                |                                     | false  | true             |
 | github.com/moby/sys/atomicwriter                                                    | v0.1.0                                |                                     | false  | true             |
-| github.com/moby/sys/capability                                                      | v0.4.0                                |                                     | false  | true             |
+| github.com/moby/sys/capability                                                      | v0.4.0                                |                                     | true   | true             |
 | github.com/moby/sys/mountinfo                                                       | v0.7.2                                |                                     | true   | true             |
 | github.com/moby/sys/sequential                                                      | v0.5.0                                | v0.6.0                              | false  | true             |
 | github.com/moby/sys/signal                                                          | v0.7.0                                | v0.7.1                              | false  | true             |
@@ -549,7 +549,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/opencontainers/image-spec                                                | v1.1.1                                |                                     | true   | true             |
 | github.com/opencontainers/runc                                                      | v1.3.0                                |                                     | true   | true             |
 | github.com/opencontainers/runtime-spec                                              | v1.2.1                                |                                     | true   | true             |
-| github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20250303011046-260e151b8552  |                                     | true   | true             |
+| github.com/opencontainers/runtime-tools                                             | v0.9.1-0.20250523060157-0ea5ed0382a2  |                                     | true   | true             |
 | github.com/opencontainers/selinux                                                   | v1.12.0                               |                                     | true   | true             |
 | github.com/opentracing/opentracing-go                                               | v1.2.0                                |                                     | false  | true             |
 | github.com/ostreedev/ostree-go                                                      | v0.0.0-20210805093236-719684c64e4f    |                                     | false  | true             |
@@ -574,7 +574,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/prometheus/client_model                                                  | v0.6.1                                | v0.6.2                              | false  | true             |
 | github.com/prometheus/common                                                        | v0.62.0                               | v0.65.0                             | false  | true             |
 | github.com/prometheus/procfs                                                        | v0.15.1                               | v0.16.1                             | false  | true             |
-| github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250627074747-e38bc7bb9beb  | false  | true             |
+| github.com/protocolbuffers/txtpbfmt                                                 | v0.0.0-20250218085312-1ee4910263ac    | v0.0.0-20250627152318-f293424e46b5  | false  | true             |
 | github.com/rcrowley/go-metrics                                                      | v0.0.0-20201227073835-cf1acfcdf475    | v0.0.0-20250401214520-65e299d6c5c9  | false  | true             |
 | github.com/redis/go-redis/extra/rediscmd/v9                                         | v9.5.3                                | v9.11.0                             | false  | true             |
 | github.com/redis/go-redis/extra/redisotel/v9                                        | v9.5.3                                | v9.11.0                             | false  | true             |
@@ -628,7 +628,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/stretchr/testify                                                         | v1.10.0                               |                                     | true   | true             |
 | github.com/subosito/gotenv                                                          | v1.6.0                                |                                     | false  | true             |
 | github.com/sylabs/sif/v2                                                            | v2.21.1                               |                                     | false  | true             |
-| github.com/syndtr/gocapability                                                      | v0.0.0-20200815063812-42c35b437635    |                                     | true   | true             |
+| github.com/syndtr/gocapability                                                      | v0.0.0-20200815063812-42c35b437635    |                                     | false  | true             |
 | github.com/syndtr/goleveldb                                                         | v1.0.1-0.20220721030215-126854af5e6d  |                                     | false  | true             |
 | github.com/tchap/go-patricia/v2                                                     | v2.3.2                                |                                     | false  | true             |
 | github.com/tetratelabs/wazero                                                       | v1.8.2                                | v1.9.0                              | false  | true             |
@@ -679,7 +679,7 @@ _Generated on Fri, 27 Jun 2025 11:55:18 UTC for commit [db591b6][0]._
 | github.com/yuin/goldmark                                                            | v1.4.13                               | v1.7.12                             | false  | true             |
 | github.com/zalando/go-keyring                                                       | v0.2.3                                | v0.2.6                              | false  | true             |
 | github.com/zeebo/errs                                                               | v1.4.0                                |                                     | false  | true             |
-| github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250618174828-7ca6a82cf2d4  | false  | true             |
+| github.com/zmap/zcrypto                                                             | v0.0.0-20231219022726-a1f61fb1661c    | v0.0.0-20250627161936-38850a079d72  | false  | true             |
 | github.com/zmap/zlint/v3                                                            | v3.6.4                                | v3.6.6                              | false  | true             |
 | gitlab.com/gitlab-org/api/client-go                                                 | v0.127.0                              | v0.130.1                            | false  | true             |
 | gitlab.com/nvidia/cloud-native/go-nvlib                                             | v0.0.0-20220601114329-47893b162965    | v0.0.0-20231115170030-b21432a353e1  | false  | true             |
