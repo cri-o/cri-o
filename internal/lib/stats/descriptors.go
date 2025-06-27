@@ -149,3 +149,12 @@ var (
 		LabelKeys: baseLabelKeys,
 	}
 )
+
+// other metrics.
+var (
+	containerStartTimeSeconds = &types.MetricDescriptor{
+		Name:      "container_start_time_seconds",
+		Help:      "Start time of the container since unix epoch",
+		LabelKeys: baseLabelKeys,
+	}
+)
