@@ -1245,6 +1245,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 # platform_runtime_paths = { "os/arch" = "/path/to/binary" }
 # no_sync_log = false
 # default_annotations = {}
+# stream_websockets = false
 # Where:
 # - runtime-handler: Name used to identify the runtime.
 # - runtime_path (optional, string): Absolute path to the runtime executable in
@@ -1298,6 +1299,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   This option is only valid for the 'oci' runtime type. Setting this option to true can cause data loss, e.g.
 #   when a machine crash happens.
 # - default_annotations (optional, map): Default annotations if not overridden by the pod spec.
+# - stream_websockets (optional, bool): Enable the WebSocket protocol for container exec, attach and port forward.
 #
 # Using the seccomp notifier feature:
 #

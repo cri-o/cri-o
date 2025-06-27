@@ -9,7 +9,7 @@ import (
 )
 
 // The actual test suite.
-var _ = t.Describe("ContainerStart", func() {
+var _ = t.Describe("ContainerExecSync", func() {
 	// Prepare the sut
 	BeforeEach(func() {
 		beforeEach()
@@ -18,7 +18,7 @@ var _ = t.Describe("ContainerStart", func() {
 
 	AfterEach(afterEach)
 
-	t.Describe("ContainerStart", func() {
+	t.Describe("ContainerExecSync", func() {
 		It("should fail with invalid container ID", func() {
 			// Given
 			// When

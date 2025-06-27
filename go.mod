@@ -21,7 +21,7 @@ require (
 	github.com/containernetworking/plugins v1.7.1
 	github.com/containers/common v0.63.1
 	github.com/containers/conmon v2.0.20+incompatible
-	github.com/containers/conmon-rs v0.6.6
+	github.com/containers/conmon-rs v0.6.7-0.20250626143653-25c2ef8b3da5
 	github.com/containers/image/v5 v5.35.0
 	github.com/containers/kubensmnt v1.2.0
 	github.com/containers/ocicrypt v1.2.1
@@ -91,7 +91,7 @@ require (
 )
 
 require (
-	capnproto.org/go/capnp/v3 v3.0.1-alpha.2 // indirect
+	capnproto.org/go/capnp/v3 v3.1.0-alpha.1 // indirect
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Microsoft/hcsshim v0.12.9 // indirect
 	github.com/ProtonMail/go-crypto v1.1.6 // indirect

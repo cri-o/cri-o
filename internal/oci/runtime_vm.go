@@ -1345,3 +1345,11 @@ func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {
 	// Not implemented
 	return nil
 }
+
+func (r *runtimeVM) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+	return "", nil
+}
+
+func (r *runtimeVM) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+	return "", nil
+}

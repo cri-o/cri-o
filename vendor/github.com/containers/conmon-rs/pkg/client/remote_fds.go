@@ -74,16 +74,19 @@ func (r *RemoteFDs) Send(fds ...int) ([]RemoteFD, error) {
 
 	b := binary.LittleEndian.AppendUint64(nil, uint64(reqID)<<numFDsBits|uint64(len(fds)))
 	oob := syscall.UnixRights(fds...)
+
 	_, _, err := r.conn.WriteMsgUnix(b, oob, nil)
 	if err != nil {
 		return nil, fmt.Errorf("send request: %w", err)
 	}
 
 	buf := make([]byte, msgBufferSize)
+
 	n, err := r.conn.Read(buf)
 	if err != nil {
 		return nil, fmt.Errorf("receviree reaponse: %w", err)
 	}
+
 	buf = buf[:n]
 
 	if len(buf) < uint64Bytes {
@@ -138,6 +141,7 @@ func (c *ConmonClient) RemoteFDs(ctx context.Context) (*RemoteFDs, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create RPC connection: %w", err)
 	}
+
 	defer func() {
 		if err := conn.Close(); err != nil {
 			c.logger.Errorf("Unable to close connection: %v", err)

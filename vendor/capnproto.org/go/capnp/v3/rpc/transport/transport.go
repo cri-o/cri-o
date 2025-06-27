@@ -124,12 +124,7 @@ func NewPackedStream(rwc io.ReadWriteCloser) Transport {
 //
 // It is safe to call NewMessage concurrently with RecvMessage.
 func (s *transport) NewMessage() (OutgoingMessage, error) {
-	arena := capnp.MultiSegment(nil)
-	_, seg, err := capnp.NewMessage(arena)
-	if err != nil {
-		err = transporterr.Annotate(exc.WrapError("new message", err), "stream transport")
-		return nil, err
-	}
+	_, seg := capnp.NewMultiSegmentMessage(nil)
 	m, err := rpccp.NewRootMessage(seg)
 	if err != nil {
 		err = transporterr.Annotate(exc.WrapError("new message", err), "stream transport")
@@ -165,7 +160,7 @@ func (s *transport) RecvMessage() (IncomingMessage, error) {
 		return nil, err
 	}
 
-	return incomingMsg(rmsg), nil
+	return &incomingMsg{message: rmsg}, nil
 }
 
 // Close closes the underlying ReadWriteCloser.  It is not safe to call
@@ -218,7 +213,11 @@ type outgoingMsg struct {
 }
 
 func (o *outgoingMsg) Release() {
-	if m := o.message.Message(); !o.released && m != nil {
+	if o.released {
+		return
+	}
+	if m := o.message.Message(); m != nil {
+		o.released = true
 		m.Release()
 	}
 }
@@ -235,14 +234,21 @@ func (o *outgoingMsg) Send() error {
 	panic("call to Send() after call to Release()")
 }
 
-type incomingMsg rpccp.Message
-
-func (i incomingMsg) Message() rpccp.Message {
-	return rpccp.Message(i)
+type incomingMsg struct {
+	message  rpccp.Message
+	released bool
 }
 
-func (i incomingMsg) Release() {
+func (i *incomingMsg) Message() rpccp.Message {
+	return i.message
+}
+
+func (i *incomingMsg) Release() {
+	if i.released {
+		return
+	}
 	if m := i.Message().Message(); m != nil {
+		i.released = true
 		m.Release()
 	}
 }

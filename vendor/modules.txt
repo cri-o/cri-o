@@ -1,4 +1,4 @@
-# capnproto.org/go/capnp/v3 v3.0.1-alpha.2
+# capnproto.org/go/capnp/v3 v3.1.0-alpha.1
 ## explicit; go 1.19
 capnproto.org/go/capnp/v3
 capnproto.org/go/capnp/v3/encoding/text
@@ -285,8 +285,8 @@ github.com/containers/common/version
 # github.com/containers/conmon v2.0.20+incompatible
 ## explicit
 github.com/containers/conmon/runner/config
-# github.com/containers/conmon-rs v0.6.6
-## explicit; go 1.23
+# github.com/containers/conmon-rs v0.6.7-0.20250626143653-25c2ef8b3da5
+## explicit; go 1.24.0
 github.com/containers/conmon-rs/internal/proto
 github.com/containers/conmon-rs/pkg/client
 # github.com/containers/image/v5 v5.35.0

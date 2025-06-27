@@ -17,7 +17,8 @@ type SegmentID uint32
 type Segment struct {
 	// msg associated with this segment. A Message instance m maintains the
 	// invariant that that all m.segs[].msg == m.
-	msg  *Message
+	msg *Message
+
 	id   SegmentID
 	data []byte
 }
@@ -25,6 +26,12 @@ type Segment struct {
 // Message returns the message that contains s.
 func (s *Segment) Message() *Message {
 	return s.msg
+}
+
+// BindTo binds the segment to a given message. This is usually only called by
+// Arena implementations and does not perform any kind of safety check.
+func (s *Segment) BindTo(m *Message) {
+	s.msg = m
 }
 
 // ID returns the segment's ID.
@@ -107,7 +114,7 @@ func (s *Segment) root() PointerList {
 		seg:        s,
 		length:     1,
 		size:       sz,
-		depthLimit: s.msg.depthLimit(),
+		depthLimit: s.Message().depthLimit(),
 	}
 }
 
@@ -115,7 +122,7 @@ func (s *Segment) lookupSegment(id SegmentID) (*Segment, error) {
 	if s.id == id {
 		return s, nil
 	}
-	return s.msg.Segment(id)
+	return s.Message().Segment(id)
 }
 
 func (s *Segment) readPtr(paddr address, depthLimit uint) (ptr Ptr, err error) {
@@ -135,7 +142,7 @@ func (s *Segment) readPtr(paddr address, depthLimit uint) (ptr Ptr, err error) {
 		if err != nil {
 			return Ptr{}, exc.WrapError("read pointer", err)
 		}
-		if !s.msg.canRead(sp.readSize()) {
+		if !s.Message().canRead(sp.readSize()) {
 			return Ptr{}, errors.New("read pointer: read traversal limit reached")
 		}
 		sp.depthLimit = depthLimit - 1
@@ -145,7 +152,7 @@ func (s *Segment) readPtr(paddr address, depthLimit uint) (ptr Ptr, err error) {
 		if err != nil {
 			return Ptr{}, exc.WrapError("read pointer", err)
 		}
-		if !s.msg.canRead(lp.readSize()) {
+		if !s.Message().canRead(lp.readSize()) {
 			return Ptr{}, errors.New("read pointer: read traversal limit reached")
 		}
 		lp.depthLimit = depthLimit - 1
@@ -377,8 +384,8 @@ func (s *Segment) writePtr(off address, src Ptr, forceCopy bool) error {
 		srcRaw = l.raw()
 	case interfacePtrType:
 		i := src.Interface()
-		if src.seg.msg != s.msg {
-			c := s.msg.CapTable().Add(i.Client().AddRef())
+		if src.seg.Message() != s.Message() {
+			c := s.Message().CapTable().Add(i.Client().AddRef())
 			i = NewInterface(s, c)
 		}
 		s.writeRawPointer(off, i.value(off))
@@ -395,6 +402,8 @@ func (s *Segment) writePtr(off address, src Ptr, forceCopy bool) error {
 		return nil
 	case hasCapacity(src.seg.data, wordSize):
 		// Enough room adjacent to src to write a far pointer landing pad.
+		// TODO: instead of alloc (which may choose another segment),
+		// enforce to _always_ use seg (because we know it has capacity).
 		_, padAddr, _ := alloc(src.seg, wordSize)
 		src.seg.writeRawPointer(padAddr, srcRaw.withOffset(nearPointerOffset(padAddr, srcAddr)))
 		s.writeRawPointer(off, rawFarPointer(src.seg.id, padAddr))

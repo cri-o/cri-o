@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 
 	"google.golang.org/grpc/codes"
@@ -16,6 +17,29 @@ import (
 
 // Attach prepares a streaming endpoint to attach to a running container.
 func (s *Server) Attach(ctx context.Context, req *types.AttachRequest) (*types.AttachResponse, error) {
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find container %q: %w", req.ContainerId, err)
+	}
+
+	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
+	if streamWebsocket, err := s.Runtime().RuntimeStreamWebsockets(runtimeHandler); err == nil && streamWebsocket {
+		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
+
+		url, err := s.Runtime().ServeAttachContainer(ctx, c, req.Stdin, req.Stdout, req.Stderr)
+		if err != nil {
+			return nil, fmt.Errorf("could not serve attach for container %q: %w", req.ContainerId, err)
+		}
+
+		if url != "" {
+			log.Infof(ctx, "Using attach URL from container monitor")
+
+			return &types.AttachResponse{Url: url}, nil
+		}
+
+		log.Debugf(ctx, "Runtime %q does not support websocket streaming, falling back to SPDY", runtimeHandler)
+	}
+
 	resp, err := s.getAttach(req)
 	if err != nil {
 		return nil, errors.New("unable to prepare attach endpoint")

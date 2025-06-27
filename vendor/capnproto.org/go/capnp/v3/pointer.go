@@ -187,7 +187,7 @@ func (p Ptr) Message() *Message {
 	if p.seg == nil {
 		return nil
 	}
-	return p.seg.msg
+	return p.seg.Message()
 }
 
 // Default returns p if it is valid, otherwise it unmarshals def.

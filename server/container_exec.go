@@ -17,6 +17,29 @@ import (
 
 // Exec prepares a streaming endpoint to execute a command in the container.
 func (s *Server) Exec(ctx context.Context, req *types.ExecRequest) (*types.ExecResponse, error) {
+	c, err := s.GetContainerFromShortID(ctx, req.ContainerId)
+	if err != nil {
+		return nil, fmt.Errorf("could not find container %q: %w", req.ContainerId, err)
+	}
+
+	runtimeHandler := s.getSandbox(ctx, c.Sandbox()).RuntimeHandler()
+	if streamWebsocket, err := s.Runtime().RuntimeStreamWebsockets(runtimeHandler); err == nil && streamWebsocket {
+		log.Debugf(ctx, "Runtime handler %q is configured to use websockets", runtimeHandler)
+
+		url, err := s.Runtime().ServeExecContainer(ctx, c, req.Cmd, req.Tty, req.Stdin, req.Stdout, req.Stderr)
+		if err != nil {
+			return nil, fmt.Errorf("could not serve exec for container %q: %w", req.ContainerId, err)
+		}
+
+		if url != "" {
+			log.Infof(ctx, "Using exec URL from container monitor")
+
+			return &types.ExecResponse{Url: url}, nil
+		}
+
+		log.Debugf(ctx, "Runtime %q does not support websocket streaming, falling back to SPDY", runtimeHandler)
+	}
+
 	resp, err := s.getExec(req)
 	if err != nil {
 		return nil, fmt.Errorf("unable to prepare exec endpoint: %w", err)

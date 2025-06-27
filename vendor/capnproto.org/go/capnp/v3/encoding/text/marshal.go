@@ -74,7 +74,7 @@ func (enc *Encoder) Encode(typeID uint64, s capnp.Struct) error {
 
 // EncodeList writes the text representation of struct list l to the stream.
 func (enc *Encoder) EncodeList(typeID uint64, l capnp.List) error {
-	_, seg, _ := capnp.NewMessage(capnp.SingleSegment(nil))
+	_, seg := capnp.NewSingleSegmentMessage(nil)
 	typ, _ := schema.NewRootType(seg)
 	typ.SetStructType()
 	typ.StructType().SetTypeId(typeID)
