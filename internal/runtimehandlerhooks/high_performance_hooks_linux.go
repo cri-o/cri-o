@@ -27,6 +27,7 @@ import (
 	"github.com/cri-o/cri-o/internal/log"
 	"github.com/cri-o/cri-o/internal/oci"
 	crioannotations "github.com/cri-o/cri-o/pkg/annotations"
+	"github.com/cri-o/cri-o/pkg/config"
 	"github.com/cri-o/cri-o/utils/cmdrunner"
 )
 
@@ -67,6 +68,7 @@ type HighPerformanceHooks struct {
 	irqSMPAffinityFileLock   sync.Mutex
 	irqBalanceConfigFileLock sync.Mutex
 	sharedCPUs               string
+	execCPUAffinity          config.ExecCPUAffinityType
 	irqSMPAffinityFile       string
 }
 
@@ -77,33 +79,76 @@ func (h *HighPerformanceHooks) PreCreate(ctx context.Context, specgen *generate.
 		return nil
 	}
 
+	cpusString := specgen.Config.Linux.Resources.CPU.Cpus
+
+	exclusiveCPUSet, err := cpuset.Parse(cpusString)
+	if err != nil {
+		return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
+	}
+
+	sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
+	if err != nil {
+		return fmt.Errorf("failed to parse shared cpus: %w", err)
+	}
+
+	h.setExecCPUAffinity(ctx, specgen, &exclusiveCPUSet, &sharedCPUSet)
+
 	if requestedSharedCPUs(s.Annotations(), c.CRIContainer().GetMetadata().GetName()) {
 		if isContainerCPUsSpecEmpty(specgen.Config) {
 			return fmt.Errorf("no cpus found for container %q", c.Name())
 		}
 
-		cpusString := specgen.Config.Linux.Resources.CPU.Cpus
-
-		exclusiveCPUs, err := cpuset.Parse(cpusString)
-		if err != nil {
-			return fmt.Errorf("failed to parse container %q cpus: %w", c.Name(), err)
-		}
-
-		if h.sharedCPUs == "" {
+		if sharedCPUSet.IsEmpty() {
 			return fmt.Errorf("shared CPUs were requested for container %q but none are defined", c.Name())
 		}
 
-		sharedCPUSet, err := cpuset.Parse(h.sharedCPUs)
-		if err != nil {
-			return fmt.Errorf("failed to parse shared cpus: %w", err)
-		}
 		// We must inject the environment variables in the PreCreate stage,
 		// because in the PreStart stage the process is already constructed.
 		// by the low-level runtime and the environment variables are already finalized.
-		injectCpusetEnv(specgen, &exclusiveCPUs, &sharedCPUSet)
+		injectCpusetEnv(specgen, &exclusiveCPUSet, &sharedCPUSet)
 	}
 
 	return nil
+}
+
+// setExecCPUAffinity sets ExecCPUAffinity in the container spec.
+func (h *HighPerformanceHooks) setExecCPUAffinity(ctx context.Context, specgen *generate.Generator, exclusiveCPUSet, sharedCPUSet *cpuset.CPUSet) cpuset.CPUSet {
+	var execCPUSet cpuset.CPUSet
+
+	switch h.execCPUAffinity {
+	case config.ExecCPUAffinityTypeFirst:
+		switch {
+		case sharedCPUSet != nil && !sharedCPUSet.IsEmpty():
+			// List() is sorted, so [0] should be the least CPU.
+			execCPUSet = cpuset.New(sharedCPUSet.List()[0])
+		case exclusiveCPUSet != nil && !exclusiveCPUSet.IsEmpty():
+			execCPUSet = cpuset.New(exclusiveCPUSet.List()[0])
+		default:
+			// This shouldn't happen because the spec should have exclusiveCPUSet at least.
+			log.Errorf(ctx, "ExecCPUAffinityType %s is set, but no CPUSet is available. Falling back to default.", h.execCPUAffinity)
+		}
+	case config.ExecCPUAffinityTypeDefault:
+		// Don't set ExecCPUAffinity, which means using runtime default.
+	default:
+		// This shouldn't happen because there's config validation.
+		log.Errorf(ctx, "Unknown ExecCPUAffinityType %s is used. Falling back to default.", h.execCPUAffinity)
+	}
+
+	log.Debugf(ctx, "Set ExecCPUAffinity to %q", execCPUSet.String())
+
+	if !execCPUSet.IsEmpty() {
+		if specgen.Config == nil {
+			specgen.Config = &specs.Spec{}
+		}
+
+		if specgen.Config.Process == nil {
+			specgen.Config.Process = &specs.Process{}
+		}
+
+		specgen.Config.Process.ExecCPUAffinity = &specs.CPUAffinity{Initial: execCPUSet.String()}
+	}
+
+	return execCPUSet
 }
 
 func (h *HighPerformanceHooks) PreStart(ctx context.Context, c *oci.Container, s *sandbox.Sandbox) error {

@@ -728,6 +728,7 @@ var _ = Describe("high_performance_hooks", func() {
 			&types.ContainerMetadata{Name: "cnt1"}, "sandboxID", false, false,
 			false, "", "", time.Now(), "")
 		Expect(err).ToNot(HaveOccurred())
+		c.SetSpec(g.Config)
 
 		sbox := sandbox.NewBuilder()
 		createdAt := time.Now()
@@ -873,8 +874,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -912,8 +913,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should keep the current irq bit mask but return a high performance hooks", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should keep the current irq bit mask but return a high performance hooks", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				hph, ok := hooks.(*HighPerformanceHooks)
 				Expect(ok).To(BeTrue())
@@ -954,8 +955,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -995,8 +996,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should return a nil hook", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should return a nil hook", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).To(BeNil())
 			})
 		})
@@ -1018,8 +1019,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should set the correct irq bit mask with concurrency", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should set the correct irq bit mask with concurrency", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				if hph, ok := hooks.(*HighPerformanceHooks); ok {
 					hph.irqSMPAffinityFile = irqSmpAffinityFile
@@ -1067,8 +1068,8 @@ var _ = Describe("high_performance_hooks", func() {
 				}
 			})
 
-			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func() {
-				hooks := hooksRetriever.Get(sb.RuntimeHandler(), sb.Annotations())
+			It("should yield a DefaultCPULoadBalanceHooks which keeps the old mask", func(ctx context.Context) {
+				hooks := hooksRetriever.Get(ctx, sb.RuntimeHandler(), sb.Annotations())
 				Expect(hooks).NotTo(BeNil())
 				_, ok := (hooks).(*DefaultCPULoadBalanceHooks)
 				Expect(ok).To(BeTrue())
