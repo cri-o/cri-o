@@ -1722,3 +1722,11 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
 }
+
+func (r *runtimeOCI) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+	return "", nil
+}
+
+func (r *runtimeOCI) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+	return "", nil
+}

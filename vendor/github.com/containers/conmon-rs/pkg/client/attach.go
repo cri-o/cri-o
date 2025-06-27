@@ -108,6 +108,7 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 	if err != nil {
 		return fmt.Errorf("create RPC connection: %w", err)
 	}
+
 	defer func() {
 		if err := conn.Close(); err != nil {
 			c.logger.Errorf("Unable to close connection: %v", err)
@@ -115,6 +116,7 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 	}()
 
 	client := proto.Conmon(conn.Bootstrap(ctx))
+
 	future, free := client.AttachContainer(ctx, func(p proto.Conmon_attachContainer_Params) error {
 		req, err := p.NewRequest()
 		if err != nil {
@@ -158,11 +160,13 @@ func (c *ConmonClient) AttachContainer(ctx context.Context, cfg *AttachConfig) e
 
 func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error) {
 	var conn *net.UnixConn
+
 	if !cfg.Passthrough {
 		c.logger.Debugf("Attaching to container %s", cfg.ID)
 
 		resize.HandleResizing(cfg.Resize, func(size resize.TerminalSize) {
 			c.logger.Debugf("Got a resize event: %+v", size)
+
 			if err := c.SetWindowSizeContainer(ctx, &SetWindowSizeContainerConfig{
 				ID:   cfg.ID,
 				Size: &size,
@@ -175,6 +179,7 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 		if err != nil {
 			return fmt.Errorf("failed to connect to container's attach socket: %v: %w", cfg.SocketPath, err)
 		}
+
 		defer func() {
 			if err := conn.Close(); err != nil {
 				c.logger.Errorf("unable to close socket: %q", err)
@@ -195,6 +200,7 @@ func (c *ConmonClient) attach(ctx context.Context, cfg *AttachConfig) (err error
 	id := uuid.NewString()
 
 	receiveStdoutError, stdinDone := c.setupStdioChannels(ctx, cfg, conn, id)
+
 	if cfg.PostAttachFunc != nil {
 		if err := cfg.PostAttachFunc(); err != nil {
 			return fmt.Errorf("run post attach func: %w", err)
@@ -248,16 +254,20 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 	}
 
 	buf := make([]byte, attachPacketBufSize+1) /* Sync with conmonrs ATTACH_PACKET_BUF_SIZE */
+
 	defer func() {
 		if cfg.Streams.Stdout != nil {
 			cfg.Streams.Stdout.Close()
 		}
+
 		if cfg.Streams.Stderr != nil {
 			cfg.Streams.Stderr.Close()
 		}
 	}()
+
 	for {
 		c.logger.Trace("Waiting to read from attach connection")
+
 		nr, er := conn.Read(buf)
 		c.logger.WithError(er).Tracef("Got %d bytes from attach connection", nr)
 
@@ -266,18 +276,22 @@ func (c *ConmonClient) redirectResponseToOutputStreams(
 			if er != nil {
 				return er
 			}
+
 			if !cont {
 				return nil
 			}
 		}
+
 		if er == io.EOF || (cfg.ContainerStdin && !cfg.StopAfterStdinEOF) {
 			return nil
 		}
+
 		if errors.Is(er, syscall.ECONNRESET) {
 			c.logger.WithError(er).Trace("Connection reset, retrying to read")
 
 			continue
 		}
+
 		if er != nil {
 			err = er
 
@@ -301,6 +315,7 @@ func (c *ConmonClient) handlePacket(
 	}
 
 	var dst io.Writer
+
 	switch buf[0] {
 	case attachPipeDone:
 		c.logger.Trace("Received done packet")
@@ -313,7 +328,9 @@ func (c *ConmonClient) handlePacket(
 
 			return true, nil
 		}
+
 		dst = cfg.Streams.Stdout
+
 		c.logger.Trace("Received stdout packet")
 
 	case attachPipeStderr:
@@ -322,7 +339,9 @@ func (c *ConmonClient) handlePacket(
 
 			return true, nil
 		}
+
 		dst = cfg.Streams.Stderr
+
 		c.logger.Trace("Received stderr packet")
 
 	default:
@@ -333,9 +352,11 @@ func (c *ConmonClient) handlePacket(
 
 	nw, ew := dst.Write(buf[1:nr])
 	c.logger.WithError(ew).Tracef("Wrote %d bytes to destination", nw)
+
 	if ew != nil {
 		return false, fmt.Errorf("failed to write packet %w", ew)
 	}
+
 	if nr != nw+1 {
 		return false, io.ErrShortWrite
 	}
@@ -345,6 +366,7 @@ func (c *ConmonClient) handlePacket(
 
 func (c *ConmonClient) tryCloseAttachReaderForID(id string) {
 	c.logger.Tracef("Closing attach reader for ID: %s", id)
+
 	if val, ok := c.attachReaders.LoadAndDelete(id); ok {
 		c.closeAttachReader(val)
 	}
@@ -364,6 +386,7 @@ func (c *ConmonClient) closeAttachReader(val any) {
 
 	// Check if the attach socket is still in use by other connections
 	socketPathInUse := false
+
 	c.attachReaders.Range(func(k, v any) bool {
 		existing, ok := v.(*attachReaderValue)
 		if !ok {
@@ -433,12 +456,14 @@ func (c *ConmonClient) readStdio(
 
 			return err
 		}
+
 		if err == nil {
 			// copy stdin is done, close it
 			if connErr := conn.CloseWrite(); connErr != nil {
 				c.logger.Errorf("Unable to close conn: %v", connErr)
 			}
 		}
+
 		if cfg.Streams.Stdout != nil || cfg.Streams.Stderr != nil {
 			return <-receiveStdoutError
 		}
@@ -471,6 +496,7 @@ func (c *ConmonClient) SetWindowSizeContainer(ctx context.Context, cfg *SetWindo
 	if err != nil {
 		return fmt.Errorf("create RPC connection: %w", err)
 	}
+
 	defer conn.Close()
 	client := proto.Conmon(conn.Bootstrap(ctx))
 

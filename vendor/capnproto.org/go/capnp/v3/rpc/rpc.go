@@ -88,10 +88,11 @@ type Conn struct {
 	bootstrap    capnp.Client
 	er           errReporter
 	abortTimeout time.Duration
+	baseContext  func() context.Context
 
 	// bgctx is a Context that is canceled when shutdown starts. Note
-	// that it's parent is context.Background(), so we can rely on this
-	// being the *only* time it will be canceled.
+	// that if baseContext is not provided, it's parent is context.Background(),
+	// so we can rely on this being the *only* time it will be canceled.
 	bgctx context.Context
 
 	// tasks block shutdown.
@@ -202,6 +203,11 @@ type Options struct {
 	// by Dial or Accept on the Network itself; application code should not
 	// set this.
 	Network Network
+
+	// BaseContext is an optional function that returns a base context
+	// for any incoming connection. If ommitted, the context.Background()
+	// will be used instead.
+	BaseContext func() context.Context
 }
 
 // Logger is used for logging by the RPC system. Each method logs
@@ -231,8 +237,9 @@ type Logger interface {
 // requests from the transport.
 func NewConn(t Transport, opts *Options) *Conn {
 	c := &Conn{
-		transport: t,
-		closed:    make(chan struct{}),
+		transport:   t,
+		baseContext: context.Background,
+		closed:      make(chan struct{}),
 	}
 
 	sender := spsc.New[asyncSend]()
@@ -248,6 +255,10 @@ func NewConn(t Transport, opts *Options) *Conn {
 		c.abortTimeout = opts.AbortTimeout
 		c.network = opts.Network
 		c.remotePeerID = opts.RemotePeerID
+
+		if opts.BaseContext != nil {
+			c.baseContext = opts.BaseContext
+		}
 	}
 	if c.abortTimeout == 0 {
 		c.abortTimeout = 100 * time.Millisecond
@@ -261,7 +272,7 @@ func NewConn(t Transport, opts *Options) *Conn {
 func (c *Conn) startBackgroundTasks() {
 	// We use an errgroup to link the lifetime of background tasks
 	// to each other.
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(c.baseContext())
 	g, ctx := errgroup.WithContext(ctx)
 
 	c.bgctx = ctx
@@ -322,10 +333,10 @@ func (c *Conn) Bootstrap(ctx context.Context) (bc capnp.Client) {
 
 		q := c.newQuestion(capnp.Method{})
 		bc = q.p.Answer().Client().AddRef()
-		go func() {
+		bc.AttachReleaser(func() {
 			q.p.ReleaseClients()
 			q.release()
-		}()
+		})
 
 		c.sendMessage(ctx, func(m rpccp.Message) error {
 			boot, err := m.NewBootstrap()
@@ -1145,7 +1156,7 @@ func (c *Conn) handleReturn(ctx context.Context, in transport.IncomingMessage) e
 			}
 			return nil
 		}
-		pr := c.parseReturn(dq, ret, q.called) // fills in CapTable
+		pr := c.parseReturn(dq, ret, q.called) // fills in CapTable and adds imports to local vat
 		if pr.parseFailed {
 			c.er.ReportError(rpcerr.Annotate(pr.err, "incoming return"))
 		}
@@ -1164,6 +1175,51 @@ func (c *Conn) handleReturn(ctx context.Context, in transport.IncomingMessage) e
 				// We can release now; the result is an error, so data from the message
 				// won't be accessed:
 				in.Release()
+			}
+
+			// Even though any imports added within the
+			// parseResults()  were added inside the locked conn
+			// mutex, there could still be references to the prior
+			// question `qid` that are (concurrent to the
+			// processing of this Return message) about to send a
+			// pipelined request to the remote host. Sending a
+			// Finish message now, could mean these other outbound
+			// messages enter the send queue _after_ the Finish,
+			// thus causing a remote error: the pipelined call
+			// referencing `qid` arrives after the Finish, which is
+			// a protocol violation.
+			//
+			// One way of seeing this bug manifest is on the
+			// TestPromiseOrdering test as of commit 2f9aa4f:
+			// removing the fix below triggers errors in the style
+			// of:
+			//
+			//   "handle Call: rpc: incoming call: use of unknown
+			//   or finished answer ID 0 for promised answer"
+			//
+			// Unfortunately, I (matheusd) cannot see _any_ way of
+			// doing a proper fix. What I consider a "proper" fix
+			// would be to couple (via some synchronization
+			// mechanism) the sending and receiving sides of the
+			// conn, such that sending this finish only happens
+			// after all references of the above question are
+			// released. Or something like that.
+			//
+			// Instead, we opt for a sleep here, to give a chance
+			// to any concurrent goroutines to complete their
+			// sending process, and then we send the finish. If
+			// production code is doing anything similar to what
+			// that test exercises, then unless the host system is
+			// under _significant_ load, the following sleep should
+			// be sufficient.
+			//
+			// Yes, I am aware this is an ugly solution. Hopefully
+			// some future refactor will make a better fix obvious
+			// or (even better) unnecessary.
+			select {
+			case <-ctx.Done():
+				return
+			case <-time.After(250 * time.Millisecond):
 			}
 
 			c.withLocked(func(c *lockedConn) {
@@ -1258,7 +1314,7 @@ func (c *lockedConn) parseReturn(dq *deferred.Queue, ret rpccp.Return, called []
 			return parsedReturn{err: rpcerr.WrapFailed("parse return", err), parseFailed: true}
 		}
 		return parsedReturn{err: exc.New(exc.Type(e.Type()), "", reason)}
-	case rpccp.Return_Which_acceptFromThirdParty:
+	case rpccp.Return_Which_awaitFromThirdParty:
 		// TODO: 3PH. Can wait until after the MVP, because we can keep
 		// setting allowThirdPartyTailCall = false
 		fallthrough
@@ -1697,7 +1753,7 @@ func (c *Conn) handleDisembargo(ctx context.Context, in transport.IncomingMessag
 			})
 		})
 
-	case rpccp.Disembargo_context_Which_accept, rpccp.Disembargo_context_Which_provide:
+	case rpccp.Disembargo_context_Which_accept:
 		if c.network != nil {
 			panic("TODO: 3PH")
 		}

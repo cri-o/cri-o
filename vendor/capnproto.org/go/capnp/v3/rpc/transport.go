@@ -10,6 +10,7 @@ import (
 
 type Codec = transport.Codec
 type Transport = transport.Transport
+type NewTransportFunc func(io.ReadWriteCloser) Transport
 
 // NewStreamTransport is an alias for as transport.NewStream
 func NewStreamTransport(rwc io.ReadWriteCloser) Transport {

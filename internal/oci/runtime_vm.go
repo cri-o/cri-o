@@ -1340,3 +1340,11 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 func (r *runtimeVM) IsContainerAlive(c *Container) bool {
 	return r.kill(c.ID(), "", 0, false) == nil
 }
+
+func (r *runtimeVM) ServeExecContainer(context.Context, *Container, []string, bool, bool, bool, bool) (string, error) {
+	return "", nil
+}
+
+func (r *runtimeVM) ServeAttachContainer(context.Context, *Container, bool, bool, bool) (string, error) {
+	return "", nil
+}
