@@ -1198,6 +1198,10 @@ func (s *Server) createSandboxContainer(ctx context.Context, ctr container.Conta
 		}
 	}
 
+	if err := ctr.SpecInjectCDIDevices(); err != nil {
+		return nil, err
+	}
+
 	// Set up pids limit if pids cgroup is mounted
 	if node.CgroupHasPid() {
 		specgen.SetLinuxResourcesPidsLimit(s.config.PidsLimit)
