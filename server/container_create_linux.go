@@ -26,7 +26,7 @@ import (
 	ctrfactory "github.com/cri-o/cri-o/internal/factory/container"
 	"github.com/cri-o/cri-o/internal/lib/sandbox"
 	"github.com/cri-o/cri-o/internal/log"
-	oci "github.com/cri-o/cri-o/internal/oci"
+	"github.com/cri-o/cri-o/internal/oci"
 	"github.com/cri-o/cri-o/internal/ociartifact"
 	"github.com/cri-o/cri-o/internal/storage"
 	crioann "github.com/cri-o/cri-o/pkg/annotations"
@@ -221,9 +221,9 @@ func (s *Server) addOCIBindMounts(ctx context.Context, ctr ctrfactory.Container,
 					continue
 				}
 
-				// Don't fallback to an image mount if we already encounter an ErrImageVolumeMountFailed error
-				if errors.Is(err, crierrors.ErrImageVolumeMountFailed) {
-					return nil, nil, nil, err
+				// Don't fall back to an image mount if we encounter an error other than ociartifact.ErrNotFound
+				if !errors.Is(err, ociartifact.ErrNotFound) {
+					return nil, nil, nil, fmt.Errorf("%w: %w", crierrors.ErrImageVolumeMountFailed, err)
 				}
 
 				log.Warnf(ctx, "Artifact mount failed, falling back to image mount: %v", err)
