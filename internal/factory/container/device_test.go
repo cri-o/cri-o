@@ -185,7 +185,7 @@ var _ = t.Describe("Container", func() {
 		}
 	})
 
-	t.Describe("SpecAdd(CDI)Devices", func() {
+	t.Describe("SpecInjectCDIDevices", func() {
 		writeCDISpecFiles := func(content []string) error {
 			if len(content) == 0 {
 				return nil
@@ -419,7 +419,7 @@ containerEdits:
 				Expect(writeCDISpecFiles(test.cdiSpecFiles)).To(Succeed())
 
 				// When
-				err := sut.SpecAddDevices(nil, nil, false, false)
+				err := sut.SpecInjectCDIDevices()
 
 				// Then
 				Expect(err != nil).To(Equal(test.expectError))
