@@ -7,12 +7,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/moby/sys/capability"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	v1 "github.com/opencontainers/image-spec/specs-go/v1"
 	rspec "github.com/opencontainers/runtime-spec/specs-go"
-	validate "github.com/opencontainers/runtime-tools/validate/capabilities"
-	"github.com/syndtr/gocapability/capability"
 	types "k8s.io/cri-api/pkg/apis/runtime/v1"
 	kubeletTypes "k8s.io/kubelet/pkg/types"
 
@@ -620,7 +619,9 @@ var _ = t.Describe("Container", func() {
 			Expect(sut.SpecSetupCapabilities(caps, serverCaps, false)).To(Succeed())
 			// `int(validate.LastCap())+1` represents the total number of `ALL` capabilities
 			// in the current environment, while `-1` indicates the removal of `CHOWN` from `ALL`.
-			verifyCapValues(sut.Spec().Config.Process.Capabilities, int(validate.LastCap())+1-1)
+			lastCap, err := capability.LastCap()
+			Expect(err).NotTo(HaveOccurred())
+			verifyCapValues(sut.Spec().Config.Process.Capabilities, int(lastCap)+1-1)
 		})
 		It("AddCapabilities one DropCapabilities ALL should add that one", func() {
 			caps := &types.Capability{
@@ -701,7 +702,7 @@ var _ = t.Describe("Container", func() {
 					},
 				},
 			}
-			expectedSize := len(capability.List())
+			expectedSize := len(capability.ListKnown())
 
 			// When
 			Expect(sut.SetConfig(config, sboxConfig)).To(Succeed())
