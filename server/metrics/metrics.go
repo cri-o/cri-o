@@ -81,6 +81,7 @@ type Metrics struct {
 	metricContainersOOMCountTotal             *prometheus.CounterVec
 	metricContainersSeccompNotifierCountTotal *prometheus.CounterVec
 	metricResourcesStalledAtStage             *prometheus.CounterVec
+	metricContainersStoppedMonitorCount       *prometheus.CounterVec
 }
 
 var instance *Metrics
@@ -237,6 +238,14 @@ func New(config *libconfig.MetricsConfig) *Metrics {
 				Help:      "Resource creation stage pod or container is stalled at.",
 			},
 			[]string{"stage"},
+		),
+		metricContainersStoppedMonitorCount: prometheus.NewCounterVec(
+			prometheus.CounterOpts{
+				Subsystem: collectors.Subsystem,
+				Name:      collectors.ContainersStoppedMonitorCount.String(),
+				Help:      "Amount of containers whose monitor process has exited by their name",
+			},
+			[]string{"name"},
 		),
 	}
 
@@ -425,6 +434,17 @@ func (m *Metrics) MetricResourcesStalledAtStage(stage string) {
 	c.Inc()
 }
 
+func (m *Metrics) MetricContainersStoppedMonitorCountInc(name string) {
+	c, err := m.metricContainersStoppedMonitorCount.GetMetricWithLabelValues(name)
+	if err != nil {
+		logrus.Warnf("Unable to write container stopped monitor count metric: %v", err)
+
+		return
+	}
+
+	c.Inc()
+}
+
 // createEndpoint creates a /metrics endpoint for prometheus monitoring.
 func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 	for collector, metric := range map[collectors.Collector]prometheus.Collector{
@@ -444,6 +464,7 @@ func (m *Metrics) createEndpoint() (*http.ServeMux, error) {
 		collectors.OperationsTotal:                     m.metricOperationsTotal,
 		collectors.ProcessesDefunct:                    m.metricProcessesDefunct,
 		collectors.ResourcesStalledAtStage:             m.metricResourcesStalledAtStage,
+		collectors.ContainersStoppedMonitorCount:       m.metricContainersStoppedMonitorCount,
 	} {
 		if m.config.MetricsCollectors.Contains(collector) {
 			logrus.Debugf("Enabling metric: %s", collector.Stripped())
