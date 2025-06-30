@@ -1340,3 +1340,8 @@ func EncodeKataVirtualVolumeToBase64(ctx context.Context, volume *katavolume.Kat
 func (r *runtimeVM) IsContainerAlive(c *Container) bool {
 	return r.kill(c.ID(), "", 0, false) == nil
 }
+
+func (r *runtimeVM) ProbeMonitor(ctx context.Context, c *Container) error {
+	// Not implemented
+	return nil
+}

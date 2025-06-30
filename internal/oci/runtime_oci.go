@@ -339,7 +339,32 @@ func (r *runtimeOCI) CreateContainer(ctx context.Context, c *Container, cgroupPa
 		return err
 	}
 
+	c.state.ContainerMonitorProcess, err = r.getConmonProcess(c)
+	if err != nil {
+		return err
+	}
+
+	c.SetMonitorProcess(ctx)
+
 	return nil
+}
+
+// getConmonProcess returns the pid and the start time of conmon.
+func (r *runtimeOCI) getConmonProcess(c *Container) (*ContainerMonitorProcess, error) {
+	conmonPid, err := ReadConmonPidFile(c)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read conmon pid: %w", err)
+	}
+
+	startTime, err := getPidStartTime(conmonPid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get conmon pid start time: %w", err)
+	}
+
+	return &ContainerMonitorProcess{
+		Pid:       conmonPid,
+		StartTime: startTime,
+	}, nil
 }
 
 // StartContainer starts a container.
@@ -1145,6 +1170,7 @@ func (r *runtimeOCI) UpdateContainerStatus(ctx context.Context, c *Container) er
 
 	if state.Status != ContainerStateStopped {
 		*c.state = *state
+		c.SetMonitorProcess(ctx)
 
 		return nil
 	}
@@ -1721,4 +1747,24 @@ func (r *runtimeOCI) checkpointRestoreSupported(runtimePath string) error {
 
 func (r *runtimeOCI) IsContainerAlive(c *Container) bool {
 	return c.Living() == nil
+}
+
+func (r *runtimeOCI) ProbeMonitor(ctx context.Context, c *Container) error {
+	if c.monitorProcess == nil {
+		// It's possible when the container has existed before crio was updated.
+		// TODO(atokubi): remove this conditional in 1.35 because we don't support
+		//  1.33->1.35 in place cri-o update without node reboot
+		return nil
+	}
+
+	if err := c.monitorProcess.Signal(syscall.Signal(0)); !errors.Is(err, os.ErrProcessDone) {
+		return err
+	}
+
+	if r.IsContainerAlive(c) {
+		metrics.Instance().MetricContainersStoppedMonitorCountInc(c.Name())
+		log.Errorf(ctx, "Conmon for container %s is stopped, although the container is running", c.ID())
+	}
+
+	return nil
 }

@@ -63,6 +63,9 @@ const (
 
 	// ResourcesStalledAtStage is the key for the resources stalled at different stages in container and pod creation.
 	ResourcesStalledAtStage Collector = crioPrefix + "resources_stalled_at_stage"
+
+	// ContainersStoppedMonitorCount is the key for the containers whose monitor is stopped per container name.
+	ContainersStoppedMonitorCount Collector = crioPrefix + "containers_stopped_monitor_count"
 )
 
 // FromSlice converts a string slice to a Collectors type.
@@ -103,6 +106,7 @@ func All() Collectors {
 		ContainersOOMCountTotal.Stripped(),
 		ContainersSeccompNotifierCountTotal.Stripped(),
 		ResourcesStalledAtStage.Stripped(),
+		ContainersStoppedMonitorCount.Stripped(),
 	}
 }
 
