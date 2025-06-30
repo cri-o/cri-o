@@ -89,7 +89,7 @@ var _ = t.Describe("Oci", func() {
 
 			// When
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, shortTimeout)
 			<-stoppedChan
 
@@ -110,7 +110,7 @@ var _ = t.Describe("Oci", func() {
 				),
 			)
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
@@ -119,7 +119,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// Then
 			waitOnContainerTimeout(sut, shortTimeout, mediumTimeout, sleepProcess)
@@ -128,7 +128,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 			go sut.WaitOnStopTimeout(context.Background(), longTimeout)
 
 			// Then
@@ -139,7 +139,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 
 			// When
 			shortStopChan := stopTimeoutWithChannel(context.Background(), sut, shortTimeout)
@@ -152,7 +152,7 @@ var _ = t.Describe("Oci", func() {
 			// Given
 			containerIgnoreSignalCmdrunnerMock(sleepProcess, runner)
 			sut.SetAsStopping()
-			go runtime.StopLoopForContainer(sut, bm)
+			go runtime.StopLoopForContainer(context.Background(), sut, bm)
 			// very long timeout
 			stoppedChan := stopTimeoutWithChannel(context.Background(), sut, longTimeout*10)
 
