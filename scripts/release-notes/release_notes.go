@@ -227,7 +227,7 @@ To verify the bill of materials (SBOM) in [SPDX](https://spdx.org) format using 
 		bundleVersion, bundleVersion, bundleVersion,
 		startTag,
 	); err != nil {
-		return fmt.Errorf("writing tmplate to file: %w", err)
+		return fmt.Errorf("writing template to file: %w", err)
 	}
 
 	logrus.Infof("Generating release notes")

@@ -1287,7 +1287,7 @@ const templateStringCrioRuntimeRuntimesRuntimeHandler = `# The "crio.runtime.run
 #   Replaces deprecated option "conmon_cgroup".
 # - monitor_exec_cgroup (optional, string): If set to "container", indicates exec probes
 #   should be moved to the container's cgroup
-# - monitor_env (optional, array of strings): Environment variables to pass to the montior.
+# - monitor_env (optional, array of strings): Environment variables to pass to the monitor.
 #   Replaces deprecated option "conmon_env".
 # - platform_runtime_paths (optional, map): A mapping of platforms to the corresponding
 #   runtime executable paths for the runtime handler.

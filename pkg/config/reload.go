@@ -328,7 +328,7 @@ func (c *Config) ReloadRuntimes(newConfig *Config) error {
 	}
 
 	if err := c.ValidateRuntimes(); err != nil {
-		return fmt.Errorf("unabled to reload runtimes: %w", err)
+		return fmt.Errorf("unable to reload runtimes: %w", err)
 	}
 
 	return nil
