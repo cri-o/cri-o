@@ -24,6 +24,7 @@ extend-ignore-re = [
     "ClosID",
     "stopp",
     "f0ZSIOvlD7vv5lOifRFivd680XjxIATWqwJARJ35QFUl9DiRuhPnDYok8Cj9PT8A",
+    "CONTAINER_INCLUDED_POD_METRCIS",
 ]
 
 [type.sh]

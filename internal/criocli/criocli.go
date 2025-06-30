@@ -1325,10 +1325,13 @@ func getCrioFlags(defConf *libconfig.Config) []cli.Flag {
 			EnvVars: []string{"COLLECTION_PERIOD"},
 		},
 		&cli.StringSliceFlag{
-			Name:    "included-pod-metrics",
-			Usage:   "A list of pod metrics to include. Specify the names of the metrics to include in this list.",
-			EnvVars: []string{"CONTAINER_INCLUDED_POD_METRCIS"},
-			Value:   cli.NewStringSlice(defConf.IncludedPodMetrics...),
+			Name:  "included-pod-metrics",
+			Usage: "A list of pod metrics to include. Specify the names of the metrics to include in this list.",
+			EnvVars: []string{
+				"CONTAINER_INCLUDED_POD_METRCIS", // TODO: This typo'ed variable is deprecated and can be removed in a future release.
+				"CONTAINER_INCLUDED_POD_METRICS",
+			},
+			Value: cli.NewStringSlice(defConf.IncludedPodMetrics...),
 		},
 		&cli.BoolFlag{
 			Name:    "enable-criu-support",
